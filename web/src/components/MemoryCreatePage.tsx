@@ -117,6 +117,19 @@ export function MemoryCreatePage({
   const dirty = Boolean(
     title || body || attachments.items.length || happenedOn !== initialDate,
   );
+  // null when happenedOn cannot be parsed (e.g. an out-of-range year the
+  // native date input accepted via direct keyboard entry): the editable
+  // input stays shown rather than risking a throw from the summary format.
+  const dateSummaryText = useMemo(() => {
+    try {
+      return formatDateSummary(
+        effectiveDateInputValue(happenedOn),
+        resolvedLocale(),
+      );
+    } catch {
+      return null;
+    }
+  }, [happenedOn]);
   const exitAction = useRef<(() => void) | null>(null);
   const onClose = useCallback(() => {
     if (!owner.current.active) return;
@@ -327,7 +340,7 @@ export function MemoryCreatePage({
 
             <div className="field-group immersive-create-date-field">
               <span id="happenedOn-label">{t('memory.dateLabel')}</span>
-              {dateEditorOpen ? (
+              {dateEditorOpen || dateSummaryText === null ? (
                 <input
                   ref={dateInputRef}
                   id="happenedOn"
@@ -343,9 +356,7 @@ export function MemoryCreatePage({
                     setHappenedOn(event.target.value);
                     setInvalidDate(false);
                   }}
-                  onBlur={() => {
-                    if (!invalidDate) setDateEditorOpen(false);
-                  }}
+                  onBlur={() => setDateEditorOpen(false)}
                 />
               ) : (
                 <button
@@ -354,12 +365,7 @@ export function MemoryCreatePage({
                   aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
                   onClick={() => setDateEditorOpen(true)}
                 >
-                  <span id="happenedOn-summary-value">
-                    {formatDateSummary(
-                      effectiveDateInputValue(happenedOn),
-                      resolvedLocale(),
-                    )}
-                  </span>
+                  <span id="happenedOn-summary-value">{dateSummaryText}</span>
                   <span
                     id="happenedOn-summary-change"
                     className="immersive-create-date-change"

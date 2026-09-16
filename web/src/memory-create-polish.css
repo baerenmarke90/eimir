@@ -318,7 +318,10 @@
   .immersive-create-card[aria-labelledby="memory-form-heading"]
   .immersive-create-date-change {
   flex: 0 0 auto;
-  color: var(--color-brand-strong);
+  /* --color-brand-text is the role calibrated for text-on-page contrast in
+     both themes; --color-brand-strong is a fill/background role and fails
+     normal-text contrast against the dark date-summary surface. */
+  color: var(--color-brand-text);
   font-weight: 700;
 }
 
@@ -342,6 +345,14 @@
     .immersive-create-date-summary:hover {
     background: var(--color-surface);
     border-color: var(--color-border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-date-summary {
+    transition: none;
   }
 }
 

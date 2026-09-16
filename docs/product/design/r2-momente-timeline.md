@@ -90,4 +90,29 @@ No new dependency is introduced on either platform. Web: month grouping reuses t
 
 ## Delivery and validation
 
-_Recorded incrementally as implementation proceeds; final commit/build identities, CI results and evidence are appended here before the PR is opened._
+Recorded on `feat/966-r2-momente-timeline` at `47fcecf55a9f329cee72fc57f4a953453c2d9068`.
+
+### Web
+
+- `npm run typecheck`, `npm run lint` (Biome) and `npm run format:check` pass with zero errors/warnings on the changed files.
+- `npx vitest run`: **860/860 passed, 1 pre-existing skip** (up from the R1 baseline of 850; +10 new tests covering Timeline month grouping, Search-origin restore, and Heart Moment/Milestone origin-aware Back).
+- `npm run build` (token check + `tsc -b` + `vite build`) succeeds; output retains the same pre-existing `"use client"`/chunk-size warnings as the R1 baseline, no new ones.
+- New evidence spec `r2-momente-timeline-evidence.spec.ts`, run with `--workers=1`: **10/10 scenarios passed**, covering month-heading structure/order, the order filter, Heart Moment/Milestone Back-with-scope, Search-origin restore, Search deep-linking for Heart Moment/Milestone, 320 px reflow, Light/Dark and reduced motion.
+- Full existing Playwright suite, run with `--workers=1`: **311/316 passed**. The 5 failures (`f2-task-boundaries.spec.ts` large-text/short-viewport case; four `planning-reference.spec.ts` timed/cross-day range cases) are pre-existing on unmodified `origin/main` — reproduced identically in a clean worktree at `0e16c8e4` with no R2 changes applied, entirely inside the Planning domain this slice never touches. Not a regression from this branch.
+- `tools/ci/engineering_language_audit.py` and `tools/ci/documentation_language_audit.py` both pass clean; the backend's `test_engineering_language_audit.py` suite (22 tests) passes.
+- Visual evidence: `evidence/r2/` — Timeline month headings at 390/320/1280 px, Light/Dark, and reduced motion, all showing real semantic month headings with no surrounding card, correct per-kind composition (photo memory, milestone accent bar, Heart Moment quote), and no horizontal overflow at 320 px. Manually inspected.
+
+### Android
+
+- `./gradlew :app:compileDebugKotlin`: succeeds with zero new warnings (all pre-existing `createComposeRule`/non-null-assertion warnings unchanged).
+- `./gradlew :app:testDebugUnitTest`: **612/612 passed, 1 pre-existing skip** (up from the R1 baseline of 599; +13 new tests covering month grouping, the Discover peer mode's independence from Timeline's applied scope, and the order filter).
+- `./gradlew :app:lintDebug`: **0 errors, 54 warnings** — identical count to a clean pre-R2 baseline measured on the same machine (confirmed via `git stash`); no new warning in any touched file.
+- `./gradlew :app:assembleDebug`: succeeds.
+- **Native device/emulator visual and interaction evidence (System Back, TalkBack, large text, orientation, Light/Dark, representative Compact sizes) was not captured in this PR.** The user's Pixel was not available this session (explicitly declined when asked). A throwaway local Robolectric `@GraphicsMode(NATIVE)` render (not committed, per this repo's own convention for such fixtures) was used to visually sanity-check the new Discover tab and month-heading composition before removal; it confirmed no visual defect but is not a substitute for on-device System Back/TalkBack/IME/rotation acceptance. This is an explicit, tracked gap, not a silent omission — see Known limitations below, matching R1's precedent for the same constraint.
+
+### Known limitations / follow-ups
+
+- Android native device/emulator visual and interaction evidence is outstanding and should be completed on the physical Pixel before Product Owner acceptance of the Android side, the same tracked gap R1 left open for its own Android delivery.
+- Native Discover is deliberately a single bounded unfiltered page with an explicit continuation into Timeline, not a second independent pagination stream or a tapestry/masonry grid — a platform-native adaptation, not parity with Web's Discover composition. If a richer native Discover composition is wanted later, that is separate scope.
+- `aggregateStoryPages`' lack of client-side item-id de-duplication and Android's per-kind `Surface` card treatment were reviewed and are not demonstrated defects; no change was made to either (see the current-implementation inventory above).
+- The Web evidence spec mocks the Timeline/Search/detail contract with synthetic transport, consistent with the existing R1/F2 evidence-spec convention; it is not a live-backend persistence test.

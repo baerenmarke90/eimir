@@ -114,6 +114,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('Memory capture mutation ownership', () => {
+  it('keeps Save disabled and sends no request for a completely empty capture', () => {
+    setup();
+    const save = screen.getByRole('button', {
+      name: de.memory.save,
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    submit();
+    expect(fixture.create).not.toHaveBeenCalled();
+    enterTitle();
+    expect(save.disabled).toBe(false);
+  });
   it('locks duplicate submission and opens the confirmed result despite failed projection invalidation', async () => {
     const response = deferred<MemoryDetail>();
     fixture.create.mockReturnValue(response.promise);

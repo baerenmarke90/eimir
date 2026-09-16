@@ -284,7 +284,9 @@ fun ReferenceFlowScreen(
                     }
                     if (task == null || task.editable || task.pending) Button(
                         onClick = { onCreateMemory(title, body, happenedOn) },
-                        enabled = editable && (embedded || title.isNotBlank()) && imagesReadyToSave,
+                        enabled = editable &&
+                            (if (embedded) title.isNotBlank() || body.isNotBlank() || state.draftImages.isNotEmpty() else title.isNotBlank()) &&
+                            imagesReadyToSave,
                         modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("memory-create-save"),
                     ) {
                         Text(

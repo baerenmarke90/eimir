@@ -2,7 +2,7 @@
 
 **Owner:** [#964](https://github.com/baerenmarke90/eimir/issues/964), within the #955 program.  
 **Authority:** [Product Reference v1](product-reference-v1.md), [R1 reference experience](reference-screens.md#r1--neuer-moment), [system direction](design-system-direction.md), and the accepted F1/F2 contracts.  
-**Status:** implementation and exact-build evidence complete; Product Owner visual/interaction acceptance remains the merge gate.
+**Status:** implementation and exact-build evidence complete; Product Owner visual/interaction review accepted; final required CI remains the merge gate.
 
 ## Fresh baseline and ownership
 
@@ -40,6 +40,8 @@ Branch `feat/964-r1-memory-capture` started from fresh `origin/main` at `6ca1df8
 
 The finished composition removes the form-card/details-first presentation and makes photo/narrative first-class. Title remains optional. `dateInput.ts` adds only a localized summary helper; the existing native date input and picker behavior remain. `MemoryProductPage` remains the canonical read result and is not replaced by a second result surface.
 
+The task heading keeps its programmatic `tabIndex=-1` focus transfer for assistive technology, while the browser's misleading default focus rectangle around the entire non-interactive header is suppressed. Interactive controls retain their normal focus treatment.
+
 ### Android
 
 The affected native capture branch in `ReferenceFlowScreen` / `MemoryCreateScreen` is recomposed as photo → narrative → optional title → date → shared audience → Save. Existing Navigation Compose ownership, system Photo Picker, ViewModel/task state, upload/bind behavior, uncertain/partial recovery and canonical `MemoryScreen` result are retained.
@@ -61,7 +63,7 @@ Web reuses native `<input type="date">`, `showPicker()`, the existing file picke
 - **Security / authorization / tenant boundaries:** unchanged; the same account/Space-scoped APIs and canonical capability checks remain.
 - **Privacy / draft / media lifecycle:** unchanged; no draft/media payload, token or presigned URL is added to logs, analytics, history or general storage.
 - **i18n / dates:** Web uses the existing locale resolution; Android uses the platform localized date formatter. New user-facing strings remain in the established localization resources.
-- **Accessibility:** persistent labels, touch targets, focus/semantics, large text and reduced-motion behavior are covered by tests/evidence. No essential gesture-only control is added.
+- **Accessibility:** persistent labels, touch targets, focus/semantics, large text and reduced-motion behavior are covered by tests/evidence. No essential gesture-only control is added. The programmatic heading focus remains in place without presenting a false interactive focus frame.
 - **Concurrency:** F2 generation/session ownership and duplicate-submit locking remain in place; stale completion cannot clear newer work.
 - **Resilience:** offline-before-submit, validation rejection, partial association and uncertain outcome remain distinct states. Unknown create is not blindly retried.
 - **Observability / performance:** no content logging or new runtime dependency; the composition reduces wrapper/form chrome rather than adding a new framework.
@@ -75,15 +77,16 @@ Web reuses native `<input type="date">`, `showPicker()`, the existing file picke
 - Vitest: **850/850 passed**, with the existing single skip unchanged.
 - Focused R1/F2 Playwright validation: **101/101 scenarios passed** before PR CI; the full repository Web Browser QA is also required on the final submitted head.
 - The finished composition revalidates F2 dirty/pending/uncertain/partial/duplicate-submit/offline/late-response/origin-return behavior instead of introducing a second lifecycle.
-- Exact-build evidence under `docs/product/design/evidence/r1/` covers 320/360/390/430/1280, Light/Dark, text-only, title-only, photo-only, mixed, date editing, 200% text, reduced motion and confirmed canonical result.
-- Validation found and fixed an invalid-date `RangeError`, insufficient Dark-mode contrast on the date change action, and the missing reduced-motion override for that control.
+- Final exact-build evidence under `docs/product/design/evidence/r1/` was generated from Web source commit `34c770006bb191b75c099b59e02da3f16ef8021d` and covers 320/360/390/430/1280, Light/Dark, text-only, title-only, photo-only, mixed, date editing, 200% text, reduced motion and confirmed canonical result. The committed `r1-web-source-commit.txt` records the same source revision.
+- The final R1 evidence spec completed **19/19** scenarios after the heading-focus visual polish. Representative Compact, Expanded, Dark, 200% text and canonical-result captures were reviewed against Product Reference v1.
+- Validation found and fixed an invalid-date `RangeError`, insufficient Dark-mode contrast on the date change action, the missing reduced-motion override for that control, empty-capture submission on Web/Android, and the misleading browser focus rectangle around the programmatically focused non-interactive Web task heading.
 
 ### Android
 
 - `./gradlew :app:testDebugUnitTest`: **599/599 passed**, with the existing single skip unchanged.
 - `./gradlew :app:lintDebug`: **0 errors**; touched code introduced no new warning.
 - `./gradlew :app:assembleDebug`: succeeds.
-- Exact-build emulator evidence is committed under `docs/product/design/evidence/r1/android/` for the R1 implementation source commit `a7446414cf78608d4799383c1d9a5ad4ce81c044`; the recorded debug APK SHA-256 is `195ced61e610722780aea49e0d4c5cbf7f6170cf54d79eb92d73dc66743854df`.
+- Final exact-build emulator evidence is committed under `docs/product/design/evidence/r1/android/` for Android implementation source commit `426ac8b545cda81b38f8ffa7ce965d197305ab3f`; the recorded debug APK SHA-256 is `e98b915a236af897684c15976a7a62b9577cff9eac32166b829ddb54e07224a0`.
 - The recorded matrix covers Compact 320/360/390/430 and representative 1280 in Light/Dark, System Back, dirty discard/keep, pending exit, picker open/cancel, IME/insets, rotation/draft retention, confirmed result/Back, offline/rejected/uncertain/refresh-failure states, scoped return, 200% text/reduced animation and 48 dp touch targets.
 - `r1-android-behavior-report.json` records the exact capture hashes and behavioral outcomes rather than inferring behavior from screenshots.
 - TalkBack was genuinely enabled on the emulator (`TalkBackService` bound, enabled and touch exploration active) and the service/dumpsys/UI evidence is retained. The headless automation does **not** claim a complete spoken linear-navigation transcript; that tooling limitation is explicit and is not being represented as stronger manual accessibility evidence than was actually captured.
@@ -96,4 +99,4 @@ Web reuses native `<input type="date">`, `showPicker()`, the existing file picke
 
 ## Acceptance
 
-R1 is ready for Product Owner review only when the final PR head has all required CI green and the submitted visual/interaction evidence is reviewed against Product Reference v1. Merge remains a separate explicit Product Owner decision.
+The submitted Web and Android visual/interaction evidence is accepted against Product Reference v1 for R1. Merge remains blocked until the final human-authored PR head has all required CI green and the Product Owner gives a separate explicit merge authorization.

@@ -202,29 +202,25 @@ describe('shared form controls', () => {
   });
 });
 
-describe('Memory Create disclosure material stability (#888)', () => {
-  it('keeps optional-details resting material identical between closed and open states', () => {
-    expect(memoryPolishCss).not.toMatch(
-      /\.immersive-create-details\[open\]\s*>\s*summary\s*\{[^}]*(?:background|color|border)/s,
-    );
-    expect(memoryPolishCss).toMatch(
-      /\.immersive-create-details\[open\]\s+\.summary-chevron\s*\{[^}]*transform:\s*rotate\(90deg\);/s,
-    );
+describe('Memory Create R1 composition regressions (#964)', () => {
+  it('removes the retired generic optional-details disclosure surface', () => {
+    // #964 moves narrative and date out of a generic "more details" disclosure;
+    // the disclosure and its chevron/summary polish are retired, not reused.
+    expect(memoryPolishCss).not.toMatch(/\.immersive-create-details\b/s);
+    expect(memoryPolishCss).not.toMatch(/\.summary-chevron\b/s);
   });
 
-  it('scopes hover feedback to fine-pointer and hover-capable devices to prevent sticky hover on touch', () => {
-    // Unscoped summary:hover must not exist outside media query
+  it('scopes date-summary hover feedback to fine-pointer and hover-capable devices to prevent sticky hover on touch', () => {
     const withoutHoverMedia = memoryPolishCss.replace(
       /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\n\}/g,
       '',
     );
     expect(withoutHoverMedia).not.toMatch(
-      /\.immersive-create-details\s*>\s*summary:hover/s,
+      /\.immersive-create-date-summary:hover/s,
     );
 
-    // Scoped hover rule must exist inside (hover: hover) and (pointer: fine)
     expect(memoryPolishCss).toMatch(
-      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\.immersive-create-details\s*>\s*summary:hover\s*\{[\s\S]*?background:\s*var\(--color-surface\);[\s\S]*?\.summary-add-icon/s,
+      /@media\s*\(\s*hover:\s*hover\s*\)\s*and\s*\(\s*pointer:\s*fine\s*\)\s*\{[\s\S]*?\.immersive-create-date-summary:hover\s*\{[\s\S]*?background:\s*var\(--color-surface\);/s,
     );
   });
 });

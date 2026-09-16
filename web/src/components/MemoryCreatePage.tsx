@@ -15,6 +15,7 @@ import {
   dateInputValueToApiDate,
   effectiveDateInputValue,
   formatDateInputValue,
+  formatDateSummary,
   localDateInputValue,
 } from '../client/dateInput';
 import {
@@ -33,7 +34,7 @@ import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
-import { AddIcon, DestinationIcon } from './DestinationIcon';
+import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
@@ -66,7 +67,7 @@ export function MemoryCreatePage({
   const [body, setBody] = useState('');
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
-  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const [dateEditorOpen, setDateEditorOpen] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
@@ -90,6 +91,17 @@ export function MemoryCreatePage({
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
+  useEffect(() => {
+    if (!dateEditorOpen) return;
+    const field = dateInputRef.current;
+    field?.focus();
+    try {
+      field?.showPicker?.();
+    } catch {
+      // Some browsers reject showPicker() outside a trusted gesture; the
+      // focused native input remains fully usable via the keyboard.
+    }
+  }, [dateEditorOpen]);
   const apis = useMemo(
     () => createReferenceApis(apiBaseUrl, accessToken),
     [apiBaseUrl, accessToken],
@@ -177,7 +189,7 @@ export function MemoryCreatePage({
     } catch {
       // No request has started: retain an editable draft, never an uncertain save.
       setInvalidDate(true);
-      if (detailsRef.current) detailsRef.current.open = true;
+      setDateEditorOpen(true);
       dateInputRef.current?.focus();
       return;
     }
@@ -274,20 +286,6 @@ export function MemoryCreatePage({
             disabled={pending || Boolean(partial) || uncertain}
           >
             <legend className="sr-only">{t('memory.formAria')}</legend>
-            <div className="immersive-create-hero">
-              <label htmlFor="title" className="sr-only">
-                {t('memory.titleLabel')}
-              </label>
-              <input
-                id="title"
-                name="title"
-                maxLength={200}
-                placeholder={t('memory.titlePlaceholder')}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="immersive-create-title"
-              />
-            </div>
 
             <div className="immersive-create-media">
               <AttachmentDraftPicker
@@ -297,56 +295,86 @@ export function MemoryCreatePage({
               />
             </div>
 
-            <details ref={detailsRef} className="immersive-create-details">
-              <summary className="immersive-create-details-summary">
-                <span className="summary-left">
-                  <AddIcon className="summary-add-icon" />
-                  <span className="summary-label">
-                    {t('memory.addMoreDetails')}
+            <div className="field-group immersive-create-narrative">
+              <label htmlFor="body">{t('memory.bodyLabel')}</label>
+              <textarea
+                id="body"
+                name="body"
+                value={body}
+                onChange={(event) => {
+                  setBody(event.target.value);
+                  const field = event.target;
+                  field.style.height = 'auto';
+                  field.style.height = `${field.scrollHeight}px`;
+                }}
+                rows={2}
+                placeholder={t('memory.bodyPlaceholder')}
+              />
+            </div>
+
+            <div className="field-group immersive-create-title-field">
+              <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
+              <input
+                id="title"
+                name="title"
+                maxLength={200}
+                placeholder={t('memory.titlePlaceholder')}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className="immersive-create-title-input"
+              />
+            </div>
+
+            <div className="field-group immersive-create-date-field">
+              <span id="happenedOn-label">{t('memory.dateLabel')}</span>
+              {dateEditorOpen ? (
+                <input
+                  ref={dateInputRef}
+                  id="happenedOn"
+                  aria-labelledby="happenedOn-label"
+                  aria-invalid={invalidDate || undefined}
+                  aria-describedby={
+                    invalidDate ? 'memory-date-error' : undefined
+                  }
+                  name="happenedOn"
+                  type="date"
+                  value={happenedOn}
+                  onChange={(event) => {
+                    setHappenedOn(event.target.value);
+                    setInvalidDate(false);
+                  }}
+                  onBlur={() => {
+                    if (!invalidDate) setDateEditorOpen(false);
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="immersive-create-date-summary"
+                  aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
+                  onClick={() => setDateEditorOpen(true)}
+                >
+                  <span id="happenedOn-summary-value">
+                    {formatDateSummary(
+                      effectiveDateInputValue(happenedOn),
+                      resolvedLocale(),
+                    )}
                   </span>
-                </span>
-                <span className="summary-chevron" aria-hidden="true">
-                  ›
-                </span>
-              </summary>
-              <div className="immersive-create-details-content">
-                <div className="field-group">
-                  <label htmlFor="body">{t('memory.bodyLabel')}</label>
-                  <textarea
-                    id="body"
-                    name="body"
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    rows={4}
-                    placeholder={t('memory.bodyPlaceholder')}
-                  />
-                </div>
-                <div className="field-group">
-                  <label htmlFor="happenedOn">{t('memory.dateLabel')}</label>
-                  <input
-                    ref={dateInputRef}
-                    id="happenedOn"
-                    aria-invalid={invalidDate || undefined}
-                    aria-describedby={
-                      invalidDate ? 'memory-date-error' : undefined
-                    }
-                    name="happenedOn"
-                    type="date"
-                    value={happenedOn}
-                    onChange={(event) => {
-                      setHappenedOn(event.target.value);
-                      setInvalidDate(false);
-                    }}
-                  />
-                  {invalidDate ? (
-                    <p id="memory-date-error" role="alert">
-                      {t('taskBoundary.invalidDate')}
-                    </p>
-                  ) : null}
-                  <p className="field-help">{t('memory.dateHelp')}</p>
-                </div>
-              </div>
-            </details>
+                  <span
+                    id="happenedOn-summary-change"
+                    className="immersive-create-date-change"
+                  >
+                    {t('memory.dateChangeAction')}
+                  </span>
+                </button>
+              )}
+              {invalidDate ? (
+                <p id="memory-date-error" role="alert">
+                  {t('taskBoundary.invalidDate')}
+                </p>
+              ) : null}
+              <p className="field-help">{t('memory.dateHelp')}</p>
+            </div>
 
             <div
               className="sharing-note immersive-sharing-note"

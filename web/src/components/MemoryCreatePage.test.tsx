@@ -95,7 +95,7 @@ function setup(onSaved = vi.fn().mockResolvedValue(undefined)) {
   };
 }
 const titleInput = () =>
-  screen.getByLabelText(de.memory.titleLabel) as HTMLInputElement;
+  screen.getByLabelText(de.memory.titleLabelOptional) as HTMLInputElement;
 function enterTitle(value = 'Our evening') {
   fireEvent.change(titleInput(), { target: { value } });
 }
@@ -140,12 +140,14 @@ describe('Memory capture mutation ownership', () => {
     fixture.create.mockResolvedValue(confirmed);
     setup();
     enterTitle();
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(de.memory.dateLabel) }),
+    );
     const date = screen.getByLabelText(de.memory.dateLabel) as HTMLInputElement;
     fireEvent.change(date, { target: { value: '10000-01-01' } });
     submit();
     expect(screen.getByText(taskBoundary.invalidDate)).toBeTruthy();
     expect(date.getAttribute('aria-invalid')).toBe('true');
-    expect(date.closest('details')?.open).toBe(true);
     expect(date.closest('fieldset')?.disabled).toBe(false);
     expect(document.activeElement).toBe(date);
     expect(fixture.create).not.toHaveBeenCalled();

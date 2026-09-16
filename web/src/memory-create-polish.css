@@ -1,5 +1,6 @@
 /*
- * Memory Create composition polish (#855).
+ * Memory Create composition polish (#855), extended for the R1 content-first
+ * hierarchy (#964).
  *
  * This layer deliberately reuses the established immersive-create and
  * AttachmentDraftPicker primitives. It only changes their composition on the
@@ -198,30 +199,95 @@
 }
 
 /*
- * Optional details styled as a calm rounded secondary disclosure control (#881, #888).
+ * R1 content-first hierarchy (#964).
  *
- * Keeps native <details>/<summary> semantics while providing a full-width,
- * touch-target-compliant (44px min-height) secondary surface with AddIcon and chevron.
- * Resting surface material remains stable when opened (#888); state is communicated
- * by chevron rotation and revealed content rather than a surface/color jump.
- * Hover feedback is strictly scoped to fine-pointer / hover-capable devices so
- * touch interactions never produce sticky hover material on hardware.
+ * Photo action / selected media leads, then the always-visible narrative
+ * field, then a demoted optional title, then a local-date summary with its
+ * own discoverable change action. The previous generic "add more details"
+ * disclosure is removed: narrative and date are no longer hidden behind it.
  */
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
-  min-width: 0;
+  .immersive-create-narrative
+  label {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  > summary {
+  .immersive-create-narrative
+  textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  box-sizing: border-box;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: var(--space-3) var(--space-4);
+  transition: border-color var(--motion-fast);
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-narrative
+  textarea:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-title-field
+  label {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.95rem;
+  padding: var(--space-2) var(--space-3);
+  min-height: 44px;
+  transition: border-color var(--motion-fast);
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-title-input:focus {
+  outline: none;
+  border-color: var(--color-brand);
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-date-field
+  > span:first-child {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-date-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -232,42 +298,17 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-medium);
   background: var(--color-surface-subtle);
-  color: var(--color-text-secondary);
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.35;
+  color: var(--color-text);
+  font-size: 0.92rem;
   cursor: pointer;
-  list-style: none;
-  user-select: none;
   transition:
     background-color var(--motion-fast),
-    border-color var(--motion-fast),
-    color var(--motion-fast);
+    border-color var(--motion-fast);
 }
 
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  > summary::-webkit-details-marker,
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  > summary::marker {
-  display: none;
-}
-
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  > summary:active {
-  background: var(--color-surface-panel-tint);
-  border-color: var(--color-border);
-}
-
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  > summary:focus-visible {
+  .immersive-create-date-summary:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
   border-color: var(--color-focus);
@@ -275,89 +316,72 @@
 
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  .summary-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  .summary-add-icon {
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 1rem;
-  color: var(--color-text-tertiary);
-  transition: color var(--motion-fast);
-}
-
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  .summary-label {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.create-page
-  .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details
-  .summary-chevron {
+  .immersive-create-date-change {
   flex: 0 0 auto;
-  font-size: 1.15rem;
-  line-height: 1;
-  color: var(--color-text-tertiary);
-  display: inline-block;
-  transform: rotate(0deg);
-  transition:
-    transform var(--motion-fast),
-    color var(--motion-fast);
+  color: var(--color-brand-strong);
+  font-weight: 700;
 }
 
 .create-page
   .immersive-create-card[aria-labelledby="memory-form-heading"]
-  .immersive-create-details[open]
-  .summary-chevron {
-  transform: rotate(90deg);
+  .immersive-create-date-field
+  input[type="date"] {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    > summary:hover {
+    .immersive-create-date-summary:hover {
     background: var(--color-surface);
     border-color: var(--color-border);
-    color: var(--color-text);
-  }
-
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    > summary:hover
-    .summary-add-icon {
-    color: var(--color-text-secondary);
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    > summary,
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    .summary-add-icon,
-  .create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    .summary-chevron {
-    transition: none;
-  }
+/*
+ * Selected media becomes the focal image (#964). A single photo grows to a
+ * genuine hero image instead of a compact list row; several photos keep the
+ * compact row but gain a little more presence than the shared default.
+ */
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-media
+  .attachment-preview-wrap {
+  width: 7rem;
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-media
+  .attachment-draft-list:has(.attachment-draft-item:only-child)
+  .attachment-draft-item {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto;
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-media
+  .attachment-draft-list:has(.attachment-draft-item:only-child)
+  .attachment-preview-wrap {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-large);
+}
+
+.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"]
+  .immersive-create-media
+  .attachment-draft-list:has(.attachment-draft-item:only-child)
+  .attachment-draft-actions {
+  justify-content: flex-start;
 }
 
 @media (max-width: 620px) {

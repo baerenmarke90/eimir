@@ -25,7 +25,8 @@
   flex-wrap: wrap;
 }
 
-.memory-task-page .file-picker small {
+.memory-task-page .file-picker small,
+.memory-task-page .field-help {
   color: var(--color-text-secondary);
 }
 
@@ -83,5 +84,11 @@
     .immersive-create-card[aria-labelledby="memory-form-heading"]
     input[type="date"] {
     padding-inline: var(--space-1);
+  }
+
+  /* At 200% zoom the compact action stack needs the same denser rhythm as
+   * the rest of the R1 composer so both actions remain in the first viewport. */
+  .memory-task-page .form-actions {
+    gap: var(--space-1);
   }
 }

@@ -117,6 +117,9 @@ export function MemoryCreatePage({
   const dirty = Boolean(
     title || body || attachments.items.length || happenedOn !== initialDate,
   );
+  const hasUserContent = Boolean(
+    title.trim() || body.trim() || attachments.items.length,
+  );
   // null when happenedOn cannot be parsed (e.g. an out-of-range year the
   // native date input accepted via direct keyboard entry): the editable
   // input stays shown rather than risking a throw from the summary format.
@@ -185,6 +188,7 @@ export function MemoryCreatePage({
 
   async function save() {
     if (
+      !hasUserContent ||
       owner.current.pending ||
       uncertain ||
       attachments.hasPending ||
@@ -408,6 +412,7 @@ export function MemoryCreatePage({
             <button
               type="submit"
               disabled={
+                !hasUserContent ||
                 pending ||
                 uncertain ||
                 attachments.hasPending ||

@@ -350,7 +350,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     const axeResult = await new AxeBuilder({ page })
       .include('.immersive-sharing-note')
-      .include('.immersive-create-details')
+      .include('.immersive-create-narrative')
+      .include('.immersive-create-title-field')
+      .include('.immersive-create-date-field')
       .withTags([
         'wcag2a',
         'wcag2aa',
@@ -386,10 +388,13 @@ for (const width of [390, 320] as const) {
 
       await expectSharingMetadataAligned(page);
 
-      const title = page.getByLabel(de.memory.titleLabel);
+      const title = page.getByLabel(de.memory.titleLabelOptional);
       const media = page.locator('.immersive-create-media');
       const picker = media.locator('.file-picker');
-      const details = page.locator('.immersive-create-details');
+      const narrative = page.locator('.immersive-create-narrative');
+      const titleField = page.locator('.immersive-create-title-field');
+      const dateField = page.locator('.immersive-create-date-field');
+      const dateSummary = dateField.locator('.immersive-create-date-summary');
       const note = page.locator('.immersive-sharing-note');
       const actions = page.locator('.form-actions');
       const saveButton = page.getByRole('button', { name: de.memory.save });
@@ -404,18 +409,21 @@ for (const width of [390, 320] as const) {
         // Assert content order independently of that task ownership boundary.
         const children = Array.from(
           form.querySelectorAll(
-            '.immersive-create-hero, .immersive-create-media, .immersive-create-details, .immersive-sharing-note, .form-actions',
+            '.immersive-create-media, .immersive-create-narrative, .immersive-create-title-field, .immersive-create-date-field, .immersive-sharing-note, .form-actions',
           ),
         );
         return {
-          titleIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-hero'),
-          ),
           mediaIndex: children.findIndex((el) =>
             el.classList.contains('immersive-create-media'),
           ),
-          detailsIndex: children.findIndex((el) =>
-            el.classList.contains('immersive-create-details'),
+          narrativeIndex: children.findIndex((el) =>
+            el.classList.contains('immersive-create-narrative'),
+          ),
+          titleFieldIndex: children.findIndex((el) =>
+            el.classList.contains('immersive-create-title-field'),
+          ),
+          dateFieldIndex: children.findIndex((el) =>
+            el.classList.contains('immersive-create-date-field'),
           ),
           noteIndex: children.findIndex((el) =>
             el.classList.contains('immersive-sharing-note'),
@@ -429,27 +437,30 @@ for (const width of [390, 320] as const) {
         throw new Error('Memory Create form children not found.');
       }
       expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
-      expect(domOrder.titleIndex).toBeLessThan(domOrder.mediaIndex);
-      expect(domOrder.mediaIndex).toBeLessThan(domOrder.detailsIndex);
-      expect(domOrder.detailsIndex).toBeLessThan(domOrder.noteIndex);
+      expect(domOrder.mediaIndex).toBeLessThan(domOrder.narrativeIndex);
+      expect(domOrder.narrativeIndex).toBeLessThan(domOrder.titleFieldIndex);
+      expect(domOrder.titleFieldIndex).toBeLessThan(domOrder.dateFieldIndex);
+      expect(domOrder.dateFieldIndex).toBeLessThan(domOrder.noteIndex);
       expect(domOrder.noteIndex).toBeLessThan(domOrder.actionsIndex);
 
       const [
         noteBox,
-        titleBox,
         mediaBox,
         pickerBox,
-        detailsBox,
+        narrativeBox,
+        titleFieldBox,
+        dateFieldBox,
         actionsBox,
         saveBox,
         mediaBorder,
         pickerBorder,
       ] = await Promise.all([
         note.boundingBox(),
-        title.boundingBox(),
         media.boundingBox(),
         picker.boundingBox(),
-        details.boundingBox(),
+        narrative.boundingBox(),
+        titleField.boundingBox(),
+        dateField.boundingBox(),
         actions.boundingBox(),
         saveButton.boundingBox(),
         media.evaluate((element) => getComputedStyle(element).borderTopStyle),
@@ -457,27 +468,35 @@ for (const width of [390, 320] as const) {
       ]);
       if (
         !noteBox ||
-        !titleBox ||
         !mediaBox ||
         !pickerBox ||
-        !detailsBox ||
+        !narrativeBox ||
+        !titleFieldBox ||
+        !dateFieldBox ||
         !actionsBox ||
         !saveBox
       ) {
         throw new Error('Memory Create composition did not render.');
       }
 
-      // 1. Authored content (title, media, optional details) precedes the visibility cue
-      expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(noteBox.y);
+      // 1. Authored content (photo, narrative, title, date) precedes the visibility cue
       expect(mediaBox.y + mediaBox.height).toBeLessThanOrEqual(noteBox.y);
-      expect(detailsBox.y + detailsBox.height).toBeLessThanOrEqual(noteBox.y);
+      expect(narrativeBox.y + narrativeBox.height).toBeLessThanOrEqual(
+        noteBox.y,
+      );
+      expect(titleFieldBox.y + titleFieldBox.height).toBeLessThanOrEqual(
+        noteBox.y,
+      );
+      expect(dateFieldBox.y + dateFieldBox.height).toBeLessThanOrEqual(
+        noteBox.y,
+      );
 
       // 2. Visibility cue precedes the primary form action area and Save button
       expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(actionsBox.y);
       expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(saveBox.y);
 
-      // 3. Spacing above (from details) and below (to actions) is intentional and balanced
-      const spacingAbove = noteBox.y - (detailsBox.y + detailsBox.height);
+      // 3. Spacing above (from the date field) and below (to actions) is intentional and balanced
+      const spacingAbove = noteBox.y - (dateFieldBox.y + dateFieldBox.height);
       const spacingBelow = actionsBox.y - (noteBox.y + noteBox.height);
       expect(spacingAbove).toBeGreaterThanOrEqual(10);
       expect(spacingBelow).toBeGreaterThanOrEqual(10);
@@ -492,49 +511,51 @@ for (const width of [390, 320] as const) {
       expect(pickerBox.height).toBeLessThan(80);
       expect(pickerBox.height).toBeGreaterThanOrEqual(44);
 
-      // 6. Optional details summary is a calm rounded secondary disclosure control
-      const summary = details.locator('summary');
-      const addIcon = summary.locator('.summary-add-icon');
-      const chevron = summary.locator('.summary-chevron');
-      const summaryLabel = summary.locator('.summary-label');
+      // 6. Date summary is a calm rounded secondary control that reveals the
+      // editable date input on demand (#964 replacement for the retired
+      // generic optional-details disclosure).
+      const dateValue = dateField.locator('#happenedOn-summary-value');
+      const dateChange = dateField.locator('#happenedOn-summary-change');
 
-      await expect(summary).toBeVisible();
-      await expect(addIcon).toBeVisible();
-      await expect(chevron).toBeVisible();
-      await expect(summaryLabel).toHaveText(de.memory.addMoreDetails);
+      await expect(dateSummary).toBeVisible();
+      await expect(dateValue).toBeVisible();
+      await expect(dateChange).toHaveText(de.memory.dateChangeAction);
 
-      const summaryBox = await summary.boundingBox();
-      if (!summaryBox) throw new Error('Summary did not render.');
+      const summaryBox = await dateSummary.boundingBox();
+      if (!summaryBox) throw new Error('Date summary did not render.');
       // Mobile touch target: minimum 44px height
       // Browser transform geometry can differ by a fraction of a CSS pixel.
       expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
       // Fill the content region independently of responsive page gutters.
       expect(summaryBox.width).toBeGreaterThanOrEqual(44);
-      expect(summaryBox.x).toBeCloseTo(detailsBox.x, 1);
-      expect(summaryBox.width).toBeCloseTo(detailsBox.width, 1);
+      expect(summaryBox.x).toBeCloseTo(dateFieldBox.x, 1);
+      expect(summaryBox.width).toBeCloseTo(dateFieldBox.width, 1);
 
-      // Verify native details open/close toggle and stable resting material (#888)
-      const closedBg = await summary.evaluate(
+      // Verify tap-to-open/tap-away-to-close and stable resting material
+      // (#964 replacement for the retired native details open/close (#888))
+      const closedBg = await dateSummary.evaluate(
         (el) => window.getComputedStyle(el).backgroundColor,
       );
-      await expect(details).not.toHaveAttribute('open', '');
-      await summary.tap();
-      await expect(details).toHaveAttribute('open', '');
-      await expect
-        .poll(async () =>
-          summary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
-        )
-        .toBe(closedBg);
-      await expect(
-        details.getByRole('textbox', { name: de.memory.bodyLabel }),
-      ).toBeVisible();
+      const dateInput = dateField.locator('#happenedOn');
+      await expect(dateInput).toHaveCount(0);
+      await dateSummary.tap();
+      await expect(dateInput).toBeVisible();
+      await expect(dateInput).toBeFocused();
       if (width === 390) {
         await page.screenshot({
-          path: testInfo.outputPath('shell-memory-create-details-open-390.png'),
+          path: testInfo.outputPath('shell-memory-create-date-open-390.png'),
         });
       }
-      await summary.tap();
-      await expect(details).not.toHaveAttribute('open', '');
+      await title.tap();
+      await expect(dateInput).toHaveCount(0);
+      await expect(dateSummary).toBeVisible();
+      await expect
+        .poll(async () =>
+          dateSummary.evaluate(
+            (el) => window.getComputedStyle(el).backgroundColor,
+          ),
+        )
+        .toBe(closedBg);
 
       // 7. Floating global Quick Create FAB does not collide with the visibility note
       if (await quickCreateTrigger.isVisible()) {
@@ -562,7 +583,7 @@ for (const width of [390, 320] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
-  test(`Memory Create keeps optional-details resting material stable when opened (${colorScheme}) (#888)`, async ({
+  test(`Memory Create keeps date-summary resting material stable when opened (${colorScheme}) (#964)`, async ({
     browser,
   }, testInfo) => {
     const context = await browser.newContext({
@@ -582,29 +603,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByRole('heading', { name: de.memory.heading }),
       ).toBeVisible();
 
-      const details = page.locator('.immersive-create-details');
-      const summary = details.locator('summary');
-      const chevron = summary.locator('.summary-chevron');
-      const content = details.locator('.immersive-create-details-content');
-      const bodyInput = details.getByRole('textbox', {
-        name: de.memory.bodyLabel,
-      });
-      const dateInput = details.getByLabel(de.memory.dateLabel);
+      const dateField = page.locator('.immersive-create-date-field');
+      const dateSummary = dateField.locator('.immersive-create-date-summary');
+      const dateInput = dateField.locator('#happenedOn');
+      const title = page.getByLabel(de.memory.titleLabelOptional);
 
-      await expect(details).not.toHaveAttribute('open', '');
-      await expect(summary).toBeVisible();
-      await expect(content).toBeHidden();
+      await expect(dateSummary).toBeVisible();
+      await expect(dateInput).toHaveCount(0);
 
       // Verify touch target >= 44 CSS px
-      const summaryBox = await summary.boundingBox();
-      if (!summaryBox) throw new Error('Summary did not render.');
+      const summaryBox = await dateSummary.boundingBox();
+      if (!summaryBox) throw new Error('Date summary did not render.');
       // Browser transform geometry can differ by a fraction of a CSS pixel.
       expect(summaryBox.height + 0.001).toBeGreaterThanOrEqual(44);
 
       await expectNoHorizontalOverflow(page);
 
       // 1. Capture computed resting visual properties while CLOSED
-      const closedStyles = await summary.evaluate((el) => {
+      const closedStyles = await dateSummary.evaluate((el) => {
         const cs = window.getComputedStyle(el);
         return {
           backgroundColor: cs.backgroundColor,
@@ -617,23 +633,33 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       await page.screenshot({
         path: testInfo.outputPath(
-          `shell-memory-create-details-390-${colorScheme}-closed.png`,
+          `shell-memory-create-date-390-${colorScheme}-closed.png`,
         ),
       });
 
-      // 2. Open "Mehr Details hinzufügen (optional)" via tap on touch device
-      // No artificial mouse.move(0, 0) or summary.blur()!
-      await summary.tap();
-      await expect(details).toHaveAttribute('open', '');
-      await expect(content).toBeVisible();
-      await expect(bodyInput).toBeVisible();
+      // 2. Open the date editor via tap on touch device
+      // No artificial mouse.move(0, 0) or blur()!
+      await dateSummary.tap();
       await expect(dateInput).toBeVisible();
+      await expect(dateInput).toBeFocused();
 
-      // 3. Directly verify computed resting visual properties while OPEN
-      // Waits for transient :active transition (180ms) to settle without manual hover-clearing
+      await expectNoHorizontalOverflow(page);
+
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shell-memory-create-date-390-${colorScheme}-open.png`,
+        ),
+      });
+
+      // 3. Tap elsewhere to blur and close again: the summary control's
+      // resting material remains identical (no sticky hover/active state)
+      await title.tap();
+      await expect(dateInput).toHaveCount(0);
+      await expect(dateSummary).toBeVisible();
+
       await expect
         .poll(async () =>
-          summary.evaluate((el) => {
+          dateSummary.evaluate((el) => {
             const cs = window.getComputedStyle(el);
             return {
               backgroundColor: cs.backgroundColor,
@@ -652,29 +678,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
           borderTopStyle: closedStyles.borderTopStyle,
         });
 
-      // Verify chevron rotation communicates open state
-      const chevronTransform = await chevron.evaluate(
-        (el) => window.getComputedStyle(el).transform,
-      );
-      expect(chevronTransform).toContain('matrix');
-      expect(chevronTransform).not.toBe('none');
-
-      await expectNoHorizontalOverflow(page);
-
-      await page.screenshot({
-        path: testInfo.outputPath(
-          `shell-memory-create-details-390-${colorScheme}-open.png`,
-        ),
-      });
-
-      // 4. Tap to close again: material remains identical (no sticky hover)
-      await summary.tap();
-      await expect(details).not.toHaveAttribute('open', '');
-      await expect(content).toBeHidden();
+      // 4. Tap to open again: material remains identical once re-closed
+      await dateSummary.tap();
+      await expect(dateInput).toBeVisible();
+      await title.tap();
+      await expect(dateInput).toHaveCount(0);
 
       await expect
         .poll(async () =>
-          summary.evaluate((el) => {
+          dateSummary.evaluate((el) => {
             const cs = window.getComputedStyle(el);
             return {
               backgroundColor: cs.backgroundColor,
@@ -689,44 +701,28 @@ for (const colorScheme of ['light', 'dark'] as const) {
           borderTopColor: closedStyles.borderTopColor,
         });
 
-      // 5. Tap to open again: material remains identical
-      await summary.tap();
-      await expect(details).toHaveAttribute('open', '');
-      await expect(content).toBeVisible();
-
-      await expect
-        .poll(async () =>
-          summary.evaluate((el) => {
-            const cs = window.getComputedStyle(el);
-            return {
-              backgroundColor: cs.backgroundColor,
-              color: cs.color,
-              borderTopColor: cs.borderTopColor,
-            };
-          }),
-        )
-        .toEqual({
-          backgroundColor: closedStyles.backgroundColor,
-          color: closedStyles.color,
-          borderTopColor: closedStyles.borderTopColor,
-        });
-
-      // 6. Keyboard operation: toggle close and open via Space/Enter
-      await summary.focus();
+      // 5. Keyboard operation: Space/Enter open the editor and move focus
+      // straight to the date input (no separate toggle step, since the
+      // control isn't a persistent open/close disclosure)
+      await dateSummary.focus();
       await page.keyboard.press('Space');
-      await expect(details).not.toHaveAttribute('open', '');
-      await expect(content).toBeHidden();
+      await expect(dateInput).toBeVisible();
+      await expect(dateInput).toBeFocused();
 
-      await page.keyboard.press('Enter');
-      await expect(details).toHaveAttribute('open', '');
-      await expect(content).toBeVisible();
+      // Moving focus elsewhere blurs and closes it, restoring the resting
+      // summary. (Tab alone cycles the native date input's internal
+      // day/month/year segments rather than leaving the control, so we move
+      // focus explicitly instead.)
+      await title.tap();
+      await expect(dateInput).toHaveCount(0);
+      await expect(dateSummary).toBeVisible();
     } finally {
       await context.close();
     }
   });
 }
 
-test('Memory Create optional-details disclosure stays stable under 320px reflow, reduced motion, and forced colors (#888)', async ({
+test('Memory Create date summary stays stable under 320px reflow, reduced motion, and forced colors (#964)', async ({
   browser,
 }, testInfo) => {
   const context = await browser.newContext({
@@ -745,13 +741,15 @@ test('Memory Create optional-details disclosure stays stable under 320px reflow,
       page.getByRole('heading', { name: de.memory.heading }),
     ).toBeVisible();
 
-    const details = page.locator('.immersive-create-details');
-    const summary = details.locator('summary');
+    const dateField = page.locator('.immersive-create-date-field');
+    const dateSummary = dateField.locator('.immersive-create-date-summary');
+    const dateInput = dateField.locator('#happenedOn');
+    const title = page.getByLabel(de.memory.titleLabelOptional);
 
     // --- 320px Reflow with Touch ---
     await expectNoHorizontalOverflow(page);
 
-    const closedStyles320 = await summary.evaluate((el) => {
+    const closedStyles320 = await dateSummary.evaluate((el) => {
       const cs = window.getComputedStyle(el);
       return {
         backgroundColor: cs.backgroundColor,
@@ -760,51 +758,36 @@ test('Memory Create optional-details disclosure stays stable under 320px reflow,
       };
     });
 
+    // Measure the summary control while it's still mounted: unlike the old
+    // native <details>/<summary>, this control unmounts on open (swapped for
+    // the <input>), so its box must be captured before tapping it open.
+    const summaryBox320 = await dateSummary.boundingBox();
+    if (!summaryBox320)
+      throw new Error('Date summary did not render at 320px.');
+    expect(summaryBox320.height + 0.001).toBeGreaterThanOrEqual(44);
+
     await page.screenshot({
       path: testInfo.outputPath(
-        'shell-memory-create-details-320-reflow-closed.png',
+        'shell-memory-create-date-320-reflow-closed.png',
       ),
     });
 
     // Tap to open without artificial mouse/blur cleanup
-    await summary.tap();
-    await expect(details).toHaveAttribute('open', '');
-
-    await expect
-      .poll(async () =>
-        summary.evaluate((el) => {
-          const cs = window.getComputedStyle(el);
-          return {
-            backgroundColor: cs.backgroundColor,
-            color: cs.color,
-            borderTopColor: cs.borderTopColor,
-          };
-        }),
-      )
-      .toEqual({
-        backgroundColor: closedStyles320.backgroundColor,
-        color: closedStyles320.color,
-        borderTopColor: closedStyles320.borderTopColor,
-      });
-
-    const summaryBox320 = await summary.boundingBox();
-    if (!summaryBox320) throw new Error('Summary did not render at 320px.');
-    expect(summaryBox320.height + 0.001).toBeGreaterThanOrEqual(44);
+    await dateSummary.tap();
+    await expect(dateInput).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
 
     await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-details-320-reflow-open.png',
-      ),
+      path: testInfo.outputPath('shell-memory-create-date-320-reflow-open.png'),
     });
 
-    // Tap to close again: material remains identical
-    await summary.tap();
-    await expect(details).not.toHaveAttribute('open', '');
+    // Tap elsewhere to close again: material remains identical
+    await title.tap();
+    await expect(dateInput).toHaveCount(0);
     await expect
       .poll(async () =>
-        summary.evaluate((el) => {
+        dateSummary.evaluate((el) => {
           const cs = window.getComputedStyle(el);
           return {
             backgroundColor: cs.backgroundColor,
@@ -823,15 +806,13 @@ test('Memory Create optional-details disclosure stays stable under 320px reflow,
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
 
-    const summaryTransition = await summary.evaluate(
+    const summaryTransition = await dateSummary.evaluate(
       (el) => window.getComputedStyle(el).transitionDuration,
     );
     expect(summaryTransition === '0s' || summaryTransition === '').toBe(true);
 
     await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-details-reduced-motion.png',
-      ),
+      path: testInfo.outputPath('shell-memory-create-date-reduced-motion.png'),
       fullPage: true,
     });
 
@@ -840,13 +821,11 @@ test('Memory Create optional-details disclosure stays stable under 320px reflow,
       forcedColors: 'active',
       reducedMotion: 'no-preference',
     });
-    await expect(summary).toBeVisible();
+    await expect(dateSummary).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-details-forced-colors.png',
-      ),
+      path: testInfo.outputPath('shell-memory-create-date-forced-colors.png'),
       fullPage: true,
     });
   } finally {
@@ -854,7 +833,7 @@ test('Memory Create optional-details disclosure stays stable under 320px reflow,
   }
 });
 
-test('Memory Create optional-details disclosure provides hover feedback on desktop fine pointer (#888)', async ({
+test('Memory Create date summary provides hover feedback on desktop fine pointer (#964)', async ({
   page,
 }) => {
   await installApiMocks(page);
@@ -867,25 +846,25 @@ test('Memory Create optional-details disclosure provides hover feedback on deskt
     page.getByRole('heading', { name: de.memory.heading }),
   ).toBeVisible();
 
-  const details = page.locator('.immersive-create-details');
-  const summary = details.locator('summary');
+  const dateField = page.locator('.immersive-create-date-field');
+  const dateSummary = dateField.locator('.immersive-create-date-summary');
 
-  await expect(summary).toBeVisible();
+  await expect(dateSummary).toBeVisible();
 
   // 1. Resting state (no hover)
   await page.mouse.move(0, 0);
-  const restingBg = await summary.evaluate(
+  const restingBg = await dateSummary.evaluate(
     (el) => window.getComputedStyle(el).backgroundColor,
   );
 
   // 2. Hover with mouse
-  await summary.hover();
+  await dateSummary.hover();
   await expect
     .poll(async () =>
-      summary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
+      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
     )
     .not.toBe(restingBg);
-  const hoveredBg = await summary.evaluate(
+  const hoveredBg = await dateSummary.evaluate(
     (el) => window.getComputedStyle(el).backgroundColor,
   );
 
@@ -896,10 +875,10 @@ test('Memory Create optional-details disclosure provides hover feedback on deskt
   await page.mouse.move(0, 0);
   await expect
     .poll(async () =>
-      summary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
+      dateSummary.evaluate((el) => window.getComputedStyle(el).backgroundColor),
     )
     .toBe(restingBg);
-  const unhoveredBg = await summary.evaluate(
+  const unhoveredBg = await dateSummary.evaluate(
     (el) => window.getComputedStyle(el).backgroundColor,
   );
   expect(unhoveredBg).toBe(restingBg);

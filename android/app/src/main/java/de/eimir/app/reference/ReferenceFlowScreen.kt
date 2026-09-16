@@ -2,6 +2,8 @@ package de.eimir.app.reference
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,31 +15,45 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import de.eimir.app.demo.DemoPersona
 import de.eimir.app.entry.EntryScreen
 import de.eimir.app.design.EimirTheme
 import de.eimir.app.design.MinimumTouchTarget
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -155,135 +171,100 @@ fun ReferenceFlowScreen(
                         color = EimirTheme.colors.textPrimary,
                         modifier = Modifier.semantics { heading() },
                     )
-                    OutlinedTextField(
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EimirTheme.colors.focus,
-                            focusedLabelColor = EimirTheme.colors.linkText,
-                            cursorColor = EimirTheme.colors.linkText,
-                            disabledTextColor = EimirTheme.colors.textPrimary,
-                            disabledLabelColor = EimirTheme.colors.textSecondary,
-                        ),
-                        value = title,
-                        onValueChange = { if (task == null) localTitle = it.take(200) else onDraftChange(it, body, happenedOn) },
-                        enabled = editable,
-                        label = { Text(stringResource(R.string.ref_title)) },
-                        modifier = Modifier.fillMaxWidth().testTag("memory-create-title"),
-                    )
-                    OutlinedTextField(
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EimirTheme.colors.focus,
-                            focusedLabelColor = EimirTheme.colors.linkText,
-                            cursorColor = EimirTheme.colors.linkText,
-                            disabledTextColor = EimirTheme.colors.textPrimary,
-                            disabledLabelColor = EimirTheme.colors.textSecondary,
-                        ),
-                        value = body,
-                        onValueChange = { if (task == null) localBody = it else onDraftChange(title, it, happenedOn) },
-                        enabled = editable,
-                        label = { Text(stringResource(R.string.ref_memory)) },
-                        minLines = 3,
-                        modifier = Modifier.fillMaxWidth().testTag("memory-create-body"),
-                    )
-                    OutlinedTextField(
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = EimirTheme.colors.focus,
-                            focusedLabelColor = EimirTheme.colors.linkText,
-                            cursorColor = EimirTheme.colors.linkText,
-                            disabledTextColor = EimirTheme.colors.textPrimary,
-                            disabledLabelColor = EimirTheme.colors.textSecondary,
-                        ),
-                        value = happenedOn,
-                        onValueChange = { if (task == null) localHappenedOn = it else onDraftChange(title, body, it) },
-                        enabled = editable,
-                        label = { Text(stringResource(R.string.ref_date_optional)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Button(
-                        onClick = onPickImage,
-                        enabled = editable,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("memory-create-photos"),
-                    ) {
-                        Text(
-                            stringResource(
-                                if (state.draftImages.isEmpty()) {
-                                    R.string.ref_images_select
-                                } else {
-                                    R.string.ref_images_add
-                                },
+                    if (embedded) {
+                        // R1 content-first order: photo action / selected media, then the
+                        // always-visible narrative, then a demoted optional title, then the
+                        // local-date summary with its own change action, then audience.
+                        MemoryPhotoPicker(state, editable, onPickImage)
+                        MemoryDraftImagesList(state, editable, onRetryImage, onRemoveImage)
+                        OutlinedTextField(
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EimirTheme.colors.focus,
+                                focusedLabelColor = EimirTheme.colors.linkText,
+                                cursorColor = EimirTheme.colors.linkText,
+                                disabledTextColor = EimirTheme.colors.textPrimary,
+                                disabledLabelColor = EimirTheme.colors.textSecondary,
                             ),
+                            value = body,
+                            onValueChange = { if (task == null) localBody = it else onDraftChange(title, it, happenedOn) },
+                            enabled = editable,
+                            label = { Text(stringResource(R.string.ref_memory)) },
+                            minLines = 3,
+                            modifier = Modifier.fillMaxWidth().testTag("memory-create-body"),
                         )
-                    }
-
-                    if (state.draftImages.isNotEmpty()) {
-                        Text(stringResource(R.string.ref_images_selected_count, state.draftImages.size))
-                        Text(stringResource(R.string.ref_image_preview_notice))
-                        state.draftImages.forEachIndexed { index, draft ->
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    text = stringResource(
-                                        R.string.ref_image_item_title,
-                                        index + 1,
-                                        draft.displayName,
-                                    ),
-                                    style = MaterialTheme.typography.titleSmall,
-                                )
-                                val selectedBitmap = remember(draft.id, draft.bytes) {
-                                    BitmapFactory.decodeByteArray(draft.bytes, 0, draft.bytes.size)
-                                }
-                                if (selectedBitmap != null) {
-                                    Image(
-                                        bitmap = selectedBitmap.asImageBitmap(),
-                                        contentDescription = stringResource(
-                                            R.string.ref_image_preview_description,
-                                            draft.displayName,
-                                        ),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
-                                }
-                                Text(
-                                    text = stringResource(
-                                        when (draft.uploadState) {
-                                            DraftUploadState.UPLOADING -> R.string.ref_image_uploading
-                                            DraftUploadState.VALIDATING -> R.string.ref_image_validating
-                                            DraftUploadState.READY -> R.string.ref_image_ready
-                                            DraftUploadState.FAILED -> R.string.ref_image_failed
-                                        },
-                                    ),
-                                    color = if (draft.uploadState == DraftUploadState.FAILED) {
-                                        MaterialTheme.colorScheme.error
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (draft.uploadState == DraftUploadState.FAILED) {
-                                        TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
-                                            onClick = { onRetryImage(draft.id) },
-                                            enabled = editable,
-                                        ) {
-                                            Text(stringResource(R.string.ref_image_retry))
-                                        }
-                                    }
-                                    TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
-                                        onClick = { onRemoveImage(draft.id) },
-                                        enabled = editable,
-                                    ) {
-                                        Text(stringResource(R.string.ref_image_remove))
-                                    }
-                                }
-                            }
-                        }
+                        OutlinedTextField(
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EimirTheme.colors.focus,
+                                focusedLabelColor = EimirTheme.colors.linkText,
+                                cursorColor = EimirTheme.colors.linkText,
+                                disabledTextColor = EimirTheme.colors.textPrimary,
+                                disabledLabelColor = EimirTheme.colors.textSecondary,
+                            ),
+                            value = title,
+                            onValueChange = { if (task == null) localTitle = it.take(200) else onDraftChange(it, body, happenedOn) },
+                            enabled = editable,
+                            label = { Text(stringResource(R.string.ref_title_optional)) },
+                            modifier = Modifier.fillMaxWidth().testTag("memory-create-title"),
+                        )
+                        MemoryDateField(
+                            happenedOn = happenedOn,
+                            editable = editable,
+                            autoOpen = task?.problem?.resourceId == R.string.ref_error_date_format,
+                            onValueChange = { if (task == null) localHappenedOn = it else onDraftChange(title, body, it) },
+                        )
+                        de.eimir.app.design.VisibilityBadge(isShared = true)
+                    } else {
+                        OutlinedTextField(
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EimirTheme.colors.focus,
+                                focusedLabelColor = EimirTheme.colors.linkText,
+                                cursorColor = EimirTheme.colors.linkText,
+                                disabledTextColor = EimirTheme.colors.textPrimary,
+                                disabledLabelColor = EimirTheme.colors.textSecondary,
+                            ),
+                            value = title,
+                            onValueChange = { if (task == null) localTitle = it.take(200) else onDraftChange(it, body, happenedOn) },
+                            enabled = editable,
+                            label = { Text(stringResource(R.string.ref_title)) },
+                            modifier = Modifier.fillMaxWidth().testTag("memory-create-title"),
+                        )
+                        OutlinedTextField(
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EimirTheme.colors.focus,
+                                focusedLabelColor = EimirTheme.colors.linkText,
+                                cursorColor = EimirTheme.colors.linkText,
+                                disabledTextColor = EimirTheme.colors.textPrimary,
+                                disabledLabelColor = EimirTheme.colors.textSecondary,
+                            ),
+                            value = body,
+                            onValueChange = { if (task == null) localBody = it else onDraftChange(title, it, happenedOn) },
+                            enabled = editable,
+                            label = { Text(stringResource(R.string.ref_memory)) },
+                            minLines = 3,
+                            modifier = Modifier.fillMaxWidth().testTag("memory-create-body"),
+                        )
+                        OutlinedTextField(
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = EimirTheme.colors.focus,
+                                focusedLabelColor = EimirTheme.colors.linkText,
+                                cursorColor = EimirTheme.colors.linkText,
+                                disabledTextColor = EimirTheme.colors.textPrimary,
+                                disabledLabelColor = EimirTheme.colors.textSecondary,
+                            ),
+                            value = happenedOn,
+                            onValueChange = { if (task == null) localHappenedOn = it else onDraftChange(title, body, it) },
+                            enabled = editable,
+                            label = { Text(stringResource(R.string.ref_date_optional)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        MemoryPhotoPicker(state, editable, onPickImage)
+                        MemoryDraftImagesList(state, editable, onRetryImage, onRemoveImage)
                     }
 
                     val imagesReadyToSave = state.draftImages.all {
                         it.uploadState == DraftUploadState.READY
                     }
-                    if (embedded) de.eimir.app.design.VisibilityBadge(isShared = true)
                     if (task?.pending == true) {
                         Text(stringResource(R.string.memory_task_pending), color = EimirTheme.colors.textPrimary,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }.testTag("memory-create-pending"))
@@ -303,7 +284,9 @@ fun ReferenceFlowScreen(
                     }
                     if (task == null || task.editable || task.pending) Button(
                         onClick = { onCreateMemory(title, body, happenedOn) },
-                        enabled = editable && title.isNotBlank() && imagesReadyToSave,
+                        enabled = editable &&
+                            (if (embedded) title.isNotBlank() || body.isNotBlank() || state.draftImages.isNotEmpty() else title.isNotBlank()) &&
+                            imagesReadyToSave,
                         modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("memory-create-save"),
                     ) {
                         Text(
@@ -407,4 +390,184 @@ internal fun storyItemDate(item: StoryItem, locale: Locale = Locale.getDefault()
         is StoryItem.MilestoneWrapper -> item.value.effectiveDate
     }
     return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(date)
+}
+
+@Composable
+private fun MemoryPhotoPicker(state: ReferenceUiState, editable: Boolean, onPickImage: () -> Unit) {
+    OutlinedButton(
+        onClick = onPickImage,
+        enabled = editable,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = EimirTheme.colors.linkText),
+        modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("memory-create-photos"),
+    ) {
+        Text(
+            stringResource(
+                if (state.draftImages.isEmpty()) R.string.ref_images_select else R.string.ref_images_add,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun MemoryDraftImagesList(
+    state: ReferenceUiState,
+    editable: Boolean,
+    onRetryImage: (Long) -> Unit,
+    onRemoveImage: (Long) -> Unit,
+) {
+    if (state.draftImages.isEmpty()) return
+    Text(stringResource(R.string.ref_images_selected_count, state.draftImages.size))
+    Text(stringResource(R.string.ref_image_preview_notice))
+    state.draftImages.forEachIndexed { index, draft ->
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.ref_image_item_title, index + 1, draft.displayName),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            val selectedBitmap = remember(draft.id, draft.bytes) {
+                BitmapFactory.decodeByteArray(draft.bytes, 0, draft.bytes.size)
+            }
+            if (selectedBitmap != null) {
+                Image(
+                    bitmap = selectedBitmap.asImageBitmap(),
+                    contentDescription = stringResource(R.string.ref_image_preview_description, draft.displayName),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Text(
+                text = stringResource(
+                    when (draft.uploadState) {
+                        DraftUploadState.UPLOADING -> R.string.ref_image_uploading
+                        DraftUploadState.VALIDATING -> R.string.ref_image_validating
+                        DraftUploadState.READY -> R.string.ref_image_ready
+                        DraftUploadState.FAILED -> R.string.ref_image_failed
+                    },
+                ),
+                color = if (draft.uploadState == DraftUploadState.FAILED) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (draft.uploadState == DraftUploadState.FAILED) {
+                    TextButton(
+                        colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
+                        onClick = { onRetryImage(draft.id) },
+                        enabled = editable,
+                    ) {
+                        Text(stringResource(R.string.ref_image_retry))
+                    }
+                }
+                TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
+                    onClick = { onRemoveImage(draft.id) },
+                    enabled = editable,
+                ) {
+                    Text(stringResource(R.string.ref_image_remove))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * R1's local-date summary with a discoverable change action (#964). The value
+ * stays human-readable until the person deliberately changes it; changing the
+ * date reuses the app's existing Material date-picker pattern instead of asking
+ * for an ISO date string or summoning the keyboard for metadata.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MemoryDateField(
+    happenedOn: String,
+    editable: Boolean,
+    autoOpen: Boolean,
+    onValueChange: (String) -> Unit,
+) {
+    var pickerOpen by rememberSaveable { mutableStateOf(autoOpen) }
+    LaunchedEffect(autoOpen) {
+        if (autoOpen) pickerOpen = true
+    }
+    Text(
+        text = stringResource(R.string.ref_date_label),
+        style = MaterialTheme.typography.labelLarge,
+        color = EimirTheme.colors.textSecondary,
+    )
+    val summary = memoryDateSummary(happenedOn)
+    val changeLabel = stringResource(R.string.ref_date_change)
+    val dateLabel = stringResource(R.string.ref_date_label)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinimumTouchTarget)
+            .border(1.dp, EimirTheme.colors.border, RoundedCornerShape(8.dp))
+            .clickable(enabled = editable, onClickLabel = changeLabel) { pickerOpen = true }
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$dateLabel, $summary, $changeLabel"
+                role = Role.Button
+            }
+            .testTag("memory-create-date-summary"),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(summary, color = EimirTheme.colors.textPrimary)
+        Text(changeLabel, color = EimirTheme.colors.linkText)
+    }
+
+    if (pickerOpen) {
+        val initial = happenedOn.takeIf { it.isNotBlank() }
+            ?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+            ?: LocalDate.now()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
+        DatePickerDialog(
+            onDismissRequest = { pickerOpen = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { millis ->
+                            val picked = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalDate()
+                            onValueChange(picked.toString())
+                        }
+                        pickerOpen = false
+                    },
+                ) {
+                    Text(stringResource(R.string.plan_picker_take))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) {
+                    Text(stringResource(R.string.plan_cancel))
+                }
+            },
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
+}
+
+@Composable
+private fun memoryDateSummary(happenedOn: String, locale: Locale = Locale.getDefault()): String {
+    val date = happenedOn.takeIf { it.isNotBlank() }
+        ?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+        ?: LocalDate.now()
+    return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale).format(date)
+}
+
+/** Same localized fallback shape as the Web client's memoryProduct.createFallbackTitle. */
+@Composable
+internal fun memoryFallbackTitle(happenedOn: String, locale: Locale = Locale.getDefault()): String {
+    val date = happenedOn.takeIf { it.isNotBlank() }
+        ?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+        ?: LocalDate.now()
+    val formatted = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(locale).format(date)
+    return stringResource(R.string.ref_memory_fallback_title, formatted)
 }

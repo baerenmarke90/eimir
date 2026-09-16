@@ -41,6 +41,14 @@ export function formatDateInputValue(value: string, locale: string): string {
   }).format(dateInputValueToApiDate(value));
 }
 
+/** Reader-friendly local date summary, e.g. "16. September 2026". */
+export function formatDateSummary(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  }).format(dateInputValueToApiDate(value));
+}
+
 export function openNativeDatePicker(
   event: MouseEvent<HTMLInputElement>,
 ): void {

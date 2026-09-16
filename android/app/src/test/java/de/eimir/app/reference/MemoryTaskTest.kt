@@ -29,11 +29,11 @@ class MemoryTaskTest {
         val model = signedIn(api)
         model.beginMemoryTask()
         model.updateMemoryTask("Title", "Words", "")
-        model.submitMemoryTask()
+        model.submitMemoryTask("Fallback title")
         assertEquals(MemoryTaskPhase.SUBMITTING, model.uiState.value.memoryTask?.phase)
         assertFalse(model.discardMemoryTask())
         model.updateMemoryTask("New title", "New body", "")
-        model.submitMemoryTask()
+        model.submitMemoryTask("Fallback title")
         runCurrent()
         assertEquals(1, api.createCalls)
         assertEquals("Words", model.uiState.value.memoryTask?.body)
@@ -44,15 +44,42 @@ class MemoryTaskTest {
         assertEquals(2, api.timelineCalls) // Sign-in plus independent post-confirmation refresh.
     }
 
+    @Test fun blankTitleUsesCallerSuppliedFallbackForTextOnlyCapture() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        model.beginMemoryTask()
+        model.updateMemoryTask("", "Only these words, no title or photo", "")
+        model.submitMemoryTask("Erinnerung vom 16.09.2026")
+        advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals("Erinnerung vom 16.09.2026", api.lastCreateTitle)
+        // The task's own editable title is never overwritten by the fallback.
+        assertEquals("", model.uiState.value.memoryTask?.title)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+    }
+
+    @Test fun blankTitleAndBodyWithOnlyAPhotoSucceedsAsImageOnlyCapture() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        model.beginMemoryTask(); selectPhoto(model)
+        model.updateMemoryTask("", "", "")
+        model.submitMemoryTask("Erinnerung vom 16.09.2026")
+        advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals(1, api.bindCalls)
+        assertEquals("Erinnerung vom 16.09.2026", api.lastCreateTitle)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+    }
+
     @Test fun rejectedWriteRetainsInputAndAllowsDeliberateRetry() = runTest(dispatcher) {
         val api = TaskApi().apply { create = { throw ReferenceApiException("VALIDATION", "Rejected", 422) } }
         val model = signedIn(api)
         model.beginMemoryTask(); model.updateMemoryTask("Title", "Keep these words", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(MemoryTaskPhase.REJECTED, model.uiState.value.memoryTask?.phase)
         assertEquals("Keep these words", model.uiState.value.memoryTask?.body)
         api.create = { memory() }
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(2, api.createCalls)
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
     }
@@ -61,8 +88,8 @@ class MemoryTaskTest {
         val api = TaskApi().apply { create = { throw IOException("Response lost") } }
         val model = signedIn(api)
         model.beginMemoryTask(); model.updateMemoryTask("Title", "Retained", "")
-        model.submitMemoryTask(); advanceUntilIdle()
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(1, api.createCalls)
         assertEquals(MemoryTaskPhase.UNCERTAIN, model.uiState.value.memoryTask?.phase)
         assertEquals("Retained", model.uiState.value.memoryTask?.body)
@@ -73,7 +100,7 @@ class MemoryTaskTest {
         val api = TaskApi().apply { create = { result.await() } }
         val model = signedIn(api)
         model.beginMemoryTask(); selectPhoto(model)
-        model.updateMemoryTask("Old", "Old draft", ""); model.submitMemoryTask(); runCurrent()
+        model.updateMemoryTask("Old", "Old draft", ""); model.submitMemoryTask("Fallback title"); runCurrent()
         model.logout(); model.signIn("new@example.test", "secret"); advanceUntilIdle()
         model.beginMemoryTask(); model.updateMemoryTask("New", "New draft", "")
         result.complete(memory()); advanceUntilIdle()
@@ -107,7 +134,7 @@ class MemoryTaskTest {
         val api = TaskApi().apply { failBinding = true }
         val model = signedIn(api)
         model.beginMemoryTask(); selectPhoto(model)
-        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask(); advanceUntilIdle()
+        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(MemoryTaskPhase.ATTACHMENT_RECOVERY, model.uiState.value.memoryTask?.phase)
         api.failBinding = false
         model.retryMemoryAttachments(); advanceUntilIdle()
@@ -120,7 +147,7 @@ class MemoryTaskTest {
         val api = TaskApi().apply { failBinding = true; applyBindingBeforeFailure = true }
         val model = signedIn(api)
         model.beginMemoryTask(); selectPhoto(model)
-        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask(); advanceUntilIdle()
+        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         model.retryMemoryAttachments(); advanceUntilIdle()
         assertEquals(1, api.createCalls)
         assertEquals(1, api.bindCalls)
@@ -131,7 +158,7 @@ class MemoryTaskTest {
         val api = TaskApi().apply { failBinding = true }
         val model = signedIn(api)
         model.beginMemoryTask(); selectPhoto(model)
-        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask(); advanceUntilIdle()
+        model.updateMemoryTask("Photo", "", ""); model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         api.current = memory().copy(version = 2, body = "Concurrent change")
         model.retryMemoryAttachments(); advanceUntilIdle()
         assertEquals(1, api.bindCalls)
@@ -174,7 +201,7 @@ class MemoryTaskTest {
         val original = model.uiState.value.storyItems
         api.scopedRecords = listOf(memory().copy(id = UUID(0, 20), happenedOn = LocalDate.of(2025, 9, 4))) + api.scopedRecords!!
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
         assertEquals(4, model.uiState.value.storyItems.size)
         assertTrue(model.uiState.value.storyItems.containsAll(original))
@@ -194,7 +221,7 @@ class MemoryTaskTest {
             if (it.id == UUID(0, 13)) it.copy(happenedOn = LocalDate.of(2025, 9, 4)) else it
         }
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         val entries = model.uiState.value.storyItems.map { it.toEntry() }
         assertEquals(listOf(13L, 11L, 12L, 14L, 15L).map { UUID(0, it) }, entries.map { it.id })
         assertFalse(entries.any { it.id == deleted })
@@ -209,7 +236,7 @@ class MemoryTaskTest {
         val original = model.uiState.value.storyItems
         api.pageFailure = ReferenceApiException("UNAVAILABLE", "Retry later", 503)
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(original, model.uiState.value.storyItems)
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
         assertNotNull(model.uiState.value.storyProblem)
@@ -226,7 +253,7 @@ class MemoryTaskTest {
         model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
         api.pageFailure = ReferenceApiException("FORBIDDEN", "Access lost", 403)
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertTrue(model.uiState.value.storyItems.isEmpty())
         assertTrue(model.uiState.value.storyAvailableYears.isEmpty())
         assertFalse(model.uiState.value.storyHasMore)
@@ -244,7 +271,7 @@ class MemoryTaskTest {
         val gate = CompletableDeferred<StoryPage>()
         api.pageGate = gate
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); runCurrent()
+        model.submitMemoryTask("Fallback title"); runCurrent()
         assertEquals(retained, model.uiState.value.storyItems) // No partial prefix is published.
         api.pageGate = null
         model.applyStoryScope(TimelineScope(year = 2026)); advanceUntilIdle()
@@ -261,7 +288,7 @@ class MemoryTaskTest {
         val gate = CompletableDeferred<StoryPage>()
         api.pageGate = gate
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
-        model.submitMemoryTask(); runCurrent()
+        model.submitMemoryTask("Fallback title"); runCurrent()
         api.pageGate = null
         model.logout(); model.signIn("new@example.test", "secret"); advanceUntilIdle()
         gate.complete(StoryPage(false, emptyList(), null)); advanceUntilIdle()
@@ -280,7 +307,7 @@ class MemoryTaskTest {
         val loaded = model.uiState.value.storyItems
         api.projectionFailure = IOException("Projection temporarily unavailable")
         model.beginMemoryTask(); model.updateMemoryTask("Title", "Known result", "")
-        model.submitMemoryTask(); advanceUntilIdle()
+        model.submitMemoryTask("Fallback title"); advanceUntilIdle()
         assertEquals(1, api.createCalls)
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
         assertEquals(memory().id, model.uiState.value.openMemory?.id)
@@ -342,6 +369,7 @@ private fun memory() = MemoryDetail(emptyList(), AuthorSummary("Fixture", taskAc
 private class TaskApi : FakeReferenceContract() {
     var create: suspend () -> MemoryDetail = { memory() }
     var createCalls = 0
+    var lastCreateTitle: String? = null
     var bindCalls = 0
     var timelineCalls = 0
     var failBinding = false
@@ -382,7 +410,7 @@ private class TaskApi : FakeReferenceContract() {
         return StoryPage(cursor == null, listOf(StoryItem.MemoryWrapper(StoryMemoryItem(LocalDate.of(2025, 6, 2), StoryMemoryItem.Kind.MEMORY, summary))), if (cursor == null) "older" else null, listOf(2025))
     }
     override suspend fun createMemory(spaceId: UUID, accessToken: String, memory: MemoryCreate): MemoryDetail {
-        createCalls++; return create().also { current = it }
+        createCalls++; lastCreateTitle = memory.title; return create().also { current = it }
     }
     override suspend fun getMemory(spaceId: UUID, accessToken: String, memoryId: UUID): MemoryDetail {
         readFailure?.let { throw it }; return current

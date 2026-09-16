@@ -95,7 +95,7 @@ function setup(onSaved = vi.fn().mockResolvedValue(undefined)) {
   };
 }
 const titleInput = () =>
-  screen.getByLabelText(de.memory.titleLabel) as HTMLInputElement;
+  screen.getByLabelText(de.memory.titleLabelOptional) as HTMLInputElement;
 function enterTitle(value = 'Our evening') {
   fireEvent.change(titleInput(), { target: { value } });
 }
@@ -114,6 +114,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('Memory capture mutation ownership', () => {
+  it('keeps Save disabled and sends no request for a completely empty capture', () => {
+    setup();
+    const save = screen.getByRole('button', {
+      name: de.memory.save,
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    submit();
+    expect(fixture.create).not.toHaveBeenCalled();
+    enterTitle();
+    expect(save.disabled).toBe(false);
+  });
   it('locks duplicate submission and opens the confirmed result despite failed projection invalidation', async () => {
     const response = deferred<MemoryDetail>();
     fixture.create.mockReturnValue(response.promise);
@@ -140,12 +151,14 @@ describe('Memory capture mutation ownership', () => {
     fixture.create.mockResolvedValue(confirmed);
     setup();
     enterTitle();
+    fireEvent.click(
+      screen.getByRole('button', { name: new RegExp(de.memory.dateLabel) }),
+    );
     const date = screen.getByLabelText(de.memory.dateLabel) as HTMLInputElement;
     fireEvent.change(date, { target: { value: '10000-01-01' } });
     submit();
     expect(screen.getByText(taskBoundary.invalidDate)).toBeTruthy();
     expect(date.getAttribute('aria-invalid')).toBe('true');
-    expect(date.closest('details')?.open).toBe(true);
     expect(date.closest('fieldset')?.disabled).toBe(false);
     expect(document.activeElement).toBe(date);
     expect(fixture.create).not.toHaveBeenCalled();

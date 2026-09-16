@@ -42,6 +42,34 @@ class TaskJourneyTest {
         assertNull(model.uiState.value.memoryTask)
     }
 
+    @Test fun textOnlyCaptureWithoutATitleSavesWithLocalizedFallbackTitle() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-body").performTextInput("Just words, no title at all")
+        compose.onNodeWithTag("memory-create-scroll").performScrollToNode(hasTestTag("memory-create-save"))
+        compose.onNodeWithTag("memory-create-save").performClick()
+        compose.waitUntil(5_000) { model.uiState.value.openMemory != null }
+        assertTrue(model.uiState.value.openMemory!!.title.startsWith("Erinnerung vom"))
+        assertEquals(1, api.createCalls)
+    }
+
+    @Test fun emptyCaptureKeepsSaveDisabledAndSendsNothing() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-scroll").performScrollToNode(hasTestTag("memory-create-save"))
+        compose.onNodeWithTag("memory-create-save").assertIsNotEnabled()
+        assertEquals(0, api.createCalls)
+    }
+
+    @Test fun dateChangeUsesMaterialPickerInsteadOfIsoTextEntry() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-date-summary").performClick()
+        compose.onNodeWithText(text(R.string.plan_picker_take)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.plan_cancel)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.ref_date_optional)).assertDoesNotExist()
+    }
+
     @Test fun dirtyCloseKeepsWorkUntilDeliberateDiscard() {
         render(); openComposer(); enterWords()
         closeComposer()

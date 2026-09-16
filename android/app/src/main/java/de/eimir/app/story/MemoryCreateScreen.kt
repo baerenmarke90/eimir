@@ -25,6 +25,7 @@ import de.eimir.app.reference.MemoryTaskPhase
 import de.eimir.app.reference.R
 import de.eimir.app.reference.ReferenceFlowScreen
 import de.eimir.app.reference.ReferenceUiState
+import de.eimir.app.reference.memoryFallbackTitle
 
 /** A task page around the existing capture inputs; payload remains owned by the ViewModel. */
 @Composable
@@ -34,12 +35,13 @@ fun MemoryCreateScreen(
     onPickImage: () -> Unit,
     onRetryImage: (Long) -> Unit,
     onRemoveImage: (Long) -> Unit,
-    onSave: () -> Unit,
+    onSave: (String) -> Unit,
     onRetryAttachments: () -> Unit,
     onViewPartialResult: () -> Unit,
     onExit: () -> Unit,
 ) {
     val task = state.memoryTask ?: return
+    val fallbackTitle = memoryFallbackTitle(task.happenedOn)
     var confirmExit by remember(task.generation) { mutableStateOf(false) }
     var explainPending by remember(task.generation) { mutableStateOf(false) }
     val closeFocus = remember { FocusRequester() }
@@ -55,7 +57,7 @@ fun MemoryCreateScreen(
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
         ReferenceFlowScreen(
             state = state, onLogin = { _, _ -> }, onLogout = {}, onPickImage = onPickImage,
-            onCreateMemory = { _, _, _ -> onSave() }, onRefreshStory = {},
+            onCreateMemory = { _, _, _ -> onSave(fallbackTitle) }, onRefreshStory = {},
             modifier = Modifier.widthIn(max = EimirReadingWidth),
             onRetryImage = onRetryImage, onRemoveImage = onRemoveImage,
             onCancelCapture = requestExit, task = task, onDraftChange = onDraftChange,

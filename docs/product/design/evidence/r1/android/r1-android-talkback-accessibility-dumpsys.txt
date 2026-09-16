@@ -1,0 +1,58 @@
+ACCESSIBILITY MANAGER (dumpsys accessibility)
+
+currentUserId=0
+hasMagnificationConnection=true
+Magnifier on display#0
+    MagnificationConfig[mode: 1, activated: false, scale: 1.0, centerX: 160.0, centerY: 308.0] 
+    Magnification region=SkRegion((0,0,320,616))
+    IdOfLastServiceToMagnify=-1
+    SupportWindowMagnification=true
+    WindowMagnificationConnectionState=CONNECTED
+User state[
+     attributes:{id=0, touchExplorationEnabled=true, serviceHandlesDoubleTap=true, requestMultiFingerGestures=true, requestTwoFingerPassthrough=true, sendMotionEventsEnabledfalse, displayMagnificationEnabled=false, autoclickEnabled=false, nonInteractiveUiTimeout=0, interactiveUiTimeout=10000, installedServiceCount=5, magnificationModes={0=1}, magnificationCapabilities=3, audioDescriptionByDefaultEnabled=false, magnificationFollowTypingEnabled=true, alwaysOnMagnificationEnabled=true}
+     button mode: 1
+     shortcut key:{}
+     button:{}
+     button target:{null}
+     gesture:{}
+     qs shortcut targets:{}
+     a11y tiles in QS panel:{}
+     Bound services:{Service[label=TalkBack, feedbackType[FEEDBACK_SPOKEN, FEEDBACK_HAPTIC, FEEDBACK_AUDIBLE], capabilities=251, eventTypes=TYPES_ALL_MASK, notificationTimeout=0, requestA11yBtn=false]}
+     Enabled services:{{com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService}}
+     Binding services:{}
+     Crashed services:{}
+     Client list info:{
+          Client list callbacks: 9
+          Client list killed: false
+          Client list broadcasts count: -1
+          Registered clients:{
+[com.google.android.apps.wellbeing][com.google.android.marvin.talkback][com.google.android.as][com.google.android.apps.nexuslauncher][com.google.android.apps.messaging][com.google.android.inputmethod.latin][de.sidebyside.app.debug][com.google.android.googlequicksearchbox][com.google.android.tts]}]
+Global Info [ Top focused display Id = 0
+     Active Window Id = 1766
+     Top Focused Window Id = 1766
+     Accessibility Focused Window Id = 1712 ]
+
+Display[0] : 
+A11yWindow[AccessibilityWindowInfo[title=null, displayId=0, id=1707, taskId=-1, type=TYPE_SYSTEM, layer=1, region=SkRegion((0,0,320,24)), bounds=Rect(0, 0 - 320, 24), focused=false, active=false, pictureInPicture=false, transitionTime=879445, hasParent=false, isAnchored=false, hasChildren=false]]
+WindowInfo[WindowInfo[title=null, displayId=0, taskId=-1, type=2000, layer=0, token=android.os.BinderProxy@1221d1, region=SkRegion((0,0,320,24)), bounds=Rect(0, 0 - 320, 24), parent=null, focused=false, children=null, accessibility anchor=9223372034707292159, pictureInPicture=false, watchOutsideTouch=false, mTransformMatrix=Matrix{[1.0, 0.0, 0.0][0.0, 1.0, 0.0][0.0, 0.0, 1.0]}, mMagnificationSpec=<scale:1.0,offsetX:0.0,offsetY:0.0>, locales=[en_US]]]
+,
+A11yWindow[AccessibilityWindowInfo[title=Allow Android Accessibility Suite to send you notifications?, displayId=0, id=1766, taskId=32, type=TYPE_APPLICATION, layer=0, region=SkRegion((8,149,312,491)), bounds=Rect(8, 149 - 312, 491), focused=true, active=true, pictureInPicture=false, transitionTime=882051, hasParent=false, isAnchored=false, hasChildren=false]]
+WindowInfo[WindowInfo[title=Allow Android Accessibility Suite to send you notifications?, displayId=0, taskId=32, type=1, layer=1, token=android.os.BinderProxy@5d5e50d, region=SkRegion((8,149,312,491)), bounds=Rect(8, 149 - 312, 491), parent=null, focused=true, children=null, accessibility anchor=9223372034707292159, pictureInPicture=false, watchOutsideTouch=false, mTransformMatrix=Matrix{[1.0, 0.0, 8.0][0.0, 1.0, 149.0][0.0, 0.0, 1.0]}, mMagnificationSpec=<scale:1.0,offsetX:0.0,offsetY:0.0>, locales=[en_US]]]
+
+
+Window attributes:[{1703=AccessibilityWindowAttributes{mAccessibilityWindowTitle=English (US) (QWERTY)mLocales=[en_US]}, 1704=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 1705=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 1706=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 1707=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 1708=AccessibilityWindowAttributes{mAccessibilityWindowTitle=nullmLocales=[en_US]}, 1709=AccessibilityWindowAttributes{mAccessibilityWindowTitle=HomemLocales=[en_US]}, 1710=AccessibilityWindowAttributes{mAccessibilityWindowTitle=Navigation barmLocales=[en_US]}, 1711=AccessibilityWindowAttributes{mAccessibilityWindowTitle=HomemLocales=[en_US]}, 1712=AccessibilityWindowAttributes{mAccessibilityWindowTitle=eimir.mLocales=[en_US]}, 1713=AccessibilityWindowAttributes{mAccessibilityWindowTitle=Android Accessibility SuitemLocales=[en_US]}, 1766=AccessibilityWindowAttributes{mAccessibilityWindowTitle=Allow Android Accessibility Suite to send you notifications?mLocales=[en_US]}}]
+A11yInputFilter Info : 
+Enabled features of Display [0] = [MagnificationKeyHandler,KeyboardInterceptor,MotionEventInjector,MagnificationGesture,TouchExplorer]
+Global client list info:{
+    Client list callbacks: 10
+    Client list killed: false
+    Client list broadcasts count: -1
+    Registered clients:{
+[com.google.android.gms][com.google.android.settings.intelligence][com.google.android.googlequicksearchbox][com.android.systemui][com.google.android.documentsui][com.google.android.permissioncontroller][com.google.android.photopicker][com.android.settings, com.android.dynsystem, com.android.localtransport, com.android.inputdevices, com.android.providers.settings, android, com.android.server.telecom, com.android.emulator.multidisplay, com.android.location.fused, com.android.keychain, com.android.DeviceAsWebcam][com.android.server.telecom, com.android.providers.settings, com.android.inputdevices, com.android.dynsystem, com.android.emulator.multidisplay, android, com.android.settings, com.android.location.fused, com.android.localtransport, com.android.DeviceAsWebcam, com.android.keychain][com.google.android.gms]
+
+Proxy manager state:
+    Number of proxy connections: 0
+    Registered proxy connections:
+Accessibility Display Listener:
+    SystemUI uid: 10186
+    1 valid display: 0

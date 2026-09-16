@@ -100,8 +100,12 @@
     <string name="quick_create_private_group">Privat</string>
     <string name="quick_create_private_note">Private Notiz</string>
     <string name="ref_title">Titel</string>
+    <string name="ref_title_optional">Titel (optional)</string>
     <string name="ref_memory">Erinnerung</string>
     <string name="ref_date_optional">Datum (JJJJ-MM-TT, optional)</string>
+    <string name="ref_date_label">Datum</string>
+    <string name="ref_date_change">Ändern</string>
+    <string name="ref_memory_fallback_title">Erinnerung vom %1$s</string>
     <string name="ref_image_select">Bild auswählen</string>
     <string name="ref_image_selected">Bild ausgewählt: %1$s</string>
     <string name="ref_images_select">Bilder auswählen</string>
@@ -142,7 +146,6 @@
     <string name="ref_error_image_not_ready">Bitte warte auf die Bildprüfung, versuche den Upload erneut oder entferne das Bild.</string>
     <string name="ref_error_images_not_ready">Bitte warte, bis alle Bilder geprüft sind, versuche fehlgeschlagene Uploads erneut oder entferne sie.</string>
     <string name="ref_error_image_required">Bitte zuerst ein Bild auswählen.</string>
-    <string name="ref_error_memory_fields_required">Ein Titel wird benötigt.</string>
     <string name="ref_error_date_format">Datum bitte als JJJJ-MM-TT eingeben.</string>
     <string name="ref_status_save_pending">Erinnerung wird gespeichert …</string>
     <string name="ref_status_save_success">Erinnerung gespeichert.</string>

@@ -6,17 +6,41 @@
   border: 0;
 }
 
+/* R1 is a page composer, not a form card around the task. Reuse the accepted
+ * flattened create-surface pattern: hierarchy comes from the content/media
+ * inside the page rather than from one enclosing card boundary. */
+.memory-task-page.create-page
+.immersive-create-card[aria-labelledby="memory-form-heading"] {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .memory-task-page .form-actions {
   flex-wrap: wrap;
 }
 
-.memory-task-page .file-picker small {
+.memory-task-page .file-picker small,
+.memory-task-page .field-help {
   color: var(--color-text-secondary);
 }
 
 .memory-task-page .page-heading-title-container {
   min-inline-size: 0;
   overflow-wrap: anywhere;
+}
+
+/* The task heading receives programmatic focus on entry so assistive
+ * technology is moved to the new task context. It is not interactive and is
+ * excluded from sequential keyboard navigation, so the browser's default
+ * focus rectangle would be misleading chrome around the entire header. */
+.memory-task-heading:focus {
+  outline: none;
 }
 
 .product-shell[data-focused-task="true"] {
@@ -26,11 +50,29 @@
   );
 }
 
+/* Browser zoom can leave the viewport media query in its expanded range while
+ * the actual product-content container has already reflowed to Compact width.
+ * Match the established Compact composer rhythm from memory-create-polish.css
+ * at that container width instead of keeping the expanded vertical gaps. */
+@container product-content (max-width: 22rem) {
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-form {
+    gap: var(--space-4);
+  }
+}
+
 /* Keep enlarged text readable when the content has fewer ems available. */
 @container product-content (max-width: 17.5rem) {
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"] {
-    padding: var(--space-2);
+    padding: 0;
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-form {
+    gap: var(--space-4);
   }
 
   .memory-task-page.create-page
@@ -45,31 +87,26 @@
 
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .file-picker-icon,
-  .memory-task-page.create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .summary-add-icon {
+    .file-picker-icon {
     display: none;
   }
 
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .immersive-create-details
-    > summary {
+    .immersive-create-date-summary {
     padding: var(--space-2);
     gap: var(--space-1);
   }
 
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]
-    .summary-left {
-    display: block;
-    flex: 1;
-  }
-
-  .memory-task-page.create-page
-    .immersive-create-card[aria-labelledby="memory-form-heading"]
     input[type="date"] {
     padding-inline: var(--space-1);
+  }
+
+  /* At 200% zoom the compact action stack needs the same denser rhythm as
+   * the rest of the R1 composer so both actions remain in the first viewport. */
+  .memory-task-page .form-actions {
+    gap: var(--space-1);
   }
 }

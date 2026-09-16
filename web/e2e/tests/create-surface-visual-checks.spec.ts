@@ -779,9 +779,7 @@ test('Memory Create date summary stays stable under 320px reflow, reduced motion
     await expectNoHorizontalOverflow(page);
 
     await page.screenshot({
-      path: testInfo.outputPath(
-        'shell-memory-create-date-320-reflow-open.png',
-      ),
+      path: testInfo.outputPath('shell-memory-create-date-320-reflow-open.png'),
     });
 
     // Tap elsewhere to close again: material remains identical

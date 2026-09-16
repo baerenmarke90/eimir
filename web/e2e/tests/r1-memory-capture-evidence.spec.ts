@@ -63,7 +63,12 @@ async function installApiMocks(page: Page): Promise<void> {
         maintenanceMode: false,
         registrationAvailable: true,
         registrationUnavailableReason: null,
-        auth: { localPassword: true, passkey: true, magicLink: true, oidc: false },
+        auth: {
+          localPassword: true,
+          passkey: true,
+          magicLink: true,
+          oidc: false,
+        },
       });
       return;
     }
@@ -88,7 +93,9 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/memberships') {
-      await fulfillJson([{ role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' }]);
+      await fulfillJson([
+        { role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' },
+      ]);
       return;
     }
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
@@ -104,11 +111,17 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
+    ) {
       await fulfillJson({ items: [] });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
+    ) {
       await fulfillJson({
         recentShared: [],
         relationshipDuration: null,
@@ -118,7 +131,10 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`
+    ) {
       await fulfillJson({
         accountId: ACCOUNT_ID,
         createdAt: TEST_NOW,
@@ -131,7 +147,10 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
+    ) {
       await fulfillJson({ unreadCount: 0 });
       return;
     }
@@ -152,7 +171,10 @@ async function installApiMocks(page: Page): Promise<void> {
       updatedAt: TEST_NOW,
       position: 0,
     };
-    if (method === 'POST' && pathname === `/api/v1/spaces/${SPACE_ID}/attachments`) {
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/attachments`
+    ) {
       await fulfillJson(
         {
           attachment,
@@ -175,7 +197,10 @@ async function installApiMocks(page: Page): Promise<void> {
       await fulfillJson(attachment);
       return;
     }
-    if (method === 'POST' && pathname === `/api/v1/spaces/${SPACE_ID}/memories`) {
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories`
+    ) {
       const body = request.postDataJSON() as MemoryCreateRequestBody;
       savedMemory = {
         attachments: [],
@@ -202,8 +227,16 @@ async function installApiMocks(page: Page): Promise<void> {
       await fulfillJson(savedMemory);
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/timeline`) {
-      await fulfillJson({ availableYears: [], hasMore: false, items: [], nextCursor: null });
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
+    ) {
+      await fulfillJson({
+        availableYears: [],
+        hasMore: false,
+        items: [],
+        nextCursor: null,
+      });
       return;
     }
     await fulfillJson(
@@ -226,7 +259,9 @@ async function openMemoryCreate(page: Page): Promise<void> {
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await page.goto('/story/memories/new');
-  await expect(page.getByRole('heading', { name: de.memory.heading })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: de.memory.heading }),
+  ).toBeVisible();
 }
 
 test.describe('R1 Memory Create evidence', () => {
@@ -276,9 +311,7 @@ test.describe('R1 Memory Create evidence', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
-    await page
-      .locator('#memory-create-images')
-      .setInputFiles(CABIN_FIXTURE);
+    await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
     await expect(page.getByText(de.memory.photoReady)).toBeVisible();
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, 'r1-photo-only-390-light.png'),
@@ -292,9 +325,7 @@ test.describe('R1 Memory Create evidence', () => {
       await page.emulateMedia({ colorScheme });
       await page.setViewportSize({ width: 390, height: 1000 });
       await openMemoryCreate(page);
-      await page
-        .locator('#memory-create-images')
-        .setInputFiles(CABIN_FIXTURE);
+      await page.locator('#memory-create-images').setInputFiles(CABIN_FIXTURE);
       await expect(page.getByText(de.memory.photoReady)).toBeVisible();
       await page
         .getByLabel(de.memory.bodyLabel, { exact: true })
@@ -309,7 +340,10 @@ test.describe('R1 Memory Create evidence', () => {
         .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
         .click();
       await page.screenshot({
-        path: path.join(EVIDENCE_DIR, `r1-mixed-date-open-390-${colorScheme}.png`),
+        path: path.join(
+          EVIDENCE_DIR,
+          `r1-mixed-date-open-390-${colorScheme}.png`,
+        ),
       });
     });
   }
@@ -328,15 +362,21 @@ test.describe('R1 Memory Create evidence', () => {
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-    await expect(page.getByLabel(de.memory.bodyLabel, { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: de.memory.save })).toBeVisible();
+    await expect(
+      page.getByLabel(de.memory.bodyLabel, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: de.memory.save }),
+    ).toBeVisible();
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, 'r1-200pct-text-390-light.png'),
       fullPage: true,
     });
   });
 
-  test('reduced motion preserves the same resting composition', async ({ page }) => {
+  test('reduced motion preserves the same resting composition', async ({
+    page,
+  }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 390, height: 900 });
     await openMemoryCreate(page);

@@ -109,7 +109,12 @@ async function installMocks(page: Page): Promise<void> {
         maintenanceMode: false,
         registrationAvailable: true,
         registrationUnavailableReason: null,
-        auth: { localPassword: true, passkey: true, magicLink: true, oidc: false },
+        auth: {
+          localPassword: true,
+          passkey: true,
+          magicLink: true,
+          oidc: false,
+        },
       });
       return;
     }
@@ -134,88 +139,157 @@ async function installMocks(page: Page): Promise<void> {
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/memberships') {
-      await fulfillJson([{ role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' }]);
+      await fulfillJson([
+        { role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' },
+      ]);
       return;
     }
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
-      await fulfillJson({ id: SPACE_ID, createdAt: '2023-06-17T00:00:00Z', partners: [ME] });
+      await fulfillJson({
+        id: SPACE_ID,
+        createdAt: '2023-06-17T00:00:00Z',
+        partners: [ME],
+      });
       return;
     }
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
-        spaceId: SPACE_ID, version: 1,
-        relationshipStartedOn: '2023-06-17', showRelationshipDuration: true,
+        spaceId: SPACE_ID,
+        version: 1,
+        relationshipStartedOn: '2023-06-17',
+        showRelationshipDuration: true,
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
+    ) {
       await fulfillJson({ items: [] });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`
+    ) {
       await fulfillJson({
-        accountId: ACCOUNT_ID, createdAt: '2023-06-17T00:00:00Z',
-        displayName: ME.displayName, id: PROFILE_ID, preferences: [],
-        profileAttachmentId: null, updatedAt: '2023-06-17T00:00:00Z', version: 1,
+        accountId: ACCOUNT_ID,
+        createdAt: '2023-06-17T00:00:00Z',
+        displayName: ME.displayName,
+        id: PROFILE_ID,
+        preferences: [],
+        profileAttachmentId: null,
+        updatedAt: '2023-06-17T00:00:00Z',
+        version: 1,
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
+    ) {
       await fulfillJson({ unreadCount: 0 });
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/timeline`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
+    ) {
       const order = url.searchParams.get('order');
       let items = timelineItems();
       const type = url.searchParams.get('type');
       if (type) items = items.filter((item) => item.kind === type);
       if (order === 'ASC') items = [...items].reverse();
       await fulfillJson({
-        items, hasMore: false, nextCursor: null,
+        items,
+        hasMore: false,
+        nextCursor: null,
         availableYears: [2026],
       });
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-august`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-august`
+    ) {
       await fulfillJson({
-        id: 'mem-august', spaceId: SPACE_ID, title: 'Late August Vacation',
-        body: 'A perfect end to summer.', happenedOn: '2026-08-26',
-        author: ME, authorId: ACCOUNT_ID, attachments: [], capabilities: CAPABILITIES,
-        createdAt: '2026-08-26T00:00:00Z', updatedAt: '2026-08-26T00:00:00Z', version: 1,
+        id: 'mem-august',
+        spaceId: SPACE_ID,
+        title: 'Late August Vacation',
+        body: 'A perfect end to summer.',
+        happenedOn: '2026-08-26',
+        author: ME,
+        authorId: ACCOUNT_ID,
+        attachments: [],
+        capabilities: CAPABILITIES,
+        createdAt: '2026-08-26T00:00:00Z',
+        updatedAt: '2026-08-26T00:00:00Z',
+        version: 1,
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-august/comments`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-august/comments`
+    ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-picnic`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-picnic`
+    ) {
       await fulfillJson({
-        id: 'hm-picnic', spaceId: SPACE_ID, text: 'Thinking of our spring picnic',
-        emotion: 'LOVED', happenedOn: '2026-07-05', author: ME, authorId: ACCOUNT_ID,
-        capabilities: CAPABILITIES, createdAt: '2026-07-05T00:00:00Z',
-        updatedAt: '2026-07-05T00:00:00Z', version: 1, visibility: 'SHARED', attachment: null,
+        id: 'hm-picnic',
+        spaceId: SPACE_ID,
+        text: 'Thinking of our spring picnic',
+        emotion: 'LOVED',
+        happenedOn: '2026-07-05',
+        author: ME,
+        authorId: ACCOUNT_ID,
+        capabilities: CAPABILITIES,
+        createdAt: '2026-07-05T00:00:00Z',
+        updatedAt: '2026-07-05T00:00:00Z',
+        version: 1,
+        visibility: 'SHARED',
+        attachment: null,
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-picnic/comments`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-picnic/comments`
+    ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
     }
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-moved-in`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-moved-in`
+    ) {
       await fulfillJson({
-        id: 'ms-moved-in', spaceId: SPACE_ID, title: 'Moved in together',
-        description: null, happenedOn: '2026-08-01', author: ME, authorId: ACCOUNT_ID,
-        capabilities: CAPABILITIES, createdAt: '2026-08-01T00:00:00Z',
-        updatedAt: '2026-08-01T00:00:00Z', version: 1,
+        id: 'ms-moved-in',
+        spaceId: SPACE_ID,
+        title: 'Moved in together',
+        description: null,
+        happenedOn: '2026-08-01',
+        author: ME,
+        authorId: ACCOUNT_ID,
+        capabilities: CAPABILITIES,
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: '2026-08-01T00:00:00Z',
+        version: 1,
       });
       return;
     }
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-moved-in/comments`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-moved-in/comments`
+    ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
     }
@@ -225,16 +299,28 @@ async function installMocks(page: Page): Promise<void> {
       const type = url.searchParams.getAll('type');
       const matches = [
         {
-          type: 'MEMORY', id: 'mem-august', title: 'Late August Vacation',
-          excerpt: 'A perfect end to summer.', occurredOn: '2026-08-26', scope: 'SHARED',
+          type: 'MEMORY',
+          id: 'mem-august',
+          title: 'Late August Vacation',
+          excerpt: 'A perfect end to summer.',
+          occurredOn: '2026-08-26',
+          scope: 'SHARED',
         },
         {
-          type: 'HEART_MOMENT', id: 'hm-picnic', title: 'Thinking of our spring picnic',
-          excerpt: null, occurredOn: '2026-07-05', scope: 'SHARED',
+          type: 'HEART_MOMENT',
+          id: 'hm-picnic',
+          title: 'Thinking of our spring picnic',
+          excerpt: null,
+          occurredOn: '2026-07-05',
+          scope: 'SHARED',
         },
         {
-          type: 'MILESTONE', id: 'ms-moved-in', title: 'Moved in together',
-          excerpt: null, occurredOn: '2026-08-01', scope: 'SHARED',
+          type: 'MILESTONE',
+          id: 'ms-moved-in',
+          title: 'Moved in together',
+          excerpt: null,
+          occurredOn: '2026-08-01',
+          scope: 'SHARED',
         },
       ].filter(
         (item) =>
@@ -258,7 +344,9 @@ async function signIn(page: Page): Promise<void> {
 }
 
 test.describe('R2 Momente/Timeline evidence (#966)', () => {
-  test('groups the Timeline under real month headings, newest month first', async ({ page }, testInfo) => {
+  test('groups the Timeline under real month headings, newest month first', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
@@ -271,46 +359,66 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await expect(july).toBeVisible();
     const augustBox = await august.boundingBox();
     const julyBox = await july.boundingBox();
-    expect(augustBox && julyBox && augustBox.y).toBeLessThan(julyBox?.y ?? Number.POSITIVE_INFINITY);
+    expect(augustBox && julyBox && augustBox.y).toBeLessThan(
+      julyBox?.y ?? Number.POSITIVE_INFINITY,
+    );
 
     // A single, real month heading — not a surrounding card.
     await expect(page.locator('.story-year-month')).toHaveCount(2);
 
-    await captureScreenshot(page, testInfo, 'r2-timeline-month-headings-390-light.png');
+    await captureScreenshot(
+      page,
+      testInfo,
+      'r2-timeline-month-headings-390-light.png',
+    );
   });
 
-  test('applying the oldest-first order re-requests and visibly reorders the Timeline', async ({ page }) => {
+  test('applying the oldest-first order re-requests and visibly reorders the Timeline', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    await page.getByRole('button', { name: storyProducts.storyFilters.toggleButton }).click();
+    await page
+      .getByRole('button', { name: storyProducts.storyFilters.toggleButton })
+      .click();
     await page
       .getByLabel(storyProducts.storyFilters.order)
       .selectOption({ label: storyProducts.storyFilters.oldest });
-    await page.getByRole('button', { name: storyProducts.storyFilters.apply }).click();
+    await page
+      .getByRole('button', { name: storyProducts.storyFilters.apply })
+      .click();
 
     await expect(page).toHaveURL(/order=ASC/);
-    await expect(page.getByText(storyProducts.storyFilters.oldest)).toBeVisible();
+    await expect(
+      page.getByText(storyProducts.storyFilters.oldest),
+    ).toBeVisible();
   });
 
-  test('opening a Heart Moment from a filtered Timeline and pressing Back restores that filter', async ({ page }) => {
+  test('opening a Heart Moment from a filtered Timeline and pressing Back restores that filter', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
     await page.goto('/story?tab=timeline&type=HEART_MOMENT');
     await page.waitForSelector('.story-timeline');
 
-    await page.getByRole('link', { name: /Thinking of our spring picnic/i }).click();
+    await page
+      .getByRole('link', { name: /Thinking of our spring picnic/i })
+      .click();
     await expect(page).toHaveURL(/\/story\/heart-moments\/hm-picnic/);
 
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/type=HEART_MOMENT/);
   });
 
-  test('opening a Milestone from a filtered Timeline and pressing Back restores that filter', async ({ page }) => {
+  test('opening a Milestone from a filtered Timeline and pressing Back restores that filter', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
@@ -324,7 +432,9 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await expect(page).toHaveURL(/type=MILESTONE/);
   });
 
-  test('Search restores its submitted query/kind after returning from a canonical detail', async ({ page }) => {
+  test('Search restores its submitted query/kind after returning from a canonical detail', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
@@ -332,18 +442,26 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
 
     await page.getByLabel(m5s5.search.label).fill('August Vacation');
     await page.getByRole('button', { name: m5s5.search.submit }).click();
-    await expect(page.getByRole('heading', { name: 'Late August Vacation' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Late August Vacation' }),
+    ).toBeVisible();
 
     await page.getByRole('link', { name: /Late August Vacation/i }).click();
     await expect(page).toHaveURL(/\/story\/memories\/mem-august/);
 
     await page.getByRole('button', { name: taskBoundary.back }).click();
     await expect(page).toHaveURL(/\/search/);
-    await expect(page.getByLabel(m5s5.search.label)).toHaveValue('August Vacation');
-    await expect(page.getByRole('heading', { name: 'Late August Vacation' })).toBeVisible();
+    await expect(page.getByLabel(m5s5.search.label)).toHaveValue(
+      'August Vacation',
+    );
+    await expect(
+      page.getByRole('heading', { name: 'Late August Vacation' }),
+    ).toBeVisible();
   });
 
-  test('Search results for Heart Moment/Milestone deep-link to their canonical detail, not the Story landing', async ({ page }) => {
+  test('Search results for Heart Moment/Milestone deep-link to their canonical detail, not the Story landing', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
@@ -355,7 +473,9 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await expect(page).toHaveURL(/\/story\/milestones\/ms-moved-in/);
   });
 
-  test('320px reflow produces no horizontal overflow with month headings', async ({ page }, testInfo) => {
+  test('320px reflow produces no horizontal overflow with month headings', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await installMocks(page);
     await signIn(page);
@@ -363,15 +483,21 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await page.waitForSelector('.story-timeline');
 
     const hasHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
     );
     expect(hasHorizontalOverflow).toBe(false);
     await captureScreenshot(page, testInfo, 'r2-timeline-320-reflow.png');
   });
 
-  test('dark mode captures month headings at 390x844', async ({ page }, testInfo) => {
+  test('dark mode captures month headings at 390x844', async ({
+    page,
+  }, testInfo) => {
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.addInitScript(() => window.localStorage.setItem('eimir.theme', 'system'));
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
@@ -379,19 +505,31 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await page.waitForSelector('.story-timeline');
 
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await captureScreenshot(page, testInfo, 'r2-timeline-month-headings-390-dark.png');
+    await captureScreenshot(
+      page,
+      testInfo,
+      'r2-timeline-month-headings-390-dark.png',
+    );
   });
 
-  test('representative Expanded (1280px) captures month headings', async ({ page }, testInfo) => {
+  test('representative Expanded (1280px) captures month headings', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await installMocks(page);
     await signIn(page);
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
-    await captureScreenshot(page, testInfo, 'r2-timeline-month-headings-1280-light.png');
+    await captureScreenshot(
+      page,
+      testInfo,
+      'r2-timeline-month-headings-1280-light.png',
+    );
   });
 
-  test('reduced motion preserves the same month-grouped structure', async ({ page }, testInfo) => {
+  test('reduced motion preserves the same month-grouped structure', async ({
+    page,
+  }, testInfo) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
@@ -399,7 +537,13 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    await expect(page.getByRole('heading', { name: 'August 2026', level: 2 })).toBeVisible();
-    await captureScreenshot(page, testInfo, 'r2-timeline-reduced-motion-390-light.png');
+    await expect(
+      page.getByRole('heading', { name: 'August 2026', level: 2 }),
+    ).toBeVisible();
+    await captureScreenshot(
+      page,
+      testInfo,
+      'r2-timeline-reduced-motion-390-light.png',
+    );
   });
 });

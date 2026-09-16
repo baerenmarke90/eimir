@@ -156,4 +156,8 @@ Implementation owners: [F1 #957](https://github.com/baerenmarke90/eimir/issues/9
 
 F1/F2 issues must link the committed reference revision, identify the bounded proof consumers, record current-main and open-PR checks, and include the preflight, reuse, business/freemium and cross-cutting reviews. Their later implementation must refresh those checks; planning is not a permanent reuse approval.
 
+[R1 #964](https://github.com/baerenmarke90/eimir/issues/964)'s finished content-first capture composition, reuse decisions and Web evidence are recorded in [r1-memory-capture.md](r1-memory-capture.md); its implementation is submitted for Product Owner visual/interaction review, with Android native device evidence recorded there as an outstanding follow-up rather than claimed.
+
+[R2 #966](https://github.com/baerenmarke90/eimir/issues/966)'s bounded rework-in-place of Momente/Timeline/Discover, its current-implementation inventory, reuse decisions and Web/Android evidence are recorded in [r2-momente-timeline.md](r2-momente-timeline.md); its implementation is submitted for Product Owner visual/interaction review.
+
 #955 owns completion across all eleven slices. A documentation PR establishes the reference and prepares execution; it does not close the master issue or claim any runtime slice complete. Merge and product acceptance remain separate decisions.

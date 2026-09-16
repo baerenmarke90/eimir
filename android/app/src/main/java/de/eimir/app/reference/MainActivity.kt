@@ -34,6 +34,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.key
+import androidx.compose.foundation.lazy.rememberLazyListState
+import de.eimir.app.story.MemoryCreateScreen
+import de.eimir.app.story.TimelineScopeControls
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -161,16 +165,17 @@ private fun referenceViewModelFactory(context: Context): ViewModelProvider.Facto
     }
 
 @Composable
-private fun ReferenceFlowRoute(
+internal fun ReferenceFlowRoute(
     oidcCallback: Uri? = null,
     onOidcCallbackConsumed: () -> Unit = {},
     referenceViewModel: ReferenceViewModel = viewModel(factory = referenceViewModelFactory(LocalContext.current)),
+    navigationController: androidx.navigation.NavHostController? = null,
 ) {
     val state by referenceViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val credentialManager = remember(context) { CredentialManager.create(context) }
-    var imageSelectionEpoch by remember { mutableStateOf<Long?>(null) }
+    var imageSelectionEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
     var profileAvatarSelectionEpoch by remember { mutableStateOf<Long?>(null) }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
         val selectionEpoch = imageSelectionEpoch
@@ -335,43 +340,49 @@ private fun ReferenceFlowRoute(
                 persona = demoPersona,
                 onLeave = referenceViewModel::leaveDemo,
             )
-            DemoShell(
-                state = state,
-                viewModel = referenceViewModel,
-                onSignOut = signOut,
-                onSelectSpace = referenceViewModel::selectSpace,
-                onPickProfileAvatar = pickProfileAvatar,
-            ) { openMemory, openMilestone, openHeartMoment ->
-                StoryDestination(
+            key(state.accountId, state.activeSpaceId) {
+                DemoShell(
+                    navController = navigationController ?: rememberNavController(),
                     state = state,
                     viewModel = referenceViewModel,
-                    onPickImage = pickImage,
                     onSignOut = signOut,
-                    onOpenMemory = openMemory,
-                    onOpenMilestone = openMilestone,
-                    onOpenHeartMoment = openHeartMoment,
-                )
+                    onSelectSpace = referenceViewModel::selectSpace,
+                    onPickProfileAvatar = pickProfileAvatar,
+                    onPickImage = pickImage,
+                ) { openMemory, openMilestone, openHeartMoment, createMemory ->
+                    StoryDestination(
+                        state = state,
+                        viewModel = referenceViewModel,
+                        onCreateMemory = createMemory,
+                        onOpenMemory = openMemory,
+                        onOpenMilestone = openMilestone,
+                        onOpenHeartMoment = openHeartMoment,
+                    )
+                }
             }
         }
         return
     }
 
-    DemoShell(
-        state = state,
-        viewModel = referenceViewModel,
-        onSignOut = signOut,
-        onSelectSpace = referenceViewModel::selectSpace,
-        onPickProfileAvatar = pickProfileAvatar,
-    ) { openMemory, openMilestone, openHeartMoment ->
-        StoryDestination(
+    key(state.accountId, state.activeSpaceId) {
+        DemoShell(
+            navController = navigationController ?: rememberNavController(),
             state = state,
             viewModel = referenceViewModel,
-            onPickImage = pickImage,
             onSignOut = signOut,
-            onOpenMemory = openMemory,
-            onOpenMilestone = openMilestone,
-            onOpenHeartMoment = openHeartMoment,
-        )
+            onSelectSpace = referenceViewModel::selectSpace,
+            onPickProfileAvatar = pickProfileAvatar,
+            onPickImage = pickImage,
+        ) { openMemory, openMilestone, openHeartMoment, createMemory ->
+            StoryDestination(
+                state = state,
+                viewModel = referenceViewModel,
+                onCreateMemory = createMemory,
+                onOpenMemory = openMemory,
+                onOpenMilestone = openMilestone,
+                onOpenHeartMoment = openHeartMoment,
+            )
+        }
     }
 }
 
@@ -388,14 +399,23 @@ private fun DemoShell(
     onSignOut: () -> Unit,
     onSelectSpace: (java.util.UUID) -> Unit,
     onPickProfileAvatar: () -> Unit,
+    onPickImage: () -> Unit,
+    navController: androidx.navigation.NavHostController = rememberNavController(),
     story: @Composable (
         onOpenMemory: (java.util.UUID) -> Unit,
         onOpenMilestone: (java.util.UUID) -> Unit,
         onOpenHeartMoment: (java.util.UUID) -> Unit,
+        onCreateMemory: () -> Unit,
     ) -> Unit,
 ) {
-    val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val createMemory = {
+        viewModel.beginMemoryTask()
+        navController.navigate(MEMORY_CREATE_ROUTE) { launchSingleTop = true }
+    }
+    val returnFromMemory = {
+        if (!navController.popBackStack()) navController.navigateToPrimary(AppDestination.Story)
+    }
     // Resolved here, in composition, since UiMessage.resolve() calls the
     // @Composable stringResource() — the LaunchedEffect body below cannot
     // call it itself. Keyed on the event's own id, not its text, so the
@@ -421,6 +441,7 @@ private fun DemoShell(
         ),
         navController = navController,
         secureWhen = ::isSecureRoute,
+        focusedTaskWhen = { it == MEMORY_CREATE_ROUTE },
         snackbarHostState = snackbarHostState,
         banner = {
             de.eimir.app.shell.OfflineStatusBanner(
@@ -430,17 +451,35 @@ private fun DemoShell(
         },
         floatingActionButton = {
             QuickCreateFab(
-                // The Story screen's own inline "Erinnerung festhalten"
-                // button is one tap further from here — see
-                // QuickCreateFab's own doc comment for why this does not
-                // also reach into StoryDestination's local capture state.
-                onCreateMemory = { navController.navigateToPrimary(AppDestination.Story) },
+                onCreateMemory = createMemory,
                 onCreateHeartMoment = { navController.navigate(HEART_MOMENTS_ROUTE) },
                 onCreateMilestone = { navController.navigate(MILESTONE_CREATE_ROUTE) },
                 onCreatePrivateNote = { navController.navigate(PRIVATE_NOTES_ROUTE) },
             )
         },
         detailRoutes = { controller ->
+            composable(MEMORY_CREATE_ROUTE) {
+                LaunchedEffect(Unit) { viewModel.beginMemoryTask() }
+                val task = state.memoryTask
+                LaunchedEffect(task?.generation, task?.phase) {
+                    if (task?.phase == MemoryTaskPhase.CONFIRMED && controller.currentDestination?.route == MEMORY_CREATE_ROUTE) {
+                        val memory = checkNotNull(task.confirmedMemory)
+                        controller.navigate("story/memories/${memory.id}") {
+                            popUpTo(MEMORY_CREATE_ROUTE) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                        viewModel.consumeMemoryResult(task.generation)
+                    }
+                }
+                MemoryCreateScreen(
+                    state = state, onDraftChange = viewModel::updateMemoryTask,
+                    onPickImage = onPickImage, onRetryImage = viewModel::retryImage,
+                    onRemoveImage = viewModel::removeImage, onSave = viewModel::submitMemoryTask,
+                    onRetryAttachments = viewModel::retryMemoryAttachments,
+                    onViewPartialResult = viewModel::viewPartiallySavedMemory,
+                    onExit = { if (viewModel.discardMemoryTask()) returnFromMemory() },
+                )
+            }
             composable(
                 route = MEMORY_ROUTE,
                 arguments = listOf(navArgument(MEMORY_ID_ARGUMENT) { type = NavType.StringType }),
@@ -462,6 +501,7 @@ private fun DemoShell(
                     }
                 }
 
+                BackHandler(onBack = returnFromMemory)
                 MemoryScreen(
                     memory = state.openMemory,
                     imageStore = viewModel.storyImages,
@@ -472,7 +512,7 @@ private fun DemoShell(
                     editing = state.editingMemory,
                     savedMessage = state.memoryStatus
                         ?.let { stringResource(it.resourceId, *it.args.toTypedArray()) },
-                    onBack = { controller.popBackStack() },
+                    onBack = returnFromMemory,
                     onBeginEditing = viewModel::beginEditingMemory,
                     onCancelEditing = viewModel::cancelEditingMemory,
                     onSave = viewModel::saveMemory,
@@ -1262,6 +1302,7 @@ private fun DemoShell(
                 { memoryId -> navController.navigate("story/memories/$memoryId") },
                 { id -> navController.navigate("story/milestones/$id") },
                 { id -> navController.navigate("story/heart-moments/$id") },
+                createMemory,
             )
         }
     }
@@ -1309,36 +1350,13 @@ private val HEART_MOMENT_COMMENTS = ReferenceContract.CommentParent.HEART_MOMENT
 private fun StoryDestination(
     state: ReferenceUiState,
     viewModel: ReferenceViewModel,
-    onPickImage: () -> Unit,
-    onSignOut: () -> Unit,
+    onCreateMemory: () -> Unit,
     onOpenMemory: (java.util.UUID) -> Unit,
     onOpenMilestone: (java.util.UUID) -> Unit,
     onOpenHeartMoment: (java.util.UUID) -> Unit,
 ) {
-    var capturing by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(state.activeSpaceId, state.reconnectEpoch) { viewModel.refreshStory() }
-
-    if (capturing) {
-        // The system back gesture is how someone leaves a step like this on
-        // Android; the visible action exists for anyone who does not use it.
-        BackHandler { capturing = false }
-        ReferenceFlowScreen(
-            state = state,
-            onLogin = { _, _ -> },
-            onLogout = onSignOut,
-            onPickImage = onPickImage,
-            onCreateMemory = { title, body, date ->
-                viewModel.createMemory(title, body, date)
-                capturing = false
-            },
-            onRefreshStory = viewModel::refreshStory,
-            onRetryImage = viewModel::retryImage,
-            onRemoveImage = viewModel::removeImage,
-            onCancelCapture = { capturing = false },
-        )
-        return
-    }
+    LaunchedEffect(state.activeSpaceId, state.reconnectEpoch) { viewModel.ensureStoryLoaded() }
+    val listState = key(state.storyScope) { rememberLazyListState() }
 
     StoryScreen(
         items = state.storyItems,
@@ -1350,6 +1368,9 @@ private fun StoryDestination(
         onLoadMore = viewModel::loadMoreStory.takeIf { state.storyHasMore },
         loadingMore = state.storyLoadingMore,
         cachedAt = state.storyCachedAt,
+        listState = listState, scope = state.storyScope,
+        loaded = state.storyLoaded, loading = state.storyLoading, problem = state.storyProblem,
+        onRetry = viewModel::retryStory,
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3),
@@ -1367,11 +1388,18 @@ private fun StoryDestination(
             // Below the title rather than beside it: the action's label is a
             // whole phrase, and squeezing it next to a headline wrapped both.
             FilledTonalButton(
-                onClick = { capturing = true },
+                onClick = onCreateMemory,
                 enabled = !state.busy,
                 modifier = Modifier.heightIn(min = MinimumTouchTarget),
             ) {
                 Text(stringResource(R.string.ref_memory_heading))
+            }
+            TimelineScopeControls(state.storyScope, state.storyAvailableYears, viewModel::applyStoryScope)
+            androidx.compose.material3.TextButton(
+                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
+                onClick = viewModel::refreshStory,
+                enabled = !state.storyLoading, modifier = Modifier.heightIn(min = MinimumTouchTarget)) {
+                Text(stringResource(R.string.ref_refresh))
             }
         }
     }

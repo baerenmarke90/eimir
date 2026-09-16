@@ -5,5 +5,8 @@
         <activity
             android:name="de.eimir.app.design.VisualRolesProofActivity"
             android:exported="true" />
+        <activity
+            android:name="de.eimir.app.reference.TaskJourneyProofActivity"
+            android:exported="true" />
     </application>
 </manifest>

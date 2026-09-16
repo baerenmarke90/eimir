@@ -10,9 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -65,12 +69,19 @@ fun StoryScreen(
     loadingMore: Boolean = false,
     /** Non-null only while [items] is a stale M2-D18 cache fallback. */
     cachedAt: java.time.Instant? = null,
+    listState: LazyListState = rememberLazyListState(),
+    scope: TimelineScope = TimelineScope(),
+    loaded: Boolean = true,
+    loading: Boolean = false,
+    problem: de.eimir.app.shell.UiProblem? = null,
+    onRetry: (() -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
 ) {
     val days = items.toStoryDays()
 
     LazyColumn(
-        modifier = modifier.fillMaxWidth(),
+        state = listState,
+        modifier = modifier.fillMaxWidth().testTag("timeline-scroll"),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             EimirTheme.spacing.pageMargin,
         ),
@@ -80,8 +91,13 @@ fun StoryScreen(
 
         cachedAt?.let { item(key = "cached-banner") { de.eimir.app.shell.CachedContentBanner(it) } }
 
-        if (days.isEmpty()) {
-            item(key = "empty") { StoryEmpty() }
+        if (loading) item(key = "loading") { Text(stringResource(R.string.story_loading), color = EimirTheme.colors.textSecondary) }
+        problem?.let { current -> item(key = "problem") { de.eimir.app.shell.UiStatePanel(current, onRetry = onRetry) } }
+        if (days.isEmpty() && loaded && !loading && problem == null) {
+            item(key = "empty") {
+                if (scope.isDefault) StoryEmpty()
+                else Text(stringResource(R.string.timeline_no_match), color = EimirTheme.colors.textPrimary)
+            }
         }
 
         for (day in days) {
@@ -108,7 +124,7 @@ fun StoryScreen(
         // nothing on screen to say so.
         onLoadMore?.let { more ->
             item(key = "load-more") {
-                TextButton(onClick = more, enabled = !loadingMore) {
+                TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText), onClick = more, enabled = !loadingMore) {
                     Text(
                         stringResource(
                             if (loadingMore) R.string.load_more_busy else R.string.load_more,
@@ -133,7 +149,7 @@ private fun DayHeading(date: LocalDate) {
             fontFamily = EimirDisplayFamily,
             fontWeight = FontWeight.SemiBold,
         ),
-        color = EimirTheme.colors.brandStrong,
+        color = EimirTheme.colors.linkText,
         modifier = Modifier
             .padding(top = EimirTheme.spacing.step2)
             .semantics { heading() },
@@ -180,6 +196,7 @@ private fun MemoryCard(
         border = BorderStroke(1.dp, EimirTheme.colors.borderSubtle),
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("story-memory-${entry.id}")
             .then(if (onOpen != null) Modifier.clickable(onClick = onOpen) else Modifier),
     ) {
         Column(

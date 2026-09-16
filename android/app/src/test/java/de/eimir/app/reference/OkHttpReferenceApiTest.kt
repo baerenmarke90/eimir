@@ -37,6 +37,29 @@ import eimir.api.models.UploadDescriptor
 
 class OkHttpReferenceApiTest {
     @Test
+    fun scopedTimelineCarriesYearKindAndOpaqueCursorOnTheAuthorizedEndpoint() = runTest {
+        val requests = mutableListOf<Request>()
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            requests += request
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body("""{"hasMore":false,"items":[],"nextCursor":null,"availableYears":[2025]}"""
+                    .toResponseBody("application/json".toMediaType())).build()
+        }.build()
+        val space = UUID(0, 958)
+        val result = OkHttpReferenceApi("https://api.example.invalid", client).getScopedTimeline(
+            space, "secret", de.eimir.app.story.TimelineScope(2025, de.eimir.app.story.StoryEntryKind.MEMORY), "opaque+/= value",
+        )
+        val request = requests.single()
+        assertEquals("/api/v1/spaces/$space/timeline", request.url.encodedPath)
+        assertEquals("Bearer secret", request.header("Authorization"))
+        assertEquals("2025", request.url.queryParameter("year"))
+        assertEquals("MEMORY", request.url.queryParameter("type"))
+        assertEquals("opaque+/= value", request.url.queryParameter("cursor"))
+        assertEquals(listOf(2025), result.availableYears)
+    }
+
+    @Test
     fun bearerTokenOnlyTravelsOnAuthenticatedStreamDescriptors() = runTest {
         val requests = mutableListOf<Request>()
         val client = OkHttpClient.Builder()

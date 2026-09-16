@@ -60,21 +60,50 @@ suspend fun createMemoryWithPreparedAttachments(
     happenedOn: LocalDate?,
     attachments: List<PreparedAttachment>,
 ): ReferenceFlowResult {
+    val memory = saveMemoryWithPreparedAttachments(
+        api, spaceId, accessToken, title, body, happenedOn, attachments,
+    )
+    val story = api.getTimeline(spaceId, accessToken)
+    val imageBytes = attachments.firstOrNull()?.let { attachment ->
+        val descriptor = api.createReadAccess(
+            spaceId, accessToken, attachment.attachmentId,
+            AttachmentReadRequest(parentId = memory.id, parentType = AttachmentReadRequest.ParentType.MEMORY),
+        )
+        api.readImageBytes(accessToken, descriptor)
+    }
+    return ReferenceFlowResult(memory, story, imageBytes)
+}
+
+/** Confirmation is independent of optional Timeline and image reads. */
+suspend fun saveMemoryWithPreparedAttachments(
+    api: ReferenceContract,
+    spaceId: UUID,
+    accessToken: String,
+    title: String,
+    body: String,
+    happenedOn: LocalDate?,
+    attachments: List<PreparedAttachment>,
+    onCreated: (MemoryDetail) -> Unit = {},
+): MemoryDetail {
     val memory = api.createMemory(
         spaceId,
         accessToken,
         MemoryCreate(body = body, title = title, happenedOn = happenedOn),
     )
+    onCreated(memory)
+    return if (attachments.isEmpty()) memory else bindMemoryAttachments(
+        api, spaceId, accessToken, memory, attachments,
+    )
+}
 
-    if (attachments.isEmpty()) {
-        return ReferenceFlowResult(
-            memory = memory,
-            story = api.getTimeline(spaceId, accessToken),
-            imageBytes = null,
-        )
-    }
-
-    val boundMemory = api.replaceMemoryAttachments(
+/** Uses the supplied object's current version; never creates another Memory. */
+suspend fun bindMemoryAttachments(
+    api: ReferenceContract,
+    spaceId: UUID,
+    accessToken: String,
+    memory: MemoryDetail,
+    attachments: List<PreparedAttachment>,
+): MemoryDetail = api.replaceMemoryAttachments(
         spaceId = spaceId,
         accessToken = accessToken,
         memoryId = memory.id,
@@ -85,25 +114,6 @@ suspend fun createMemoryWithPreparedAttachments(
             },
         ),
     )
-
-    val story = api.getTimeline(spaceId, accessToken)
-    val readDescriptor = api.createReadAccess(
-        spaceId,
-        accessToken,
-        attachments.first().attachmentId,
-        AttachmentReadRequest(
-            parentId = boundMemory.id,
-            parentType = AttachmentReadRequest.ParentType.MEMORY,
-        ),
-    )
-    val imageBytes = api.readImageBytes(accessToken, readDescriptor)
-
-    return ReferenceFlowResult(
-        memory = boundMemory,
-        story = story,
-        imageBytes = imageBytes,
-    )
-}
 
 suspend fun runMemoryMediaStoryFlow(
     api: ReferenceContract,

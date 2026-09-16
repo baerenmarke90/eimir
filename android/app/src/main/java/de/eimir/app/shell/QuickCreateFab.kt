@@ -6,14 +6,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,20 +33,7 @@ import de.eimir.app.design.MinimumTouchTarget
 import de.eimir.app.design.EimirTheme
 import de.eimir.app.reference.R
 
-/**
- * The shell-wide quick-create entry point, matching Web's `QuickCreateMenu`.
- *
- * Every list screen already has its own inline creation affordance — the
- * Story header's "Erinnerung festhalten" button, the HeartMoments and
- * PrivateNotes screens' own inline forms — so this does not duplicate any of
- * them. It exists because reaching those requires already being on the right
- * screen; a couple on Heute or Planen has no way to jump straight to
- * creating something shared without first navigating there themselves. This
- * closes that gap by navigating to the right destination, the same as the
- * Web menu's own items do.
- *
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** The global choice sheet enters the selected task without refocusing an obsolete trigger. */
 @Composable
 fun QuickCreateFab(
     onCreateMemory: () -> Unit,
@@ -54,22 +43,28 @@ fun QuickCreateFab(
     modifier: Modifier = Modifier,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
+    var restoreFocus by remember { mutableStateOf(false) }
+    val triggerFocus = remember { FocusRequester() }
+    LaunchedEffect(open, restoreFocus) {
+        if (!open && restoreFocus) {
+            triggerFocus.requestFocus()
+            restoreFocus = false
+        }
+    }
+    val cancel = { restoreFocus = true; open = false }
 
     val triggerLabel = stringResource(R.string.quick_create_trigger)
     FloatingActionButton(
         onClick = { open = true },
-        modifier = modifier.semantics { contentDescription = triggerLabel },
+        modifier = modifier.focusRequester(triggerFocus).testTag("quick-create-trigger").semantics { contentDescription = triggerLabel },
     ) {
         PlusGlyph(tint = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 
     if (open) {
-        val sheetState = rememberModalBottomSheetState()
-        ModalBottomSheet(onDismissRequest = { open = false }, sheetState = sheetState) {
+        ShortTaskSheet(title = triggerLabel, onDismiss = cancel) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(EimirTheme.spacing.pageMargin),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 QuickCreateGroupLabel(R.string.quick_create_shared_group)
                 QuickCreateItem(R.string.quick_create_memory) {

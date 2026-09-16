@@ -23,6 +23,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -230,7 +231,9 @@ class ProductReadCacheViewModelTest {
         advanceUntilIdle()
 
         assertNull(model.uiState.value.storyCachedAt)
-        assertNotNull(model.uiState.value.error)
+        assertNotNull(model.uiState.value.storyProblem)
+        assertTrue(model.uiState.value.storyItems.isEmpty())
+        assertEquals(false, model.uiState.value.storyHasMore)
     }
 
     @Test

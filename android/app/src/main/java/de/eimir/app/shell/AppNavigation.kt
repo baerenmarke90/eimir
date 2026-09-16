@@ -54,6 +54,7 @@ fun AppNavigation(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     /** Forwarded to [AppShell] as-is; see there for what it is for. */
     floatingActionButton: (@Composable () -> Unit)? = null,
+    focusedTaskWhen: (String?) -> Boolean = { false },
     destinationContent: @Composable (AppDestination) -> Unit,
 ) {
     require(destinations.isNotEmpty()) { "The shell needs at least one destination." }
@@ -73,7 +74,8 @@ fun AppNavigation(
             },
             banner = banner,
             snackbarHostState = snackbarHostState,
-            floatingActionButton = floatingActionButton,
+            floatingActionButton = floatingActionButton.takeUnless { focusedTaskWhen(currentRoute) },
+            showPrimaryNavigation = !focusedTaskWhen(currentRoute),
         ) {
             NavHost(
                 navController = navController,

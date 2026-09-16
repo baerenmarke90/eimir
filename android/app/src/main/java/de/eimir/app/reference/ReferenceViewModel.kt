@@ -13,6 +13,8 @@ import de.eimir.app.profile.updateProfileDisplayName
 import de.eimir.app.shell.UiProblem
 import de.eimir.app.shell.UiStateKind
 import de.eimir.app.shell.problemFor
+import de.eimir.app.story.toEntry
+import de.eimir.app.story.TimelineScope
 import de.eimir.app.story.StoryImageRef
 import de.eimir.app.story.StoryImageStore
 import java.time.LocalDate
@@ -230,9 +232,16 @@ data class ReferenceUiState(
     val snackbarMessage: SnackbarMessage? = null,
     val error: UiMessage? = null,
     val draftImages: List<DraftImageUiItem> = emptyList(),
+    val memoryTask: MemoryTask? = null,
     val lastMemoryTitle: String? = null,
     val lastMemoryBody: String? = null,
     val lastImageBytes: ByteArray? = null,
+    val storyScope: TimelineScope = TimelineScope(),
+    val storyAvailableYears: List<Int> = emptyList(),
+    val storyLoaded: Boolean = false,
+    val storyLoading: Boolean = false,
+    val storyProblem: UiProblem? = null,
+    val storyPageFailed: Boolean = false,
     val storyItems: List<StoryItem> = emptyList(),
     /** Whether the server says there is more Story past what is loaded. */
     val storyHasMore: Boolean = false,
@@ -470,6 +479,11 @@ class ReferenceViewModel(
     private var imageDrafts: List<ImageDraft> = emptyList()
     private var sessionEpoch: Long = 0
     private var nextDraftId: Long = 1
+    private var memoryTaskGeneration: Long = 0
+    private var imageSelectionGeneration: Long = 0
+    private var memoryReadGeneration: Long = 0
+    private var storyRequestGeneration: Long = 0
+    private var storyReconnectEpoch: Int = -1
 
     /** Where the next page continues from; opaque and server-issued. */
     private var storyCursor: String? = null
@@ -569,6 +583,8 @@ class ReferenceViewModel(
         }
 
         sessionEpoch += 1
+        clearMemoryTask()
+        resetStoryContext()
         storyImages.reset()
         clearHeartMoments()
         clearComments()
@@ -674,6 +690,8 @@ class ReferenceViewModel(
         val demoApi = apiFor(DemoEndpoint.BASE_URL) ?: return configurationError()
 
         sessionEpoch += 1
+        clearMemoryTask()
+        resetStoryContext()
         storyImages.reset()
         clearHeartMoments()
         clearComments()
@@ -742,6 +760,8 @@ class ReferenceViewModel(
         contract = apiFor(config.apiBaseUrl)
         activeSpaceId = null
         sessionEpoch += 1
+        clearMemoryTask()
+        resetStoryContext()
         storyImages.reset()
         clearHeartMoments()
         clearComments()
@@ -941,6 +961,8 @@ class ReferenceViewModel(
      */
     private fun clearSpaceBoundState() {
         sessionEpoch += 1
+        clearMemoryTask()
+        resetStoryContext()
         storyImages.reset()
         clearHeartMoments()
         clearComments()
@@ -1029,13 +1051,14 @@ class ReferenceViewModel(
     private fun apiFor(baseUrl: String): ReferenceContract? =
         injectedApi ?: baseUrl.takeIf(String::isNotBlank)?.let(apiFactory)
 
-    fun beginImageSelection(): Long? = session?.let { sessionEpoch }
+    fun beginImageSelection(): Long? = session?.takeIf { _uiState.value.memoryTask?.editable != false }
+        ?.let { imageSelectionGeneration }
 
     fun selectImages(images: List<SelectedImage>, selectionEpoch: Long) {
         val api = contract ?: return configurationError()
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return configurationError()
-        if (selectionEpoch != sessionEpoch || images.isEmpty()) return
+        if (selectionEpoch != imageSelectionGeneration || images.isEmpty() || _uiState.value.memoryTask?.editable == false) return
 
         val newDrafts = images.map { image ->
             ImageDraft(
@@ -1053,7 +1076,7 @@ class ReferenceViewModel(
     }
 
     fun setImageSelectionError(throwable: Throwable, selectionEpoch: Long) {
-        if (session == null || selectionEpoch != sessionEpoch) return
+        if (session == null || selectionEpoch != imageSelectionGeneration) return
         val error = throwable.message?.takeIf(String::isNotBlank)?.let {
             message(R.string.ref_error_image_selection_detail, it)
         } ?: message(R.string.ref_error_image_selection_failed)
@@ -1061,6 +1084,7 @@ class ReferenceViewModel(
     }
 
     fun retryImage(draftId: Long) {
+        if (_uiState.value.memoryTask?.editable == false) return
         val api = contract ?: return configurationError()
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return configurationError()
@@ -1078,6 +1102,7 @@ class ReferenceViewModel(
     }
 
     fun removeImage(draftId: Long) {
+        if (_uiState.value.memoryTask?.editable == false) return
         val previousSize = imageDrafts.size
         imageDrafts = imageDrafts.filterNot { it.id == draftId }
         if (imageDrafts.size == previousSize) return
@@ -1085,77 +1110,165 @@ class ReferenceViewModel(
         publishDrafts(status = nextStatus)
     }
 
+    fun beginMemoryTask() {
+        if (_uiState.value.memoryTask != null) return
+        imageSelectionGeneration += 1
+        imageDrafts = emptyList()
+        mutate { it.copy(memoryTask = MemoryTask(++memoryTaskGeneration), draftImages = emptyList(), error = null, status = null) }
+    }
+
+    fun updateMemoryTask(title: String, body: String, happenedOn: String) {
+        val task = _uiState.value.memoryTask?.takeIf { it.editable } ?: return
+        mutate { it.copy(memoryTask = task.copy(title = title.take(200), body = body, happenedOn = happenedOn, problem = null)) }
+    }
+
+    /** Pending work must retain ownership until its result is known. */
+    fun discardMemoryTask(): Boolean {
+        if (_uiState.value.memoryTask?.pending == true) return false
+        clearMemoryTask()
+        return true
+    }
+
+    private fun clearMemoryTask() {
+        memoryTaskGeneration += 1
+        imageSelectionGeneration += 1
+        imageDrafts = emptyList()
+        mutate { it.copy(memoryTask = null, draftImages = emptyList(), busy = false, error = null, status = null) }
+    }
+
+    fun consumeMemoryResult(generation: Long) {
+        val task = _uiState.value.memoryTask ?: return
+        if (task.generation == generation && task.phase == MemoryTaskPhase.CONFIRMED) clearMemoryTask()
+    }
+
+    fun submitMemoryTask() {
+        val task = _uiState.value.memoryTask ?: return
+        createMemory(task.title, task.body, task.happenedOn)
+    }
+
     fun createMemory(title: String, body: String, happenedOnText: String) {
         val api = contract ?: return configurationError()
-        val currentSession = session ?: run {
-            setError(message(R.string.ref_error_login_required))
-            return
+        val currentSession = session ?: return
+        val spaceId = activeSpaceId ?: return
+        // Set the lock before launching a coroutine, including two taps in the same frame.
+        var task = _uiState.value.memoryTask
+        if (task != null && !task.editable) return
+        if (task == null) {
+            task = MemoryTask(++memoryTaskGeneration)
         }
+        task = task.copy(title = title, body = body, happenedOn = happenedOnText)
         val drafts = imageDrafts.toList()
-        val spaceId = activeSpaceId ?: return configurationError()
-        if (title.isBlank()) {
-            setError(message(R.string.ref_error_memory_fields_required))
+        val problem = when {
+            _uiState.value.offline -> message(R.string.memory_task_offline)
+            title.isBlank() -> message(R.string.ref_error_memory_fields_required)
+            drafts.any { it.uploadState != DraftUploadState.READY || it.preparedAttachment == null } ->
+                message(R.string.ref_error_images_not_ready)
+            happenedOnText.isNotBlank() && runCatching { LocalDate.parse(happenedOnText.trim()) }.isFailure ->
+                message(R.string.ref_error_date_format)
+            else -> null
+        }
+        if (problem != null) {
+            mutate { it.copy(memoryTask = task.copy(phase = MemoryTaskPhase.REJECTED, problem = problem), error = problem) }
             return
         }
-        if (drafts.any { it.uploadState != DraftUploadState.READY || it.preparedAttachment == null }) {
-            setError(message(R.string.ref_error_images_not_ready))
-            return
-        }
-        val happenedOn = if (happenedOnText.isBlank()) {
-            null
-        } else {
-            runCatching { LocalDate.parse(happenedOnText.trim()) }.getOrElse {
-                setError(message(R.string.ref_error_date_format))
-                return
-            }
-        }
+        val submitted = task.copy(phase = MemoryTaskPhase.SUBMITTING, problem = null)
         val operationEpoch = sessionEpoch
         val attachments = drafts.map { checkNotNull(it.preparedAttachment) }
-
+        mutate { it.copy(memoryTask = submitted, busy = true, error = null, status = message(R.string.ref_status_save_pending)) }
         viewModelScope.launch {
-            if (!isCurrentSession(operationEpoch, currentSession)) return@launch
-            mutate {
-                it.copy(
-                    busy = true,
-                    error = null,
-                    status = message(R.string.ref_status_save_pending),
-                    lastMemoryTitle = null,
-                    lastMemoryBody = null,
-                    lastImageBytes = null,
-                )
-            }
+            if (!isCurrentMemoryTask(submitted.generation, operationEpoch, currentSession)) return@launch
+            var created: MemoryDetail? = null
             runCatching {
-                createMemoryWithPreparedAttachments(
-                    api = api,
-                    spaceId = spaceId,
-                    accessToken = currentSession.tokens.accessToken,
-                    title = title.trim(),
-                    body = body.trim(),
-                    happenedOn = happenedOn,
-                    attachments = attachments,
+                saveMemoryWithPreparedAttachments(
+                    api, spaceId, currentSession.tokens.accessToken, title.trim(), body.trim(),
+                    happenedOnText.takeIf { it.isNotBlank() }?.let { LocalDate.parse(it.trim()) }, attachments,
+                    onCreated = { memory ->
+                        created = memory
+                        if (!isCurrentMemoryTask(submitted.generation, operationEpoch, currentSession))
+                            throw kotlinx.coroutines.CancellationException("Memory task context changed")
+                        mutate { it.copy(memoryTask = submitted.copy(confirmedMemory = memory)) }
+                    },
                 )
-            }.onSuccess { result ->
-                if (!isCurrentSession(operationEpoch, currentSession)) return@onSuccess
-                imageDrafts = emptyList()
-                mutate {
-                    it.copy(
-                        busy = false,
-                        status = message(R.string.ref_status_save_success),
-                        error = null,
-                        draftImages = emptyList(),
-                        lastMemoryTitle = result.memory.title,
-                        lastMemoryBody = result.memory.body,
-                        lastImageBytes = result.imageBytes,
-                        storyItems = result.story.items,
-                    )
+            }.onSuccess { memory ->
+                if (isCurrentMemoryTask(submitted.generation, operationEpoch, currentSession)) {
+                    confirmMemoryTask(submitted, memory)
                 }
-            }.onFailure {
-                if (isCurrentSession(operationEpoch, currentSession)) {
-                    failure(R.string.ref_error_save_failed)
+            }.onFailure { failure ->
+                if (!isCurrentMemoryTask(submitted.generation, operationEpoch, currentSession)) return@onFailure
+                val phase = when {
+                    created != null -> MemoryTaskPhase.ATTACHMENT_RECOVERY
+                    isKnownCreateRejection(failure) -> MemoryTaskPhase.REJECTED
+                    else -> MemoryTaskPhase.UNCERTAIN
+                }
+                val problem = message(when (phase) {
+                    MemoryTaskPhase.ATTACHMENT_RECOVERY -> R.string.memory_task_attachment_recovery
+                    MemoryTaskPhase.UNCERTAIN -> R.string.memory_task_uncertain
+                    else -> R.string.ref_error_save_failed
+                })
+                mutate { it.copy(busy = false, memoryTask = submitted.copy(phase = phase, confirmedMemory = created, problem = problem), error = problem, status = null) }
+            }
+        }
+    }
+
+    /** A timed-out association is reconciled before any further write to the known object. */
+    fun retryMemoryAttachments() {
+        val task = _uiState.value.memoryTask?.takeIf { it.phase == MemoryTaskPhase.ATTACHMENT_RECOVERY } ?: return
+        val known = task.confirmedMemory ?: return
+        val api = contract ?: return
+        val currentSession = session ?: return
+        val spaceId = activeSpaceId ?: return
+        val operationEpoch = sessionEpoch
+        val attachments = imageDrafts.mapNotNull { it.preparedAttachment }
+        val submitted = task.copy(phase = MemoryTaskPhase.SUBMITTING, problem = null)
+        mutate { it.copy(memoryTask = submitted, busy = true) }
+        viewModelScope.launch {
+            runCatching {
+                val current = api.getMemory(spaceId, currentSession.tokens.accessToken, known.id)
+                if (!isCurrentMemoryTask(task.generation, operationEpoch, currentSession))
+                    throw kotlinx.coroutines.CancellationException("Memory task context changed")
+                val intended = attachments.map { it.attachmentId }
+                val actual = current.attachments.sortedBy { it.position }.map { it.id }
+                when {
+                    actual == intended -> current
+                    // Never overwrite an unexpected partner/concurrent attachment change.
+                    actual.isNotEmpty() || current.version != known.version ->
+                        throw ReferenceApiException("ATTACHMENT_CONFLICT", "Attachment state changed", 409)
+                    else -> bindMemoryAttachments(api, spaceId, currentSession.tokens.accessToken, current, attachments)
+                }
+            }.onSuccess { memory ->
+                if (isCurrentMemoryTask(task.generation, operationEpoch, currentSession)) confirmMemoryTask(task, memory)
+            }.onFailure { failure ->
+                if (isCurrentMemoryTask(task.generation, operationEpoch, currentSession)) {
+                    val problem = message(if (failure is ReferenceApiException && failure.status == 409)
+                        R.string.memory_task_attachment_conflict else R.string.memory_task_attachment_recovery)
+                    mutate { it.copy(busy = false, memoryTask = task.copy(problem = problem)) }
                 }
             }
         }
     }
+
+    /** Explicitly viewing the confirmed text never claims that missing attachments were saved. */
+    fun viewPartiallySavedMemory() {
+        val task = _uiState.value.memoryTask?.takeIf { it.phase == MemoryTaskPhase.ATTACHMENT_RECOVERY } ?: return
+        task.confirmedMemory?.let { confirmMemoryTask(task, it, partial = true) }
+    }
+
+    private fun confirmMemoryTask(task: MemoryTask, memory: MemoryDetail, partial: Boolean = false) {
+        mutate { it.copy(
+            busy = false,
+            memoryTask = task.copy(phase = MemoryTaskPhase.CONFIRMED, confirmedMemory = memory, problem = null),
+            openMemory = memory,
+            memoryStatus = message(if (partial) R.string.memory_task_partial_result else R.string.ref_status_save_success),
+            error = null,
+            status = message(R.string.ref_status_save_success),
+            lastMemoryTitle = memory.title,
+            lastMemoryBody = memory.body,
+            lastImageBytes = null,
+        ) }
+    }
+
+    private fun isCurrentMemoryTask(generation: Long, epoch: Long, currentSession: SessionView): Boolean =
+        isCurrentSession(epoch, currentSession) && _uiState.value.memoryTask?.generation == generation
 
     /**
      * Loads one memory for its own screen.
@@ -1164,7 +1277,12 @@ class ReferenceViewModel(
      * here, as does the version a change has to be written against.
      */
     fun openMemory(memoryId: java.util.UUID) {
-        mutate { it.copy(memoryProblem = null, memoryStatus = null, openMemoryGone = false) }
+        mutate { it.copy(
+            memoryProblem = null,
+            memoryStatus = it.memoryStatus.takeIf { _ -> it.openMemory?.id == memoryId },
+            openMemory = it.openMemory?.takeIf { memory -> memory.id == memoryId },
+            openMemoryGone = false,
+        ) }
         reloadMemory(memoryId)
     }
 
@@ -1180,6 +1298,7 @@ class ReferenceViewModel(
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return
         val operationEpoch = sessionEpoch
+        val readGeneration = ++memoryReadGeneration
 
         mutate { it.copy(memoryBusy = true) }
         viewModelScope.launch {
@@ -1194,7 +1313,7 @@ class ReferenceViewModel(
                 deserialize = { EimirJson.decodeFromString(MemoryDetail.serializer(), it) },
             )
                 .onSuccess { result ->
-                    if (!isCurrentSession(operationEpoch, currentSession)) return@onSuccess
+                    if (!isCurrentSession(operationEpoch, currentSession) || readGeneration != memoryReadGeneration) return@onSuccess
                     mutate {
                         it.copy(
                             openMemory = result.value,
@@ -1204,9 +1323,12 @@ class ReferenceViewModel(
                     }
                 }
                 .onFailure { throwable ->
-                    if (!isCurrentSession(operationEpoch, currentSession)) return@onFailure
+                    if (!isCurrentSession(operationEpoch, currentSession) || readGeneration != memoryReadGeneration) return@onFailure
                     mutate {
-                        it.copy(memoryBusy = false, memoryProblem = problemFor(throwable))
+                        val denied = throwable is ReferenceApiException && throwable.status in setOf(401, 403, 404)
+                        it.copy(memoryBusy = false, memoryProblem = problemFor(throwable),
+                            openMemory = it.openMemory.takeUnless { denied },
+                            memoryStatus = it.memoryStatus.takeUnless { denied })
                     }
                 }
         }
@@ -1222,6 +1344,7 @@ class ReferenceViewModel(
 
     /** Forgets the open memory when its screen is left. */
     fun closeMemory() {
+        memoryReadGeneration += 1
         mutate {
             it.copy(
                 openMemory = null,
@@ -1961,30 +2084,31 @@ class ReferenceViewModel(
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return
         val cursor = storyCursor ?: return
-        if (_uiState.value.storyLoadingMore) return
+        val state = _uiState.value
+        if (state.storyLoadingMore || state.storyLoading) return
         val operationEpoch = sessionEpoch
-
-        mutate { it.copy(storyLoadingMore = true) }
+        val requestGeneration = storyRequestGeneration
+        val appliedScope = state.storyScope
+        mutate { it.copy(storyLoadingMore = true, storyProblem = null, storyPageFailed = false) }
         viewModelScope.launch {
-            if (!isCurrentSession(operationEpoch, currentSession)) return@launch
-            runCatching {
-                api.getTimeline(spaceId, currentSession.tokens.accessToken, cursor)
-            }
+            runCatching { api.getScopedTimeline(spaceId, currentSession.tokens.accessToken, appliedScope, cursor) }
                 .onSuccess { page ->
-                    if (!isCurrentSession(operationEpoch, currentSession)) return@onSuccess
+                    if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != storyRequestGeneration) return@onSuccess
                     storyCursor = page.nextCursor
-                    mutate {
-                        it.copy(
-                            storyItems = it.storyItems + page.items,
-                            storyHasMore = page.hasMore,
-                            storyLoadingMore = false,
-                        )
-                    }
+                    mutate { it.copy(
+                        storyItems = (it.storyItems + page.items).distinctBy { item -> item.toEntry().id },
+                        storyHasMore = page.hasMore, storyLoadingMore = false,
+                    ) }
                 }
-                .onFailure {
-                    if (isCurrentSession(operationEpoch, currentSession)) {
-                        mutate { it.copy(storyLoadingMore = false) }
-                        failure(R.string.ref_error_story_load_failed, clearBusy = false)
+                .onFailure { failure ->
+                    if (isCurrentSession(operationEpoch, currentSession) && requestGeneration == storyRequestGeneration) {
+                        val denied = failure is ReferenceApiException && failure.status in setOf(401, 403, 404)
+                        if (denied) storyCursor = null
+                        mutate { it.copy(storyLoadingMore = false, storyProblem = problemFor(failure),
+                            storyPageFailed = !denied,
+                            storyItems = if (denied) emptyList() else it.storyItems,
+                            storyAvailableYears = if (denied) emptyList() else it.storyAvailableYears,
+                            storyHasMore = it.storyHasMore && !denied) }
                     }
                 }
         }
@@ -2901,41 +3025,83 @@ class ReferenceViewModel(
         mutate { it.copy(planningBusy = false, planningProblem = problemFor(throwable)) }
     }
 
-    fun refreshStory() {
+    private fun resetStoryContext() {
+        memoryReadGeneration += 1
+        storyRequestGeneration += 1
+        storyReconnectEpoch = -1
+        storyCursor = null
+        mutate { it.copy(storyScope = TimelineScope(), storyLoaded = false, storyLoading = false,
+            storyItems = emptyList(), storyAvailableYears = emptyList(), storyHasMore = false,
+            storyLoadingMore = false, storyProblem = null, storyPageFailed = false, storyCachedAt = null,
+            openMemory = null, memoryStatus = null) }
+    }
+
+    fun applyStoryScope(scope: TimelineScope) {
+        if (scope == _uiState.value.storyScope) return
+        storyCursor = null
+        mutate { it.copy(storyScope = scope, storyItems = emptyList(), storyLoaded = false,
+            storyHasMore = false, storyLoadingMore = false, storyCachedAt = null) }
+        refreshStory()
+    }
+
+    /** A normal detail return reuses the exact loaded range and cursor. */
+    fun ensureStoryLoaded() {
+        if (!_uiState.value.storyLoaded && !_uiState.value.storyLoading) refreshStory()
+        else if (storyReconnectEpoch != _uiState.value.reconnectEpoch) refreshStory(preserveLoadedRange = true)
+    }
+
+    fun refreshStory() = refreshStory(preserveLoadedRange = false)
+
+    fun retryStory() {
+        if (_uiState.value.storyPageFailed) loadMoreStory() else refreshStory()
+    }
+
+    private fun refreshStory(preserveLoadedRange: Boolean) {
         val api = contract ?: return
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return
         val operationEpoch = sessionEpoch
+        val requestGeneration = ++storyRequestGeneration
+        val scope = _uiState.value.storyScope
+        storyReconnectEpoch = _uiState.value.reconnectEpoch
+        mutate { it.copy(storyLoading = true, storyLoadingMore = false, storyProblem = null, storyPageFailed = false) }
         viewModelScope.launch {
             if (!isCurrentSession(operationEpoch, currentSession)) return@launch
-            loadProductDetail(
-                accountId = currentSession.account.id,
-                spaceId = spaceId,
+            // The existing durable cache contains only the unfiltered first page.
+            val result = if (scope.isDefault) loadProductDetail(
+                accountId = currentSession.account.id, spaceId = spaceId,
                 kind = de.eimir.app.cache.ProductCacheKind.STORY,
                 resourceId = de.eimir.app.cache.StoryTimelineResourceId,
                 load = { api.getTimeline(spaceId, currentSession.tokens.accessToken) },
                 serialize = { EimirJson.encodeToString(StoryPage.serializer(), it) },
                 deserialize = { EimirJson.decodeFromString(StoryPage.serializer(), it) },
-            )
-                .onSuccess { result ->
-                    if (!isCurrentSession(operationEpoch, currentSession)) return@onSuccess
-                    // Offline pagination is out of scope: a cache fallback shows
-                    // only the items it has, with no cursor to load more with.
-                    storyCursor = if (result.fromCache) null else result.value.nextCursor
-                    mutate {
-                        it.copy(
-                            storyItems = result.value.items,
-                            storyHasMore = if (result.fromCache) false else result.value.hasMore,
-                            storyCachedAt = result.refreshedAt.takeIf { _ -> result.fromCache },
-                            error = null,
-                        )
-                    }
+            ) else runCatching {
+                de.eimir.app.cache.ProductReadResult(
+                    api.getScopedTimeline(spaceId, currentSession.tokens.accessToken, scope),
+                    fromCache = false, refreshedAt = java.time.Instant.now(),
+                )
+            }
+            result.onSuccess { loaded ->
+                if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != storyRequestGeneration) return@onSuccess
+                val keepRange = preserveLoadedRange && _uiState.value.storyItems.size > loaded.value.items.size
+                if (!keepRange) storyCursor = loaded.value.nextCursor.takeUnless { loaded.fromCache }
+                mutate { it.copy(
+                    storyItems = if (keepRange) (loaded.value.items + it.storyItems).distinctBy { item -> item.toEntry().id } else loaded.value.items,
+                    storyHasMore = if (keepRange) it.storyHasMore else loaded.value.hasMore && !loaded.fromCache,
+                    storyAvailableYears = loaded.value.availableYears.orEmpty(),
+                    storyLoaded = true, storyLoading = false,
+                    storyCachedAt = loaded.refreshedAt.takeIf { _ -> loaded.fromCache }, error = null,
+                ) }
+            }.onFailure { failure ->
+                if (isCurrentSession(operationEpoch, currentSession) && requestGeneration == storyRequestGeneration) {
+                    val denied = failure is ReferenceApiException && failure.status in setOf(401, 403, 404)
+                    if (denied) storyCursor = null
+                    mutate { it.copy(storyLoading = false, storyProblem = problemFor(failure),
+                        storyItems = if (denied) emptyList() else it.storyItems,
+                        storyAvailableYears = if (denied) emptyList() else it.storyAvailableYears,
+                        storyHasMore = it.storyHasMore && !denied) }
                 }
-                .onFailure {
-                    if (isCurrentSession(operationEpoch, currentSession)) {
-                        failure(R.string.ref_error_story_load_failed, clearBusy = false)
-                    }
-                }
+            }
         }
     }
 
@@ -3105,7 +3271,7 @@ class ReferenceViewModel(
     }
 
     fun setProfileAvatarSelectionError(throwable: Throwable, selectionEpoch: Long) {
-        if (session == null || selectionEpoch != sessionEpoch) return
+        if (session == null || selectionEpoch != imageSelectionGeneration) return
         mutate {
             it.copy(
                 profile = it.profile.copy(
@@ -5603,6 +5769,8 @@ class ReferenceViewModel(
         if (_uiState.value.demoMode) return leaveDemo()
 
         sessionEpoch += 1
+        clearMemoryTask()
+        resetStoryContext()
         storyImages.reset()
         clearHeartMoments()
         clearComments()

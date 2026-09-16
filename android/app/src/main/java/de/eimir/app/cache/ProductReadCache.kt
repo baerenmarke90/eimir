@@ -28,9 +28,9 @@ enum class ProductCacheKind(val segment: String) {
 }
 
 /**
- * Android's Story has no filters (unlike Web's kind/year/order), so there is
- * only ever one timeline per Account+Space — this nil UUID stands in for
- * Web's per-filter synthetic `resourceId`, collapsed to a single constant.
+ * The unfiltered first Timeline page is cached per Account+Space under this
+ * nil UUID. Scoped F2 Timeline reads remain in memory and must never use this
+ * entry as a fallback for a different visible query.
  */
 val StoryTimelineResourceId: UUID = UUID(0L, 0L)
 

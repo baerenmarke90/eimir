@@ -6,6 +6,21 @@
   border: 0;
 }
 
+/* R1 is a page composer, not a form card around the task. Reuse the accepted
+ * flattened create-surface pattern: hierarchy comes from the content/media
+ * inside the page rather than from one enclosing card boundary. */
+.memory-task-page.create-page
+  .immersive-create-card[aria-labelledby="memory-form-heading"] {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .memory-task-page .form-actions {
   flex-wrap: wrap;
 }
@@ -30,7 +45,7 @@
 @container product-content (max-width: 17.5rem) {
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"] {
-    padding: var(--space-2);
+    padding: 0;
   }
 
   .memory-task-page.create-page

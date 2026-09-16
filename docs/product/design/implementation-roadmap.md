@@ -154,6 +154,8 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 
 Implementation owners: [F1 #957](https://github.com/baerenmarke90/eimir/issues/957) and [F2 #958](https://github.com/baerenmarke90/eimir/issues/958). Both link the immutable adopted-reference commit and require a fresh baseline/reuse/preflight check before runtime implementation; F2 depends on F1. F1 was accepted and merged in [#960](https://github.com/baerenmarke90/eimir/pull/960); see the [delivered roles and validation](f1-visual-foundations.md). F2's bounded production journeys and validation are recorded in [task boundaries](f2-task-boundaries.md). Neither foundation accepts the full R1/R2 composition.
 
+[R1 #964](https://github.com/baerenmarke90/eimir/issues/964)'s finished content-first capture composition, reuse decisions and Web evidence are recorded in [r1-memory-capture.md](r1-memory-capture.md); its implementation is submitted for Product Owner visual/interaction review, with Android native device evidence recorded there as an outstanding follow-up rather than claimed.
+
 F1/F2 issues must link the committed reference revision, identify the bounded proof consumers, record current-main and open-PR checks, and include the preflight, reuse, business/freemium and cross-cutting reviews. Their later implementation must refresh those checks; planning is not a permanent reuse approval.
 
 #955 owns completion across all eleven slices. A documentation PR establishes the reference and prepares execution; it does not close the master issue or claim any runtime slice complete. Merge and product acceptance remain separate decisions.

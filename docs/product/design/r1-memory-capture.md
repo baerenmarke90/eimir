@@ -68,4 +68,27 @@ No new dependency is introduced on either platform. Web: `formatDateSummary` reu
 
 ## Delivery and validation
 
-Recorded after implementation, with exact commit/build identities, in the same document (see the Validation section added by the follow-up commit) and in `evidence/r1/`.
+Recorded on `feat/964-r1-memory-capture` at `ae6171b68740b112fbbcae89bb208335a910a379`.
+
+### Web
+
+- `npm run typecheck`, `npm run lint` (Biome) and `npm run format:check` pass with zero errors/warnings on the changed files.
+- `npx vitest run`: **850/850 passed, 1 pre-existing skip** (unchanged from the F2 baseline).
+- `npm run build` (token check + `tsc -b` + `vite build`) succeeds; output retains the same pre-existing `"use client"`/chunk-size warnings as the F2 baseline, no new ones.
+- Playwright, run with `--workers=1` per this repo's local-parallelism note: **101/101 scenarios pass** across `memory-create-defaults.spec.ts`, `f2-task-boundaries.spec.ts`, `floating-bottom-nav.spec.ts`, `create-surface-visual-checks.spec.ts`, `quick-create-destination-handoff.spec.ts`, `hidden-file-inputs.spec.ts` and the new `r1-memory-capture-evidence.spec.ts`. This revalidates the full F2 task-boundary contract (dirty/pending/uncertain/partial/duplicate-submit/offline/late-response/origin-return) inside the finished R1 composition, not just the new layout.
+- `tools/ci/engineering_language_audit.py` and `tools/ci/documentation_language_audit.py` both pass clean.
+- A real bug was found and fixed during this pass: an out-of-range date typed into the native date input could blur before Save ran, closing the date-summary editor while it was still holding an unparseable value and crashing the page with an unhandled `RangeError`. Fixed by never rendering the summary button for an unparseable value, regardless of open/closed state (`MemoryCreatePage.tsx`). Also fixed: the "Ändern" change-action text used a fill/background color token as text color, failing Dark-mode contrast (2.51:1 of the required 4.5:1); switched to the token calibrated for text-on-page contrast. Also restored a `prefers-reduced-motion` override for the new date-summary control that the retired disclosure control had.
+- Visual evidence: `evidence/r1/` — initial empty at 320/360/390/430/1280 px in Light/Dark, text-only, title-only, photo-only and mixed content, the opened native date picker in Light/Dark, 200% text, reduced motion, and the confirmed canonical result. Manually inspected; the photo becomes a genuine dominant hero image, text-only leaves no photo-shaped gap, and the composition reads as calm and content-led rather than a CRUD form.
+
+### Android
+
+- `./gradlew :app:testDebugUnitTest`: **599/599 passed, 1 pre-existing skip** (596 baseline + 3 new: blank-title-uses-caller-fallback, text-only, image-only capture, plus the production-journey text-only-fallback-title scenario in `TaskJourneyTest`).
+- `./gradlew :app:lintDebug`: 0 errors, 53 warnings (down from the prior 54-warning baseline; no new warnings in touched files).
+- `./gradlew :app:assembleDebug`: succeeds.
+- **Native device/emulator visual and interaction evidence (System Back, picker interruption, IME/insets, rotation, TalkBack, Light/Dark, large text) was not captured in this PR.** There is no emulator in this environment; the user's physical Pixel was connected but its on-device verification was explicitly deferred for this pass. The full unit/Robolectric suite (including the production-wiring `TaskJourneyTest`, which exercises the real `ReferenceFlowRoute`/`AppNavigation`/`ReferenceViewModel` with only transport faked) proves behavioral correctness; it does not substitute for on-device visual/TalkBack acceptance. This is an explicit, tracked gap, not a silent omission — see Known limitations below.
+
+### Known limitations / follow-ups
+
+- Android native device/emulator visual evidence (the F2 precedent's `TaskJourneyProofActivity` device pass) is outstanding and should be completed before Product Owner acceptance of the Android side.
+- #961 (backend Memory-create reconciliation) remains unimplemented; this slice's uncertain-outcome handling is unchanged from F2 and still does not attempt reconciliation, per scope.
+- The Web evidence spec (`r1-memory-capture-evidence.spec.ts`) mocks the attachment upload/create contract with synthetic transport, consistent with the existing F2/task-boundary spec convention; it is not a live-backend persistence test.

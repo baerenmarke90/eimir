@@ -400,7 +400,13 @@ for (const width of [390, 320] as const) {
       const domOrder = await page.evaluate(() => {
         const form = document.querySelector('.immersive-create-form');
         if (!form) return null;
-        const children = Array.from(form.children);
+        // F2's disabled fieldset is a semantic wrapper with display:contents.
+        // Assert content order independently of that task ownership boundary.
+        const children = Array.from(
+          form.querySelectorAll(
+            '.immersive-create-hero, .immersive-create-media, .immersive-create-details, .immersive-sharing-note, .form-actions',
+          ),
+        );
         return {
           titleIndex: children.findIndex((el) =>
             el.classList.contains('immersive-create-hero'),
@@ -422,6 +428,7 @@ for (const width of [390, 320] as const) {
       if (!domOrder) {
         throw new Error('Memory Create form children not found.');
       }
+      expect(Object.values(domOrder).every((index) => index >= 0)).toBe(true);
       expect(domOrder.titleIndex).toBeLessThan(domOrder.mediaIndex);
       expect(domOrder.mediaIndex).toBeLessThan(domOrder.detailsIndex);
       expect(domOrder.detailsIndex).toBeLessThan(domOrder.noteIndex);

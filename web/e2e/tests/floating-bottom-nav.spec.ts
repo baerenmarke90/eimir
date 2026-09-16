@@ -354,15 +354,10 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await expect(dialog).toBeVisible();
     await page.waitForTimeout(250);
 
-    const sheetZ = await dialog.evaluate((element) =>
-      Number.parseInt(getComputedStyle(element).zIndex, 10),
+    // F2 uses the native top layer; stacking is independent of CSS z-index.
+    expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
+      true,
     );
-    const navZ = await page
-      .locator('.mobile-bottom-shell')
-      .evaluate((element) =>
-        Number.parseInt(getComputedStyle(element).zIndex, 10),
-      );
-    expect(sheetZ).toBeGreaterThan(navZ);
 
     const radii = await dialog.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -504,8 +499,8 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     expect(reflowSheetBox.x).toBeGreaterThan(0);
     expect(reflowSheetBox.x + reflowSheetBox.width).toBeLessThanOrEqual(320);
 
-    const backdrop = page.locator('.quick-create-mobile-backdrop');
-    await backdrop.click({ position: { x: 10, y: 10 } });
+    // The browser owns ::backdrop; click the actual area outside the dialog.
+    await page.mouse.click(4, 4);
     await expect(dialog).toHaveCount(0);
   });
 
@@ -635,7 +630,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     });
   });
 
-  test('scroll clearance: Memory Create actions scroll fully clear of floating navigation', async ({
+  test('scroll clearance: focused Memory Create actions remain reachable without competing navigation', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -645,10 +640,10 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.goto('/story/memories/new');
 
     const floatingShell = page.locator('.mobile-bottom-shell');
-    await expect(floatingShell).toBeVisible();
+    await expect(floatingShell).toHaveCount(0);
 
     const saveButton = page.getByRole('button', { name: de.memory.save });
-    const cancelButton = page.getByRole('link', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', { name: de.common.cancel });
     await expect(saveButton).toBeVisible();
     await expect(cancelButton).toBeVisible();
 
@@ -657,17 +652,13 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     const saveBox = await saveButton.boundingBox();
     const cancelBox = await cancelButton.boundingBox();
-    const shellBox = await floatingShell.boundingBox();
     expect(saveBox).not.toBeNull();
     expect(cancelBox).not.toBeNull();
-    expect(shellBox).not.toBeNull();
-
-    if (saveBox && cancelBox && shellBox) {
-      expect(saveBox.y + saveBox.height).toBeLessThan(shellBox.y);
-      expect(cancelBox.y + cancelBox.height).toBeLessThan(shellBox.y);
-      expect(
-        shellBox.y - (cancelBox.y + cancelBox.height),
-      ).toBeGreaterThanOrEqual(8);
+    if (saveBox && cancelBox) {
+      expect(saveBox.y).toBeGreaterThanOrEqual(0);
+      expect(cancelBox.y).toBeGreaterThanOrEqual(0);
+      expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(844);
+      expect(cancelBox.y + cancelBox.height).toBeLessThanOrEqual(844);
     }
   });
 
@@ -767,17 +758,15 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(100);
 
-    const cancelButton = page.getByRole('link', { name: de.common.cancel });
+    const cancelButton = page.getByRole('button', { name: de.common.cancel });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
-    await expect(zoomShell).toBeVisible();
+    await expect(zoomShell).toHaveCount(0);
 
     const cancelBox = await cancelButton.boundingBox();
-    const shellBox = await zoomShell.boundingBox();
-    if (cancelBox && shellBox) {
-      expect(cancelBox.y + cancelBox.height).toBeLessThanOrEqual(
-        shellBox.y + 1,
-      );
+    if (cancelBox) {
+      expect(cancelBox.y).toBeGreaterThanOrEqual(0);
+      expect(cancelBox.y + cancelBox.height).toBeLessThanOrEqual(844);
     }
 
     await page.goto('/today');

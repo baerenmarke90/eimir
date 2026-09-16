@@ -570,6 +570,7 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   await page.goBack();
   await expect(page).toHaveURL(/\/story\?.*year=2025/);
   await expect(source).toBeVisible();
+  await expect(source).toBeFocused();
   await expect
     .poll(async () => {
       const current = await source.boundingBox();
@@ -1067,6 +1068,53 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
     .click();
   await fillMemory(page);
   await expectNoOverflow(page);
+  const readableLabels = await page
+    .locator('.summary-label, .file-picker strong, .file-picker small')
+    .evaluateAll((elements) =>
+      elements.flatMap((element) => {
+        const text = element.firstChild;
+        if (!(text instanceof Text))
+          throw new Error('Expected a plain-text product label.');
+        return [...(text.textContent ?? '').matchAll(/\S+/g)].map((match) => {
+          const range = document.createRange();
+          range.setStart(text, match.index);
+          range.setEnd(text, match.index + match[0].length);
+          return { word: match[0], lines: range.getClientRects().length };
+        });
+      }),
+    );
+  expect(readableLabels.filter((label) => label.lines > 1)).toEqual([]);
+  const dateSpace = await page
+    .getByLabel(de.memory.dateLabel, { exact: true })
+    .evaluate((element) => {
+      const style = getComputedStyle(element);
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Cannot measure native date text.');
+      context.font = style.font;
+      const date = new Date(`${(element as HTMLInputElement).value}T00:00:00Z`);
+      const visibleDate = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'UTC',
+      }).format(date);
+      return {
+        available:
+          element.clientWidth -
+          Number.parseFloat(style.paddingLeft) -
+          Number.parseFloat(style.paddingRight),
+        text: context.measureText(visibleDate).width,
+        picker: Number.parseFloat(style.fontSize),
+      };
+    });
+  expect(dateSpace.available).toBeGreaterThanOrEqual(
+    dateSpace.text + dateSpace.picker,
+  );
+  await testInfo.attach('large-text-readability', {
+    body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),
+    contentType: 'application/json',
+  });
   const save = page.getByRole('button', { name: de.memory.save, exact: true });
   await save.scrollIntoViewIfNeeded();
   await expect(save).toBeInViewport();

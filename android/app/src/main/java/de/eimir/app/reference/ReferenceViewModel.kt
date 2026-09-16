@@ -1141,12 +1141,18 @@ class ReferenceViewModel(
         if (task.generation == generation && task.phase == MemoryTaskPhase.CONFIRMED) clearMemoryTask()
     }
 
-    fun submitMemoryTask() {
+    /**
+     * [fallbackTitle] is a caller-resolved, already-localized title (e.g. "Erinnerung
+     * vom 16.09.2026") used only when the task's own title is blank. Resolving it in
+     * the UI layer keeps this ViewModel free of an Android Context/resource
+     * dependency, mirroring the Web client's own `save()`-time fallback substitution.
+     */
+    fun submitMemoryTask(fallbackTitle: String) {
         val task = _uiState.value.memoryTask ?: return
-        createMemory(task.title, task.body, task.happenedOn)
+        createMemory(task.title, task.body, task.happenedOn, fallbackTitle)
     }
 
-    fun createMemory(title: String, body: String, happenedOnText: String) {
+    fun createMemory(title: String, body: String, happenedOnText: String, fallbackTitle: String = "") {
         val api = contract ?: return configurationError()
         val currentSession = session ?: return
         val spaceId = activeSpaceId ?: return
@@ -1158,19 +1164,25 @@ class ReferenceViewModel(
         }
         task = task.copy(title = title, body = body, happenedOn = happenedOnText)
         val drafts = imageDrafts.toList()
+        val parsedDate = happenedOnText.takeIf { it.isNotBlank() }
+            ?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
         val problem = when {
             _uiState.value.offline -> message(R.string.memory_task_offline)
-            title.isBlank() -> message(R.string.ref_error_memory_fields_required)
             drafts.any { it.uploadState != DraftUploadState.READY || it.preparedAttachment == null } ->
                 message(R.string.ref_error_images_not_ready)
-            happenedOnText.isNotBlank() && runCatching { LocalDate.parse(happenedOnText.trim()) }.isFailure ->
-                message(R.string.ref_error_date_format)
+            happenedOnText.isNotBlank() && parsedDate == null -> message(R.string.ref_error_date_format)
             else -> null
         }
         if (problem != null) {
             mutate { it.copy(memoryTask = task.copy(phase = MemoryTaskPhase.REJECTED, problem = problem), error = problem) }
             return
         }
+        // Title stays optional on the client, matching the shared image/text/title-only
+        // capture contract. The caller resolves a localized date-based fallback (see
+        // MemoryCreate.title in the Web client for the same parity) so this ViewModel
+        // never needs an Android Context/resource dependency of its own; the task's
+        // own displayed/editable title is left exactly as entered.
+        val effectiveTitle = title.trim().ifBlank { fallbackTitle }
         val submitted = task.copy(phase = MemoryTaskPhase.SUBMITTING, problem = null)
         val operationEpoch = sessionEpoch
         val attachments = drafts.map { checkNotNull(it.preparedAttachment) }
@@ -1180,8 +1192,8 @@ class ReferenceViewModel(
             var created: MemoryDetail? = null
             runCatching {
                 saveMemoryWithPreparedAttachments(
-                    api, spaceId, currentSession.tokens.accessToken, title.trim(), body.trim(),
-                    happenedOnText.takeIf { it.isNotBlank() }?.let { LocalDate.parse(it.trim()) }, attachments,
+                    api, spaceId, currentSession.tokens.accessToken, effectiveTitle, body.trim(),
+                    parsedDate, attachments,
                     onCreated = { memory ->
                         created = memory
                         if (!isCurrentMemoryTask(submitted.generation, operationEpoch, currentSession))

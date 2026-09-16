@@ -44,6 +44,33 @@ class MemoryTaskTest {
         assertEquals(2, api.timelineCalls) // Sign-in plus independent post-confirmation refresh.
     }
 
+    @Test fun blankTitleUsesCallerSuppliedFallbackForTextOnlyCapture() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        model.beginMemoryTask()
+        model.updateMemoryTask("", "Only these words, no title or photo", "")
+        model.submitMemoryTask("Erinnerung vom 16.09.2026")
+        advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals("Erinnerung vom 16.09.2026", api.lastCreateTitle)
+        // The task's own editable title is never overwritten by the fallback.
+        assertEquals("", model.uiState.value.memoryTask?.title)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+    }
+
+    @Test fun blankTitleAndBodyWithOnlyAPhotoSucceedsAsImageOnlyCapture() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        model.beginMemoryTask(); selectPhoto(model)
+        model.updateMemoryTask("", "", "")
+        model.submitMemoryTask("Erinnerung vom 16.09.2026")
+        advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals(1, api.bindCalls)
+        assertEquals("Erinnerung vom 16.09.2026", api.lastCreateTitle)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+    }
+
     @Test fun rejectedWriteRetainsInputAndAllowsDeliberateRetry() = runTest(dispatcher) {
         val api = TaskApi().apply { create = { throw ReferenceApiException("VALIDATION", "Rejected", 422) } }
         val model = signedIn(api)
@@ -342,6 +369,7 @@ private fun memory() = MemoryDetail(emptyList(), AuthorSummary("Fixture", taskAc
 private class TaskApi : FakeReferenceContract() {
     var create: suspend () -> MemoryDetail = { memory() }
     var createCalls = 0
+    var lastCreateTitle: String? = null
     var bindCalls = 0
     var timelineCalls = 0
     var failBinding = false
@@ -382,7 +410,7 @@ private class TaskApi : FakeReferenceContract() {
         return StoryPage(cursor == null, listOf(StoryItem.MemoryWrapper(StoryMemoryItem(LocalDate.of(2025, 6, 2), StoryMemoryItem.Kind.MEMORY, summary))), if (cursor == null) "older" else null, listOf(2025))
     }
     override suspend fun createMemory(spaceId: UUID, accessToken: String, memory: MemoryCreate): MemoryDetail {
-        createCalls++; return create().also { current = it }
+        createCalls++; lastCreateTitle = memory.title; return create().also { current = it }
     }
     override suspend fun getMemory(spaceId: UUID, accessToken: String, memoryId: UUID): MemoryDetail {
         readFailure?.let { throw it }; return current

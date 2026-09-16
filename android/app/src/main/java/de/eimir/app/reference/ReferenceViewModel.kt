@@ -1142,10 +1142,10 @@ class ReferenceViewModel(
     }
 
     /**
-     * [fallbackTitle] is a caller-resolved, already-localized title (e.g. "Erinnerung
-     * vom 16.09.2026") used only when the task's own title is blank. Resolving it in
-     * the UI layer keeps this ViewModel free of an Android Context/resource
-     * dependency, mirroring the Web client's own `save()`-time fallback substitution.
+     * [fallbackTitle] is a caller-resolved, already-localized date-based title, used
+     * only when the task's own title is blank. Resolving it in the UI layer keeps
+     * this ViewModel free of an Android Context/resource dependency, mirroring the
+     * Web client's own `save()`-time fallback substitution.
      */
     fun submitMemoryTask(fallbackTitle: String) {
         val task = _uiState.value.memoryTask ?: return

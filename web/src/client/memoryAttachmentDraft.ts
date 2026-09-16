@@ -1,10 +1,11 @@
 import { MediaType } from '../api/generated/models/MediaType';
 import type { MemoryCreate } from '../api/generated/models/MemoryCreate';
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import { ClientProblemError } from './problemDetails';
 import { i18n } from '../i18n';
 import {
   ReferenceFlowError,
   uploadAttachmentBytesWithProgress,
-  type FlowResult,
   type ReferenceApis,
 } from './referenceFlow';
 
@@ -119,31 +120,74 @@ export async function uploadMemoryDraftAttachment(
   }
 }
 
+/** A known-created Memory must never be retried as another create. */
+export class MemoryAttachmentBindingError extends Error {
+  constructor(
+    readonly memory: MemoryDetail,
+    readonly attachmentIds: readonly string[],
+    readonly cause: unknown,
+  ) {
+    super('Memory created; attachment association is not confirmed.');
+    this.name = 'MemoryAttachmentBindingError';
+  }
+}
+
+export async function completeMemoryAttachmentBinding(
+  apis: ReferenceApis,
+  spaceId: string,
+  created: MemoryDetail,
+  attachmentIds: readonly string[],
+  reconcile = false,
+): Promise<MemoryDetail> {
+  try {
+    let memory = created;
+    if (reconcile) {
+      memory = await apis.memories.getMemory({ spaceId, memoryId: created.id });
+      const bound = [...memory.attachments]
+        .sort((left, right) => left.position - right.position)
+        .map((attachment) => attachment.id);
+      if (
+        bound.length === attachmentIds.length &&
+        bound.every((id, index) => id === attachmentIds[index])
+      ) {
+        return memory;
+      }
+      // Do not overwrite another edit while reconciling a lost bind response.
+      if (memory.version !== created.version || bound.length > 0) {
+        throw new ClientProblemError('conflict', 409);
+      }
+    }
+    return await apis.memories.replaceMemoryAttachments({
+      spaceId,
+      memoryId: memory.id,
+      ifMatch: String(memory.version),
+      memoryAttachmentSet: {
+        attachments: attachmentIds.map((attachmentId, position) => ({
+          attachmentId,
+          position,
+        })),
+      },
+    });
+  } catch (error) {
+    throw new MemoryAttachmentBindingError(created, [...attachmentIds], error);
+  }
+}
+
 export async function createMemoryWithReadyAttachments(
   apis: ReferenceApis,
   spaceId: string,
   memoryCreate: MemoryCreate,
   attachmentIds: string[],
-): Promise<FlowResult> {
-  try {
-    const memory = await apis.memories.createMemory({ spaceId, memoryCreate });
-    const savedMemory = attachmentIds.length
-      ? await apis.memories.replaceMemoryAttachments({
-          spaceId,
-          memoryId: memory.id,
-          ifMatch: String(memory.version),
-          memoryAttachmentSet: {
-            attachments: attachmentIds.map((attachmentId, position) => ({
-              attachmentId,
-              position,
-            })),
-          },
-        })
-      : memory;
-    const story = await apis.story.getStoryTimeline({ spaceId, limit: 25 });
-    return { memory: savedMemory, story, imageUrl: null };
-  } catch (error) {
-    if (error instanceof ReferenceFlowError) throw error;
-    throw new ReferenceFlowError(i18n.t('flow.saveFailed'));
-  }
+): Promise<{ memory: MemoryDetail }> {
+  const memory = await apis.memories.createMemory({ spaceId, memoryCreate });
+  const savedMemory = attachmentIds.length
+    ? await completeMemoryAttachmentBinding(
+        apis,
+        spaceId,
+        memory,
+        attachmentIds,
+      )
+    : memory;
+  // Projection refresh is a separate read; it cannot undo this confirmation.
+  return { memory: savedMemory };
 }

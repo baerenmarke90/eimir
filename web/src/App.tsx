@@ -1,12 +1,5 @@
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Link,
   Navigate,
@@ -14,7 +7,6 @@ import {
   Routes,
   useLocation,
   useNavigate,
-  useSearchParams,
 } from 'react-router-dom';
 import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
@@ -24,17 +16,10 @@ import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
 import {
-  dateInputValueToApiDate,
-  effectiveDateInputValue,
-  formatDateInputValue,
-  localDateInputValue,
-} from './client/dateInput';
-import {
   readSensitiveEntryToken,
   stripSensitiveEntryToken,
 } from './client/entryToken';
 import { createM4ProductApis } from './client/m4Product';
-import { createMemoryWithReadyAttachments } from './client/memoryAttachmentDraft';
 import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
@@ -100,11 +85,8 @@ import {
   loadAuthorizedSpaces,
   resolveActiveSpaceId,
 } from './client/spaceContext';
-import { MAX_MEMORY_ATTACHMENTS } from './client/attachmentLimits';
-import { useAttachmentDrafts } from './client/useAttachmentDrafts';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
-import { AttachmentDraftPicker } from './components/AttachmentDraftPicker';
 import { Brand } from './components/Brand';
 import { ChapterCreatePage } from './components/ChapterCreatePage';
 import { ChapterProductPage } from './components/ChapterProductPage';
@@ -112,7 +94,6 @@ import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
 import { DemoEntry } from './components/DemoEntry';
-import { AddIcon, DestinationIcon } from './components/DestinationIcon';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
 import { IdentityEntry } from './components/IdentityEntry';
@@ -122,12 +103,12 @@ import {
   NotificationsProductPage,
   SearchProductPage,
 } from './components/M4ProductPages';
+import { MemoryCreatePage } from './components/MemoryCreatePage';
 import { MemoryProductPage } from './components/MemoryProductPage';
 import { OurMomentsGamePage } from './components/OurMomentsGamePage';
 import { WishDetectiveGamePage } from './components/WishDetectiveGamePage';
 import { MilestoneProductPage } from './components/MilestoneProductPage';
 import { MoreOverviewPage } from './components/MoreOverviewPage';
-import { PageHeader } from './components/PageHeader';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanProductPage } from './components/PlanProductPage';
@@ -150,7 +131,7 @@ import { ThemeControl } from './components/ThemeControl';
 import { TodayPage } from './components/TodayPage';
 import { UiState } from './components/UiState';
 import { WishProductPage } from './components/WishProductPage';
-import { resolvedLocale, useTranslation } from './i18n';
+import { useTranslation } from './i18n';
 
 function SpaceContextGate({
   loading,
@@ -230,206 +211,6 @@ function SpacePicker({
         </div>
       </section>
     </main>
-  );
-}
-
-function MemoryCreatePage({
-  accessToken,
-  apiBaseUrl,
-  spaceId,
-  accountId,
-  onSaved,
-}: {
-  accessToken: string;
-  apiBaseUrl: string;
-  spaceId: string;
-  accountId: string;
-  onSaved: () => Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const defaultTitle = searchParams.get('title') ?? '';
-  const navigate = useNavigate();
-  const apis = useMemo(
-    () => createReferenceApis(apiBaseUrl, accessToken),
-    [apiBaseUrl, accessToken],
-  );
-  const attachments = useAttachmentDrafts({
-    apis,
-    apiBaseUrl,
-    accessToken,
-    spaceId,
-    accountId,
-    maxAttachments: MAX_MEMORY_ATTACHMENTS,
-  });
-
-  const mutation = useMutation({
-    mutationFn: async ({
-      title,
-      body,
-      happenedOn,
-    }: {
-      title: string;
-      body: string;
-      happenedOn?: Date;
-    }) => {
-      try {
-        return await createMemoryWithReadyAttachments(
-          apis,
-          spaceId,
-          { title, body, happenedOn },
-          attachments.readyIds,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async () => {
-      attachments.clear();
-      await onSaved();
-      navigate(appRoutePath('story'), {
-        replace: true,
-        state: { saved: true },
-      });
-    },
-  });
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (attachments.hasPending) return;
-    const data = new FormData(event.currentTarget);
-    const happenedOnValue = effectiveDateInputValue(
-      String(data.get('happenedOn') || ''),
-    );
-    const authoredTitle = String(data.get('title') || '');
-    const effectiveTitle = authoredTitle.trim()
-      ? authoredTitle
-      : t('memoryProduct.createFallbackTitle', {
-          date: formatDateInputValue(happenedOnValue, resolvedLocale()),
-        });
-    mutation.mutate({
-      title: effectiveTitle,
-      body: String(data.get('body')),
-      happenedOn: dateInputValueToApiDate(happenedOnValue),
-    });
-  }
-
-  return (
-    <div className="page page-reading create-page">
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('memory.backToStory')}
-          </Link>
-        }
-        eyebrow={t('memory.eyebrow')}
-        title={t('memory.heading')}
-        description={t('memory.intro')}
-        className="create-heading"
-      />
-
-      <section
-        className="immersive-create-card eimir-motion-reveal"
-        aria-labelledby="memory-form-heading"
-      >
-        <h2 id="memory-form-heading" className="sr-only">
-          {t('memory.formAria')}
-        </h2>
-        <form onSubmit={submit} className="immersive-create-form">
-          <div className="immersive-create-hero">
-            <label htmlFor="title" className="sr-only">
-              {t('memory.titleLabel')}
-            </label>
-            <input
-              id="title"
-              name="title"
-              maxLength={200}
-              placeholder={t('memory.titlePlaceholder')}
-              defaultValue={defaultTitle}
-              className="immersive-create-title"
-            />
-          </div>
-
-          <div className="immersive-create-media">
-            <AttachmentDraftPicker
-              id="memory-create-images"
-              attachments={attachments}
-              multiple
-            />
-          </div>
-
-          <details className="immersive-create-details">
-            <summary className="immersive-create-details-summary">
-              <span className="summary-left">
-                <AddIcon className="summary-add-icon" />
-                <span className="summary-label">
-                  {t('memory.addMoreDetails')}
-                </span>
-              </span>
-              <span className="summary-chevron" aria-hidden="true">
-                ›
-              </span>
-            </summary>
-            <div className="immersive-create-details-content">
-              <div className="field-group">
-                <label htmlFor="body">{t('memory.bodyLabel')}</label>
-                <textarea
-                  id="body"
-                  name="body"
-                  rows={4}
-                  placeholder={t('memory.bodyPlaceholder')}
-                />
-              </div>
-              <div className="field-group">
-                <label htmlFor="happenedOn">{t('memory.dateLabel')}</label>
-                <input
-                  id="happenedOn"
-                  name="happenedOn"
-                  type="date"
-                  defaultValue={localDateInputValue()}
-                />
-                <p className="field-help">{t('memory.dateHelp')}</p>
-              </div>
-            </div>
-          </details>
-
-          <div
-            className="sharing-note immersive-sharing-note"
-            role="note"
-            aria-label={t('memory.visibilityAria')}
-          >
-            <span className="sharing-icon" aria-hidden="true">
-              <DestinationIcon icon="people" />
-            </span>
-            <div>
-              <strong>{t('memory.sharedTitle')}</strong>
-              <p>{t('memory.sharedBody')}</p>
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <Link
-              className="button-link secondary-link"
-              to={appRoutePath('story')}
-            >
-              {t('common.cancel')}
-            </Link>
-            <button
-              type="submit"
-              disabled={mutation.isPending || attachments.hasPending}
-            >
-              {mutation.isPending ? t('memory.saving') : t('memory.save')}
-            </button>
-          </div>
-        </form>
-        {mutation.isPending ? (
-          <p className="status" role="status" aria-live="polite">
-            {t('memory.processing')}
-          </p>
-        ) : null}
-        {mutation.error ? <ProblemState error={mutation.error} /> : null}
-      </section>
-    </div>
   );
 }
 
@@ -788,6 +569,7 @@ function AuthenticatedApp({
             path={MEMORY_CREATE_ROUTE}
             element={
               <MemoryCreatePage
+                key={`${account.id}:${spaceId}:${location.key}`}
                 accessToken={tokens.accessToken}
                 apiBaseUrl={apiBaseUrl}
                 spaceId={spaceId}

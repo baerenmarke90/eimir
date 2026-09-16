@@ -1,0 +1,27 @@
+.memory-task-fields {
+  display: contents;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.memory-task-page .form-actions {
+  flex-wrap: wrap;
+}
+
+.memory-task-page .file-picker small {
+  color: var(--color-text-secondary);
+}
+
+.memory-task-page .page-heading-title-container {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.product-shell[data-focused-task="true"] {
+  --shell-content-bottom-clearance: calc(
+    var(--space-6) +
+    env(safe-area-inset-bottom, 0px)
+  );
+}

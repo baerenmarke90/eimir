@@ -412,7 +412,7 @@ describe('StoryProductPage', () => {
   });
 
   describe('issue #618: data-aware and recoverable timeline filters', () => {
-    it('populates year select from authoritative availableYears, removing number input and datalist', () => {
+    it('offers a bounded filter task while leaving the Timeline visible', () => {
       const html = renderStoryPage('/story?tab=timeline', {
         items: [],
         availableYears: [2026, 2024, 2021],
@@ -421,10 +421,8 @@ describe('StoryProductPage', () => {
       });
 
       expect(html).toContain('story-filter-container');
-      expect(html).toContain('<select id="story-filter-year"');
-      expect(html).toContain('<option value="2026">2026</option>');
-      expect(html).toContain('<option value="2024">2024</option>');
-      expect(html).toContain('<option value="2021">2021</option>');
+      expect(html).toContain('aria-haspopup="dialog"');
+      expect(html).toContain('aria-expanded="false"');
       expect(html).not.toContain('story-year-options');
       expect(html).not.toContain('type="number"');
       expect(html).not.toContain(storyProducts.storyFilters.apply);
@@ -446,7 +444,7 @@ describe('StoryProductPage', () => {
       expect(html).toContain('2026');
       expect(html).toContain(storyProducts.storyFilters.oldest);
       expect(html).toContain('chip-remove');
-      expect(html).toContain('story-filter-reset-header-action');
+      expect(html).toContain(storyProducts.storyFilters.noMatchesAction);
     });
 
     it('keeps filter controls and reset visible on 0 hits with active filters (no dead-end)', () => {
@@ -465,10 +463,10 @@ describe('StoryProductPage', () => {
       expect(html).toContain('story-filter-empty-state');
       expect(html).toContain(storyProducts.storyFilters.noMatches);
       expect(html).toContain(storyProducts.storyFilters.noMatchesAction);
-      expect(html).toContain('<option value="2026">2026</option>');
+      expect(html).toContain('story-task-active-scope');
     });
 
-    it('excludes invalid URL year from dropdown options, renders only authoritative availableYears, and omits invalid year chip', () => {
+    it('retains an applied year visibly when that scope has no matches', () => {
       const html = renderStoryPage(
         '/story?tab=timeline&type=MILESTONE&year=1997',
         {
@@ -479,10 +477,10 @@ describe('StoryProductPage', () => {
         },
       );
 
-      // 1997 must NOT appear as selectable option or active chip
-      expect(html).toContain('<option value="2026">2026</option>');
-      expect(html).not.toContain('<option value="1997">');
-      expect(html).not.toContain('1997');
+      // No-match is a recoverable scope, never a silently reset filter.
+      expect(html).toContain('story-task-active-scope');
+      expect(html).toContain('1997');
+      expect(html).toContain(storyProducts.storyFilters.noMatches);
     });
 
     it('tracks filter updates as browser history push and restores states across back and forward navigation', async () => {

@@ -1,14 +1,12 @@
 import {
   type KeyboardEvent,
-  type TouchEvent,
   useCallback,
   useEffect,
   useId,
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
 import {
   type AppRouteIcon,
@@ -18,8 +16,10 @@ import {
   MILESTONE_CREATE_ROUTE,
   MORE_PRIVATE_ROUTE,
 } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './QuickCreateMenu.css';
 
 const PRIVATE_NOTE_CREATE_ROUTE = `${MORE_PRIVATE_ROUTE}/notes/new`;
@@ -104,12 +104,12 @@ export interface QuickCreateMenuProps {
 export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
   const { t } = useTranslation();
   const menuId = useId();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const firstFocusableRef = useRef<HTMLButtonElement>(null);
-  const touchStartY = useRef<number | null>(null);
+  const sheetRef = useRef<ShortTaskSheetHandle>(null);
 
   const closeMenu = useCallback((): void => {
     setOpen(false);
@@ -118,71 +118,16 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
     }, 0);
   }, []);
 
-  // Scroll locking for mobile bottom sheet
+  // The desktop menu remains a non-modal menu. Native modal dismissal belongs
+  // exclusively to ShortTaskSheet and cannot leak into a parent task.
   useEffect(() => {
-    if (!open || variant !== 'mobile') return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [open, variant]);
-
-  // Initial focus for mobile sheet
-  useEffect(() => {
-    if (open && variant === 'mobile') {
-      const timer = setTimeout(() => {
-        firstFocusableRef.current?.focus();
-      }, 30);
-      return () => clearTimeout(timer);
-    }
-  }, [open, variant]);
-
-  // Escape key and outside click handling
-  useEffect(() => {
-    if (!open) return;
-
+    if (!open || variant !== 'desktop') return;
     function onPointerDown(event: MouseEvent): void {
-      if (variant === 'desktop') {
-        if (!rootRef.current?.contains(event.target as Node)) {
-          setOpen(false);
-        }
-      }
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
     }
-
     function onKeyDown(event: globalThis.KeyboardEvent): void {
-      if (event.key === 'Escape') {
-        closeMenu();
-        return;
-      }
-
-      if (variant === 'mobile' && event.key === 'Tab' && sheetRef.current) {
-        const focusable = sheetRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey) {
-          if (
-            document.activeElement === first ||
-            !sheetRef.current.contains(document.activeElement)
-          ) {
-            event.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (
-            document.activeElement === last ||
-            !sheetRef.current.contains(document.activeElement)
-          ) {
-            event.preventDefault();
-            first.focus();
-          }
-        }
-      }
+      if (event.key === 'Escape') closeMenu();
     }
-
     document.addEventListener('mousedown', onPointerDown);
     window.addEventListener('keydown', onKeyDown);
     return () => {
@@ -190,6 +135,21 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
       window.removeEventListener('keydown', onKeyDown);
     };
   }, [open, variant, closeMenu]);
+
+  function openTarget(target: QuickCreateTarget): void {
+    const handoff = () => {
+      const taskOriginKey =
+        target.id === 'memory'
+          ? captureOrigin({ focusTarget: 'quick-create' })
+          : null;
+      setOpen(false);
+      void navigate(target.to, {
+        state: taskOriginKey ? { taskOriginKey } : undefined,
+      });
+    };
+    if (variant === 'mobile') sheetRef.current?.closeForNavigation(handoff);
+    else handoff();
+  }
 
   function focusMenuItem(index: number): void {
     const items =
@@ -227,19 +187,6 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
     }
   }
 
-  function handleTouchStart(e: TouchEvent<HTMLDivElement>) {
-    touchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTouchEnd(e: TouchEvent<HTMLDivElement>) {
-    if (touchStartY.current === null) return;
-    const deltaY = e.changedTouches[0].clientY - touchStartY.current;
-    if (deltaY > 60) {
-      closeMenu();
-    }
-    touchStartY.current = null;
-  }
-
   function renderDesktopTarget(target: QuickCreateTarget) {
     const sublineId = `${menuId}-subline-${target.id}`;
     return (
@@ -248,7 +195,18 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         role="menuitem"
         className={`quick-create-menu-item quick-create-tile quick-create-tile-${target.tone}`}
         to={target.to}
-        onClick={() => setOpen(false)}
+        onClick={(event) => {
+          if (
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          )
+            return;
+          event.preventDefault();
+          openTarget(target);
+        }}
         aria-label={t(target.labelKey)}
         aria-describedby={sublineId}
       >
@@ -272,12 +230,18 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         key={target.labelKey}
         className={`quick-create-mobile-item quick-create-mobile-item-${target.tone}`}
         to={target.to}
-        // Choosing an action is a deliberate navigation, not an abort: close
-        // the sheet without the trigger focus-return `closeMenu` performs
-        // for Escape/backdrop/close-button, so the destination's own
-        // route-entry handoff (see routeEntryHandoff.ts) is not competed
-        // with by focus jumping back to this trigger.
-        onClick={() => setOpen(false)}
+        onClick={(event) => {
+          if (
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          )
+            return;
+          event.preventDefault();
+          openTarget(target);
+        }}
         aria-label={t(target.labelKey)}
         aria-describedby={sublineId}
       >
@@ -354,58 +318,29 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         </div>
       ) : null}
 
-      {/* Mobile Responsive Action Sheet */}
-      {isMobile && open && typeof document !== 'undefined'
-        ? createPortal(
-            <div className="quick-create-mobile-portal">
-              <div
-                className="quick-create-mobile-backdrop"
-                onClick={closeMenu}
-                aria-hidden="true"
-              />
-              <div
-                ref={sheetRef}
-                id={menuId}
-                className="quick-create-mobile-sheet eimir-motion-reveal"
-                role="dialog"
-                aria-modal="true"
-                aria-label={t('navigation.quickCreateTitle')}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-              >
-                <div className="quick-create-sheet-header">
-                  <h2 className="quick-create-sheet-title">
-                    {t('navigation.quickCreateTitle')}
-                  </h2>
-                  <button
-                    ref={firstFocusableRef}
-                    type="button"
-                    className="quick-create-sheet-close"
-                    onClick={closeMenu}
-                    aria-label={t('navigation.closeMenu')}
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="quick-create-sheet-scrollable">
-                  <div className="quick-create-mobile-list">
-                    {SHARED_TARGETS.map(renderMobileTarget)}
-                  </div>
-
-                  <hr className="quick-create-separator" />
-                  <div className="quick-create-group-label quick-create-for-me-label">
-                    {t('navigation.quickCreateForMe')}
-                  </div>
-                  <div className="quick-create-mobile-list">
-                    {FOR_ME_TARGETS.map(renderMobileTarget)}
-                  </div>
-                </div>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      {isMobile ? (
+        <ShortTaskSheet
+          ref={sheetRef}
+          id={menuId}
+          open={open}
+          title={t('navigation.quickCreateTitle')}
+          closeLabel={t('navigation.closeMenu')}
+          onClose={() => setOpen(false)}
+          restoreFocusRef={triggerRef}
+          className="quick-create-mobile-sheet"
+        >
+          <div className="quick-create-mobile-list">
+            {SHARED_TARGETS.map(renderMobileTarget)}
+          </div>
+          <hr className="quick-create-separator" />
+          <div className="quick-create-group-label quick-create-for-me-label">
+            {t('navigation.quickCreateForMe')}
+          </div>
+          <div className="quick-create-mobile-list">
+            {FOR_ME_TARGETS.map(renderMobileTarget)}
+          </div>
+        </ShortTaskSheet>
+      ) : null}
     </div>
   );
 }

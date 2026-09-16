@@ -1,13 +1,43 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import navigation from '../i18n/locales/navigation';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { SharedPlanningOverviewPage } from './SharedPlanningOverviewPage';
+
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '');
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open');
+  };
+});
+afterEach(async () => {
+  cleanup();
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+});
 
 function LocationTracker({
   onLocation,
@@ -92,7 +122,7 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     const closeBtn = screen.getByRole('button', { name: navigation.closeMenu });
     fireEvent.click(closeBtn);
 
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.body.style.overflow).toBe('auto');
     expect(trigger.style.visibility).not.toBe('hidden');
   });
@@ -107,12 +137,9 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     const trigger = screen.getByRole('button', { name: navigation.newContent });
     fireEvent.click(trigger);
 
-    const backdrop = document.querySelector('.quick-create-mobile-backdrop');
-    expect(backdrop).not.toBeNull();
-    if (!backdrop) throw new Error('Backdrop missing');
-
-    fireEvent.click(backdrop);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(dialog, { clientX: -1, clientY: -1 });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('closes on Escape key press', async () => {
@@ -126,8 +153,11 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     fireEvent.click(trigger);
     expect(screen.getByRole('dialog')).toBeDefined();
 
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent(
+      screen.getByRole('dialog'),
+      new Event('cancel', { cancelable: true }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('navigates to wish action and closes sheet', async () => {
@@ -151,8 +181,8 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     const wishItem = screen.getByText(navigation.quickCreateWish);
     fireEvent.click(wishItem);
 
-    // Sheet closes
-    expect(screen.queryByRole('dialog')).toBeNull();
+    // Sheet closes after its history entry is consumed.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // Path updated to wish anchor under /plan
     expect(currentPath).toBe('/plan#wish-title');
   });
@@ -178,8 +208,8 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     const giftItem = screen.getByText(navigation.quickCreateGiftIdea);
     fireEvent.click(giftItem);
 
-    // Sheet closes
-    expect(screen.queryByRole('dialog')).toBeNull();
+    // Sheet closes after its history entry is consumed.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // Path updated to gift ideas create route
     expect(currentPath).toBe('/more/private/gift-ideas/new');
   });

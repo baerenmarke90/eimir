@@ -1,0 +1,131 @@
+// @vitest-environment jsdom
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
+import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import type { ReferenceApis } from '../client/referenceFlow';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import de from '../i18n/locales/de';
+import memoryProduct from '../i18n/locales/memoryProduct';
+import taskBoundary from '../i18n/locales/taskBoundary';
+import { MemoryProductPage } from './MemoryProductPage';
+
+vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
+afterEach(cleanup);
+
+function TimelineEntry() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin } = useTaskOrigin();
+  return (
+    <>
+      <output data-testid="timeline-scope">{location.search}</output>
+      <button
+        type="button"
+        onClick={() => {
+          const taskOriginKey = captureOrigin({
+            loadedPageCount: 3,
+            selectedKey: 'memory-memory-1',
+          });
+          void navigate('/story/memories/memory-1/edit', {
+            state: { taskOriginKey },
+          });
+        }}
+      >
+        Edit selected Memory
+      </button>
+    </>
+  );
+}
+function setup(canEdit: boolean) {
+  window.history.replaceState(null, '', '/story');
+  const memory: MemoryDetail = {
+    id: 'memory-1',
+    spaceId: 'space-1',
+    authorId: 'account-1',
+    author: { id: 'account-1', displayName: 'Alex' },
+    title: 'A shared evening',
+    body: 'Quiet words',
+    attachments: [],
+    happenedOn: new Date('2025-09-15'),
+    createdAt: new Date('2025-09-15'),
+    updatedAt: new Date('2025-09-15'),
+    version: 1,
+    capabilities: { canEdit, canDelete: false, canComment: false },
+  };
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+  });
+  client.setQueryData(authorSummaryQueryKeys.memory('space-1', memory.id), {
+    value: memory,
+    source: 'network',
+  });
+  const props = {
+    apis: {} as ReferenceApis,
+    apiBaseUrl: 'http://example.test',
+    accessToken: 'test',
+    spaceId: 'space-1',
+    currentAccountId: 'account-1',
+    loadMemoryImage: async () => '',
+  };
+  render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter
+        initialEntries={['/story?tab=timeline&type=MEMORY&year=2025&order=ASC']}
+      >
+        <TaskOriginProvider accountId="account-1" spaceId="space-1">
+          <Routes>
+            <Route path="/story" element={<TimelineEntry />} />
+            <Route
+              path="/story/memories/:memoryId/edit"
+              element={<MemoryProductPage mode="edit" {...props} />}
+            />
+            <Route
+              path="/story/memories/:memoryId"
+              element={<MemoryProductPage mode="detail" {...props} />}
+            />
+          </Routes>
+        </TaskOriginProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe('Memory editor return context', () => {
+  it.each([
+    { canEdit: true, exit: 'cancel' },
+    { canEdit: true, exit: 'back' },
+    { canEdit: false, exit: 'back' },
+  ])(
+    'preserves scoped Timeline origin for edit=$canEdit via $exit',
+    async ({ canEdit, exit }) => {
+      setup(canEdit);
+      fireEvent.click(screen.getByText('Edit selected Memory'));
+      fireEvent.click(
+        screen.getByRole('link', {
+          name:
+            exit === 'cancel' ? de.common.cancel : memoryProduct.backToMemory,
+        }),
+      );
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: taskBoundary.back,
+        }),
+      );
+      const scope = new URLSearchParams(
+        (await screen.findByTestId('timeline-scope')).textContent ?? '',
+      );
+      expect(scope.get('tab')).toBe('timeline');
+      expect(scope.get('type')).toBe('MEMORY');
+      expect(scope.get('year')).toBe('2025');
+      expect(scope.get('order')).toBe('ASC');
+    },
+  );
+});

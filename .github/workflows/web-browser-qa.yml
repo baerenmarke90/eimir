@@ -67,5 +67,7 @@ jobs:
             web/e2e/test-results/**/wish-detective-*.png
             web/e2e/test-results/**/f1-*.png
             web/e2e/test-results/**/f1-*.json
+            web/e2e/test-results/**/f2-*.png
+            web/e2e/test-results/**/f2-*.json
           if-no-files-found: error
           retention-days: 3

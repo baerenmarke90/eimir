@@ -247,36 +247,15 @@
   stroke-width: 2.2;
 }
 
-/* Mobile Bottom Action Sheet */
-.quick-create-mobile-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 95;
-  pointer-events: auto;
-  animation: fadeIn var(--motion-fast) ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.quick-create-mobile-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  margin-inline: auto;
-  bottom: calc(
-    var(--shell-floating-nav-offset) +
-    var(--shell-floating-nav-height) +
-    var(--space-3) +
-    env(safe-area-inset-bottom, 0px)
-  );
+/* Keep the Compact action chooser above its existing floating navigation. */
+.short-task-sheet.quick-create-mobile-sheet {
+  inset: auto 0
+    calc(
+      var(--shell-floating-nav-offset) +
+      var(--shell-floating-nav-height) +
+      var(--space-3) +
+      env(safe-area-inset-bottom, 0px)
+    );
   width: calc(100% - var(--space-6));
   max-width: 28rem;
   max-height: calc(
@@ -288,79 +267,13 @@
     env(safe-area-inset-bottom, 0px) -
     env(safe-area-inset-top, 0px)
   );
-  background: var(--color-surface-raised);
-  border: 1px solid var(--color-brand-glow);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  z-index: 100;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: floatPanelIn var(--motion-duration-short)
-    cubic-bezier(0.16, 1, 0.3, 1);
+  margin: 0 auto;
+  border-radius: var(--radius-content);
 }
 
-@keyframes floatPanelIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.quick-create-sheet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
-  background: var(--color-surface);
-  border-top-left-radius: inherit;
-  border-top-right-radius: inherit;
-  flex-shrink: 0;
-}
-
-.quick-create-sheet-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.quick-create-sheet-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0;
-}
-
-.quick-create-sheet-close:hover,
-.quick-create-sheet-close:focus-visible {
-  background: var(--color-surface-subtle);
-  color: var(--color-text);
-}
-
-.quick-create-sheet-scrollable {
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+.quick-create-mobile-sheet .short-task-sheet-body {
   display: grid;
   gap: var(--space-3);
-  -webkit-overflow-scrolling: touch;
 }
 
 .quick-create-mobile-list {
@@ -466,7 +379,7 @@
     min-height: 44px;
   }
 
-  .quick-create-mobile-sheet {
+  .short-task-sheet.quick-create-mobile-sheet {
     width: calc(100% - var(--space-3));
   }
 }
@@ -497,10 +410,6 @@
   }
 
   .quick-create-mobile-sheet {
-    animation: none;
-  }
-
-  .quick-create-mobile-backdrop {
     animation: none;
   }
 }

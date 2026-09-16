@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
@@ -48,6 +49,7 @@ export function StoryList({
   loadHeartMomentImage,
   profilesApi,
   spaceId,
+  onOpenItem,
 }: {
   items: StoryItem[];
   loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
@@ -57,6 +59,11 @@ export function StoryList({
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
+  onOpenItem?: (
+    event: MouseEvent<HTMLAnchorElement>,
+    item: StoryItem,
+    to: string,
+  ) => void;
 }) {
   const { t } = useTranslation();
 
@@ -111,6 +118,8 @@ export function StoryList({
               <Link
                 className="story-card-link"
                 to={productPath}
+                data-task-item-key={storyItemKey(item)}
+                onClick={(event) => onOpenItem?.(event, item, productPath)}
                 aria-label={`${presentation.kindLabel}: ${presentation.title}`}
               >
                 <article className={cardClasses}>

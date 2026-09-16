@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 import { applyRouteEntryHandoff } from '../client/routeEntryHandoff';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 
 /**
  * The Plan composer sits below an async Planning overview state. On a fresh
@@ -51,15 +52,50 @@ function stabilizePlanRouteEntry(hash: string): (() => void) | undefined {
 export function RouteEntryHandoff(): null {
   const location = useLocation();
   const navigationType = useNavigationType();
+  const { resolveOrigin } = useTaskOrigin();
 
   useEffect(() => {
+    const state = location.state as {
+      taskReturnKey?: unknown;
+      taskOriginKey?: unknown;
+    } | null;
+    const origin = resolveOrigin(state?.taskReturnKey);
+    if (
+      origin &&
+      origin.to === taskOriginPath(location.pathname, location.search)
+    ) {
+      if (location.pathname === '/story') return undefined;
+      const frame = window.requestAnimationFrame(() => {
+        window.scrollTo({ top: origin.scrollY, behavior: 'instant' });
+        if (origin.focusTarget === 'quick-create') {
+          Array.from(
+            document.querySelectorAll<HTMLElement>('.quick-create-trigger'),
+          )
+            .find((element) => element.getClientRects().length > 0)
+            ?.focus({ preventScroll: true });
+        }
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
     if (navigationType === 'POP' && !location.hash) return undefined;
     applyRouteEntryHandoff(location.hash);
     const cleanup = stabilizePlanRouteEntry(location.hash);
     // `location` (not just `.hash`) is the dependency: a pathname-only
     // change between two hash-less routes must still re-run the handoff.
-    return cleanup;
-  }, [location, navigationType]);
+    const frame = resolveOrigin(state?.taskOriginKey)
+      ? window.requestAnimationFrame(() => {
+          const heading = document.querySelector<HTMLElement>('main h1');
+          if (heading) {
+            heading.tabIndex = -1;
+            heading.focus({ preventScroll: true });
+          }
+        })
+      : 0;
+    return () => {
+      cleanup?.();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [location, navigationType, resolveOrigin]);
 
   return null;
 }

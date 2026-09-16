@@ -1,0 +1,83 @@
+.story-page .story-task-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.story-task-filter-sheet .story-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.story-task-filter-sheet select {
+  width: 100%;
+  min-height: 44px;
+}
+
+.story-task-filter-sheet .short-task-sheet-actions > button {
+  min-height: 44px;
+}
+
+.story-page .story-task-active-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.story-task-active-scope .active-chip {
+  min-height: 44px;
+  color: var(--color-link-text);
+}
+
+.story-page .story-timeline-toolbar {
+  flex-wrap: wrap;
+}
+
+/* Keep the scoped browsing task usable when text grows on a narrow screen. */
+.story-page .momente-tabs {
+  box-sizing: border-box;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.story-page .momente-tab-btn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.story-page .momente-tab-btn,
+.story-page .story-timeline-toolbar button,
+.story-task-active-scope .active-chip {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.story-page .story-card-footer-author,
+.story-page .story-card-footer-author .momente-author-meta {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+.story-page .story-card-footer time,
+.story-page .story-card-footer .media-label {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}

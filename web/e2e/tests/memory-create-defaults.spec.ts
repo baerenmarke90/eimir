@@ -8,6 +8,7 @@ const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const MEMORY_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 const AUTHORED_TITLE = 'Authored memory title';
+const AUTHORED_BODY = 'A remembered detail';
 
 interface MemoryCreateRequestBody {
   body?: string;
@@ -269,14 +270,16 @@ test('Memory Create opens with browser-local today and an optional title', async
   ).not.toHaveAttribute('required', '');
 });
 
-test('empty title with the default date saves a non-empty localized fallback title', async ({
+test('text-only with the default date saves a non-empty localized fallback title', async ({
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
   const expectedDate = await browserLocalToday(page);
 
   const requestBody = await submitAndReadCreateRequest(page);
 
+  expect(requestBody.body).toBe(AUTHORED_BODY);
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');
@@ -290,23 +293,26 @@ test('empty title with the default date saves a non-empty localized fallback tit
   ).toBeVisible();
 });
 
-test('a selected date wins and is also used by the fallback title', async ({
+test('a selected date wins and is also used by a text-only fallback title', async ({
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
 
   const requestBody = await submitAndReadCreateRequest(page);
 
+  expect(requestBody.body).toBe(AUTHORED_BODY);
   expect(requestBody.happenedOn).toBe('2025-12-24');
   expect(requestBody.title).toBe(localizedFallbackTitle('2025-12-24'));
 });
 
-test('a cleared date and whitespace-only title both fall back using local today', async ({
+test('text-only with a cleared date and whitespace title falls back using local today', async ({
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('');
@@ -314,6 +320,7 @@ test('a cleared date and whitespace-only title both fall back using local today'
 
   const requestBody = await submitAndReadCreateRequest(page);
 
+  expect(requestBody.body).toBe(AUTHORED_BODY);
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');

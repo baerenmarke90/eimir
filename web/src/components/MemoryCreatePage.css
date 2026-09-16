@@ -59,6 +59,12 @@
 
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-form {
+    gap: var(--space-4);
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
     .immersive-create-media,
   .memory-task-page.create-page
     .immersive-create-card[aria-labelledby="memory-form-heading"]

@@ -35,7 +35,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.asImageBitmap
@@ -500,22 +499,22 @@ private fun MemoryDateField(
     val summary = memoryDateSummary(happenedOn)
     val changeLabel = stringResource(R.string.ref_date_change)
     val dateLabel = stringResource(R.string.ref_date_label)
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = MinimumTouchTarget)
             .border(1.dp, EimirTheme.colors.border, RoundedCornerShape(8.dp))
             .clickable(enabled = editable, onClickLabel = changeLabel) { pickerOpen = true }
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
             .semantics(mergeDescendants = true) {
                 contentDescription = "$dateLabel, $summary, $changeLabel"
                 role = Role.Button
             }
             .testTag("memory-create-date-summary"),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(summary, color = EimirTheme.colors.textPrimary, modifier = Modifier.align(Alignment.CenterVertically))
-        Text(changeLabel, color = EimirTheme.colors.linkText, modifier = Modifier.align(Alignment.CenterVertically))
+        Text(summary, color = EimirTheme.colors.textPrimary)
+        Text(changeLabel, color = EimirTheme.colors.linkText)
     }
 
     if (pickerOpen) {

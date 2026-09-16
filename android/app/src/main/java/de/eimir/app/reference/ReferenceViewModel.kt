@@ -3055,7 +3055,8 @@ class ReferenceViewModel(
     fun refreshStory() = refreshStory(preserveLoadedRange = false)
 
     fun retryStory() {
-        if (_uiState.value.storyPageFailed) loadMoreStory() else refreshStory()
+        if (_uiState.value.storyPageFailed) loadMoreStory()
+        else refreshStory(preserveLoadedRange = _uiState.value.storyItems.isNotEmpty())
     }
 
     private fun refreshStory(preserveLoadedRange: Boolean) {
@@ -3065,12 +3066,13 @@ class ReferenceViewModel(
         val operationEpoch = sessionEpoch
         val requestGeneration = ++storyRequestGeneration
         val scope = _uiState.value.storyScope
+        val previousCount = _uiState.value.storyItems.size
         storyReconnectEpoch = _uiState.value.reconnectEpoch
         mutate { it.copy(storyLoading = true, storyLoadingMore = false, storyProblem = null, storyPageFailed = false) }
         viewModelScope.launch {
             if (!isCurrentSession(operationEpoch, currentSession)) return@launch
             // The existing durable cache contains only the unfiltered first page.
-            val result = if (scope.isDefault) loadProductDetail(
+            val firstResult = if (scope.isDefault) loadProductDetail(
                 accountId = currentSession.account.id, spaceId = spaceId,
                 kind = de.eimir.app.cache.ProductCacheKind.STORY,
                 resourceId = de.eimir.app.cache.StoryTimelineResourceId,
@@ -3083,13 +3085,33 @@ class ReferenceViewModel(
                     fromCache = false, refreshedAt = java.time.Instant.now(),
                 )
             }
+            val result = firstResult.mapCatching { first ->
+                if (!preserveLoadedRange || previousCount == 0 || first.fromCache) return@mapCatching first
+                // Re-read one authoritative contiguous prefix. Appending old first-page
+                // items can resurrect deletions and break the API's chronological order.
+                val targetCount = previousCount + first.value.items.size
+                val items = first.value.items.toMutableList()
+                val seenCursors = mutableSetOf<String>()
+                var page = first.value
+                while (page.hasMore && items.size < targetCount) {
+                    if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != storyRequestGeneration) {
+                        throw kotlinx.coroutines.CancellationException("Timeline context changed")
+                    }
+                    val cursor = page.nextCursor ?: throw java.io.IOException("Timeline continuation missing")
+                    if (!seenCursors.add(cursor) || page.items.isEmpty()) throw java.io.IOException("Timeline continuation did not advance")
+                    page = api.getScopedTimeline(spaceId, currentSession.tokens.accessToken, scope, cursor)
+                    items += page.items
+                }
+                first.copy(value = StoryPage(page.hasMore, items.distinctBy { it.toEntry().id },
+                    page.nextCursor, first.value.availableYears))
+            }
             result.onSuccess { loaded ->
                 if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != storyRequestGeneration) return@onSuccess
-                val keepRange = preserveLoadedRange && _uiState.value.storyItems.isNotEmpty()
-                if (!keepRange) storyCursor = loaded.value.nextCursor.takeUnless { loaded.fromCache }
+                val keepCachedRange = preserveLoadedRange && previousCount > 0 && loaded.fromCache
+                storyCursor = loaded.value.nextCursor.takeUnless { loaded.fromCache }
                 mutate { it.copy(
-                    storyItems = if (keepRange) (loaded.value.items + it.storyItems).distinctBy { item -> item.toEntry().id } else loaded.value.items,
-                    storyHasMore = if (keepRange) it.storyHasMore else loaded.value.hasMore && !loaded.fromCache,
+                    storyItems = if (keepCachedRange) it.storyItems else loaded.value.items,
+                    storyHasMore = loaded.value.hasMore && !loaded.fromCache,
                     storyAvailableYears = loaded.value.availableYears.orEmpty(),
                     storyLoaded = true, storyLoading = false,
                     storyCachedAt = loaded.refreshedAt.takeIf { _ -> loaded.fromCache }, error = null,
@@ -3273,7 +3295,7 @@ class ReferenceViewModel(
     }
 
     fun setProfileAvatarSelectionError(throwable: Throwable, selectionEpoch: Long) {
-        if (session == null || selectionEpoch != imageSelectionGeneration) return
+        if (session == null || selectionEpoch != sessionEpoch) return
         mutate {
             it.copy(
                 profile = it.profile.copy(

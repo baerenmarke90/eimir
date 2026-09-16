@@ -2,6 +2,7 @@ package de.eimir.app.reference
 
 import de.eimir.app.story.StoryEntryKind
 import de.eimir.app.story.TimelineScope
+import de.eimir.app.story.toEntry
 import eimir.api.models.*
 import java.io.IOException
 import java.time.LocalDate
@@ -91,6 +92,17 @@ class MemoryTaskTest {
         assertTrue(model.uiState.value.draftImages.isEmpty())
     }
 
+    @Test fun memoryPickerGenerationDoesNotSuppressCurrentSessionAvatarFailures() = runTest(dispatcher) {
+        val model = signedIn(TaskApi())
+        val avatarSession = checkNotNull(model.beginProfileAvatarSelection())
+        model.beginMemoryTask(); model.discardMemoryTask(); model.beginMemoryTask()
+        model.setProfileAvatarSelectionError(IOException("Picker read failed"), avatarSession)
+        assertEquals(R.string.profile_avatar_failed, model.uiState.value.profile.error?.resourceId)
+        model.logout(); model.signIn("new@example.test", "secret"); advanceUntilIdle()
+        model.setProfileAvatarSelectionError(IOException("Stale picker callback"), avatarSession)
+        assertNull(model.uiState.value.profile.error)
+    }
+
     @Test fun associationFailureRetriesKnownMemoryWithoutAnotherCreate() = runTest(dispatcher) {
         val api = TaskApi().apply { failBinding = true }
         val model = signedIn(api)
@@ -154,22 +166,109 @@ class MemoryTaskTest {
         assertEquals(2, loaded.size)
     }
 
-    @Test fun successfulPostSaveRefreshKeepsOldFirstPageAndItsScopedCursor() = runTest(dispatcher) {
-        val api = TaskApi()
+    @Test fun successfulPostSaveRefreshKeepsOldFirstPageAndUsesFreshContinuation() = runTest(dispatcher) {
+        val api = pagedApi()
         val model = signedIn(api)
         val scope = TimelineScope(year = 2025, kind = StoryEntryKind.MEMORY)
         model.applyStoryScope(scope); advanceUntilIdle()
-        val original = model.uiState.value.storyItems.single()
-        api.firstPageId = 12
+        val original = model.uiState.value.storyItems
+        api.scopedRecords = listOf(memory().copy(id = UUID(0, 20), happenedOn = LocalDate.of(2025, 9, 4))) + api.scopedRecords!!
         model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
         model.submitMemoryTask(); advanceUntilIdle()
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
-        assertEquals(2, model.uiState.value.storyItems.size)
-        assertEquals(original, model.uiState.value.storyItems.last())
+        assertEquals(4, model.uiState.value.storyItems.size)
+        assertTrue(model.uiState.value.storyItems.containsAll(original))
         assertEquals(scope, model.uiState.value.storyScope)
         assertTrue(model.uiState.value.storyHasMore)
         model.loadMoreStory(); advanceUntilIdle()
-        assertEquals(listOf(null, null, "older"), api.scopedCursors)
+        assertEquals(listOf(null, null, "2", "4"), api.scopedCursors)
+    }
+
+    @Test fun refreshedPrefixRemovesDeletionAndKeepsChangedDatesInApiOrder() = runTest(dispatcher) {
+        val api = pagedApi()
+        val model = signedIn(api)
+        model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
+        model.loadMoreStory(); advanceUntilIdle(); model.loadMoreStory(); advanceUntilIdle()
+        val deleted = UUID(0, 10)
+        api.scopedRecords = api.scopedRecords!!.filterNot { it.id == deleted }.map {
+            if (it.id == UUID(0, 13)) it.copy(happenedOn = LocalDate.of(2025, 9, 4)) else it
+        }
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); advanceUntilIdle()
+        val entries = model.uiState.value.storyItems.map { it.toEntry() }
+        assertEquals(listOf(13L, 11L, 12L, 14L, 15L).map { UUID(0, it) }, entries.map { it.id })
+        assertFalse(entries.any { it.id == deleted })
+        assertEquals(entries.map { it.date }.sortedDescending(), entries.map { it.date })
+        assertFalse(model.uiState.value.storyHasMore)
+    }
+
+    @Test fun failedLaterPrefixPageRetainsWholeRangeAndRetryDoesNotCreateAgain() = runTest(dispatcher) {
+        val api = pagedApi()
+        val model = signedIn(api)
+        model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
+        val original = model.uiState.value.storyItems
+        api.pageFailure = ReferenceApiException("UNAVAILABLE", "Retry later", 503)
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); advanceUntilIdle()
+        assertEquals(original, model.uiState.value.storyItems)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+        assertNotNull(model.uiState.value.storyProblem)
+        api.pageFailure = null
+        model.retryStory(); advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals(4, model.uiState.value.storyItems.size)
+        assertNull(model.uiState.value.storyProblem)
+    }
+
+    @Test fun deniedLaterPrefixPageClearsWholeRangeAndContinuation() = runTest(dispatcher) {
+        val api = pagedApi()
+        val model = signedIn(api)
+        model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
+        api.pageFailure = ReferenceApiException("FORBIDDEN", "Access lost", 403)
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); advanceUntilIdle()
+        assertTrue(model.uiState.value.storyItems.isEmpty())
+        assertTrue(model.uiState.value.storyAvailableYears.isEmpty())
+        assertFalse(model.uiState.value.storyHasMore)
+        val reads = api.timelineCalls
+        model.loadMoreStory(); advanceUntilIdle()
+        assertEquals(reads, api.timelineCalls)
+    }
+
+    @Test fun latePrefixPageCannotReplaceNewScope() = runTest(dispatcher) {
+        val api = pagedApi()
+        val model = signedIn(api)
+        model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
+        model.loadMoreStory(); advanceUntilIdle()
+        val retained = model.uiState.value.storyItems
+        val gate = CompletableDeferred<StoryPage>()
+        api.pageGate = gate
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); runCurrent()
+        assertEquals(retained, model.uiState.value.storyItems) // No partial prefix is published.
+        api.pageGate = null
+        model.applyStoryScope(TimelineScope(year = 2026)); advanceUntilIdle()
+        gate.complete(StoryPage(false, emptyList(), null)); advanceUntilIdle()
+        assertEquals(TimelineScope(year = 2026), model.uiState.value.storyScope)
+        assertTrue(model.uiState.value.storyItems.isEmpty())
+        assertFalse(model.uiState.value.storyHasMore)
+    }
+
+    @Test fun latePrefixPageCannotReplaceNewSession() = runTest(dispatcher) {
+        val api = pagedApi()
+        val model = signedIn(api)
+        model.applyStoryScope(TimelineScope(year = 2025)); advanceUntilIdle()
+        val gate = CompletableDeferred<StoryPage>()
+        api.pageGate = gate
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); runCurrent()
+        api.pageGate = null
+        model.logout(); model.signIn("new@example.test", "secret"); advanceUntilIdle()
+        gate.complete(StoryPage(false, emptyList(), null)); advanceUntilIdle()
+        assertEquals(TimelineScope(), model.uiState.value.storyScope)
+        assertTrue(model.uiState.value.storyItems.isEmpty())
+        assertNull(model.uiState.value.memoryTask)
+        assertNull(model.uiState.value.openMemory)
     }
 
     @Test fun projectionFailureAfterSaveKeepsConfirmationAndScopedLoadedRange() = runTest(dispatcher) {
@@ -245,13 +344,14 @@ private class TaskApi : FakeReferenceContract() {
     var createCalls = 0
     var bindCalls = 0
     var timelineCalls = 0
-    var firstPageId = 10L
     var failBinding = false
     var applyBindingBeforeFailure = false
     var current = memory()
     var readFailure: Throwable? = null
     var pageFailure: Throwable? = null
     var projectionFailure: Throwable? = null
+    var scopedRecords: List<MemoryDetail>? = null
+    var pageGate: CompletableDeferred<StoryPage>? = null
     val scopedCursors = mutableListOf<String?>()
     override suspend fun signIn(email: String, password: String) = SessionView(AccountView("Fixture", taskAccount), TokenView(taskTime, "access", taskTime, "refresh"))
     override suspend fun listMemberships(accessToken: String) = listOf(AccountMembershipView("PARTNER", taskSpace, "ACTIVE"))
@@ -264,8 +364,20 @@ private class TaskApi : FakeReferenceContract() {
         if (scope.isDefault) return getTimeline(spaceId, accessToken, cursor)
         timelineCalls++; scopedCursors += cursor
         projectionFailure?.let { throw it }
-        if (cursor != null) pageFailure?.let { throw it }
-        val m = current.copy(id = UUID(0, if (cursor == null) firstPageId else 11))
+        if (cursor != null) {
+            pageFailure?.let { throw it }
+            pageGate?.let { return it.await() }
+        }
+        scopedRecords?.let { records ->
+            val matching = records.filter { scope.year == null || it.happenedOn?.year == scope.year }
+                .sortedWith(compareByDescending<MemoryDetail> { it.happenedOn }.thenBy { it.id })
+            val offset = cursor?.toInt() ?: 0
+            val page = matching.drop(offset).take(2)
+            val more = offset + page.size < matching.size
+            return StoryPage(more, page.map(::storyItem), if (more) (offset + page.size).toString() else null,
+                records.mapNotNull { it.happenedOn?.year }.distinct())
+        }
+        val m = current.copy(id = UUID(0, if (cursor == null) 10 else 11))
         val summary = MemorySummary(m.attachments, m.author, m.capabilities, m.createdAt, m.happenedOn, m.id, m.title)
         return StoryPage(cursor == null, listOf(StoryItem.MemoryWrapper(StoryMemoryItem(LocalDate.of(2025, 6, 2), StoryMemoryItem.Kind.MEMORY, summary))), if (cursor == null) "older" else null, listOf(2025))
     }
@@ -289,4 +401,14 @@ private class TaskApi : FakeReferenceContract() {
         if (failBinding) throw IOException("Binding response lost")
         return current
     }
+}
+
+private fun storyItem(memory: MemoryDetail): StoryItem = StoryItem.MemoryWrapper(StoryMemoryItem(
+    checkNotNull(memory.happenedOn), StoryMemoryItem.Kind.MEMORY,
+    MemorySummary(memory.attachments, memory.author, memory.capabilities, memory.createdAt, memory.happenedOn, memory.id, memory.title),
+))
+
+private fun pagedApi() = TaskApi().apply {
+    scopedRecords = listOf("2025-09-03", "2025-09-03", "2025-09-02", "2025-09-01", "2025-09-01", "2025-08-31")
+        .mapIndexed { index, date -> memory().copy(id = UUID(0, index.toLong() + 10), happenedOn = LocalDate.parse(date)) }
 }

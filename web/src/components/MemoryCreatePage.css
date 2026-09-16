@@ -34,6 +34,14 @@
   overflow-wrap: anywhere;
 }
 
+/* The task heading receives programmatic focus on entry so assistive
+ * technology is moved to the new task context. It is not interactive and is
+ * excluded from sequential keyboard navigation, so the browser's default
+ * focus rectangle would be misleading chrome around the entire header. */
+.memory-task-heading:focus {
+  outline: none;
+}
+
 .product-shell[data-focused-task="true"] {
   --shell-content-bottom-clearance: calc(
     var(--space-6) +

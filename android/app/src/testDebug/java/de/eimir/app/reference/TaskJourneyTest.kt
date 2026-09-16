@@ -53,6 +53,14 @@ class TaskJourneyTest {
         assertEquals(1, api.createCalls)
     }
 
+    @Test fun emptyCaptureKeepsSaveDisabledAndSendsNothing() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-scroll").performScrollToNode(hasTestTag("memory-create-save"))
+        compose.onNodeWithTag("memory-create-save").assertIsNotEnabled()
+        assertEquals(0, api.createCalls)
+    }
+
     @Test fun dateChangeUsesMaterialPickerInsteadOfIsoTextEntry() {
         render()
         openComposer()

@@ -1,0 +1,75 @@
+name: R1 Temporary Cleanup
+
+on:
+  push:
+    branches:
+      - feat/964-r1-memory-capture
+    paths:
+      - .github/workflows/r1-temp-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    name: Apply bounded R1 cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feat/964-r1-memory-capture
+
+      - name: Correct Android state ownership and delivery record
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          screen = Path("android/app/src/main/java/de/eimir/app/reference/ReferenceFlowScreen.kt")
+          text = screen.read_text()
+          old_import = "import androidx.compose.runtime.Composable\n"
+          new_import = "import androidx.compose.runtime.Composable\nimport androidx.compose.runtime.LaunchedEffect\n"
+          if "import androidx.compose.runtime.LaunchedEffect\n" not in text:
+              if old_import not in text:
+                  raise SystemExit("Expected Compose import anchor is missing")
+              text = text.replace(old_import, new_import, 1)
+          saveable_import = "import androidx.compose.runtime.saveable.rememberSaveable\n"
+          if saveable_import not in text:
+              anchor = "import androidx.compose.runtime.setValue\n"
+              if anchor not in text:
+                  raise SystemExit("Expected setValue import anchor is missing")
+              text = text.replace(anchor, anchor + saveable_import, 1)
+          old_state = "    var editorOpen by remember { mutableStateOf(false) }\n    if (autoOpen) editorOpen = true\n"
+          new_state = "    var editorOpen by rememberSaveable { mutableStateOf(autoOpen) }\n    LaunchedEffect(autoOpen) {\n        if (autoOpen) editorOpen = true\n    }\n"
+          if old_state not in text:
+              raise SystemExit("Expected R1 date-editor state block is missing")
+          text = text.replace(old_state, new_state, 1)
+          screen.write_text(text)
+
+          delivery = Path("docs/product/design/r1-memory-capture.md")
+          doc = delivery.read_text()
+          old_doc = "`ReferenceViewModel.kt`/`MemoryTask.kt`/`ReferenceFlow.kt` (state machine, upload/bind, uncertain/partial-recovery logic) are reused unchanged — this is a pure Compose-layout rework of `ReferenceFlowScreen`'s embedded branch plus `MemoryCreateScreen`'s wrapper, not a ViewModel change."
+          new_doc = "`MemoryTask.kt`/`ReferenceFlow.kt` keep the existing task state machine, upload/bind and uncertain/partial-recovery semantics. `ReferenceViewModel.createMemory` receives only a narrow `fallbackTitle` input so R1 can keep the visible title optional while normalizing a blank title to the localized date-based fallback before the existing save snapshot; lifecycle transitions, retry ownership and result handling are unchanged. The remaining work is the Compose-layout rework of `ReferenceFlowScreen`'s embedded branch plus `MemoryCreateScreen`'s wrapper."
+          if old_doc not in doc:
+              raise SystemExit("Expected Android delivery-record sentence is missing")
+          doc = doc.replace(old_doc, new_doc, 1)
+          delivery.write_text(doc)
+          PY
+
+      - name: Commit bounded cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            android/app/src/main/java/de/eimir/app/reference/ReferenceFlowScreen.kt \
+            docs/product/design/r1-memory-capture.md
+          if git diff --cached --quiet; then
+            echo "No cleanup changes were required."
+            exit 0
+          fi
+          git commit -m "fix(android): stabilize R1 date editor state"
+          git push origin HEAD:feat/964-r1-memory-capture

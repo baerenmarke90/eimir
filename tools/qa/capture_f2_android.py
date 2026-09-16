@@ -226,10 +226,21 @@ def main() -> None:
         label("story_kind_memory"); tap("timeline-apply")
         label("load_more")
         older = "story-memory-00000000-0000-03be-0000-000000000009"
-        before = bounds(reveal(older))
+        for _ in range(12):
+            older_node = find(older)
+            if older_node is not None:
+                before = bounds(older_node)
+                # A clipped sliver is not reviewable evidence of the chosen Memory.
+                if before[3] - before[1] >= 200 and before[1] >= 98 and before[3] <= 1432:
+                    break
+            adb("shell", "input", "swipe", "390", "1250", "390", "850", "300")
+        else:
+            raise AssertionError("Older Memory is not meaningfully visible in the content viewport")
         capture("scoped-older-position")
         tap(older); wait_for("memory-detail"); capture("scoped-older-detail"); back()
-        assert bounds(reveal(older)) == before
+        returned_older = find(older)
+        assert returned_older is not None, "Older item is no longer visible after return"
+        assert bounds(returned_older) == before
         capture("scoped-older-return")
         behavior.append("Applied year/type and loaded older-page position survive canonical detail and System Back")
 

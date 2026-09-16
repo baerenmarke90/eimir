@@ -1,0 +1,222 @@
+name: R1 Temporary Android Evidence
+
+on:
+  push:
+    branches:
+      - feat/964-r1-memory-capture
+    paths:
+      - .github/workflows/r1-temp-android-evidence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  evidence:
+    name: Final disposable-emulator R1 evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feat/964-r1-memory-capture
+          fetch-depth: 0
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Install disposable Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-37.1" \
+            "build-tools;36.0.0" \
+            "platform-tools" \
+            "emulator" \
+            "system-images;android-36;google_apis;x86_64"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/android-avd"
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd" >> "$GITHUB_ENV"
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name r1-proof --package "system-images;android-36;google_apis;x86_64"
+
+      - name: Boot disposable emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r1-native-evidence"
+          nohup "$ANDROID_HOME/emulator/emulator" @r1-proof -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -gpu swiftshader_indirect -camera-back none -camera-front none >"$RUNNER_TEMP/r1-native-evidence/emulator.log" 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb shell input keyevent 82 || true
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
+      - name: Build and test exact R1 APK
+        working-directory: android
+        run: ./gradlew --no-daemon --stacktrace --dependency-verification strict :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Run full native journey matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/r1-native-evidence"
+          apk="android/app/build/outputs/apk/debug/app-debug.apk"
+          git rev-parse HEAD > "$out/source-commit.txt"
+          sha256sum "$apk" > "$out/apk.sha256"
+          serial="$(adb get-serialno)"
+          python3 tools/qa/capture_f2_android.py --serial "$serial" --apk "$apk" --output "$out/f2-contract-on-r1"
+
+      - name: Verify R1 picker, large text and TalkBack
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/r1-native-evidence"
+          package='de.sidebyside.app.debug'
+          component='de.sidebyside.app.debug/de.eimir.app.reference.TaskJourneyProofActivity'
+
+          adb shell settings put system font_scale 1.0
+          adb shell cmd uimode night no
+          adb shell wm density 160
+          adb shell wm size 320x640
+          adb shell am force-stop "$package"
+          adb shell am start -W -n "$component" --es direct create > "$out/r1-direct-launch.txt"
+          sleep 1
+          adb shell uiautomator dump /sdcard/r1.xml >/dev/null
+          adb exec-out cat /sdcard/r1.xml > "$out/r1-composer.xml"
+          adb exec-out screencap -p > "$out/r1-composer-light.png"
+
+          python3 - <<'PY'
+          import os, re, xml.etree.ElementTree as ET
+          from pathlib import Path
+          out = Path(os.environ['RUNNER_TEMP']) / 'r1-native-evidence'
+          root = ET.parse(out / 'r1-composer.xml').getroot()
+          nodes = list(root.iter('node'))
+          def node(tag): return next((n for n in nodes if n.get('resource-id','').endswith(tag)), None)
+          required = ['memory-create-photos','memory-create-body','memory-create-title','memory-create-save','memory-create-close']
+          missing = [tag for tag in required if node(tag) is None]
+          if missing: raise SystemExit(f'Missing R1 controls: {missing}')
+          order = []
+          for tag in ['memory-create-photos','memory-create-body','memory-create-title']:
+              bounds = list(map(int, re.findall(r'-?\d+', node(tag).get('bounds',''))))
+              order.append((tag, bounds[1]))
+          if order != sorted(order, key=lambda item: item[1]): raise SystemExit(f'Wrong R1 order: {order}')
+          (out / 'r1-order.txt').write_text('\n'.join(f'{tag}: top={top}' for tag, top in order) + '\n')
+          PY
+
+          python3 - <<'PY'
+          import re, subprocess, xml.etree.ElementTree as ET
+          raw = subprocess.check_output(['adb','exec-out','cat','/sdcard/r1.xml'], text=True)
+          root = ET.fromstring(raw)
+          n = next(n for n in root.iter('node') if n.get('resource-id','').endswith('memory-create-photos'))
+          l,t,r,b = map(int, re.findall(r'-?\d+', n.get('bounds','')))
+          subprocess.run(['adb','shell','input','tap',str((l+r)//2),str((t+b)//2)], check=True)
+          PY
+          sleep 1
+          adb shell dumpsys activity activities | head -n 100 > "$out/photo-picker-open-activity.txt"
+          grep -q 'com.google.android.photopicker' "$out/photo-picker-open-activity.txt"
+          adb exec-out screencap -p > "$out/photo-picker-open.png"
+          adb shell input keyevent 4
+          sleep 1
+          adb shell uiautomator dump /sdcard/r1-after-picker.xml >/dev/null
+          adb exec-out cat /sdcard/r1-after-picker.xml > "$out/r1-after-picker-cancel.xml"
+          grep -q 'memory-create-scroll' "$out/r1-after-picker-cancel.xml"
+          adb exec-out screencap -p > "$out/r1-after-picker-cancel.png"
+
+          adb shell cmd uimode night yes
+          adb shell settings put system font_scale 2.0
+          adb shell am force-stop "$package"
+          adb shell am start -W -n "$component" --es direct create >/dev/null
+          sleep 1
+          adb exec-out screencap -p > "$out/r1-large-text-top.png"
+          found=0
+          for i in 1 2 3 4 5 6; do
+            adb shell uiautomator dump /sdcard/r1-large.xml >/dev/null
+            adb exec-out cat /sdcard/r1-large.xml > "$out/r1-large-text.xml"
+            if grep -q 'memory-create-save' "$out/r1-large-text.xml"; then found=1; break; fi
+            adb shell input swipe 160 560 160 250 250
+            sleep 0.4
+          done
+          test "$found" = "1"
+          adb exec-out screencap -p > "$out/r1-large-text-save.png"
+
+          adb shell settings put system font_scale 1.0
+          adb shell cmd uimode night no
+          talkback='com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService'
+          adb shell pm list packages | grep -F 'com.google.android.marvin.talkback' > "$out/talkback-package.txt"
+          adb shell settings put secure enabled_accessibility_services "$talkback"
+          adb shell settings put secure accessibility_enabled 1
+          adb shell settings put secure touch_exploration_enabled 1
+          sleep 3
+          adb shell settings get secure enabled_accessibility_services > "$out/talkback-enabled-services.txt"
+          adb shell dumpsys accessibility > "$out/talkback-accessibility-dumpsys.txt"
+          grep -q 'com.google.android.marvin.talkback' "$out/talkback-enabled-services.txt"
+          grep -q 'TalkBackService' "$out/talkback-accessibility-dumpsys.txt"
+          adb shell am force-stop "$package"
+          adb shell am start -W -n "$component" --es direct create >/dev/null
+          sleep 3
+          adb shell uiautomator dump /sdcard/r1-talkback.xml >/dev/null
+          adb exec-out cat /sdcard/r1-talkback.xml > "$out/r1-talkback.xml"
+          adb exec-out screencap -p > "$out/r1-talkback.png"
+
+      - name: Commit selected exact-build evidence and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/r1-native-evidence"
+          dst="docs/product/design/evidence/r1/android"
+          mkdir -p "$dst"
+          for width in 320 360 390 430 1280; do
+            for theme in light dark; do
+              cp "$src/f2-contract-on-r1/f2-android-${width}-${theme}-composer.png" "$dst/r1-android-${width}-${theme}-composer.png"
+              cp "$src/f2-contract-on-r1/f2-android-${width}-${theme}-composer.xml" "$dst/r1-android-${width}-${theme}-composer.xml"
+            done
+          done
+          cp "$src/f2-contract-on-r1/f2-android-ime-input.png" "$dst/r1-android-ime-input.png"
+          cp "$src/f2-contract-on-r1/f2-android-ime-input.xml" "$dst/r1-android-ime-input.xml"
+          cp "$src/f2-contract-on-r1/f2-android-draft-after-rotation.png" "$dst/r1-android-draft-after-rotation.png"
+          cp "$src/f2-contract-on-r1/f2-android-draft-after-rotation.xml" "$dst/r1-android-draft-after-rotation.xml"
+          cp "$src/f2-contract-on-r1/f2-android-confirmed-result.png" "$dst/r1-android-confirmed-result.png"
+          cp "$src/f2-contract-on-r1/f2-android-confirmed-result.xml" "$dst/r1-android-confirmed-result.xml"
+          cp "$src/photo-picker-open.png" "$dst/r1-android-photo-picker-open.png"
+          cp "$src/r1-after-picker-cancel.png" "$dst/r1-android-after-picker-cancel.png"
+          cp "$src/r1-after-picker-cancel.xml" "$dst/r1-android-after-picker-cancel.xml"
+          cp "$src/r1-large-text-top.png" "$dst/r1-android-large-text-top.png"
+          cp "$src/r1-large-text-save.png" "$dst/r1-android-large-text-save.png"
+          cp "$src/r1-large-text.xml" "$dst/r1-android-large-text-save.xml"
+          cp "$src/r1-talkback.png" "$dst/r1-android-talkback.png"
+          cp "$src/r1-talkback.xml" "$dst/r1-android-talkback.xml"
+          cp "$src/talkback-enabled-services.txt" "$dst/r1-android-talkback-enabled-services.txt"
+          cp "$src/talkback-accessibility-dumpsys.txt" "$dst/r1-android-talkback-accessibility-dumpsys.txt"
+          cp "$src/r1-order.txt" "$dst/r1-android-order.txt"
+          cp "$src/f2-contract-on-r1/f2-android-report.json" "$dst/r1-android-behavior-report.json"
+          cp "$src/apk.sha256" "$dst/r1-android-apk.sha256"
+          cp "$src/source-commit.txt" "$dst/r1-android-source-commit.txt"
+          git rm .github/workflows/r1-temp-android-evidence.yml
+          git add "$dst"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(android): add final R1 device evidence'
+          git push origin HEAD:feat/964-r1-memory-capture
+
+      - name: Upload complete emulator run
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: r1-android-final-${{ github.sha }}
+          path: ${{ runner.temp }}/r1-native-evidence
+          if-no-files-found: error
+          retention-days: 3

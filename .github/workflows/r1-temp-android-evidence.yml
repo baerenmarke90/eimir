@@ -41,12 +41,16 @@ jobs:
             "emulator" \
             "system-images;android-36;google_apis;x86_64"
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/android-avd"
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd" >> "$GITHUB_ENV"
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm || true
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd \
             --force --name r1-proof --package "system-images;android-36;google_apis;x86_64"
+          "$ANDROID_HOME/emulator/emulator" -list-avds
 
       - name: Boot disposable emulator
         shell: bash

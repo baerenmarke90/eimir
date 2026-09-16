@@ -53,6 +53,15 @@ class TaskJourneyTest {
         assertEquals(1, api.createCalls)
     }
 
+    @Test fun dateChangeUsesMaterialPickerInsteadOfIsoTextEntry() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-date-summary").performClick()
+        compose.onNodeWithText(text(R.string.plan_picker_take)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.plan_cancel)).assertIsDisplayed()
+        compose.onNodeWithText(text(R.string.ref_date_optional)).assertDoesNotExist()
+    }
+
     @Test fun dirtyCloseKeepsWorkUntilDeliberateDiscard() {
         render(); openComposer(); enterWords()
         closeComposer()

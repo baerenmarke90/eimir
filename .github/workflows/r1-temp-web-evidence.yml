@@ -49,6 +49,7 @@ jobs:
         shell: sh
         run: |
           set -eu
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git rev-parse HEAD > docs/product/design/evidence/r1/r1-web-source-commit.txt
           git rm .github/workflows/r1-temp-web-evidence.yml
           git add docs/product/design/evidence/r1/r1-*.png docs/product/design/evidence/r1/r1-web-source-commit.txt

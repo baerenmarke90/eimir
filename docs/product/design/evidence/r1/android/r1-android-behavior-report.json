@@ -1,0 +1,663 @@
+{
+  "completed": true,
+  "matrixIncluded": true,
+  "sourceCommit": "a7446414cf78608d4799383c1d9a5ad4ce81c044",
+  "apkSha256": "195ced61e610722780aea49e0d4c5cbf7f6170cf54d79eb92d73dc66743854df",
+  "device": "emulator-5554",
+  "captures": [
+    {
+      "name": "320-light-quick-create",
+      "pixels": [
+        640,
+        1688
+      ],
+      "sha256": "951a0c630f54549141199d2d5ef55c8bcf87984120c4ebb0c64c991bc173a7c3"
+    },
+    {
+      "name": "320-light-composer",
+      "pixels": [
+        640,
+        1688
+      ],
+      "sha256": "e110023311b937ef94d72da327114899c30430aab7a85b9e0347feb9a165e02b"
+    },
+    {
+      "name": "320-dark-quick-create",
+      "pixels": [
+        640,
+        1688
+      ],
+      "sha256": "b12107fc5e18535c76548c69bd32bbe4aafe2e741e2f18546918a5038c3e7ea9"
+    },
+    {
+      "name": "320-dark-composer",
+      "pixels": [
+        640,
+        1688
+      ],
+      "sha256": "3a5452b7b4b6ffd8909e265d05811715ae0c1899648ec35fae1cdab9ae9dac7c"
+    },
+    {
+      "name": "360-light-quick-create",
+      "pixels": [
+        720,
+        1688
+      ],
+      "sha256": "e2bb22bc7f21574446e502a7425cbf3ebd6e10b16f2417891b348a390732291d"
+    },
+    {
+      "name": "360-light-composer",
+      "pixels": [
+        720,
+        1688
+      ],
+      "sha256": "32715063d72f5e8ca4bb3439f1d2eeafed243e70035b7097fd447c53a603276f"
+    },
+    {
+      "name": "360-dark-quick-create",
+      "pixels": [
+        720,
+        1688
+      ],
+      "sha256": "3b180e25440a523b06b0e26a7a79b14b49c2f7947edd9bacfe8da6854ef9b511"
+    },
+    {
+      "name": "360-dark-composer",
+      "pixels": [
+        720,
+        1688
+      ],
+      "sha256": "8c19dfe16071b97b443b3a8d3a382bd025cf0c7e1033ba189fe21a3e1dc38042"
+    },
+    {
+      "name": "390-light-quick-create",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "988aa7b35dd83b843d3602b4b04a1a7890ae9a0b56aa6f54c86005b93b8478cd"
+    },
+    {
+      "name": "390-light-composer",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "713b62e505f6b96f853f437ca4cf7b77c4092d301c335c5f18f2743387bbb23e"
+    },
+    {
+      "name": "390-dark-quick-create",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "afed5f1291ab259841ca49a0a86b15353ad8d189b1cd1d6506eff04037076200"
+    },
+    {
+      "name": "390-dark-composer",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "a9d27c29383f4b4b9b785310f861666019e69cc4c9a5c604aa576af838892151"
+    },
+    {
+      "name": "430-light-quick-create",
+      "pixels": [
+        860,
+        1688
+      ],
+      "sha256": "da65a40d595a965ac1cb5bac606465d875d0a7f07f7b5e41b97f87be297305f0"
+    },
+    {
+      "name": "430-light-composer",
+      "pixels": [
+        860,
+        1688
+      ],
+      "sha256": "e33f954f83996d32ce8df712107c765d283909a4d764e480cfbcec17293ba6c6"
+    },
+    {
+      "name": "430-dark-quick-create",
+      "pixels": [
+        860,
+        1688
+      ],
+      "sha256": "36ef0d96b253f07454f41dae91615d0313edbc68205ef8a9304aa4363b5f40ab"
+    },
+    {
+      "name": "430-dark-composer",
+      "pixels": [
+        860,
+        1688
+      ],
+      "sha256": "8f8a38b7101924484d137bebd6c137db9a1ac4454f22f2422671d7a9592ba973"
+    },
+    {
+      "name": "1280-light-quick-create",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "sha256": "11176316f4ab643f1fefd3f8c92e4c61bb25b9befb48c9cca09fed02542efbc4"
+    },
+    {
+      "name": "1280-light-composer",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "sha256": "fde54139c5f4aea934f36ac87f43da42327b61175f9064d5e54d8fd4027c11c2"
+    },
+    {
+      "name": "1280-dark-quick-create",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "sha256": "72ad38190e610134f47b466bfafbe1b545f6b5e79eaf5ce56aa4d17c7c620cc6"
+    },
+    {
+      "name": "1280-dark-composer",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "sha256": "32aa3c351ce3602626841a4c92a63418621c9800fd807f679435fcf2d27dcaed"
+    },
+    {
+      "name": "ime-input",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "fcef88a8dcbdd7a967fea3b599ea9fa07d60a97d72f2c5b070e8eec55501c346"
+    },
+    {
+      "name": "draft-after-rotation",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "a1841e7926ec2577df70e46e22eeb9969914d329b161615f2821b8c95bb9992a"
+    },
+    {
+      "name": "confirmed-result",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "1950cab802ad77019493cb881d2c45e53106f3551367ce9166e1e638e0725652"
+    },
+    {
+      "name": "pending-exit-explanation",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "a071772ddc7f3aed1df12f4bfe3e03f72a8b076e54da18a39476c249821f7be1"
+    },
+    {
+      "name": "rejected",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "94c3552a10f546a891397fd1b02743bd34ee5678d4fd4d108216d2d4684e7ce9"
+    },
+    {
+      "name": "uncertain",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "d853a2ade355348540e31417d0f715363016ad9430529c3446005ca8b01b99b2"
+    },
+    {
+      "name": "offline",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "f4c4b06ce71f456844105023a4263a384de950820c92f2a4a40b0acfd7332938"
+    },
+    {
+      "name": "refresh-failure",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "f30384e6a9600d940e394108dea34f8db2998b7dc19cce71dd6a432b8396455c"
+    },
+    {
+      "name": "denied-result",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "d9c806a1840568cefca1b5969af74bf17ae79b8c4a5b3b8d02b914f835a97367"
+    },
+    {
+      "name": "scoped-older-position",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "92278cc2258df1e49091d4a65e51809d18d545857a5426fe0d8f000f6f9551b2"
+    },
+    {
+      "name": "scoped-older-detail",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "91bb7d600c9c7c01cfd531fdbdd5473d5a3db317b9e53bd9e8e4b4454baced15"
+    },
+    {
+      "name": "scoped-older-return",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "92278cc2258df1e49091d4a65e51809d18d545857a5426fe0d8f000f6f9551b2"
+    },
+    {
+      "name": "large-text-reduced-motion-sheet",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "caab741f6fec4f10214092abd0ae94cb78262918dee9f6d48dc7939bd216e601"
+    },
+    {
+      "name": "large-text-reduced-motion-composer",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "1b84ba30a723eed8f090f43ab6be041f77a41c0657d5ba18ad60a05685331ae3"
+    }
+  ],
+  "behavior": [
+    "Explicit typing opens IME; first System Back hides it without leaving the draft",
+    "Home and Activity return retain the in-memory draft",
+    "Activity rotation and return retain title/body in the task ViewModel",
+    "Confirmed save opens the actual full Memory; visible Back returns to the original root",
+    "Dirty System Back offers keep/discard; keeping retains input and deliberate discard exits",
+    "Pending System Back explains why the task stays open; completion opens the actual result",
+    "rejected: expected confirmed or retained-draft boundary visible",
+    "uncertain: expected confirmed or retained-draft boundary visible",
+    "offline: expected confirmed or retained-draft boundary visible",
+    "refresh-failure: expected confirmed or retained-draft boundary visible",
+    "Denied canonical read hides retained content and preserves a safe Back action",
+    "Nested year-menu System Back closes the menu before the filter sheet",
+    "Applied year/type and loaded older-page position survive canonical detail and System Back",
+    "Direct composer without an origin falls back to canonical Moments",
+    "Direct detail without an origin falls back to canonical Moments",
+    "200% text and reduced system animation retain short-sheet and task actions"
+  ],
+  "targets": [
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        496,
+        1336,
+        608,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        496,
+        1336,
+        608,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        576,
+        1336,
+        688,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        576,
+        1336,
+        688,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        716,
+        1336,
+        828,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        716,
+        1336,
+        828,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        1776,
+        1432,
+        1888,
+        1544
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        1776,
+        1432,
+        1888,
+        1544
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-detail-back",
+      "bounds": [
+        40,
+        88,
+        181,
+        184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-close",
+      "bounds": [
+        40,
+        88,
+        221,
+        184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1331,
+        740,
+        1427
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1336,
+        748,
+        1448
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-save",
+      "bounds": [
+        40,
+        1088,
+        740,
+        1184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-detail-back",
+      "bounds": [
+        40,
+        88,
+        181,
+        184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-filter",
+      "bounds": [
+        40,
+        379,
+        317,
+        475
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-filter",
+      "bounds": [
+        40,
+        379,
+        317,
+        475
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "task-sheet-close",
+      "bounds": [
+        40,
+        704,
+        221,
+        800
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-filter",
+      "bounds": [
+        40,
+        379,
+        317,
+        475
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-apply",
+      "bounds": [
+        40,
+        1496,
+        740,
+        1592
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-create-close",
+      "bounds": [
+        40,
+        88,
+        221,
+        184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "memory-detail-back",
+      "bounds": [
+        40,
+        88,
+        181,
+        184
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "quick-create-trigger",
+      "bounds": [
+        636,
+        1290,
+        748,
+        1402
+      ],
+      "minimumDp": 48
+    }
+  ],
+  "fixtureBoundary": "Production route, ViewModel, task, picker and detail; deterministic debug-only transport",
+  "limitations": "TalkBack and photo-picker device results are recorded separately; none is inferred from screenshots."
+}

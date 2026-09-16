@@ -431,9 +431,23 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await page.keyboard.press('Shift+Tab');
     const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');
+    // Native dialog traversal may visit browser chrome at the boundary. It
+    // must never focus the inactive page; returning enters the modal again.
+    const backwardFocus = await dialog.evaluate((element) => ({
+      inside: element.contains(document.activeElement),
+      documentFocused: document.hasFocus(),
+    }));
+    expect(backwardFocus.inside || !backwardFocus.documentFocused).toBe(true);
+    if (!backwardFocus.documentFocused) await page.keyboard.press('Shift+Tab');
     await expect(lastItem).toBeFocused();
 
     await page.keyboard.press('Tab');
+    const forwardFocus = await dialog.evaluate((element) => ({
+      inside: element.contains(document.activeElement),
+      documentFocused: document.hasFocus(),
+    }));
+    expect(forwardFocus.inside || !forwardFocus.documentFocused).toBe(true);
+    if (!forwardFocus.documentFocused) await page.keyboard.press('Tab');
     await expect(closeButton).toBeFocused();
 
     await page.keyboard.press('Escape');

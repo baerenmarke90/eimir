@@ -12,6 +12,7 @@ Start with [Product Reference v1](product-reference-v1.md). It is the **normativ
 | What gets implemented next? | [Implementation roadmap](implementation-roadmap.md): F1/F2 → R1–R5 → P1–P3 → C1. |
 | How are F1 roles implemented and proven? | [F1 visual foundations](f1-visual-foundations.md): token/adapter mapping, bounded internal proof, usage limits and exact-build evidence. |
 | How do focused tasks save and return safely? | [F2 task boundaries](f2-task-boundaries.md): short sheets, Memory capture/result, scoped Timeline return, interruption safety and production-consumer evidence. |
+| How is the finished Memory capture composed? | [R1 Neuer Moment](r1-memory-capture.md): content-first hierarchy, reuse decisions and Web/Android evidence for the production capture journey. |
 | Which older material still applies? | [Authority register](#authority-register) below. |
 | Why was the direction chosen? | [Audit](audits/2026-09-15/product-design-audit.md), [calibration](audits/2026-09-15/visual-calibration.md), [evidence and decisions](audits/2026-09-15/evidence-and-decisions.md). |
 | How is compliance reviewed? | [v1 acceptance](product-reference-v1.md#review-and-final-acceptance), [Partner-App Experience Standard](../../PARTNER-APP-EXPERIENCE-STANDARD.md), [PR template](../../../.github/pull_request_template.md) and final audit [#946](https://github.com/baerenmarke90/eimir/issues/946). |

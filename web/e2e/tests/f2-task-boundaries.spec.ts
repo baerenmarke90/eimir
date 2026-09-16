@@ -1003,11 +1003,9 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
 }) => {
   const api = await installProductApi(page);
   await signIn(page);
-  const source = page
-    .locator('.story-card-link')
-    .filter({
-      has: page.getByRole('heading', { name: firstPage[0].title, exact: true }),
-    });
+  const source = page.locator('.story-card-link').filter({
+    has: page.getByRole('heading', { name: firstPage[0].title, exact: true }),
+  });
   await source.click();
   await expect(
     page.getByRole('heading', { name: firstPage[0].title, exact: true }),
@@ -1020,6 +1018,7 @@ test('edit Cancel and explicit Back keep the selected Memory origin', async ({
       page.getByRole('heading', {
         name: memoryProduct.editHeading,
         exact: true,
+        level: 1,
       }),
     ).toBeVisible();
     await page.getByRole('link', { name: exitLabel, exact: true }).click();

@@ -903,5 +903,8 @@
     <string name="momente_tab_discover">Entdecken</string>
     <string name="momente_tab_timeline">Zeitleiste</string>
     <string name="momente_discover_continue">Alle in der Zeitleiste ansehen</string>
+    <string name="momente_discover_featured_kicker">Aus euren Momenten</string>
+    <string name="momente_discover_years_heading">Unsere Jahre</string>
+    <string name="momente_discover_open_year">Jahr %1$d öffnen</string>
 
 </resources>

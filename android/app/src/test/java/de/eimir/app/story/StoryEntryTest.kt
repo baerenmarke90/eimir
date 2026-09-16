@@ -180,6 +180,63 @@ class StoryEntryTest {
     fun anEmptyStoryHasNoMonths() {
         assertTrue(emptyList<StoryItem>().toStoryDays().toStoryMonths().isEmpty())
     }
+
+    @Test
+    fun featuredPickHasNoItemsReturnsNull() {
+        assertEquals(null, emptyList<StoryItem>().selectFeaturedStoryItem())
+    }
+
+    @Test
+    fun featuredPickPrefersAPhotoBackedMemoryOverAHeartMomentOrMilestone() {
+        val textOnlyMemory = memoryItem()
+        val heart = heartMomentItem(withImage = true)
+        val milestone = milestoneItem()
+        val photoMemory = memoryItem(attachments = listOf(attachment(0, "READY")))
+
+        val featured = listOf(textOnlyMemory, heart, milestone, photoMemory).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.MEMORY, featured?.toEntry()?.kind)
+        assertTrue(featured?.toEntry()?.images?.isNotEmpty() == true)
+    }
+
+    @Test
+    fun featuredPickFallsBackToAHeartMomentWhenNoMemoryHasAReadyImage() {
+        val textOnlyMemory = memoryItem()
+        val heart = heartMomentItem(withImage = true)
+        val milestone = milestoneItem()
+
+        val featured = listOf(textOnlyMemory, heart, milestone).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.HEART_MOMENT, featured?.toEntry()?.kind)
+    }
+
+    @Test
+    fun featuredPickFallsBackToAnythingWhenOnlyMilestonesExist() {
+        val featured = listOf(milestoneItem(), milestoneItem()).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.MILESTONE, featured?.toEntry()?.kind)
+    }
+
+    @Test
+    fun featuredPickIsStableForTheSameDayAndChangesOnlyWithTheDate() {
+        val pool = listOf(
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+        )
+        val today = LocalDate.of(2026, 9, 16)
+
+        val first = pool.selectFeaturedStoryItem(today)
+        val second = pool.selectFeaturedStoryItem(today)
+        assertEquals(first?.toEntry()?.id, second?.toEntry()?.id)
+
+        // Different single-item pools may or may not coincide by chance, but a
+        // sufficiently different date over a 3-item pool must be able to
+        // select a different index at least once across the cycle.
+        val laterDates = (1..3).map { today.plusDays(it.toLong()) }
+        val laterPicks = laterDates.map { pool.selectFeaturedStoryItem(it)?.toEntry()?.id }
+        assertTrue(laterPicks.toSet().size > 1)
+    }
 }
 
 private val CAPABILITIES = ResourceCapabilities(canComment = true, canDelete = true, canEdit = true)

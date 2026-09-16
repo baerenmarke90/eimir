@@ -98,10 +98,10 @@ import de.eimir.app.story.MemoryScreen
 import de.eimir.app.story.MilestoneCreateScreen
 import de.eimir.app.story.MilestoneScreen
 import de.eimir.app.story.SharedHeartMomentScreen
+import de.eimir.app.story.DiscoverScreen
 import de.eimir.app.story.StoryScreen
 import de.eimir.app.story.StoryView
 import de.eimir.app.story.StoryViewTabs
-import de.eimir.app.story.DiscoverContinuation
 import kotlinx.coroutines.launch
 import eimir.api.models.EngagementTarget
 import eimir.api.models.ProfileVisibility
@@ -1386,9 +1386,10 @@ private fun StoryDestination(
                 Text(stringResource(R.string.ref_memory_heading))
             }
             StoryViewTabs(view = state.storyView, onSelect = viewModel::setStoryView)
-            if (state.storyView == StoryView.DISCOVER) {
-                DiscoverContinuation(onOpen = { viewModel.setStoryView(StoryView.TIMELINE) })
-            } else {
+            // Discover's own composition (featured item, year entrances, the
+            // continuation into Timeline) lives inside DiscoverScreen's own
+            // scrolling content below, not duplicated here in the header.
+            if (state.storyView == StoryView.TIMELINE) {
                 TimelineScopeControls(state.storyScope, state.storyAvailableYears, viewModel::applyStoryScope)
                 androidx.compose.material3.TextButton(
                     colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
@@ -1403,18 +1404,19 @@ private fun StoryDestination(
     if (state.storyView == StoryView.DISCOVER) {
         LaunchedEffect(state.activeSpaceId, state.reconnectEpoch) { viewModel.ensureDiscoverLoaded() }
         val discoverListState = rememberLazyListState()
-        StoryScreen(
+        // A distinct curated composition (featured item + year entrances +
+        // a bounded month selection), not a second unfiltered Timeline list —
+        // see DiscoverScreen's own documentation for the product rationale.
+        DiscoverScreen(
             items = state.discoverItems,
+            availableYears = state.discoverAvailableYears,
             imageStore = viewModel.storyImages,
             generation = viewModel.storyGeneration,
             onOpenMemory = onOpenMemory,
             onOpenMilestone = onOpenMilestone,
             onOpenHeartMoment = onOpenHeartMoment,
-            // A single bounded slice, not a second independent pagination
-            // stream: "a partially loaded page must never be presented as an
-            // all-history retrospective" — Discover offers an explicit
-            // continuation into Timeline instead of its own load-more.
-            onLoadMore = null,
+            onSelectYear = viewModel::selectDiscoverYear,
+            onContinueToTimeline = { viewModel.setStoryView(StoryView.TIMELINE) },
             cachedAt = state.discoverCachedAt,
             listState = discoverListState,
             loaded = state.discoverLoaded, loading = state.discoverLoading, problem = state.discoverProblem,

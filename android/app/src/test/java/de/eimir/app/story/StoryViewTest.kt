@@ -151,6 +151,34 @@ class StoryViewTest {
         assertFalse(model.uiState.value.discoverLoaded)
     }
 
+    @Test
+    fun capturesDiscoverAvailableYearsFromItsOwnFetchedPage() = runTest(dispatcher) {
+        val api = ViewApi(unscoped = page("discover-1", availableYears = listOf(2026, 2025, 2021)))
+        val model = signedIn(api)
+
+        model.setStoryView(StoryView.DISCOVER)
+        advanceUntilIdle()
+
+        assertEquals(listOf(2026, 2025, 2021), model.uiState.value.discoverAvailableYears)
+    }
+
+    @Test
+    fun selectingADiscoverYearAppliesItToTimelineAndSwitchesModeWithoutTouchingDiscover() = runTest(dispatcher) {
+        val api = ViewApi(unscoped = page("discover-1", availableYears = listOf(2025)))
+        val model = signedIn(api)
+        model.setStoryView(StoryView.DISCOVER)
+        advanceUntilIdle()
+        val discoverItemsBefore = model.uiState.value.discoverItems
+
+        model.selectDiscoverYear(2025)
+        advanceUntilIdle()
+
+        assertEquals(StoryView.TIMELINE, model.uiState.value.storyView)
+        assertEquals(TimelineScope(year = 2025), model.uiState.value.storyScope)
+        // Discover's own already-loaded data is untouched by the year jump.
+        assertEquals(discoverItemsBefore, model.uiState.value.discoverItems)
+    }
+
     private fun TestScope.signedIn(api: ReferenceContract): ReferenceViewModel {
         val model = ReferenceViewModel(config = ReferenceConfig(BASE_URL), api = api)
         model.signIn("someone@example.test", "secret")
@@ -163,7 +191,7 @@ private const val BASE_URL = "https://eimir.example"
 private val CAPABILITIES = ResourceCapabilities(canComment = true, canDelete = true, canEdit = true)
 private val AUTHOR = AuthorSummary(displayName = "Lea", id = UUID.randomUUID())
 
-private fun page(title: String) = StoryPage(
+private fun page(title: String, availableYears: List<Int> = emptyList()) = StoryPage(
     hasMore = false,
     items = listOf(
         StoryItem.MemoryWrapper(
@@ -183,6 +211,7 @@ private fun page(title: String) = StoryPage(
         ),
     ),
     nextCursor = null,
+    availableYears = availableYears,
 )
 
 private class ViewApi(

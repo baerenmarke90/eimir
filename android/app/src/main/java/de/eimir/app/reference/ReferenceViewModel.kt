@@ -262,6 +262,8 @@ data class ReferenceUiState(
     val discoverProblem: UiProblem? = null,
     /** Non-null only while [discoverItems] is a stale M2-D18 cache fallback, not a fresh read. */
     val discoverCachedAt: java.time.Instant? = null,
+    /** Available years for Discover's own year-entrance chips, from the same fetched page. */
+    val discoverAvailableYears: List<Int> = emptyList(),
     val commentsHaveMore: Boolean = false,
     /** The memory currently open, if any. */
     val openMemory: MemoryDetail? = null,
@@ -3064,7 +3066,7 @@ class ReferenceViewModel(
             storyItems = emptyList(), storyAvailableYears = emptyList(), storyHasMore = false,
             storyLoadingMore = false, storyProblem = null, storyPageFailed = false, storyCachedAt = null,
             discoverItems = emptyList(), discoverLoaded = false, discoverLoading = false,
-            discoverProblem = null, discoverCachedAt = null,
+            discoverProblem = null, discoverCachedAt = null, discoverAvailableYears = emptyList(),
             openMemory = null, memoryStatus = null) }
     }
 
@@ -3080,6 +3082,16 @@ class ReferenceViewModel(
     }
 
     fun retryDiscover() = refreshDiscover()
+
+    /**
+     * An early year entrance from Discover: apply that year as Timeline's
+     * scope and switch to Timeline, reusing the existing scope/mode
+     * primitives rather than a new navigation mechanism.
+     */
+    fun selectDiscoverYear(year: Int) {
+        applyStoryScope(TimelineScope(year = year))
+        setStoryView(StoryView.TIMELINE)
+    }
 
     /**
      * Discover's single bounded, always-unfiltered page. It deliberately
@@ -3111,6 +3123,7 @@ class ReferenceViewModel(
                 if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != discoverRequestGeneration) return@onSuccess
                 mutate { it.copy(
                     discoverItems = loaded.value.items,
+                    discoverAvailableYears = loaded.value.availableYears.orEmpty(),
                     discoverLoaded = true, discoverLoading = false,
                     discoverCachedAt = loaded.refreshedAt.takeIf { _ -> loaded.fromCache }, error = null,
                 ) }
@@ -3118,7 +3131,8 @@ class ReferenceViewModel(
                 if (isCurrentSession(operationEpoch, currentSession) && requestGeneration == discoverRequestGeneration) {
                     val denied = failure is ReferenceApiException && failure.status in setOf(401, 403, 404)
                     mutate { it.copy(discoverLoading = false, discoverProblem = problemFor(failure),
-                        discoverItems = if (denied) emptyList() else it.discoverItems) }
+                        discoverItems = if (denied) emptyList() else it.discoverItems,
+                        discoverAvailableYears = if (denied) emptyList() else it.discoverAvailableYears) }
                 }
             }
         }

@@ -170,3 +170,29 @@ fun List<StoryDay>.toStoryMonths(): List<StoryMonth> {
     }
     return months
 }
+
+/**
+ * Deterministic day-based featured pick for Discover, mirroring the Web
+ * selection semantics (`selectFeaturedStoryItem` in `storyProduct.ts`):
+ * prefer a photo-backed Memory, then a Heart Moment, then anything, so
+ * Discover reads as an editorial pick rather than just "the first item".
+ * Stable across recompositions for the same [date] and input list.
+ */
+fun List<StoryItem>.selectFeaturedStoryItem(date: LocalDate = LocalDate.now()): StoryItem? {
+    if (isEmpty()) return null
+    val withEntries = map { it to it.toEntry() }
+    val mediaMemories = withEntries.filter { (_, entry) ->
+        entry.kind == StoryEntryKind.MEMORY && entry.images.isNotEmpty()
+    }
+    val heartMoments = withEntries.filter { (_, entry) -> entry.kind == StoryEntryKind.HEART_MOMENT }
+    val pool = when {
+        mediaMemories.isNotEmpty() -> mediaMemories
+        heartMoments.isNotEmpty() -> heartMoments
+        else -> withEntries
+    }
+    if (pool.size <= 1) return pool.firstOrNull()?.first
+    val sorted = pool.sortedBy { (_, entry) -> "${entry.kind}:${entry.id}" }
+    val dayOrdinal = date.toEpochDay()
+    val index = (((dayOrdinal % sorted.size) + sorted.size) % sorted.size).toInt()
+    return sorted[index].first
+}

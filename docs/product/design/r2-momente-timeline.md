@@ -113,7 +113,25 @@ Recorded on `feat/966-r2-momente-timeline` at `47fcecf55a9f329cee72fc57f4a953453
 
 ### Known limitations / follow-ups
 
-- Android native device/emulator visual and interaction evidence is outstanding and should be completed on the physical Pixel before Product Owner acceptance of the Android side, the same tracked gap R1 left open for its own Android delivery.
-- Native Discover is deliberately a single bounded unfiltered page with an explicit continuation into Timeline, not a second independent pagination stream or a tapestry/masonry grid — a platform-native adaptation, not parity with Web's Discover composition. If a richer native Discover composition is wanted later, that is separate scope.
 - `aggregateStoryPages`' lack of client-side item-id de-duplication and Android's per-kind `Surface` card treatment were reviewed and are not demonstrated defects; no change was made to either (see the current-implementation inventory above).
 - The Web evidence spec mocks the Timeline/Search/detail contract with synthetic transport, consistent with the existing R1/F2 evidence-spec convention; it is not a live-backend persistence test.
+
+## Product Owner review response (PR #967)
+
+The Product Owner reviewed `4c6a604a2171198ecc457edf7d827ea2ace11257` and raised three blocking points. Each is addressed below; this section is updated again once all three are closed with fresh exact-build evidence.
+
+### 1. Native Discover product semantics — closed
+
+The PO's finding was correct: `refreshDiscover()` fetched the same default/unfiltered first Timeline page and rendered it through the plain `StoryScreen`, so the only Discover-specific structure was the tab and the continuation action — effectively a second unfiltered Timeline.
+
+Fixed by composing a distinct `DiscoverScreen` (`android/app/src/main/java/de/eimir/app/story/StoryScreen.kt`) from existing primitives rather than reusing `StoryScreen` wholesale:
+
+- **One featured real item** — `List<StoryItem>.selectFeaturedStoryItem()` (`StoryEntry.kt`), a Kotlin port of Web's `selectFeaturedStoryItem` deterministic day-based selection (prefer a photo-backed Memory, then a Heart Moment, then anything), so the pick is a real recognizable moment and stable within a day, not "item 0".
+- **Featured item never duplicated** — the bounded list below explicitly excludes the selected featured item by reference before grouping.
+- **A bounded real month/day selection** — the remaining items (capped at 12, `DISCOVER_BOUNDED_LIMIT`) go through the same existing `toStoryDays()`/`toStoryMonths()`/`MonthHeading`/`DayHeading`/`StoryEntryCard` used by Timeline; no new grouping logic, no masonry, no universal renderer.
+- **Early year entrances** — `DiscoverYearEntrances` renders chips from `discoverAvailableYears` (captured from the same already-fetched Discover page's `availableYears`, no new backend call). Selecting one calls the new `ReferenceViewModel.selectDiscoverYear(year)`, which composes the *existing* `applyStoryScope`/`setStoryView` functions — no new navigation primitive. Chapter entrances were not added: no native chapter-list contract currently exists, matching the task's "where currently supported" hedge.
+- **Never implies partial history is complete** — Discover has no pagination affordance at all; its only forward action is `DiscoverContinuation` into the real Timeline.
+- **Scope/context retention unaffected** — Discover's own state (`discoverItems`/`discoverAvailableYears`/generation counter) remains fully independent of Timeline's `storyScope`/`storyItems`, exactly as before; verified again by `StoryViewTest.discoverStaysUnfilteredAndTimelineScopeSurvivesVisitingIt` and the new `selectingADiscoverYearAppliesItToTimelineAndSwitchesModeWithoutTouchingDiscover`.
+- **No new backend, no new service, no masonry, no universal renderer** — the only new network-adjacent behavior is reading a field (`availableYears`) already present in the existing `StoryPage` response.
+
+New/changed native tests: 5 `selectFeaturedStoryItem` unit tests, 2 ViewModel tests (`discoverAvailableYears` capture, `selectDiscoverYear`), and 7 new `DiscoverScreenSemanticsTest` Compose-semantics tests (sole item shown as featured rather than the empty state; featured item never duplicated; year entrances render and select; year section omitted when no years are available; explicit continuation; a Milestone-only pool still produces a featured item; genuinely-empty Discover still shows the honest empty state). `./gradlew :app:testDebugUnitTest`: **626/626 passed, 1 pre-existing skip**. `./gradlew :app:lintDebug`: **0 errors, 55 warnings** (+1 `PluralsCandidate` heuristic on the new year-entrance accessibility label, the same benign category already present 8 times elsewhere in `strings.xml` for other `%d`-containing strings — not a new category of warning). `./gradlew :app:assembleDebug` succeeds.

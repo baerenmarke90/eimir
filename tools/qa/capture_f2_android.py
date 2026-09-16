@@ -22,6 +22,7 @@ def main() -> None:
     parser.add_argument("--serial", required=True)
     parser.add_argument("--apk", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--skip-matrix", action="store_true", help="Diagnostic behavior-only run; final evidence uses the full matrix.")
     args = parser.parse_args()
     if not args.serial.startswith("emulator-"):
         parser.error("Only a disposable task emulator may be used.")
@@ -128,7 +129,7 @@ def main() -> None:
         adb("install", "-r", str(args.apk.resolve()))
         adb("shell", "wm", "density", "320")
         adb("shell", "settings", "put", "system", "font_scale", "1.0")
-        for logical_width in (320, 360, 390, 430, 1280):
+        for logical_width in (() if args.skip_matrix else (320, 360, 390, 430, 1280)):
             width, height = logical_width * 2, 1688 if logical_width < 840 else 1800
             adb("shell", "wm", "size", f"{width}x{height}")
             for theme in ("light", "dark"):
@@ -179,7 +180,7 @@ def main() -> None:
         assert find(strings["memory_task_wait"], text=True) is not None
         capture("pending-exit-explanation")
         label("memory_task_wait")
-        wait_for("memory-detail")
+        wait_for("memory-detail", limit=65)
         behavior.append("Pending System Back explains why the task stays open; completion opens the actual result")
 
         for scenario in ("rejected", "uncertain", "offline", "refresh-failure"):
@@ -243,7 +244,7 @@ def main() -> None:
         for name, original in (("size", size), ("density", density)):
             override = re.search(r"Override .*?: (.+)", original)
             adb("shell", "wm", name, override.group(1) if override else "reset")
-        report = {"completed": completed, "sourceCommit": source, "apkSha256": apk_digest,
+        report = {"completed": completed, "matrixIncluded": not args.skip_matrix, "sourceCommit": source, "apkSha256": apk_digest,
                   "device": args.serial, "captures": captures, "behavior": behavior, "targets": targets,
                   "fixtureBoundary": "Production route, ViewModel, task, picker and detail; deterministic debug-only transport",
                   "limitations": "TalkBack and photo-picker device results are recorded separately; none is inferred from screenshots."}

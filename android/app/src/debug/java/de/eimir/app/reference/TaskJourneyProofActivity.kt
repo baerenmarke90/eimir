@@ -133,7 +133,7 @@ class TaskJourneyFixture(private val context: Context, var scenario: String) : R
     }
     override suspend fun createMemory(spaceId: UUID, accessToken: String, memory: MemoryCreate): MemoryDetail {
         createCalls++
-        if (scenario == "pending") pendingGate?.await() ?: delay(12_000)
+        if (scenario == "pending") pendingGate?.await() ?: delay(45_000)
         if (scenario == "rejected") throw ReferenceApiException("VALIDATION", "Fixture rejected", 422)
         val created = records.values.first().copy(id = UUID(958, 100L + createCalls),
             title = memory.title.orEmpty(), body = memory.body.orEmpty(), happenedOn = memory.happenedOn ?: LocalDate.now(), attachments = emptyList())

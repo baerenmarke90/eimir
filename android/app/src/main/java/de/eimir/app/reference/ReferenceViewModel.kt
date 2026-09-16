@@ -1265,6 +1265,8 @@ class ReferenceViewModel(
             lastMemoryBody = memory.body,
             lastImageBytes = null,
         ) }
+        // Refresh independently: a projection failure cannot undo the confirmed write.
+        refreshStory(preserveLoadedRange = true)
     }
 
     private fun isCurrentMemoryTask(generation: Long, epoch: Long, currentSession: SessionView): Boolean =
@@ -3083,7 +3085,7 @@ class ReferenceViewModel(
             }
             result.onSuccess { loaded ->
                 if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != storyRequestGeneration) return@onSuccess
-                val keepRange = preserveLoadedRange && _uiState.value.storyItems.size > loaded.value.items.size
+                val keepRange = preserveLoadedRange && _uiState.value.storyItems.isNotEmpty()
                 if (!keepRange) storyCursor = loaded.value.nextCursor.takeUnless { loaded.fromCache }
                 mutate { it.copy(
                     storyItems = if (keepRange) (loaded.value.items + it.storyItems).distinctBy { item -> item.toEntry().id } else loaded.value.items,

@@ -40,7 +40,7 @@ class MemoryTaskTest {
         advanceUntilIdle()
         assertEquals(memory().id, model.uiState.value.memoryTask?.confirmedMemory?.id)
         assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
-        assertEquals(1, api.timelineCalls) // Sign-in only; confirmation does not depend on a projection refresh.
+        assertEquals(2, api.timelineCalls) // Sign-in plus independent post-confirmation refresh.
     }
 
     @Test fun rejectedWriteRetainsInputAndAllowsDeliberateRetry() = runTest(dispatcher) {
@@ -154,6 +154,44 @@ class MemoryTaskTest {
         assertEquals(2, loaded.size)
     }
 
+    @Test fun successfulPostSaveRefreshKeepsOldFirstPageAndItsScopedCursor() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        val scope = TimelineScope(year = 2025, kind = StoryEntryKind.MEMORY)
+        model.applyStoryScope(scope); advanceUntilIdle()
+        val original = model.uiState.value.storyItems.single()
+        api.firstPageId = 12
+        model.beginMemoryTask(); model.updateMemoryTask("New", "Words", "")
+        model.submitMemoryTask(); advanceUntilIdle()
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+        assertEquals(2, model.uiState.value.storyItems.size)
+        assertEquals(original, model.uiState.value.storyItems.last())
+        assertEquals(scope, model.uiState.value.storyScope)
+        assertTrue(model.uiState.value.storyHasMore)
+        model.loadMoreStory(); advanceUntilIdle()
+        assertEquals(listOf(null, null, "older"), api.scopedCursors)
+    }
+
+    @Test fun projectionFailureAfterSaveKeepsConfirmationAndScopedLoadedRange() = runTest(dispatcher) {
+        val api = TaskApi()
+        val model = signedIn(api)
+        val scope = TimelineScope(year = 2025, kind = StoryEntryKind.MEMORY)
+        model.applyStoryScope(scope); advanceUntilIdle()
+        model.loadMoreStory(); advanceUntilIdle()
+        val loaded = model.uiState.value.storyItems
+        api.projectionFailure = IOException("Projection temporarily unavailable")
+        model.beginMemoryTask(); model.updateMemoryTask("Title", "Known result", "")
+        model.submitMemoryTask(); advanceUntilIdle()
+        assertEquals(1, api.createCalls)
+        assertEquals(MemoryTaskPhase.CONFIRMED, model.uiState.value.memoryTask?.phase)
+        assertEquals(memory().id, model.uiState.value.openMemory?.id)
+        assertEquals(scope, model.uiState.value.storyScope)
+        assertEquals(loaded, model.uiState.value.storyItems)
+        assertNotNull(model.uiState.value.storyProblem)
+        assertNull(model.uiState.value.memoryTask?.problem)
+        assertEquals(listOf(null, "older", null), api.scopedCursors)
+    }
+
     @Test fun deniedNextPageClearsRetainedContentAndCannotReuseCursor() = runTest(dispatcher) {
         val api = TaskApi()
         val model = signedIn(api)
@@ -207,23 +245,27 @@ private class TaskApi : FakeReferenceContract() {
     var createCalls = 0
     var bindCalls = 0
     var timelineCalls = 0
+    var firstPageId = 10L
     var failBinding = false
     var applyBindingBeforeFailure = false
     var current = memory()
     var readFailure: Throwable? = null
     var pageFailure: Throwable? = null
+    var projectionFailure: Throwable? = null
     val scopedCursors = mutableListOf<String?>()
     override suspend fun signIn(email: String, password: String) = SessionView(AccountView("Fixture", taskAccount), TokenView(taskTime, "access", taskTime, "refresh"))
     override suspend fun listMemberships(accessToken: String) = listOf(AccountMembershipView("PARTNER", taskSpace, "ACTIVE"))
     override suspend fun getTimeline(spaceId: UUID, accessToken: String, cursor: String?): StoryPage {
         timelineCalls++
+        projectionFailure?.let { throw it }
         return StoryPage(false, emptyList(), null)
     }
     override suspend fun getScopedTimeline(spaceId: UUID, accessToken: String, scope: TimelineScope, cursor: String?): StoryPage {
         if (scope.isDefault) return getTimeline(spaceId, accessToken, cursor)
         timelineCalls++; scopedCursors += cursor
+        projectionFailure?.let { throw it }
         if (cursor != null) pageFailure?.let { throw it }
-        val m = current.copy(id = UUID(0, if (cursor == null) 10 else 11))
+        val m = current.copy(id = UUID(0, if (cursor == null) firstPageId else 11))
         val summary = MemorySummary(m.attachments, m.author, m.capabilities, m.createdAt, m.happenedOn, m.id, m.title)
         return StoryPage(cursor == null, listOf(StoryItem.MemoryWrapper(StoryMemoryItem(LocalDate.of(2025, 6, 2), StoryMemoryItem.Kind.MEMORY, summary))), if (cursor == null) "older" else null, listOf(2025))
     }

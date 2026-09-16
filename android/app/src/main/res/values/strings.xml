@@ -145,7 +145,7 @@
     <string name="ref_error_memory_fields_required">Ein Titel wird benötigt.</string>
     <string name="ref_error_date_format">Datum bitte als JJJJ-MM-TT eingeben.</string>
     <string name="ref_status_save_pending">Erinnerung wird gespeichert …</string>
-    <string name="ref_status_save_success">Erinnerung wurde über den M2-Vertrag gespeichert.</string>
+    <string name="ref_status_save_success">Erinnerung gespeichert.</string>
     <string name="ref_error_login_failed">Anmeldung fehlgeschlagen.</string>
     <string name="ref_error_save_failed">Speichern fehlgeschlagen.</string>
     <string name="ref_status_logged_out">Abgemeldet.</string>

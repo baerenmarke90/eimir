@@ -113,7 +113,7 @@ fun ReferenceFlowScreen(
             if (onCancelCapture != null) {
                 item {
                     TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText), onClick = onCancelCapture, modifier = cancelModifier.heightIn(min = MinimumTouchTarget).testTag("memory-create-close")) {
-                        Text(stringResource(R.string.story_capture_cancel))
+                        Text(stringResource(if (task != null) R.string.task_sheet_close else R.string.story_capture_cancel))
                     }
                 }
             }

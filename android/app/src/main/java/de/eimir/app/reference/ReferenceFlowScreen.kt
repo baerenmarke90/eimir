@@ -17,6 +17,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -24,6 +27,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +52,9 @@ import de.eimir.app.demo.DemoPersona
 import de.eimir.app.entry.EntryScreen
 import de.eimir.app.design.EimirTheme
 import de.eimir.app.design.MinimumTouchTarget
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
@@ -469,12 +475,12 @@ private fun MemoryDraftImagesList(
 }
 
 /**
- * R1's local-date summary with a discoverable change action (#964). Closed, it shows
- * a persistent "Datum" label plus the formatted current value and an "Ändern" action
- * as one accessible target; tapping it reveals the actual editable field. [autoOpen]
- * keeps/opens the editor when the task's own date validation rejected the value, so
- * the person sees the field that needs correcting rather than only its error text.
+ * R1's local-date summary with a discoverable change action (#964). The value
+ * stays human-readable until the person deliberately changes it; changing the
+ * date reuses the app's existing Material date-picker pattern instead of asking
+ * for an ISO date string or summoning the keyboard for metadata.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MemoryDateField(
     happenedOn: String,
@@ -482,51 +488,67 @@ private fun MemoryDateField(
     autoOpen: Boolean,
     onValueChange: (String) -> Unit,
 ) {
-    var editorOpen by rememberSaveable { mutableStateOf(autoOpen) }
+    var pickerOpen by rememberSaveable { mutableStateOf(autoOpen) }
     LaunchedEffect(autoOpen) {
-        if (autoOpen) editorOpen = true
+        if (autoOpen) pickerOpen = true
     }
     Text(
         text = stringResource(R.string.ref_date_label),
         style = MaterialTheme.typography.labelLarge,
         color = EimirTheme.colors.textSecondary,
     )
-    if (editorOpen) {
-        OutlinedTextField(
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = EimirTheme.colors.focus,
-                focusedLabelColor = EimirTheme.colors.linkText,
-                cursorColor = EimirTheme.colors.linkText,
-                disabledTextColor = EimirTheme.colors.textPrimary,
-                disabledLabelColor = EimirTheme.colors.textSecondary,
-            ),
-            value = happenedOn,
-            onValueChange = onValueChange,
-            enabled = editable,
-            label = { Text(stringResource(R.string.ref_date_optional)) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().testTag("memory-create-date"),
+    val summary = memoryDateSummary(happenedOn)
+    val changeLabel = stringResource(R.string.ref_date_change)
+    val dateLabel = stringResource(R.string.ref_date_label)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinimumTouchTarget)
+            .border(1.dp, EimirTheme.colors.border, RoundedCornerShape(8.dp))
+            .clickable(enabled = editable, onClickLabel = changeLabel) { pickerOpen = true }
+            .padding(horizontal = 16.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$dateLabel, $summary, $changeLabel"
+                role = Role.Button
+            }
+            .testTag("memory-create-date-summary"),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(summary, color = EimirTheme.colors.textPrimary, modifier = Modifier.align(Alignment.CenterVertically))
+        Text(changeLabel, color = EimirTheme.colors.linkText, modifier = Modifier.align(Alignment.CenterVertically))
+    }
+
+    if (pickerOpen) {
+        val initial = happenedOn.takeIf { it.isNotBlank() }
+            ?.let { runCatching { LocalDate.parse(it.trim()) }.getOrNull() }
+            ?: LocalDate.now()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
         )
-    } else {
-        val summary = memoryDateSummary(happenedOn)
-        val changeLabel = stringResource(R.string.ref_date_change)
-        val dateLabel = stringResource(R.string.ref_date_label)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = MinimumTouchTarget)
-                .border(1.dp, EimirTheme.colors.border, RoundedCornerShape(8.dp))
-                .clickable(enabled = editable, onClickLabel = changeLabel) { editorOpen = true }
-                .padding(horizontal = 16.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "$dateLabel, $summary, $changeLabel"
-                    role = Role.Button
+        DatePickerDialog(
+            onDismissRequest = { pickerOpen = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { millis ->
+                            val picked = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalDate()
+                            onValueChange(picked.toString())
+                        }
+                        pickerOpen = false
+                    },
+                ) {
+                    Text(stringResource(R.string.plan_picker_take))
                 }
-                .testTag("memory-create-date-summary"),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            },
+            dismissButton = {
+                TextButton(onClick = { pickerOpen = false }) {
+                    Text(stringResource(R.string.plan_cancel))
+                }
+            },
         ) {
-            Text(summary, color = EimirTheme.colors.textPrimary, modifier = Modifier.align(Alignment.CenterVertically))
-            Text(changeLabel, color = EimirTheme.colors.linkText, modifier = Modifier.align(Alignment.CenterVertically))
+            DatePicker(state = pickerState)
         }
     }
 }

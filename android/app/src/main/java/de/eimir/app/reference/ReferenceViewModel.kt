@@ -17,6 +17,7 @@ import de.eimir.app.story.toEntry
 import de.eimir.app.story.TimelineScope
 import de.eimir.app.story.StoryImageRef
 import de.eimir.app.story.StoryImageStore
+import de.eimir.app.story.StoryView
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -236,6 +237,8 @@ data class ReferenceUiState(
     val lastMemoryTitle: String? = null,
     val lastMemoryBody: String? = null,
     val lastImageBytes: ByteArray? = null,
+    /** Discover and Timeline are peer modes; switching never mutates the other's state below. */
+    val storyView: StoryView = StoryView.TIMELINE,
     val storyScope: TimelineScope = TimelineScope(),
     val storyAvailableYears: List<Int> = emptyList(),
     val storyLoaded: Boolean = false,
@@ -248,6 +251,17 @@ data class ReferenceUiState(
     val storyLoadingMore: Boolean = false,
     /** Non-null only while [storyItems] is a stale M2-D18 cache fallback, not a fresh read. */
     val storyCachedAt: java.time.Instant? = null,
+    /**
+     * Discover's own independent, always-unfiltered, single bounded page —
+     * never Timeline's [storyItems] with a default scope, so visiting
+     * Discover can never disturb a Timeline filter/loaded range.
+     */
+    val discoverItems: List<StoryItem> = emptyList(),
+    val discoverLoaded: Boolean = false,
+    val discoverLoading: Boolean = false,
+    val discoverProblem: UiProblem? = null,
+    /** Non-null only while [discoverItems] is a stale M2-D18 cache fallback, not a fresh read. */
+    val discoverCachedAt: java.time.Instant? = null,
     val commentsHaveMore: Boolean = false,
     /** The memory currently open, if any. */
     val openMemory: MemoryDetail? = null,
@@ -484,6 +498,7 @@ class ReferenceViewModel(
     private var memoryReadGeneration: Long = 0
     private var storyRequestGeneration: Long = 0
     private var storyReconnectEpoch: Int = -1
+    private var discoverRequestGeneration: Long = 0
 
     /** Where the next page continues from; opaque and server-issued. */
     private var storyCursor: String? = null
@@ -3042,12 +3057,71 @@ class ReferenceViewModel(
     private fun resetStoryContext() {
         memoryReadGeneration += 1
         storyRequestGeneration += 1
+        discoverRequestGeneration += 1
         storyReconnectEpoch = -1
         storyCursor = null
-        mutate { it.copy(storyScope = TimelineScope(), storyLoaded = false, storyLoading = false,
+        mutate { it.copy(storyView = StoryView.TIMELINE, storyScope = TimelineScope(), storyLoaded = false, storyLoading = false,
             storyItems = emptyList(), storyAvailableYears = emptyList(), storyHasMore = false,
             storyLoadingMore = false, storyProblem = null, storyPageFailed = false, storyCachedAt = null,
+            discoverItems = emptyList(), discoverLoaded = false, discoverLoading = false,
+            discoverProblem = null, discoverCachedAt = null,
             openMemory = null, memoryStatus = null) }
+    }
+
+    /** Switching modes never mutates the other mode's own scope/items/loaded range. */
+    fun setStoryView(view: StoryView) {
+        if (view == _uiState.value.storyView) return
+        mutate { it.copy(storyView = view) }
+        if (view == StoryView.DISCOVER) ensureDiscoverLoaded()
+    }
+
+    fun ensureDiscoverLoaded() {
+        if (!_uiState.value.discoverLoaded && !_uiState.value.discoverLoading) refreshDiscover()
+    }
+
+    fun retryDiscover() = refreshDiscover()
+
+    /**
+     * Discover's single bounded, always-unfiltered page. It deliberately
+     * reuses Timeline's own default-scope cache resource
+     * ([de.eimir.app.cache.StoryTimelineResourceId]): Discover's chronology
+     * *is* the unfiltered Timeline read, just presented independently of
+     * whatever scope Timeline currently has applied, so it inherits the same
+     * authorized offline-cache behavior for free rather than needing a
+     * second cache key.
+     */
+    private fun refreshDiscover() {
+        val api = contract ?: return
+        val currentSession = session ?: return
+        val spaceId = activeSpaceId ?: return
+        val operationEpoch = sessionEpoch
+        val requestGeneration = ++discoverRequestGeneration
+        mutate { it.copy(discoverLoading = true, discoverProblem = null) }
+        viewModelScope.launch {
+            if (!isCurrentSession(operationEpoch, currentSession)) return@launch
+            val result = loadProductDetail(
+                accountId = currentSession.account.id, spaceId = spaceId,
+                kind = de.eimir.app.cache.ProductCacheKind.STORY,
+                resourceId = de.eimir.app.cache.StoryTimelineResourceId,
+                load = { api.getTimeline(spaceId, currentSession.tokens.accessToken) },
+                serialize = { EimirJson.encodeToString(StoryPage.serializer(), it) },
+                deserialize = { EimirJson.decodeFromString(StoryPage.serializer(), it) },
+            )
+            result.onSuccess { loaded ->
+                if (!isCurrentSession(operationEpoch, currentSession) || requestGeneration != discoverRequestGeneration) return@onSuccess
+                mutate { it.copy(
+                    discoverItems = loaded.value.items,
+                    discoverLoaded = true, discoverLoading = false,
+                    discoverCachedAt = loaded.refreshedAt.takeIf { _ -> loaded.fromCache }, error = null,
+                ) }
+            }.onFailure { failure ->
+                if (isCurrentSession(operationEpoch, currentSession) && requestGeneration == discoverRequestGeneration) {
+                    val denied = failure is ReferenceApiException && failure.status in setOf(401, 403, 404)
+                    mutate { it.copy(discoverLoading = false, discoverProblem = problemFor(failure),
+                        discoverItems = if (denied) emptyList() else it.discoverItems) }
+                }
+            }
+        }
     }
 
     fun applyStoryScope(scope: TimelineScope) {

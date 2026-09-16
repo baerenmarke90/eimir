@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Tab
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import de.eimir.app.design.MinimumTouchTarget
 import de.eimir.app.design.EimirDisplayFamily
 import de.eimir.app.design.EimirTheme
 import de.eimir.app.design.VisibilityBadge
@@ -77,7 +81,7 @@ fun StoryScreen(
     onRetry: (() -> Unit)? = null,
     header: (@Composable () -> Unit)? = null,
 ) {
-    val days = items.toStoryDays()
+    val months = items.toStoryDays().toStoryMonths()
 
     LazyColumn(
         state = listState,
@@ -93,30 +97,33 @@ fun StoryScreen(
 
         if (loading) item(key = "loading") { Text(stringResource(R.string.story_loading), color = EimirTheme.colors.textSecondary) }
         problem?.let { current -> item(key = "problem") { de.eimir.app.shell.UiStatePanel(current, onRetry = onRetry) } }
-        if (days.isEmpty() && loaded && !loading && problem == null) {
+        if (months.isEmpty() && loaded && !loading && problem == null) {
             item(key = "empty") {
                 if (scope.isDefault) StoryEmpty()
                 else Text(stringResource(R.string.timeline_no_match), color = EimirTheme.colors.textPrimary)
             }
         }
 
-        for (day in days) {
-            item(key = "day-${day.date}") { DayHeading(day.date) }
-            items(
-                count = day.entries.size,
-                key = { index -> day.entries[index].id.toString() },
-            ) { index ->
-                val entry = day.entries[index]
-                StoryEntryCard(
-                    entry = entry,
-                    imageStore = imageStore,
-                    generation = generation,
-                    onOpen = when (entry.kind) {
-                        StoryEntryKind.MEMORY -> onOpenMemory
-                        StoryEntryKind.MILESTONE -> onOpenMilestone
-                        StoryEntryKind.HEART_MOMENT -> onOpenHeartMoment
-                    }?.let { open -> { open(entry.id) } },
-                )
+        for (month in months) {
+            item(key = "month-${month.month}") { MonthHeading(month.month) }
+            for (day in month.days) {
+                item(key = "day-${day.date}") { DayHeading(day.date) }
+                items(
+                    count = day.entries.size,
+                    key = { index -> day.entries[index].id.toString() },
+                ) { index ->
+                    val entry = day.entries[index]
+                    StoryEntryCard(
+                        entry = entry,
+                        imageStore = imageStore,
+                        generation = generation,
+                        onOpen = when (entry.kind) {
+                            StoryEntryKind.MEMORY -> onOpenMemory
+                            StoryEntryKind.MILESTONE -> onOpenMilestone
+                            StoryEntryKind.HEART_MOMENT -> onOpenHeartMoment
+                        }?.let { open -> { open(entry.id) } },
+                    )
+                }
             }
         }
 
@@ -134,6 +141,63 @@ fun StoryScreen(
             }
         }
     }
+}
+
+/**
+ * Discover and Timeline as real peer modes: proper tab semantics and a clear
+ * selected state, not two buttons that happen to look alike. Discover keeps
+ * its own independent unfiltered context regardless of what scope Timeline
+ * currently has applied — switching tabs never mutates the other mode.
+ */
+@Composable
+fun StoryViewTabs(view: StoryView, onSelect: (StoryView) -> Unit) {
+    val tabs = listOf(
+        StoryView.DISCOVER to R.string.momente_tab_discover,
+        StoryView.TIMELINE to R.string.momente_tab_timeline,
+    )
+    SecondaryTabRow(selectedTabIndex = tabs.indexOfFirst { it.first == view }) {
+        tabs.forEach { (tabView, labelRes) ->
+            Tab(
+                selected = tabView == view,
+                onClick = { onSelect(tabView) },
+                text = { Text(stringResource(labelRes)) },
+                modifier = Modifier
+                    .heightIn(min = MinimumTouchTarget)
+                    .testTag(if (tabView == StoryView.DISCOVER) "momente-tab-discover" else "momente-tab-timeline"),
+            )
+        }
+    }
+}
+
+/** A quiet continuation from Discover's bounded slice into the full Timeline. */
+@Composable
+fun DiscoverContinuation(onOpen: () -> Unit) {
+    TextButton(
+        colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
+        onClick = onOpen,
+        modifier = Modifier.heightIn(min = MinimumTouchTarget).testTag("momente-discover-continue"),
+    ) {
+        Text(stringResource(R.string.momente_discover_continue))
+    }
+}
+
+/**
+ * A real chronological month heading, not another surrounding card — the
+ * coarser grouping the Product Reference asks for above the existing day
+ * headings. It uses the shared section-heading role (already used for e.g.
+ * `ShortTaskSheet`'s own title) rather than a bespoke style.
+ */
+@Composable
+private fun MonthHeading(month: java.time.YearMonth) {
+    val locale: Locale = LocalConfiguration.current.locales[0]
+    Text(
+        text = DateTimeFormatter.ofPattern("MMMM yyyy", locale).format(month),
+        style = EimirTheme.contentTypography.sectionHeading,
+        color = EimirTheme.colors.textPrimary,
+        modifier = Modifier
+            .padding(top = EimirTheme.spacing.step2)
+            .semantics { heading() },
+    )
 }
 
 @Composable

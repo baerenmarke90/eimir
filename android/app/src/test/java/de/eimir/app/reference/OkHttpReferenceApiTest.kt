@@ -60,6 +60,30 @@ class OkHttpReferenceApiTest {
     }
 
     @Test
+    fun scopedTimelineOmitsOrderByDefaultAndSendsAscOnlyForOldestFirst() = runTest {
+        val requests = mutableListOf<Request>()
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val request = chain.request()
+            requests += request
+            Response.Builder().request(request).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body("""{"hasMore":false,"items":[],"nextCursor":null,"availableYears":[]}"""
+                    .toResponseBody("application/json".toMediaType())).build()
+        }.build()
+        val space = UUID(0, 959)
+        val api = OkHttpReferenceApi("https://api.example.invalid", client)
+
+        api.getScopedTimeline(space, "secret", de.eimir.app.story.TimelineScope(year = 2025), null)
+        assertNull(requests.last().url.queryParameter("order"))
+
+        api.getScopedTimeline(
+            space, "secret",
+            de.eimir.app.story.TimelineScope(year = 2025, order = de.eimir.app.story.StoryOrder.OLDEST_FIRST),
+            null,
+        )
+        assertEquals("ASC", requests.last().url.queryParameter("order"))
+    }
+
+    @Test
     fun bearerTokenOnlyTravelsOnAuthenticatedStreamDescriptors() = runTest {
         val requests = mutableListOf<Request>()
         val client = OkHttpClient.Builder()

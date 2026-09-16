@@ -99,6 +99,9 @@ import de.eimir.app.story.MilestoneCreateScreen
 import de.eimir.app.story.MilestoneScreen
 import de.eimir.app.story.SharedHeartMomentScreen
 import de.eimir.app.story.StoryScreen
+import de.eimir.app.story.StoryView
+import de.eimir.app.story.StoryViewTabs
+import de.eimir.app.story.DiscoverContinuation
 import kotlinx.coroutines.launch
 import eimir.api.models.EngagementTarget
 import eimir.api.models.ProfileVisibility
@@ -1356,25 +1359,13 @@ private fun StoryDestination(
     onOpenHeartMoment: (java.util.UUID) -> Unit,
 ) {
     LaunchedEffect(state.activeSpaceId, state.reconnectEpoch) { viewModel.ensureStoryLoaded() }
-    val listState = key(state.storyScope) { rememberLazyListState() }
 
-    StoryScreen(
-        items = state.storyItems,
-        imageStore = viewModel.storyImages,
-        generation = viewModel.storyGeneration,
-        onOpenMemory = onOpenMemory,
-        onOpenMilestone = onOpenMilestone,
-        onOpenHeartMoment = onOpenHeartMoment,
-        onLoadMore = viewModel::loadMoreStory.takeIf { state.storyHasMore },
-        loadingMore = state.storyLoadingMore,
-        cachedAt = state.storyCachedAt,
-        listState = listState, scope = state.storyScope,
-        loaded = state.storyLoaded, loading = state.storyLoading, problem = state.storyProblem,
-        onRetry = viewModel::retryStory,
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3),
-        ) {
+    // One Momente context header shared by both peer modes, rendered as the
+    // StoryScreen's own first scrolling item exactly as before adding
+    // Discover — only its content (tabs + mode-specific controls) and the
+    // list beneath it change per mode, not the scroll container topology.
+    val header: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3)) {
             Text(
                 text = stringResource(R.string.story_title),
                 // An editorial moment, which is what the delivered display face
@@ -1394,13 +1385,58 @@ private fun StoryDestination(
             ) {
                 Text(stringResource(R.string.ref_memory_heading))
             }
-            TimelineScopeControls(state.storyScope, state.storyAvailableYears, viewModel::applyStoryScope)
-            androidx.compose.material3.TextButton(
-                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
-                onClick = viewModel::refreshStory,
-                enabled = !state.storyLoading, modifier = Modifier.heightIn(min = MinimumTouchTarget)) {
-                Text(stringResource(R.string.ref_refresh))
+            StoryViewTabs(view = state.storyView, onSelect = viewModel::setStoryView)
+            if (state.storyView == StoryView.DISCOVER) {
+                DiscoverContinuation(onOpen = { viewModel.setStoryView(StoryView.TIMELINE) })
+            } else {
+                TimelineScopeControls(state.storyScope, state.storyAvailableYears, viewModel::applyStoryScope)
+                androidx.compose.material3.TextButton(
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
+                    onClick = viewModel::refreshStory,
+                    enabled = !state.storyLoading, modifier = Modifier.heightIn(min = MinimumTouchTarget)) {
+                    Text(stringResource(R.string.ref_refresh))
+                }
             }
         }
+    }
+
+    if (state.storyView == StoryView.DISCOVER) {
+        LaunchedEffect(state.activeSpaceId, state.reconnectEpoch) { viewModel.ensureDiscoverLoaded() }
+        val discoverListState = rememberLazyListState()
+        StoryScreen(
+            items = state.discoverItems,
+            imageStore = viewModel.storyImages,
+            generation = viewModel.storyGeneration,
+            onOpenMemory = onOpenMemory,
+            onOpenMilestone = onOpenMilestone,
+            onOpenHeartMoment = onOpenHeartMoment,
+            // A single bounded slice, not a second independent pagination
+            // stream: "a partially loaded page must never be presented as an
+            // all-history retrospective" — Discover offers an explicit
+            // continuation into Timeline instead of its own load-more.
+            onLoadMore = null,
+            cachedAt = state.discoverCachedAt,
+            listState = discoverListState,
+            loaded = state.discoverLoaded, loading = state.discoverLoading, problem = state.discoverProblem,
+            onRetry = viewModel::retryDiscover,
+            header = header,
+        )
+    } else {
+        val timelineListState = key(state.storyScope) { rememberLazyListState() }
+        StoryScreen(
+            items = state.storyItems,
+            imageStore = viewModel.storyImages,
+            generation = viewModel.storyGeneration,
+            onOpenMemory = onOpenMemory,
+            onOpenMilestone = onOpenMilestone,
+            onOpenHeartMoment = onOpenHeartMoment,
+            onLoadMore = viewModel::loadMoreStory.takeIf { state.storyHasMore },
+            loadingMore = state.storyLoadingMore,
+            cachedAt = state.storyCachedAt,
+            listState = timelineListState, scope = state.storyScope,
+            loaded = state.storyLoaded, loading = state.storyLoading, problem = state.storyProblem,
+            onRetry = viewModel::retryStory,
+            header = header,
+        )
     }
 }

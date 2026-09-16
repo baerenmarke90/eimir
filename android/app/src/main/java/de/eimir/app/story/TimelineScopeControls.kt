@@ -84,12 +84,43 @@ fun TimelineScopeControls(scope: TimelineScope, availableYears: List<Int>, onApp
                     }
                 }
             }
-            Button(onClick = { onApply(draft); dismiss() }, modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("timeline-apply")) {
-                Text(stringResource(R.string.timeline_filter_apply))
+            Text(stringResource(R.string.timeline_filter_order), color = EimirTheme.colors.textPrimary)
+            Column(Modifier.selectableGroup()) {
+                StoryOrder.entries.forEach { order ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget)
+                        .selectable(selected = draft.order == order, role = Role.RadioButton, onClick = { draft = draft.copy(order = order) })
+                        .testTag(if (order == StoryOrder.OLDEST_FIRST) "timeline-order-oldest" else "timeline-order-newest"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step2)) {
+                        RadioButton(selected = draft.order == order, onClick = null,
+                            colors = RadioButtonDefaults.colors(selectedColor = EimirTheme.colors.linkText))
+                        Text(orderLabel(order), color = EimirTheme.colors.textPrimary)
+                    }
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step2),
+            ) {
+                TextButton(
+                    colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.textSecondary),
+                    onClick = dismiss,
+                    modifier = Modifier.heightIn(min = MinimumTouchTarget).testTag("timeline-cancel"),
+                ) {
+                    Text(stringResource(R.string.timeline_filter_cancel))
+                }
+                Button(onClick = { onApply(draft); dismiss() }, modifier = Modifier.weight(1f).heightIn(min = MinimumTouchTarget).testTag("timeline-apply")) {
+                    Text(stringResource(R.string.timeline_filter_apply))
+                }
             }
         }
     }
 }
+
+@Composable
+private fun orderLabel(order: StoryOrder): String = stringResource(
+    if (order == StoryOrder.OLDEST_FIRST) R.string.timeline_filter_order_oldest else R.string.timeline_filter_order_newest,
+)
 
 @Composable
 private fun kindLabel(kind: StoryEntryKind?): String = stringResource(when (kind) {

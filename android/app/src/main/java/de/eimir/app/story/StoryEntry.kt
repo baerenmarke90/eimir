@@ -1,6 +1,7 @@
 package de.eimir.app.story
 
 import java.time.LocalDate
+import java.time.YearMonth
 import java.util.UUID
 import eimir.api.models.AttachmentReadRequest
 import eimir.api.models.MediaType
@@ -132,4 +133,40 @@ fun List<StoryItem>.toStoryDays(): List<StoryDay> {
         days += StoryDay(current.first().date, current.toList())
     }
     return days
+}
+
+/**
+ * One real chronological month grouping several already-grouped [StoryDay]s.
+ *
+ * The Product Reference calls for a real month heading in the Timeline, not
+ * just day-level grouping. This sits above [toStoryDays]'s existing days
+ * rather than replacing them: day headings and their entries are unchanged,
+ * a month heading is simply inserted above each run of days that share a
+ * year-month.
+ */
+data class StoryMonth(
+    val month: YearMonth,
+    val days: List<StoryDay>,
+)
+
+/**
+ * Groups **consecutive** days that share a year-month, mirroring
+ * [toStoryDays]'s "group, don't sort" contract at one coarser granularity.
+ */
+fun List<StoryDay>.toStoryMonths(): List<StoryMonth> {
+    val months = mutableListOf<StoryMonth>()
+    var current = mutableListOf<StoryDay>()
+
+    for (day in this) {
+        val month = YearMonth.from(day.date)
+        if (current.isNotEmpty() && YearMonth.from(current.first().date) != month) {
+            months += StoryMonth(YearMonth.from(current.first().date), current.toList())
+            current = mutableListOf()
+        }
+        current += day
+    }
+    if (current.isNotEmpty()) {
+        months += StoryMonth(YearMonth.from(current.first().date), current.toList())
+    }
+    return months
 }

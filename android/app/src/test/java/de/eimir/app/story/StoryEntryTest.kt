@@ -2,6 +2,7 @@ package de.eimir.app.story
 
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.YearMonth
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -135,6 +136,49 @@ class StoryEntryTest {
     @Test
     fun anEmptyStoryHasNoDays() {
         assertTrue(emptyList<StoryItem>().toStoryDays().isEmpty())
+    }
+
+    @Test
+    fun groupsConsecutiveDaysUnderARealMonthHeading() {
+        val augustLate = LocalDate.of(2026, 8, 26)
+        val augustEarly = LocalDate.of(2026, 8, 1)
+        val july = LocalDate.of(2026, 7, 5)
+
+        val months = listOf(
+            memoryItem(date = augustLate),
+            memoryItem(date = augustEarly),
+            memoryItem(date = july),
+        ).toStoryDays().toStoryMonths()
+
+        assertEquals(
+            listOf(YearMonth.of(2026, 8), YearMonth.of(2026, 7)),
+            months.map { it.month },
+        )
+        // The existing per-day grouping is preserved underneath the month, not
+        // flattened or replaced by it.
+        assertEquals(listOf(2, 1), months.map { it.days.size })
+    }
+
+    @Test
+    fun doesNotReorderMonthsEitherWhenTheServerOrderRepeatsAYear() {
+        val decemberLastYear = LocalDate.of(2025, 12, 1)
+        val januaryThisYear = LocalDate.of(2026, 1, 1)
+
+        val months = listOf(
+            memoryItem(date = januaryThisYear),
+            memoryItem(date = decemberLastYear),
+            memoryItem(date = januaryThisYear),
+        ).toStoryDays().toStoryMonths()
+
+        assertEquals(
+            listOf(YearMonth.of(2026, 1), YearMonth.of(2025, 12), YearMonth.of(2026, 1)),
+            months.map { it.month },
+        )
+    }
+
+    @Test
+    fun anEmptyStoryHasNoMonths() {
+        assertTrue(emptyList<StoryItem>().toStoryDays().toStoryMonths().isEmpty())
     }
 }
 

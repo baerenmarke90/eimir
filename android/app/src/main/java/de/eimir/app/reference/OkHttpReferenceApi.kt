@@ -1105,7 +1105,14 @@ class OkHttpReferenceApi(
         authenticatedRequest(
             "$baseUrl/api/v1/spaces/$spaceId/timeline?limit=25" +
                 (scope.year?.let { "&year=$it" } ?: "") +
-                (scope.kind?.let { "&type=${it.name}" } ?: "") + cursorQuery(cursor),
+                (scope.kind?.let { "&type=${it.name}" } ?: "") +
+                (
+                    if (scope.order == de.eimir.app.story.StoryOrder.OLDEST_FIRST) {
+                        "&order=ASC"
+                    } else {
+                        ""
+                    }
+                ) + cursorQuery(cursor),
             accessToken,
         ).get().build(),
         StoryPage.serializer(),

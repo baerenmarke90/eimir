@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -386,9 +387,10 @@ internal fun storyItemDate(item: StoryItem, locale: Locale = Locale.getDefault()
 
 @Composable
 private fun MemoryPhotoPicker(state: ReferenceUiState, editable: Boolean, onPickImage: () -> Unit) {
-    Button(
+    OutlinedButton(
         onClick = onPickImage,
         enabled = editable,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = EimirTheme.colors.linkText),
         modifier = Modifier.fillMaxWidth().heightIn(min = MinimumTouchTarget).testTag("memory-create-photos"),
     ) {
         Text(

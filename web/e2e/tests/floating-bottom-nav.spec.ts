@@ -882,7 +882,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await page.setViewportSize({ width: 390, height: 500 });
     await page.goto('/story/memories/new');
-    const titleInput = page.getByLabel(de.memory.titleLabel);
+    const titleInput = page.getByLabel(de.memory.titleLabelOptional);
     await titleInput.focus();
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '09-constrained-height-form-focus.png'),

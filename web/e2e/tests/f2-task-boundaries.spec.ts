@@ -308,8 +308,9 @@ async function openMemory(page: Page) {
 }
 
 async function fillMemory(page: Page, withPhoto = false) {
-  await page.getByLabel(de.memory.titleLabel, { exact: true }).fill(TITLE);
-  await page.getByText(de.memory.addMoreDetails, { exact: true }).click();
+  await page
+    .getByLabel(de.memory.titleLabelOptional, { exact: true })
+    .fill(TITLE);
   await page.getByLabel(de.memory.bodyLabel, { exact: true }).fill(BODY);
   if (withPhoto) {
     await page.locator('#memory-create-images').setInputFiles({
@@ -321,6 +322,12 @@ async function fillMemory(page: Page, withPhoto = false) {
       page.getByText(de.memory.photoReady, { exact: true }),
     ).toBeVisible();
   }
+}
+
+async function openDateEditor(page: Page) {
+  await page
+    .getByRole('button', { name: new RegExp(de.memory.dateLabel) })
+    .click();
 }
 
 async function expectNoOverflow(page: Page) {
@@ -507,7 +514,7 @@ test('a pending submission retains its draft and cannot create twice or exit', a
     await page.goBack();
     await expect(page).toHaveURL(/\/story\/memories\/new/);
     await expect(
-      page.getByLabel(de.memory.titleLabel, { exact: true }),
+      page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
     ).toHaveValue(TITLE);
     await expect(
       page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -537,7 +544,7 @@ test('dirty Browser Back asks before discarding and nested Escape keeps the task
   await page.keyboard.press('Escape');
   await expect(confirmation).toHaveCount(0);
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue(TITLE);
   await page.goBack();
   await confirmation
@@ -622,7 +629,7 @@ test('failed photo binding retries only binding and never creates a second Memor
     page.getByRole('heading', { name: taskBoundary.partialTitle }),
   ).toBeVisible();
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue(TITLE);
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -657,7 +664,7 @@ test('unknown create outcome retains content and blocks blind resubmission', asy
     page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
   ).toBeVisible();
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue(TITLE);
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -682,7 +689,7 @@ test('unknown create outcome retains content and blocks blind resubmission', asy
     .getByRole('button', { name: taskBoundary.keepEditing })
     .click();
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue(TITLE);
   await page.getByRole('button', { name: taskBoundary.checkMoments }).click();
   await confirmation
@@ -721,7 +728,7 @@ test('a refused create keeps editable input for a deliberate retry', async ({
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
   ).toHaveValue(BODY);
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toBeEditable();
   scenario.create = 'success';
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
@@ -745,7 +752,7 @@ test('dirty reload uses beforeunload and cancellation keeps authored content', a
   await dialog.dismiss();
   await reload;
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toHaveValue(TITLE);
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -898,7 +905,7 @@ test('offline before submit keeps an editable draft without a network create', a
     page.getByText(taskBoundary.offline, { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toBeEditable();
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -918,7 +925,7 @@ test('authored draft text never enters task history or browser key-value storage
   await openMemory(page);
   const privateDraft = 'Ephemeral private draft 958 for storage exclusion';
   await page
-    .getByLabel(de.memory.titleLabel, { exact: true })
+    .getByLabel(de.memory.titleLabelOptional, { exact: true })
     .fill(privateDraft);
   const state = await page.evaluate(() => ({
     url: location.href,
@@ -971,6 +978,7 @@ test('an unsupported date stays editable and never starts a network save', async
   await signIn(page);
   await openMemory(page);
   await fillMemory(page);
+  await openDateEditor(page);
   await page
     .getByLabel(de.memory.dateLabel, { exact: true })
     .fill('10000-01-01');
@@ -985,7 +993,7 @@ test('an unsupported date stays editable and never starts a network save', async
     page.getByLabel(de.memory.dateLabel, { exact: true }),
   ).toBeFocused();
   await expect(
-    page.getByLabel(de.memory.titleLabel, { exact: true }),
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
   ).toBeEditable();
   await expect(
     page.getByLabel(de.memory.bodyLabel, { exact: true }),
@@ -1069,7 +1077,9 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await fillMemory(page);
   await expectNoOverflow(page);
   const readableLabels = await page
-    .locator('.summary-label, .file-picker strong, .file-picker small')
+    .locator(
+      '.immersive-create-narrative label, .immersive-create-title-field label, .immersive-create-date-field > span:first-child, .immersive-create-date-change, .file-picker strong, .file-picker small',
+    )
     .evaluateAll((elements) =>
       elements.flatMap((element) => {
         const text = element.firstChild;
@@ -1084,6 +1094,7 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
       }),
     );
   expect(readableLabels.filter((label) => label.lines > 1)).toEqual([]);
+  await openDateEditor(page);
   const dateSpace = await page
     .getByLabel(de.memory.dateLabel, { exact: true })
     .evaluate((element) => {
@@ -1111,6 +1122,9 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
+  // Return to the closed date-summary state before the readability
+  // screenshot, so it reflects what the page renders by default.
+  await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),
     contentType: 'application/json',

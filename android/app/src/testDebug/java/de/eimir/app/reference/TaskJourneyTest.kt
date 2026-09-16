@@ -42,6 +42,17 @@ class TaskJourneyTest {
         assertNull(model.uiState.value.memoryTask)
     }
 
+    @Test fun textOnlyCaptureWithoutATitleSavesWithLocalizedFallbackTitle() {
+        render()
+        openComposer()
+        compose.onNodeWithTag("memory-create-body").performTextInput("Just words, no title at all")
+        compose.onNodeWithTag("memory-create-scroll").performScrollToNode(hasTestTag("memory-create-save"))
+        compose.onNodeWithTag("memory-create-save").performClick()
+        compose.waitUntil(5_000) { model.uiState.value.openMemory != null }
+        assertTrue(model.uiState.value.openMemory!!.title.startsWith("Erinnerung vom"))
+        assertEquals(1, api.createCalls)
+    }
+
     @Test fun dirtyCloseKeepsWorkUntilDeliberateDiscard() {
         render(); openComposer(); enterWords()
         closeComposer()

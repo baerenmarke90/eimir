@@ -270,6 +270,35 @@ visible until resolved or deliberately discarded.
 - Width follows layout tokens; content has its own scrollable region.
 - Closing restores focus and list selection.
 
+### 8.4 Focused task, short sheet and return
+
+The bounded [F2 contract and consumers](product/design/f2-task-boundaries.md)
+implement Product Reference v1's create/result/return promise. This does not
+declare all existing editors migrated.
+
+- A short sheet has a name, visible Close, intentional initial focus, contained
+  traversal and inactive background. The innermost layer owns Escape/System/
+  Browser Back. Cancel restores its trigger; deliberate navigation closes the
+  layer before handing focus to the destination.
+- Sustained Memory capture uses a focused page and one completion action.
+  Dirty exits require deliberate discard; pending completion prevents duplicate
+  submission and guards exits. Platform unload warnings supplement in-session
+  protection; they do not promise process/browser restart persistence.
+- Confirmed creation, attachment association and later reads have separate
+  outcomes. Never retry a known-created Memory as a new create. An unconfirmed
+  create response remains explicitly uncertain until it can be reconciled.
+- Only the owning task/session may clear its submitted draft or open its result.
+  Account/Space transitions invalidate late completions and transient origins.
+- Return validates the originating context and restores supported scope,
+  loaded range and position through existing navigation/query ownership.
+  Untrusted, expired or absent context falls back to the canonical content home.
+  History contains opaque references, never draft/media/search payloads.
+- Filter selection in a contextual sheet is a draft until Apply. Cancel keeps
+  applied scope; the applied summary and filtered no-match remain recognizable.
+- Reduced motion preserves identical focus, state and result semantics. The
+  Web/native proof exercises production consumers; broader R1/R2 composition
+  and other lifecycle migrations retain their own acceptance owners.
+
 ## 9. Feedback components
 
 ### 9.1 Inline Message

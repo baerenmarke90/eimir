@@ -2,7 +2,7 @@
 
 **Owner:** [#958](https://github.com/baerenmarke90/eimir/issues/958), within the #955 program.  
 **Authority:** [Product Reference v1](product-reference-v1.md), Interaction DNA/D3/D4, [R1/R2](reference-screens.md) and [system direction](design-system-direction.md).  
-**Status:** preflight recorded before runtime implementation on 2026-09-16. This document does not accept the finished R1/R2 compositions.
+**Status:** implementation under review; preflight recorded before runtime implementation on 2026-09-16. This document does not accept the finished R1/R2 compositions.
 
 ## Fresh baseline and ownership
 
@@ -22,7 +22,7 @@ Mandatory engineering, Clean-Room, reuse, cross-cutting, business/matrix, provid
 | --- | --- |
 | Human goal | Capture a shared moment, recognize the saved object, and return without losing the browsing context. |
 | Proof A | Global Quick Create → existing Memory capture → canonical returned Memory detail → originating context. Test text/media, cancel, pending, failures, delayed response and direct entry. |
-| Proof B | Timeline with visible non-default year/type/order → older Memory detail → same tab/scope, loaded range and position. |
+| Proof B | Timeline with visible non-default year/type → older Memory detail → same tab/scope, loaded range and position. Web preserves its existing order filter; native retains its existing newest-first order. The accepted return proof uses newest-first order. |
 | Template | Create/Edit and Detail View for capture/result; Story Timeline and Detail View for browsing; short Sheet/Dialog for bounded choice or discard confirmation. |
 | Content / action | Authored media/words and selected Memory remain focal; choose a type, then Save, then read the actual result. Task-specific Close/Back replaces competing root navigation while composing. |
 | Scope | Keep current capture presentation except the task boundary/feedback needed here. R1 owns the complete composer hierarchy; R2 owns full album/Discover/filter composition and broader Search/Chapter returns. |
@@ -71,4 +71,35 @@ Installed: React/DOM 19.1.1, React Router 7.18.2, TanStack Query 5.85.5; Android
 
 ## Delivery and validation
 
-Pending implementation. Acceptance requires both proof journeys, final business/cross-cutting review, evidence tied to the actual commit/build, and a reviewable PR. The master program and full reference compositions remain separate owners.
+Backend follow-up [#961](https://github.com/baerenmarke90/eimir/issues/961) owns request identity/reconciliation for a Memory create whose response is lost. F2 must not infer non-creation from a timeout or repeat POST in that state. The follow-up was recorded before depending on recovery; F2's uncertainty handling does not depend on its implementation.
+
+### Delivered ownership
+
+| Boundary | Web | Android |
+| --- | --- | --- |
+| Short task | `ShortTaskSheet` adapts native `dialog.showModal()` for Compact Quick Create, Timeline filters and discard confirmation. Expanded Quick Create retains its existing non-modal menu. | `ShortTaskSheet` adapts Material 3 `ModalBottomSheet` for Quick Create and Timeline scope. Platform dialogs own discard/pending explanations. |
+| Focused capture | `MemoryCreatePage` is keyed by account, Space and route entry. `AppShell` removes competing primary navigation during this task. | `MEMORY_CREATE_ROUTE` is a focused Navigation Compose destination. Existing ViewModel owns the transient `MemoryTask`; system picker and upload ownership remain in the current reference flow. |
+| Result | `createMemoryWithReadyAttachments` returns the confirmed object; the existing Memory query is seeded and canonical detail opens once. Projection invalidation is independent. | The same existing domain save path reports creation separately from binding. Confirmed identity replaces the capture destination with canonical detail. |
+| Return | `TaskOriginProvider` keeps at most 12 origins for 30 minutes in memory, scoped to account/Space. History stores only opaque keys; existing query pages and selected-item offset restore Timeline. | Existing authorized back stack and Story destination retain scope, loaded items, cursor and list position. Empty/direct back stacks use Story. |
+| Filter | Compact edits a draft and applies explicitly; dismissal preserves the applied URL scope. Discover reads its own default scope. A selected year remains visible even with no matches. | In-memory year/type scope uses the existing Timeline endpoint; Apply replaces scope, Cancel retains it. Filtered data is never read from the unfiltered persistent cache. |
+
+Consumers must close a short sheet before navigating. Web `closeForNavigation` removes the sheet's temporary history entry, ends native modality and then performs the destination handoff. Nested Back is owned by the innermost editor marker; the existing planning/person/place/collection/chapter consumers keep their established contract. Native uses the platform modal/back-stack ownership instead of copying the browser mechanism.
+
+A known-created Memory with an unconfirmed photo association offers reconciliation or opening the saved text with an explicit photo warning. Reconciliation first reads the same authorized Memory: exact intended associations count as confirmed; only an unchanged version with no bound photos may be retried. Concurrent changes are not overwritten. A post-save read failure retains the known result; Web presents this fallback read-only, while Android retains its existing capability-gated editing behavior. Authoritative access denial or removal hides retained content on both clients.
+
+Drafts and origins are not durable. Ordinary native rotation/backgrounding uses the existing ViewModel lifetime; process death does not promise recovery. Web unload protection can ask the browser to confirm leaving but cannot guarantee survival after tab closure, reload or process termination. Account/Space teardown invalidates outstanding ownership before late completion can clear or navigate newer work. No automatic offline replay, new synchronization service or server idempotency is implied.
+
+### Review status
+
+The final diff retains the preflight's **No business/freemium impact** result: the same Free/Core content, attachment quota, ownership and Cloud/Self-Hosted behavior apply. No dependencies, backend schema, provider, durable draft store or new normal-user configuration were added. Existing cache authorization is preserved, with scoped native Timeline errors and denial cleanup; no content or return payload logging was added.
+
+### Validation
+
+The [production journey evidence](evidence/f2/README.md) records exact source identities, configuration, assertions, screenshots and limits.
+
+- Web unit suite: 850 passed, with one existing integration-only skip. Token generation, lint, formatting, TypeScript and the production build passed. Build output retains the existing directive/chunk-size warnings.
+- Bounded Web proof: 32/32 scenarios passed without retries on `23862d61759558836d5c605e3340e665d57d0e39`. The runtime source remains unchanged after capture.
+- Broader browser regression: 279/287 initially passed. Eight existing expectations assumed the previous inline filter, floating navigation during capture, custom focus loop or post-save Story route. They now assert the F2 task contract; the affected cases passed on targeted reruns. The complete suite runs again in CI.
+- Product-design gate tests and the scoped English-language audit passed. Native final tests, device/TalkBack evidence and required CI are being completed before merge readiness.
+
+The master program and full reference compositions remain separate owners.

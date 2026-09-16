@@ -48,8 +48,9 @@ export function searchResultPath(type: SearchKind, id: string): string | null {
     case 'MEMORY':
       return memoryDetailPath(id);
     case 'HEART_MOMENT':
+      return heartMomentDetailPath(id);
     case 'MILESTONE':
-      return appRoutePath('story');
+      return milestoneDetailPath(id);
     case 'WISH':
       return wishDetailPath(id);
     case 'PLAN':

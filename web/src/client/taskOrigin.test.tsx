@@ -137,6 +137,25 @@ describe('task origin privacy and lifetime', () => {
     expect(origin.resolveOrigin(recent)).toBeNull();
   });
 
+  it('allowlists /search as a return origin without ever putting its query text in the path', () => {
+    expect(taskOriginPath('/search', '?q=secret+words&kind=MEMORY')).toBe(
+      '/search',
+    );
+  });
+
+  it('restores a Search origin query/kind from in-memory metadata, never from the URL/history', () => {
+    render(<Harness />);
+    const key = origin.captureOrigin({
+      searchQuery: 'our first trip',
+      searchKind: 'MEMORY',
+    });
+    expect(origin.resolveOrigin(key)).toMatchObject({
+      searchQuery: 'our first trip',
+      searchKind: 'MEMORY',
+    });
+    expect(JSON.stringify(window.history.state)).not.toMatch(/our first trip/);
+  });
+
   it('restores validated scope or safely replaces direct and invalid entries', async () => {
     render(<Harness />);
     const key = origin.captureOrigin();

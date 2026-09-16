@@ -1,11 +1,17 @@
-import { type FormEvent, useState } from 'react';
+import {
+  type FormEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
@@ -24,6 +30,7 @@ import {
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { normalizeClientError } from '../client/problemDetails';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
@@ -72,7 +79,13 @@ function formatDateTime(value: Date): string {
   }).format(value);
 }
 
-function SearchResultCard({ item }: { item: SearchResult }) {
+function SearchResultCard({
+  item,
+  onOpen,
+}: {
+  item: SearchResult;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
+}) {
   const { t } = useTranslation();
   const path = searchResultPath(item.type, item.id);
   const date = formatDate(item.occurredOn);
@@ -100,7 +113,11 @@ function SearchResultCard({ item }: { item: SearchResult }) {
   return (
     <li className="search-result-wrapper eimir-motion-reveal">
       {path ? (
-        <Link className="search-result-link" to={path}>
+        <Link
+          className="search-result-link"
+          to={path}
+          onClick={(event) => onOpen?.(event, path)}
+        >
           {inner}
         </Link>
       ) : (
@@ -118,9 +135,40 @@ export function SearchProductPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin, resolveOrigin, registerOriginMetadata } =
+    useTaskOrigin();
   const [draftQuery, setDraftQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState<SearchKind | ''>('');
+
+  const returnKey = (location.state as { taskReturnKey?: unknown } | null)
+    ?.taskReturnKey;
+  const restoredKeyRef = useRef<unknown>(undefined);
+  useEffect(() => {
+    if (restoredKeyRef.current === returnKey) return;
+    restoredKeyRef.current = returnKey;
+    const candidateOrigin = resolveOrigin(returnKey);
+    const returnOrigin =
+      candidateOrigin?.to === taskOriginPath(location.pathname, location.search)
+        ? candidateOrigin
+        : null;
+    if (returnOrigin?.searchQuery) {
+      setDraftQuery(returnOrigin.searchQuery);
+      setSubmittedQuery(returnOrigin.searchQuery);
+      setKind((returnOrigin.searchKind as SearchKind | undefined) ?? '');
+    }
+  }, [returnKey, resolveOrigin, location.pathname, location.search]);
+
+  useEffect(
+    () =>
+      registerOriginMetadata({
+        searchQuery: submittedQuery || undefined,
+        searchKind: kind || undefined,
+      }),
+    [submittedQuery, kind, registerOriginMetadata],
+  );
 
   const searchQuery = useInfiniteQuery({
     queryKey: ['m5-s5', 'search', spaceId, submittedQuery, kind],
@@ -233,7 +281,24 @@ export function SearchProductPage({
           </h2>
           <ul className="m4-list layout-columns layout-columns-dense">
             {items.map((item) => (
-              <SearchResultCard key={`${item.type}:${item.id}`} item={item} />
+              <SearchResultCard
+                key={`${item.type}:${item.id}`}
+                item={item}
+                onOpen={(event, path) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
+              />
             ))}
           </ul>
           {searchQuery.hasNextPage ? (

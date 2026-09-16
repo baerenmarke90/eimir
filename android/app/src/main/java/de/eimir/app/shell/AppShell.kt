@@ -166,8 +166,8 @@ fun AppShell(
 @Composable
 private fun navigationBarItemColors(): NavigationBarItemColors =
     NavigationBarItemDefaults.colors(
-        selectedIconColor = EimirTheme.colors.brandStrong,
-        selectedTextColor = EimirTheme.colors.brandStrong,
+        selectedIconColor = EimirTheme.colors.linkText,
+        selectedTextColor = EimirTheme.colors.linkText,
         indicatorColor = EimirTheme.colors.brandSurface,
         unselectedIconColor = EimirTheme.colors.textSecondary,
         unselectedTextColor = EimirTheme.colors.textSecondary,

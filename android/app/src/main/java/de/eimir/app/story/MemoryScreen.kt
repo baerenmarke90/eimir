@@ -222,6 +222,7 @@ fun MemoryScreen(
                         }
                         if (memory.capabilities.canDelete) {
                             TextButton(
+                                colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
                                 onClick = { confirmingDelete = true },
                                 enabled = !busy,
                                 modifier = Modifier.heightIn(min = MinimumTouchTarget),
@@ -290,7 +291,7 @@ private fun MemoryHeader(memory: MemoryDetail) {
                     DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale),
                 ),
                 style = MaterialTheme.typography.labelLarge,
-                color = EimirTheme.colors.brandStrong,
+                color = EimirTheme.colors.linkText,
             )
         }
         Text(

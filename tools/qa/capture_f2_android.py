@@ -48,8 +48,22 @@ def main() -> None:
 
     def find(value: str, *, text: bool = False, root: ET.Element | None = None) -> ET.Element | None:
         root = tree() if root is None else root
-        return next((n for n in root.iter("node") if
+        node = next((n for n in root.iter("node") if
                      (n.get("text") == value if text else n.get("resource-id", "").endswith(value))), None)
+        # Material modal windows have a separate semantics root, so the debug
+        # Activity's resource-ID export does not cover their Compose test tags.
+        modal_labels = {
+            "timeline-year": strings["timeline_filter_all_years"],
+            "timeline-apply": strings["timeline_filter_apply"],
+            "task-sheet-close": strings["task_sheet_close"],
+        }
+        if node is None and not text and value in modal_labels:
+            node = next((n for n in root.iter("node") if n.get("text") == modal_labels[value]), None)
+            if node is not None:
+                parents = {child: parent for parent in root.iter() for child in parent}
+                while node.get("clickable") != "true" and node in parents:
+                    node = parents[node]
+        return node
 
     def reveal(value: str, *, text: bool = False, upward: bool = False) -> ET.Element:
         for _ in range(12):

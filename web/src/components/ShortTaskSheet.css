@@ -1,0 +1,102 @@
+.short-task-sheet {
+  position: fixed;
+  inset: auto 0 0;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 36rem;
+  max-height: calc(100dvh - var(--space-4) - env(safe-area-inset-top, 0px));
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sheet-top) var(--radius-sheet-top) 0 0;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  box-shadow: var(--elevation-overlay);
+  overflow: hidden;
+}
+
+.short-task-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: short-task-sheet-enter var(--duration-transition)
+    var(--easing-enter);
+}
+
+.short-task-sheet::backdrop {
+  background: var(--color-scrim);
+}
+
+.short-task-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--page-gutter);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.short-task-sheet-title {
+  margin: 0 0 var(--space-4);
+  font: var(--font-section-heading);
+  letter-spacing: var(--tracking-section-heading);
+  overflow-wrap: anywhere;
+}
+
+.short-task-sheet-close {
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 100%;
+  flex-shrink: 0;
+  overflow-wrap: anywhere;
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  padding: var(--space-2) var(--space-3);
+}
+
+.short-task-sheet-body {
+  min-height: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4) var(--page-gutter)
+    max(var(--space-4), env(safe-area-inset-bottom, 0px));
+}
+
+.short-task-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+@keyframes short-task-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 840px) {
+  .short-task-sheet {
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-height: calc(100dvh - var(--space-8));
+    border-radius: var(--radius-content);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .short-task-sheet[open] {
+    animation: none;
+  }
+}

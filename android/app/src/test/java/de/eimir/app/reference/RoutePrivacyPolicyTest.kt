@@ -69,6 +69,7 @@ class RoutePrivacyPolicyTest {
             AppDestination.Plan.route,
             AppDestination.More.route,
             MEMORY_ROUTE,
+            MEMORY_CREATE_ROUTE,
             MILESTONE_CREATE_ROUTE,
             MILESTONE_ROUTE,
             HEART_MOMENT_ROUTE,

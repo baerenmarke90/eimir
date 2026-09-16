@@ -2,6 +2,8 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
 import de from './locales/de';
+import taskBoundary from './locales/taskBoundary';
+import taskSheets from './locales/taskSheets';
 import demo from './locales/demo';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
@@ -38,6 +40,8 @@ if (!i18n.isInitialized) {
       de: {
         translation: {
           ...de,
+          taskBoundary,
+          taskSheets,
           accountSettings,
           navigation: { ...de.navigation, ...navigation },
           demo,

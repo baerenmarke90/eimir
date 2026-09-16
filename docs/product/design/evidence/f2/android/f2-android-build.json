@@ -1,0 +1,24 @@
+{
+  "runtimeSourceCommit": "0616ed02e2acf2ded76292ced51e1c83a420fb41",
+  "apkSha256": "f2e5b9a5273ddd0a2d57b9435c3cafef0e5a5d62509ba6cb65a81eb79a000faf",
+  "sourceTrees": [
+    "android/app/src/main",
+    "android/app/src/debug"
+  ],
+  "sourceTreeAggregateSha256": "e39af6c6feb538b15f1c3b041353b6e627545fb82f5d8d3633cb4701f8e04376",
+  "aggregateEncoding": "Sorted relative POSIX file path UTF-8 + NUL + original file bytes + NUL for each regular file.",
+  "validation": {
+    "focusedProductionJourneys": 5,
+    "failures": 0,
+    "errors": 0,
+    "build": "assembleDebug passed",
+    "fullSuiteBaselineSource": "fe55f230d558816d7e181c650d1b7035c6bd246c",
+    "fullSuiteTests": 596,
+    "fullSuiteSkipped": 1,
+    "fullSuiteFailures": 0,
+    "fullSuiteErrors": 0,
+    "lintBaselineWarnings": 54,
+    "lintBaselineErrors": 0
+  },
+  "deltaFromFullSuite": "Only semantic foreground roles: retained task fields, Memory date/Delete, selected navigation foreground; no behavior or layout delta."
+}

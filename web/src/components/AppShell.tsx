@@ -10,6 +10,7 @@ import {
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
+import { TaskOriginProvider } from '../client/taskOrigin';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
   PRIMARY_APP_ROUTES,
@@ -17,6 +18,7 @@ import {
   activeNavigationArea,
   appRoutePath,
   DEFAULT_APP_ROUTE,
+  MEMORY_CREATE_ROUTE,
   SEARCH_ROUTE,
 } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
@@ -98,15 +100,7 @@ function useCachedReadTimestamp(): string | null {
   return cachedAt;
 }
 
-export function AppShell({
-  children,
-  onLogout,
-  apiBaseUrl,
-  accessToken,
-  account,
-  spaceId,
-  serverAdmin = false,
-}: {
+interface AppShellProps {
   children: ReactNode;
   onLogout: () => void;
   apiBaseUrl: string;
@@ -114,7 +108,29 @@ export function AppShell({
   account: AccountView;
   spaceId: string;
   serverAdmin?: boolean;
-}) {
+}
+
+export function AppShell(props: AppShellProps) {
+  return (
+    <TaskOriginProvider
+      key={`${props.account.id}:${props.spaceId}`}
+      accountId={props.account.id}
+      spaceId={props.spaceId}
+    >
+      <AuthenticatedAppShell {...props} />
+    </TaskOriginProvider>
+  );
+}
+
+function AuthenticatedAppShell({
+  children,
+  onLogout,
+  apiBaseUrl,
+  accessToken,
+  account,
+  spaceId,
+  serverAdmin = false,
+}: AppShellProps) {
   const { t } = useTranslation();
   const online = useOnlineStatus();
   const cachedAt = useCachedReadTimestamp();
@@ -132,6 +148,7 @@ export function AppShell({
 
   const location = useLocation();
   const isPrivateArea = location.pathname.startsWith('/more/private');
+  const isMemoryTask = location.pathname === MEMORY_CREATE_ROUTE;
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -164,65 +181,67 @@ export function AppShell({
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
 
   return (
-    <div className="product-shell">
+    <div className="product-shell" data-focused-task={isMemoryTask}>
       <ThemeControl />
       <RouteEntryHandoff />
       <a className="skip-link" href="#main-content">
         {t('navigation.skipToContent')}
       </a>
 
-      <header className="app-header product-topbar">
-        <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
-        <nav className="shell-nav" aria-label={t('navigation.primary')}>
-          <PrimaryNavigationLinks />
-        </nav>
-        <div className="header-actions">
-          <div className="shell-primary-action">
-            <QuickCreateMenu variant="desktop" />
-          </div>
-          <span
-            className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
-          >
-            {isPrivateArea ? (
-              <>
-                <span aria-hidden="true">🔒</span>{' '}
-                {t('privateArea.privacyLabel')}
-              </>
-            ) : (
-              <>
-                <span aria-hidden="true">♥</span> {t('header.sharedArea')}
-              </>
-            )}
-          </span>
-          <NavLink
-            to={SEARCH_ROUTE}
-            className={({ isActive }) =>
-              `shell-utility-link${isActive ? ' shell-utility-link-active' : ''}`
-            }
-            aria-label={t('navigation.search')}
-            title={t('navigation.search')}
-          >
-            <span className="shell-nav-icon" aria-hidden="true">
-              <DestinationIcon icon="search" />
+      {!isMemoryTask ? (
+        <header className="app-header product-topbar">
+          <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
+          <nav className="shell-nav" aria-label={t('navigation.primary')}>
+            <PrimaryNavigationLinks />
+          </nav>
+          <div className="header-actions">
+            <div className="shell-primary-action">
+              <QuickCreateMenu variant="desktop" />
+            </div>
+            <span
+              className={`shared-context ${isPrivateArea ? 'private-context' : ''}`}
+            >
+              {isPrivateArea ? (
+                <>
+                  <span aria-hidden="true">🔒</span>{' '}
+                  {t('privateArea.privacyLabel')}
+                </>
+              ) : (
+                <>
+                  <span aria-hidden="true">♥</span> {t('header.sharedArea')}
+                </>
+              )}
             </span>
-          </NavLink>
-          <HeaderNotificationsMenu
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            spaceId={spaceId}
-            unreadCount={unreadCount}
-            currentAccountId={account.id}
-          />
-          <HeaderProfileMenu
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            account={account}
-            spaceId={spaceId}
-            serverAdmin={serverAdmin}
-            onLogout={logout}
-          />
-        </div>
-      </header>
+            <NavLink
+              to={SEARCH_ROUTE}
+              className={({ isActive }) =>
+                `shell-utility-link${isActive ? ' shell-utility-link-active' : ''}`
+              }
+              aria-label={t('navigation.search')}
+              title={t('navigation.search')}
+            >
+              <span className="shell-nav-icon" aria-hidden="true">
+                <DestinationIcon icon="search" />
+              </span>
+            </NavLink>
+            <HeaderNotificationsMenu
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              spaceId={spaceId}
+              unreadCount={unreadCount}
+              currentAccountId={account.id}
+            />
+            <HeaderProfileMenu
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              account={account}
+              spaceId={spaceId}
+              serverAdmin={serverAdmin}
+              onLogout={logout}
+            />
+          </div>
+        </header>
+      ) : null}
 
       {cachedAtLabel ? (
         <div className="offline-banner" role="status">
@@ -257,14 +276,19 @@ export function AppShell({
         </main>
       </div>
 
-      <div className="mobile-bottom-shell">
-        <nav className="mobile-bottom-nav" aria-label={t('navigation.primary')}>
-          <PrimaryNavigationLinks />
-        </nav>
-        <div className="mobile-quick-create">
-          <QuickCreateMenu variant="mobile" />
+      {!isMemoryTask ? (
+        <div className="mobile-bottom-shell">
+          <nav
+            className="mobile-bottom-nav"
+            aria-label={t('navigation.primary')}
+          >
+            <PrimaryNavigationLinks />
+          </nav>
+          <div className="mobile-quick-create">
+            <QuickCreateMenu variant="mobile" />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <Snackbar />
     </div>

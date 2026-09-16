@@ -141,15 +141,13 @@
     <string name="ref_error_image_upload_failed">Mindestens ein Bild-Upload oder eine Prüfung ist fehlgeschlagen.</string>
     <string name="ref_error_image_not_ready">Bitte warte auf die Bildprüfung, versuche den Upload erneut oder entferne das Bild.</string>
     <string name="ref_error_images_not_ready">Bitte warte, bis alle Bilder geprüft sind, versuche fehlgeschlagene Uploads erneut oder entferne sie.</string>
-    <string name="ref_error_login_required">Bitte zuerst anmelden.</string>
     <string name="ref_error_image_required">Bitte zuerst ein Bild auswählen.</string>
     <string name="ref_error_memory_fields_required">Ein Titel wird benötigt.</string>
     <string name="ref_error_date_format">Datum bitte als JJJJ-MM-TT eingeben.</string>
     <string name="ref_status_save_pending">Erinnerung wird gespeichert …</string>
-    <string name="ref_status_save_success">Erinnerung wurde über den M2-Vertrag gespeichert.</string>
+    <string name="ref_status_save_success">Erinnerung gespeichert.</string>
     <string name="ref_error_login_failed">Anmeldung fehlgeschlagen.</string>
     <string name="ref_error_save_failed">Speichern fehlgeschlagen.</string>
-    <string name="ref_error_story_load_failed">Story konnte nicht geladen werden.</string>
     <string name="ref_status_logged_out">Abgemeldet.</string>
 
     <string name="ref_image_type_unknown">Der Bildtyp konnte nicht bestimmt werden.</string>
@@ -865,4 +863,35 @@
     <string name="relationship_visibility_shared">Mit Partner geteilt</string>
     <string name="relationship_visibility_private">Nur für mich</string>
     <string name="relationship_visibility_temporary">Zeitlich geteilt</string>
+
+    <!-- F2: bounded Memory task and Timeline scope lifecycle. -->
+    <string name="task_sheet_close">Schließen</string>
+    <string name="memory_task_back">Zurück</string>
+    <string name="memory_task_loading">Erinnerung wird geladen …</string>
+    <string name="memory_task_pending">Deine Erinnerung wird gespeichert. Bitte warte auf das Ergebnis, bevor du diese Seite verlässt.</string>
+    <string name="memory_task_offline">Noch nicht gespeichert. Deine Eingaben bleiben hier. Stelle die Verbindung wieder her und speichere dann erneut.</string>
+    <string name="memory_task_uncertain">Wir können gerade nicht bestätigen, ob deine Erinnerung gespeichert wurde. Deine Eingaben bleiben hier. Prüfe eure Momente, bevor du dieselbe Erinnerung noch einmal anlegst.</string>
+    <string name="memory_task_attachment_recovery">Deine Erinnerung wurde angelegt. Ob alle Fotos zugeordnet wurden, ist noch nicht bestätigt. Du kannst die Fotos prüfen und erneut zuordnen oder die gespeicherte Erinnerung öffnen.</string>
+    <string name="memory_task_attachment_conflict">Die gespeicherte Erinnerung hat sich inzwischen geändert. Deine Fotos wurden nicht erneut zugeordnet. Öffne die gespeicherte Erinnerung, um den aktuellen Stand zu prüfen.</string>
+    <string name="memory_task_retry_photos">Fotos prüfen und zuordnen</string>
+    <string name="memory_task_open_saved">Gespeicherte Erinnerung öffnen</string>
+    <string name="memory_task_partial_result">Die Erinnerung ist gespeichert. Die Zuordnung der ausgewählten Fotos ist nicht vollständig bestätigt.</string>
+    <string name="memory_task_exit_title">Diese Seite verlassen?</string>
+    <string name="memory_task_discard_body">Deine Eingaben und ausgewählten Fotos werden aus diesem Entwurf entfernt.</string>
+    <string name="memory_task_uncertain_exit">Das Speicherergebnis ist weiterhin unklar. Deine Eingaben werden aus diesem Entwurf entfernt. Prüfe eure Momente, bevor du dieselbe Erinnerung erneut anlegst.</string>
+    <string name="memory_task_partial_exit">Die angelegte Erinnerung bleibt erhalten. Die Zuordnung der Fotos ist nicht vollständig bestätigt. Dieser Entwurf wird entfernt.</string>
+    <string name="memory_task_discard">Entwurf verwerfen</string>
+    <string name="memory_task_keep">Hierbleiben</string>
+    <string name="memory_task_leave">Seite verlassen</string>
+    <string name="memory_task_wait">Auf Ergebnis warten</string>
+    <string name="timeline_filter">Zeitraum und Art</string>
+    <string name="timeline_filter_year">Jahr</string>
+    <string name="timeline_filter_kind">Art</string>
+    <string name="timeline_filter_all_years">Alle Jahre</string>
+    <string name="timeline_filter_all_kinds">Alle Momente</string>
+    <string name="timeline_filter_apply">Anwenden</string>
+    <string name="timeline_filter_reset">Filter zurücksetzen</string>
+    <string name="timeline_filter_scope">%1$s · %2$s</string>
+    <string name="timeline_no_match">Für diese Auswahl gibt es keine Momente. Ändere den Zeitraum oder setze die Filter zurück.</string>
+
 </resources>

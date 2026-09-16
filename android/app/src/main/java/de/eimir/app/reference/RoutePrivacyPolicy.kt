@@ -105,6 +105,7 @@ private val routePrivacyRules = listOf(
     exact(AppDestination.Plan.route, sharedOnly),
     exact(AppDestination.More.route, sharedOnly),
     exact(MEMORY_ROUTE, sharedOnly),
+    exact(MEMORY_CREATE_ROUTE, sharedOnly),
     exact(MILESTONE_CREATE_ROUTE, sharedOnly),
     exact(MILESTONE_ROUTE, sharedOnly),
     exact(HEART_MOMENT_ROUTE, sharedOnly),
@@ -132,6 +133,7 @@ internal fun isSecureRoute(route: String?): Boolean =
 
 internal const val MEMORY_ID_ARGUMENT = "memoryId"
 internal const val MEMORY_ROUTE = "story/memories/{$MEMORY_ID_ARGUMENT}"
+internal const val MEMORY_CREATE_ROUTE = "story/memories/new"
 
 /** The account's own HeartMoments, including private ones. */
 internal const val HEART_MOMENTS_ROUTE = "story/heart-moments"

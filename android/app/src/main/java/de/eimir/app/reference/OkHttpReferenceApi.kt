@@ -1096,6 +1096,21 @@ class OkHttpReferenceApi(
         StoryPage.serializer(),
     )
 
+    override suspend fun getScopedTimeline(
+        spaceId: UUID,
+        accessToken: String,
+        scope: de.eimir.app.story.TimelineScope,
+        cursor: String?,
+    ): StoryPage = executeJson(
+        authenticatedRequest(
+            "$baseUrl/api/v1/spaces/$spaceId/timeline?limit=25" +
+                (scope.year?.let { "&year=$it" } ?: "") +
+                (scope.kind?.let { "&type=${it.name}" } ?: "") + cursorQuery(cursor),
+            accessToken,
+        ).get().build(),
+        StoryPage.serializer(),
+    )
+
     override suspend fun createReadAccess(
         spaceId: UUID,
         accessToken: String,

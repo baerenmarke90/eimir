@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schemaVersion": 1,
-  "updated": "2026-09-15",
+  "updated": "2026-09-16",
   "statusValues": [
     "planned",
     "in_progress",
@@ -167,6 +167,13 @@
       "contract": "docs/COMPONENT-CONTRACTS.md#65-product-reference-v1-visual-roles",
       "web": "implemented",
       "android": "implemented"
+    },
+    {
+      "id": "focused-task-and-return",
+      "tier": "P1",
+      "contract": "docs/COMPONENT-CONTRACTS.md#84-focused-task-short-sheet-and-return",
+      "web": "in_progress",
+      "android": "in_progress"
     }
   ],
   "patterns": [

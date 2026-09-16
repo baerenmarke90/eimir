@@ -536,6 +536,17 @@ interface ReferenceContract {
         cursor: String? = null,
     ): StoryPage
 
+    /** Existing server filters; default-only adapters cannot silently ignore a requested scope. */
+    suspend fun getScopedTimeline(
+        spaceId: UUID,
+        accessToken: String,
+        scope: de.eimir.app.story.TimelineScope,
+        cursor: String? = null,
+    ): StoryPage {
+        require(scope.isDefault) { "This adapter does not support scoped Timeline reads" }
+        return getTimeline(spaceId, accessToken, cursor)
+    }
+
     suspend fun createReadAccess(
         spaceId: UUID,
         accessToken: String,

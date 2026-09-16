@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -72,8 +74,12 @@ fun MemoryScreen(
     /** Rendered below the memory; absent while it is being edited. */
     comments: (@Composable () -> Unit)? = null,
 ) {
-    if (gone) {
-        UiStatePanel(
+    if (gone || memory == null) {
+        Column(modifier.fillMaxWidth().padding(EimirTheme.spacing.pageMargin)) {
+            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText), onClick = onBack, modifier = Modifier.heightIn(min = MinimumTouchTarget).testTag("memory-detail-back")) {
+                Text(stringResource(R.string.memory_task_back))
+            }
+        if (gone) UiStatePanel(
             problem = UiProblem(
                 kind = de.eimir.app.shell.UiStateKind.Empty,
                 titleRes = R.string.memory_gone_title,
@@ -82,14 +88,9 @@ fun MemoryScreen(
             ),
             onRetry = null,
             modifier = modifier,
-        )
-        return
-    }
-
-    if (memory == null) {
-        // Loading and failure are told apart by the panel; an empty screen
-        // would leave someone waiting on something that already failed.
-        problem?.let { UiStatePanel(problem = it, onRetry = null, modifier = modifier) }
+        ) else if (problem != null) UiStatePanel(problem = problem, onRetry = null)
+        else Text(stringResource(R.string.memory_task_loading), color = EimirTheme.colors.textSecondary)
+        }
         return
     }
 
@@ -104,14 +105,16 @@ fun MemoryScreen(
     var confirmingDelete by rememberSaveable(memory.id) { mutableStateOf(false) }
 
     LazyColumn(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth().testTag("memory-detail"),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
             EimirTheme.spacing.pageMargin,
         ),
         verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step5),
     ) {
         item {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.memory_back)) }
+            TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText), onClick = onBack, modifier = Modifier.heightIn(min = MinimumTouchTarget).testTag("memory-detail-back")) {
+                Text(stringResource(R.string.memory_task_back))
+            }
         }
 
         problem?.let { current ->
@@ -219,6 +222,7 @@ fun MemoryScreen(
                         }
                         if (memory.capabilities.canDelete) {
                             TextButton(
+                                colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText),
                                 onClick = { confirmingDelete = true },
                                 enabled = !busy,
                                 modifier = Modifier.heightIn(min = MinimumTouchTarget),
@@ -287,7 +291,7 @@ private fun MemoryHeader(memory: MemoryDetail) {
                     DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale),
                 ),
                 style = MaterialTheme.typography.labelLarge,
-                color = EimirTheme.colors.brandStrong,
+                color = EimirTheme.colors.linkText,
             )
         }
         Text(

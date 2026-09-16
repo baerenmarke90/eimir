@@ -1,37 +1,41 @@
-import { authorDisplayName } from '../client/authorPresentation';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
   MemoryDetailFromJSON,
   MemoryDetailToJSON,
 } from '../api/generated/models/MemoryDetail';
+import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
+import { authorDisplayName } from '../client/authorPresentation';
+import {
+  authorSummaryQueryKeys,
+  invalidateStoryProjections,
+} from '../client/authorSummaryConsumers';
+import { invalidateDashboard } from '../client/dashboardQueries';
+import { splitFirstGrapheme } from '../client/graphemeSplit';
+import {
+  type MemoryEditValues,
+  memoryDateInputValue,
+  memoryIfMatch,
+  memoryUpdatePayload,
+} from '../client/memoryProduct';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
 } from '../client/productReadCache';
-import {
-  memoryDateInputValue,
-  memoryIfMatch,
-  memoryUpdatePayload,
-  type MemoryEditValues,
-} from '../client/memoryProduct';
-import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
-import { splitFirstGrapheme } from '../client/graphemeSplit';
-import { normalizeClientError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   memoryDetailPath,
   memoryEditPath,
 } from '../client/routes';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import {
-  authorSummaryQueryKeys,
-  invalidateStoryProjections,
-} from '../client/authorSummaryConsumers';
 import { postSnackbar } from '../client/snackbar';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
@@ -79,6 +83,27 @@ export function MemoryProductPage({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const taskState = location.state as {
+    taskOriginKey?: unknown;
+    memorySaved?: boolean;
+    photosUnconfirmed?: boolean;
+  } | null;
+  const originKey = taskState?.taskOriginKey;
+  const returnControl = (
+    <button
+      type="button"
+      className="back-link tertiary"
+      onClick={() => requestReturn(originKey)}
+    >
+      {t(
+        resolveOrigin(originKey)
+          ? 'taskBoundary.back'
+          : 'memoryProduct.backToStory',
+      )}
+    </button>
+  );
   const params = useParams();
   const queryClient = useQueryClient();
   const memoryId = params.memoryId;
@@ -228,7 +253,10 @@ export function MemoryProductPage({
         queryClient.invalidateQueries({ queryKey: memoryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(memoryDetailPath(memory.id), { replace: true });
+      navigate(memoryDetailPath(memory.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -289,22 +317,38 @@ export function MemoryProductPage({
   }
 
   if (memoryQuery.isLoading) {
-    return <UiState kind="loading" title={t('memoryProduct.loading')} />;
+    return (
+      <div className="page page-reading">
+        {returnControl}
+        <UiState kind="loading" title={t('memoryProduct.loading')} />
+      </div>
+    );
   }
 
-  if (memoryQuery.error) {
+  const readDenied =
+    memoryQuery.error &&
+    ['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(memoryQuery.error),
+    );
+  if (
+    memoryQuery.error &&
+    (!memoryQuery.data || readDenied || mode === 'edit')
+  ) {
     return (
-      <ProblemState
-        error={memoryQuery.error}
-        onRetry={() => void memoryQuery.refetch()}
-      />
+      <div className="page page-reading">
+        {returnControl}
+        <ProblemState
+          error={memoryQuery.error}
+          onRetry={() => void memoryQuery.refetch()}
+        />
+      </div>
     );
   }
 
   const result = memoryQuery.data;
   if (!result) return null;
   const memory = result.value;
-  const offline = result.source === 'cache';
+  const offline = result.source === 'cache' || Boolean(memoryQuery.error);
   const readyAttachments = [...memory.attachments]
     .filter((attachment) => attachment.status === 'READY')
     .sort((left, right) => left.position - right.position);
@@ -315,7 +359,11 @@ export function MemoryProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link className="back-link" to={memoryDetailPath(memory.id)}>
+              <Link
+                className="back-link"
+                to={memoryDetailPath(memory.id)}
+                state={{ taskOriginKey: originKey }}
+              >
                 {t('memoryProduct.backToMemory')}
               </Link>
             }
@@ -360,7 +408,11 @@ export function MemoryProductPage({
       <div className="page page-reading create-page product-editor-page">
         <PageHeader
           before={
-            <Link className="back-link" to={memoryDetailPath(memory.id)}>
+            <Link
+              className="back-link"
+              to={memoryDetailPath(memory.id)}
+              state={{ taskOriginKey: originKey }}
+            >
               {t('memoryProduct.backToMemory')}
             </Link>
           }
@@ -477,6 +529,7 @@ export function MemoryProductPage({
               <Link
                 className="button-link secondary-link"
                 to={memoryDetailPath(memory.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -562,17 +615,28 @@ export function MemoryProductPage({
 
   return (
     <div className="page memory-product-page">
+      {taskState?.memorySaved ? (
+        <div className="inline-message inline-message-success" role="status">
+          {t(
+            taskState.photosUnconfirmed
+              ? 'taskBoundary.photosUnconfirmed'
+              : 'taskBoundary.saved',
+          )}
+        </div>
+      ) : null}
+      {memoryQuery.error ? (
+        <ProblemState
+          error={memoryQuery.error}
+          onRetry={() => void memoryQuery.refetch()}
+        />
+      ) : null}
       {offline ? (
         <div className="inline-message" role="status">
           {t('offlineCache.banner')}
         </div>
       ) : null}
       <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('memoryProduct.backToStory')}
-          </Link>
-        }
+        before={returnControl}
         eyebrow={memoryEyebrow}
         title={memory.title}
         description={t('memoryProduct.detailIntro')}
@@ -581,6 +645,7 @@ export function MemoryProductPage({
             <Link
               className="button-link secondary-link"
               to={memoryEditPath(memory.id)}
+              state={{ taskOriginKey: originKey }}
             >
               {t('memoryProduct.edit')}
             </Link>

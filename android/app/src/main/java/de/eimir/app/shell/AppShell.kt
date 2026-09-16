@@ -123,12 +123,13 @@ fun AppShell(
      * caller before this parameter existed.
      */
     floatingActionButton: (@Composable () -> Unit)? = null,
+    showPrimaryNavigation: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     // A single destination is not a choice, so no navigation surface is drawn
     // for it. This also keeps the shell honest while later slices are still
     // filling their areas.
-    val navigable = destinations.size > 1
+    val navigable = showPrimaryNavigation && destinations.size > 1
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -165,8 +166,8 @@ fun AppShell(
 @Composable
 private fun navigationBarItemColors(): NavigationBarItemColors =
     NavigationBarItemDefaults.colors(
-        selectedIconColor = EimirTheme.colors.brandStrong,
-        selectedTextColor = EimirTheme.colors.brandStrong,
+        selectedIconColor = EimirTheme.colors.linkText,
+        selectedTextColor = EimirTheme.colors.linkText,
         indicatorColor = EimirTheme.colors.brandSurface,
         unselectedIconColor = EimirTheme.colors.textSecondary,
         unselectedTextColor = EimirTheme.colors.textSecondary,
@@ -192,4 +193,3 @@ private fun BottomNavigation(
         }
     }
 }
-

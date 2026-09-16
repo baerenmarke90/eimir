@@ -1,0 +1,75 @@
+.memory-task-fields {
+  display: contents;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.memory-task-page .form-actions {
+  flex-wrap: wrap;
+}
+
+.memory-task-page .file-picker small {
+  color: var(--color-text-secondary);
+}
+
+.memory-task-page .page-heading-title-container {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.product-shell[data-focused-task="true"] {
+  --shell-content-bottom-clearance: calc(
+    var(--space-6) +
+    env(safe-area-inset-bottom, 0px)
+  );
+}
+
+/* Keep enlarged text readable when the content has fewer ems available. */
+@container product-content (max-width: 17.5rem) {
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"] {
+    padding: var(--space-2);
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-media,
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-media
+    .file-picker {
+    padding: var(--space-1);
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .file-picker-icon,
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .summary-add-icon {
+    display: none;
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-details
+    > summary {
+    padding: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .summary-left {
+    display: block;
+    flex: 1;
+  }
+
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    input[type="date"] {
+    padding-inline: var(--space-1);
+  }
+}

@@ -9,6 +9,7 @@ import {
   test,
 } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import storyProducts from '../../src/i18n/locales/storyProducts';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
@@ -611,12 +612,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
     await expect(typeSelect).not.toBeVisible();
 
-    // Verify type select cannot receive focus when collapsed
-    await typeSelect.focus().catch(() => {});
-    const isFocusedWhileCollapsed = await typeSelect
-      .evaluate((el) => document.activeElement === el)
-      .catch(() => false);
-    expect(isFocusedWhileCollapsed).toBe(false);
+    // The closed F2 modal has no controls that could receive keyboard focus.
+    await expect(typeSelect).toHaveCount(0);
 
     // Capture 08-momente-timeline-filter-collapsed.png
     await captureScreenshot(
@@ -629,7 +626,10 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     // Expand filter toolbar
     await filterToggle.click();
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
-    await expect(filterPanel).toHaveClass(/story-filter-panel-open/);
+    await expect(filterPanel).toHaveAttribute('aria-modal', 'true');
+    expect(
+      await filterPanel.evaluate((element) => element.matches(':modal')),
+    ).toBe(true);
     await expect(typeSelect).toBeVisible();
 
     // Keyboard interactive when expanded
@@ -649,6 +649,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     // Filter by MEMORY
     await typeSelect.selectOption('MEMORY');
+    // Draft choices do not change the applied Timeline until explicit Apply.
+    await expect(page).not.toHaveURL(/type=MEMORY/);
+    await filterPanel
+      .getByRole('button', { name: storyProducts.storyFilters.apply })
+      .click();
+    await expect(filterPanel).toHaveCount(0);
+    await expect(page).toHaveURL(/type=MEMORY/);
     await expect(page.locator('.story-card-memory')).toHaveCount(3);
     await expect(page.locator('.story-card-milestone')).toHaveCount(0);
     await expect(page.locator('.story-card-heart-moment')).toHaveCount(0);

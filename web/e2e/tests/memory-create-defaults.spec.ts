@@ -42,6 +42,7 @@ async function browserLocalToday(page: Page): Promise<string> {
 }
 
 async function installApiMocks(page: Page): Promise<void> {
+  let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -166,23 +167,30 @@ async function installApiMocks(page: Page): Promise<void> {
       pathname === `/api/v1/spaces/${SPACE_ID}/memories`
     ) {
       const body = request.postDataJSON() as MemoryCreateRequestBody;
-      await fulfillJson(
-        {
-          attachments: [],
-          author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
-          authorId: ACCOUNT_ID,
-          body: body.body ?? '',
-          capabilities: { canEdit: true, canDelete: true },
-          createdAt: TEST_NOW,
-          happenedOn: body.happenedOn ?? null,
-          id: MEMORY_ID,
-          spaceId: SPACE_ID,
-          title: body.title ?? '',
-          updatedAt: TEST_NOW,
-          version: 1,
-        },
-        201,
-      );
+      savedMemory = {
+        attachments: [],
+        author: { accountId: ACCOUNT_ID, displayName: 'Anna' },
+        authorId: ACCOUNT_ID,
+        body: body.body ?? '',
+        capabilities: { canEdit: true, canDelete: true },
+        createdAt: TEST_NOW,
+        happenedOn: body.happenedOn ?? null,
+        id: MEMORY_ID,
+        spaceId: SPACE_ID,
+        title: body.title ?? '',
+        updatedAt: TEST_NOW,
+        version: 1,
+      };
+      await fulfillJson(savedMemory, 201);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}` &&
+      savedMemory
+    ) {
+      await fulfillJson(savedMemory);
       return;
     }
 
@@ -267,7 +275,14 @@ test('empty title with the default date saves a non-empty localized fallback tit
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');
-  await expect(page).toHaveURL(/\/story$/);
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY_ID}$`));
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: localizedFallbackTitle(expectedDate),
+      exact: true,
+    }),
+  ).toBeVisible();
 });
 
 test('a selected date wins and is also used by the fallback title', async ({

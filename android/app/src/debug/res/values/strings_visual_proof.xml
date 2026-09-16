@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="proof_heading">Ein Wochenende am See</string>
+    <string name="proof_photo_title">Unser stiller Morgen</string>
+    <string name="proof_photo_description">Eine kleine Hütte am See im warmen Morgenlicht.</string>
+    <string name="proof_photo_context">Ein Moment für uns beide</string>
+    <string name="proof_photo_body">Wir haben den Kaffee mit nach draußen genommen. Für einen Augenblick gab es nur das Wasser, das Licht und uns.</string>
+    <string name="proof_text_title">Was mir geblieben ist</string>
+    <string name="proof_text_body">Dass wir gar nichts vorhatten. Und wie gut es tat, einfach nebeneinander zu sitzen und dem Tag Zeit zu lassen.</string>
+    <string name="proof_utility_heading">Für später</string>
+    <string name="proof_utility_open">Was wir für das nächste gemeinsame Wochenende aufheben möchten</string>
+    <string name="proof_overlay_open">Eine persönliche Notiz ansehen</string>
+    <string name="proof_overlay_title">Ein Gedanke für mich</string>
+    <string name="proof_overlay_body">Nächstes Mal wieder früh aufstehen und den Sonnenaufgang am Wasser anschauen.</string>
+    <string name="proof_close">Schließen</string>
+    <string name="proof_back">Zurück zu den Momenten</string>
+    <string name="proof_loading">Das Foto wird geladen.</string>
+    <string name="proof_error">Das Foto konnte nicht geladen werden.</string>
+    <string name="proof_retry">Foto erneut laden</string>
+    <string name="proof_offline">Offline-Vorschau: Diese Beispielmomente sind lesbar. Änderungen werden nicht gespeichert.</string>
+    <string name="proof_success">Die Auswahl ist jetzt sichtbar.</string>
+    <string name="proof_selected">Für unser nächstes Wochenende</string>
+    <string name="proof_empty_title">Dieser Moment braucht kein Foto</string>
+</resources>

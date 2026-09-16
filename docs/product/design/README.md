@@ -10,6 +10,7 @@ Start with [Product Reference v1](product-reference-v1.md). It is the **normativ
 | Which five experiences define the product? | [Reference screens](reference-screens.md): R1 capture, R2 Moments, R3 Planning, R4 Today, R5 utility. |
 | Which visual/input language applies? | [Design-system direction](design-system-direction.md): surfaces, images, type, color, shape, rhythm, motion, forms and content composition. |
 | What gets implemented next? | [Implementation roadmap](implementation-roadmap.md): F1/F2 → R1–R5 → P1–P3 → C1. |
+| How are F1 roles implemented and proven? | [F1 visual foundations](f1-visual-foundations.md): token/adapter mapping, bounded internal proof, usage limits and exact-build evidence. |
 | Which older material still applies? | [Authority register](#authority-register) below. |
 | Why was the direction chosen? | [Audit](audits/2026-09-15/product-design-audit.md), [calibration](audits/2026-09-15/visual-calibration.md), [evidence and decisions](audits/2026-09-15/evidence-and-decisions.md). |
 | How is compliance reviewed? | [v1 acceptance](product-reference-v1.md#review-and-final-acceptance), [Partner-App Experience Standard](../../PARTNER-APP-EXPERIENCE-STANDARD.md), [PR template](../../../.github/pull_request_template.md) and final audit [#946](https://github.com/baerenmarke90/eimir/issues/946). |

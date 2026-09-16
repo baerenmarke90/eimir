@@ -1,6 +1,7 @@
 package de.eimir.app.design
 
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -117,4 +118,24 @@ internal val eimirTypography = Typography(
     labelLarge = labelStyle,
     labelMedium = labelStyle,
     labelSmall = metaStyle,
+)
+
+/** Content meaning chooses the family; existing shared metrics remain the value source. */
+@Immutable
+data class EimirContentTypography(
+    val personalHeading: TextStyle,
+    val contentTitle: TextStyle,
+    val utilityHeading: TextStyle,
+    val sectionHeading: TextStyle,
+    val reading: TextStyle,
+    val supporting: TextStyle,
+)
+
+internal val eimirContentTypography = EimirContentTypography(
+    personalHeading = heading2Style.copy(fontFamily = EimirDisplayFamily, fontWeight = FontWeight(GeneratedTypographyTokens.SEMIBOLD_WEIGHT)),
+    contentTitle = heading3Style.copy(fontFamily = EimirDisplayFamily),
+    utilityHeading = heading2Style.copy(fontWeight = FontWeight(GeneratedTypographyTokens.SEMIBOLD_WEIGHT)),
+    sectionHeading = heading3Style,
+    reading = bodyStyle,
+    supporting = bodySmallStyle,
 )

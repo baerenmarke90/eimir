@@ -11,6 +11,7 @@ import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
+import './design/product-roles.css';
 import './shell.css';
 import './layout.css';
 import './attachment-drafts.css';

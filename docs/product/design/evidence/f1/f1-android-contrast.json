@@ -1,0 +1,473 @@
+{
+  "passed": true,
+  "samples": [
+    {
+      "scene": "390-light",
+      "scheme": "light",
+      "semanticRegion": "proof-content",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        35,
+        30,
+        40
+      ],
+      "backgroundRgb": [
+        246,
+        239,
+        234
+      ],
+      "tokenContrastRatio": 14.329,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 17476,
+        "background": 795626
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "390-light",
+      "scheme": "light",
+      "semanticRegion": "proof-content",
+      "foregroundRole": "textSecondary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        94,
+        84,
+        102
+      ],
+      "backgroundRgb": [
+        246,
+        239,
+        234
+      ],
+      "tokenContrastRatio": 6.285,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 784,
+        "background": 795626
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "390-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-content",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        252,
+        248,
+        250
+      ],
+      "backgroundRgb": [
+        24,
+        19,
+        29
+      ],
+      "tokenContrastRatio": 17.349,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 17476,
+        "background": 795618
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "390-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-content",
+      "foregroundRole": "textSecondary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        214,
+        203,
+        224
+      ],
+      "backgroundRgb": [
+        24,
+        19,
+        29
+      ],
+      "tokenContrastRatio": 11.723,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 784,
+        "background": 795618
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "390-light",
+      "scheme": "light",
+      "semanticRegion": "proof-utility-heading",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        35,
+        30,
+        40
+      ],
+      "backgroundRgb": [
+        246,
+        239,
+        234
+      ],
+      "tokenContrastRatio": 14.329,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1298,
+        245,
+        1352
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 1150,
+        "background": 8742
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "390-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-utility-heading",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        252,
+        248,
+        250
+      ],
+      "backgroundRgb": [
+        24,
+        19,
+        29
+      ],
+      "tokenContrastRatio": 17.349,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1298,
+        245,
+        1352
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 1150,
+        "background": 8742
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "utility-selected",
+      "scheme": "light",
+      "semanticRegion": "proof-select",
+      "foregroundRole": "linkText",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        190,
+        35,
+        64
+      ],
+      "backgroundRgb": [
+        246,
+        239,
+        234
+      ],
+      "tokenContrastRatio": 5.267,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1286,
+        740,
+        1382
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 959,
+        "background": 63933
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "utility-selected-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-select",
+      "foregroundRole": "linkText",
+      "backgroundRole": "background",
+      "foregroundRgb": [
+        255,
+        107,
+        133
+      ],
+      "backgroundRgb": [
+        24,
+        19,
+        29
+      ],
+      "tokenContrastRatio": 6.692,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1286,
+        740,
+        1382
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 959,
+        "background": 63933
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay",
+      "scheme": "light",
+      "semanticRegion": "proof-overlay",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "surfaceRaised",
+      "foregroundRgb": [
+        35,
+        30,
+        40
+      ],
+      "backgroundRgb": [
+        255,
+        255,
+        255
+      ],
+      "tokenContrastRatio": 16.307,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        1155,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 8204,
+        "background": 291576
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-overlay",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "surfaceRaised",
+      "foregroundRgb": [
+        252,
+        248,
+        250
+      ],
+      "backgroundRgb": [
+        50,
+        40,
+        58
+      ],
+      "tokenContrastRatio": 13.296,
+      "minimum": 4.5,
+      "bounds": [
+        0,
+        1155,
+        780,
+        1592
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 8204,
+        "background": 291259
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay",
+      "scheme": "light",
+      "semanticRegion": "proof-overlay-heading",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "surfaceRaised",
+      "foregroundRgb": [
+        35,
+        30,
+        40
+      ],
+      "backgroundRgb": [
+        255,
+        255,
+        255
+      ],
+      "tokenContrastRatio": 16.307,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1155,
+        582,
+        1223
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 4203,
+        "background": 29729
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-overlay-heading",
+      "foregroundRole": "textPrimary",
+      "backgroundRole": "surfaceRaised",
+      "foregroundRgb": [
+        252,
+        248,
+        250
+      ],
+      "backgroundRgb": [
+        50,
+        40,
+        58
+      ],
+      "tokenContrastRatio": 13.296,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1155,
+        582,
+        1223
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 4203,
+        "background": 29729
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay",
+      "scheme": "light",
+      "semanticRegion": "proof-close",
+      "foregroundRole": "onAccent",
+      "backgroundRole": "brandStrong",
+      "foregroundRgb": [
+        255,
+        255,
+        255
+      ],
+      "backgroundRgb": [
+        190,
+        35,
+        64
+      ],
+      "tokenContrastRatio": 5.993,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1432,
+        269,
+        1528
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 2165,
+        "background": 18757
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "overlay-dark",
+      "scheme": "dark",
+      "semanticRegion": "proof-close",
+      "foregroundRole": "onAccent",
+      "backgroundRole": "brandStrong",
+      "foregroundRgb": [
+        255,
+        255,
+        255
+      ],
+      "backgroundRgb": [
+        190,
+        35,
+        64
+      ],
+      "tokenContrastRatio": 5.993,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        1432,
+        269,
+        1528
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 317,
+        "background": 18765
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    },
+    {
+      "scene": "error",
+      "scheme": "light",
+      "semanticRegion": "proof-error",
+      "foregroundRole": "error",
+      "backgroundRole": "surfaceSubtle",
+      "foregroundRgb": [
+        184,
+        20,
+        52
+      ],
+      "backgroundRgb": [
+        240,
+        230,
+        223
+      ],
+      "tokenContrastRatio": 5.361,
+      "minimum": 4.5,
+      "bounds": [
+        40,
+        293,
+        740,
+        851
+      ],
+      "exactTokenPixelCounts": {
+        "foreground": 1142,
+        "background": 301817
+      },
+      "passed": true,
+      "reason": "Token contrast and exact role pixels observed"
+    }
+  ],
+  "sourceCommit": "0dffed3e1e3beaaaf54adac3395fb221e1d46e12",
+  "apkSha256": "614d3d14f09253ac115828a9e39d4296006dfd019b2938f705f9183a24bba152",
+  "limitations": "Exact pixels in bounded semantics regions supplement token calculations; this does not prove adjacency, every text edge, focus appearance, or human assistive-technology operation."
+}

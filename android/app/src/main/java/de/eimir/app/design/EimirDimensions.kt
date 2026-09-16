@@ -24,10 +24,9 @@ data class EimirSpacing(
     val step10: Dp,
     val step12: Dp,
     val step16: Dp,
+    /** Resolved from the current window width; all other spacing steps stay stable. */
+    val pageMargin: Dp = step5,
 ) {
-    /** Outer page margin on a compact window per `docs/SCREEN-TEMPLATES.md`. */
-    val pageMargin: Dp get() = step5
-
     /** Standard spacing inside a card. */
     val cardPadding: Dp get() = step6
 
@@ -78,6 +77,18 @@ internal val eimirRadii = with(GeneratedDimensionTokens) {
         pill = RADIUS_PILL.dp,
     )
 }
+
+/** D7 uses logical window width, including split-screen and configuration changes. */
+internal fun spacingForWindowWidth(width: Dp): EimirSpacing = eimirSpacing.copy(
+    pageMargin = if (width < GeneratedLayoutTokens.COMPACT_COMFORTABLE_MIN.dp) {
+        GeneratedLayoutTokens.MOBILE_GUTTER_NARROW.dp
+    } else {
+        GeneratedLayoutTokens.MOBILE_GUTTER.dp
+    },
+)
+
+/** Maximum readable content measure; adaptation does not stretch prose indefinitely. */
+val EimirReadingWidth: Dp = GeneratedLayoutTokens.READING_MAX.dp
 
 internal val eimirShapes = Shapes(
     extraSmall = RoundedCornerShape(eimirRadii.small),

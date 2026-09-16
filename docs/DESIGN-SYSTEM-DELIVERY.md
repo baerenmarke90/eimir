@@ -159,6 +159,13 @@ Each entry shows:
 
 The catalog is a development tool, not a public product page.
 
+The first bounded v1 proof is [F1 visual foundations](product/design/f1-visual-foundations.md):
+one Web development/test entry and one Android debug-only Activity. Its role
+mapping and evidence identify what is delivered; it does not claim a complete
+catalog, migrated R1–R5 screens or a shared F2 sheet implementation. The
+production Web build and Android release manifest must exclude the proof entry
+and its fixture assets.
+
 ## 7. Component API rules
 
 - Components are named by purpose, not appearance: `VisibilityControl`, not `PinkChip`.

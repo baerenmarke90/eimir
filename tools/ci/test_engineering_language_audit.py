@@ -6,10 +6,23 @@ import unittest
 from pathlib import Path
 
 from documentation_language_audit import check_documentation_file, documentation_files
-from engineering_language_audit import check_file
+from engineering_language_audit import _is_excluded_platform_path, check_file
 
 
 class EngineeringLanguageAuditTest(unittest.TestCase):
+    def test_visual_proof_excludes_only_localization_resources(self) -> None:
+        for resource in (
+            "android/app/src/debug/res/values/strings_visual_proof.xml",
+            "web/e2e/fixtures/locales/de.ts",
+        ):
+            self.assertTrue(_is_excluded_platform_path(Path(resource)))
+        for implementation in (
+            "android/app/src/debug/java/de/eimir/app/design/VisualRolesProofActivity.kt",
+            "web/e2e/fixtures/product-reference-foundations.tsx",
+            "web/e2e/tests/product-reference-foundations.spec.ts",
+        ):
+            self.assertFalse(_is_excluded_platform_path(Path(implementation)))
+
     def test_legacy_engineering_marker_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.md"

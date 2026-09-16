@@ -19,6 +19,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 
 /**
  * Derives the Material 3 scheme from the semantic roles.
@@ -84,6 +85,7 @@ fun EimirTheme(
     val colors = if (darkTheme) darkEimirColors else lightEimirColors
     val colorScheme = if (darkTheme) EimirDarkColorScheme else EimirLightColorScheme
     val view = LocalView.current
+    val spacing = spacingForWindowWidth(LocalWindowInfo.current.containerDpSize.width)
 
     SideEffect {
         if (!view.isInEditMode) {
@@ -99,7 +101,7 @@ fun EimirTheme(
 
     CompositionLocalProvider(
         LocalEimirColors provides colors,
-        LocalEimirSpacing provides eimirSpacing,
+        LocalEimirSpacing provides spacing,
         LocalEimirRadii provides eimirRadii,
     ) {
         MaterialTheme(
@@ -113,6 +115,8 @@ fun EimirTheme(
 
 /** Semantic roles that Material 3 does not carry, addressed by name. */
 object EimirTheme {
+    val contentTypography: EimirContentTypography get() = eimirContentTypography
+
     val colors: EimirColors
         @Composable @ReadOnlyComposable get() = LocalEimirColors.current
 

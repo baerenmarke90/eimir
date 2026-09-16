@@ -109,7 +109,7 @@ const DARK_RUNTIME_ROLES = [
 describe('design token authority and drift enforcement', () => {
   it('enforces canonical metadata in design/tokens.json', () => {
     expect(tokensJson.meta.name).toBe('eimir. Design Tokens');
-    expect(tokensJson.meta.version).toBe('2.0.0');
+    expect(tokensJson.meta.version).toBe('2.1.0');
     expect(tokensJson.meta.status).toBe('foundation');
   });
 

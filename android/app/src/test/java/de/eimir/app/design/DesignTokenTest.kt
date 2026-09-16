@@ -1,6 +1,7 @@
 package de.eimir.app.design
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import java.io.File
 import kotlin.math.max
 import kotlin.math.min
@@ -126,6 +127,57 @@ class DesignTokenTest {
         assertEquals(lightEimirColors.brandStrong, EimirLightColorScheme.primary)
         assertEquals(lightEimirColors.shared, EimirLightColorScheme.secondary)
         assertEquals(lightEimirColors.private, EimirLightColorScheme.tertiary)
+    }
+
+    @Test
+    fun compactGutterChangesAtTheApprovedBoundaryWithoutChangingTheSpacingScale() {
+        for (width in listOf(320, 360, 389)) {
+            assertEquals(16.dp, spacingForWindowWidth(width.dp).pageMargin)
+        }
+        for (width in listOf(390, 430, 840)) {
+            assertEquals(20.dp, spacingForWindowWidth(width.dp).pageMargin)
+        }
+        assertEquals(eimirSpacing.sectionGap, spacingForWindowWidth(360.dp).sectionGap)
+        assertEquals(
+            tokens.child("layout").child("breakpoint").dimension("compactComfortableMin"),
+            GeneratedLayoutTokens.COMPACT_COMFORTABLE_MIN,
+            0.001f,
+        )
+    }
+
+    @Test
+    fun contentRolesReuseTheSharedMetricsAndTheCorrectFamily() {
+        assertEquals(heading2Style.fontSize, eimirContentTypography.personalHeading.fontSize)
+        assertEquals(EimirDisplayFamily, eimirContentTypography.personalHeading.fontFamily)
+        val semibold = tokens.child("font").child("weight").child("semibold").getValue("\u0024value").jsonPrimitive.int
+        assertEquals(semibold, eimirContentTypography.personalHeading.fontWeight?.weight)
+        assertEquals(semibold, eimirContentTypography.utilityHeading.fontWeight?.weight)
+        assertEquals(heading3Style.fontSize, eimirContentTypography.contentTitle.fontSize)
+        assertEquals(EimirDisplayFamily, eimirContentTypography.contentTitle.fontFamily)
+        assertEquals(EimirUiFamily, eimirContentTypography.utilityHeading.fontFamily)
+        assertEquals(bodyStyle, eimirContentTypography.reading)
+        assertEquals(bodySmallStyle, eimirContentTypography.supporting)
+    }
+
+    @Test
+    fun linkTextAndSupportingCopyRemainReadableWithoutChangingFilledActions() {
+        for (colors in listOf(lightEimirColors, darkEimirColors)) {
+            for (surface in listOf(colors.background, colors.surface, colors.surfaceRaised)) {
+                assertContrast(colors.linkText, surface)
+                assertContrast(colors.textSecondary, surface)
+            }
+            assertContrast(colors.onAccent, colors.brandStrong)
+        }
+        assertEquals(lightEimirColors.brandStrong, lightEimirColors.linkText)
+        assertEquals(darkEimirColors.brand, darkEimirColors.linkText)
+    }
+
+    @Test
+    fun motionDurationsComeFromTheSharedSource() {
+        val duration = tokens.child("motion").child("duration")
+        assertEquals(duration.child("standard").text("\u0024value").removeSuffix("ms").toInt(), EimirMotion.standardMillis)
+        assertTrue(EimirMotion.fastMillis < EimirMotion.standardMillis)
+        assertTrue(EimirMotion.standardMillis < EimirMotion.emphasizedMillis)
     }
 
     private fun assertSchemeMatchesTokens(name: String, colors: EimirColors) {

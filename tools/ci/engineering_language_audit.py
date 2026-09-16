@@ -80,6 +80,10 @@ EXCLUDED_PLATFORM_PATHS = {
     Path("android/gradlew.bat"),
     Path("android/gradle/verification-metadata.xml"),
     Path("android/app/src/main/res/values/strings.xml"),
+    # F1 internal proof copy is localization-owned, like production resources.
+    # Its Kotlin/TSX implementation and tests remain inside the audit boundary.
+    Path("android/app/src/debug/res/values/strings_visual_proof.xml"),
+    Path("web/e2e/fixtures/locales/de.ts"),
     Path("web/package-lock.json"),
     Path("tools/ci/engineering_language_audit.py"),
     Path("tools/ci/test_engineering_language_audit.py"),

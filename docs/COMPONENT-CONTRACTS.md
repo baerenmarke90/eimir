@@ -177,6 +177,39 @@ action.
 - Delete is available through a menu and may additionally be exposed as a
   gesture.
 
+### 6.5 Product Reference v1 visual roles
+
+These are additive platform adapter roles, not a universal content renderer.
+The [F1 delivery and evidence](product/design/f1-visual-foundations.md) records
+the concrete APIs, usage, existing consumers and validation scope.
+
+- Personal/content headings use the existing editorial family selectively;
+  utility headings, authored prose, support and actions use the UI family.
+  Semantic heading levels follow reading order independently of visual size.
+- Supporting text uses a compliant secondary-text role. Link text uses the
+  scheme-appropriate strong/bright coral pairing; filled actions retain
+  strong coral and on-accent. Existing legacy consumers are not silently
+  reclassified as migrated.
+- Page, readable content, meaningful tint and raised overlay retain separate
+  purposes. Spacing and content order normally separate sections; an ordinary
+  photo/text item does not gain a resting shadow or nested card boundary.
+- Media uses the existing large radius, independent bounded content the card
+  radius and sheets the sheet radius. Caption text remains readable below the
+  image. A full image view exposes the complete image; absent media differs
+  from loading or failed media.
+- Compact page gutters resolve to the tokenized narrow or comfortable value
+  from available width. Resizing does not reset content/selection. Insets and
+  keyboard protection remain platform responsibilities.
+- Fast feedback, ordinary transitions and contextual reveals use existing
+  duration/easing roles. Reduced motion retains status, meaning and actions.
+
+The internal Web fixture and Android debug Activity exercise photo, text,
+utility, loading/error/retry and overlay roles with synthetic data. Their
+detail/return and fixture-completion actions demonstrate the bounded proof;
+they do not implement production capture, persistence or F2 task lifecycle.
+Do not expose these fixtures as a public product destination or infer that
+R1–R5 have been migrated from their presence.
+
 ## 7. Privacy and status components
 
 ### 7.1 Visibility Control

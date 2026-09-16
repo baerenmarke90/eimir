@@ -20,12 +20,14 @@ ARG VITE_SBS_DEMO_URL=""
 ARG VITE_SBS_DEMO_RESET_TIMER=""
 ARG VITE_SBS_DEMO_RESET_INTERVAL=""
 RUN sh scripts/test_csp_config.sh
+# The supported Web-only context consumes the checked-in generated adapter.
+# Canonical design/tokens.json drift is validated by the monorepo build/test CI.
 RUN export VITE_EIMIR_API_BASE_URL="${VITE_EIMIR_API_BASE_URL:-$VITE_SBS_API_BASE_URL}" \
     VITE_EIMIR_DEMO_MODE="${VITE_EIMIR_DEMO_MODE:-$VITE_SBS_DEMO_MODE}" \
     VITE_EIMIR_DEMO_URL="${VITE_EIMIR_DEMO_URL:-$VITE_SBS_DEMO_URL}" \
     VITE_EIMIR_DEMO_RESET_TIMER="${VITE_EIMIR_DEMO_RESET_TIMER:-$VITE_SBS_DEMO_RESET_TIMER}" \
     VITE_EIMIR_DEMO_RESET_INTERVAL="${VITE_EIMIR_DEMO_RESET_INTERVAL:-$VITE_SBS_DEMO_RESET_INTERVAL}" \
-    && npm run build
+    && npm run build:bundle
 RUN mkdir -p dist/.well-known \
     && revision="${EIMIR_BUILD_REVISION:-$SBS_BUILD_REVISION}" \
     && printf '%s\n' "$revision" > dist/.well-known/eimir-revision \

@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "build": "npm run tokens:check && npm run build:bundle",
+    "build:bundle": "tsc -b && vite build",
+    "test": "npm run tokens:check && vitest run",
+    "tokens:generate": "node scripts/generate-product-roles.mjs",
+    "tokens:check": "node scripts/generate-product-roles.mjs --check",
     "typecheck": "tsc -b --pretty false",
     "lint": "biome lint .",
     "format:check": "biome format .",

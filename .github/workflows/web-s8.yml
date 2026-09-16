@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "web/**"
+      - "design/tokens.json"
       - ".github/workflows/web-s8.yml"
 
 permissions:

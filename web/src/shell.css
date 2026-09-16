@@ -487,7 +487,7 @@
 }
 
 .product-main {
-  width: calc(100% - 2rem);
+  width: calc(100% - 2 * var(--page-gutter));
   margin: 0 auto;
   padding: clamp(var(--space-6), 4vw, var(--space-10)) 0
     var(--shell-content-bottom-clearance);

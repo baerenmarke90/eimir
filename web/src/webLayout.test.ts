@@ -117,6 +117,7 @@ describe('web layout tokens', () => {
       shellCss,
       layoutCss,
       readSource('./theme.css'),
+      readSource('./design/product-roles.css'),
       readSource('./story-media.css'),
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),

@@ -41,6 +41,10 @@ jobs:
         working-directory: web
         run: npm run build
 
+      - name: Typecheck internal visual proof
+        working-directory: web
+        run: ./node_modules/.bin/tsc -p e2e/fixtures/tsconfig.json
+
       - name: Install pinned Chromium runtime
         working-directory: web/e2e
         run: ./node_modules/.bin/playwright install --with-deps chromium
@@ -61,5 +65,7 @@ jobs:
             web/e2e/test-results/**/private-area-*.png
             web/e2e/test-results/**/*story-*.png
             web/e2e/test-results/**/wish-detective-*.png
+            web/e2e/test-results/**/f1-*.png
+            web/e2e/test-results/**/f1-*.json
           if-no-files-found: error
           retention-days: 3

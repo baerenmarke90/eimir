@@ -70,6 +70,10 @@ abstract class GenerateDesignTokens : DefaultTask() {
             appendDimensionObject(tokens)
             appendLine()
             appendTypographyObject(tokens)
+            appendLine()
+            appendLayoutObject(tokens)
+            appendLine()
+            appendMotionObject(tokens)
         }
 
         val target = outputDirectory.get().asFile.resolve("de/eimir/app/design")
@@ -135,6 +139,9 @@ abstract class GenerateDesignTokens : DefaultTask() {
 
     private fun StringBuilder.appendTypographyObject(tokens: Map<String, Any?>) {
         appendLine("internal object GeneratedTypographyTokens {")
+        val semibold = tokens.getValue("font").asMap().getValue("weight").asMap()
+            .getValue("semibold").asMap().getValue(valueKey)
+        appendLine("    const val SEMIBOLD_WEIGHT: Int = " + semibold)
         for ((key, raw) in tokens.getValue("typography").asMap()) {
             if (!raw.isTokenValue()) continue
             val value = raw.asMap().getValue(valueKey).asMap()
@@ -148,6 +155,39 @@ abstract class GenerateDesignTokens : DefaultTask() {
             appendLine("        const val FONT_WEIGHT: Int = " + fontWeight)
             appendLine("        const val LETTER_SPACING_EM: Float = " + letterSpacing + "f")
             appendLine("    }")
+        }
+        appendLine("}")
+    }
+
+    private fun StringBuilder.appendLayoutObject(tokens: Map<String, Any?>) {
+        fun dimension(path: String): String {
+            val entry = path.split('.').fold(tokens as Any?) { node, key -> node.asMap().getValue(key) }
+            val value = entry.asMap().getValue(valueKey) as String
+            return if (value.startsWith("{")) dimension(value.trim('{', '}')) else value.removeSuffix("px")
+        }
+        appendLine("internal object GeneratedLayoutTokens {")
+        for ((name, path) in mapOf(
+            "MOBILE_GUTTER" to "layout.mobileGutter",
+            "MOBILE_GUTTER_NARROW" to "layout.mobileGutterNarrow",
+            "COMPACT_COMFORTABLE_MIN" to "layout.breakpoint.compactComfortableMin",
+            "READING_MAX" to "layout.readingMax",
+        )) {
+            appendLine("    const val " + name + ": Float = " + dimension(path) + "f")
+        }
+        appendLine("}")
+    }
+
+    private fun StringBuilder.appendMotionObject(tokens: Map<String, Any?>) {
+        val motion = tokens.getValue("motion").asMap()
+        appendLine("internal object GeneratedMotionTokens {")
+        for ((key, raw) in motion.getValue("duration").asMap()) {
+            if (!raw.isTokenValue()) continue
+            val value = (raw.asMap().getValue(valueKey) as String).removeSuffix("ms")
+            appendLine("    const val " + constantName(key) + "_MILLIS: Int = " + value)
+        }
+        val curve = motion.getValue("easing").asMap().getValue("standard").asMap().getValue(valueKey) as List<*>
+        for ((index, value) in curve.withIndex()) {
+            appendLine("    const val STANDARD_EASING_" + index + ": Float = " + (value as Number).toFloat() + "f")
         }
         appendLine("}")
     }
@@ -166,6 +206,26 @@ val generatedDesignTokens = layout.buildDirectory.dir("generated/designTokens")
 val generateDesignTokens by tasks.registering(GenerateDesignTokens::class) {
     tokensFile.set(layout.projectDirectory.file("../../design/tokens.json"))
     outputDirectory.set(generatedDesignTokens)
+}
+
+// One existing approved photograph is available only to the internal debug proof.
+abstract class PrepareVisualProofAssets : DefaultTask() {
+    @get:InputFile
+    abstract val sourceFile: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @TaskAction
+    fun copyPhoto() {
+        val target = outputDirectory.get().asFile
+        target.mkdirs()
+        sourceFile.get().asFile.copyTo(target.resolve("cabin-lake.jpg"), overwrite = true)
+    }
+}
+
+val prepareVisualProofAssets by tasks.registering(PrepareVisualProofAssets::class) {
+    sourceFile.set(layout.projectDirectory.file("../../backend/demo_assets/images/cabin-lake.jpg"))
 }
 
 val preparedGeneratedModels = layout.buildDirectory.dir("generated/s8ApiModels")
@@ -285,6 +345,10 @@ android {
 android.sourceSets.named("main") {
     kotlin.directories += preparedGeneratedModels.get().asFile.path
     kotlin.directories += generatedDesignTokens.get().asFile.path
+}
+
+androidComponents.onVariants(androidComponents.selector().withBuildType("debug")) { variant ->
+    variant.sources.assets?.addGeneratedSourceDirectory(prepareVisualProofAssets, PrepareVisualProofAssets::outputDirectory)
 }
 
 tasks.named("preBuild").configure {

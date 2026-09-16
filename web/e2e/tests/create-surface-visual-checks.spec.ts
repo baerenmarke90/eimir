@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 
@@ -500,7 +500,10 @@ for (const width of [390, 320] as const) {
       if (!summaryBox) throw new Error('Summary did not render.');
       // Mobile touch target: minimum 44px height
       expect(summaryBox.height).toBeGreaterThanOrEqual(44);
-      expect(summaryBox.width).toBeGreaterThanOrEqual(width - 80);
+      // Fill the content region independently of responsive page gutters.
+      expect(summaryBox.width).toBeGreaterThanOrEqual(44);
+      expect(summaryBox.x).toBeCloseTo(detailsBox.x, 1);
+      expect(summaryBox.width).toBeCloseTo(detailsBox.width, 1);
 
       // Verify native details open/close toggle and stable resting material (#888)
       const closedBg = await summary.evaluate(

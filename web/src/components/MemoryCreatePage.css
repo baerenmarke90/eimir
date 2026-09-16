@@ -50,6 +50,18 @@
   );
 }
 
+/* Browser zoom can leave the viewport media query in its expanded range while
+ * the actual product-content container has already reflowed to Compact width.
+ * Match the established Compact composer rhythm from memory-create-polish.css
+ * at that container width instead of keeping the expanded vertical gaps. */
+@container product-content (max-width: 22rem) {
+  .memory-task-page.create-page
+    .immersive-create-card[aria-labelledby="memory-form-heading"]
+    .immersive-create-form {
+    gap: var(--space-4);
+  }
+}
+
 /* Keep enlarged text readable when the content has fewer ems available. */
 @container product-content (max-width: 17.5rem) {
   .memory-task-page.create-page

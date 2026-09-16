@@ -274,7 +274,9 @@ test('text-only with the default date saves a non-empty localized fallback title
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
   const expectedDate = await browserLocalToday(page);
 
   const requestBody = await submitAndReadCreateRequest(page);
@@ -297,7 +299,9 @@ test('a selected date wins and is also used by a text-only fallback title', asyn
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('2025-12-24');
 
@@ -312,7 +316,9 @@ test('text-only with a cleared date and whitespace title falls back using local 
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
-  await page.getByLabel(de.memory.bodyLabel).fill(AUTHORED_BODY);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
   await page.getByLabel(de.memory.titleLabelOptional).fill('   ');
   await openDateEditor(page);
   await page.getByLabel(de.memory.dateLabel).fill('');

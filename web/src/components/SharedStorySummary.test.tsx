@@ -48,22 +48,20 @@ describe('SharedStorySummary', () => {
       html.indexOf(m5s5.dashboard.storySummaryHeartMoments),
     );
 
-    // A quiet linked reflection, not a KPI definition/badge group.
-    expect(html).toContain('<ul');
-    expect(html).toContain('<li');
+    expect(html).toContain('<dl');
+    expect(html).toContain('<dt>');
+    expect(html).toContain('<dd>');
     expect(html).not.toContain('button');
 
-    // Exactly 2 metric wrappers, no placeholder element
     const metricMatches = html.match(/shared-story-summary-metric/g);
     expect(metricMatches).toHaveLength(2);
 
-    // Each visible count/category phrase is a link with stable query contract.
     expect(html).toContain('href="/story?tab=timeline&amp;type=MEMORY"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=HEART_MOMENT"');
     expect(html).not.toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
   });
 
-  it('renders all three visible metrics in sequence as quiet text links', () => {
+  it('renders all three visible metrics in sequence with motifs and links', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <SharedStorySummary
@@ -77,25 +75,23 @@ describe('SharedStorySummary', () => {
     expect(html).toContain(m5s5.dashboard.storySummaryHeartMoments);
     expect(html).toContain(m5s5.dashboard.storySummaryMilestones);
 
-    // Preserves order: Memories -> HeartMoments -> Milestones
     const posMemories = html.indexOf(m5s5.dashboard.storySummaryMemories);
     const posHeart = html.indexOf(m5s5.dashboard.storySummaryHeartMoments);
     const posMilestones = html.indexOf(m5s5.dashboard.storySummaryMilestones);
     expect(posMemories).toBeLessThan(posHeart);
     expect(posHeart).toBeLessThan(posMilestones);
 
-    // Exactly 3 metric items
     const metricMatches = html.match(/shared-story-summary-metric/g);
     expect(metricMatches).toHaveLength(3);
 
-    // Touch targets & query contracts
     expect(html).toContain('href="/story?tab=timeline&amp;type=MEMORY"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=HEART_MOMENT"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
 
-    // R4 removes the decorative statistic-badge/KPI treatment.
-    expect(html).not.toContain('story-badge-motif');
-    expect(html).not.toContain('shared-story-summary-badge');
+    expect(html).toContain('story-badge-motif-polaroid');
+    expect(html).toContain('story-badge-motif-heart');
+    expect(html).toContain('story-badge-motif-pennant');
+    expect(html).toContain('aria-hidden="true"');
   });
 
   it('renders alternative two-metric state (heartMoments and milestones)', () => {

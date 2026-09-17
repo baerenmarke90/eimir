@@ -119,6 +119,7 @@ PLACE = {"name": "Matrix Place", "latitude": 52.520008, "longitude": 13.404954}
 CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
+STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -280,6 +281,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/search",

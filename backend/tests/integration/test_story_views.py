@@ -30,6 +30,15 @@ from tests.conftest import auth, make_account, make_space, requires_database, si
 pytestmark = [pytest.mark.integration, requires_database]
 
 
+class _RecordHandler(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+
 @pytest.fixture
 def story_setup(session: Session) -> dict[str, object]:
     viewer = make_account(session, "Viewer")
@@ -453,23 +462,38 @@ def test_write_endpoint_logs_route_but_not_request_item_id(
     client,
     session: Session,
     story_setup,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:  # type: ignore[no-untyped-def]
     viewer = story_setup["viewer"]
     space = story_setup["space"]
     item_id = str(story_setup["memory"].id)  # type: ignore[union-attr]
     token = sign_in(session, viewer)
+    path = f"/api/v1/spaces/{space.id}/story-views"  # type: ignore[union-attr]
+    access_logger = logging.getLogger("eimir.access")
+    handler = _RecordHandler()
+    previous_level = access_logger.level
+    previous_disabled = access_logger.disabled
 
-    with caplog.at_level(logging.INFO, logger="eimir.access"):
+    access_logger.addHandler(handler)
+    access_logger.setLevel(logging.INFO)
+    access_logger.disabled = False
+    try:
         response = client.post(
-            f"/api/v1/spaces/{space.id}/story-views",  # type: ignore[union-attr]
+            path,
             json={"kind": "MEMORY", "itemId": item_id},
             headers=auth(token),
         )
+    finally:
+        access_logger.removeHandler(handler)
+        access_logger.setLevel(previous_level)
+        access_logger.disabled = previous_disabled
 
     assert response.status_code == 204
-    assert item_id not in caplog.text
-    assert "/story-views" in caplog.text
+    relevant_records = [
+        record for record in handler.records if getattr(record, "http_path", "") == path
+    ]
+    assert relevant_records, "expected eimir.access to record the Story-view request"
+    assert all("/story-views" in record.getMessage() for record in relevant_records)
+    assert all(item_id not in record.getMessage() for record in relevant_records)
 
 
 def test_story_views_has_no_read_api(client, session: Session, story_setup) -> None:  # type: ignore[no-untyped-def]

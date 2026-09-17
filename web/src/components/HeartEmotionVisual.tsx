@@ -128,11 +128,11 @@ export function HeartEmotionBadge({
     <span
       className={`heart-emotion-badge heart-emotion-badge--${variant} ${className}`.trim()}
       data-emotion={emotion}
-      aria-label={`${t('heartMomentProduct.emotionLabel')}: ${label}`}
     >
       <span className="heart-emotion-icon" aria-hidden="true">
         <EmotionIcon emotion={emotion} />
       </span>
+      <span className="sr-only">{t('heartMomentProduct.emotionLabel')}: </span>
       <span className="heart-emotion-label">{label}</span>
     </span>
   );

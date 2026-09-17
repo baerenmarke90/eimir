@@ -1,12 +1,15 @@
+// @vitest-environment jsdom
+import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   computeScrollNavStep,
   createInitialScrollNavState,
   isHideOnScrollRoute,
+  useHideOnScrollNav,
 } from './useHideOnScrollNav';
 
 describe('isHideOnScrollRoute', () => {
-  it('enables hide-on-scroll for Momente / Timeline and Entdecken feeds', () => {
+  it('enables hide-on-scroll for Momente feed surfaces and year archives', () => {
     expect(isHideOnScrollRoute('/story')).toBe(true);
     expect(isHideOnScrollRoute('/story/years')).toBe(true);
     expect(isHideOnScrollRoute('/story/years/2026')).toBe(true);
@@ -206,5 +209,68 @@ describe('computeScrollNavStep', () => {
       ...scrollablePage,
     });
     expect(state.isVisible).toBe(true);
+  });
+});
+
+describe('useHideOnScrollNav hook', () => {
+  it('starts visible on /story?tab=discover', () => {
+    const { result } = renderHook(() =>
+      useHideOnScrollNav('/story', '?tab=discover'),
+    );
+    expect(result.current.isVisible).toBe(true);
+  });
+
+  it('resets visibility to visible when switching search params between discover and timeline', () => {
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      value: 3000,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 800,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+
+    const { result, rerender } = renderHook(
+      ({ pathname, search }: { pathname: string; search: string }) =>
+        useHideOnScrollNav(pathname, search),
+      {
+        initialProps: { pathname: '/story', search: '?tab=discover' },
+      },
+    );
+
+    expect(result.current.isVisible).toBe(true);
+
+    // Simulate downward scroll by 100px (> 50px threshold)
+    act(() => {
+      window.scrollY = 100;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(result.current.isVisible).toBe(false);
+
+    // Switch peer mode: /story?tab=discover -> /story?tab=timeline
+    act(() => {
+      rerender({ pathname: '/story', search: '?tab=timeline' });
+    });
+    // Navigation identity change MUST restore visibility!
+    expect(result.current.isVisible).toBe(true);
+
+    // Scroll down again on timeline mode
+    act(() => {
+      window.scrollY = 200;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(result.current.isVisible).toBe(false);
+
+    // Switch reverse mode: /story?tab=timeline -> /story?tab=discover
+    act(() => {
+      rerender({ pathname: '/story', search: '?tab=discover' });
+    });
+    // Reverse switch also restores visibility!
+    expect(result.current.isVisible).toBe(true);
   });
 });

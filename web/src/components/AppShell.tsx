@@ -149,7 +149,7 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
-    useHideOnScrollNav(location.pathname);
+    useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const isMemoryTask = location.pathname === MEMORY_CREATE_ROUTE;
   const gamesPath = appRoutePath('games');

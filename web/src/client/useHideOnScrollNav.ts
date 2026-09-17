@@ -27,7 +27,7 @@ export const HIDE_ON_SCROLL_CONSTANTS = {
  * where hide-on-scroll should be active.
  *
  * Requirements:
- * - Momente / Timeline & Entdecken (/story, /story/years, /story/years/:year): true
+ * - Momente feeds on /story (including ?tab=discover and ?tab=timeline) as well as year archives (/story/years): true
  * - Form / Create / Edit flows (/new, /edit): false (persistent/follow flow behaviour)
  * - Heute (/today), Planen (/plan), Mehr (/more), Games (/games): false (persistent by default)
  */
@@ -162,21 +162,27 @@ export function computeScrollNavStep(
 
 /**
  * Hook to manage context-aware hide-on-scroll for the floating bottom shell.
+ *
+ * Resets visibility on navigation identity changes (pathname + search),
+ * covering both route changes and same-path peer mode transitions
+ * such as Momente Discover <-> Timeline (/story?tab=discover <-> /story?tab=timeline) (#970).
  */
-export function useHideOnScrollNav(pathname: string) {
+export function useHideOnScrollNav(pathname: string, search = '') {
   const isEnabled = isHideOnScrollRoute(pathname);
   const [isVisible, setIsVisible] = useState(true);
   const stateRef = useRef<ScrollNavigationState>(createInitialScrollNavState());
   const shellRef = useRef<HTMLDivElement | null>(null);
 
-  // Route changes always restore correct visible navigation state
+  const navigationKey = `${pathname}${search}`;
+
+  // Navigation identity changes (route or peer mode search params) always restore visible navigation state
   useEffect(() => {
-    void pathname;
+    void navigationKey;
     stateRef.current = createInitialScrollNavState(
       typeof window !== 'undefined' ? window.scrollY : 0,
     );
     setIsVisible(true);
-  }, [pathname]);
+  }, [navigationKey]);
 
   useEffect(() => {
     if (!isEnabled || typeof window === 'undefined') {
@@ -186,11 +192,16 @@ export function useHideOnScrollNav(pathname: string) {
 
     const handleScroll = (event: Event) => {
       // Nested controls must not accidentally hide global navigation
-      if (
-        event.target !== document &&
-        event.target !== window &&
-        event.target !== document.documentElement
-      ) {
+      const target = event.target;
+      const isRootTarget =
+        !target ||
+        target === window ||
+        target === document ||
+        target === document.documentElement ||
+        target === document.body ||
+        target === event.currentTarget;
+
+      if (!isRootTarget) {
         return;
       }
 

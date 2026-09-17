@@ -635,4 +635,61 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
       dimensionsBefore.scrollWidth,
     );
   });
+
+  test('Momente same-path peer mode navigation: switching Discover ↔ Timeline through product UI restores visible bottom navigation (#970)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+
+    // 1. Open /story?tab=discover
+    await page.goto('/story?tab=discover');
+    await page.waitForSelector('.momente-discover-page');
+    const bottomShell = page.locator('.mobile-bottom-shell');
+    await expect(bottomShell).toBeVisible();
+    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
+
+    // 2. Scroll enough to hide the bottom bar (> 50px downward scroll)
+    await page.evaluate(() => {
+      window.scrollTo({ top: 80, behavior: 'instant' });
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
+
+    // 3. Switch to Timeline through the actual product UI
+    const timelineTab = page.getByRole('tab', { name: de.story.tabTimeline });
+    await expect(timelineTab).toBeVisible();
+    await timelineTab.click();
+
+    // Verify switch to Timeline mode
+    await page.waitForSelector('.story-timeline');
+    await expect(page).toHaveURL(/.*[?&]tab=timeline/);
+
+    // 4. Assert bottom navigation becomes visible
+    await expect(bottomShell).toBeVisible();
+    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
+
+    // 5. Verify reverse mode switch: scroll to hide while in Timeline
+    await page.evaluate(() => {
+      window.scrollTo({ top: window.scrollY + 80, behavior: 'instant' });
+      window.dispatchEvent(new Event('scroll'));
+    });
+    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
+
+    // Switch back to Discover through the actual product UI
+    const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
+    await expect(discoverTab).toBeVisible();
+    await discoverTab.click();
+
+    // Verify switch back to Discover mode
+    await page.waitForSelector('.momente-discover-page');
+    await expect(page).toHaveURL(/.*[?&]tab=discover/);
+
+    // Assert bottom navigation becomes visible on reverse switch
+    await expect(bottomShell).toBeVisible();
+    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
+  });
 });

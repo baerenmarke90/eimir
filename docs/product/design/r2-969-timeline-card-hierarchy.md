@@ -16,13 +16,13 @@ Each Timeline card now reads in this order: photo (when present), title or words
 | `ERINNERUNG` pill on every Memory | No marker; Memory is the default entry and keeps the plain Timeline dot | No marker |
 | `HERZMOMENT` pill (plus `♥` on Android) | Heart-shaped Timeline node; existing soft tint kept | Small heart glyph before the words; existing tint kept |
 | `MEILENSTEIN` pill and a 4 px accent stripe inside the card | Ringed-star Timeline node; stripe removed | Ringed-star glyph before the title; existing restrained border kept |
-| `FÜR UNS BEIDE` pill (Web: Heart Moments; Android: every card) | eimir. rings icon in the footer, Heart Moments only | Same rings icon in the metadata row, Heart Moments only |
-| `von <name>` prose | Avatar and first name | Initials mark and name |
+| Shared-visibility pill (`story.shared`; Web: Heart Moments; Android: every card) | eimir. rings icon in the footer, Heart Moments only | Same rings icon in the metadata row, Heart Moments only |
+| Author prose (`story.byAuthor`) | Avatar and first name | Initials mark and name |
 | `2 Fotos` text | Photo icon and count, named `2 Fotos` | Photo icon and count, named `2 Fotos` |
 
 Kind is shown by shape (dot, heart, ringed star), not colour alone. Web keeps the kind in each card link's accessible name (`Herzmoment: …`) and describes the link with its footer through `aria-describedby`. On Android the glyph's content description is merged into the clickable card for TalkBack.
 
-**Visibility rule.** The Story contract only ever returns shared items: Memories and Milestones are shared by construction, and only shared Heart Moments enter the Story (see `storyItemPresentation`). A shared icon on every card would say nothing, so it appears only on Heart Moments, where sharing was a real choice. Both platforms follow the same rule. The footer also supports the private lock icon (`Nur für mich`), but the current contract never produces a private Story item.
+**Visibility rule.** The Story contract only ever returns shared items: Memories and Milestones are shared by construction, and only shared Heart Moments enter the Story (see `storyItemPresentation`). A shared icon on every card would say nothing, so it appears only on Heart Moments, where sharing was a real choice. Both platforms follow the same rule. The footer also supports the private lock icon (`visibilityPrivate`), but the current contract never produces a private Story item.
 
 ## Metadata footer (Web)
 

@@ -1,5 +1,6 @@
 name: Product Design Review
 
+# Temporary #990 probe marker; this branch/PR must not be merged.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]

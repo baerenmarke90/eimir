@@ -43,6 +43,7 @@ describe('HeartEmotionVisual', () => {
     const badge = container.querySelector('[data-emotion="SEEN"]');
     expect(badge).not.toBeNull();
     expect(badge?.querySelector('svg')).not.toBeNull();
-    expect(badge?.getAttribute('aria-label')).toBe('Gefühl: Gesehen');
+    expect(badge?.textContent).toBe('Gefühl: Gesehen');
+    expect(badge?.hasAttribute('aria-label')).toBe(false);
   });
 });

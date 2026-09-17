@@ -5,8 +5,9 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import { act, render, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import navigation from '../i18n/locales/navigation';
 import { AppShell } from './AppShell';
@@ -425,5 +426,182 @@ describe('AppShell', () => {
     // No standalone FAB outside the mobile-bottom-shell.
     const htmlBeforeShell = html.slice(0, shellIndex);
     expect(htmlBeforeShell).not.toContain('mobile-quick-create');
+  });
+
+  it('keeps focused create tasks free of normal shell navigation', () => {
+    for (const path of [
+      '/story/memories/new',
+      '/plan/plans/new',
+      '/plan/wishes/new',
+    ]) {
+      const html = renderShell(path);
+      expect(html).not.toContain('product-topbar');
+      expect(html).not.toContain('mobile-bottom-shell');
+    }
+  });
+
+  it('sets data-hidden="false" initially on /today, /plan, and /story (#970)', () => {
+    const todayHtml = renderShell('/today');
+    expect(todayHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+
+    const planHtml = renderShell('/plan');
+    expect(planHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+
+    const storyHtml = renderShell('/story');
+    expect(storyHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+  });
+
+  it('keeps floating bottom shell persistent on /today and /plan even when scrolled (#970)', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    const { container, rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/today']}>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <div style={{ height: '3000px' }}>Long content</div>
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const bottomShell = container.querySelector('.mobile-bottom-shell');
+    expect(bottomShell).not.toBeNull();
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Simulate scroll down
+    Object.defineProperty(window, 'scrollY', { value: 500, writable: true });
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    // On /today, it must remain persistent!
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Also check on /plan
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan']}>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <div style={{ height: '3000px' }}>Long content</div>
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const planBottomShell = container.querySelector('.mobile-bottom-shell');
+    expect(planBottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(planBottomShell?.getAttribute('data-hidden')).toBe('false');
+  });
+
+  it('resets data-hidden="false" on same-path search query changes (/story?tab=discover <-> /story?tab=timeline) (#970)', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      value: 3000,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 800,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+
+    let navigateFn: (to: string) => void = () => {};
+    function RouteTrigger() {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigateFn = (to: string) => navigate(to);
+      }, [navigate]);
+      return null;
+    }
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/story?tab=discover']}>
+          <RouteTrigger />
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <div style={{ height: '3000px' }}>Feed content</div>
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const bottomShell = container.querySelector('.mobile-bottom-shell');
+    expect(bottomShell).not.toBeNull();
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Scroll down 100px to hide bottom shell
+    act(() => {
+      window.scrollY = 100;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('true');
+
+    // Peer mode switch on same pathname (/story?tab=discover -> /story?tab=timeline)
+    act(() => {
+      navigateFn('/story?tab=timeline');
+    });
+
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Scroll down again in timeline mode
+    act(() => {
+      window.scrollY = 200;
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('true');
+
+    // Switch back to discover mode (/story?tab=timeline -> /story?tab=discover)
+    act(() => {
+      navigateFn('/story?tab=discover');
+    });
+
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
   });
 });

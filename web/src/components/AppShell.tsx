@@ -10,17 +10,18 @@ import {
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
-import { TaskOriginProvider } from '../client/taskOrigin';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
-  PRIMARY_APP_ROUTES,
   type AppRouteDefinition,
   activeNavigationArea,
   appRoutePath,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  PRIMARY_APP_ROUTES,
   SEARCH_ROUTE,
 } from '../client/routes';
+import { TaskOriginProvider } from '../client/taskOrigin';
+import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
@@ -147,6 +148,8 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
+  const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
+    useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
@@ -280,7 +283,11 @@ function AuthenticatedAppShell({
       </div>
 
       {!isFocusedTask ? (
-        <div className="mobile-bottom-shell">
+        <div
+          ref={bottomNavRef}
+          className="mobile-bottom-shell"
+          data-hidden={!isBottomNavVisible ? 'true' : 'false'}
+        >
           <nav
             className="mobile-bottom-nav"
             aria-label={t('navigation.primary')}

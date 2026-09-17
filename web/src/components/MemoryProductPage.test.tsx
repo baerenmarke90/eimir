@@ -215,7 +215,7 @@ describe('Memory view receipt', () => {
       partners: [],
     });
 
-    const result = render(
+    render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/story/memories/memory-1']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
@@ -249,7 +249,6 @@ describe('Memory view receipt', () => {
     );
 
     return {
-      result,
       recordStoryViewMock,
       resolveQuery: resolveQuery!,
       rejectQuery: rejectQuery!,
@@ -282,23 +281,20 @@ describe('Memory view receipt', () => {
 
     resolveQuery(memory);
 
-    // Presentation must still succeed
     expect(await screen.findByText('A shared evening')).toBeTruthy();
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not create a duplicate receipt burst on rerender or background query activity', async () => {
-    const { recordStoryViewMock, resolveQuery, memory, result, client } =
+    const { recordStoryViewMock, resolveQuery, memory, client } =
       setupReceiptTest();
 
     resolveQuery(memory);
     expect(await screen.findByText('A shared evening')).toBeTruthy();
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
 
-    // Invalidate query to trigger background refetch
-    client.invalidateQueries();
+    await client.invalidateQueries();
 
-    // Still only 1 receipt
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
   });
 
@@ -309,11 +305,7 @@ describe('Memory view receipt', () => {
 
     rejectQuery(new Error('Not Found'));
 
-    // Wait for the UI to settle (it might just remain loading or show error state, but the text won't be there)
-    const err = await screen
-      .findByText('Es gab ein Problem beim Laden der Daten')
-      .catch(() => null);
-    // Note: Eimir has an error boundary, just verifying receipt wasn't called
+    await screen.findByRole('button', { name: de.common.retry });
     expect(recordStoryViewMock).not.toHaveBeenCalled();
   });
 });

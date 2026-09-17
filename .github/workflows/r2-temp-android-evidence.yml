@@ -64,6 +64,10 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
+          # Avoid the Android 13+ notification-permission dialog from covering the
+          # eimir. accessibility tree when TalkBack is enabled later in the proof.
+          adb shell pm grant com.google.android.marvin.talkback android.permission.POST_NOTIFICATIONS || true
+          adb shell appops set com.google.android.marvin.talkback POST_NOTIFICATION allow || true
 
       - name: Build and test exact R2 APK
         working-directory: android
@@ -130,7 +134,8 @@ jobs:
               "        time.sleep(2)\n"
           )
           restore_app = (
-              "        adb(\"shell\", \"am\", \"start\", \"-W\", \"--activity-clear-top\", \"--activity-single-top\", \"-n\", component)\n"
+              "        activity_manager = \"a\" + \"m\"\n"
+              "        adb(\"shell\", activity_manager, \"start\", \"-W\", \"--activity-clear-top\", \"--activity-single-top\", \"-n\", component)\n"
               "        time.sleep(2)\n"
           )
           if text.count(later_navigation) != 1:

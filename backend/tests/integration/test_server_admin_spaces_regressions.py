@@ -55,7 +55,7 @@ def test_first_membership_timestamp_survives_relationship_end(
     membership = relationship.require_membership(session, owner, space.id)
     original_created_at = membership.created_at
 
-    relationship.end_membership(membership)
+    relationship.end_membership(session, membership)
     session.flush()
 
     response = client.get(

@@ -275,12 +275,24 @@ def add_member(session: Session, space_id: UUID, account: Account) -> Membership
     return membership
 
 
-def end_membership(membership: Membership, *, removed: bool = False) -> None:
+def end_membership(
+    session: Session,
+    membership: Membership,
+    *,
+    removed: bool = False,
+) -> None:
     """End a membership without deleting it.
 
     Deleting it would make it impossible to determine later who created
     content.
     """
+    from eimir.story import view_service
+
+    view_service.purge_viewer_for_space(
+        session,
+        space_id=membership.space_id,
+        viewer_account_id=membership.account_id,
+    )
     membership.status = MembershipStatus.REMOVED.value if removed else MembershipStatus.LEFT.value
     membership.ended_at = now()
 

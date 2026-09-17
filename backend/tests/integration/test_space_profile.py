@@ -433,7 +433,7 @@ class TestForeignAccess:
 
     def test_departed_member_can_no_longer_write(self, client, session, pair) -> None:  # type: ignore[no-untyped-def]
         membership = service.require_membership(session, pair["ben"], pair["space"].id)
-        service.end_membership(membership)
+        service.end_membership(session, membership)
         session.flush()
 
         response = client.put(

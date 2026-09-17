@@ -23,6 +23,7 @@ from eimir.authorization import (
     readable,
     require_readable,
     require_writable,
+    require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
 from eimir.core.clock import now
@@ -152,9 +153,18 @@ def delete_memory(
     *,
     expected_version: int,
 ) -> None:
-    memory = require_writable(session, Memory, context, memory_id)
+    memory = require_writable_locked(session, Memory, context, memory_id)
     _ensure_expected_version(memory, expected_version)
     actor_id = context.account_id
+    from eimir.story import view_service
+    from eimir.story.service import StoryKind
+
+    view_service.purge_target(
+        session,
+        space_id=memory.space_id,
+        kind=StoryKind.MEMORY,
+        item_id=memory.id,
+    )
     session.delete(memory)
     _flush(session)
     _record(session, memory, actor_id, EventType.MEMORY_DELETED)

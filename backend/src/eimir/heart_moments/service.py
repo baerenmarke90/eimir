@@ -266,6 +266,15 @@ def change_visibility(
     if target is PrivacyClass.OWNER_ONLY:
         _delete_dependent_comments(session, heart_moment)
         _drop_shared_relations(session, heart_moment)
+        from eimir.story import view_service
+        from eimir.story.service import StoryKind
+
+        view_service.purge_target(
+            session,
+            space_id=heart_moment.space_id,
+            kind=StoryKind.HEART_MOMENT,
+            item_id=heart_moment.id,
+        )
 
     heart_moment.privacy_class = target.value
     _flush(session)
@@ -287,10 +296,19 @@ def delete_heart_moment(
     *,
     expected_version: int,
 ) -> None:
-    heart_moment = require_writable(session, HeartMoment, context, heart_moment_id)
+    heart_moment = require_writable_locked(session, HeartMoment, context, heart_moment_id)
     _ensure_expected_version(heart_moment, expected_version)
     actor_id = context.account_id
     visibility = visibility_of(heart_moment.privacy_class)
+    from eimir.story import view_service
+    from eimir.story.service import StoryKind
+
+    view_service.purge_target(
+        session,
+        space_id=heart_moment.space_id,
+        kind=StoryKind.HEART_MOMENT,
+        item_id=heart_moment.id,
+    )
     session.delete(heart_moment)
     _flush(session)
     _record(

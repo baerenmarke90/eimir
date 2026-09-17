@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**getStoryTimeline**](StoryApi.md#getstorytimeline) | **GET** /api/v1/spaces/{spaceId}/timeline | Get Story Timeline |
+| [**recordStoryView**](StoryApi.md#recordstoryview) | **POST** /api/v1/spaces/{spaceId}/story-views | Record Story View |
 
 
 
@@ -87,6 +88,79 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
 | **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## recordStoryView
+
+> recordStoryView(spaceId, storyViewReceipt)
+
+Record Story View
+
+Record an intentional Story detail view without retaining an event history.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  StoryApi,
+} from '';
+import type { RecordStoryViewRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new StoryApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // StoryViewReceipt
+    storyViewReceipt: ...,
+  } satisfies RecordStoryViewRequest;
+
+  try {
+    const data = await api.recordStoryView(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **storyViewReceipt** | [StoryViewReceipt](StoryViewReceipt.md) |  | |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |

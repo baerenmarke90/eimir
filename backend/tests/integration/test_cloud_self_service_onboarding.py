@@ -565,7 +565,7 @@ class TestFounderSpace:
         ben = make_account(session, "Ben")
         former = relationship_service.create_space(session, anna)
         membership = relationship_service.add_member(session, former.id, ben)
-        relationship_service.end_membership(membership)
+        relationship_service.end_membership(session, membership)
         session.flush()
 
         response = cloud_client.post("/api/v1/spaces", headers=auth(sign_in(session, ben)))

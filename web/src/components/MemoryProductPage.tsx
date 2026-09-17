@@ -647,7 +647,6 @@ export function MemoryProductPage({
         </div>
       ) : null}
       <PageHeader
-        before={returnControl}
         eyebrow={memoryEyebrow}
         title={memory.title}
         action={

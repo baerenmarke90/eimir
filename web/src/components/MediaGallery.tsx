@@ -157,7 +157,10 @@ export function MediaGallery({
                   count: items.length,
                 })}
               >
-                {renderMedia(item, 'media-gallery-carousel-content')}
+                {renderMedia(
+                  item,
+                  'media-gallery-carousel-content media-gallery-thumb-content',
+                )}
               </button>
             ))}
           </div>

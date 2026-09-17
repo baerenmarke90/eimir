@@ -20,16 +20,6 @@ const BROWSE_EVIDENCE_DIR = path.join(
   '972-momente-browse-layer',
 );
 
-/**
- * `.momente-tapestry-kind` (dark mode) and `.momente-stream-all-link`
- * (light mode) fail color-contrast independent of this change - confirmed
- * by running this exact check against the unmodified #791 head before this
- * fix. Neither element's color token is touched by the Today/Momente
- * layout fix this spec covers, so excluding them here reports a real,
- * pre-existing, out-of-scope finding rather than silently fixing it (not
- * requested) or hiding it (no follow-up). Every element this change
- * actually restyled remains fully checked.
- */
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
     .withTags([
@@ -107,6 +97,7 @@ function heartMomentItem(id: string, text: string, effectiveDate: string) {
       createdAt: effectiveDate,
       author: ALEX,
       capabilities: CAPABILITIES,
+      visibility: 'SHARED',
       attachment: null,
     },
   };
@@ -127,13 +118,7 @@ function milestoneItem(id: string, title: string, effectiveDate: string) {
   };
 }
 
-/**
- * Reproduces the exact sparse-band shapes that produced the reported dead
- * space and oversized cards (#790/#791 follow-up): a single-item month
- * (April), a month mixing one heavy "media" item with a light "milestone"
- * marker (June, August), and evenly-weighted months (July, September).
- */
-const DISCOVER_TIMELINE_ITEMS = [
+const DISCOVER_ITEMS = [
   heartMomentItem(
     'hm-1',
     'Danke, dass du heute für mich da warst.',
@@ -163,7 +148,6 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
     await route.fulfill({
       status: 200,
       contentType: 'image/jpeg',
-      // A minimal valid 1x1 JPEG.
       body: Buffer.from(
         '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
         'base64',
@@ -299,9 +283,22 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
       pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
     ) {
       await fulfillJson({
-        items: DISCOVER_TIMELINE_ITEMS,
+        items: DISCOVER_ITEMS,
         hasMore: false,
         nextCursor: null,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/discover`
+    ) {
+      await fulfillJson({
+        selectionDate: '2026-09-17',
+        lead: DISCOVER_ITEMS[0],
+        items: DISCOVER_ITEMS.slice(1),
+        leadContext: null,
       });
       return;
     }
@@ -342,10 +339,24 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-test('Momente Discover tapestry stays dense, chronological, and axe-clean on desktop', async ({
+const canonicalItemLabels = [
+  'Danke, dass du heute einfach zugehört hast.',
+  'Ein Wochenende am Wasser',
+  'Ein Jahr in unserer Wohnung',
+  'Konzertabend',
+  'Spontaner Tagesausflug',
+  'Picknick im Grünen',
+  'Sonnenuntergang nach Feierabend',
+  'Erster gemeinsamer Umzug',
+  'Drei Jahre wir',
+  'Filmabend auf dem Sofa',
+  'Wochenendtrip nach Trier',
+];
+
+test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
   page,
 }) => {
-  await installDiscoverApiMocks(page);
+  const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.goto('/story?tab=discover');
   await signIn(page);
@@ -354,68 +365,29 @@ test('Momente Discover tapestry stays dense, chronological, and axe-clean on des
   await expect(
     page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
   ).toBeVisible();
+  await expect(page.locator('.momente-hero-highlight')).toContainText(
+    'Danke, dass du heute für mich da warst.',
+  );
 
-  // Chronology: the tapestry's links must appear in the DOM (and therefore in
-  // tab/screen-reader order) newest-first, band by band, regardless of which
-  // column a given item visually lands in.
   const tapestryLinkTitles = await page
     .locator('.momente-tapestry-item')
     .evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('aria-label')),
     );
-  expect(tapestryLinkTitles).toEqual([
-    'Danke, dass du heute für mich da warst.',
-    'Danke, dass du heute einfach zugehört hast.',
-    'Ein Wochenende am Wasser',
-    'Ein Jahr in unserer Wohnung',
-    'Konzertabend',
-    'Spontaner Tagesausflug',
-    'Picknick im Grünen',
-    'Sonnenuntergang nach Feierabend',
-    'Erster gemeinsamer Umzug',
-    'Drei Jahre wir',
-    'Filmabend auf dem Sofa',
-    'Wochenendtrip nach Trier',
-  ]);
+  expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
 
-  // A band with 2+ items must never collapse to a single column (#791
-  // second follow-up): an earlier balance-ratio fold walked a 1-photo +
-  // 2-milestone month all the way down to one column, which read as a
-  // narrow single-column feed instead of a tapestry. Only a band with
-  // exactly one real item (nothing to spread across columns, e.g. "Mai
-  // 2026"/"April 2026" below) may legitimately render one column.
-  const bandColumnInfo = await page
-    .locator('.momente-tapestry-band')
-    .evaluateAll((bands) =>
-      bands.map((band) => {
-        const columns = [...band.querySelectorAll('.momente-tapestry-column')];
-        return {
-          columnCount: columns.length,
-          itemCount: band.querySelectorAll('.momente-tapestry-item').length,
-          heights: columns.map(
-            (column) => column.getBoundingClientRect().height,
-          ),
-        };
-      }),
-    );
-  for (const { columnCount, itemCount } of bandColumnInfo) {
-    if (itemCount >= 2) {
-      expect(columnCount).toBeGreaterThanOrEqual(2);
-    }
-  }
-
-  // A lone heavy photo weighed against one or two short one-line milestone
-  // markers can never be height-balanced - that residual gap is the
-  // tapestry's intentional asymmetry, not a bug, as long as the column
-  // count itself isn't collapsed (checked above). This is a generous sanity
-  // ceiling for a true regression (e.g. an unbounded-width column), not a
-  // tight balance target: the worst realistic shape in this fixture (one
-  // capped-width photo column opposite a single short marker) measures well
-  // under it.
-  for (const { heights } of bandColumnInfo) {
-    const gap = Math.max(...heights) - Math.min(...heights);
-    expect(gap).toBeLessThan(500);
-  }
+  const grid = page.locator('.momente-tapestry-columns').first();
+  await expect(grid).toBeVisible();
+  const gridStyle = await grid.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      display: style.display,
+      columns: style.gridTemplateColumns.split(' ').filter(Boolean).length,
+    };
+  });
+  expect(gridStyle.display).toBe('grid');
+  expect(gridStyle.columns).toBe(3);
+  await expect(page.locator('.momente-tapestry-column')).toHaveCount(0);
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -424,6 +396,7 @@ test('Momente Discover tapestry stays dense, chronological, and axe-clean on des
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
 
   fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
@@ -435,7 +408,7 @@ test('Momente Discover tapestry stays dense, chronological, and axe-clean on des
 test('Momente Discover tapestry is axe-clean in dark mode', async ({
   page,
 }) => {
-  await installDiscoverApiMocks(page);
+  const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.goto('/story?tab=discover');
@@ -446,9 +419,10 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
     page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
   ).toBeVisible();
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
 });
 
-test('Momente Discover collapses to one plain chronological column on mobile with no horizontal overflow', async ({
+test('Momente Discover uses one canonical CSS-grid column on mobile with no horizontal overflow', async ({
   page,
 }) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
@@ -461,16 +435,21 @@ test('Momente Discover collapses to one plain chronological column on mobile wit
     page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
   ).toBeVisible();
 
-  const columnCounts = await page
-    .locator('.momente-tapestry-band')
-    .evaluateAll((bands) =>
-      bands.map(
-        (band) => band.querySelectorAll('.momente-tapestry-column').length,
-      ),
+  const tapestryLinkTitles = await page
+    .locator('.momente-tapestry-item')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('aria-label')),
     );
-  for (const count of columnCounts) {
-    expect(count).toBe(1);
-  }
+  expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
+
+  const grid = page.locator('.momente-tapestry-columns').first();
+  const columnCount = await grid.evaluate(
+    (element) =>
+      getComputedStyle(element)
+        .gridTemplateColumns.split(' ')
+        .filter(Boolean).length,
+  );
+  expect(columnCount).toBe(1);
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -485,7 +464,7 @@ test('Momente Discover collapses to one plain chronological column on mobile wit
 test('Momente browse layer keeps three structural destinations compact and secondary at 390px', async ({
   page,
 }) => {
-  await installDiscoverApiMocks(page);
+  const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'light' });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/story?tab=discover');
@@ -542,6 +521,7 @@ test('Momente browse layer keeps three structural destinations compact and secon
   await milestoneEntry.focus();
   await expect(milestoneEntry).toBeFocused();
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
 
   fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
@@ -553,7 +533,7 @@ test('Momente browse layer keeps three structural destinations compact and secon
 test('Momente browse layer reflows at 320px with enlarged text in dark mode', async ({
   page,
 }) => {
-  await installDiscoverApiMocks(page);
+  const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto('/story?tab=discover');
@@ -583,6 +563,7 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
   }
 
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
   fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
     path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-320-dark-large-text.png'),

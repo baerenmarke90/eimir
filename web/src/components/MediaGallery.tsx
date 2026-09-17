@@ -122,7 +122,10 @@ export function MediaGallery({
 
   return (
     <>
-      <section className="media-gallery-carousel" aria-label={t('gallery.aria')}>
+      <section
+        className="media-gallery-carousel"
+        aria-label={t('gallery.aria')}
+      >
         <div
           className="media-gallery-carousel-viewport"
           onTouchStart={(event) => {

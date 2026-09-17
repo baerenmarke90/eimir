@@ -141,8 +141,8 @@ async function installMocks(page: Page): Promise<void> {
     ) {
       await fulfillJson({
         items: [
-          memoryItem('mem-commented', 'Mit Kommentar', '2026-09-12'),
-          memoryItem('mem-quiet', 'Ohne Kommentar', '2026-09-11'),
+          memoryItem('mem-commented', 'With comment', '2026-09-12'),
+          memoryItem('mem-quiet', 'Without comment', '2026-09-11'),
         ],
         hasMore: false,
         nextCursor: null,
@@ -161,7 +161,7 @@ async function installMocks(page: Page): Promise<void> {
             spaceId: SPACE_ID,
             authorId: ACCOUNT_ID,
             author: LEA,
-            body: 'Das war schön.',
+            body: 'Such a lovely day.',
             createdAt: '2026-09-12T12:00:00Z',
             updatedAt: '2026-09-12T12:00:00Z',
             version: 1,
@@ -202,10 +202,10 @@ test('Timeline shows a comment glyph only on entries that actually have comments
 
   const commentedCard = page
     .locator('.story-card-link')
-    .filter({ hasText: 'Mit Kommentar' });
+    .filter({ hasText: 'With comment' });
   const quietCard = page
     .locator('.story-card-link')
-    .filter({ hasText: 'Ohne Kommentar' });
+    .filter({ hasText: 'Without comment' });
 
   await expect(commentedCard.locator('.media-label')).toHaveCount(1);
   await expect(commentedCard.locator('.comment-label')).toHaveCount(1);

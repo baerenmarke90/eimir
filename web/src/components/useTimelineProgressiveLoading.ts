@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import './StoryTimelineProgressive.css';
 
 const REVEAL_SELECTOR = '[data-timeline-reveal-key]';
 const MAX_REVEAL_SCOPES = 12;

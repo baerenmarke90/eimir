@@ -196,7 +196,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('three-metric state renders a quiet closing reflection on 390x844 light mode', async ({
+test('three-metric state renders circular story badges on 390x844 light mode matching PO mockup', async ({
   page,
 }, testInfo) => {
   await installMocks(page, {
@@ -211,7 +211,6 @@ test('three-metric state renders a quiet closing reflection on 390x844 light mod
   const section = page.locator('.shared-story-summary');
   await expect(section).toBeVisible();
 
-  // Heading check
   await expect(
     section.getByRole('heading', {
       level: 2,
@@ -219,11 +218,9 @@ test('three-metric state renders a quiet closing reflection on 390x844 light mod
     }),
   ).toBeVisible();
 
-  // Three metric links
-  const links = section.locator('.shared-story-summary-link');
+  const links = section.locator('.shared-story-summary-badge');
   await expect(links).toHaveCount(3);
 
-  // Link destinations
   await expect(links.nth(0)).toHaveAttribute(
     'href',
     '/story?tab=timeline&type=MEMORY',
@@ -237,12 +234,10 @@ test('three-metric state renders a quiet closing reflection on 390x844 light mod
     '/story?tab=timeline&type=MILESTONE',
   );
 
-  // Accessible names
   await expect(links.nth(0)).toHaveAttribute('aria-label', '10 Momente');
   await expect(links.nth(1)).toHaveAttribute('aria-label', '1 Herzmoment');
   await expect(links.nth(2)).toHaveAttribute('aria-label', '3 Meilensteine');
 
-  // Touch target size >= 44x44
   for (let i = 0; i < 3; i++) {
     const box = await links.nth(i).boundingBox();
     expect(box).not.toBeNull();
@@ -250,18 +245,25 @@ test('three-metric state renders a quiet closing reflection on 390x844 light mod
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
 
-  // R4 deliberately avoids the previous decorative circular KPI badges.
-  await expect(section.locator('.shared-story-summary-badge')).toHaveCount(0);
-  await expect(section.locator('[class*="story-badge-motif"]')).toHaveCount(0);
+  const boxLeft = await links.nth(0).boundingBox();
+  const boxCenter = await links.nth(1).boundingBox();
+  const boxRight = await links.nth(2).boundingBox();
+  expect(boxLeft).not.toBeNull();
+  expect(boxCenter).not.toBeNull();
+  expect(boxRight).not.toBeNull();
+  if (boxLeft && boxCenter && boxRight) {
+    expect(boxCenter.width).toBeGreaterThan(boxLeft.width);
+    expect(boxCenter.height).toBeGreaterThan(boxLeft.height);
+    expect(boxCenter.width).toBeGreaterThan(boxRight.width);
+    expect(boxCenter.height).toBeGreaterThan(boxRight.height);
+  }
 
-  // Horizontal reflow check (no overflow)
   const isOverflowing = await page.evaluate(() => {
     const el = document.documentElement;
     return el.scrollWidth > el.clientWidth;
   });
   expect(isOverflowing).toBe(false);
 
-  // Scroll to section and capture evidence screenshot
   await section.scrollIntoViewIfNeeded();
   await captureScreenshot(
     page,
@@ -294,7 +296,7 @@ test('three-metric state renders on 390x844 dark mode', async ({
   );
 });
 
-test('two-metric state remains a compact sentence-like group with no placeholder', async ({
+test('two-metric state is deliberately centered and balanced with no placeholder', async ({
   page,
 }, testInfo) => {
   await installMocks(page, {
@@ -312,10 +314,25 @@ test('two-metric state remains a compact sentence-like group with no placeholder
   const metrics = section.locator('.shared-story-summary-metric');
   await expect(metrics).toHaveCount(2);
 
-  const links = section.locator('.shared-story-summary-link');
+  const links = section.locator('.shared-story-summary-badge');
   await expect(links).toHaveCount(2);
 
-  // Scroll and capture evidence screenshot
+  const containerBox = await section
+    .locator('.shared-story-summary-values')
+    .boundingBox();
+  const firstBox = await metrics.first().boundingBox();
+  const lastBox = await metrics.last().boundingBox();
+  expect(containerBox).not.toBeNull();
+  expect(firstBox).not.toBeNull();
+  expect(lastBox).not.toBeNull();
+
+  if (containerBox && firstBox && lastBox) {
+    const leftMargin = firstBox.x - containerBox.x;
+    const rightMargin =
+      containerBox.x + containerBox.width - (lastBox.x + lastBox.width);
+    expect(Math.abs(leftMargin - rightMargin)).toBeLessThanOrEqual(4);
+  }
+
   await section.scrollIntoViewIfNeeded();
   await captureScreenshot(
     page,
@@ -339,15 +356,13 @@ test('320 CSS px reflow keeps 3 metrics readable without horizontal scroll', asy
   const section = page.locator('.shared-story-summary');
   await expect(section).toBeVisible();
 
-  // Check no horizontal overflow at 320px
   const isOverflowing = await page.evaluate(() => {
     const el = document.documentElement;
     return el.scrollWidth > el.clientWidth;
   });
   expect(isOverflowing).toBe(false);
 
-  // All 3 reflection links are visible and readable.
-  const links = section.locator('.shared-story-summary-link');
+  const links = section.locator('.shared-story-summary-badge');
   await expect(links).toHaveCount(3);
 
   await section.scrollIntoViewIfNeeded();

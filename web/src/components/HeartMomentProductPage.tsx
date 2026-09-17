@@ -161,7 +161,10 @@ export function HeartMomentProductPage({
     spaceId,
     kind: 'HEART_MOMENT',
     itemId: heartMomentId ?? '',
-    presented: mode === 'detail' && heartMomentQuery.isSuccess,
+    presented:
+      mode === 'detail' &&
+      heartMomentQuery.isSuccess &&
+      heartMomentQuery.data.value.visibility === 'SHARED',
   });
 
   const createMutation = useMutation({

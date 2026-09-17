@@ -144,26 +144,20 @@ function buildTapestryEntry(
 interface TapestryBand {
   key: string;
   label: string;
-  columns: TapestryEntry[][];
+  entries: TapestryEntry[];
 }
-
 
 function buildTapestryBands(
   items: StoryItem[],
   t: TFunction,
   locale: string,
-  columnCount: number,
 ): TapestryBand[] {
   if (items.length === 0) return [];
   return [
     {
       key: 'discover',
       label: '',
-      columns: distributeIntoTapestryColumns(
-        items.map((item) => buildTapestryEntry(item, t, locale)),
-        columnCount,
-        (entry) => tapestryRoleWeight(entry.role),
-      ),
+      entries: items.map((item) => buildTapestryEntry(item, t, locale)),
     },
   ];
 }
@@ -297,6 +291,7 @@ export function StoryProductPage({
         ? lastPage.value.nextCursor
         : undefined;
     },
+    enabled: activeView === 'timeline',
     retry: false,
   });
   const discoverQuery = useQuery({
@@ -312,12 +307,16 @@ export function StoryProductPage({
         deserialize: (payload) => DiscoverSelectionFromJSON(payload),
       });
     },
+    enabled: activeView === 'discover',
     retry: false,
   });
 
   const pullRefresh = usePullToRefresh({
     enabled: true,
-    blocked: activeView === 'timeline' ? storyQuery.isFetching : discoverQuery.isFetching,
+    blocked:
+      activeView === 'timeline'
+        ? storyQuery.isFetching
+        : discoverQuery.isFetching,
     onRefresh: () => {
       if (activeView === 'timeline') {
         return storyQuery.refetch();
@@ -333,9 +332,10 @@ export function StoryProductPage({
   }, [storyQuery.data]);
   const allPagesFromNetwork =
     storyQuery.data?.pages.every((page) => page.source === 'network') ?? false;
-  const offline = activeView === 'timeline'
-    ? storyQuery.data?.pages[0]?.source === 'cache'
-    : discoverQuery.data?.source === 'cache';
+  const offline =
+    activeView === 'timeline'
+      ? storyQuery.data?.pages[0]?.source === 'cache'
+      : discoverQuery.data?.source === 'cache';
 
   useEffect(() => {
     if (!combinedStory || !allPagesFromNetwork) return;
@@ -410,7 +410,13 @@ export function StoryProductPage({
     [loadedPageCount, registerOriginMetadata],
   );
   useEffect(() => {
-    if (!returnOrigin || !combinedStory || storyQuery.isFetching) return;
+    if (
+      activeView !== 'timeline' ||
+      !returnOrigin ||
+      !combinedStory ||
+      storyQuery.isFetching
+    )
+      return;
     const entry = `${location.key}:${String(returnKey)}`;
     if (restoredEntryRef.current === entry) return;
     if (
@@ -457,10 +463,17 @@ export function StoryProductPage({
     storyQuery.isError,
     storyQuery.fetchNextPage,
     offline,
+    activeView,
   ]);
 
-  const timelineItems = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
-  const discoverItems = useMemo(() => discoverQuery.data?.value.items ?? [], [discoverQuery.data]);
+  const timelineItems = useMemo(
+    () => combinedStory?.items ?? [],
+    [combinedStory],
+  );
+  const discoverItems = useMemo(
+    () => discoverQuery.data?.value.items ?? [],
+    [discoverQuery.data],
+  );
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
@@ -476,8 +489,8 @@ export function StoryProductPage({
 
   const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(
-    () => buildTapestryBands(discoverItems, t, locale, tapestryColumnCount),
-    [discoverItems, t, locale, tapestryColumnCount],
+    () => buildTapestryBands(discoverItems, t, locale),
+    [discoverItems, t, locale],
   );
 
   const featuredMedia =
@@ -672,20 +685,31 @@ export function StoryProductPage({
 
       <StoryBrowseLayer />
 
-      {storyQuery.isLoading ? (
+      {activeView === 'timeline' && storyQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />
       ) : null}
-      {storyQuery.error ? (
+      {activeView === 'timeline' && storyQuery.error ? (
         <ProblemState
           error={storyQuery.error}
           onRetry={() => void storyQuery.refetch()}
         />
       ) : null}
 
-      {combinedStory &&
+      {activeView === 'discover' && discoverQuery.isLoading ? (
+        <UiState kind="loading" title={t('story.loadingAria')} />
+      ) : null}
+      {activeView === 'discover' && discoverQuery.error ? (
+        <ProblemState
+          error={discoverQuery.error}
+          onRetry={() => void discoverQuery.refetch()}
+        />
+      ) : null}
+
+      {activeView === 'timeline' &&
+      storyQuery.data &&
       timelineItems.length === 0 &&
       availableYears.length === 0 &&
-      !(activeView === 'timeline' && hasActiveFilters) ? (
+      !hasActiveFilters ? (
         <div className="new-space-experience eimir-motion-reveal">
           <div className="new-space-mark" aria-hidden="true">
             <svg
@@ -709,7 +733,34 @@ export function StoryProductPage({
             </Link>
           </div>
         </div>
-      ) : combinedStory && activeView === 'discover' ? (
+      ) : activeView === 'discover' &&
+        discoverQuery.data &&
+        !featuredItem &&
+        discoverItems.length === 0 ? (
+        <div className="new-space-experience eimir-motion-reveal">
+          <div className="new-space-mark" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="36"
+              height="36"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+          </div>
+          <h2 className="new-space-title">{t('story.emptyTitle')}</h2>
+          <p className="new-space-body">{t('story.emptyBody')}</p>
+          <div className="new-space-actions">
+            <Link
+              to="/story/memories/new"
+              className="button-link primary new-space-cta"
+            >
+              {t('story.emptyAction')}
+            </Link>
+          </div>
+        </div>
+      ) : activeView === 'discover' && discoverQuery.data ? (
         <div className="momente-discover-page eimir-motion-reveal">
           {/* 1. Featured Editorial Highlight */}
           {featuredItem && featuredPresentation ? (
@@ -831,132 +882,123 @@ export function StoryProductPage({
                       {band.label}
                     </h4>
                   ) : null}
-                  <div className="momente-tapestry">
-                    {band.columns
-                      .filter((column) => column.length > 0)
-                      .map((column) => (
-                        <div
-                          className="momente-tapestry-column"
-                          key={column[0].key}
-                        >
-                          {column.map((entry) => {
-                            const {
-                              role,
-                              presentation,
-                              path,
-                              dateTime,
-                              dateLabel,
-                            } = entry;
+                  <div
+                    className="momente-tapestry"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${tapestryColumnCount}, minmax(0, 1fr))`,
+                      alignItems: 'start',
+                    }}
+                  >
+                    {band.entries.map((entry) => {
+                      const { role, presentation, path, dateTime, dateLabel } =
+                        entry;
 
-                            if (role === 'milestone') {
-                              return (
-                                <Link
-                                  key={entry.key}
-                                  to={path}
-                                  className="momente-tapestry-item momente-tapestry-milestone"
-                                  aria-label={presentation.title}
-                                  onClick={(event) =>
-                                    openDiscoverItem(event, path)
-                                  }
-                                >
-                                  <span
-                                    className="momente-tapestry-milestone-icon"
-                                    aria-hidden="true"
-                                  >
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      width="16"
-                                      height="16"
-                                      fill="currentColor"
-                                      aria-hidden="true"
-                                    >
-                                      <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                                    </svg>
-                                  </span>
-                                  <span className="momente-tapestry-milestone-copy">
-                                    <span className="momente-tapestry-milestone-title">
-                                      {presentation.title}
-                                    </span>
-                                    <time
-                                      className="momente-tapestry-milestone-date"
-                                      dateTime={dateTime}
-                                    >
-                                      {dateLabel}
-                                    </time>
-                                  </span>
-                                </Link>
-                              );
-                            }
-
-                            return (
-                              <Link
-                                key={entry.key}
-                                to={path}
-                                className={`momente-tapestry-item momente-tapestry-${role}`}
-                                aria-label={presentation.title}
-                                onClick={(event) =>
-                                  openDiscoverItem(event, path)
-                                }
+                      if (role === 'milestone') {
+                        return (
+                          <Link
+                            key={entry.key}
+                            to={path}
+                            className="momente-tapestry-item momente-tapestry-milestone"
+                            aria-label={presentation.title}
+                            onClick={(event) => openDiscoverItem(event, path)}
+                          >
+                            <span
+                              className="momente-tapestry-milestone-icon"
+                              aria-hidden="true"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="16"
+                                height="16"
+                                fill="currentColor"
+                                aria-hidden="true"
                               >
-                                {role === 'media' && entry.firstAttachment ? (
-                                  <div className="momente-tapestry-media-frame">
-                                    <MemoryPreview
-                                      memoryId={entry.memoryId}
-                                      attachmentId={entry.firstAttachment.id}
-                                      loadImage={loadMemoryImage}
-                                    />
-                                  </div>
-                                ) : null}
-                                <div className="momente-tapestry-body">
-                                  <span className="momente-tapestry-kind">
-                                    {role === 'note' ? (
-                                      <svg
-                                        viewBox="0 0 24 24"
-                                        width="12"
-                                        height="12"
-                                        fill="currentColor"
-                                        aria-hidden="true"
-                                        className="kind-glyph"
-                                      >
-                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                                      </svg>
-                                    ) : null}
-                                    <span>{presentation.kindLabel}</span>
+                                <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
+                              </svg>
+                            </span>
+                            <span className="momente-tapestry-milestone-copy">
+                              <span className="momente-tapestry-milestone-title">
+                                {presentation.title}
+                              </span>
+                              <time
+                                className="momente-tapestry-milestone-date"
+                                dateTime={dateTime}
+                              >
+                                {dateLabel}
+                              </time>
+                            </span>
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <Link
+                          key={entry.key}
+                          to={path}
+                          className={`momente-tapestry-item momente-tapestry-${role}`}
+                          aria-label={presentation.title}
+                          onClick={(event) => openDiscoverItem(event, path)}
+                        >
+                          {role === 'media' && entry.firstAttachment ? (
+                            <div className="momente-tapestry-media-frame">
+                              <MemoryPreview
+                                memoryId={entry.memoryId}
+                                attachmentId={entry.firstAttachment.id}
+                                loadImage={loadMemoryImage}
+                              />
+                            </div>
+                          ) : null}
+                          <div className="momente-tapestry-body">
+                            <span className="momente-tapestry-kind">
+                              {role === 'note' ? (
+                                <svg
+                                  className="momente-tapestry-icon"
+                                  viewBox="0 0 24 24"
+                                  width="16"
+                                  height="16"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  aria-hidden="true"
+                                >
+                                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                </svg>
+                              ) : null}
+                              {t(`storyItem.${role}`)}
+                            </span>
+                            {role === 'note' ? (
+                              <blockquote className="momente-tapestry-quote">
+                                "{presentation.title}"
+                              </blockquote>
+                            ) : (
+                              <h4 className="momente-tapestry-title">
+                                {presentation.title}
+                              </h4>
+                            )}
+                            <div className="momente-tapestry-meta">
+                              <time dateTime={dateTime}>{dateLabel}</time>
+                              {entry.author ? (
+                                <span className="momente-author-meta">
+                                  <AuthorAvatar
+                                    author={entry.author}
+                                    profilesApi={profilesApi}
+                                    spaceId={spaceId}
+                                  />
+                                  <span>
+                                    {t('story.byAuthor', {
+                                      author: storyAuthorLabel(entry.author),
+                                    })}
                                   </span>
-                                  {role === 'note' ? (
-                                    <blockquote className="momente-tapestry-quote">
-                                      "{presentation.title}"
-                                    </blockquote>
-                                  ) : (
-                                    <h4 className="momente-tapestry-title">
-                                      {presentation.title}
-                                    </h4>
-                                  )}
-                                  <div className="momente-tapestry-meta">
-                                    <time dateTime={dateTime}>{dateLabel}</time>
-                                    {entry.author ? (
-                                      <span className="momente-author-meta">
-                                        <AuthorAvatar
-                                          author={entry.author}
-                                          profilesApi={profilesApi}
-                                          spaceId={spaceId}
-                                        />
-                                        <span>
-                                          {t('story.byAuthor', {
-                                            author: storyAuthorLabel(
-                                              entry.author,
-                                            ),
-                                          })}
-                                        </span>
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      ))}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </section>
               ))}

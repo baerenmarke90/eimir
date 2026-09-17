@@ -128,3 +128,84 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
     expect(await screen.findByText('story landing')).toBeTruthy();
   });
 });
+
+describe('Milestone view receipt', () => {
+  it('emits a receipt strictly on successful presentation', async () => {
+    const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    let getMilestoneMock = vi.fn().mockReturnValue(new Promise(() => {}));
+    const apis = {
+      story: { recordStoryView: recordStoryViewMock },
+      milestones: {
+        getMilestone: (...args: any[]) => getMilestoneMock(...args),
+      },
+    } as unknown as ReferenceApis;
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    queryClient.setQueryData(
+      ['m5-s5', 'notification-unread-count', 'space-1'],
+      {
+        unreadCount: 0,
+      },
+    );
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/story/milestones/milestone-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="https://example.test"
+              accessToken="token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/milestones/:milestoneId"
+                  element={
+                    <MilestoneProductPage
+                      mode="detail"
+                      apis={apis}
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Should not emit while loading
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    // Now resolve the query
+    getMilestoneMock.mockResolvedValue(milestone);
+    queryClient.invalidateQueries({ queryKey: ['milestone'] });
+
+    expect(await screen.findByText('First apartment together')).toBeTruthy();
+
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MILESTONE', itemId: 'milestone-1' },
+    });
+  });
+});

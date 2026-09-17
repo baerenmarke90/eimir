@@ -164,3 +164,96 @@ describe('Memory editor return context', () => {
     },
   );
 });
+
+describe('Memory view receipt', () => {
+  it('emits a receipt strictly on successful presentation, not during load or failure', async () => {
+    const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    let getMemoryMock = vi.fn().mockReturnValue(new Promise(() => {}));
+    const apis = {
+      story: { recordStoryView: recordStoryViewMock },
+      memories: { getMemory: (...args: any[]) => getMemoryMock(...args) },
+    } as unknown as ReferenceApis;
+
+    const memory: MemoryDetail = {
+      id: 'memory-1',
+      spaceId: 'space-1',
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+      title: 'A shared evening',
+      body: 'Quiet words',
+      attachments: [],
+      happenedOn: new Date('2025-09-15'),
+      createdAt: new Date('2025-09-15'),
+      updatedAt: new Date('2025-09-15'),
+      version: 1,
+      capabilities: { canEdit: false, canDelete: false, canComment: false },
+    };
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    client.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+      unreadCount: 0,
+    });
+    client.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/story/memories/memory-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="http://example.test"
+              accessToken="test"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/memories/:memoryId"
+                  element={
+                    <MemoryProductPage
+                      mode="detail"
+                      apis={apis}
+                      apiBaseUrl="http://example.test"
+                      accessToken="test"
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                      loadMemoryImage={async () => ''}
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Should not emit while loading
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    // Now resolve the query
+    getMemoryMock.mockResolvedValue(memory);
+    client.invalidateQueries({ queryKey: ['memory'] });
+
+    // Use screen.findByText to wait for successful presentation
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MEMORY', itemId: 'memory-1' },
+    });
+  });
+});

@@ -286,52 +286,87 @@ describe('StoryProductPage', () => {
   });
 
   describe('canonical Discover ordering and presentation', () => {
-    it('preserves the exact server-provided item order without client-side reshuffling', () => {
-      const html = renderStoryPage('/story', {
-        items: [
-          {
-            kind: 'MEMORY',
-            effectiveDate: new Date('2026-07-05T00:00:00Z'),
-            memory: {
-              id: 'mem-july',
-              title: 'Spring Picnic',
-              occurredOn: new Date('2026-07-05T00:00:00Z'),
-              createdAt: new Date('2026-07-05T00:00:00Z'),
-              attachments: [],
-              author: { id: 'author-1', displayName: 'Alex' },
-              creator: { id: 'author-1', displayName: 'Alex' },
-              capabilities: { canComment: true, canDelete: true, canEdit: true },
-            },
-          },
-          {
-            kind: 'MEMORY',
-            effectiveDate: new Date('2026-08-26T00:00:00Z'),
-            memory: {
-              id: 'mem-late-august',
-              title: 'Late August Vacation',
-              occurredOn: new Date('2026-08-26T00:00:00Z'),
-              createdAt: new Date('2026-08-26T00:00:00Z'),
-              attachments: [],
-              author: { id: 'author-1', displayName: 'Alex' },
-              creator: { id: 'author-1', displayName: 'Alex' },
-              capabilities: { canComment: true, canDelete: true, canEdit: true },
-            },
-          },
-        ],
-        hasMore: false,
-        nextCursor: null,
-      });
+    it('preserves canonical DOM order across 1-, 2-, and 3-column responsive breakpoints', () => {
+      const originalWindow = globalThis.window;
+      try {
+        [1, 2, 3].forEach((columns) => {
+          // Mock matchMedia for responsive breakpoints
+          globalThis.window = {
+            matchMedia: (query: string) => ({
+              matches:
+                columns === 3
+                  ? query === '(min-width: 1024px)'
+                  : columns === 2
+                    ? query === '(min-width: 640px)'
+                    : false,
+              addEventListener: () => {},
+              removeEventListener: () => {},
+            }),
+          } as any;
 
-      const tapestryStart = html.indexOf('momente-tapestry-bands');
-      expect(tapestryStart).toBeGreaterThan(-1);
+          const html = renderStoryPage('/story', {
+            items: [
+              {
+                kind: 'MEMORY',
+                effectiveDate: new Date('2026-07-05T00:00:00Z'),
+                memory: {
+                  id: 'mem-july',
+                  title: 'Spring Picnic',
+                  occurredOn: new Date('2026-07-05T00:00:00Z'),
+                  createdAt: new Date('2026-07-05T00:00:00Z'),
+                  attachments: [],
+                  author: { id: 'author-1', displayName: 'Alex' },
+                  creator: { id: 'author-1', displayName: 'Alex' },
+                  capabilities: {
+                    canComment: true,
+                    canDelete: true,
+                    canEdit: true,
+                  },
+                },
+              },
+              {
+                kind: 'MEMORY',
+                effectiveDate: new Date('2026-08-26T00:00:00Z'),
+                memory: {
+                  id: 'mem-late-august',
+                  title: 'Late August Vacation',
+                  occurredOn: new Date('2026-08-26T00:00:00Z'),
+                  createdAt: new Date('2026-08-26T00:00:00Z'),
+                  attachments: [],
+                  author: { id: 'author-1', displayName: 'Alex' },
+                  creator: { id: 'author-1', displayName: 'Alex' },
+                  capabilities: {
+                    canComment: true,
+                    canDelete: true,
+                    canEdit: true,
+                  },
+                },
+              },
+            ],
+            hasMore: false,
+            nextCursor: null,
+          });
 
-      // Spring Picnic is rendered BEFORE Late August Vacation, exactly as provided by the backend array.
-      const springPicnicIndex = html.indexOf('Spring Picnic', tapestryStart);
-      const lateAugustIndex = html.indexOf('Late August Vacation', tapestryStart);
-      
-      expect(springPicnicIndex).toBeGreaterThan(-1);
-      expect(lateAugustIndex).toBeGreaterThan(-1);
-      expect(springPicnicIndex).toBeLessThan(lateAugustIndex);
+          const tapestryStart = html.indexOf('momente-tapestry-bands');
+          expect(tapestryStart).toBeGreaterThan(-1);
+
+          // Canonical backend order: Spring Picnic is BEFORE Late August Vacation
+          const springPicnicIndex = html.indexOf(
+            'Spring Picnic',
+            tapestryStart,
+          );
+          const lateAugustIndex = html.indexOf(
+            'Late August Vacation',
+            tapestryStart,
+          );
+
+          expect(springPicnicIndex).toBeGreaterThan(-1);
+          expect(lateAugustIndex).toBeGreaterThan(-1);
+          expect(springPicnicIndex).toBeLessThan(lateAugustIndex);
+        });
+      } finally {
+        globalThis.window = originalWindow;
+      }
     });
 
     it('renders all backend-provided items without applying an arbitrary client-side cap', () => {

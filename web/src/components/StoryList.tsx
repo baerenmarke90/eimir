@@ -215,6 +215,7 @@ export function StoryList({
   profilesApi,
   spaceId,
   onOpenItem,
+  progressiveReveal = false,
 }: {
   items: StoryItem[];
   loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
@@ -229,6 +230,7 @@ export function StoryList({
     item: StoryItem,
     to: string,
   ) => void;
+  progressiveReveal?: boolean;
 }) {
   const { t } = useTranslation();
   const listId = useId();
@@ -264,6 +266,7 @@ export function StoryList({
     <section className="story-timeline" aria-label={t('story.aria')}>
       <ol className="story-list">
         {items.map((item, index) => {
+          const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t);
           const author = storyItemAuthor(item);
           const firstMemoryAttachment =
@@ -298,14 +301,17 @@ export function StoryList({
 
           return (
             <li
-              key={storyItemKey(item)}
-              className={`story-timeline-item story-timeline-item-${kindSlug}`}
+              key={itemKey}
+              className={`story-timeline-item story-timeline-item-${kindSlug}${progressiveReveal ? ' story-timeline-progressive-reveal' : ''}`}
+              data-timeline-reveal-key={
+                progressiveReveal ? `item:${itemKey}` : undefined
+              }
             >
               <StoryTimelineMarker kind={item.kind} />
               <Link
                 className="story-card-link"
                 to={productPath}
-                data-task-item-key={storyItemKey(item)}
+                data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
                 aria-label={`${presentation.kindLabel}: ${presentation.title}`}
                 aria-describedby={metaId}
@@ -316,6 +322,9 @@ export function StoryList({
                       memoryId={imageEntityId}
                       attachmentId={imageAttachment.id}
                       loadImage={imageLoader}
+                      loadingMode={
+                        progressiveReveal ? 'near-viewport' : 'immediate'
+                      }
                     />
                   ) : null}
 

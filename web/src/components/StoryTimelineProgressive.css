@@ -1,0 +1,99 @@
+/* #975: content unfolds once as it first enters the Timeline viewport. */
+.story-timeline-progressive-reveal {
+  opacity: 0;
+  transition: opacity 210ms var(--motion-easing-lift);
+  will-change: opacity;
+}
+
+/* Keep the task/navigation anchor itself geometrically stable while the
+ * visible card lifts into place. TaskOrigin measures the link's layout box;
+ * translating the parent item made that return coordinate transient. */
+.story-timeline-item.story-timeline-progressive-reveal .story-card {
+  translate: 0 14px;
+  transition:
+    translate 210ms var(--motion-easing-lift),
+    transform var(--motion-duration-medium) var(--motion-easing-lift),
+    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+  will-change: transform;
+}
+
+.story-timeline-heading-reveal {
+  transform: translateY(10px);
+  transition:
+    opacity 210ms var(--motion-easing-lift),
+    transform 210ms var(--motion-easing-lift);
+  will-change: opacity, transform;
+}
+
+.story-timeline-progressive-reveal[data-timeline-revealed="true"],
+.story-timeline-progressive-reveal:focus-within {
+  opacity: 1;
+  will-change: auto;
+}
+
+.story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
+  .story-card,
+.story-timeline-item.story-timeline-progressive-reveal:focus-within
+  .story-card {
+  translate: 0 0;
+  will-change: auto;
+}
+
+.story-timeline-heading-reveal[data-timeline-revealed="true"],
+.story-timeline-heading-reveal:focus-within {
+  transform: none;
+}
+
+/* Keep the observer target layout-neutral. The 125% root margin owns when
+ * the next page begins loading, rather than an arbitrary large spacer. */
+.story-pagination-sentinel {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.story-pagination-progressive {
+  min-height: 2rem;
+  margin-top: var(--space-2);
+}
+
+.story-pagination-progressive:not(.is-retry):empty {
+  min-height: 0;
+  margin-top: 0;
+}
+
+.story-pagination-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.story-pagination-spinner {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.65;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-timeline-progressive-reveal,
+  .story-timeline-heading-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .story-timeline-item.story-timeline-progressive-reveal .story-card {
+    translate: 0 0;
+    transition: none;
+    will-change: auto;
+  }
+}

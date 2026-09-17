@@ -433,6 +433,8 @@ test('Quick Create native modality prevents background focus and activation', as
       activeText: document.activeElement?.textContent?.slice(0, 100),
     }));
     checkpoints.push(focus);
+    // Native modal traversal may move to browser chrome. The document must not
+    // receive focus behind the modal when traversal returns to the page.
     expect(focus.inside || !focus.documentFocused).toBe(true);
   }
   await page
@@ -562,12 +564,16 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.loadMore,
-      exact: true,
-    })
-    .click();
+  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  await expect
+    .poll(
+      () =>
+        api.timelineRequests.filter((query) =>
+          query.includes('cursor=older-page'),
+        ).length,
+    )
+    .toBe(1);
+  await expect(page.getByText(older.title, { exact: true })).toBeAttached();
   const source = page
     .getByRole('link')
     .filter({ has: page.getByText(older.title, { exact: true }) });
@@ -1126,6 +1132,8 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
+  // Return to the closed date-summary state before the readability
+  // screenshot, so it reflects what the page renders by default.
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),

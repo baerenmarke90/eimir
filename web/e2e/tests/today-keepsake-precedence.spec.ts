@@ -149,7 +149,14 @@ async function installDashboardMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
-      await fulfillJson({ items: [], nextCursor: null });
+      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
+    ) {
+      await fulfillJson({ items: [] });
       return;
     }
     if (

@@ -97,6 +97,6 @@ Validation completed against the final implementation:
 - The remaining Chromium regressions for inline Place creation, accessibility, Quick Create, and Today freshness — 37/37 passed (73/73 across the combined R3 browser surface).
 - `git diff --check` — passed before commit.
 
-Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, domain-correct Wish creation, cross-day ranges, authoritative conversion, and completion continuations. The captures correspond to product-source commit `6f77f6645a196bae213c3bcf61634226e558bb5e`, recorded alongside checksums in the evidence directory.
+Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, domain-correct Wish creation, cross-day ranges, authoritative conversion, and completion continuations. The captures correspond to product-source commit `78039cdef899fdfcc1f8b79e0b7f872bf59414b3`, recorded alongside checksums in the evidence directory.
 
 Known scope boundary: Android runtime adaptation and native device acceptance are intentionally deferred under #837. No Product Owner acceptance, native parity, or merge readiness is inferred from this record, local validation, or green CI.

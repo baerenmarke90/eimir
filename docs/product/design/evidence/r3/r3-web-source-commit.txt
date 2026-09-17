@@ -1,4 +1,4 @@
-6f77f6645a196bae213c3bcf61634226e558bb5e
+78039cdef899fdfcc1f8b79e0b7f872bf59414b3
 
 This is the exact Web product-source commit used for the R3 #968 evidence captures.
 The later evidence-only commit updates this provenance record, checksums, and the captures themselves.

@@ -185,8 +185,8 @@
   gap: var(--space-3);
 }
 
-/* Memory details treat discussion as contextual interaction rather than a
- * permanent form section. Other story products retain the full panel. */
+/* Story details treat discussion as contextual interaction rather than a
+ * permanent form section. */
 .comments-panel-compact {
   gap: var(--space-3);
   padding-top: var(--space-4);
@@ -258,4 +258,20 @@
 
 .comment-compose-actions > button {
   justify-self: auto;
+}
+
+/* A one-pixel sentinel lets Timeline cards defer comment-presence requests
+ * until they approach the viewport without reserving visible metadata space. */
+.story-comment-presence-sentinel {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.story-card-meta-item.comment-label {
+  gap: 0;
 }

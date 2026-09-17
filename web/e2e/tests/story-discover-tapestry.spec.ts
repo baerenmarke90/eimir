@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -5,6 +8,17 @@ import de from '../../src/i18n/locales/de';
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const BROWSE_EVIDENCE_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'docs',
+  'product',
+  'design',
+  'evidence',
+  '972-momente-browse-layer',
+);
 
 /**
  * `.momente-tapestry-kind` (dark mode) and `.momente-stream-all-link`
@@ -410,6 +424,12 @@ test('Momente Discover tapestry stays dense, chronological, and axe-clean on des
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
   await expectNoWcagViolations(page);
+
+  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
+  await page.screenshot({
+    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-1440-light.png'),
+    fullPage: false,
+  });
 });
 
 test('Momente Discover tapestry is axe-clean in dark mode', async ({
@@ -460,4 +480,112 @@ test('Momente Discover collapses to one plain chronological column on mobile wit
 
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
+});
+
+test('Momente browse layer keeps three structural destinations compact and secondary at 390px', async ({
+  page,
+}) => {
+  await installDiscoverApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+
+  const browse = page.getByRole('navigation', { name: de.story.browseTitle });
+  await expect(browse).toBeVisible();
+  await expect(
+    browse.getByRole('link', { name: de.story.browseMilestones }),
+  ).toHaveAttribute('href', '/story?tab=timeline&type=MILESTONE');
+  await expect(
+    browse.getByRole('link', { name: de.story.browseChapters }),
+  ).toHaveAttribute('href', '/story/chapters');
+  await expect(
+    browse.getByRole('link', { name: de.story.browseYears }),
+  ).toHaveAttribute('href', '/story/years');
+
+  await expect(page.getByRole('tab')).toHaveCount(2);
+  await expect(page.locator('.momente-archive-links')).toHaveCount(0);
+  await expect(page.locator('.momente-year-archive')).toHaveCount(0);
+  await expect(page.getByText(de.story.milestonesDesc)).toHaveCount(0);
+  await expect(page.getByText(de.story.yearArchiveSubtitle)).toHaveCount(0);
+  await expect(page.getByText(de.story.yearArchiveAll)).toHaveCount(0);
+
+  const browseBox = await browse.boundingBox();
+  const heroBox = await page.locator('.momente-hero-highlight').boundingBox();
+  expect(browseBox).not.toBeNull();
+  expect(heroBox).not.toBeNull();
+  expect(browseBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(
+    heroBox?.y ?? Number.NEGATIVE_INFINITY,
+  );
+
+  const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
+    links.map((link) => {
+      const rect = link.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    }),
+  );
+  for (const box of linkBoxes) {
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+
+  const milestoneEntry = browse.getByRole('link', {
+    name: de.story.browseMilestones,
+  });
+  await milestoneEntry.focus();
+  await expect(milestoneEntry).toBeFocused();
+  await expectNoWcagViolations(page);
+
+  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
+  await page.screenshot({
+    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-390-light.png'),
+    fullPage: false,
+  });
+});
+
+test('Momente browse layer reflows at 320px with enlarged text in dark mode', async ({
+  page,
+}) => {
+  await installDiscoverApiMocks(page);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto('/story?tab=discover');
+  await signIn(page);
+  await page.goto('/story?tab=discover');
+  await page.addStyleTag({ content: 'html { font-size: 125%; }' });
+
+  const browse = page.getByRole('navigation', { name: de.story.browseTitle });
+  await expect(browse).toBeVisible();
+  await expect(browse.getByRole('link')).toHaveCount(3);
+
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+
+  const linkBoxes = await browse.getByRole('link').evaluateAll((links) =>
+    links.map((link) => {
+      const rect = link.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    }),
+  );
+  for (const box of linkBoxes) {
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+
+  await expectNoWcagViolations(page);
+  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
+  await page.screenshot({
+    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-320-dark-large-text.png'),
+    fullPage: false,
+  });
 });

@@ -64,6 +64,7 @@ jobs:
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
+          adb shell pm grant com.google.android.marvin.talkback android.permission.POST_NOTIFICATIONS
 
       - name: Build and test exact R2 APK
         working-directory: android

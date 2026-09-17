@@ -154,7 +154,7 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
-  const { requestReturn } = useTaskOrigin();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
@@ -167,6 +167,11 @@ function AuthenticatedAppShell({
   );
   const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
+  const storyDetailBackLabel = t(
+    resolveOrigin(taskOriginKey)
+      ? 'taskBoundary.back'
+      : 'memoryProduct.backToStory',
+  );
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
@@ -217,8 +222,8 @@ function AuthenticatedAppShell({
               type="button"
               className="shell-utility-link shell-detail-back"
               onClick={() => requestReturn(taskOriginKey)}
-              aria-label={t('taskBoundary.back')}
-              title={t('taskBoundary.back')}
+              aria-label={storyDetailBackLabel}
+              title={storyDetailBackLabel}
             >
               <svg
                 viewBox="0 0 24 24"

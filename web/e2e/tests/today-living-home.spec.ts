@@ -835,7 +835,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await expectNormativeOrder(page);
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'sparse-390-light');
+    await capture(page, testInfo, 'text-first-no-photo-390-light');
   });
 
   test('never shows the same shared memory as both a partner signal and a later section', async ({

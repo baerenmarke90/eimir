@@ -431,6 +431,6 @@ test.describe('Today R4: current/upcoming context outranks a generic Keepsake', 
 
     await expectHorizontalReflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'sparse-390-light');
+    await capture(page, testInfo, 'empty-new-relationship-390-light');
   });
 });

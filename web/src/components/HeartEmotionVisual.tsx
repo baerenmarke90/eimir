@@ -5,7 +5,9 @@ import './HeartEmotionVisual.css';
 export type HeartEmotionValue =
   (typeof HeartEmotion)[keyof typeof HeartEmotion];
 
-export const HEART_EMOTIONS = Object.values(HeartEmotion) as HeartEmotionValue[];
+export const HEART_EMOTIONS = Object.values(
+  HeartEmotion,
+) as HeartEmotionValue[];
 
 function EmotionIcon({ emotion }: { emotion: HeartEmotionValue }) {
   switch (emotion) {

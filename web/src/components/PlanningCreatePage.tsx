@@ -391,7 +391,13 @@ export function PlanningCreatePage({
             </span>
             <div>
               <strong>{t('m5s3.plan.sharedTitle')}</strong>
-              <p>{t('m5s3.plan.sharedBody')}</p>
+              <p>
+                {t(
+                  kind === 'wish'
+                    ? 'm5s3.wish.sharedBody'
+                    : 'm5s3.plan.sharedBody',
+                )}
+              </p>
             </div>
           </div>
         </fieldset>

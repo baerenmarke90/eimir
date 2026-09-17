@@ -45,7 +45,7 @@ function renderCreate(
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  render(
+  const { unmount } = render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={[
@@ -74,10 +74,23 @@ function renderCreate(
     </QueryClientProvider>,
   );
 
-  return { createPlan, createWish, locations };
+  return { createPlan, createWish, locations, unmount };
 }
 
 describe('PlanningCreatePage', () => {
+  it('keeps shared visibility domain-correct for Plans and Wishes', () => {
+    const { unmount } = renderCreate('wish');
+
+    expect(screen.getByText(m5s3.wish.sharedBody)).toBeTruthy();
+    expect(screen.queryByText(m5s3.plan.sharedBody)).toBeNull();
+
+    unmount();
+    renderCreate('plan');
+
+    expect(screen.getByText(m5s3.plan.sharedBody)).toBeTruthy();
+    expect(screen.queryByText(m5s3.wish.sharedBody)).toBeNull();
+  });
+
   it('creates a valid undated Plan and opens the canonical result', async () => {
     const { createPlan, locations } = renderCreate('plan');
     const title = screen.getByLabelText(m5s3.plan.intentionLabel);

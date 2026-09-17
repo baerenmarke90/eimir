@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -11,11 +12,13 @@ const LATE_PLAN_ID = '55555555-5555-4555-8555-555555555555';
 const IDEA_PLAN_ID = '66666666-6666-4666-8666-666666666666';
 const COMPLETED_PLAN_ID = '77777777-7777-4777-8777-777777777777';
 const WISH_ID = '88888888-8888-4888-8888-888888888888';
+const CONVERTED_PLAN_ID = '99999999-9999-4999-8999-999999999999';
 
 const EARLY_TITLE = 'Autumn hike';
 const LATE_TITLE = 'Concert in October';
 const IDEA_TITLE = 'Try a new recipe';
 const COMPLETED_TITLE = 'Day trip we already took';
+const CONVERTED_PLAN_TITLE = 'Authoritative converted autumn Plan';
 
 function localFutureIso(days: number): string {
   const value = new Date();
@@ -89,11 +92,28 @@ const completedPlan = planDetail({
   plannedStart: LATE_DATE,
   experiencedOn: '2026-07-26',
 });
+const convertedPlan = planDetail({
+  id: CONVERTED_PLAN_ID,
+  title: CONVERTED_PLAN_TITLE,
+  status: 'IDEA',
+  plannedStart: null,
+  sourceWishId: WISH_ID,
+});
+
+type PlanningMockCalls = {
+  conversionBody: Record<string, unknown> | null;
+  conversionIfMatch: string | null;
+};
 
 async function installPlanningMocks(
   page: Page,
   options: { empty?: boolean } = {},
-): Promise<void> {
+): Promise<PlanningMockCalls> {
+  const calls: PlanningMockCalls = {
+    conversionBody: null,
+    conversionIfMatch: null,
+  };
+  let converted = false;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -259,28 +279,80 @@ async function installPlanningMocks(
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/wishes`) {
       await fulfillJson({
         hasMore: false,
-        items: options.empty
-          ? []
-          : [
-              {
-                capabilities: {
-                  canComment: true,
-                  canDelete: true,
-                  canEdit: true,
+        items:
+          options.empty || converted
+            ? []
+            : [
+                {
+                  capabilities: {
+                    canComment: true,
+                    canDelete: true,
+                    canEdit: true,
+                  },
+                  createdAt: TEST_NOW,
+                  createdBy: ACCOUNT_ID,
+                  creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+                  id: WISH_ID,
+                  spaceId: SPACE_ID,
+                  status: 'OPEN',
+                  title: EARLY_TITLE,
+                  updatedAt: TEST_NOW,
+                  version: 2,
                 },
-                createdAt: TEST_NOW,
-                createdBy: ACCOUNT_ID,
-                creator: { id: ACCOUNT_ID, displayName: 'Anna' },
-                id: WISH_ID,
-                spaceId: SPACE_ID,
-                status: 'OPEN',
-                title: EARLY_TITLE,
-                updatedAt: TEST_NOW,
-                version: 2,
-              },
-            ],
+              ],
         nextCursor: null,
       });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wishes/${WISH_ID}`
+    ) {
+      await fulfillJson({
+        capabilities: { canComment: true, canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        createdBy: ACCOUNT_ID,
+        creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+        id: WISH_ID,
+        spaceId: SPACE_ID,
+        status: converted ? 'PLANNED' : 'OPEN',
+        title: EARLY_TITLE,
+        updatedAt: TEST_NOW,
+        version: converted ? 3 : 2,
+      });
+      return;
+    }
+
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/wishes/${WISH_ID}/plan`
+    ) {
+      calls.conversionBody = request.postDataJSON() as Record<string, unknown>;
+      calls.conversionIfMatch = request.headers()['if-match'] ?? null;
+      converted = true;
+      await fulfillJson(
+        {
+          wish: {
+            capabilities: {
+              canComment: true,
+              canDelete: true,
+              canEdit: true,
+            },
+            createdAt: TEST_NOW,
+            createdBy: ACCOUNT_ID,
+            creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+            id: WISH_ID,
+            spaceId: SPACE_ID,
+            status: 'PLANNED',
+            title: EARLY_TITLE,
+            updatedAt: TEST_NOW,
+            version: 3,
+          },
+          plan: convertedPlan,
+        },
+        201,
+      );
       return;
     }
 
@@ -292,9 +364,17 @@ async function installPlanningMocks(
         // completed row so the client selector proves the section contract.
         items = [latePlan, completedPlan, earlyPlan];
       } else if (!options.empty && requestedStatus === 'IDEA') {
-        items = [ideaPlan];
+        items = converted ? [convertedPlan, ideaPlan] : [ideaPlan];
       }
       await fulfillJson({ hasMore: false, items, nextCursor: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${CONVERTED_PLAN_ID}`
+    ) {
+      await fulfillJson(convertedPlan);
       return;
     }
 
@@ -313,6 +393,8 @@ async function installPlanningMocks(
       500,
     );
   });
+
+  return calls;
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -379,6 +461,38 @@ test('Plans leads with the nearest intention, then later and undated Plans, whil
     '.today-section-upcoming .today-agenda-title',
   );
   await expect(todayTitles).toHaveText([EARLY_TITLE, LATE_TITLE]);
+});
+
+test('Wish conversion opens the authoritative Plan result and preserves return continuity', async ({
+  page,
+}) => {
+  const calls = await installPlanningMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/plan');
+
+  await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
+  await page.getByRole('link', { name: new RegExp(EARLY_TITLE) }).click();
+  await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
+
+  await page.getByText(m5s3.wish.actionsHeading).click();
+  await page.getByLabel(m5s3.wish.planTitle).fill('Requested autumn Plan');
+  await page.getByRole('button', { name: m5s3.wish.convert }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${CONVERTED_PLAN_ID}$`));
+  await expect(
+    page.getByRole('heading', { name: CONVERTED_PLAN_TITLE, level: 1 }),
+  ).toBeVisible();
+  expect(calls.conversionIfMatch).toBe('2');
+  expect(calls.conversionBody).toMatchObject({
+    title: 'Requested autumn Plan',
+  });
+
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(page).toHaveURL(/\/plan$/);
+  await expect(
+    page.getByRole('tab', { name: m5s3.overview.segmentWishes }),
+  ).toHaveAttribute('aria-selected', 'true');
 });
 
 test('planning segments keep their relationship-native empty states', async ({

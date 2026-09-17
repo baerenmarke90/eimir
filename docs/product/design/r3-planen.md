@@ -55,7 +55,7 @@ The compact agenda is intentional because chronological anticipation is the huma
 
 ## Reuse decision
 
-No new dependency, backend/schema, provider, router, form framework, schedule model, Memory editor, or persistent draft store is introduced.
+No new dependency, database/domain schema, provider, router, form framework, schedule model, Memory editor, or persistent draft store is introduced. The existing idempotent Wish-to-Plan `200` response now declares the same existing `WishToPlanResponse` body as `201`, allowing canonical client generation to retain the authoritative converted Plan instead of discarding it.
 
 The selected implementation reuses React Router, TanStack Query, native HTML controls, existing F1 semantic tokens, F2 task-origin/editor lifecycle primitives, R1 canonical Memory capture/result, `PlanScheduleFields`, `planningPresentation`, generated Planning clients, and current cache invalidation/concurrency helpers. External OSS/provider review is not applicable: this is a bounded recomposition of existing product behavior and framework capabilities, not commodity infrastructure. A custom universal Planning renderer is rejected because Plan focal content, agenda rows, and Wishes have deliberately different meanings.
 
@@ -72,7 +72,7 @@ The selected implementation reuses React Router, TanStack Query, native HTML con
 - **Concurrency / consistency:** existing `If-Match`, mutation pending locks, Query cache ownership and server-confirmed result ordering remain. Optional capture cannot participate in or roll back Plan completion.
 - **Resilience / offline:** reads retain known content; failed/offline writes preserve task state and never imply queued synchronization.
 - **Performance:** grouping is a linear pass over already loaded bounded pages. No additional per-item request or media processing is added.
-- **API / DTO / migration:** generated contracts, database, routes and schedule DTO semantics remain compatible; only additive client routes for focused creation are introduced.
+- **API / DTO / migration:** the response payload, database, routes and schedule DTO semantics remain unchanged. The OpenAPI declaration for the existing idempotent conversion response is corrected and the Web client is canonically regenerated to return `WishToPlanResponse`; no migration is required.
 - **Self-Hosted / release:** client-only composition, no configuration or provider difference.
 - **Testing:** pure selector/presentation tests, RTL component/task lifecycle tests, targeted and full browser tests, build/type/lint/format/governance gates, and exact-build visual/behavioral evidence are required.
 
@@ -82,7 +82,7 @@ Web is the completed scope of this reviewable R3 delivery. Android current behav
 
 ## Delivery and validation
 
-The Web delivery implements the anticipation-first Plan Hub, dedicated focused Plan/Wish creation, read-first Plan/Wish detail, disclosed lifecycle operations, canonical post-completion Memory/Milestone routes, and origin-aware return continuity. It preserves the accepted #952 scheduling semantics and existing optimistic-concurrency, cache, tenant, and capability boundaries.
+The Web delivery implements the anticipation-first Plan Hub, dedicated focused Plan/Wish creation, read-first Plan/Wish detail, disclosed lifecycle operations, canonical post-completion Memory/Milestone routes, and origin-aware return continuity. Wish creation retains shared-visibility information with Wish-specific language, and Wish-to-Plan conversion opens the authoritative returned Plan detail while carrying a valid F2 origin. It preserves the accepted #952 scheduling semantics and existing optimistic-concurrency, cache, tenant, and capability boundaries.
 
 Validation completed against the final implementation:
 

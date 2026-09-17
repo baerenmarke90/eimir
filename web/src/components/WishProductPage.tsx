@@ -6,7 +6,11 @@ import type { WishDetail } from '../api/generated/models/WishDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
-import { appRoutePath, MEMORY_CREATE_ROUTE } from '../client/routes';
+import {
+  appRoutePath,
+  MEMORY_CREATE_ROUTE,
+  planDetailPath,
+} from '../client/routes';
 import {
   loadAllPlaces,
   planningIfMatch,
@@ -141,7 +145,12 @@ export function WishProductPage({
           wishToPlan: { title, description, placeId, schedule },
         }),
       ),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      queryClient.setQueryData(key, result.wish);
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.planDetail(spaceId, result.plan.id),
+        result.plan,
+      );
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['m5-s3', 'wishes', spaceId],
@@ -152,7 +161,12 @@ export function WishProductPage({
         queryClient.invalidateQueries({ queryKey: key }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(`${appRoutePath('plan')}#plans`, { replace: true });
+      navigate(planDetailPath(result.plan.id), {
+        replace: true,
+        state: resolveOrigin(originKey)
+          ? { taskOriginKey: originKey }
+          : undefined,
+      });
     },
   });
 

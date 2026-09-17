@@ -304,6 +304,19 @@ for (const scenario of [
   });
 }
 
+test('focused Wish creation keeps Wish-specific shared visibility copy', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installPlanningMocks(page);
+  await signIn(page);
+  await page.goto('/plan/wishes/new');
+
+  await expect(page.getByText(m5s3.wish.sharedBody)).toBeVisible();
+  await expect(page.getByText(m5s3.plan.sharedBody)).toHaveCount(0);
+  await captureR3Evidence(page, testInfo, 'r3-create-wish-390-light.png');
+});
+
 test('local add and Quick Create both open the focused task and browser Back returns to origin', async ({
   page,
 }) => {

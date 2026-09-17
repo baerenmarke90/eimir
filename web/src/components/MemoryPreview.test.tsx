@@ -40,17 +40,20 @@ class MockIntersectionObserver {
   }
 }
 
+const originalRevokeObjectURL = URL.revokeObjectURL;
+
 beforeEach(() => {
   MockIntersectionObserver.instances = [];
   vi.stubGlobal(
     'IntersectionObserver',
     MockIntersectionObserver as unknown as typeof IntersectionObserver,
   );
-  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+  URL.revokeObjectURL = vi.fn();
 });
 
 afterEach(() => {
   cleanup();
+  URL.revokeObjectURL = originalRevokeObjectURL;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });

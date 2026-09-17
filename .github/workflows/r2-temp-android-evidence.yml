@@ -79,9 +79,6 @@ jobs:
           path = Path("tools/qa/capture_r2_android.py")
           text = path.read_text()
 
-          # Compose testTag semantics nodes carry the actual component bounds even
-          # when UIAutomator does not expose a clickable ancestor. Use those bounds
-          # directly for tagged controls; text-driven actions still use clickable().
           tap_line = "        tap_node(refreshed or node, root)\n"
           tap_replacement = (
               "        target = refreshed if refreshed is not None else node\n"
@@ -108,9 +105,7 @@ jobs:
               raise SystemExit(f"Expected exactly one target block, found {text.count(target_block)}")
           text = text.replace(target_block, target_replacement, 1)
 
-          # Navigate to the submitted R2 Discover surface before enabling TalkBack.
-          # Once TalkBack owns touch exploration, raw adb taps are not a reliable way
-          # to navigate. Binding/semantics are still captured with TalkBack active.
+          # Reach Discover before TalkBack takes ownership of touch exploration.
           talkback_marker = (
               "        talkback = \"com.google.android.marvin.talkback/"
               "com.google.android.marvin.talkback.TalkBackService\"\n"
@@ -124,15 +119,23 @@ jobs:
               raise SystemExit("Expected TalkBack marker not found exactly once")
           text = text.replace(talkback_marker, before_talkback + talkback_marker, 1)
 
+          # After TalkBack binds, its own surface may become foreground. Bring the
+          # existing proof Activity/task back without recreating it, preserving the
+          # already-selected Discover state. No touch interaction is simulated while
+          # TalkBack owns touch exploration.
           later_navigation = (
               "        launch(\"light\")\n"
               "        open_story()\n"
               "        open_discover()\n"
               "        time.sleep(2)\n"
           )
+          restore_app = (
+              "        adb(\"shell\", \"am\", \"start\", \"-W\", \"--activity-clear-top\", \"--activity-single-top\", \"-n\", component)\n"
+              "        time.sleep(2)\n"
+          )
           if text.count(later_navigation) != 1:
               raise SystemExit(f"Expected one post-binding navigation block, found {text.count(later_navigation)}")
-          text = text.replace(later_navigation, "        time.sleep(2)\n", 1)
+          text = text.replace(later_navigation, restore_app, 1)
 
           path.write_text(text)
           PY

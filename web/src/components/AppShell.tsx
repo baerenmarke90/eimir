@@ -153,9 +153,8 @@ function AuthenticatedAppShell({
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const isMemoryDetail = /^\/story\/memories\/[^/]+$/.test(location.pathname);
-  const taskOriginKey = (
-    location.state as { taskOriginKey?: unknown } | null
-  )?.taskOriginKey;
+  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||

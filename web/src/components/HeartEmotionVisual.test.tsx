@@ -12,14 +12,17 @@ afterEach(cleanup);
 
 describe('HeartEmotionVisual', () => {
   it('renders all six domain emotions as one accessible single-choice picker', () => {
-    render(
+    const { container } = render(
       <HeartEmotionPicker
         legend="Gefühl"
         defaultValue={HeartEmotion.APPRECIATED}
       />,
     );
 
-    expect(screen.getByRole('group', { name: 'Gefühl' })).not.toBeNull();
+    expect(screen.getByRole('group')).not.toBeNull();
+    expect(container.querySelector('fieldset legend')?.textContent).toBe(
+      'Gefühl',
+    );
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(HEART_EMOTIONS.length);
     expect(radios).toHaveLength(6);

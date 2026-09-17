@@ -66,7 +66,6 @@ import { StoryList } from './StoryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import {
-  distributeIntoTapestryColumns,
   formatStoryDate,
   groupStoryItems,
   resolveStoryKindLabel,
@@ -74,7 +73,6 @@ import {
   storyItemKey,
   storyItemPresentation,
   tapestryItemRole,
-  tapestryRoleWeight,
 } from './storyPresentation';
 import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';

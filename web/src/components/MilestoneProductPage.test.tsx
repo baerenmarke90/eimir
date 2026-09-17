@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
+import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import storyProducts from '../i18n/locales/storyProducts';
 import { AppShell } from './AppShell';
@@ -133,12 +134,16 @@ describe('Milestone view receipt', () => {
   it('emits a receipt strictly on successful presentation', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getMilestoneMock = vi.fn().mockReturnValue(new Promise(resolve => {
-      resolveQuery = resolve;
-    }));
+    let getMilestoneMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        resolveQuery = resolve;
+      }),
+    );
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
-      milestones: { getMilestone: (...args: any[]) => getMilestoneMock(...args) },
+      milestones: {
+        getMilestone: (...args: any[]) => getMilestoneMock(...args),
+      },
     } as unknown as ReferenceApis;
 
     const milestone: MilestoneDetail = {
@@ -147,6 +152,7 @@ describe('Milestone view receipt', () => {
       authorId: 'account-1',
       author: { id: 'account-1', displayName: 'Alex' },
       title: 'First apartment together',
+      body: '',
       happenedOn: new Date('2025-09-15'),
       createdAt: new Date('2025-09-15'),
       updatedAt: new Date('2025-09-15'),
@@ -165,9 +171,12 @@ describe('Milestone view receipt', () => {
       profileAttachmentId: null,
       version: 1,
     });
-    queryClient.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
-      unreadCount: 0,
-    });
+    queryClient.setQueryData(
+      ['m5-s5', 'notification-unread-count', 'space-1'],
+      {
+        unreadCount: 0,
+      },
+    );
     queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
       id: 'space-1',
       createdAt: new Date('2024-01-01T00:00:00.000Z'),

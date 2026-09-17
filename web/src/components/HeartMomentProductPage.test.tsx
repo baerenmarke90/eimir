@@ -146,9 +146,11 @@ describe('Heart Moment view receipt', () => {
   it('emits a receipt strictly on successful presentation of a SHARED moment', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getHeartMomentMock = vi.fn().mockReturnValue(new Promise(resolve => {
-      resolveQuery = resolve;
-    }));
+    let getHeartMomentMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        resolveQuery = resolve;
+      }),
+    );
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       heartMoments: {
@@ -235,12 +237,10 @@ describe('Heart Moment view receipt', () => {
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       heartMoments: {
-        getHeartMoment: vi
-          .fn()
-          .mockResolvedValue({
-            ...heartMoment,
-            visibility: ContentVisibility.PRIVATE,
-          }),
+        getHeartMoment: vi.fn().mockResolvedValue({
+          ...heartMoment,
+          visibility: ContentVisibility.PRIVATE,
+        }),
       },
     } as unknown as ReferenceApis;
 

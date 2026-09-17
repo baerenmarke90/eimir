@@ -166,12 +166,17 @@ describe('Memory editor return context', () => {
 });
 
 describe('Memory view receipt', () => {
-  it('emits a receipt strictly on successful presentation, not during load or failure', async () => {
-    const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+  function setupReceiptTest(overrideRecordMock?: any) {
+    const recordStoryViewMock =
+      overrideRecordMock || vi.fn().mockResolvedValue(undefined);
     let resolveQuery: (val: any) => void;
-    let getMemoryMock = vi.fn().mockReturnValue(new Promise(resolve => {
-      resolveQuery = resolve;
-    }));
+    let rejectQuery: (err: any) => void;
+    const getMemoryMock = vi.fn().mockReturnValue(
+      new Promise((resolve, reject) => {
+        resolveQuery = resolve;
+        rejectQuery = reject;
+      }),
+    );
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       memories: { getMemory: (...args: any[]) => getMemoryMock(...args) },
@@ -210,7 +215,7 @@ describe('Memory view receipt', () => {
       partners: [],
     });
 
-    render(
+    const result = render(
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={['/story/memories/memory-1']}>
           <TaskOriginProvider accountId="account-1" spaceId="space-1">
@@ -243,13 +248,23 @@ describe('Memory view receipt', () => {
       </QueryClientProvider>,
     );
 
-    // Should not emit while loading
+    return {
+      result,
+      recordStoryViewMock,
+      resolveQuery: resolveQuery!,
+      rejectQuery: rejectQuery!,
+      memory,
+      client,
+    };
+  }
+
+  it('emits a receipt strictly on successful presentation, not during load or failure', async () => {
+    const { recordStoryViewMock, resolveQuery, memory } = setupReceiptTest();
+
     expect(recordStoryViewMock).not.toHaveBeenCalled();
 
-    // Now resolve the query
-    resolveQuery!(memory);
+    resolveQuery(memory);
 
-    // Use screen.findByText to wait for successful presentation
     expect(await screen.findByText('A shared evening')).toBeTruthy();
 
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
@@ -257,5 +272,48 @@ describe('Memory view receipt', () => {
       spaceId: 'space-1',
       storyViewReceipt: { kind: 'MEMORY', itemId: 'memory-1' },
     });
+  });
+
+  it('does not damage or replace the presented page if recordStoryView POST fails', async () => {
+    const recordStoryViewMock = vi
+      .fn()
+      .mockRejectedValue(new Error('Network Error'));
+    const { resolveQuery, memory } = setupReceiptTest(recordStoryViewMock);
+
+    resolveQuery(memory);
+
+    // Presentation must still succeed
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not create a duplicate receipt burst on rerender or background query activity', async () => {
+    const { recordStoryViewMock, resolveQuery, memory, result, client } =
+      setupReceiptTest();
+
+    resolveQuery(memory);
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+
+    // Invalidate query to trigger background refetch
+    client.invalidateQueries();
+
+    // Still only 1 receipt
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('produces no receipt on failed canonical detail load', async () => {
+    const { recordStoryViewMock, rejectQuery } = setupReceiptTest();
+
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    rejectQuery(new Error('Not Found'));
+
+    // Wait for the UI to settle (it might just remain loading or show error state, but the text won't be there)
+    const err = await screen
+      .findByText('Es gab ein Problem beim Laden der Daten')
+      .catch(() => null);
+    // Note: Eimir has an error boundary, just verifying receipt wasn't called
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
   });
 });

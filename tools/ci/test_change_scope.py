@@ -106,16 +106,58 @@ class ChangeScopeTest(unittest.TestCase):
             enabled={"self_hosted", "deployment_guard", "recovery"},
         )
 
-    def test_web_dockerfile_enables_build_and_deployment_gates(self) -> None:
+    def test_web_dockerfile_enables_only_web_supply_chain_surface(self) -> None:
         self.assert_scope(
             ["web/Dockerfile"],
-            enabled={"self_hosted", "supply_chain", "deployment_guard"},
+            enabled={
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_web",
+                "deployment_guard",
+            },
+        )
+
+    def test_backend_dockerfile_enables_only_backend_supply_chain_surface(self) -> None:
+        self.assert_scope(
+            ["backend/Dockerfile"],
+            enabled={
+                "backend",
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_backend",
+                "deployment_guard",
+            },
         )
 
     def test_backend_dependency_change_runs_backend_integration_and_supply_chain(self) -> None:
         self.assert_scope(
             ["backend/uv.lock"],
-            enabled={"backend", "backend_integration", "supply_chain"},
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
+        )
+
+    def test_mixed_supply_chain_change_runs_both_surfaces(self) -> None:
+        self.assert_scope(
+            ["backend/uv.lock", "web/Dockerfile"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_backend",
+                "supply_chain_web",
+                "deployment_guard",
+            },
+        )
+
+    def test_dependabot_configuration_keeps_both_supply_chain_surfaces(self) -> None:
+        self.assert_scope(
+            [".github/dependabot.yml"],
+            enabled={"supply_chain", "supply_chain_backend", "supply_chain_web"},
         )
 
     def test_openapi_contract_enables_generated_client_check(self) -> None:
@@ -124,8 +166,27 @@ class ChangeScopeTest(unittest.TestCase):
     def test_openapi_generator_only_enables_client_check(self) -> None:
         self.assert_scope(["tools/openapi/generate.sh"], enabled={"api_clients"})
 
-    def test_dependency_inventory_only_enables_supply_chain(self) -> None:
-        self.assert_scope(["docs/DEPENDENCIES.md"], enabled={"supply_chain"})
+    def test_dependency_inventory_only_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["docs/DEPENDENCIES.md"],
+            enabled={"supply_chain", "supply_chain_backend"},
+        )
+
+    def test_supply_chain_union_matches_internal_subscopes(self) -> None:
+        for paths in (
+            ["backend/uv.lock"],
+            ["web/Dockerfile"],
+            ["backend/uv.lock", "web/Dockerfile"],
+            [".github/dependabot.yml"],
+            ["docs/ROADMAP.md"],
+            ["future-build-system/config.toml"],
+        ):
+            with self.subTest(paths=paths):
+                result = classify_paths(paths)
+                self.assertEqual(
+                    result["supply_chain"],
+                    result["supply_chain_backend"] or result["supply_chain_web"],
+                )
 
     def test_self_hosting_contract_enables_stack_deployment_and_recovery(self) -> None:
         for path in ("docs/SELF-HOSTING.md", "docs/ARCANE.md"):

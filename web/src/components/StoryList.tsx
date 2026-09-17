@@ -1,10 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { type MouseEvent, useEffect, useId, useRef, useState } from 'react';
+import {
+  type MouseEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
-import type { CommentsApi } from '../api/generated/apis/CommentsApi';
+import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import { Configuration } from '../api/generated/runtime';
+import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   commentPresenceQueryKey,
   type CommentParentKind,
@@ -203,7 +212,6 @@ export function StoryList({
   items,
   loadMemoryImage,
   loadHeartMomentImage,
-  commentsApi,
   profilesApi,
   spaceId,
   onOpenItem,
@@ -214,7 +222,6 @@ export function StoryList({
     heartMomentId: string,
     attachmentId: string,
   ) => Promise<string>;
-  commentsApi?: CommentsApi;
   profilesApi?: ProfilesApi;
   spaceId?: string;
   onOpenItem?: (
@@ -225,6 +232,21 @@ export function StoryList({
 }) {
   const { t } = useTranslation();
   const listId = useId();
+  const apiRuntime = useApiRuntime();
+  const commentsApi = useMemo(
+    () =>
+      apiRuntime
+        ? new CommentsApi(
+            new Configuration({
+              basePath: apiRuntime.apiBaseUrl,
+              headers: {
+                Authorization: `Bearer ${apiRuntime.accessToken}`,
+              },
+            }),
+          )
+        : undefined,
+    [apiRuntime],
+  );
 
   if (items.length === 0) {
     return (

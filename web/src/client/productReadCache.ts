@@ -4,7 +4,7 @@ import {
   normalizeClientError,
 } from './problemDetails';
 
-export type ProductCacheKind = 'memory' | 'heartMoment' | 'milestone' | 'story';
+export type ProductCacheKind = 'memory' | 'heartMoment' | 'milestone' | 'story' | 'story-discover';
 export type ProductReadSource = 'network' | 'cache';
 export type ProductCachePrivacyScope = 'SPACE_SHARED';
 

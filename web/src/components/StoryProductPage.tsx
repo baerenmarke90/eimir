@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 import {
   type MouseEvent,
@@ -28,6 +28,10 @@ import {
   StoryPageFromJSON,
   StoryPageToJSON,
 } from '../api/generated/models/StoryPage';
+import {
+  DiscoverSelectionFromJSON,
+  DiscoverSelectionToJSON,
+} from '../api/generated/models/DiscoverSelection';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   loadProductWithReadCache,
@@ -46,7 +50,6 @@ import {
   DEFAULT_STORY_FILTERS,
   parseStoryFilters,
   type StoryFilters,
-  selectFeaturedStoryItem,
   storyCacheResourceId,
   storyFiltersToSearch,
   storyRequest,
@@ -144,39 +147,25 @@ interface TapestryBand {
   columns: TapestryEntry[][];
 }
 
-const TAPESTRY_ITEM_LIMIT = 12;
 
-/**
- * Newest-first month bands, each internally column-balanced (#790/#791):
- * chronology reads as "newest month first, newest item first within a
- * month" without requiring the viewer to reverse-engineer a column-balancing
- * algorithm across the whole grid. Items are sorted defensively by
- * `effectiveDate` rather than trusting incoming array order, since Discover
- * can be reached with a non-default Timeline `order` filter still applied
- * via the `tab` URL param.
- */
 function buildTapestryBands(
   items: StoryItem[],
   t: TFunction,
   locale: string,
   columnCount: number,
 ): TapestryBand[] {
-  const newestFirst = [...items].sort(
-    (a, b) => b.effectiveDate.getTime() - a.effectiveDate.getTime(),
-  );
-  const groups = groupStoryItems(
-    newestFirst.slice(0, TAPESTRY_ITEM_LIMIT),
-    locale,
-  );
-  return groups.map((group) => ({
-    key: group.key,
-    label: group.label,
-    columns: distributeIntoTapestryColumns(
-      group.items.map((item) => buildTapestryEntry(item, t, locale)),
-      columnCount,
-      (entry) => tapestryRoleWeight(entry.role),
-    ),
-  }));
+  if (items.length === 0) return [];
+  return [
+    {
+      key: 'discover',
+      label: '',
+      columns: distributeIntoTapestryColumns(
+        items.map((item) => buildTapestryEntry(item, t, locale)),
+        columnCount,
+        (entry) => tapestryRoleWeight(entry.role),
+      ),
+    },
+  ];
 }
 
 const TAPESTRY_TABLET_QUERY = '(min-width: 640px)';
@@ -310,10 +299,32 @@ export function StoryProductPage({
     },
     retry: false,
   });
+  const discoverQuery = useQuery({
+    queryKey: ['story-discover', accountId, spaceId],
+    queryFn: async () => {
+      return loadProductWithReadCache({
+        accountId,
+        spaceId,
+        kind: 'story-discover',
+        resourceId: 'discover',
+        load: () => apis.story.getStoryDiscover({ spaceId }),
+        serialize: DiscoverSelectionToJSON,
+        deserialize: (payload) => DiscoverSelectionFromJSON(payload),
+      });
+    },
+    retry: false,
+  });
+
   const pullRefresh = usePullToRefresh({
-    enabled: activeView === 'timeline',
-    blocked: storyQuery.isFetching,
-    onRefresh: () => storyQuery.refetch(),
+    enabled: true,
+    blocked: activeView === 'timeline' ? storyQuery.isFetching : discoverQuery.isFetching,
+    onRefresh: () => {
+      if (activeView === 'timeline') {
+        return storyQuery.refetch();
+      } else {
+        return discoverQuery.refetch();
+      }
+    },
   });
 
   const combinedStory = useMemo(() => {
@@ -322,7 +333,9 @@ export function StoryProductPage({
   }, [storyQuery.data]);
   const allPagesFromNetwork =
     storyQuery.data?.pages.every((page) => page.source === 'network') ?? false;
-  const offline = storyQuery.data?.pages[0]?.source === 'cache';
+  const offline = activeView === 'timeline'
+    ? storyQuery.data?.pages[0]?.source === 'cache'
+    : discoverQuery.data?.source === 'cache';
 
   useEffect(() => {
     if (!combinedStory || !allPagesFromNetwork) return;
@@ -335,6 +348,18 @@ export function StoryProductPage({
       serialize: StoryPageToJSON,
     });
   }, [accountId, allPagesFromNetwork, cacheResourceId, combinedStory, spaceId]);
+
+  useEffect(() => {
+    if (discoverQuery.data?.source !== 'network') return;
+    void saveProductReadCacheEntry({
+      accountId,
+      spaceId,
+      kind: 'story-discover',
+      resourceId: 'discover',
+      value: discoverQuery.data.value,
+      serialize: DiscoverSelectionToJSON,
+    });
+  }, [accountId, spaceId, discoverQuery.data]);
 
   function setView(view: 'discover' | 'timeline') {
     const next = new URLSearchParams(searchParams);
@@ -434,23 +459,25 @@ export function StoryProductPage({
     offline,
   ]);
 
-  const items = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
+  const timelineItems = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
+  const discoverItems = useMemo(() => discoverQuery.data?.value.items ?? [], [discoverQuery.data]);
+  const featuredItem = discoverQuery.data?.value.lead ?? null;
+  const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
 
   const timelineMonthGroups = useMemo(
-    () => groupStoryItems(combinedStory?.items ?? [], locale),
-    [combinedStory, locale],
+    () => groupStoryItems(timelineItems, locale),
+    [timelineItems, locale],
   );
   useStickyTimelineMonths(
     timelineMonthsRef,
     activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
-  const featuredItem = useMemo(() => selectFeaturedStoryItem(items), [items]);
 
   const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(
-    () => buildTapestryBands(items, t, locale, tapestryColumnCount),
-    [items, t, locale, tapestryColumnCount],
+    () => buildTapestryBands(discoverItems, t, locale, tapestryColumnCount),
+    [discoverItems, t, locale, tapestryColumnCount],
   );
 
   const featuredMedia =
@@ -656,7 +683,7 @@ export function StoryProductPage({
       ) : null}
 
       {combinedStory &&
-      items.length === 0 &&
+      timelineItems.length === 0 &&
       availableYears.length === 0 &&
       !(activeView === 'timeline' && hasActiveFilters) ? (
         <div className="new-space-experience eimir-motion-reveal">
@@ -682,7 +709,7 @@ export function StoryProductPage({
             </Link>
           </div>
         </div>
-      ) : combinedStory && activeView === 'discover' && items.length > 0 ? (
+      ) : combinedStory && activeView === 'discover' ? (
         <div className="momente-discover-page eimir-motion-reveal">
           {/* 1. Featured Editorial Highlight */}
           {featuredItem && featuredPresentation ? (
@@ -718,7 +745,11 @@ export function StoryProductPage({
                     >
                       <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
                     </svg>
-                    <span>{t('story.featuredKicker')}</span>
+                    <span>
+                      {leadContext?.type === 'ON_THIS_DAY'
+                        ? t('story.onThisDay', { count: leadContext.yearsAgo })
+                        : t('story.featuredKicker')}
+                    </span>
                   </span>
                   {featuredItem.kind === 'HEART_MOMENT' ? (
                     <blockquote className="momente-hero-quote">
@@ -792,12 +823,14 @@ export function StoryProductPage({
                   key={band.key}
                   aria-labelledby={`momente-band-${band.key}`}
                 >
-                  <h4
-                    id={`momente-band-${band.key}`}
-                    className="momente-band-heading"
-                  >
-                    {band.label}
-                  </h4>
+                  {band.label ? (
+                    <h4
+                      id={`momente-band-${band.key}`}
+                      className="momente-band-heading"
+                    >
+                      {band.label}
+                    </h4>
+                  ) : null}
                   <div className="momente-tapestry">
                     {band.columns
                       .filter((column) => column.length > 0)
@@ -1122,7 +1155,7 @@ export function StoryProductPage({
                 {t('story.timelineHeading')}
               </h2>
 
-              {items.length === 0 ? (
+              {timelineItems.length === 0 ? (
                 <div className="story-filter-empty-state eimir-motion-reveal">
                   <p className="story-filter-empty-text">
                     {t('storyFilters.noMatches')}

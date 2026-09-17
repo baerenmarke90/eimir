@@ -32,6 +32,14 @@ function renderStoryPage(route: string, cachedData: unknown): string {
     ],
     pageParams: [null],
   });
+  queryClient.setQueryData(['story-discover', 'account-1', 'space-1'], {
+    value: {
+      items: (cachedData as any).items || [],
+      lead: (cachedData as any).items?.[0] || null,
+      leadContext: null,
+    },
+    source: 'network',
+  });
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
@@ -277,12 +285,8 @@ describe('StoryProductPage', () => {
     expect(html).not.toContain('momente-year-archive');
   });
 
-  describe('regression #790/#791: Momente Discover newest-first month bands', () => {
-    it('renders newest month first, newest item first within a month, independent of incoming array order', () => {
-      // Items are deliberately supplied out of chronological order (e.g. as
-      // if reached via a Timeline `order=ASC` filter still applied through
-      // the `tab` URL param) to prove the band grouping sorts defensively
-      // by effectiveDate rather than trusting array order.
+  describe('canonical Discover ordering and presentation', () => {
+    it('preserves the exact server-provided item order without client-side reshuffling', () => {
       const html = renderStoryPage('/story', {
         items: [
           {
@@ -296,29 +300,7 @@ describe('StoryProductPage', () => {
               attachments: [],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
-              capabilities: {
-                canComment: true,
-                canDelete: true,
-                canEdit: true,
-              },
-            },
-          },
-          {
-            kind: 'MEMORY',
-            effectiveDate: new Date('2026-08-10T00:00:00Z'),
-            memory: {
-              id: 'mem-early-august',
-              title: 'Early August Walk',
-              occurredOn: new Date('2026-08-10T00:00:00Z'),
-              createdAt: new Date('2026-08-10T00:00:00Z'),
-              attachments: [],
-              author: { id: 'author-1', displayName: 'Alex' },
-              creator: { id: 'author-1', displayName: 'Alex' },
-              capabilities: {
-                canComment: true,
-                canDelete: true,
-                canEdit: true,
-              },
+              capabilities: { canComment: true, canDelete: true, canEdit: true },
             },
           },
           {
@@ -332,11 +314,7 @@ describe('StoryProductPage', () => {
               attachments: [],
               author: { id: 'author-1', displayName: 'Alex' },
               creator: { id: 'author-1', displayName: 'Alex' },
-              capabilities: {
-                canComment: true,
-                canDelete: true,
-                canEdit: true,
-              },
+              capabilities: { canComment: true, canDelete: true, canEdit: true },
             },
           },
         ],
@@ -344,50 +322,22 @@ describe('StoryProductPage', () => {
         nextCursor: null,
       });
 
-      expect(html).toContain('momente-tapestry-bands');
-      expect(html).toContain('momente-tapestry-band');
-      expect(html).toContain('momente-band-heading');
-      expect(html).toContain('August 2026');
-      expect(html).toContain('Juli 2026');
-
-      // Scope all ordering assertions to the tapestry itself: the hero above
-      // it (`selectFeaturedStoryItem`) may pick any one of these items to
-      // highlight first, which is unrelated to the tapestry's own ordering.
       const tapestryStart = html.indexOf('momente-tapestry-bands');
       expect(tapestryStart).toBeGreaterThan(-1);
 
-      // Newest month band (August) precedes the older month band (July)
-      const augustBandIndex = html.indexOf('August 2026', tapestryStart);
-      const julyBandIndex = html.indexOf('Juli 2026', tapestryStart);
-      expect(augustBandIndex).toBeGreaterThan(-1);
-      expect(julyBandIndex).toBeGreaterThan(-1);
-      expect(augustBandIndex).toBeLessThan(julyBandIndex);
-
-      // Within the August band, the newest item (26th) reads before the
-      // older one (10th) in DOM order, matching visual/keyboard/reading order
-      const lateAugustIndex = html.indexOf(
-        'Late August Vacation',
-        tapestryStart,
-      );
-      const earlyAugustIndex = html.indexOf('Early August Walk', tapestryStart);
+      // Spring Picnic is rendered BEFORE Late August Vacation, exactly as provided by the backend array.
+      const springPicnicIndex = html.indexOf('Spring Picnic', tapestryStart);
+      const lateAugustIndex = html.indexOf('Late August Vacation', tapestryStart);
+      
+      expect(springPicnicIndex).toBeGreaterThan(-1);
       expect(lateAugustIndex).toBeGreaterThan(-1);
-      expect(earlyAugustIndex).toBeGreaterThan(-1);
-      expect(lateAugustIndex).toBeLessThan(earlyAugustIndex);
-
-      // Every item still falls within its own correct month band, not a
-      // single global fake grouping
-      expect(earlyAugustIndex).toBeLessThan(julyBandIndex);
-      expect(julyBandIndex).toBeLessThan(
-        html.indexOf('Spring Picnic', tapestryStart),
-      );
+      expect(springPicnicIndex).toBeLessThan(lateAugustIndex);
     });
 
-    it('caps the tapestry at the most recent items without silently dropping a month band', () => {
+    it('renders all backend-provided items without applying an arbitrary client-side cap', () => {
       const items = Array.from({ length: 14 }, (_, index) => ({
         kind: 'MEMORY' as const,
-        effectiveDate: new Date(
-          Date.UTC(2026, 7, 28 - index), // 2026-08-28 downward, one per day
-        ),
+        effectiveDate: new Date(Date.UTC(2026, 7, 28 - index)),
         memory: {
           id: `mem-${index}`,
           title: `Moment ${index}`,
@@ -406,17 +356,15 @@ describe('StoryProductPage', () => {
         nextCursor: null,
       });
 
-      // Scope the cap assertion to the tapestry. The independent featured
-      // hero may legitimately surface any eligible item outside that cap.
       const tapestryStart = html.indexOf('momente-tapestry-bands');
       expect(tapestryStart).toBeGreaterThan(-1);
       const tapestryHtml = html.slice(tapestryStart);
 
-      // The 12 most recent tapestry items are shown, the oldest two are not.
+      // All 14 items should be rendered, because Discover is now bounded by the backend
       expect(tapestryHtml).toContain('Moment 0');
       expect(tapestryHtml).toContain('Moment 11');
-      expect(tapestryHtml).not.toContain('Moment 12');
-      expect(tapestryHtml).not.toContain('Moment 13');
+      expect(tapestryHtml).toContain('Moment 12');
+      expect(tapestryHtml).toContain('Moment 13');
     });
   });
 

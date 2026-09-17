@@ -17,6 +17,7 @@ import {
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { localDateInputValue, openNativeDatePicker } from '../client/dateInput';
 import { normalizeClientError } from '../client/problemDetails';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
@@ -153,6 +154,14 @@ export function HeartMomentProductPage({
     },
     enabled: mode !== 'create' && Boolean(heartMomentId),
     retry: false,
+  });
+
+  useStoryViewReceipt({
+    apis,
+    spaceId,
+    kind: 'HEART_MOMENT',
+    itemId: heartMomentId ?? '',
+    presented: mode === 'detail' && heartMomentQuery.isSuccess,
   });
 
   const createMutation = useMutation({

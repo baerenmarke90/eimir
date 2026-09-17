@@ -11,6 +11,7 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { TaskOriginProvider } from '../client/taskOrigin';
+import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
   PRIMARY_APP_ROUTES,
@@ -147,6 +148,8 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
+  const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
+    useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const isMemoryTask = location.pathname === MEMORY_CREATE_ROUTE;
   const gamesPath = appRoutePath('games');
@@ -277,7 +280,11 @@ function AuthenticatedAppShell({
       </div>
 
       {!isMemoryTask ? (
-        <div className="mobile-bottom-shell">
+        <div
+          ref={bottomNavRef}
+          className="mobile-bottom-shell"
+          data-hidden={!isBottomNavVisible ? 'true' : 'false'}
+        >
           <nav
             className="mobile-bottom-nav"
             aria-label={t('navigation.primary')}

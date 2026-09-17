@@ -642,6 +642,24 @@
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-card);
   box-sizing: border-box;
+  transition:
+    transform 200ms cubic-bezier(0.2, 0, 0, 1),
+    opacity 200ms ease;
+  will-change: transform, opacity;
+}
+
+.mobile-bottom-shell[data-hidden="true"] {
+  transform: translate(
+    -50%,
+    calc(
+      100% +
+      var(--shell-floating-nav-offset) +
+      env(safe-area-inset-bottom, 0px) +
+      var(--space-4)
+    )
+  );
+  opacity: 0;
+  pointer-events: none;
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {
@@ -970,7 +988,8 @@
   .shell-nav-link,
   .shell-nav .shell-nav-link,
   .shell-utility-link,
-  .header-profile-trigger {
+  .header-profile-trigger,
+  .mobile-bottom-shell {
     transition: none;
   }
 }

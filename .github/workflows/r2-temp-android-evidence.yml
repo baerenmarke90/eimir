@@ -1,0 +1,109 @@
+name: R2 Temporary Android Evidence
+
+on:
+  push:
+    branches:
+      - feat/966-r2-momente-timeline
+    paths:
+      - .github/workflows/r2-temp-android-evidence.yml
+
+permissions:
+  contents: write
+
+jobs:
+  evidence:
+    name: Final disposable-emulator R2 evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: feat/966-r2-momente-timeline
+          fetch-depth: 0
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Install disposable Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-37.1" \
+            "build-tools;36.0.0" \
+            "platform-tools" \
+            "emulator" \
+            "system-images;android-36;google_apis;x86_64"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/android-avd"
+          echo "ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd" >> "$GITHUB_ENV"
+          export ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd --force --name r2-proof --package "system-images;android-36;google_apis;x86_64"
+
+      - name: Boot disposable emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/r2-native-evidence"
+          nohup "$ANDROID_HOME/emulator/emulator" @r2-proof -no-window -no-audio -no-boot-anim -no-snapshot -no-metrics -gpu swiftshader_indirect -camera-back none -camera-front none >"$RUNNER_TEMP/r2-native-evidence/emulator.log" 2>&1 &
+          adb wait-for-device
+          for i in $(seq 1 120); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then break; fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb shell input keyevent 82 || true
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+
+      - name: Build and test exact R2 APK
+        working-directory: android
+        run: ./gradlew --no-daemon --stacktrace --dependency-verification strict :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Capture R2 native journey matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/qa/capture_r2_android.py \
+            --serial "$(adb get-serialno)" \
+            --apk android/app/build/outputs/apk/debug/app-debug.apk \
+            --output "$RUNNER_TEMP/r2-native-evidence"
+
+      - name: Commit selected exact-build evidence and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="$RUNNER_TEMP/r2-native-evidence"
+          dst="docs/product/design/evidence/r2/android"
+          mkdir -p "$dst"
+          cp "$src"/r2-android-*.png "$dst/"
+          cp "$src"/r2-android-*.xml "$dst/"
+          cp "$src/r2-android-report.json" "$dst/"
+          cp "$src/r2-android-talkback-enabled-services.txt" "$dst/"
+          cp "$src/r2-android-talkback-accessibility-dumpsys.txt" "$dst/"
+          git rev-parse HEAD > "$dst/r2-android-source-commit.txt"
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk > "$dst/r2-android-apk.sha256"
+          git rm .github/workflows/r2-temp-android-evidence.yml
+          git add "$dst"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test(android): capture final R2 device evidence'
+          git push origin HEAD:feat/966-r2-momente-timeline
+
+      - name: Upload complete emulator run
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: r2-android-final-${{ github.sha }}
+          path: ${{ runner.temp }}/r2-native-evidence
+          if-no-files-found: error
+          retention-days: 3

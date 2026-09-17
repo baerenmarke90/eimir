@@ -265,11 +265,7 @@ test.describe('Momente canonical Discover integration (#971 Slice 4)', () => {
     await expect(page.getByText('Our first apartment')).toBeVisible();
     await expect(page.getByText('Winter evening')).toBeVisible();
 
-    await captureEvidence(
-      page,
-      testInfo,
-      'story-971-discover-390-compact.png',
-    );
+    await captureEvidence(page, testInfo, 'story-971-discover-390-compact.png');
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.locator('.momente-discover-page')).toBeVisible();

@@ -376,7 +376,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
     );
   expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
 
-  const grid = page.locator('.momente-tapestry-columns').first();
+  const grid = page.locator('.momente-tapestry').first();
   await expect(grid).toBeVisible();
   const gridStyle = await grid.evaluate((element) => {
     const style = getComputedStyle(element);
@@ -442,7 +442,7 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
     );
   expect(tapestryLinkTitles).toEqual(canonicalItemLabels);
 
-  const grid = page.locator('.momente-tapestry-columns').first();
+  const grid = page.locator('.momente-tapestry').first();
   const columnCount = await grid.evaluate(
     (element) =>
       getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean)

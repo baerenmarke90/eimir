@@ -274,7 +274,9 @@ export function CommentsPanel({
           onRetry={() => void commentsQuery.refetch()}
         />
       ) : comments.length === 0 ? (
-        compact ? null : <p className="muted">{t('comments.empty')}</p>
+        compact ? null : (
+          <p className="muted">{t('comments.empty')}</p>
+        )
       ) : (
         <ol className="comment-list">
           {comments.map((comment) => {

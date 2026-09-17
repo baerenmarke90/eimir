@@ -242,7 +242,7 @@ describe('StoryProductPage', () => {
     expect(html).toContain('/story/memories/new');
   });
 
-  it('renders clickable milestone card with updated non-achievement copy linking to timeline filter', () => {
+  it('keeps milestone story content distinct from the compact structural navigation', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -258,14 +258,23 @@ describe('StoryProductPage', () => {
           },
         },
       ],
+      availableYears: [2026],
       hasMore: false,
       nextCursor: null,
     });
 
-    expect(html).toContain(de.story.milestonesTitle.replace(/&/g, '&amp;'));
-    expect(html).toContain(de.story.milestonesDesc);
-    expect(html).not.toContain('Erfolge');
+    expect(html).toContain('momente-tapestry-milestone');
+    expect(html).toContain('Moved in together');
+    expect(html).toContain('momente-browse-layer');
+    expect(html).toContain(de.story.browseMilestones);
+    expect(html).toContain(de.story.browseChapters);
+    expect(html).toContain(de.story.browseYears);
     expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
+    expect(html).toContain('href="/story/chapters"');
+    expect(html).toContain('href="/story/years"');
+    expect(html).not.toContain(de.story.milestonesDesc);
+    expect(html).not.toContain('momente-archive-links');
+    expect(html).not.toContain('momente-year-archive');
   });
 
   describe('regression #790/#791: Momente Discover newest-first month bands', () => {

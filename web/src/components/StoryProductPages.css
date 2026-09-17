@@ -570,7 +570,7 @@
 .momente-tabs-container {
   display: flex;
   justify-content: center;
-  margin: var(--space-2) 0 var(--space-6);
+  margin: var(--space-2) 0 var(--space-3);
 }
 
 .momente-tabs {
@@ -1019,109 +1019,76 @@
   color: var(--color-text-secondary);
 }
 
-/* Milestones & Chapters archive entries (#790/#791): compact editorial
-   tiles woven into the surrounding archive — not stacked table-like rows
-   with a repeated full-width horizontal separator as the main visual
-   device. Each entry reuses the tapestry item's own card conventions
-   (border/shadow/radius) so it reads as part of the same archive, not a
-   generic standalone SaaS feature card. */
-.momente-archive-links {
+/* Momente structural browse layer (#972): compact secondary navigation.
+ * Content is experienced in Discover/Timeline; structure is navigated here. */
+.momente-browse-layer {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3);
+  width: min(100%, 42rem);
+  gap: var(--space-2);
+  margin: 0 auto var(--space-6);
 }
 
-.momente-archive-link {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  min-height: 44px;
-  padding: var(--space-4);
+.momente-browse-heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.momente-browse-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--space-1);
+  padding: 4px;
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  color: inherit;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+}
+
+.momente-browse-link {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
   text-decoration: none;
   transition:
-    transform var(--motion-duration-medium) ease,
-    box-shadow var(--motion-duration-medium) ease,
-    border-color var(--motion-duration-medium) ease;
+    background-color var(--motion-duration-short) ease,
+    color var(--motion-duration-short) ease;
 }
 
-.momente-archive-link:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-soft);
-  border-color: var(--color-border);
+.momente-browse-link:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
 }
 
-.momente-archive-link:focus-visible {
+.momente-browse-link:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 
-.momente-archive-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.momente-browse-icon {
   flex: 0 0 auto;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-medium);
-  background: var(--color-brand-surface);
-  color: var(--color-brand-text);
 }
 
-.momente-archive-copy {
-  min-width: 0;
-  display: grid;
-  gap: 0.15rem;
-}
+@media (max-width: 359px) {
+  .momente-browse-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-.momente-archive-title {
-  font-family: var(--font-ui);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.momente-archive-desc {
-  font-size: 0.86rem;
-  color: var(--color-text-secondary);
-}
-
-/* Year Archive Pills */
-.momente-year-archive {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.momente-year-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.momente-year-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 750;
-  cursor: pointer;
-  transition: all var(--motion-duration-short) ease;
-}
-
-.momente-year-pill:hover {
-  border-color: var(--color-brand);
-  background: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  transform: translateY(-1px);
+  .momente-browse-link:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 /* =====================================================================

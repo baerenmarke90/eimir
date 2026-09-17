@@ -39,9 +39,6 @@ import {
   heartMomentDetailPath,
   memoryDetailPath,
   milestoneDetailPath,
-  STORY_CHAPTERS_ROUTE,
-  STORY_YEARS_ROUTE,
-  storyYearPath,
 } from '../client/routes';
 import { loadAuthorizedStoryImage } from '../client/storyMediaLoader';
 import {
@@ -61,6 +58,7 @@ import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryList } from './StoryList';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
@@ -431,10 +429,6 @@ export function StoryProductPage({
   const items = useMemo(() => combinedStory?.items ?? [], [combinedStory]);
   const locale = resolvedLocale();
 
-  const milestones = useMemo(
-    () => items.filter((item) => item.kind === 'MILESTONE'),
-    [items],
-  );
   const timelineMonthGroups = useMemo(
     () => groupStoryItems(combinedStory?.items ?? [], locale),
     [combinedStory, locale],
@@ -565,6 +559,8 @@ export function StoryProductPage({
           </button>
         </div>
       </div>
+
+      <StoryBrowseLayer />
 
       {storyQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />
@@ -850,116 +846,6 @@ export function StoryProductPage({
               ))}
             </div>
           </section>
-
-          {/* 3. Milestones & Chapters archive entries — quiet rows that read
-              as part of the shared archive, not standalone feature-navigation
-              cards. */}
-          <div className="momente-archive-links">
-            {milestones.length > 0 ? (
-              <Link
-                to="/story?tab=timeline&type=MILESTONE"
-                className="momente-archive-link"
-              >
-                <span className="momente-archive-icon" aria-hidden="true">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z" />
-                  </svg>
-                </span>
-                <span className="momente-archive-copy">
-                  <span className="momente-archive-title">
-                    {t('story.milestonesTitle')}
-                  </span>
-                  <span className="momente-archive-desc">
-                    {t('story.milestonesDesc')}
-                  </span>
-                </span>
-              </Link>
-            ) : null}
-            <Link to={STORY_CHAPTERS_ROUTE} className="momente-archive-link">
-              <span className="momente-archive-icon" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
-                </svg>
-              </span>
-              <span className="momente-archive-copy">
-                <span className="momente-archive-title">
-                  {t('story.chaptersTitle')}
-                </span>
-                <span className="momente-archive-desc">
-                  {t('story.chaptersDesc')}
-                </span>
-              </span>
-            </Link>
-          </div>
-
-          {/* 4. Year Archive — availability comes from the authorized
-              server projection, never from the currently loaded page. */}
-          {availableYears.length > 0 ? (
-            <section
-              className="momente-year-archive"
-              aria-labelledby="momente-years-heading"
-            >
-              <div className="momente-section-header">
-                <div>
-                  <h3
-                    id="momente-years-heading"
-                    className="momente-section-title"
-                  >
-                    {t('story.yearArchiveTitle')}
-                  </h3>
-                  <p className="momente-section-subhead">
-                    {t('story.yearArchiveSubtitle')}
-                  </p>
-                </div>
-                <Link
-                  to={STORY_YEARS_ROUTE}
-                  className="momente-stream-all-link"
-                >
-                  {t('story.yearArchiveAll')}
-                </Link>
-              </div>
-              <div className="momente-year-pills">
-                {availableYears.slice(0, 4).map((year) => (
-                  <Link
-                    key={year}
-                    to={storyYearPath(year)}
-                    className="momente-year-pill"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      width="14"
-                      height="14"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                      className="year-pill-icon"
-                    >
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    <span>{year}</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
         </div>
       ) : combinedStory && activeView === 'timeline' ? (
         <div className="layout-single-column eimir-motion-reveal">

@@ -424,6 +424,12 @@ test('Momente Discover tapestry stays dense, chronological, and axe-clean on des
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
   await expectNoWcagViolations(page);
+
+  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
+  await page.screenshot({
+    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-1440-light.png'),
+    fullPage: false,
+  });
 });
 
 test('Momente Discover tapestry is axe-clean in dark mode', async ({

@@ -2,6 +2,7 @@
 
 This folder contains exact-build Web/Mobile Web evidence for issue #972.
 
+- `972-browse-1440-light.png`: 1440 × 1200, expanded Web, light theme.
 - `972-browse-390-light.png`: 390 × 844, light theme.
 - `972-browse-320-dark-large-text.png`: 320 × 720, dark theme, root text enlarged to 125%.
 

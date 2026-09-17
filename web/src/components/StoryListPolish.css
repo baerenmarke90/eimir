@@ -364,3 +364,40 @@
     height: 10px;
   }
 }
+
+/*
+ * Month headings and the app bar (#969). In the Timeline a month heading is
+ * pinned directly below the app bar while its month is on screen, so it is
+ * either fully visible or handed over to the next month, never left half
+ * beneath the bar. `useStickyTimelineMonths` measures the rendered bar for
+ * the offset and turns pinning off (plain content) when the bar is too tall,
+ * e.g. with enlarged text or zoom. The band is opaque and keeps the heading's
+ * layout height, and focused cards scroll clear of both bands.
+ */
+.story-timeline-months[data-sticky-months]
+  > .story-year-month
+  > .story-year-month-header {
+  position: sticky;
+  z-index: 2;
+  top: var(--story-month-sticky-top, 0px);
+  margin-block: calc(var(--space-2) * -1);
+  padding-block: var(--space-2);
+  background: var(--color-surface);
+}
+
+.story-timeline-months[data-sticky-months] .story-card-link {
+  scroll-margin-top: calc(var(--story-month-sticky-top, 0px) + 4rem);
+}
+
+/*
+ * The shared app bar is 95% opaque. Content handed over beneath it (a pushed
+ * out month heading, a card) stayed legible as a ghost. While month-grouped
+ * Momente content is on screen the bar is backed by the page background; its
+ * own tint, height and behaviour are unchanged and no other destination is
+ * affected.
+ */
+.product-shell:has(.story-year-month) .product-topbar {
+  background:
+    linear-gradient(var(--color-header-surface), var(--color-header-surface)),
+    var(--color-background);
+}

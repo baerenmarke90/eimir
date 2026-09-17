@@ -76,6 +76,7 @@ import {
   tapestryRoleWeight,
 } from './storyPresentation';
 import { UiState } from './UiState';
+import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 
 function storyItemAuthor(item: StoryItem): AuthorSummary {
   switch (item.kind) {
@@ -371,6 +372,7 @@ export function StoryProductPage({
       ? candidateOrigin
       : null;
   const restoredEntryRef = useRef<string | null>(null);
+  const timelineMonthsRef = useRef<HTMLDivElement>(null);
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
   useEffect(
     () => registerOriginMetadata({ loadedPageCount }),
@@ -436,6 +438,10 @@ export function StoryProductPage({
   const timelineMonthGroups = useMemo(
     () => groupStoryItems(combinedStory?.items ?? [], locale),
     [combinedStory, locale],
+  );
+  useStickyTimelineMonths(
+    timelineMonthsRef,
+    activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
   const featuredItem = useMemo(() => selectFeaturedStoryItem(items), [items]);
 
@@ -1213,7 +1219,10 @@ export function StoryProductPage({
                 </div>
               ) : (
                 <>
-                  <div className="story-year-months story-timeline-months">
+                  <div
+                    ref={timelineMonthsRef}
+                    className="story-year-months story-timeline-months"
+                  >
                     {timelineMonthGroups.map((group) => (
                       <section
                         key={group.key}

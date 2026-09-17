@@ -60,8 +60,15 @@ function formatDateOnly(value: Date): string {
 
 function formatCreatedAt(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
-    dateStyle: 'medium',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   }).format(value);
+}
+
+function firstNameOnly(displayName: string): string {
+  const trimmed = displayName.trim();
+  return trimmed.split(/\s+/u)[0] || trimmed;
 }
 
 export function MemoryProductPage({
@@ -319,7 +326,6 @@ export function MemoryProductPage({
   if (memoryQuery.isLoading) {
     return (
       <div className="page page-reading">
-        {returnControl}
         <UiState kind="loading" title={t('memoryProduct.loading')} />
       </div>
     );
@@ -612,6 +618,10 @@ export function MemoryProductPage({
 
   const bodyText = memory.body || t('memoryProduct.noBody');
   const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
+  const authorName = authorDisplayName(memory.author);
+  const provenanceAuthor = memory.author.isFormerMember
+    ? authorName
+    : firstNameOnly(authorName);
 
   return (
     <div className="page memory-product-page">
@@ -636,10 +646,8 @@ export function MemoryProductPage({
         </div>
       ) : null}
       <PageHeader
-        before={returnControl}
         eyebrow={memoryEyebrow}
         title={memory.title}
-        description={t('memoryProduct.detailIntro')}
         action={
           memory.capabilities.canEdit && !offline ? (
             <Link
@@ -662,16 +670,8 @@ export function MemoryProductPage({
             {bodyRest}
           </p>
 
-          <section aria-labelledby="memory-photos-heading">
-            <div className="section-head memory-section-head">
-              <div>
-                <p className="section-kicker">{t('memory.photoLabel')}</p>
-                <h2 id="memory-photos-heading">
-                  {t('memoryProduct.photosHeading')}
-                </h2>
-              </div>
-            </div>
-            {readyAttachments.length > 0 ? (
+          {readyAttachments.length > 0 ? (
+            <section aria-label={t('memory.photoLabel')}>
               <MediaGallery
                 items={readyAttachments.map((attachment) => ({
                   id: attachment.id,
@@ -681,10 +681,8 @@ export function MemoryProductPage({
                   loadMemoryImage(memory.id, attachmentId)
                 }
               />
-            ) : (
-              <p className="muted">{t('memoryProduct.noPhotos')}</p>
-            )}
-          </section>
+            </section>
+          ) : null}
 
           <CommentsPanel
             commentsApi={apis.comments}
@@ -699,7 +697,7 @@ export function MemoryProductPage({
           <footer className="memory-provenance-footer">
             <p>
               {t('memoryProduct.provenance', {
-                author: authorDisplayName(memory.author),
+                author: provenanceAuthor,
                 createdAt: formatCreatedAt(memory.createdAt),
               })}
             </p>

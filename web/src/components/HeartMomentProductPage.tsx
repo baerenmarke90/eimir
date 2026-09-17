@@ -1,7 +1,7 @@
-import { authorDisplayName } from '../client/authorPresentation';
+import { authorFirstName } from '../client/authorPresentation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
@@ -27,7 +27,6 @@ import {
   heartMomentDetailPath,
   heartMomentEditPath,
 } from '../client/routes';
-import { useTaskOrigin } from '../client/taskOrigin';
 import {
   formatAttachmentDraftContextKey,
   useAttachmentDrafts,
@@ -87,23 +86,6 @@ export function HeartMomentProductPage({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
-  const taskState = location.state as { taskOriginKey?: unknown } | null;
-  const originKey = taskState?.taskOriginKey;
-  const returnControl = (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={() => requestReturn(originKey)}
-    >
-      {t(
-        resolveOrigin(originKey)
-          ? 'taskBoundary.back'
-          : 'heartMomentProduct.backToStory',
-      )}
-    </button>
-  );
   const params = useParams();
   const queryClient = useQueryClient();
   const heartMomentId = params.heartMomentId;
@@ -745,7 +727,6 @@ export function HeartMomentProductPage({
         </div>
       ) : null}
       <PageHeader
-        before={returnControl}
         eyebrow={heartMomentEyebrow}
         title={heartMoment.text}
         titleAction={
@@ -840,7 +821,7 @@ export function HeartMomentProductPage({
           <footer className="heart-moment-provenance-footer">
             <p>
               {t('heartMomentProduct.provenance', {
-                author: authorDisplayName(heartMoment.author),
+                author: authorFirstName(heartMoment.author),
                 createdAt: formatCreatedAt(heartMoment.createdAt),
               })}
             </p>

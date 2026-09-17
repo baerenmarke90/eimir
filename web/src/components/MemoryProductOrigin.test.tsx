@@ -15,9 +15,22 @@ import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
 import memoryProduct from '../i18n/locales/memoryProduct';
 import taskBoundary from '../i18n/locales/taskBoundary';
+import { AppShell } from './AppShell';
 import { MemoryProductPage } from './MemoryProductPage';
 
 vi.mock('./CommentsPanel', () => ({ CommentsPanel: () => null }));
+beforeEach(() => {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+});
 afterEach(cleanup);
 
 function TimelineEntry() {
@@ -63,6 +76,20 @@ function setup(canEdit: boolean) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
+  client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+    accountId: 'account-1',
+    displayName: 'Alex',
+    profileAttachmentId: null,
+    version: 1,
+  });
+  client.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+    unreadCount: 0,
+  });
+  client.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+    id: 'space-1',
+    createdAt: new Date('2024-01-01T00:00:00.000Z'),
+    partners: [],
+  });
   client.setQueryData(authorSummaryQueryKeys.memory('space-1', memory.id), {
     value: memory,
     source: 'network',
@@ -81,17 +108,25 @@ function setup(canEdit: boolean) {
         initialEntries={['/story?tab=timeline&type=MEMORY&year=2025&order=ASC']}
       >
         <TaskOriginProvider accountId="account-1" spaceId="space-1">
-          <Routes>
-            <Route path="/story" element={<TimelineEntry />} />
-            <Route
-              path="/story/memories/:memoryId/edit"
-              element={<MemoryProductPage mode="edit" {...props} />}
-            />
-            <Route
-              path="/story/memories/:memoryId"
-              element={<MemoryProductPage mode="detail" {...props} />}
-            />
-          </Routes>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://example.test"
+            accessToken="test"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            spaceId="space-1"
+          >
+            <Routes>
+              <Route path="/story" element={<TimelineEntry />} />
+              <Route
+                path="/story/memories/:memoryId/edit"
+                element={<MemoryProductPage mode="edit" {...props} />}
+              />
+              <Route
+                path="/story/memories/:memoryId"
+                element={<MemoryProductPage mode="detail" {...props} />}
+              />
+            </Routes>
+          </AppShell>
         </TaskOriginProvider>
       </MemoryRouter>
     </QueryClientProvider>,

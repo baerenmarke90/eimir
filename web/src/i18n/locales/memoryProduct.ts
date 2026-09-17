@@ -5,7 +5,7 @@ const memoryProduct = {
   detailEyebrow: 'Erinnerung',
   detailMetaAria: 'Angaben zu dieser Erinnerung',
   detailIntro: 'Alle Details zu diesem gemeinsamen Moment.',
-  provenance: 'Festgehalten von {{author}} · Erstellt am {{createdAt}}',
+  provenance: 'Festgehalten von {{author}} am {{createdAt}}',
   loading: 'Erinnerung wird geladen …',
   authorLabel: 'Festgehalten von',
   happenedOnLabel: 'Datum',

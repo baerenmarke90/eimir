@@ -1,8 +1,24 @@
-import { type MouseEvent, useId } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  type MouseEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
+import { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
+import { Configuration } from '../api/generated/runtime';
+import { useApiRuntime } from '../client/apiRuntimeContext';
+import {
+  commentPresenceQueryKey,
+  type CommentParentKind,
+  listCommentsPage,
+} from '../client/commentQueries';
 import {
   heartMomentDetailPath,
   memoryDetailPath,
@@ -41,6 +57,108 @@ function storyItemAuthor(item: StoryItem): AuthorSummary {
     case 'MILESTONE':
       return item.milestone.author;
   }
+}
+
+function storyCommentParent(item: StoryItem): {
+  parentKind: CommentParentKind;
+  parentId: string;
+} {
+  switch (item.kind) {
+    case 'MEMORY':
+      return { parentKind: 'memory', parentId: item.memory.id };
+    case 'HEART_MOMENT':
+      return { parentKind: 'heartMoment', parentId: item.heartMoment.id };
+    case 'MILESTONE':
+      return { parentKind: 'milestone', parentId: item.milestone.id };
+  }
+}
+
+function StoryCommentPresence({
+  item,
+  commentsApi,
+  spaceId,
+}: {
+  item: StoryItem;
+  commentsApi?: CommentsApi;
+  spaceId?: string;
+}) {
+  const { t } = useTranslation();
+  const sentinelRef = useRef<HTMLSpanElement | null>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+  const { parentKind, parentId } = storyCommentParent(item);
+
+  useEffect(() => {
+    if (!commentsApi || !spaceId) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      { rootMargin: '160px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [commentsApi, spaceId]);
+
+  const presenceQuery = useQuery({
+    queryKey: commentPresenceQueryKey(spaceId ?? '', parentKind, parentId),
+    queryFn: async () => {
+      if (!commentsApi || !spaceId) return false;
+      const page = await listCommentsPage(
+        commentsApi,
+        parentKind,
+        spaceId,
+        parentId,
+        null,
+        1,
+      );
+      return page.items.length > 0;
+    },
+    enabled: Boolean(commentsApi && spaceId && nearViewport),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  return (
+    <>
+      <span
+        ref={sentinelRef}
+        className="story-comment-presence-sentinel"
+        aria-hidden="true"
+      />
+      {presenceQuery.data ? (
+        <span
+          className="story-card-meta-item comment-label"
+          role="img"
+          aria-label={t('comments.timelinePresence')}
+          title={t('comments.timelinePresence')}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+          </svg>
+        </span>
+      ) : null}
+    </>
+  );
 }
 
 /**
@@ -114,6 +232,21 @@ export function StoryList({
 }) {
   const { t } = useTranslation();
   const listId = useId();
+  const apiRuntime = useApiRuntime();
+  const commentsApi = useMemo(
+    () =>
+      apiRuntime
+        ? new CommentsApi(
+            new Configuration({
+              basePath: apiRuntime.apiBaseUrl,
+              headers: {
+                Authorization: `Bearer ${apiRuntime.accessToken}`,
+              },
+            }),
+          )
+        : undefined,
+    [apiRuntime],
+  );
 
   if (items.length === 0) {
     return (
@@ -255,6 +388,13 @@ export function StoryList({
                           </svg>
                           {presentation.mediaCount}
                         </span>
+                      ) : null}
+                      {commentsApi && spaceId ? (
+                        <StoryCommentPresence
+                          item={item}
+                          commentsApi={commentsApi}
+                          spaceId={spaceId}
+                        />
                       ) : null}
                     </span>
                   </div>

@@ -1,0 +1,30 @@
+.product-detail-page {
+  gap: var(--space-4);
+}
+
+.product-detail-page .page-heading {
+  margin-bottom: 0;
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.product-detail-page .page-heading h1,
+.product-detail-page .page-heading-title-container {
+  margin-bottom: 0;
+}
+
+.heart-moment-detail-container .product-detail-card,
+.milestone-detail-container .product-detail-card {
+  gap: var(--space-6);
+  padding: clamp(var(--space-5), 5vw, var(--space-8));
+}
+
+.milestone-detail-container .memory-detail-body {
+  margin: 0;
+}
+
+.heart-moment-provenance-footer,
+.milestone-provenance-footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+}

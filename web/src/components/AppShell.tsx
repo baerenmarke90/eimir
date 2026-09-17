@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -20,7 +21,7 @@ import {
   PRIMARY_APP_ROUTES,
   SEARCH_ROUTE,
 } from '../client/routes';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -113,13 +114,18 @@ interface AppShellProps {
 
 export function AppShell(props: AppShellProps) {
   return (
-    <TaskOriginProvider
-      key={`${props.account.id}:${props.spaceId}`}
-      accountId={props.account.id}
-      spaceId={props.spaceId}
+    <ApiRuntimeProvider
+      apiBaseUrl={props.apiBaseUrl}
+      accessToken={props.accessToken}
     >
-      <AuthenticatedAppShell {...props} />
-    </TaskOriginProvider>
+      <TaskOriginProvider
+        key={`${props.account.id}:${props.spaceId}`}
+        accountId={props.account.id}
+        spaceId={props.spaceId}
+      >
+        <AuthenticatedAppShell {...props} />
+      </TaskOriginProvider>
+    </ApiRuntimeProvider>
   );
 }
 
@@ -148,9 +154,24 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
+  const storyDetailMatch =
+    /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
+      location.pathname,
+    );
+  const isStoryDetail = Boolean(
+    storyDetailMatch && storyDetailMatch[1] !== 'new',
+  );
+  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const storyDetailBackLabel = t(
+    resolveOrigin(taskOriginKey)
+      ? 'taskBoundary.back'
+      : 'memoryProduct.backToStory',
+  );
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
@@ -196,7 +217,29 @@ function AuthenticatedAppShell({
 
       {!isFocusedTask ? (
         <header className="app-header product-topbar">
-          <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
+          {isStoryDetail ? (
+            <button
+              type="button"
+              className="shell-utility-link shell-detail-back"
+              onClick={() => requestReturn(taskOriginKey)}
+              aria-label={storyDetailBackLabel}
+              title={storyDetailBackLabel}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          ) : (
+            <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
+          )}
           <nav className="shell-nav" aria-label={t('navigation.primary')}>
             <PrimaryNavigationLinks />
           </nav>

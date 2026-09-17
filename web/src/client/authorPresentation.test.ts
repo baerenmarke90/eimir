@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   authorDisplayName,
+  authorFirstName,
   authorProfileAttachmentId,
 } from './authorPresentation';
 
@@ -22,6 +23,21 @@ describe('authorPresentation', () => {
     };
     expect(authorDisplayName(author)).toBe('Lea Sommer');
     expect(authorProfileAttachmentId(author)).toBe('avatar');
+  });
+
+  it('extracts first name for active authors and preserves former-member copy', () => {
+    expect(
+      authorFirstName({
+        displayName: 'Lea Sommer',
+        isFormerMember: false,
+      }),
+    ).toBe('Lea');
+    expect(
+      authorFirstName({
+        displayName: '',
+        isFormerMember: true,
+      }),
+    ).toBe('Ehemaliges Mitglied');
   });
 
   it('does not infer former-member state from the persistence tombstone text', () => {

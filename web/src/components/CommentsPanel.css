@@ -184,3 +184,94 @@
   display: flex;
   gap: var(--space-3);
 }
+
+/* Story details treat discussion as contextual interaction rather than a
+ * permanent form section. */
+.comments-panel-compact {
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+
+.comments-compact-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.comments-compact-heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.comment-compose-trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  justify-self: start;
+  border-radius: var(--radius-pill);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.comment-compose-trigger svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.comments-panel-compact .comment-list {
+  gap: 0;
+}
+
+.comments-panel-compact .comment-card {
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-3) 0;
+  background: transparent;
+}
+
+.comments-panel-compact .comment-card + .comment-card {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.comment-form-compact {
+  padding-top: var(--space-1);
+}
+
+.comment-form-compact textarea {
+  min-height: 7rem;
+}
+
+.comment-compose-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.comment-compose-actions > button {
+  justify-self: auto;
+}
+
+/* A one-pixel sentinel lets Timeline cards defer comment-presence requests
+ * until they approach the viewport without reserving visible metadata space. */
+.story-comment-presence-sentinel {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.story-card-meta-item.comment-label {
+  gap: 0;
+}

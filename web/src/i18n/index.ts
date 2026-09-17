@@ -72,6 +72,18 @@ if (!i18n.isInitialized) {
       escapeValue: false,
     },
   });
+
+  i18n.services.formatter?.add('firstName', (value: unknown) => {
+    if (typeof value !== 'string') return String(value ?? '');
+    const normalized = value.trim();
+    if (
+      !normalized ||
+      normalized === relationshipComponents.formerMemberLabel
+    ) {
+      return normalized;
+    }
+    return normalized.split(/\s+/u, 1)[0] || normalized;
+  });
 }
 
 syncDocumentLanguage();

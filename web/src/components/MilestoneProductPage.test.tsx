@@ -8,12 +8,26 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import storyProducts from '../i18n/locales/storyProducts';
+import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
 
 const backToStoryName = new RegExp(
   storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
   'i',
 );
+
+beforeEach(() => {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -39,6 +53,20 @@ function renderDetail(taskOriginKey?: unknown) {
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
     },
   });
+  queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+    accountId: 'account-1',
+    displayName: 'Alex',
+    profileAttachmentId: null,
+    version: 1,
+  });
+  queryClient.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+    unreadCount: 0,
+  });
+  queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+    id: 'space-1',
+    createdAt: new Date('2024-01-01T00:00:00.000Z'),
+    partners: [],
+  });
   queryClient.setQueryData(
     authorSummaryQueryKeys.milestone('space-1', 'milestone-1'),
     { value: milestone, source: 'network' },
@@ -54,20 +82,28 @@ function renderDetail(taskOriginKey?: unknown) {
         ]}
       >
         <TaskOriginProvider accountId="account-1" spaceId="space-1">
-          <Routes>
-            <Route path="/story" element={<div>story landing</div>} />
-            <Route
-              path="/story/milestones/:milestoneId"
-              element={
-                <MilestoneProductPage
-                  mode="detail"
-                  apis={{} as ReferenceApis}
-                  spaceId="space-1"
-                  currentAccountId="account-1"
-                />
-              }
-            />
-          </Routes>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="https://example.test"
+            accessToken="token"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            spaceId="space-1"
+          >
+            <Routes>
+              <Route path="/story" element={<div>story landing</div>} />
+              <Route
+                path="/story/milestones/:milestoneId"
+                element={
+                  <MilestoneProductPage
+                    mode="detail"
+                    apis={{} as ReferenceApis}
+                    spaceId="space-1"
+                    currentAccountId="account-1"
+                  />
+                }
+              />
+            </Routes>
+          </AppShell>
         </TaskOriginProvider>
       </MemoryRouter>
     </QueryClientProvider>,

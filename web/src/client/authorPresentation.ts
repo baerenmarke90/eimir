@@ -12,6 +12,12 @@ export function authorDisplayName(author: PresentableAuthor): string {
     : author.displayName;
 }
 
+export function authorFirstName(author: PresentableAuthor): string {
+  if (author.isFormerMember === true) return authorDisplayName(author);
+  const trimmed = author.displayName.trim();
+  return trimmed.split(/\s+/u)[0] || trimmed;
+}
+
 export function authorProfileAttachmentId(
   author: PresentableAuthor,
 ): string | undefined {

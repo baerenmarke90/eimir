@@ -299,6 +299,11 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
+          const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
+            item.kind === 'HEART_MOMENT' && presentation.preview
+              ? `, ${presentation.preview}`
+              : ''
+          }`;
 
           return (
             <li
@@ -314,7 +319,7 @@ export function StoryList({
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
-                aria-label={`${presentation.kindLabel}: ${presentation.title}`}
+                aria-label={accessibleName}
                 aria-describedby={metaId}
               >
                 <article

@@ -39,6 +39,21 @@ SAFE_DOC_EXACT = (
 )
 CANONICAL_COMPOSE_FILE = "compose.yaml"
 
+# These leaf workflows validate changes to their own workflow file on pull
+# requests and do not own any of the expensive core CI scopes below. Keeping
+# this list exact is intentional: new workflows stay fail-closed until their
+# safety boundary has been reviewed explicitly.
+SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
+    ".github/workflows/android-s8.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/g2-e2e.yml",
+    ".github/workflows/incident-runbooks.yml",
+    ".github/workflows/product-design-review.yml",
+    ".github/workflows/reuse-review.yml",
+    ".github/workflows/web-browser-qa.yml",
+    ".github/workflows/web-s8.yml",
+)
+
 # Account-deletion recovery authority is intentionally classified by semantic
 # module namespace plus a small exact set of orchestration/retention owners
 # outside that namespace. ``deletion.py`` is the historical root module; every
@@ -104,7 +119,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         if path.startswith("tools/ci/") or path == ".github/workflows/ci.yml":
             return _all_enabled()
 
-        known = False
+        known = path in SELF_VALIDATING_LEAF_WORKFLOW_EXACT
 
         # Backend lint, typing, unit tests and the OpenAPI contract only depend
         # on backend files. Web/Android changes no longer wake this job up.

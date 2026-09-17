@@ -135,10 +135,21 @@ describe('Milestone view receipt', () => {
     let getMilestoneMock = vi.fn().mockReturnValue(new Promise(() => {}));
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
-      milestones: {
-        getMilestone: (...args: any[]) => getMilestoneMock(...args),
-      },
+      milestones: { getMilestone: (...args: any[]) => getMilestoneMock(...args) },
     } as unknown as ReferenceApis;
+
+    const milestone: MilestoneDetail = {
+      id: 'milestone-1',
+      spaceId: 'space-1',
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+      title: 'First apartment together',
+      happenedOn: new Date('2025-09-15'),
+      createdAt: new Date('2025-09-15'),
+      updatedAt: new Date('2025-09-15'),
+      version: 1,
+      capabilities: { canEdit: false, canDelete: false, canComment: false },
+    };
 
     const queryClient = new QueryClient({
       defaultOptions: {

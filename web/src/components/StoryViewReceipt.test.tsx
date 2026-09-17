@@ -17,7 +17,7 @@ describe('Story View Receipt', () => {
 
   it('emits one receipt upon successful presentation', () => {
     const { rerender } = renderHook(
-      ({ presented }) => 
+      ({ presented }) =>
         useStoryViewReceipt({
           apis,
           spaceId: 's-1',
@@ -25,7 +25,7 @@ describe('Story View Receipt', () => {
           itemId: 'hm-1',
           presented,
         }),
-      { initialProps: { presented: false } }
+      { initialProps: { presented: false } },
     );
 
     // initially no receipt before presentation is true
@@ -33,7 +33,7 @@ describe('Story View Receipt', () => {
 
     // toggle presentation to true
     rerender({ presented: true });
-    
+
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
     expect(recordStoryViewMock).toHaveBeenCalledWith({
       spaceId: 's-1',
@@ -42,14 +42,14 @@ describe('Story View Receipt', () => {
   });
 
   it('does not emit receipt on failed presentation', () => {
-    renderHook(() => 
+    renderHook(() =>
       useStoryViewReceipt({
         apis,
         spaceId: 's-1',
         kind: 'HEART_MOMENT',
         itemId: 'hm-1',
         presented: false,
-      })
+      }),
     );
 
     expect(recordStoryViewMock).not.toHaveBeenCalled();

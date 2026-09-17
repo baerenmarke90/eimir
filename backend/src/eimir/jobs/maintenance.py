@@ -33,6 +33,7 @@ from eimir.auth import (
 from eimir.jobs import queue
 from eimir.jobs.models import Job, JobStatus
 from eimir.jobs.worker import JobRegistry, registry
+from eimir.story import view_service as story_view_service
 
 log = logging.getLogger(__name__)
 
@@ -115,6 +116,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
     recent_oidc_requests = recent_oidc.prune_requests(session)
     recent_passkey_challenges = recent_passkeys.prune_challenges(session)
     signup_proofs = action_tokens.prune_signup_proofs(session)
+    story_view_aggregates = story_view_service.prune_expired(session)
 
     log.info(
         "security retention completed",
@@ -127,6 +129,7 @@ def run_security_retention(session: Session, payload: dict[str, Any]) -> None:
             "recent_authentication_oidc_requests_removed": recent_oidc_requests,
             "recent_authentication_passkey_challenges_removed": recent_passkey_challenges,
             "signup_proofs_removed": signup_proofs,
+            "story_view_aggregates_removed": story_view_aggregates,
         },
     )
 

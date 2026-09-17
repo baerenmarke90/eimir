@@ -7810,6 +7810,24 @@
         "title": "StoryPage",
         "type": "object"
       },
+      "StoryViewReceipt": {
+        "description": "An intentional canonical-detail presentation reported by a client.",
+        "properties": {
+          "itemId": {
+            "title": "Itemid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/StoryKind"
+          }
+        },
+        "required": [
+          "kind",
+          "itemId"
+        ],
+        "title": "StoryViewReceipt",
+        "type": "object"
+      },
       "ThinkingOfYouAccepted": {
         "properties": {
           "clientRequestId": {
@@ -23934,6 +23952,72 @@
         "summary": "Search Space Content",
         "tags": [
           "search"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/story-views": {
+      "post": {
+        "description": "Record an intentional Story detail view without retaining an event history.",
+        "operationId": "recordStoryView",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoryViewReceipt"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Record Story View",
+        "tags": [
+          "story"
         ]
       }
     },

@@ -190,7 +190,7 @@ class TestEndedMembership:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership)
+        service.end_membership(session, membership)
         session.flush()
 
         response = client.get(
@@ -206,7 +206,7 @@ class TestEndedMembership:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership, removed=True)
+        service.end_membership(session, membership, removed=True)
         session.flush()
 
         response = client.get(
@@ -269,7 +269,7 @@ class TestUpperBound:
         from eimir.core.errors import ConflictError
 
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership)
+        service.end_membership(session, membership)
         session.flush()
 
         third = make_account(session, "Dritte Person")

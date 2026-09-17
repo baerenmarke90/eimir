@@ -33,6 +33,11 @@ import {
     StoryPageFromJSON,
     StoryPageToJSON,
 } from '../models/StoryPage';
+import {
+    type StoryViewReceipt,
+    StoryViewReceiptFromJSON,
+    StoryViewReceiptToJSON,
+} from '../models/StoryViewReceipt';
 
 export interface GetStoryTimelineRequest {
     spaceId: string;
@@ -41,6 +46,11 @@ export interface GetStoryTimelineRequest {
     order?: StoryOrder;
     cursor?: string | null;
     limit?: number;
+}
+
+export interface RecordStoryViewRequest {
+    spaceId: string;
+    storyViewReceipt: StoryViewReceipt;
 }
 
 /**
@@ -113,6 +123,62 @@ export class StoryApi extends runtime.BaseAPI {
     async getStoryTimeline(requestParameters: GetStoryTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryPage> {
         const response = await this.getStoryTimelineRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for recordStoryView without sending the request
+     */
+    async recordStoryViewRequestOpts(requestParameters: RecordStoryViewRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling recordStoryView().'
+            );
+        }
+
+        if (requestParameters['storyViewReceipt'] == null) {
+            throw new runtime.RequiredError(
+                'storyViewReceipt',
+                'Required parameter "storyViewReceipt" was null or undefined when calling recordStoryView().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/story-views`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: StoryViewReceiptToJSON(requestParameters['storyViewReceipt']),
+        };
+    }
+
+    /**
+     * Record an intentional Story detail view without retaining an event history.
+     * Record Story View
+     */
+    async recordStoryViewRaw(requestParameters: RecordStoryViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.recordStoryViewRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Record an intentional Story detail view without retaining an event history.
+     * Record Story View
+     */
+    async recordStoryView(requestParameters: RecordStoryViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.recordStoryViewRaw(requestParameters, initOverrides);
     }
 
 }

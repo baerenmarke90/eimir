@@ -23,7 +23,9 @@ from sqlalchemy import Date, Integer, Select, cast, func, literal, select, tuple
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass, readable
+from eimir.authorization.guard import absence_of
 from eimir.core import cursor as cursor_codec
+from eimir.core.ids import parse_id
 from eimir.heart_moments.models import HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
@@ -143,6 +145,31 @@ def _leg(
             effective_date <= date(year, 12, 31),
         )
     return statement
+
+
+def require_shared_story_item(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    kind: StoryKind,
+    item_id: UUID | str,
+) -> UUID:
+    """Require one shared Story item and hold it for the current transaction.
+
+    Intentional-view writes use this exact Story leg rather than recreating
+    HeartMoment visibility rules. The shared lock orders the receipt against a
+    concurrent target delete or shared-to-private transition.
+    """
+    model = _MODELS[kind]
+    identifier = item_id if isinstance(item_id, UUID) else parse_id(item_id)
+    if identifier is None:
+        raise absence_of(model).error()
+    found = session.execute(
+        _leg(kind, context, year=None).where(model.id == identifier).with_for_update(read=True)
+    ).one_or_none()
+    if found is None:
+        raise absence_of(model).error()
+    return identifier
 
 
 def read_shared_story_counts(

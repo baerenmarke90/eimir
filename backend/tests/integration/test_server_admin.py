@@ -227,7 +227,7 @@ def test_space_directory_exposes_only_lifecycle_metadata(
     inactive_owner = make_account(session, "Inactive owner")
     inactive_space = make_space(session, inactive_owner)
     membership = relationship.require_membership(session, inactive_owner, inactive_space.id)
-    relationship.end_membership(membership)
+    relationship.end_membership(session, membership)
 
     empty_space = Space()
     session.add(empty_space)

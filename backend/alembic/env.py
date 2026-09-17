@@ -52,6 +52,7 @@ from eimir.relations import models as _relations  # noqa: F401
 from eimir.relationship import models as _relationship  # noqa: F401
 from eimir.reminders import models as _reminders  # noqa: F401
 from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
+from eimir.story import view_models as _story_views  # noqa: F401
 from eimir.transfer import models as _transfer  # noqa: F401
 from eimir.wishes import models as _wishes  # noqa: F401
 

@@ -254,7 +254,7 @@ def leave_space(session: Session, account: Account, space_id: UUID) -> LeaveSpac
     session.flush()
     _prepare_owner_media_cleanup(session, account_id=account.id, space_id=space_id)
     _shorten_owner_transfer_retention(session, account_id=account.id, space_id=space_id)
-    service.end_membership(membership)
+    service.end_membership(session, membership)
     session.flush()
     service.freeze_offboarding_purge_deadline_if_orphaned(session, space_id)
     session.flush()

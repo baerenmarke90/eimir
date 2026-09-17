@@ -13,12 +13,12 @@ from datetime import date, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response, status
 from pydantic import Field, RootModel
 from sqlalchemy import select
 
 from eimir.api.authors import resolve_author_summaries
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, Tenant
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentSummary
@@ -29,7 +29,7 @@ from eimir.authorization import readable
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
-from eimir.story import service
+from eimir.story import service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
 
 router = APIRouter(tags=["story"])
@@ -120,6 +120,36 @@ class StoryPage(ApiModel):
     next_cursor: str | None
     has_more: bool
     available_years: list[int] = Field(default_factory=list)
+
+
+class StoryViewReceipt(ApiModel):
+    """An intentional canonical-detail presentation reported by a client."""
+
+    kind: StoryKind
+    item_id: str
+
+
+@router.post(
+    "/spaces/{spaceId}/story-views",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="recordStoryView",
+    responses=problem_responses(401, 404, 422),
+)
+def record_story_view(
+    receipt: StoryViewReceipt,
+    tenant: Tenant,
+    authorization: Authorization,
+    session: DbSession,
+) -> Response:
+    """Record an intentional Story detail view without retaining an event history."""
+    view_service.record_intentional_view(
+        session,
+        authorization,
+        account_timezone=tenant.account.timezone,
+        kind=receipt.kind,
+        item_id=receipt.item_id,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _authors(session: DbSession, owner_ids: set[UUID]) -> dict[UUID, AuthorSummary]:

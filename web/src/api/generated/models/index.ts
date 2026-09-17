@@ -223,6 +223,7 @@ export * from './StoryMemoryItem';
 export * from './StoryMilestoneItem';
 export * from './StoryOrder';
 export * from './StoryPage';
+export * from './StoryViewReceipt';
 export * from './ThinkingOfYouAccepted';
 export * from './ThinkingOfYouCreate';
 export * from './TokenOnlyRequest';

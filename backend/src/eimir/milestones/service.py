@@ -22,6 +22,7 @@ from eimir.authorization import (
     readable,
     require_readable,
     require_writable,
+    require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
@@ -151,9 +152,18 @@ def delete_milestone(
     *,
     expected_version: int,
 ) -> None:
-    milestone = require_writable(session, Milestone, context, milestone_id)
+    milestone = require_writable_locked(session, Milestone, context, milestone_id)
     _ensure_expected_version(milestone, expected_version)
     actor_id = context.account_id
+    from eimir.story import view_service
+    from eimir.story.service import StoryKind
+
+    view_service.purge_target(
+        session,
+        space_id=milestone.space_id,
+        kind=StoryKind.MILESTONE,
+        item_id=milestone.id,
+    )
     session.delete(milestone)
     _flush(session)
     _record(session, milestone, actor_id, EventType.MILESTONE_DELETED)

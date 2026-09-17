@@ -1,0 +1,46 @@
+name: PR 998 language-safe QA fixup
+
+on:
+  push:
+    branches:
+      - fix/memory-detail-content-first
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/memory-detail-content-first
+          fetch-depth: 0
+
+      - name: Make provenance assertions language-safe
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('web/e2e/tests/momente-timeline-reference.spec.ts')
+          text = path.read_text()
+          old = "    await expect(provenance).toContainText('Festgehalten von Lea am');"
+          replacement = """    await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));\n    await expect(provenance).not.toContainText(ME.displayName);"""
+          if text.count(old) != 2:
+              raise SystemExit(f'expected 2 provenance assertions, found {text.count(old)}')
+          path.write_text(text.replace(old, replacement))
+          PY
+
+      - name: Commit test fix and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr998-language-fixup.yml
+          git add web/e2e/tests/momente-timeline-reference.spec.ts
+          git diff --cached --check
+          git commit -m "test(web): make Story provenance assertions locale-safe"
+          git push origin HEAD:fix/memory-detail-content-first

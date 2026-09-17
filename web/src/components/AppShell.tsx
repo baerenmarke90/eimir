@@ -148,7 +148,10 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const isPrivateArea = location.pathname.startsWith('/more/private');
-  const isMemoryTask = location.pathname === MEMORY_CREATE_ROUTE;
+  const isFocusedTask =
+    location.pathname === MEMORY_CREATE_ROUTE ||
+    location.pathname === '/plan/plans/new' ||
+    location.pathname === '/plan/wishes/new';
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -181,14 +184,14 @@ function AuthenticatedAppShell({
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
 
   return (
-    <div className="product-shell" data-focused-task={isMemoryTask}>
+    <div className="product-shell" data-focused-task={isFocusedTask}>
       <ThemeControl />
       <RouteEntryHandoff />
       <a className="skip-link" href="#main-content">
         {t('navigation.skipToContent')}
       </a>
 
-      {!isMemoryTask ? (
+      {!isFocusedTask ? (
         <header className="app-header product-topbar">
           <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
           <nav className="shell-nav" aria-label={t('navigation.primary')}>
@@ -276,7 +279,7 @@ function AuthenticatedAppShell({
         </main>
       </div>
 
-      {!isMemoryTask ? (
+      {!isFocusedTask ? (
         <div className="mobile-bottom-shell">
           <nav
             className="mobile-bottom-nav"

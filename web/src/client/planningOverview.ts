@@ -38,19 +38,19 @@ async function loadPlansForStatus(
 }
 
 /**
- * Loads the two Plan lifecycle states that belong on the planning overview.
- * Completed Plans keep their existing detail/history semantics and are not
- * fetched into the Planen overview.
+ * Loads every Plan lifecycle state needed by the R3 overview. Completed Plans
+ * remain visually receded, but are still discoverable relationship history.
  */
 export async function loadPlanningOverviewPlans(
   apis: Pick<SharedPlanningApis, 'plans'>,
   spaceId: string,
 ): Promise<PlanDetail[]> {
-  const [planned, ideas] = await Promise.all([
+  const [planned, ideas, completed] = await Promise.all([
     loadPlansForStatus(apis, spaceId, PlanStatus.PLANNED),
     loadPlansForStatus(apis, spaceId, PlanStatus.IDEA),
+    loadPlansForStatus(apis, spaceId, PlanStatus.COMPLETED),
   ]);
-  return [...planned, ...ideas];
+  return [...planned, ...ideas, ...completed];
 }
 
 function localDayKey(value: Date): string {
@@ -104,4 +104,55 @@ export function selectUpcomingPlans(
       if (left.id > right.id) return 1;
       return 0;
     });
+}
+
+export interface PlanningOverviewGroups {
+  focal: PlanDetail | null;
+  later: PlanDetail[];
+  undated: PlanDetail[];
+  past: PlanDetail[];
+  completed: PlanDetail[];
+}
+
+/**
+ * R3 overview composition. The nearest future intention leads; undated Plans
+ * remain first-class, while elapsed and completed entries stay discoverable
+ * without competing with anticipation.
+ */
+export function groupPlanningOverviewPlans(
+  plans: readonly PlanDetail[],
+  now: Date = new Date(),
+): PlanningOverviewGroups {
+  const upcoming = selectUpcomingPlans(plans, now);
+  const upcomingIds = new Set(upcoming.map((plan) => plan.id));
+  const active = plans.filter((plan) => plan.status !== PlanStatus.COMPLETED);
+  const undated = active
+    .filter(
+      (plan) =>
+        !upcomingIds.has(plan.id) && !plan.plannedOn && !plan.plannedStart,
+    )
+    .sort(
+      (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+    );
+  const undatedIds = new Set(undated.map((plan) => plan.id));
+  const past = active
+    .filter((plan) => !upcomingIds.has(plan.id) && !undatedIds.has(plan.id))
+    .sort(
+      (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+    );
+  const completed = plans
+    .filter((plan) => plan.status === PlanStatus.COMPLETED)
+    .sort((left, right) => {
+      const leftDate = left.experiencedOn ?? left.updatedAt;
+      const rightDate = right.experiencedOn ?? right.updatedAt;
+      return rightDate.getTime() - leftDate.getTime();
+    });
+
+  return {
+    focal: upcoming[0] ?? null,
+    later: upcoming.slice(1),
+    undated,
+    past,
+    completed,
+  };
 }

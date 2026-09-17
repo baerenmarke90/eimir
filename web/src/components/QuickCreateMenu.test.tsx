@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import {
   afterEach,
   beforeAll,
@@ -20,6 +20,7 @@ import {
 } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import navigation from '../i18n/locales/navigation';
+import { PlanningCreatePage } from './PlanningCreatePage';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { SharedPlanningOverviewPage } from './SharedPlanningOverviewPage';
@@ -184,7 +185,7 @@ describe('QuickCreateMenu - Mobile Action Sheet', () => {
     // Sheet closes after its history entry is consumed.
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     // Path updated to wish anchor under /plan
-    expect(currentPath).toBe('/plan#wish-title');
+    expect(currentPath).toBe('/plan/wishes/new');
   });
 
   it('navigates to gift idea action and closes sheet', async () => {
@@ -240,8 +241,8 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(items[0].getAttribute('href')).toBe('/story/memories/new');
     expect(items[1].getAttribute('href')).toBe('/story/heart-moments/new');
     expect(items[2].getAttribute('href')).toBe('/story/milestones/new');
-    expect(items[3].getAttribute('href')).toBe('/plan#wish-title');
-    expect(items[4].getAttribute('href')).toBe('/plan#plan-title');
+    expect(items[3].getAttribute('href')).toBe('/plan/wishes/new');
+    expect(items[4].getAttribute('href')).toBe('/plan/plans/new');
     expect(items[5].getAttribute('href')).toBe('/more/private/notes/new');
     expect(items[6].getAttribute('href')).toBe('/more/private/gift-ideas/new');
 
@@ -301,18 +302,58 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
-          <RouteEntryHandoff />
           <QuickCreateMenu variant="mobile" />
-          <SharedPlanningOverviewPage
-            apis={{} as SharedPlanningApis}
-            spaceId="space-1"
-          />
+          <RouteEntryHandoff />
+          <Routes>
+            <Route
+              path="/today"
+              element={
+                <SharedPlanningOverviewPage
+                  apis={{} as SharedPlanningApis}
+                  spaceId="space-1"
+                />
+              }
+            />
+            <Route
+              path="/plan"
+              element={
+                <SharedPlanningOverviewPage
+                  apis={{} as SharedPlanningApis}
+                  spaceId="space-1"
+                />
+              }
+            />
+            <Route
+              path="/plan/wishes/new"
+              element={
+                <PlanningCreatePage
+                  kind="wish"
+                  apis={{} as SharedPlanningApis}
+                  spaceId="space-1"
+                />
+              }
+            />
+            <Route
+              path="/plan/plans/new"
+              element={
+                <PlanningCreatePage
+                  kind="plan"
+                  apis={{} as SharedPlanningApis}
+                  spaceId="space-1"
+                />
+              }
+            />
+            <Route
+              path="/more/private/gift-ideas/new"
+              element={<p>Gift idea task</p>}
+            />
+          </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
   }
 
-  it('Quick Create -> Wunsch opens the existing wish composer without forcing focus into it', () => {
+  it('Quick Create -> Wunsch opens the focused task without forcing focus into its input', () => {
     renderQuickCreateWithPlanningComposer('/today');
 
     fireEvent.click(
@@ -320,21 +361,13 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     );
     fireEvent.click(screen.getByText(navigation.quickCreateWish));
 
-    // Sheet is gone; navigation landed on /plan#wish-title
     expect(screen.queryByRole('dialog')).toBeNull();
-
-    const details = document.getElementById('wish-title')?.closest('details');
-    expect(details?.open).toBe(true);
-
-    // Per the #810/#839 product contract, the composer is opened and
-    // visible, but the title input must NOT be programmatically focused
-    // (no forced keyboard).
-    const titleInput = document.getElementById('create-wish-title');
+    const titleInput = document.getElementById('planning-create-title');
     expect(titleInput).not.toBeNull();
     expect(document.activeElement).not.toBe(titleInput);
   });
 
-  it('Quick Create -> Plan opens the existing plan composer without forcing focus into it', () => {
+  it('Quick Create -> Plan opens the focused task without forcing focus into its input', () => {
     renderQuickCreateWithPlanningComposer('/today');
 
     fireEvent.click(
@@ -344,10 +377,7 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
 
     expect(screen.queryByRole('dialog')).toBeNull();
 
-    const details = document.getElementById('plan-title')?.closest('details');
-    expect(details?.open).toBe(true);
-
-    const titleInput = document.getElementById('create-plan-title');
+    const titleInput = document.getElementById('planning-create-title');
     expect(titleInput).not.toBeNull();
     expect(document.activeElement).not.toBe(titleInput);
   });
@@ -370,10 +400,7 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     renderQuickCreateWithPlanningComposer('/plan');
 
     expect(document.activeElement).not.toBe(
-      document.getElementById('create-wish-title'),
-    );
-    expect(document.activeElement).not.toBe(
-      document.getElementById('create-plan-title'),
+      document.getElementById('planning-create-title'),
     );
   });
 
@@ -381,10 +408,7 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     renderQuickCreateWithPlanningComposer('/plan#does-not-exist');
 
     expect(document.activeElement).not.toBe(
-      document.getElementById('create-wish-title'),
-    );
-    expect(document.activeElement).not.toBe(
-      document.getElementById('create-plan-title'),
+      document.getElementById('planning-create-title'),
     );
   });
 });

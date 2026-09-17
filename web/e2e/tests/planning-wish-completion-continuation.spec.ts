@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -295,6 +296,7 @@ async function prepareCompletedScenario(
   await signIn(page);
   await page.goto(`/plan/wishes/${WISH_ID}`);
 
+  await page.getByText(m5s3.wish.actionsHeading).click();
   await expect(
     page.getByRole('button', { name: m5s3.wish.complete }),
   ).toBeVisible();
@@ -319,10 +321,12 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({
-    path: testInfo.outputPath(`planning-870-wish-completion-${name}.png`),
-    fullPage: true,
-  });
+  await captureR3Evidence(
+    page,
+    testInfo,
+    `r3-wish-completion-${name}.png`,
+    false,
+  );
 }
 
 for (const scenario of visualScenarios) {
@@ -335,18 +339,17 @@ for (const scenario of visualScenarios) {
   });
 }
 
-test('fulfilled Wish opens canonical Memory create with title-only prefill', async ({
+test('fulfilled Wish opens canonical Memory create without publishing Wish text in the URL', async ({
   page,
 }) => {
   await prepareCompletedScenario(page, visualScenarios[0]);
 
   await page.getByRole('button', { name: m5s3.wish.createMemory }).click();
 
-  await expect(page).toHaveURL(/\/story\/memories\/new\?title=/);
+  await expect(page).toHaveURL(/\/story\/memories\/new$/);
   const target = new URL(page.url());
   expect(target.pathname).toBe('/story/memories/new');
-  expect(target.searchParams.get('title')).toBe(WISH_TITLE);
-  expect([...target.searchParams.keys()]).toEqual(['title']);
+  expect([...target.searchParams.keys()]).toEqual([]);
 });
 
 test('Done dismisses the transient continuation and restores focus without offering it after reload', async ({
@@ -354,7 +357,7 @@ test('Done dismisses the transient continuation and restores focus without offer
 }) => {
   await prepareCompletedScenario(page, visualScenarios[0]);
 
-  const backLink = page.getByRole('link', { name: m5s3.common.back });
+  const backLink = page.getByRole('button', { name: m5s3.common.back });
   await page.getByRole('button', { name: m5s3.wish.completionDone }).click();
 
   await expect(

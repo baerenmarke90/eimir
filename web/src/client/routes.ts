@@ -150,6 +150,8 @@ export const CHAPTER_DETAIL_ROUTE_PATTERN = '/plan/chapters/:chapterId';
 
 export const WISH_DETAIL_ROUTE_PATTERN = '/plan/wishes/:wishId';
 export const PLAN_DETAIL_ROUTE_PATTERN = '/plan/plans/:planId';
+export const WISH_CREATE_ROUTE = '/plan/wishes/new';
+export const PLAN_CREATE_ROUTE = '/plan/plans/new';
 
 /* More / Organisieren content --------------------------------------------- */
 

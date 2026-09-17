@@ -335,3 +335,311 @@
     transform: none;
   }
 }
+
+.planen-detail .planning-facts {
+  border: 0;
+  border-radius: 0;
+  padding: 0 0 var(--space-4);
+  background: transparent;
+  box-shadow: none;
+}
+
+.planen-detail-schedule {
+  margin: 0;
+  color: var(--color-brand-text);
+  font-size: clamp(1.15rem, 4vw, 1.45rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.planen-detail-status {
+  margin: 0;
+  color: var(--color-shared);
+  font-weight: 700;
+}
+
+.planen-completed-result {
+  color: var(--color-text-secondary);
+}
+
+.planen-completed-result p {
+  margin: 0;
+}
+
+.planen-operations {
+  display: block;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-3);
+}
+
+.planen-operations > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.planen-operations > .planning-subsection {
+  margin-top: var(--space-3);
+}
+
+.wish-operations > .planning-subsection + .planning-subsection {
+  margin-top: var(--space-4);
+}
+
+/* R3 — anticipation-first Planen composition. */
+.planen-local-add {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-large);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+}
+
+.planen-local-add > span {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.planen-local-add:focus-visible,
+.planen-next-link:focus-visible,
+.planen-agenda-link:focus-visible,
+.planen-undated-link:focus-visible,
+.planen-wish-link:focus-visible,
+.planen-history a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.planen-empty-state {
+  max-width: 36rem;
+  padding: var(--space-5) 0;
+}
+
+.planen-empty-state h2,
+.planen-empty-state p {
+  margin: 0;
+}
+
+.planen-empty-state h2 {
+  font-size: 1.15rem;
+  line-height: 1.45;
+}
+
+.planen-empty-state p,
+.planen-section-heading p,
+.planen-history > p {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.planen-next,
+.planen-agenda,
+.planen-undated {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.planen-next > h2,
+.planen-agenda > h2,
+.planen-section-heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.planen-next-link {
+  display: grid;
+  gap: var(--space-2);
+  border-radius: var(--radius-large);
+  padding: clamp(var(--space-5), 6vw, var(--space-8));
+  background: linear-gradient(
+    145deg,
+    var(--color-brand-surface),
+    var(--color-surface-panel-tint)
+  );
+  color: inherit;
+  text-decoration: none;
+  box-shadow: var(--shadow-soft);
+  transition:
+    transform var(--motion-duration-short) var(--motion-easing-lift),
+    box-shadow var(--motion-duration-short) var(--motion-easing-lift);
+}
+
+.planen-next-schedule {
+  color: var(--color-brand-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.planen-next-link > strong {
+  font-size: clamp(1.45rem, 6vw, 2.2rem);
+  line-height: 1.16;
+  overflow-wrap: anywhere;
+}
+
+.planen-next-description {
+  max-width: 60ch;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.planen-agenda ul,
+.planen-undated ul,
+.planen-wish-list,
+.planen-history ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.planen-agenda-item + .planen-agenda-item,
+.planen-undated li + li,
+.planen-history li + li {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.planen-agenda-link {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.42fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  min-height: 56px;
+  align-items: center;
+  padding: var(--space-3) var(--space-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+.planen-agenda-schedule {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.planen-agenda-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.planen-section-heading p {
+  margin-bottom: 0;
+}
+
+.planen-undated-link,
+.planen-history a {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+.planen-undated-link span,
+.planen-history small {
+  color: var(--color-text-secondary);
+}
+
+.planen-wish-list {
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.planen-wish-link {
+  display: grid;
+  gap: var(--space-2);
+  min-height: 72px;
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  background: var(--color-surface-subtle);
+  color: inherit;
+  text-decoration: none;
+}
+
+.planen-wish-link strong {
+  font-size: 1.12rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.planen-wish-link span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.planen-history {
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-3);
+}
+
+.planen-history > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .planen-next-link:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
+
+  .planen-agenda-link:hover,
+  .planen-undated-link:hover,
+  .planen-history a:hover {
+    color: var(--color-brand-text);
+  }
+}
+
+@media (max-width: 389px) {
+  .planen-agenda-link {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .planen-undated-link,
+  .planen-history a {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+}
+
+@media (min-width: 840px) {
+  .planen-overview .planen-panel {
+    max-width: var(--reading-max);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planen-next-link {
+    transition: none;
+  }
+
+  .planen-next-link:hover {
+    transform: none;
+  }
+}

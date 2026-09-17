@@ -135,11 +135,11 @@ describe('WishProductPage direct completion', () => {
 
     expect(screen.getByText(i18n.t('m5s3.wish.completedBody'))).toBeTruthy();
     expect(document.activeElement).toBe(
-      screen.getByRole('link', { name: i18n.t('m5s3.common.back') }),
+      screen.getByRole('button', { name: i18n.t('m5s3.common.back') }),
     );
   });
 
-  it('hands only the editable Wish title to the canonical Memory composer', async () => {
+  it('hands completion to the canonical Memory composer without publishing Wish text in the URL', async () => {
     const user = userEvent.setup();
     renderWish(OPEN_WISH);
 
@@ -153,7 +153,7 @@ describe('WishProductPage direct completion', () => {
     );
 
     expect(screen.getByLabelText('current-location').textContent).toBe(
-      '/story/memories/new?title=Nordlichter+sehen',
+      '/story/memories/new',
     );
   });
 

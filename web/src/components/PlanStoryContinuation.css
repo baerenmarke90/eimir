@@ -13,35 +13,6 @@
   min-height: 48px;
 }
 
-.plan-story-kind-choice,
-.plan-story-capture-form,
-.plan-story-chapter-step {
-  display: grid;
-  gap: var(--space-3);
-  border-top: 1px solid var(--color-border-subtle);
-  padding-top: var(--space-4);
-}
-
-.plan-story-kind-choice p,
-.plan-story-chapter-step p {
-  margin: 0;
-  color: var(--color-text-secondary);
-}
-
-.plan-story-capture-form h3,
-.plan-story-chapter-step h3 {
-  margin: 0;
-}
-
-.plan-story-chapter-form {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.plan-story-chapter-step > .tertiary {
-  justify-self: start;
-}
-
 @media (max-width: 520px) {
   .plan-story-actions {
     grid-template-columns: 1fr;

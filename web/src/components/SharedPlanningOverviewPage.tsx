@@ -1,7 +1,7 @@
 import { authorDisplayName } from '../client/authorPresentation';
 import {
-  type FormEvent,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
   useEffect,
   useId,
@@ -9,53 +9,34 @@ import {
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router-dom';
-import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { WishStatus } from '../api/generated/models/WishStatus';
 import {
-  authorSummaryQueryKeys,
-  invalidatePlaceConsumers,
-} from '../client/authorSummaryConsumers';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import {
+  groupPlanningOverviewPlans,
   loadPlanningOverviewPlans,
-  selectUpcomingPlans,
 } from '../client/planningOverview';
-import {
-  planPillLabel,
-  planPillTone,
-  wishPillTone,
-} from '../client/planningPresentation';
+import { planScheduleLabel } from '../client/planningPresentation';
 import { normalizeClientError } from '../client/problemDetails';
-import { planDetailPath, wishDetailPath } from '../client/routes';
 import {
-  loadAllPlaces,
-  planScheduleFromInputs,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { useDismissiblePopover } from '../client/useDismissiblePopover';
+  PLAN_CREATE_ROUTE,
+  planDetailPath,
+  WISH_CREATE_ROUTE,
+  wishDetailPath,
+} from '../client/routes';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
-import { PlanScheduleFields } from './PlanScheduleFields';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
 
 const PAGE_SIZE = 20;
-
 type PlanenSegment = 'wishes' | 'plans';
-
 type PageShape<T> = { items: T[]; nextCursor: string | null };
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -71,36 +52,18 @@ function nextCursor<T>(page: PageShape<T>): string | undefined {
 }
 
 function segmentForHash(hash: string): PlanenSegment | null {
-  if (hash === '#plan-title') return 'plans';
-  if (hash === '#wish-title') return 'wishes';
+  if (hash === '#plan-title' || hash === '#plans') return 'plans';
+  if (hash === '#wish-title' || hash === '#wishes') return 'wishes';
   return null;
 }
 
-function PlanenCard({
-  title,
-  attribution,
-  pillLabel,
-  pillTone,
-  to,
-}: {
-  title: string;
-  attribution: string;
-  pillLabel: string;
-  pillTone: string;
-  to: string;
-}) {
+function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
   return (
-    <li className="planen-card-item">
-      <Link className="planen-card" to={to}>
-        <h2 className="planen-card-title">{title}</h2>
-        <span className="planen-card-attribution">{attribution}</span>
-        <span className="planen-card-pills">
-          <span className={`planen-pill planen-pill-${pillTone}`}>
-            {pillLabel}
-          </span>
-        </span>
-      </Link>
-    </li>
+    event.button !== 0 ||
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey
   );
 }
 
@@ -125,8 +88,7 @@ function PlanenSegmentedControl({
 
   function switchTo(segment: PlanenSegment, focus: boolean): void {
     onChange(segment);
-    if (!focus) return;
-    (segment === 'plans' ? plansRef : wishesRef).current?.focus();
+    if (focus) (segment === 'plans' ? plansRef : wishesRef).current?.focus();
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
@@ -196,221 +158,6 @@ function PlanenPanel({
   );
 }
 
-interface PlacePickerCoords {
-  left: number;
-  width: number;
-  maxHeight: number;
-  placement: 'below' | 'above';
-  top?: number;
-  bottom?: number;
-}
-
-const PLACE_PICKER_VIEWPORT_MARGIN = 8;
-const PLACE_PICKER_PREFERRED_MAX_HEIGHT = 256;
-
-function computePlacePickerCoords(rect: DOMRect): PlacePickerCoords {
-  const spaceBelow =
-    window.innerHeight - rect.bottom - PLACE_PICKER_VIEWPORT_MARGIN * 2;
-  const spaceAbove = rect.top - PLACE_PICKER_VIEWPORT_MARGIN * 2;
-  const placement: PlacePickerCoords['placement'] =
-    spaceBelow < 120 && spaceAbove > spaceBelow ? 'above' : 'below';
-
-  return {
-    left: rect.left,
-    width: rect.width,
-    maxHeight: Math.max(
-      120,
-      Math.min(
-        PLACE_PICKER_PREFERRED_MAX_HEIGHT,
-        placement === 'below' ? spaceBelow : spaceAbove,
-      ),
-    ),
-    placement,
-    top:
-      placement === 'below'
-        ? rect.bottom + PLACE_PICKER_VIEWPORT_MARGIN
-        : undefined,
-    bottom:
-      placement === 'above'
-        ? window.innerHeight - rect.top + PLACE_PICKER_VIEWPORT_MARGIN
-        : undefined,
-  };
-}
-
-/**
- * Render the place menu outside animated/overflow stacking contexts so the
- * compact product surface stays usable near the viewport edge.
- */
-function PlacePicker({
-  id,
-  label,
-  places,
-  selectedPlaceId,
-  onSelect,
-  onAddNewPlace,
-  noPlaceLabel,
-  addNewPlaceLabel,
-}: {
-  id: string;
-  label: string;
-  places: PlaceDetail[];
-  selectedPlaceId: string;
-  onSelect: (placeId: string) => void;
-  onAddNewPlace: () => void;
-  noPlaceLabel: string;
-  addNewPlaceLabel: string;
-}) {
-  const { isOpen, close, toggle, triggerRef, panelRef } =
-    useDismissiblePopover();
-  const [coords, setCoords] = useState<PlacePickerCoords | null>(null);
-  const menuId = useId();
-
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-
-    function updateCoords(): void {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setCoords(computePlacePickerCoords(rect));
-    }
-
-    updateCoords();
-    window.addEventListener('scroll', updateCoords, true);
-    window.addEventListener('resize', updateCoords);
-    return () => {
-      window.removeEventListener('scroll', updateCoords, true);
-      window.removeEventListener('resize', updateCoords);
-    };
-  }, [isOpen, triggerRef]);
-
-  function focusItem(index: number): void {
-    const items =
-      panelRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]');
-    if (!items?.length) return;
-    items[(index + items.length) % items.length]?.focus();
-  }
-
-  function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
-    if (
-      event.key === 'ArrowDown' ||
-      event.key === 'Enter' ||
-      event.key === ' '
-    ) {
-      event.preventDefault();
-      if (!isOpen) toggle();
-      window.requestAnimationFrame(() => focusItem(0));
-    }
-  }
-
-  function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    const items = Array.from(
-      panelRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ??
-        [],
-    );
-    if (!items.length) return;
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      focusItem(currentIndex + 1);
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      focusItem(currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
-    } else if (event.key === 'Home') {
-      event.preventDefault();
-      focusItem(0);
-    } else if (event.key === 'End') {
-      event.preventDefault();
-      focusItem(items.length - 1);
-    } else if (event.key === 'Tab') {
-      close();
-    }
-  }
-
-  const selectedLabel =
-    places.find((place) => place.id === selectedPlaceId)?.name ?? noPlaceLabel;
-
-  return (
-    <div className="place-picker">
-      <button
-        ref={triggerRef as React.RefObject<HTMLButtonElement>}
-        type="button"
-        id={id}
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-controls={menuId}
-        className="place-picker-trigger"
-        onClick={() => toggle()}
-        onKeyDown={handleTriggerKeyDown}
-      >
-        <span>{selectedLabel}</span>
-        <span className="place-picker-caret" aria-hidden="true" />
-      </button>
-      {isOpen && coords && typeof document !== 'undefined'
-        ? createPortal(
-            <div
-              ref={panelRef as React.RefObject<HTMLDivElement>}
-              id={menuId}
-              role="menu"
-              aria-label={label}
-              className="place-picker-menu"
-              style={{
-                position: 'fixed',
-                top: coords.top,
-                bottom: coords.bottom,
-                left: coords.left,
-                width: coords.width,
-                maxHeight: coords.maxHeight,
-              }}
-              onKeyDown={handleMenuKeyDown}
-            >
-              <button
-                type="button"
-                role="menuitemradio"
-                aria-checked={selectedPlaceId === ''}
-                className="place-picker-option"
-                onClick={() => {
-                  onSelect('');
-                  close(true);
-                }}
-              >
-                {noPlaceLabel}
-              </button>
-              {places.map((place) => (
-                <button
-                  key={place.id}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={selectedPlaceId === place.id}
-                  className="place-picker-option"
-                  onClick={() => {
-                    onSelect(place.id);
-                    close(true);
-                  }}
-                >
-                  {place.name}
-                </button>
-              ))}
-              <hr className="place-picker-separator" />
-              <button
-                type="button"
-                role="menuitem"
-                className="place-picker-option place-picker-add"
-                onClick={() => {
-                  close();
-                  onAddNewPlace();
-                }}
-              >
-                {addNewPlaceLabel}
-              </button>
-            </div>,
-            document.body,
-          )
-        : null}
-    </div>
-  );
-}
-
 export function SharedPlanningOverviewPage({
   apis,
   spaceId,
@@ -419,13 +166,14 @@ export function SharedPlanningOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin, registerOriginMetadata, resolveOrigin } =
+    useTaskOrigin();
   const wishesTabId = useId();
   const plansTabId = useId();
   const wishesPanelId = useId();
   const plansPanelId = useId();
-
   const [activeSegment, setActiveSegment] = useState<PlanenSegment>(
     () => segmentForHash(location.hash) ?? 'plans',
   );
@@ -434,6 +182,28 @@ export function SharedPlanningOverviewPage({
     const segment = segmentForHash(location.hash);
     if (segment) setActiveSegment(segment);
   }, [location.hash]);
+
+  useEffect(
+    () => registerOriginMetadata({ planningSegment: activeSegment }),
+    [activeSegment, registerOriginMetadata],
+  );
+
+  useLayoutEffect(() => {
+    const state = location.state as { taskReturnKey?: unknown } | null;
+    const origin = resolveOrigin(state?.taskReturnKey);
+    if (!origin) return;
+    if (origin.planningSegment) setActiveSegment(origin.planningSegment);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: origin.scrollY });
+      if (origin.selectedKey) {
+        document
+          .querySelector<HTMLElement>(
+            `[data-planning-key="${CSS.escape(origin.selectedKey)}"]`,
+          )
+          ?.focus({ preventScroll: true });
+      }
+    });
+  }, [location.state, resolveOrigin]);
 
   const wishes = useInfiniteQuery({
     queryKey: ['m5-s3', 'wishes', spaceId],
@@ -463,119 +233,69 @@ export function SharedPlanningOverviewPage({
     retry: false,
   });
 
-  const placesQuery = useQuery({
-    queryKey: authorSummaryQueryKeys.placeOptions(spaceId),
-    queryFn: () => apiCall(() => loadAllPlaces(apis, spaceId)),
-    staleTime: 30_000,
-    retry: false,
-  });
-
-  const invalidate = (kind: string) =>
-    queryClient.invalidateQueries({ queryKey: ['m5-s3', kind, spaceId] });
-
-  const createWish = useMutation({
-    mutationFn: (title: string) =>
-      apiCall(() => apis.wishes.createWish({ spaceId, wishCreate: { title } })),
-    onSuccess: () => invalidate('wishes'),
-  });
-
-  const createPlan = useMutation({
-    mutationFn: (values: {
-      title: string;
-      description?: string;
-      placeId?: string;
-      schedule?: PlanSchedule;
-    }) => apiCall(() => apis.plans.createPlan({ spaceId, planCreate: values })),
-    onSuccess: async () => {
-      invalidate('plans');
-      await invalidateDashboard(queryClient, spaceId);
-    },
-  });
-
-  const [selectedPlanPlaceId, setSelectedPlanPlaceId] = useState('');
-  const [isCreatingPlanPlace, setIsCreatingPlanPlace] = useState(false);
-  const [newPlanPlaceName, setNewPlanPlaceName] = useState('');
-  const [newPlanPlaceAddress, setNewPlanPlaceAddress] = useState('');
-  const newPlanPlaceNameRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isCreatingPlanPlace) newPlanPlaceNameRef.current?.focus();
-  }, [isCreatingPlanPlace]);
-
-  const createPlanPlace = useMutation({
-    mutationFn: (values: { name: string; address?: string }) =>
-      apiCall(() => apis.places.createPlace({ spaceId, placeCreate: values })),
-    onSuccess: async (created) => {
-      await invalidatePlaceConsumers(queryClient, spaceId);
-      setSelectedPlanPlaceId(created.id);
-      setIsCreatingPlanPlace(false);
-      setNewPlanPlaceName('');
-      setNewPlanPlaceAddress('');
-    },
-  });
-
-  function submitNewPlanPlace() {
-    const name = newPlanPlaceName.trim();
-    if (!name) return;
-    const address = newPlanPlaceAddress.trim();
-    createPlanPlace.mutate({ name, address: address || undefined });
-  }
-
   const wishItems = (
     wishes.data?.pages.flatMap((page) => page.items) ?? []
   ).filter((wish) => wish.status === WishStatus.OPEN);
-  const planItems = plans.data?.pages.flatMap((page) => page.items) ?? [];
-  const upcomingPlans = selectUpcomingPlans(planItems);
-  const upcomingPlanIds = new Set(upcomingPlans.map((plan) => plan.id));
-  const orderedPlanItems = [
-    ...upcomingPlans,
-    ...planItems.filter(
-      (plan) => !upcomingPlanIds.has(plan.id) && plan.status !== 'COMPLETED',
-    ),
-  ];
+  const planGroups = groupPlanningOverviewPlans(
+    plans.data?.pages.flatMap((page) => page.items) ?? [],
+  );
+  const hasPlans = Boolean(
+    planGroups.focal ||
+      planGroups.later.length ||
+      planGroups.undated.length ||
+      planGroups.past.length ||
+      planGroups.completed.length,
+  );
 
-  function submitWish(event: FormEvent<HTMLFormElement>) {
+  function openFromOverview(
+    event: MouseEvent<HTMLAnchorElement>,
+    to: string,
+    segment: PlanenSegment,
+    selectedKey?: string,
+  ) {
+    if (isModifiedClick(event)) return;
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    createWish.mutate(String(data.get('title')).trim(), {
-      onSuccess: () => form.reset(),
+    const taskOriginKey = captureOrigin({
+      planningSegment: segment,
+      selectedKey,
+    });
+    void navigate(to, {
+      state: taskOriginKey ? { taskOriginKey } : undefined,
     });
   }
 
-  function submitPlan(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const description = String(data.get('description')).trim();
-    const schedule = planScheduleFromInputs(
-      String(data.get('plannedDate') ?? ''),
-      String(data.get('plannedTime') ?? ''),
-    );
-    createPlan.mutate(
-      {
-        title: String(data.get('title')).trim(),
-        description: description || undefined,
-        placeId: selectedPlanPlaceId || undefined,
-        schedule,
-      },
-      {
-        onSuccess: () => {
-          form.reset();
-          setSelectedPlanPlaceId('');
-          setIsCreatingPlanPlace(false);
-        },
-      },
-    );
+  function planningLinkProps(
+    to: string,
+    segment: PlanenSegment,
+    selectedKey?: string,
+  ) {
+    return {
+      to,
+      'data-planning-key': selectedKey,
+      onClick: (event: MouseEvent<HTMLAnchorElement>) =>
+        openFromOverview(event, to, segment, selectedKey),
+    };
   }
 
-  const wishesLoading = wishes.isLoading;
-  const plansLoading = plans.isLoading;
+  function renderAgendaPlan(plan: PlanDetail) {
+    return (
+      <li key={plan.id} className="planen-agenda-item">
+        <Link
+          className="planen-agenda-link"
+          {...planningLinkProps(planDetailPath(plan.id), 'plans', plan.id)}
+        >
+          <span className="planen-agenda-schedule">
+            {planScheduleLabel(plan)}
+          </span>
+          <span className="planen-agenda-title">{plan.title}</span>
+        </Link>
+      </li>
+    );
+  }
 
   return (
     <div className="page planning-page planning-sanctuary planen-overview">
       <PageHeader title={t('m5s3.overview.title')} />
-
       <PlanenSegmentedControl
         active={activeSegment}
         onChange={setActiveSegment}
@@ -590,7 +310,14 @@ export function SharedPlanningOverviewPage({
         labelledBy={plansTabId}
         hidden={activeSegment !== 'plans'}
       >
-        {plansLoading ? (
+        <Link
+          className="planen-local-add"
+          {...planningLinkProps(PLAN_CREATE_ROUTE, 'plans')}
+        >
+          <span aria-hidden="true">+</span>
+          {t('m5s3.overview.addPlan')}
+        </Link>
+        {plans.isLoading && !plans.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
         {plans.error ? (
@@ -599,131 +326,107 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void plans.refetch()}
           />
         ) : null}
-        {!plansLoading && !plans.error && orderedPlanItems.length === 0 ? (
-          <p className="planen-empty">{t('m5s3.overview.plansEmpty')}</p>
+        {!plans.isLoading && !plans.error && !hasPlans ? (
+          <div className="planen-empty-state">
+            <h2>{t('m5s3.overview.plansEmpty')}</h2>
+            <p>{t('m5s3.plan.createIntro')}</p>
+          </div>
         ) : null}
-        {orderedPlanItems.length > 0 ? (
-          <ul className="planen-card-list">
-            {orderedPlanItems.map((plan) => (
-              <PlanenCard
-                key={plan.id}
-                title={plan.title}
-                attribution={t('m5s3.overview.createdBy', {
-                  name: authorDisplayName(plan.creator),
-                })}
-                pillLabel={planPillLabel(t, plan)}
-                pillTone={planPillTone(plan)}
-                to={planDetailPath(plan.id)}
-              />
-            ))}
-          </ul>
-        ) : null}
-        <details className="planning-create">
-          <summary id="plan-title">{t('m5s3.plan.create')}</summary>
-          <form
-            onSubmit={submitPlan}
-            className="form-grid planning-create-form"
+
+        {planGroups.focal ? (
+          <section
+            className="planen-next"
+            aria-labelledby="planen-next-heading"
           >
-            <label htmlFor="create-plan-title">{t('m5s3.common.title')}</label>
-            <input
-              id="create-plan-title"
-              name="title"
-              required
-              maxLength={200}
-            />
-            <label htmlFor="create-plan-description">
-              {t('m5s3.common.description')}
-            </label>
-            <textarea
-              id="create-plan-description"
-              name="description"
-              rows={3}
-            />
-            <label htmlFor="create-plan-place">{t('m5s3.common.place')}</label>
-            <PlacePicker
-              id="create-plan-place"
-              label={t('m5s3.common.place')}
-              places={placesQuery.data ?? []}
-              selectedPlaceId={selectedPlanPlaceId}
-              onSelect={setSelectedPlanPlaceId}
-              onAddNewPlace={() => setIsCreatingPlanPlace(true)}
-              noPlaceLabel={t('m5s3.common.noPlace')}
-              addNewPlaceLabel={t('m5s3.plan.addNewPlace')}
-            />
-            {isCreatingPlanPlace ? (
-              <div className="inline-place-create">
-                <div className="field-group">
-                  <label htmlFor="new-plan-place-name">
-                    {t('m5s3.place.name')}
-                  </label>
-                  <input
-                    id="new-plan-place-name"
-                    ref={newPlanPlaceNameRef}
-                    value={newPlanPlaceName}
-                    onChange={(event) =>
-                      setNewPlanPlaceName(event.target.value)
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') event.preventDefault();
-                    }}
-                    maxLength={200}
-                  />
-                </div>
-                <div className="field-group">
-                  <label htmlFor="new-plan-place-address">
-                    {t('m5s3.place.address')}
-                  </label>
-                  <input
-                    id="new-plan-place-address"
-                    value={newPlanPlaceAddress}
-                    onChange={(event) =>
-                      setNewPlanPlaceAddress(event.target.value)
-                    }
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') event.preventDefault();
-                    }}
-                  />
-                </div>
-                <div className="inline-place-create-actions">
-                  <button
-                    type="button"
-                    className="button-link secondary-link"
-                    onClick={() => {
-                      setIsCreatingPlanPlace(false);
-                      setNewPlanPlaceName('');
-                      setNewPlanPlaceAddress('');
-                    }}
+            <h2 id="planen-next-heading">{t('m5s3.overview.nextHeading')}</h2>
+            <Link
+              className="planen-next-link"
+              {...planningLinkProps(
+                planDetailPath(planGroups.focal.id),
+                'plans',
+                planGroups.focal.id,
+              )}
+            >
+              <span className="planen-next-schedule">
+                {planScheduleLabel(planGroups.focal)}
+              </span>
+              <strong>{planGroups.focal.title}</strong>
+              {planGroups.focal.description ? (
+                <span className="planen-next-description">
+                  {planGroups.focal.description}
+                </span>
+              ) : null}
+            </Link>
+          </section>
+        ) : null}
+
+        {planGroups.later.length ? (
+          <section
+            className="planen-agenda"
+            aria-labelledby="planen-later-heading"
+          >
+            <h2 id="planen-later-heading">{t('m5s3.overview.laterHeading')}</h2>
+            <ul>{planGroups.later.map(renderAgendaPlan)}</ul>
+          </section>
+        ) : null}
+
+        {planGroups.undated.length ? (
+          <section
+            className="planen-undated"
+            aria-labelledby="planen-undated-heading"
+          >
+            <div className="planen-section-heading">
+              <h2 id="planen-undated-heading">
+                {t('m5s3.overview.undatedHeading')}
+              </h2>
+              <p>{t('m5s3.overview.undatedIntro')}</p>
+            </div>
+            <ul>
+              {planGroups.undated.map((plan) => (
+                <li key={plan.id}>
+                  <Link
+                    className="planen-undated-link"
+                    {...planningLinkProps(
+                      planDetailPath(plan.id),
+                      'plans',
+                      plan.id,
+                    )}
                   >
-                    {t('m5s3.plan.newPlaceCancel')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      createPlanPlace.isPending || !newPlanPlaceName.trim()
-                    }
-                    onClick={submitNewPlanPlace}
+                    <strong>{plan.title}</strong>
+                    <span>{t('m5s3.overview.undatedHeading')}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {planGroups.past.length || planGroups.completed.length ? (
+          <details className="planen-history">
+            <summary>{t('m5s3.overview.historyHeading')}</summary>
+            <p>{t('m5s3.overview.historyIntro')}</p>
+            <ul>
+              {[...planGroups.past, ...planGroups.completed].map((plan) => (
+                <li key={plan.id}>
+                  <Link
+                    {...planningLinkProps(
+                      planDetailPath(plan.id),
+                      'plans',
+                      plan.id,
+                    )}
                   >
-                    {createPlanPlace.isPending
-                      ? t('m5s3.plan.newPlaceSaving')
-                      : t('m5s3.plan.newPlaceSave')}
-                  </button>
-                </div>
-                {createPlanPlace.error ? (
-                  <ProblemState error={createPlanPlace.error} />
-                ) : null}
-              </div>
-            ) : null}
-            <PlanScheduleFields idPrefix="create-plan-schedule" />
-            <button type="submit" disabled={createPlan.isPending}>
-              {createPlan.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
-            </button>
-            {createPlan.error ? (
-              <ProblemState error={createPlan.error} />
-            ) : null}
-          </form>
-        </details>
+                    <span>{plan.title}</span>
+                    <small>
+                      {plan.status === 'COMPLETED'
+                        ? t('m5s3.overview.completedLabel')
+                        : t('m5s3.overview.pastLabel')}
+                    </small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
       </PlanenPanel>
 
       <PlanenPanel
@@ -731,7 +434,14 @@ export function SharedPlanningOverviewPage({
         labelledBy={wishesTabId}
         hidden={activeSegment !== 'wishes'}
       >
-        {wishesLoading ? (
+        <Link
+          className="planen-local-add"
+          {...planningLinkProps(WISH_CREATE_ROUTE, 'wishes')}
+        >
+          <span aria-hidden="true">+</span>
+          {t('m5s3.overview.addWish')}
+        </Link>
+        {wishes.isLoading && !wishes.data ? (
           <UiState kind="loading" title={t('states.loading.title')} />
         ) : null}
         {wishes.error ? (
@@ -740,22 +450,32 @@ export function SharedPlanningOverviewPage({
             onRetry={() => void wishes.refetch()}
           />
         ) : null}
-        {!wishesLoading && !wishes.error && wishItems.length === 0 ? (
-          <p className="planen-empty">{t('m5s3.overview.wishesEmpty')}</p>
+        {!wishes.isLoading && !wishes.error && wishItems.length === 0 ? (
+          <div className="planen-empty-state">
+            <h2>{t('m5s3.overview.wishesEmpty')}</h2>
+            <p>{t('m5s3.wish.createIntro')}</p>
+          </div>
         ) : null}
-        {wishItems.length > 0 ? (
-          <ul className="planen-card-list">
+        {wishItems.length ? (
+          <ul className="planen-wish-list">
             {wishItems.map((wish) => (
-              <PlanenCard
-                key={wish.id}
-                title={wish.title}
-                attribution={t('m5s3.overview.createdBy', {
-                  name: authorDisplayName(wish.creator),
-                })}
-                pillLabel={t(`m5s3.wish.status.${wish.status}`)}
-                pillTone={wishPillTone(wish.status)}
-                to={wishDetailPath(wish.id)}
-              />
+              <li key={wish.id}>
+                <Link
+                  className="planen-wish-link"
+                  {...planningLinkProps(
+                    wishDetailPath(wish.id),
+                    'wishes',
+                    wish.id,
+                  )}
+                >
+                  <strong>{wish.title}</strong>
+                  <span>
+                    {t('m5s3.overview.createdBy', {
+                      name: authorDisplayName(wish.creator),
+                    })}
+                  </span>
+                </Link>
+              </li>
             ))}
           </ul>
         ) : null}
@@ -771,29 +491,6 @@ export function SharedPlanningOverviewPage({
               : t('m5s3.common.loadMore')}
           </button>
         ) : null}
-        <details className="planning-create">
-          <summary id="wish-title">{t('m5s3.wish.create')}</summary>
-          <form
-            onSubmit={submitWish}
-            className="form-grid planning-create-form"
-          >
-            <label htmlFor="create-wish-title">{t('m5s3.common.title')}</label>
-            <input
-              id="create-wish-title"
-              name="title"
-              required
-              maxLength={200}
-            />
-            <button type="submit" disabled={createWish.isPending}>
-              {createWish.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
-            </button>
-            {createWish.error ? (
-              <ProblemState error={createWish.error} />
-            ) : null}
-          </form>
-        </details>
       </PlanenPanel>
     </div>
   );

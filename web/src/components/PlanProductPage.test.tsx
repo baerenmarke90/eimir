@@ -61,7 +61,7 @@ function renderPlan(plan: ReturnType<typeof basePlan>, places: unknown[] = []) {
 }
 
 describe('PlanProductPage', () => {
-  it('shows the title, a compact date + status pill, resolved place, and creator attribution', () => {
+  it('shows the title, readable schedule, resolved place, and creator attribution before operations', () => {
     const plan = basePlan({
       placeId: 'place-berlin',
       plannedStart: new Date('2026-09-14T14:00:00Z'),
@@ -70,9 +70,8 @@ describe('PlanProductPage', () => {
 
     expect(html).toContain('<h1');
     expect(html).toContain('Picnic in the park');
-    expect(html).toContain('planen-pill-date');
-    expect(html).toContain('planen-pill-scheduled');
-    expect(html).toContain(i18n.t('m5s3.plan.statusPillPlanned'));
+    expect(html).toContain('planen-detail-schedule');
+    expect(html).not.toContain('planen-pill-scheduled');
     expect(html).toContain(
       i18n.t('m5s3.plan.placeLabel', { name: 'Volkspark' }),
     );
@@ -91,12 +90,12 @@ describe('PlanProductPage', () => {
     expect(html).not.toContain('planen-detail-subfacts');
   });
 
-  it('shows only the status pill (no date pill) for an unscheduled IDEA Plan', () => {
+  it('presents an unscheduled Plan as a first-class undated intention', () => {
     const html = renderPlan(basePlan({ status: 'IDEA', plannedStart: null }));
 
-    expect(html).not.toContain('planen-pill-date');
-    expect(html).toContain('planen-pill-idea');
-    expect(html).toContain(i18n.t('m5s3.plan.status.IDEA'));
+    expect(html).toContain('planen-detail-schedule');
+    expect(html).toContain(i18n.t('m5s3.overview.undatedHeading'));
+    expect(html).not.toContain('planen-pill-idea');
   });
 
   it('shows the Notizen section only when a description exists', () => {
@@ -119,7 +118,7 @@ describe('PlanProductPage', () => {
     expect(html).toContain(i18n.t('m5s3.plan.complete'));
   });
 
-  it('replaces lifecycle controls with the optional relationship-history continuation for a COMPLETED Plan', () => {
+  it('shows a completed Plan as a truthful read result without reopening capture automatically', () => {
     const html = renderPlan(
       basePlan({
         status: 'COMPLETED',
@@ -128,11 +127,9 @@ describe('PlanProductPage', () => {
     );
 
     expect(html).toContain(i18n.t('m5s3.plan.completedTitle'));
-    expect(html).toContain(i18n.t('m5s3.planStory.memoryAction'));
-    expect(html).toContain(i18n.t('m5s3.planStory.milestoneAction'));
-    expect(html).toContain(i18n.t('m5s3.planStory.chapterAction'));
-    expect(html).toContain(i18n.t('m5s3.planStory.later'));
-    expect(html).not.toContain('/story/memories/new?title=');
+    expect(html).toContain(i18n.t('m5s3.plan.completedBody'));
+    expect(html).not.toContain(i18n.t('m5s3.planStory.memoryAction'));
+    expect(html).not.toContain(i18n.t('m5s3.planStory.milestoneAction'));
     expect(html).not.toContain('planen-complete-cta');
     expect(html).not.toContain(i18n.t('m5s3.plan.lifecycleHeading'));
   });

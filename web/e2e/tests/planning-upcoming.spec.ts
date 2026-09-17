@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -321,9 +322,10 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-test('Pläne segment contains only dated upcoming Plans in Today order, then the IDEA Plan, and Wünsche stays a separate domain', async ({
+test('Pläne leads with the nearest intention, then later and undated Plans, while Wünsche stays a separate domain', async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await installPlanningMocks(page);
   await page.goto('/today');
   await signIn(page);
@@ -341,20 +343,22 @@ test('Pläne segment contains only dated upcoming Plans in Today order, then the
   const plansPanel = page.getByRole('tabpanel', {
     name: m5s3.overview.segmentPlans,
   });
-  const planTitles = plansPanel.locator('.planen-card-title');
-  await expect(planTitles).toHaveText([EARLY_TITLE, LATE_TITLE, IDEA_TITLE]);
-  await expect(plansPanel.getByText(COMPLETED_TITLE)).toHaveCount(0);
-
-  const shortDate = (value: string) =>
-    new Intl.DateTimeFormat('de-DE', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    }).format(new Date(value));
-  const pills = plansPanel.locator('.planen-card-pills');
-  await expect(pills.nth(0)).toContainText(shortDate(EARLY_DATE));
-  await expect(pills.nth(1)).toContainText(shortDate(LATE_DATE));
-  await expect(pills.nth(2)).toContainText(m5s3.plan.status.IDEA);
+  await expect(
+    plansPanel.getByRole('heading', { name: m5s3.overview.nextHeading }),
+  ).toBeVisible();
+  await expect(plansPanel.locator('.planen-next-link')).toContainText(
+    EARLY_TITLE,
+  );
+  await expect(plansPanel.locator('.planen-agenda-link')).toContainText(
+    LATE_TITLE,
+  );
+  await expect(plansPanel.locator('.planen-undated-link')).toContainText(
+    IDEA_TITLE,
+  );
+  await expect(plansPanel.locator('.planen-history')).toContainText(
+    COMPLETED_TITLE,
+  );
+  await captureR3Evidence(page, testInfo, 'r3-overview-dense-390-light.png');
 
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(
@@ -364,10 +368,11 @@ test('Pläne segment contains only dated upcoming Plans in Today order, then the
     name: m5s3.overview.segmentWishes,
   });
   await expect(
-    wishesPanel.getByRole('heading', { name: EARLY_TITLE, level: 2 }),
+    wishesPanel.getByText(EARLY_TITLE, { exact: true }),
   ).toBeVisible();
   await expect(wishesPanel.getByText(IDEA_TITLE)).toHaveCount(0);
   await expect(wishesPanel.getByText(COMPLETED_TITLE)).toHaveCount(0);
+  await captureR3Evidence(page, testInfo, 'r3-wishes-390-light.png');
 
   await page.goto('/today');
   const todayTitles = page.locator(
@@ -378,16 +383,64 @@ test('Pläne segment contains only dated upcoming Plans in Today order, then the
 
 test('planning segments keep their relationship-native empty states', async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await installPlanningMocks(page, { empty: true });
   await page.goto('/today');
   await signIn(page);
   await page.goto('/plan');
 
   await expect(page.getByText(m5s3.overview.plansEmpty)).toBeVisible();
+  await captureR3Evidence(page, testInfo, 'r3-overview-empty-390-light.png');
   await page.getByRole('tab', { name: m5s3.overview.segmentWishes }).click();
   await expect(page.getByText(m5s3.overview.wishesEmpty)).toBeVisible();
 });
+
+for (const scenario of [
+  {
+    name: '360-dark',
+    viewport: { width: 360, height: 800 },
+    colorScheme: 'dark' as const,
+    reducedMotion: 'no-preference' as const,
+  },
+  {
+    name: '430-reduced-motion',
+    viewport: { width: 430, height: 860 },
+    colorScheme: 'light' as const,
+    reducedMotion: 'reduce' as const,
+  },
+  {
+    name: '1280-expanded',
+    viewport: { width: 1280, height: 900 },
+    colorScheme: 'light' as const,
+    reducedMotion: 'no-preference' as const,
+  },
+]) {
+  test(`R3 overview evidence: ${scenario.name}`, async ({ page }, testInfo) => {
+    await page.setViewportSize(scenario.viewport);
+    await page.emulateMedia({
+      colorScheme: scenario.colorScheme,
+      reducedMotion: scenario.reducedMotion,
+    });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    await installPlanningMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/plan');
+
+    await expect(page.locator('.planen-next-link')).toContainText(EARLY_TITLE);
+    await expect(page.locator('.planen-undated-link')).toContainText(
+      IDEA_TITLE,
+    );
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+    await captureR3Evidence(page, testInfo, `r3-overview-${scenario.name}.png`);
+  });
+}
 
 test('Wünsche panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are excluded (#892)', async ({
   page,
@@ -442,7 +495,7 @@ test('Wünsche panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are 
     name: m5s3.overview.segmentWishes,
   });
   await expect(
-    wishesPanel.getByRole('heading', { name: EARLY_TITLE, level: 2 }),
+    wishesPanel.getByText(EARLY_TITLE, { exact: true }),
   ).toBeVisible();
   await expect(wishesPanel.getByText(LATE_TITLE)).toHaveCount(0);
 

@@ -21,6 +21,8 @@ export interface TaskOriginMetadata {
   /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
   searchQuery?: string;
   searchKind?: string;
+  /** Restores the Plans/Wishes peer mode without publishing it in the URL. */
+  planningSegment?: 'plans' | 'wishes';
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -44,7 +46,7 @@ interface OriginStore {
 interface TaskOriginContract {
   captureOrigin: (metadata?: TaskOriginMetadata) => string | null;
   resolveOrigin: (key: unknown) => TaskOrigin | null;
-  requestReturn: (key: unknown) => void;
+  requestReturn: (key: unknown, fallback?: string) => void;
   registerOriginMetadata: (metadata: TaskOriginMetadata) => () => void;
 }
 
@@ -55,7 +57,13 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
-  if (!['/today', '/story', '/plan', '/more', '/search'].includes(pathname))
+  const planningDetail = /^\/plan\/(plans|wishes)\/(?!new$)[^/]+$/.test(
+    pathname,
+  );
+  if (
+    !planningDetail &&
+    !['/today', '/story', '/plan', '/more', '/search'].includes(pathname)
+  )
     return null;
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);
@@ -137,6 +145,7 @@ export function TaskOriginProvider({
         selectedOffset: snapshot.selectedOffset,
         searchQuery: snapshot.searchQuery,
         searchKind: snapshot.searchKind,
+        planningSegment: snapshot.planningSegment,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,
@@ -177,11 +186,11 @@ export function TaskOriginProvider({
   );
 
   const requestReturn = useCallback(
-    (key: unknown) => {
+    (key: unknown, fallback = '/story') => {
       if (!generation.active || storeRef.current !== generation) return;
       const origin = resolveStored(key);
       if (!origin) {
-        void navigate('/story', { replace: true });
+        void navigate(fallback, { replace: true });
         return;
       }
       if (
@@ -245,8 +254,8 @@ export function useTaskOrigin(): TaskOriginContract {
     () => ({
       captureOrigin: () => null,
       resolveOrigin: () => null,
-      requestReturn: () => {
-        void navigate('/story', { replace: true });
+      requestReturn: (_key, fallback = '/story') => {
+        void navigate(fallback, { replace: true });
       },
       registerOriginMetadata: () => () => {},
     }),

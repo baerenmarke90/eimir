@@ -1,6 +1,9 @@
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import { PlanStatus } from '../api/generated/models/PlanStatus';
-import { selectUpcomingPlans } from './planningOverview';
+import {
+  groupPlanningOverviewPlans,
+  selectUpcomingPlans,
+} from './planningOverview';
 
 const NOW = new Date('2026-09-08T12:00:00Z');
 
@@ -116,5 +119,44 @@ describe('planning overview selectors', () => {
       'date-only-same-day',
       'timed-same-day',
     ]);
+  });
+
+  it('composes focal, later, undated, past, and completed Plan groups', () => {
+    const focal = plan({
+      id: 'focal',
+      status: PlanStatus.PLANNED,
+      plannedStart: new Date('2026-09-09T18:00:00Z'),
+    });
+    const later = plan({
+      id: 'later',
+      status: PlanStatus.PLANNED,
+      plannedOn: new Date('2026-09-10T00:00:00Z'),
+    });
+    const undated = plan({
+      id: 'undated',
+      status: PlanStatus.IDEA,
+      updatedAt: new Date('2026-09-07T18:00:00Z'),
+    });
+    const past = plan({
+      id: 'past',
+      status: PlanStatus.PLANNED,
+      plannedStart: new Date('2026-09-01T18:00:00Z'),
+    });
+    const completed = plan({
+      id: 'completed',
+      status: PlanStatus.COMPLETED,
+      experiencedOn: new Date('2026-08-20T00:00:00Z'),
+    });
+
+    const groups = groupPlanningOverviewPlans(
+      [completed, past, undated, later, focal],
+      NOW,
+    );
+
+    expect(groups.focal?.id).toBe('focal');
+    expect(groups.later.map((item) => item.id)).toEqual(['later']);
+    expect(groups.undated.map((item) => item.id)).toEqual(['undated']);
+    expect(groups.past.map((item) => item.id)).toEqual(['past']);
+    expect(groups.completed.map((item) => item.id)).toEqual(['completed']);
   });
 });

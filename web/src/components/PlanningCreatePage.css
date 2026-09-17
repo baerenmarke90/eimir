@@ -1,0 +1,90 @@
+.planning-create-task {
+  display: grid;
+  max-width: var(--reading-max);
+  gap: var(--space-6);
+}
+
+.planning-task-focus {
+  width: 0;
+  height: 0;
+  outline: 0;
+}
+
+.planning-intention-form,
+.planning-intention-form fieldset {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.planning-intention-field label {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.planning-intention-field input {
+  min-height: 56px;
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+.planning-optional-details {
+  border-top: 1px solid var(--color-border-subtle);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: var(--space-2) 0;
+}
+
+.planning-optional-details > summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-brand-text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.planning-optional-fields {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-4);
+  animation: eimir-reveal var(--motion-duration-medium)
+    var(--motion-easing-reveal);
+}
+
+.planning-add-place {
+  justify-self: start;
+}
+
+.planning-new-place {
+  display: grid;
+  gap: var(--space-3);
+  border-left: 2px solid var(--color-brand-text);
+  padding-left: var(--space-4);
+}
+
+.planning-new-place-actions {
+  justify-content: flex-start;
+}
+
+.planning-create-sharing {
+  border-radius: var(--radius-large);
+}
+
+.planning-task-actions {
+  justify-content: flex-end;
+}
+
+@media (max-width: 420px) {
+  .planning-task-actions > button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planning-optional-fields {
+    animation: none;
+  }
+}

@@ -1685,6 +1685,69 @@
         "title": "DateRepeat",
         "type": "string"
       },
+      "DiscoverLeadContext": {
+        "properties": {
+          "type": {
+            "const": "ON_THIS_DAY",
+            "title": "Type",
+            "type": "string"
+          },
+          "yearsAgo": {
+            "minimum": 1.0,
+            "title": "Yearsago",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "type",
+          "yearsAgo"
+        ],
+        "title": "DiscoverLeadContext",
+        "type": "object"
+      },
+      "DiscoverSelection": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StoryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "lead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoryItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leadContext": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DiscoverLeadContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selectionDate": {
+            "format": "date",
+            "title": "Selectiondate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selectionDate",
+          "lead",
+          "items"
+        ],
+        "title": "DiscoverSelection",
+        "type": "object"
+      },
       "DurationDisplayMode": {
         "description": "How shared relationship time is displayed.",
         "enum": [
@@ -14829,6 +14892,59 @@
         "summary": "Update Dashboard Module Preference",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/discover": {
+      "get": {
+        "description": "Return today's finite backend-owned curated Story selection.\n\nSnapshot order is canonical. If the original lead becomes unreadable, the\nfirst surviving reference becomes the response lead and all later\nsurvivors remain in their existing order. Nothing is refilled or\nreshuffled during that local day.",
+        "operationId": "getStoryDiscover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscoverSelection"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Story Discover",
+        "tags": [
+          "story"
         ]
       }
     },

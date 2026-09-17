@@ -51,6 +51,8 @@ export * from './DashboardSharedStorySummary';
 export * from './DashboardSpaceSummary';
 export * from './DashboardView';
 export * from './DateRepeat';
+export * from './DiscoverLeadContext';
+export * from './DiscoverSelection';
 export * from './DurationDisplayMode';
 export * from './EimirApiV1AuthOidcCallbackRequest';
 export * from './EimirApiV1RecentAuthenticationOidcCallbackRequest';

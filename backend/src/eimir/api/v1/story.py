@@ -25,11 +25,12 @@ from eimir.api.v1.attachments import AttachmentSummary
 from eimir.api.v1.memories import MemoryAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
-from eimir.authorization import readable
+from eimir.authorization import PrivacyClass, readable
+from eimir.core import clock
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
 from eimir.milestones.models import Milestone
-from eimir.story import service, view_service
+from eimir.story import discover_service, service, view_service
 from eimir.story.service import StoryKind, StoryOrder, StoryRow
 
 router = APIRouter(tags=["story"])
@@ -122,6 +123,18 @@ class StoryPage(ApiModel):
     available_years: list[int] = Field(default_factory=list)
 
 
+class DiscoverLeadContext(ApiModel):
+    type: Literal["ON_THIS_DAY"]
+    years_ago: int = Field(ge=1)
+
+
+class DiscoverSelection(ApiModel):
+    selection_date: date
+    lead: StoryItem | None
+    items: list[StoryItem]
+    lead_context: DiscoverLeadContext | None = None
+
+
 class StoryViewReceipt(ApiModel):
     """An intentional canonical-detail presentation reported by a client."""
 
@@ -177,6 +190,41 @@ def _attachment_summary(attachment: Attachment) -> AttachmentSummary:
 
 
 @router.get(
+    "/spaces/{spaceId}/discover",
+    response_model=DiscoverSelection,
+    operation_id="getStoryDiscover",
+    responses=problem_responses(401, 404),
+)
+def get_story_discover(
+    tenant: Tenant,
+    authorization: Authorization,
+    session: DbSession,
+) -> DiscoverSelection:
+    """Return today's finite backend-owned curated Story selection.
+
+    Snapshot order is canonical. If the original lead becomes unreadable, the
+    first surviving reference becomes the response lead and all later
+    survivors remain in their existing order. Nothing is refilled or
+    reshuffled during that local day.
+    """
+    result = discover_service.read_discover(
+        session,
+        authorization,
+        account_timezone=tenant.account.timezone,
+    )
+    projected = project_story_items(session, authorization, result.rows)
+    lead = projected[0] if projected else None
+    items = projected[1:] if projected else []
+    lead_context = _lead_context(result.selection_date, lead, result.rows)
+    return DiscoverSelection(
+        selection_date=result.selection_date,
+        lead=lead,
+        items=items,
+        lead_context=lead_context,
+    )
+
+
+@router.get(
     "/spaces/{spaceId}/timeline",
     response_model=StoryPage,
     operation_id="getStoryTimeline",
@@ -211,14 +259,14 @@ def get_story_timeline(
         kinds=kinds_tuple,
     )
     return StoryPage(
-        items=_project(session, authorization, page.items),
+        items=project_story_items(session, authorization, page.items),
         next_cursor=page.next_cursor,
         has_more=page.has_more,
         available_years=available_years,
     )
 
 
-def _project(
+def project_story_items(
     session: DbSession,
     authorization: Authorization,
     items: list[StoryRow],
@@ -335,7 +383,10 @@ def _load[ResourceT: (Memory, HeartMoment, Milestone)](
 ) -> dict[UUID, ResourceT]:
     if not ids:
         return {}
-    rows = session.execute(readable(model, authorization).where(model.id.in_(ids))).scalars().all()
+    statement = readable(model, authorization).where(model.id.in_(ids))
+    if model is HeartMoment:
+        statement = statement.where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
+    rows = session.execute(statement).scalars().all()
     return {row.id: row for row in rows}
 
 
@@ -358,3 +409,35 @@ def _author(authors: dict[UUID, AuthorSummary], owner_id: UUID) -> AuthorSummary
     if author is None:
         raise RuntimeError("Story author disappeared despite foreign key protection.")
     return author
+
+
+def _story_item_identity(item: StoryItem) -> tuple[StoryKind, UUID]:
+    if item.root.kind is StoryKind.MEMORY:
+        return item.root.kind, item.root.memory.id
+    if item.root.kind is StoryKind.HEART_MOMENT:
+        return item.root.kind, item.root.heart_moment.id
+    return item.root.kind, item.root.milestone.id
+
+
+def _lead_context(
+    selection_date: date,
+    lead: StoryItem | None,
+    rows: list[StoryRow],
+) -> DiscoverLeadContext | None:
+    if lead is None:
+        return None
+    identity = _story_item_identity(lead)
+    row = next((entry for entry in rows if (entry.kind, entry.id) == identity), None)
+    if row is None or row.effective_date.year >= selection_date.year:
+        return None
+    occurrence = clock.annual_occurrence(
+        selection_date.year,
+        row.effective_date.month,
+        row.effective_date.day,
+    )
+    if occurrence != selection_date:
+        return None
+    return DiscoverLeadContext(
+        type="ON_THIS_DAY",
+        years_ago=selection_date.year - row.effective_date.year,
+    )

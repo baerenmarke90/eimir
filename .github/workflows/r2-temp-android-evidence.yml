@@ -71,6 +71,45 @@ jobs:
         working-directory: android
         run: ./gradlew --no-daemon --stacktrace --dependency-verification strict :app:testDebugUnitTest :app:assembleDebug
 
+      - name: Normalize Compose UIAutomator test-tag handling
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Compose exposes testTag nodes with the component's actual bounds even
+          # when UIAutomator does not mark that semantics node (or an ancestor) as
+          # clickable. Measure and tap those bounds directly. This changes only
+          # the disposable evidence harness, never the submitted APK.
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/qa/capture_r2_android.py')
+          text = path.read_text()
+          old_tap = '''    def tap_tag(tag: str, *, upward: bool = False) -> None:
+              node = reveal_tag(tag, upward=upward)
+              root = dump()
+              refreshed = find_tag(tag, root)
+              tap_node(refreshed or node, root)
+          '''
+          new_tap = '''    def tap_tag(tag: str, *, upward: bool = False) -> None:
+              node = reveal_tag(tag, upward=upward)
+              root = dump()
+              refreshed = find_tag(tag, root)
+              target = refreshed if refreshed is not None else node
+              left, top, right, bottom = bounds(target)
+              adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
+              time.sleep(0.4)
+          '''
+          old_target = '''        node = clickable(node, root)
+              box = bounds(node)
+          '''
+          new_target = '''        box = bounds(node)
+          '''
+          if old_tap not in text:
+              raise SystemExit('Expected tap_tag block not found')
+          if old_target not in text:
+              raise SystemExit('Expected assert_target block not found')
+          path.write_text(text.replace(old_tap, new_tap).replace(old_target, new_target, 1))
+          PY
+
       - name: Capture R2 native journey matrix
         shell: bash
         run: |

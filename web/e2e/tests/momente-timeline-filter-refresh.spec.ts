@@ -243,6 +243,7 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
 
     const filter = page.getByRole('button', {
       name: storyProducts.storyFilters.toggleButton,
+      exact: true,
     });
     await expect(filter).toBeVisible();
     const filterBox = await filter.boundingBox();
@@ -373,6 +374,7 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
       page
         .getByRole('button', {
           name: storyProducts.storyFilters.toggleButton,
+          exact: true,
         })
         .locator('.story-filter-active-badge'),
     ).toHaveText('1');

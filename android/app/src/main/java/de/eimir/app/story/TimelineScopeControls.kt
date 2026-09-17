@@ -46,6 +46,16 @@ fun TimelineScopeControls(scope: TimelineScope, availableYears: List<Int>, onApp
         Text(stringResource(R.string.timeline_filter_scope,
             scope.year?.toString() ?: stringResource(R.string.timeline_filter_all_years), kindLabel(scope.kind)),
             color = EimirTheme.colors.textSecondary, modifier = Modifier.testTag("timeline-applied-scope"))
+        // The default newest-first ordering stays quiet, but once a person deliberately
+        // applies the alternate order it remains visible without reopening the sheet.
+        // This completes R2's "visible current scope" contract for year / type / order.
+        if (scope.order != StoryOrder.NEWEST_FIRST) {
+            Text(
+                orderLabel(scope.order),
+                color = EimirTheme.colors.textSecondary,
+                modifier = Modifier.testTag("timeline-applied-order"),
+            )
+        }
         TextButton(colors = ButtonDefaults.textButtonColors(contentColor = EimirTheme.colors.linkText), onClick = { open = true }, modifier = Modifier.focusRequester(trigger)
             .heightIn(min = MinimumTouchTarget).testTag("timeline-filter")) {
             Text(stringResource(R.string.timeline_filter))

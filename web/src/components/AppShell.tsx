@@ -152,7 +152,13 @@ function AuthenticatedAppShell({
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
-  const isMemoryDetail = /^\/story\/memories\/[^/]+$/.test(location.pathname);
+  const storyDetailMatch =
+    /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
+      location.pathname,
+    );
+  const isStoryDetail = Boolean(
+    storyDetailMatch && storyDetailMatch[1] !== 'new',
+  );
   const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
     ?.taskOriginKey;
   const isFocusedTask =
@@ -200,7 +206,7 @@ function AuthenticatedAppShell({
 
       {!isFocusedTask ? (
         <header className="app-header product-topbar">
-          {isMemoryDetail ? (
+          {isStoryDetail ? (
             <button
               type="button"
               className="shell-utility-link shell-detail-back"

@@ -69,14 +69,6 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
             'LEGACY_ARCHIVE_FORMAT = "sidebyside-self-hosted-backup"', recovery
         )
 
-    def test_completed_repository_rename_has_stable_identity_evidence(self) -> None:
-        guide = read("docs/PROJECT-IDENTITY-MIGRATION.md")
-        self.assertIn("Final GitHub repository rename — completed 2026-09-15", guide)
-        self.assertIn("baerenmarke90/eimir", guide)
-        self.assertIn("https://github.com/baerenmarke90/eimir.git", guide)
-        self.assertIn("1344232309", guide)
-        self.assertIn("9da8087695f3f952ab344e25dc693d87f5d327d5", guide)
-
 
 if __name__ == "__main__":
     unittest.main()

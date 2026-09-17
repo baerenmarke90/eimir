@@ -1,0 +1,322 @@
+/* #1010 — one semantic visual language for the six existing HeartEmotion values. */
+:root {
+  --emotion-loved-accent: #be3653;
+  --emotion-loved-surface: #fff0f3;
+  --emotion-seen-accent: #5d5aa6;
+  --emotion-seen-surface: #f1f0ff;
+  --emotion-appreciated-accent: #9b5966;
+  --emotion-appreciated-surface: #fbeef1;
+  --emotion-supported-accent: #2f7467;
+  --emotion-supported-surface: #e9f6f2;
+  --emotion-grateful-accent: #9a6320;
+  --emotion-grateful-surface: #fff3df;
+  --emotion-happy-accent: #9a7118;
+  --emotion-happy-surface: #fff7d6;
+}
+
+:root[data-theme='dark'] {
+  --emotion-loved-accent: #ff90a6;
+  --emotion-loved-surface: #3b1e27;
+  --emotion-seen-accent: #b2a9ff;
+  --emotion-seen-surface: #28243f;
+  --emotion-appreciated-accent: #e6a3b0;
+  --emotion-appreciated-surface: #3a252b;
+  --emotion-supported-accent: #7bd9c5;
+  --emotion-supported-surface: #183732;
+  --emotion-grateful-accent: #f0bb70;
+  --emotion-grateful-surface: #3b2a18;
+  --emotion-happy-accent: #ffd77b;
+  --emotion-happy-surface: #3a3118;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --emotion-loved-accent: #ff90a6;
+    --emotion-loved-surface: #3b1e27;
+    --emotion-seen-accent: #b2a9ff;
+    --emotion-seen-surface: #28243f;
+    --emotion-appreciated-accent: #e6a3b0;
+    --emotion-appreciated-surface: #3a252b;
+    --emotion-supported-accent: #7bd9c5;
+    --emotion-supported-surface: #183732;
+    --emotion-grateful-accent: #f0bb70;
+    --emotion-grateful-surface: #3b2a18;
+    --emotion-happy-accent: #ffd77b;
+    --emotion-happy-surface: #3a3118;
+  }
+}
+
+[data-emotion='LOVED'],
+[data-heart-emotion='LOVED'] {
+  --heart-emotion-accent: var(--emotion-loved-accent);
+  --heart-emotion-surface: var(--emotion-loved-surface);
+}
+
+[data-emotion='SEEN'],
+[data-heart-emotion='SEEN'] {
+  --heart-emotion-accent: var(--emotion-seen-accent);
+  --heart-emotion-surface: var(--emotion-seen-surface);
+}
+
+[data-emotion='APPRECIATED'],
+[data-heart-emotion='APPRECIATED'] {
+  --heart-emotion-accent: var(--emotion-appreciated-accent);
+  --heart-emotion-surface: var(--emotion-appreciated-surface);
+}
+
+[data-emotion='SUPPORTED'],
+[data-heart-emotion='SUPPORTED'] {
+  --heart-emotion-accent: var(--emotion-supported-accent);
+  --heart-emotion-surface: var(--emotion-supported-surface);
+}
+
+[data-emotion='GRATEFUL'],
+[data-heart-emotion='GRATEFUL'] {
+  --heart-emotion-accent: var(--emotion-grateful-accent);
+  --heart-emotion-surface: var(--emotion-grateful-surface);
+}
+
+[data-emotion='HAPPY'],
+[data-heart-emotion='HAPPY'] {
+  --heart-emotion-accent: var(--emotion-happy-accent);
+  --heart-emotion-surface: var(--emotion-happy-surface);
+}
+
+.heart-emotion-badge {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--heart-emotion-accent) 42%, transparent);
+  border-radius: 999px;
+  background: color-mix(
+    in srgb,
+    var(--heart-emotion-surface) 88%,
+    var(--color-surface) 12%
+  );
+  color: var(--color-text);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.heart-emotion-badge--compact {
+  padding: 0.34rem 0.62rem 0.34rem 0.48rem;
+  font-size: 0.82rem;
+}
+
+.heart-emotion-badge--detail {
+  padding: 0.55rem 0.9rem 0.55rem 0.65rem;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 26px color-mix(in srgb, var(--heart-emotion-accent) 14%, transparent);
+}
+
+.heart-emotion-icon {
+  display: inline-grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--heart-emotion-accent) 15%, transparent);
+  color: var(--heart-emotion-accent);
+}
+
+.heart-emotion-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.heart-emotion-badge--detail .heart-emotion-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.heart-emotion-badge--detail .heart-emotion-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.heart-emotion-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* Timeline cards keep their accepted hierarchy; the emotion is atmosphere, not taxonomy chrome. */
+.story-card-link .story-card-heart-moment[data-heart-emotion] {
+  background:
+    radial-gradient(
+      circle at 88% 12%,
+      color-mix(in srgb, var(--heart-emotion-surface) 88%, transparent) 0,
+      transparent 45%
+    ),
+    var(--color-surface);
+}
+
+.story-card-heart-moment .heart-emotion-badge {
+  margin: 0 0 var(--space-4);
+}
+
+/* Consumer-mobile single-choice picker. */
+.heart-emotion-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.heart-emotion-picker > legend {
+  margin-bottom: var(--space-3);
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.heart-emotion-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.heart-emotion-choice {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.heart-emotion-choice-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.heart-emotion-choice-visual {
+  display: grid;
+  min-height: 3.25rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.58rem 0.7rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.heart-emotion-choice:hover .heart-emotion-choice-visual {
+  border-color: color-mix(in srgb, var(--heart-emotion-accent) 55%, var(--color-border));
+}
+
+.heart-emotion-choice:has(.heart-emotion-choice-input:checked)
+  .heart-emotion-choice-visual {
+  border-color: var(--heart-emotion-accent);
+  background: color-mix(
+    in srgb,
+    var(--heart-emotion-surface) 82%,
+    var(--color-surface) 18%
+  );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--heart-emotion-accent) 24%, transparent);
+}
+
+.heart-emotion-choice:has(.heart-emotion-choice-input:focus-visible)
+  .heart-emotion-choice-visual {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.heart-emotion-choice-label {
+  min-width: 0;
+  font-weight: 620;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.heart-emotion-choice-check {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--heart-emotion-accent);
+  color: var(--color-on-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  opacity: 0;
+  transform: scale(0.72);
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.heart-emotion-choice:has(.heart-emotion-choice-input:checked)
+  .heart-emotion-choice-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Detail may be more expressive, but still uses one quiet shared motion pattern. */
+.heart-moment-detail-emotion {
+  display: flex;
+  justify-content: flex-start;
+  max-width: var(--content-reading-width, 760px);
+  margin: calc(var(--space-2) * -1) auto var(--space-5);
+  padding-inline: var(--space-1);
+}
+
+.heart-moment-detail-container[data-heart-emotion] .product-detail-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.heart-moment-detail-container[data-heart-emotion] .product-detail-card::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 88% 0%,
+    color-mix(in srgb, var(--heart-emotion-surface) 70%, transparent) 0,
+    transparent 42%
+  );
+  content: '';
+}
+
+.heart-emotion-badge--detail .heart-emotion-icon {
+  animation: heart-emotion-settle 420ms var(--motion-easing-lift) both;
+}
+
+@keyframes heart-emotion-settle {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 360px) {
+  .heart-emotion-picker-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-emotion-choice-visual,
+  .heart-emotion-choice-check,
+  .heart-emotion-badge--detail .heart-emotion-icon {
+    animation: none;
+    transition: none;
+  }
+}

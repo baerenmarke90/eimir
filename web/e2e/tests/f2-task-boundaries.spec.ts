@@ -562,8 +562,9 @@ test('an older Memory returns to the same loaded Timeline range and position', a
   await expect
     .poll(
       () =>
-        api.timelineRequests.filter((query) => query.includes('cursor=older-page'))
-          .length,
+        api.timelineRequests.filter((query) =>
+          query.includes('cursor=older-page'),
+        ).length,
     )
     .toBe(1);
   await expect(page.getByText(older.title, { exact: true })).toBeAttached();

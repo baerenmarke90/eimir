@@ -165,8 +165,13 @@
   border: 0;
 }
 
-.heart-moment-create-emotion-picker {
+.heart-moment-create-field.heart-emotion-picker {
   grid-column: 1 / -1;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .heart-emotion-picker > legend {
@@ -251,7 +256,7 @@
   place-items: center;
   border-radius: 50%;
   background: var(--heart-emotion-accent);
-  color: var(--color-on-accent);
+  color: var(--color-background);
   font-size: 0.72rem;
   font-weight: 800;
   opacity: 0;

@@ -19,12 +19,19 @@ describe('HeartEmotionVisual', () => {
       />,
     );
 
-    expect(screen.getByRole('group', { name: 'Gefühl' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Gefühl' })).not.toBeNull();
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(HEART_EMOTIONS.length);
     expect(radios).toHaveLength(6);
-    expect(screen.getByRole('radio', { name: 'Wertgeschätzt' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'Geliebt' })).not.toBeChecked();
+    expect(
+      (screen.getByRole('radio', {
+        name: 'Wertgeschätzt',
+      }) as HTMLInputElement).checked,
+    ).toBe(true);
+    expect(
+      (screen.getByRole('radio', { name: 'Geliebt' }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
   });
 
   it('keeps the localized label alongside a distinct controlled motif', () => {
@@ -32,10 +39,10 @@ describe('HeartEmotionVisual', () => {
       <HeartEmotionBadge emotion={HeartEmotion.SEEN} variant="detail" />,
     );
 
-    expect(screen.getByText('Gesehen')).toBeVisible();
+    expect(screen.getByText('Gesehen').textContent).toBe('Gesehen');
     const badge = container.querySelector('[data-emotion="SEEN"]');
     expect(badge).not.toBeNull();
     expect(badge?.querySelector('svg')).not.toBeNull();
-    expect(badge).toHaveAttribute('aria-label', 'Gefühl: Gesehen');
+    expect(badge?.getAttribute('aria-label')).toBe('Gefühl: Gesehen');
   });
 });

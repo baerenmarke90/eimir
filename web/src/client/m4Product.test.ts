@@ -61,6 +61,15 @@ describe('M5 S5/S3 product navigation', () => {
   });
 
   it('routes dashboard entries through the productized domain surfaces', () => {
+    expect(dashboardItemPath('MEMORY', 'memory-id')).toBe(
+      '/story/memories/memory-id',
+    );
+    expect(dashboardItemPath('HEART_MOMENT', 'heart-id')).toBe(
+      '/story/heart-moments/heart-id',
+    );
+    expect(dashboardItemPath('MILESTONE', 'milestone-id')).toBe(
+      '/story/milestones/milestone-id',
+    );
     expect(dashboardItemPath('IMPORTANT_DATE', 'date-id')).toBe('/more/people');
     expect(dashboardItemPath('BIRTHDAY', 'birthday-id')).toBe('/more/people');
     expect(dashboardItemPath('ANNIVERSARY', 'anniversary-id')).toBe(

@@ -48,23 +48,22 @@ describe('SharedStorySummary', () => {
       html.indexOf(m5s5.dashboard.storySummaryHeartMoments),
     );
 
-    // Semantics & markup
-    expect(html).toContain('<dl');
-    expect(html).toContain('<dt>');
-    expect(html).toContain('<dd>');
+    // A quiet linked reflection, not a KPI definition/badge group.
+    expect(html).toContain('<ul');
+    expect(html).toContain('<li');
     expect(html).not.toContain('button');
 
     // Exactly 2 metric wrappers, no placeholder element
     const metricMatches = html.match(/shared-story-summary-metric/g);
     expect(metricMatches).toHaveLength(2);
 
-    // Full visible badge is a link with stable query contract
+    // Each visible count/category phrase is a link with stable query contract.
     expect(html).toContain('href="/story?tab=timeline&amp;type=MEMORY"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=HEART_MOMENT"');
     expect(html).not.toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
   });
 
-  it('renders all three visible metrics in sequence with motifs and links', () => {
+  it('renders all three visible metrics in sequence as quiet text links', () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <SharedStorySummary
@@ -94,11 +93,9 @@ describe('SharedStorySummary', () => {
     expect(html).toContain('href="/story?tab=timeline&amp;type=HEART_MOMENT"');
     expect(html).toContain('href="/story?tab=timeline&amp;type=MILESTONE"');
 
-    // Motifs and decorative elements are aria-hidden
-    expect(html).toContain('story-badge-motif-polaroid');
-    expect(html).toContain('story-badge-motif-heart');
-    expect(html).toContain('story-badge-motif-pennant');
-    expect(html).toContain('aria-hidden="true"');
+    // R4 removes the decorative statistic-badge/KPI treatment.
+    expect(html).not.toContain('story-badge-motif');
+    expect(html).not.toContain('shared-story-summary-badge');
   });
 
   it('renders alternative two-metric state (heartMoments and milestones)', () => {

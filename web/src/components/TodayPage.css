@@ -1,5 +1,5 @@
 /*
- * Reclaiming the top of the first smartphone viewport (#850).
+ * R4 keeps the top of the first smartphone viewport relationship-first.
  *
  * The blank band above the relationship hero was never one bad margin. It was
  * a stack: the shell's own content padding, then this page's padding, then the
@@ -138,25 +138,6 @@
   }
 }
 
-@keyframes pulse-heart {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  15% {
-    transform: scale(1.06);
-  }
-  30% {
-    transform: scale(1);
-  }
-  45% {
-    transform: scale(1.04);
-  }
-  60% {
-    transform: scale(1);
-  }
-}
-
 @keyframes heart-sparkle {
   0% {
     transform: scale(0.9) rotate(-4deg);
@@ -177,14 +158,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  border: 1.5px solid var(--color-brand-glow);
+  min-height: 44px;
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
-  padding: var(--space-3) var(--space-6);
-  background: var(--color-surface-raised);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
   color: var(--color-brand-text);
-  box-shadow: 0 8px 24px var(--color-shadow-brand);
-  font-size: 1.05rem;
-  font-weight: 800;
+  box-shadow: none;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
   transition:
     transform var(--motion-fast),
@@ -194,9 +176,9 @@
 }
 
 .today-hero-action:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-1px);
   border-color: var(--color-brand);
-  box-shadow: 0 12px 30px var(--color-shadow-brand);
+  box-shadow: var(--shadow-soft);
 }
 
 .today-hero-action.active {
@@ -346,7 +328,7 @@
 }
 
 /*
- * Materiality (#850): the agenda tile is the page's one genuinely *raised*
+ * R4 materiality: the agenda tile is the page's one genuinely *raised*
  * surface - a small warm card you could pick up. `--shadow-raised` is a close
  * contact shadow rather than the wide ambient `--shadow-card`, which is what
  * keeps a single default tile feeling substantial instead of floating.
@@ -468,7 +450,7 @@
 }
 
 /*
- * Secondary by construction (#850): the trace keeps the approved bordered
+ * Secondary by construction: the trace keeps the approved bordered
  * mini-tile shape - it must not regress into an unstyled text list - but it
  * sits *flat* on the canvas while `Demnächst` above it is raised. Elevation,
  * not size, is what now separates the page's primary and secondary registers.
@@ -596,33 +578,22 @@
 
 .new-space-experience {
   margin-top: var(--space-8);
-  padding: var(--space-8) var(--space-4);
-  text-align: center;
-}
-
-.new-space-mark {
-  display: inline-grid;
-  width: 4.5rem;
-  height: 4.5rem;
-  place-items: center;
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-large);
-  background: var(--color-brand-surface);
-  box-shadow: 0 8px 24px var(--color-shadow-brand);
-  font-size: 2.2rem;
-  animation: pulse-heart 3s ease-in-out infinite;
+  max-width: 45rem;
+  padding: var(--space-6) 0 var(--space-8);
+  text-align: left;
 }
 
 .new-space-title {
-  color: var(--color-brand-text);
+  margin: 0;
+  color: var(--color-text);
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 4vw, 2.2rem);
 }
 
 .new-space-body {
-  margin: var(--space-4) 0 var(--space-6);
+  margin: var(--space-3) 0 var(--space-5);
   color: var(--color-text-secondary);
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .new-space-cta {
@@ -632,7 +603,7 @@
 
 @media (max-width: 599px) {
   /*
-   * Compact is the normative composition (#850). The page owns no top gap of
+   * Compact is the normative R4 composition. The page owns no top gap of
    * its own here: the shell already provides the only breathing room the
    * first viewport can afford before relationship content starts.
    */
@@ -737,46 +708,80 @@
   }
 }
 
-/* The Keepsake role exists but has no usable photo: a quiet single line, not
-   an empty image well. */
-.today-moment-compact {
+/* No eligible photo changes the composition to authored text. The surface is
+   sized by the real words and never simulates a missing media frame. */
+.today-moment-text {
+  display: grid;
+  gap: var(--space-3);
+  padding: clamp(var(--space-5), 7vw, var(--space-10));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+}
+
+.today-moment-link:hover .today-moment-text {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.today-moment-link:focus-visible .today-moment-text {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.today-moment-text-context {
+  color: var(--color-brand-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.today-moment-text-content {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.today-moment-text-date {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.today-partial-error {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  background: var(--color-surface-subtle);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-error);
+  background: var(--color-error-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
 }
 
-.today-moment-compact-body {
-  margin: 0;
-  min-width: 0;
-  flex: 1 1 14rem;
-  font-size: 0.92rem;
-  line-height: 1.45;
-  color: var(--color-text-secondary);
-}
-
-.today-moment-compact-action {
-  display: inline-flex;
-  align-items: center;
+.today-partial-error-action {
   min-height: 44px;
-  font-size: 0.88rem;
-  font-weight: 750;
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--color-brand-text);
-  text-decoration: none;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
 }
 
-.today-moment-compact-action:hover {
-  color: var(--color-brand-strong);
-}
-
-.today-moment-compact-action:focus-visible {
+.today-partial-error-action:focus-visible {
   outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* Gerade bei euch — the one contextual relationship module ----------------
@@ -1072,7 +1077,6 @@
  * whenever a new transition is added.
  */
 @media (prefers-reduced-motion: reduce) {
-  .new-space-mark,
   .today-hero-action.active {
     animation: none;
   }

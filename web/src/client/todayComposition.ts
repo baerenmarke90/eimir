@@ -36,6 +36,42 @@ export type LivingModule =
       item: DashboardItem;
     };
 
+export type TodayFocalItem = {
+  kind: 'keepsake' | 'shared_text';
+  item: DashboardItem;
+};
+
+const FOCAL_SHARED_TYPES = new Set<DashboardItem['type']>([
+  'MEMORY',
+  'HEART_MOMENT',
+  'MILESTONE',
+]);
+
+/**
+ * Select the one real shared item that carries Today's emotional focus.
+ *
+ * The server-selected Keepsake always wins because it is the authoritative
+ * cross-window selection and may carry a suitable photo. When it is absent,
+ * the first shared story item becomes a deliberate text-first focal point.
+ * Plans, Wishes and utility records stay in their own current/context roles.
+ * Returning `null` removes the region entirely; callers must never substitute
+ * a photo-shaped placeholder merely because the domain exists.
+ */
+export function selectTodayFocalItem({
+  keepsake,
+  recentShared,
+}: {
+  keepsake: DashboardItem | null | undefined;
+  recentShared: readonly DashboardItem[];
+}): TodayFocalItem | null {
+  if (keepsake) return { kind: 'keepsake', item: keepsake };
+
+  const sharedText = recentShared.find((item) =>
+    FOCAL_SHARED_TYPES.has(item.type),
+  );
+  return sharedText ? { kind: 'shared_text', item: sharedText } : null;
+}
+
 /**
  * Pick the one contextual relationship module for `Gerade bei euch`.
  *
@@ -65,12 +101,14 @@ export function selectLivingModule({
   retrospective,
   recentShared,
   excludeItemIds,
+  suppressPlanningFallback = false,
 }: {
   partnerId: string | null | undefined;
   activityItems: readonly ActivityItem[] | undefined;
   retrospective: DashboardItem | null | undefined;
   recentShared: readonly DashboardItem[];
   excludeItemIds?: readonly string[];
+  suppressPlanningFallback?: boolean;
 }): LivingModule | null {
   const excluded = new Set(excludeItemIds ?? []);
 
@@ -102,11 +140,13 @@ export function selectLivingModule({
   const firstOfType = (type: DashboardItem['type']) =>
     recentShared.find((item) => item.type === type && !excluded.has(item.id));
 
-  const wish = firstOfType('WISH');
-  if (wish) return { kind: 'wish', item: wish };
+  if (!suppressPlanningFallback) {
+    const wish = firstOfType('WISH');
+    if (wish) return { kind: 'wish', item: wish };
 
-  const plan = firstOfType('PLAN');
-  if (plan) return { kind: 'plan', item: plan };
+    const plan = firstOfType('PLAN');
+    if (plan) return { kind: 'plan', item: plan };
+  }
 
   const milestone = firstOfType('MILESTONE');
   if (milestone) return { kind: 'milestone', item: milestone };

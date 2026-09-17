@@ -33,7 +33,8 @@
 
 .story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
   .story-card,
-.story-timeline-item.story-timeline-progressive-reveal:focus-within .story-card {
+.story-timeline-item.story-timeline-progressive-reveal:focus-within
+  .story-card {
   translate: 0 0;
   will-change: auto;
 }

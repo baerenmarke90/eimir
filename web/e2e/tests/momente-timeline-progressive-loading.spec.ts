@@ -276,11 +276,14 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     await distant.scrollIntoViewIfNeeded();
     await expect.poll(() => tracker.mediaReadAccess.length).toBe(1);
 
-    await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+    // Reaching distant content already puts the 125%-ahead pagination boundary
+    // in range. The next page may therefore be consumed before the sentinel can
+    // be addressed directly; that is the intended prefetch contract.
     await expect.poll(() => nextPageRequestCount(tracker)).toBe(1);
     await expect(
       page.getByText(olderItem.memory.title, { exact: true }),
     ).toBeAttached();
+    await expect(page.locator('.story-pagination-sentinel')).toHaveCount(0);
     await page.waitForTimeout(150);
     expect(nextPageRequestCount(tracker)).toBe(1);
     await page

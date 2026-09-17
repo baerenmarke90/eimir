@@ -59,9 +59,7 @@ function setup() {
   return getStoryTimeline;
 }
 async function openFilters() {
-  fireEvent.click(
-    screen.getByRole('button', { name: filters.toggleButtonActive }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: filters.toggleButton }));
   await waitFor(() =>
     expect(window.history.state?.[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
   );
@@ -88,6 +86,19 @@ afterEach(async () => {
 });
 
 describe('Timeline filter task', () => {
+  it('uses icon-only Timeline chrome, exposes active scope without colour alone and removes manual refresh', () => {
+    setup();
+    const trigger = screen.getByRole('button', {
+      name: filters.toggleButton,
+    });
+    expect(trigger.classList.contains('story-filter-icon-button')).toBe(true);
+    expect(trigger.textContent?.trim()).toBe('2');
+    expect(
+      trigger.querySelector('.story-filter-active-badge')?.textContent,
+    ).toBe('2');
+    expect(screen.queryByText(de.common.refresh)).toBeNull();
+  });
+
   it('keeps edits as drafts, offers authoritative years and cancels without changing applied scope', async () => {
     const load = setup();
     const dialog = await openFilters();
@@ -137,14 +148,25 @@ describe('Timeline filter task', () => {
     ).toBeDefined();
   });
 
-  it('keeps Discover independent while retaining Timeline scope for the return tab', async () => {
+  it('keeps Discover independent, hides its Timeline filter and retains scope for the return tab', async () => {
     const load = setup();
+    expect(
+      screen.getByRole('button', { name: filters.toggleButton }),
+    ).toBeDefined();
+
     fireEvent.click(screen.getByRole('tab', { name: de.story.tabDiscover }));
     expect(search).toContain('tab=discover');
     expect(search).toContain('year=2025');
     expect(load).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: filters.toggleButton }),
+    ).toBeNull();
+
     fireEvent.click(screen.getByRole('tab', { name: de.story.tabTimeline }));
     expect(search).toContain('tab=timeline');
+    expect(
+      screen.getByRole('button', { name: filters.toggleButton }),
+    ).toBeDefined();
     expect(
       screen.getByRole('button', { name: `${filters.removeFilter}: 2025` }),
     ).toBeDefined();

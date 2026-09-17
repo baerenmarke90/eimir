@@ -74,6 +74,7 @@ import {
   tapestryRoleWeight,
 } from './storyPresentation';
 import { UiState } from './UiState';
+import { usePullToRefresh } from './usePullToRefresh';
 import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 
 function storyItemAuthor(item: StoryItem): AuthorSummary {
@@ -242,9 +243,11 @@ export function StoryProductPage({
     () => parseStoryFilters(searchParams),
     [searchParams],
   );
-  const hasActiveFilters = Boolean(
-    filters.kind || filters.year || filters.order !== StoryOrder.DESC,
-  );
+  const activeFilterCount =
+    Number(Boolean(filters.kind)) +
+    Number(Boolean(filters.year)) +
+    Number(filters.order !== StoryOrder.DESC);
+  const hasActiveFilters = activeFilterCount > 0;
   const activeView = useMemo(() => {
     const tab = searchParams.get('tab');
     if (tab === 'timeline' || tab === 'discover') return tab;
@@ -306,6 +309,11 @@ export function StoryProductPage({
         : undefined;
     },
     retry: false,
+  });
+  const pullRefresh = usePullToRefresh({
+    enabled: activeView === 'timeline',
+    blocked: storyQuery.isFetching,
+    onRefresh: () => storyQuery.refetch(),
   });
 
   const combinedStory = useMemo(() => {
@@ -499,6 +507,44 @@ export function StoryProductPage({
         </div>
       ) : null}
 
+      {activeView === 'timeline' && pullRefresh.supported ? (
+        <>
+          <div
+            className={`story-pull-refresh-indicator ${pullRefresh.pullDistance > 0 ? 'is-visible' : ''} ${pullRefresh.ready ? 'is-ready' : ''} ${pullRefresh.refreshing ? 'is-refreshing' : ''}`}
+            style={{
+              height: `${pullRefresh.refreshing ? 52 : pullRefresh.pullDistance}px`,
+            }}
+            aria-hidden="true"
+          >
+            <span className="story-pull-refresh-disc">
+              <svg
+                className="story-pull-refresh-icon"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 11a8 8 0 1 0-2.34 5.66" />
+                <path d="M20 4v7h-7" />
+              </svg>
+            </span>
+          </div>
+          <div
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {pullRefresh.refreshing ? t('common.refreshing') : ''}
+          </div>
+        </>
+      ) : null}
+
       {activeView === 'timeline' ? (
         <PageHeader
           title={t('story.timelineTitle')}
@@ -513,7 +559,9 @@ export function StoryProductPage({
         />
       )}
 
-      <div className="momente-tabs-container eimir-motion-reveal">
+      <div
+        className={`momente-tabs-container eimir-motion-reveal ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`}
+      >
         <div
           className="momente-tabs"
           role="tablist"
@@ -558,6 +606,41 @@ export function StoryProductPage({
             <span>{t('story.tabTimeline')}</span>
           </button>
         </div>
+        {activeView === 'timeline' ? (
+          <button
+            type="button"
+            className={`story-filter-toggle story-filter-icon-button story-task-filter-trigger ${hasActiveFilters ? 'is-active' : ''}`}
+            ref={filterTriggerRef}
+            aria-haspopup="dialog"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="story-filter-panel"
+            aria-label={t('storyFilters.toggleButton')}
+            title={t('storyFilters.toggleButton')}
+            onClick={() => {
+              setDraftFilters(filters);
+              setMobileFiltersOpen(true);
+            }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 5h16l-6 7v6l-4 2v-8z" />
+            </svg>
+            {hasActiveFilters ? (
+              <span className="story-filter-active-badge" aria-hidden="true">
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </button>
+        ) : null}
       </div>
 
       <StoryBrowseLayer />
@@ -850,57 +933,6 @@ export function StoryProductPage({
       ) : combinedStory && activeView === 'timeline' ? (
         <div className="layout-single-column eimir-motion-reveal">
           <div className="story-filter-container">
-            <div className="story-timeline-toolbar">
-              <button
-                type="button"
-                className="story-filter-toggle story-task-filter-trigger"
-                ref={filterTriggerRef}
-                aria-haspopup="dialog"
-                aria-expanded={mobileFiltersOpen}
-                aria-controls="story-filter-panel"
-                aria-label={
-                  hasActiveFilters
-                    ? t('storyFilters.toggleButtonActive')
-                    : t('storyFilters.toggleButton')
-                }
-                onClick={() => {
-                  setDraftFilters(filters);
-                  setMobileFiltersOpen(true);
-                }}
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 5h16l-6 7v6l-4 2v-8z" />
-                </svg>
-                <span>{t('storyFilters.toggleButton')}</span>
-                {hasActiveFilters ? (
-                  <span
-                    className="story-filter-toggle-dot"
-                    aria-hidden="true"
-                  />
-                ) : null}
-              </button>
-
-              <button
-                type="button"
-                className="secondary compact-action story-timeline-refresh"
-                onClick={() => void storyQuery.refetch()}
-                disabled={storyQuery.isFetching}
-              >
-                {storyQuery.isFetching && !storyQuery.isFetchingNextPage
-                  ? t('common.refreshing')
-                  : t('common.refresh')}
-              </button>
-            </div>
             <ShortTaskSheet
               ref={filterSheetRef}
               id="story-filter-panel"
@@ -1156,7 +1188,9 @@ export function StoryProductPage({
                         type="button"
                         className="secondary"
                         onClick={() => void storyQuery.fetchNextPage()}
-                        disabled={storyQuery.isFetchingNextPage}
+                        disabled={
+                          storyQuery.isFetching || pullRefresh.refreshing
+                        }
                       >
                         {storyQuery.isFetchingNextPage
                           ? t('storyFilters.loadingMore')

@@ -78,16 +78,22 @@ export function MemoryPreview({
     );
   }
 
-  if (!url) {
+  if (!url && !shouldLoad) {
     return (
       <div
         ref={sentinelRef}
         className="story-media-skeleton"
-        role={shouldLoad ? 'status' : undefined}
-        aria-label={shouldLoad ? t('media.loading') : undefined}
-        aria-hidden={shouldLoad ? undefined : true}
-        data-media-deferred={shouldLoad ? undefined : 'true'}
+        aria-hidden="true"
+        data-media-deferred="true"
       />
+    );
+  }
+
+  if (!url) {
+    return (
+      <div className="story-media-skeleton" role="status">
+        <span className="sr-only">{t('media.loading')}</span>
+      </div>
     );
   }
 

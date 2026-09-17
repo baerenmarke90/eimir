@@ -4,6 +4,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
+import { ApiRuntimeProvider } from '../client/apiRuntimeContext';
 import { notificationUnreadCountQueryKey } from '../client/notificationQueries';
 import {
   PRODUCT_CACHE_FALLBACK_EVENT,
@@ -113,13 +114,18 @@ interface AppShellProps {
 
 export function AppShell(props: AppShellProps) {
   return (
-    <TaskOriginProvider
-      key={`${props.account.id}:${props.spaceId}`}
-      accountId={props.account.id}
-      spaceId={props.spaceId}
+    <ApiRuntimeProvider
+      apiBaseUrl={props.apiBaseUrl}
+      accessToken={props.accessToken}
     >
-      <AuthenticatedAppShell {...props} />
-    </TaskOriginProvider>
+      <TaskOriginProvider
+        key={`${props.account.id}:${props.spaceId}`}
+        accountId={props.account.id}
+        spaceId={props.spaceId}
+      >
+        <AuthenticatedAppShell {...props} />
+      </TaskOriginProvider>
+    </ApiRuntimeProvider>
   );
 }
 

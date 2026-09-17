@@ -481,7 +481,7 @@ describe('StoryProductPage', () => {
       expect(html.indexOf('Spring Picnic')).toBeGreaterThan(julyIndex);
     });
 
-    it('keeps a single load-more control after the last month group, not one per month', () => {
+    it('keeps one near-end pagination sentinel after the last month group without permanent pagination chrome', () => {
       const html = renderStoryPage('/story?tab=timeline', {
         items: [
           {
@@ -525,8 +525,12 @@ describe('StoryProductPage', () => {
         nextCursor: 'cursor-2',
       });
 
-      const matches = html.match(/story-pagination/g) ?? [];
-      expect(matches.length).toBe(1);
+      const sentinels = html.match(/story-pagination-sentinel/g) ?? [];
+      expect(sentinels.length).toBe(1);
+      expect(html).not.toContain(storyProducts.storyFilters.loadMore);
+      expect(html.indexOf('story-pagination-sentinel')).toBeGreaterThan(
+        html.indexOf('Spring Picnic'),
+      );
     });
   });
 

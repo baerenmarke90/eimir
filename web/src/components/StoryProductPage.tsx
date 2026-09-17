@@ -76,6 +76,10 @@ import {
 import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
 import { useStickyTimelineMonths } from './useStickyTimelineMonths';
+import {
+  useTimelineAutoPagination,
+  useTimelineReveal,
+} from './useTimelineProgressiveLoading';
 
 function storyItemAuthor(item: StoryItem): AuthorSummary {
   switch (item.kind) {
@@ -310,10 +314,16 @@ export function StoryProductPage({
     },
     retry: false,
   });
+  const [paginationGeneration, setPaginationGeneration] = useState(0);
   const pullRefresh = usePullToRefresh({
     enabled: activeView === 'timeline',
     blocked: storyQuery.isFetching,
-    onRefresh: () => storyQuery.refetch(),
+    onRefresh: async () => {
+      const result = await storyQuery.refetch();
+      if (!result.isError) {
+        setPaginationGeneration((generation) => generation + 1);
+      }
+    },
   });
 
   const combinedStory = useMemo(() => {
@@ -378,7 +388,17 @@ export function StoryProductPage({
       ? candidateOrigin
       : null;
   const restoredEntryRef = useRef<string | null>(null);
+  const [restoredTimelineEntry, setRestoredTimelineEntry] = useState<
+    string | null
+  >(null);
   const timelineMonthsRef = useRef<HTMLDivElement>(null);
+  const paginationSentinelRef = useRef<HTMLDivElement>(null);
+  const returnEntry = returnOrigin
+    ? `${location.key}:${String(returnKey)}`
+    : null;
+  const restoringTimeline = Boolean(
+    returnEntry && restoredTimelineEntry !== returnEntry,
+  );
   const loadedPageCount = storyQuery.data?.pages.length ?? 1;
   useEffect(
     () => registerOriginMetadata({ loadedPageCount }),
@@ -387,7 +407,10 @@ export function StoryProductPage({
   useEffect(() => {
     if (!returnOrigin || !combinedStory || storyQuery.isFetching) return;
     const entry = `${location.key}:${String(returnKey)}`;
-    if (restoredEntryRef.current === entry) return;
+    if (restoredEntryRef.current === entry) {
+      setRestoredTimelineEntry(entry);
+      return;
+    }
     if (
       loadedPageCount < returnOrigin.loadedPageCount &&
       storyQuery.hasNextPage &&
@@ -419,6 +442,7 @@ export function StoryProductPage({
           : null);
       focusTarget?.focus({ preventScroll: true });
       restoredEntryRef.current = entry;
+      setRestoredTimelineEntry(entry);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [
@@ -445,6 +469,47 @@ export function StoryProductPage({
     timelineMonthsRef,
     activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
+  useTimelineReveal({
+    rootRef: timelineMonthsRef,
+    enabled: activeView === 'timeline' && items.length > 0,
+    scopeKey: `${spaceId}:${cacheResourceId}`,
+    revision: items.length,
+  });
+
+  const nextStoryCursor = storyQuery.hasNextPage
+    ? (storyQuery.data?.pages.at(-1)?.value.nextCursor ?? null)
+    : null;
+  const loadNextStoryPage = useCallback(async () => {
+    if (
+      !storyQuery.hasNextPage ||
+      storyQuery.isFetchingNextPage ||
+      pullRefresh.refreshing
+    ) {
+      return false;
+    }
+    const result = await storyQuery.fetchNextPage({ cancelRefetch: false });
+    return !result.isError;
+  }, [
+    pullRefresh.refreshing,
+    storyQuery.fetchNextPage,
+    storyQuery.hasNextPage,
+    storyQuery.isFetchingNextPage,
+  ]);
+  const progressivePagination = useTimelineAutoPagination({
+    sentinelRef: paginationSentinelRef,
+    enabled: activeView === 'timeline',
+    blocked:
+      (storyQuery.isFetching && !storyQuery.isFetchingNextPage) ||
+      pullRefresh.refreshing ||
+      restoringTimeline ||
+      Boolean(offline),
+    hasNextPage: Boolean(storyQuery.hasNextPage),
+    isFetchingNextPage: storyQuery.isFetchingNextPage,
+    cursor: nextStoryCursor,
+    scopeKey: `${spaceId}:${cacheResourceId}:${paginationGeneration}`,
+    loadNextPage: loadNextStoryPage,
+  });
+
   const featuredItem = useMemo(() => selectFeaturedStoryItem(items), [items]);
 
   const tapestryColumnCount = useTapestryColumnCount();
@@ -648,7 +713,7 @@ export function StoryProductPage({
       {storyQuery.isLoading ? (
         <UiState kind="loading" title={t('story.loadingAria')} />
       ) : null}
-      {storyQuery.error ? (
+      {storyQuery.error && !storyQuery.isFetchNextPageError ? (
         <ProblemState
           error={storyQuery.error}
           onRetry={() => void storyQuery.refetch()}
@@ -1147,7 +1212,10 @@ export function StoryProductPage({
                         className="story-year-month"
                         aria-labelledby={`story-timeline-month-${group.key}`}
                       >
-                        <header className="story-year-month-header">
+                        <header
+                          className="story-year-month-header story-timeline-progressive-reveal story-timeline-heading-reveal"
+                          data-timeline-reveal-key={`month:${group.key}`}
+                        >
                           <h2 id={`story-timeline-month-${group.key}`}>
                             {group.label}
                           </h2>
@@ -1158,6 +1226,7 @@ export function StoryProductPage({
                           loadHeartMomentImage={loadHeartMomentImage}
                           profilesApi={profilesApi}
                           spaceId={spaceId}
+                          progressiveReveal
                           onOpenItem={(event, item, to) => {
                             if (
                               event.button !== 0 ||
@@ -1183,20 +1252,46 @@ export function StoryProductPage({
                   </div>
 
                   {storyQuery.hasNextPage ? (
-                    <div className="story-pagination">
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => void storyQuery.fetchNextPage()}
-                        disabled={
-                          storyQuery.isFetching || pullRefresh.refreshing
+                    <>
+                      <div
+                        ref={paginationSentinelRef}
+                        className="story-pagination-sentinel"
+                        aria-hidden="true"
+                      />
+                      <div
+                        className={`story-pagination story-pagination-progressive ${progressivePagination.manualFallback ? 'is-retry' : ''}`}
+                        data-pagination-mode={
+                          progressivePagination.manualFallback
+                            ? 'manual-retry'
+                            : 'automatic'
                         }
                       >
-                        {storyQuery.isFetchingNextPage
-                          ? t('storyFilters.loadingMore')
-                          : t('storyFilters.loadMore')}
-                      </button>
-                    </div>
+                        {storyQuery.isFetchingNextPage ? (
+                          <span
+                            className="story-pagination-status"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            <span
+                              className="story-pagination-spinner"
+                              aria-hidden="true"
+                            />
+                            {t('storyFilters.loadingMore')}
+                          </span>
+                        ) : progressivePagination.manualFallback ? (
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => void progressivePagination.retry()}
+                            disabled={
+                              storyQuery.isFetching || pullRefresh.refreshing
+                            }
+                          >
+                            {t('storyFilters.loadMore')}
+                          </button>
+                        ) : null}
+                      </div>
+                    </>
                   ) : null}
                 </>
               )}

@@ -357,7 +357,9 @@ async function openTimeline(
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await page.goto('/story?tab=timeline');
   await page.waitForSelector('.story-timeline .story-card');
-  await expect(page.locator('img.story-media-preview')).toHaveCount(3);
+  await expect(
+    page.locator('.story-media-preview, .story-media-skeleton'),
+  ).toHaveCount(3);
   await page.evaluate(() => document.fonts.ready);
 }
 

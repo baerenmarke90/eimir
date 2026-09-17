@@ -245,6 +245,12 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       });
     }
     if (
+      method === 'POST' &&
+      path === `/api/v1/spaces/${SPACE}/story-views`
+    ) {
+      return route.fulfill({ status: 204 });
+    }
+    if (
       method === 'GET' &&
       path.includes('/memories/') &&
       !path.endsWith('/comments')
@@ -427,8 +433,6 @@ test('Quick Create native modality prevents background focus and activation', as
       activeText: document.activeElement?.textContent?.slice(0, 100),
     }));
     checkpoints.push(focus);
-    // Native modal traversal may move to browser chrome. The document must not
-    // receive focus behind the modal when traversal returns to the page.
     expect(focus.inside || !focus.documentFocused).toBe(true);
   }
   await page
@@ -1122,8 +1126,6 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   expect(dateSpace.available).toBeGreaterThanOrEqual(
     dateSpace.text + dateSpace.picker,
   );
-  // Return to the closed date-summary state before the readability
-  // screenshot, so it reflects what the page renders by default.
   await page.getByLabel(de.memory.titleLabelOptional, { exact: true }).click();
   await testInfo.attach('large-text-readability', {
     body: JSON.stringify({ labels: readableLabels, dateSpace }, null, 2),

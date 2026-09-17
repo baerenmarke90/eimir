@@ -168,7 +168,10 @@ describe('Memory editor return context', () => {
 describe('Memory view receipt', () => {
   it('emits a receipt strictly on successful presentation, not during load or failure', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
-    let getMemoryMock = vi.fn().mockReturnValue(new Promise(() => {}));
+    let resolveQuery: (val: any) => void;
+    let getMemoryMock = vi.fn().mockReturnValue(new Promise(resolve => {
+      resolveQuery = resolve;
+    }));
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       memories: { getMemory: (...args: any[]) => getMemoryMock(...args) },
@@ -244,8 +247,7 @@ describe('Memory view receipt', () => {
     expect(recordStoryViewMock).not.toHaveBeenCalled();
 
     // Now resolve the query
-    getMemoryMock.mockResolvedValue(memory);
-    client.invalidateQueries({ queryKey: ['memory'] });
+    resolveQuery!(memory);
 
     // Use screen.findByText to wait for successful presentation
     expect(await screen.findByText('A shared evening')).toBeTruthy();

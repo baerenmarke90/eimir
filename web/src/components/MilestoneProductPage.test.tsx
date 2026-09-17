@@ -132,7 +132,10 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
 describe('Milestone view receipt', () => {
   it('emits a receipt strictly on successful presentation', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
-    let getMilestoneMock = vi.fn().mockReturnValue(new Promise(() => {}));
+    let resolveQuery: (val: any) => void;
+    let getMilestoneMock = vi.fn().mockReturnValue(new Promise(resolve => {
+      resolveQuery = resolve;
+    }));
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       milestones: { getMilestone: (...args: any[]) => getMilestoneMock(...args) },
@@ -162,12 +165,9 @@ describe('Milestone view receipt', () => {
       profileAttachmentId: null,
       version: 1,
     });
-    queryClient.setQueryData(
-      ['m5-s5', 'notification-unread-count', 'space-1'],
-      {
-        unreadCount: 0,
-      },
-    );
+    queryClient.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+      unreadCount: 0,
+    });
     queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
       id: 'space-1',
       createdAt: new Date('2024-01-01T00:00:00.000Z'),
@@ -208,8 +208,7 @@ describe('Milestone view receipt', () => {
     expect(recordStoryViewMock).not.toHaveBeenCalled();
 
     // Now resolve the query
-    getMilestoneMock.mockResolvedValue(milestone);
-    queryClient.invalidateQueries({ queryKey: ['milestone'] });
+    resolveQuery!(milestone);
 
     expect(await screen.findByText('First apartment together')).toBeTruthy();
 

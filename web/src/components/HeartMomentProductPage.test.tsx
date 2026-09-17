@@ -145,7 +145,10 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
 describe('Heart Moment view receipt', () => {
   it('emits a receipt strictly on successful presentation of a SHARED moment', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
-    let getHeartMomentMock = vi.fn().mockReturnValue(new Promise(() => {})); // Never resolves initially
+    let resolveQuery: (val: any) => void;
+    let getHeartMomentMock = vi.fn().mockReturnValue(new Promise(resolve => {
+      resolveQuery = resolve;
+    }));
     const apis = {
       story: { recordStoryView: recordStoryViewMock },
       heartMoments: {
@@ -213,13 +216,10 @@ describe('Heart Moment view receipt', () => {
     expect(recordStoryViewMock).not.toHaveBeenCalled();
 
     // Now resolve the query with SHARED visibility
-    getHeartMomentMock.mockResolvedValue({
+    resolveQuery!({
       ...heartMoment,
       visibility: ContentVisibility.SHARED,
     });
-
-    // We must invalidate the query to force a refetch since the promise was unresolved
-    queryClient.invalidateQueries({ queryKey: ['heart-moment'] });
 
     expect(await screen.findByText('I love you more each day')).toBeTruthy();
 

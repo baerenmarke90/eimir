@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext } from 'react';
+import { createContext, type ReactNode, useContext, useMemo } from 'react';
 
 type ApiRuntime = {
   apiBaseUrl: string;
@@ -12,8 +12,13 @@ export function ApiRuntimeProvider({
   accessToken,
   children,
 }: ApiRuntime & { children: ReactNode }) {
+  const value = useMemo(
+    () => ({ apiBaseUrl, accessToken }),
+    [apiBaseUrl, accessToken],
+  );
+
   return (
-    <ApiRuntimeContext.Provider value={{ apiBaseUrl, accessToken }}>
+    <ApiRuntimeContext.Provider value={value}>
       {children}
     </ApiRuntimeContext.Provider>
   );

@@ -70,6 +70,17 @@ if (!i18n.isInitialized) {
     initAsync: false,
     interpolation: {
       escapeValue: false,
+      format(value, format) {
+        if (format !== 'firstName' || typeof value !== 'string') return value;
+        const normalized = value.trim();
+        if (
+          !normalized ||
+          normalized === relationshipComponents.formerMemberLabel
+        ) {
+          return normalized;
+        }
+        return normalized.split(/\s+/u, 1)[0] || normalized;
+      },
     },
   });
 }

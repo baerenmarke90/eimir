@@ -14,7 +14,7 @@
   --emotion-happy-surface: #fff7d6;
 }
 
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   --emotion-loved-accent: #ff90a6;
   --emotion-loved-surface: #3b1e27;
   --emotion-seen-accent: #b2a9ff;
@@ -46,38 +46,38 @@
   }
 }
 
-[data-emotion='LOVED'],
-[data-heart-emotion='LOVED'] {
+[data-emotion="LOVED"],
+[data-heart-emotion="LOVED"] {
   --heart-emotion-accent: var(--emotion-loved-accent);
   --heart-emotion-surface: var(--emotion-loved-surface);
 }
 
-[data-emotion='SEEN'],
-[data-heart-emotion='SEEN'] {
+[data-emotion="SEEN"],
+[data-heart-emotion="SEEN"] {
   --heart-emotion-accent: var(--emotion-seen-accent);
   --heart-emotion-surface: var(--emotion-seen-surface);
 }
 
-[data-emotion='APPRECIATED'],
-[data-heart-emotion='APPRECIATED'] {
+[data-emotion="APPRECIATED"],
+[data-heart-emotion="APPRECIATED"] {
   --heart-emotion-accent: var(--emotion-appreciated-accent);
   --heart-emotion-surface: var(--emotion-appreciated-surface);
 }
 
-[data-emotion='SUPPORTED'],
-[data-heart-emotion='SUPPORTED'] {
+[data-emotion="SUPPORTED"],
+[data-heart-emotion="SUPPORTED"] {
   --heart-emotion-accent: var(--emotion-supported-accent);
   --heart-emotion-surface: var(--emotion-supported-surface);
 }
 
-[data-emotion='GRATEFUL'],
-[data-heart-emotion='GRATEFUL'] {
+[data-emotion="GRATEFUL"],
+[data-heart-emotion="GRATEFUL"] {
   --heart-emotion-accent: var(--emotion-grateful-accent);
   --heart-emotion-surface: var(--emotion-grateful-surface);
 }
 
-[data-emotion='HAPPY'],
-[data-heart-emotion='HAPPY'] {
+[data-emotion="HAPPY"],
+[data-heart-emotion="HAPPY"] {
   --heart-emotion-accent: var(--emotion-happy-accent);
   --heart-emotion-surface: var(--emotion-happy-surface);
 }
@@ -88,7 +88,8 @@
   max-width: 100%;
   align-items: center;
   gap: 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--heart-emotion-accent) 42%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--heart-emotion-accent) 42%, transparent);
   border-radius: 999px;
   background: color-mix(
     in srgb,
@@ -108,7 +109,8 @@
 .heart-emotion-badge--detail {
   padding: 0.55rem 0.9rem 0.55rem 0.65rem;
   font-size: 0.95rem;
-  box-shadow: 0 8px 26px color-mix(in srgb, var(--heart-emotion-accent) 14%, transparent);
+  box-shadow: 0 8px 26px
+    color-mix(in srgb, var(--heart-emotion-accent) 14%, transparent);
 }
 
 .heart-emotion-icon {
@@ -222,7 +224,11 @@
 }
 
 .heart-emotion-choice:hover .heart-emotion-choice-visual {
-  border-color: color-mix(in srgb, var(--heart-emotion-accent) 55%, var(--color-border));
+  border-color: color-mix(
+    in srgb,
+    var(--heart-emotion-accent) 55%,
+    var(--color-border)
+  );
 }
 
 .heart-emotion-choice:has(.heart-emotion-choice-input:checked)
@@ -233,7 +239,8 @@
     var(--heart-emotion-surface) 82%,
     var(--color-surface) 18%
   );
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--heart-emotion-accent) 24%, transparent);
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--heart-emotion-accent) 24%, transparent);
 }
 
 .heart-emotion-choice:has(.heart-emotion-choice-input:focus-visible)
@@ -287,7 +294,8 @@
   overflow: hidden;
 }
 
-.heart-moment-detail-container[data-heart-emotion] .product-detail-card::before {
+.heart-moment-detail-container[data-heart-emotion]
+  .product-detail-card::before {
   position: absolute;
   inset: 0;
   z-index: -1;
@@ -297,7 +305,7 @@
     color-mix(in srgb, var(--heart-emotion-surface) 70%, transparent) 0,
     transparent 42%
   );
-  content: '';
+  content: "";
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {

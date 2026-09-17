@@ -638,6 +638,238 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     expect(layers).toContain('linear-gradient');
   });
 
+  test('pinned month heading and hide-on-scroll bottom bar work together (#970)', async ({
+    page,
+  }, testInfo) => {
+    await openTimeline(page, { width: 390, height: 844 });
+    const shell = page.locator('.mobile-bottom-shell');
+    const topbar = page.locator('.product-topbar');
+    const barBottom = await topbar.evaluate(
+      (el) => el.getBoundingClientRect().bottom,
+    );
+    // The heading currently pinned under the app bar, whichever month it is.
+    const pinnedHeading = () =>
+      page.evaluate((edge) => {
+        const boxes = Array.from(
+          document.querySelectorAll('.story-year-month-header'),
+        ).map((el) => el.getBoundingClientRect());
+        const box = boxes.find((b) => Math.abs(b.top - edge) <= 1);
+        return box ? { y: box.top, height: box.height } : null;
+      }, barBottom);
+    const noOverflow = () =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      );
+
+    // Deliberate downward reading into August hides the bottom bar while the
+    // month heading stays pinned directly below the app bar.
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    for (let step = 0; step < 9; step += 1) {
+      await page.mouse.wheel(0, 120);
+      await page.waitForTimeout(60);
+    }
+    await expect(shell).toHaveAttribute('data-hidden', 'true');
+    await page.waitForTimeout(300);
+    const hiddenPinned = await pinnedHeading();
+    expect(hiddenPinned).not.toBeNull();
+    expect(await noOverflow()).toBe(true);
+    await capture(
+      page,
+      testInfo,
+      '13-integrated-scrolled-down-bar-hidden-heading-pinned-390.png',
+    );
+
+    // A small upward scroll reveals the bar; the heading does not move.
+    await page.mouse.wheel(0, -40);
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await page.waitForTimeout(300);
+    const revealedPinned = await pinnedHeading();
+    expect(revealedPinned?.y).toBe(hiddenPinned?.y);
+    const shellBox = await shell.boundingBox();
+    // The pinned heading and the bottom bar never overlap.
+    expect(
+      (revealedPinned?.y ?? 0) + (revealedPinned?.height ?? 0),
+    ).toBeLessThan(shellBox?.y ?? 0);
+    expect(await noOverflow()).toBe(true);
+    await capture(
+      page,
+      testInfo,
+      '14-integrated-scrolled-up-bar-revealed-heading-pinned-390.png',
+    );
+  });
+
+  test('the revealed bottom bar never covers the last card or a focused card (#970)', async ({
+    page,
+  }, testInfo) => {
+    await openTimeline(page, { width: 390, height: 844 });
+    const shell = page.locator('.mobile-bottom-shell');
+    const links = page.locator('.story-card-link');
+    const count = await links.count();
+
+    // End of the Timeline with the bar revealed: content clears the bar.
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await page.waitForTimeout(300);
+    await page.mouse.wheel(0, -40);
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await page.waitForTimeout(300);
+    const lastCard = await links.nth(count - 1).boundingBox();
+    const revealed = await shell.boundingBox();
+    expect((lastCard?.y ?? 0) + (lastCard?.height ?? 0)).toBeLessThanOrEqual(
+      (revealed?.y ?? 0) + 1,
+    );
+    await capture(
+      page,
+      testInfo,
+      '15-integrated-timeline-end-bar-revealed-390.png',
+    );
+
+    // Park the last card just below the revealed bar, then move focus to it
+    // with the keyboard: the focus scroll must leave it clear of the bar.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    await links.nth(count - 1).evaluate((el) => {
+      window.scrollBy(
+        0,
+        el.getBoundingClientRect().top - (window.innerHeight - 100),
+      );
+    });
+    await page.waitForTimeout(200);
+    await page.mouse.wheel(0, -30);
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await page.waitForTimeout(300);
+    await links
+      .nth(count - 2)
+      .evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
+    await page.keyboard.press('Tab');
+    await expect(links.nth(count - 1)).toBeFocused();
+    await page.waitForTimeout(400);
+    const focused = await links.nth(count - 1).boundingBox();
+    const state = await shell.evaluate((el) => ({
+      hidden: el.getAttribute('data-hidden'),
+      top: el.getBoundingClientRect().top,
+    }));
+    if (state.hidden === 'false') {
+      expect((focused?.y ?? 0) + (focused?.height ?? 0)).toBeLessThanOrEqual(
+        state.top + 1,
+      );
+    }
+    await capture(
+      page,
+      testInfo,
+      '16-integrated-keyboard-focus-clear-of-bar-390.png',
+    );
+  });
+
+  test('dark mode keeps pinned heading and hidden bar coherent (#970)', async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    await openTimeline(page, { width: 390, height: 844 });
+    for (let step = 0; step < 9; step += 1) {
+      await page.mouse.wheel(0, 120);
+      await page.waitForTimeout(60);
+    }
+    await expect(page.locator('.mobile-bottom-shell')).toHaveAttribute(
+      'data-hidden',
+      'true',
+    );
+    await page.waitForTimeout(300);
+    const header = page.locator('.story-year-month-header').nth(1);
+    expect(
+      await header.evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).not.toMatch(/rgba\(.*,\s*0(\.\d+)?\)$|transparent/);
+    await capture(
+      page,
+      testInfo,
+      '17-integrated-dark-bar-hidden-heading-pinned-390.png',
+    );
+  });
+
+  test('Expanded 1280px pins month headings without a bottom bar (#970)', async ({
+    page,
+  }, testInfo) => {
+    await openTimeline(page, { width: 1280, height: 900 });
+    await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
+    await page
+      .locator('.story-timeline-item', { hasText: 'Saturday market' })
+      .evaluate((el) => {
+        window.scrollBy(0, el.getBoundingClientRect().top - 200);
+      });
+    await page.waitForTimeout(300);
+    const barBottom = await page
+      .locator('.product-topbar')
+      .evaluate((el) => el.getBoundingClientRect().bottom);
+    const august = await page
+      .locator('.story-year-month-header')
+      .nth(1)
+      .boundingBox();
+    expect(Math.abs((august?.y ?? 0) - barBottom)).toBeLessThanOrEqual(1);
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
+    await capture(
+      page,
+      testInfo,
+      '18-integrated-expanded-1280-heading-pinned.png',
+    );
+  });
+
+  test('320px and 200% text keep the integrated shell free of collisions (#970)', async ({
+    page,
+  }, testInfo) => {
+    await openTimeline(page, { width: 320, height: 640 });
+    const shell = page.locator('.mobile-bottom-shell');
+    for (let step = 0; step < 8; step += 1) {
+      await page.mouse.wheel(0, 120);
+      await page.waitForTimeout(60);
+    }
+    await expect(shell).toHaveAttribute('data-hidden', 'true');
+    await page.mouse.wheel(0, -40);
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await page.waitForTimeout(300);
+    await expectContainedFooters(page);
+    await capture(page, testInfo, '19-integrated-320-bar-revealed.png');
+
+    // Enlarged text: pinning falls back when the app bar grows too tall,
+    // the bar still hides and reveals, and nothing overflows.
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.addStyleTag({ content: ':root { font-size: 200%; }' });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(300);
+    for (let step = 0; step < 8; step += 1) {
+      await page.mouse.wheel(0, 120);
+      await page.waitForTimeout(60);
+    }
+    await expect(shell).toHaveAttribute('data-hidden', 'true');
+    await page.mouse.wheel(0, -40);
+    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await page.waitForTimeout(300);
+    await expectContainedFooters(page);
+    const pinned = await page
+      .locator('.story-timeline-months')
+      .evaluate((el) => el.hasAttribute('data-sticky-months'));
+    const barHeight = await page
+      .locator('.product-topbar')
+      .evaluate((el) => el.getBoundingClientRect().height);
+    expect(pinned).toBe(barHeight <= 640 * 0.2);
+    await capture(
+      page,
+      testInfo,
+      '20-integrated-320-200pct-text-bar-revealed.png',
+    );
+  });
+
   test('month headings stay ordinary content when the app bar is too tall', async ({
     page,
   }) => {

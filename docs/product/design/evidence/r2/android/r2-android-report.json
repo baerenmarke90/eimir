@@ -1,0 +1,299 @@
+{
+  "completed": true,
+  "sourceCommit": "3abd07682ab0b806f76f1439394ea3f34e467b4d",
+  "apkSha256": "5067eda11a350a45b605220cc502ea2c53ea6e2ad7c076dcbd068b63254b9781",
+  "device": "emulator-5554",
+  "captures": [
+    {
+      "name": "320-light-discover",
+      "pixels": [
+        640,
+        1440
+      ],
+      "sha256": "81e7a075ea75de19daad58d17a7bc200e4fa4349322946e220d6478ad9500d75"
+    },
+    {
+      "name": "320-dark-discover",
+      "pixels": [
+        640,
+        1440
+      ],
+      "sha256": "b53000865828ce63948fe5a3b6a64a8204f4f933cec308bb0ceaef181292be8e"
+    },
+    {
+      "name": "360-light-discover",
+      "pixels": [
+        720,
+        1600
+      ],
+      "sha256": "059b5f25aac1fb38767d6d507b4fa4c55227da4f8a06e5e4533cb45d3eac1e62"
+    },
+    {
+      "name": "360-dark-discover",
+      "pixels": [
+        720,
+        1600
+      ],
+      "sha256": "55eb3cbeef0194a99ddd442d941daf667f6b0636961ab5ac752682d660ade2b9"
+    },
+    {
+      "name": "390-light-discover",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "7f100914c2663cd8dba59caa0c8ba2188bfb1de7ef90f1524fb7465ef40cad14"
+    },
+    {
+      "name": "390-dark-discover",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "f42ab5afa700894e0fe14b45048405a5807d2fcc91e403630d8a6566358475cd"
+    },
+    {
+      "name": "430-light-discover",
+      "pixels": [
+        860,
+        1864
+      ],
+      "sha256": "6ef903ec43ccc08d13297f1b5505351b51313ab5e213bc99a125a645eeb322b1"
+    },
+    {
+      "name": "430-dark-discover",
+      "pixels": [
+        860,
+        1864
+      ],
+      "sha256": "e84064480f73f84f8ba10cc9f2c2de4d2c4776857b6d35c7413e6265f9a7f099"
+    },
+    {
+      "name": "timeline-applied-scope",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "5db8bc85a9175e4346d8ff4f6d93098916d7f4f5cba77384c332d47a059dda18"
+    },
+    {
+      "name": "discover-after-filtered-timeline",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "762707168365e9e33a618558505b27300a328f0ddd4df8555aceb6996b3c3275"
+    },
+    {
+      "name": "timeline-scope-restored-after-discover",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "98565e83231da137ead0baf83796b5a40b2bd898790118e072e051dc089c56dd"
+    },
+    {
+      "name": "discover-year-entrance-timeline",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "c83bbe2869e05ba1a6e84348ddef7ec3696da64814252a37b5b77b0a2a68943e"
+    },
+    {
+      "name": "discover-before-detail",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "41e9ed2a8e93a85399144e0e9a3493d42a939dc047e6929d22a3c39efaff2dff"
+    },
+    {
+      "name": "discover-featured-detail",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "70e00fdd4a75862ae2eb164883d455e88ffbf263177fe895dee914eab1599e06"
+    },
+    {
+      "name": "discover-system-back",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "41e9ed2a8e93a85399144e0e9a3493d42a939dc047e6929d22a3c39efaff2dff"
+    },
+    {
+      "name": "discover-landscape",
+      "pixels": [
+        1688,
+        780
+      ],
+      "sha256": "acda82f0fc5261899775acb9f545bb4cb7690338f12f34808db8391856447a2e"
+    },
+    {
+      "name": "discover-after-rotation",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "44502786804eb71c2e74a2652a96e87a1d12cff02514a884bc0e66749d1cfe46"
+    },
+    {
+      "name": "320-dark-large-text-discover-top",
+      "pixels": [
+        640,
+        1440
+      ],
+      "sha256": "18f8158ddcff5199b1cb18ec18ddcd9c9138224785e1c6aaab5f03457a18a8c8"
+    },
+    {
+      "name": "320-dark-large-text-discover-continue",
+      "pixels": [
+        640,
+        1440
+      ],
+      "sha256": "1a91a4634b6bcfc740ffc41a4506bef9e0e4f883ca3b21a0b1392eb662ced0e7"
+    },
+    {
+      "name": "320-dark-large-text-filter",
+      "pixels": [
+        640,
+        1440
+      ],
+      "sha256": "363f0596dcf80cf95cbd154e940a26f8e10f25a0e6810cacf5cf6b5d87744860"
+    },
+    {
+      "name": "talkback-discover",
+      "pixels": [
+        780,
+        1688
+      ],
+      "sha256": "4fbfe80c83f171376cbac42e008486ae83d09fb5e0752e9a16338e427bedad61"
+    }
+  ],
+  "behavior": [
+    "Discover renders at 320/360/390/430 dp in Light and Dark from the submitted APK",
+    "Applied year/type/order scope survives Timeline -> Discover -> Timeline and order is visible outside Filter",
+    "Discover year entrance applies the existing Timeline year scope",
+    "System Back from canonical featured Memory detail returns to Discover rather than resetting Momente",
+    "Orientation recreation retains Discover mode and curated content",
+    "200% text at 320 dp keeps Discover continuation and Timeline Filter actions reachable at 48dp minimum",
+    "TalkBack is enabled/bound and the Discover tabs, featured content and headings remain present in the accessibility tree"
+  ],
+  "targets": [
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        32,
+        307,
+        320,
+        403
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        32,
+        307,
+        320,
+        403
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        32,
+        307,
+        360,
+        403
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        32,
+        307,
+        360,
+        403
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        40,
+        315,
+        390,
+        411
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        40,
+        315,
+        390,
+        411
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        40,
+        315,
+        430,
+        411
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-tab-discover",
+      "bounds": [
+        40,
+        315,
+        430,
+        411
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "momente-discover-continue",
+      "bounds": [
+        32,
+        996,
+        608,
+        1154
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-filter",
+      "bounds": [
+        32,
+        799,
+        499,
+        895
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "timeline-apply-large-text",
+      "bounds": [
+        371,
+        1186,
+        608,
+        1344
+      ],
+      "minimumDp": 48
+    }
+  ],
+  "fixtureBoundary": "Production navigation, ViewModel and R2 Story/Discover UI; deterministic debug-only transport fixture",
+  "talkBackLimitation": "TalkBack service binding and accessibility-tree presence are proven; a complete spoken linear-navigation transcript is not claimed from the headless emulator."
+}

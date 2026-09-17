@@ -390,6 +390,20 @@
 }
 
 /*
+ * The floating bottom navigation (#970) hides on downward scrolling but is
+ * revealed after a small upward scroll. A keyboard focus move that scrolls
+ * only a few pixels leaves it revealed, so a focused card is scrolled clear
+ * of its footprint wherever the bottom shell exists.
+ */
+@container product-shell (max-width: 52.4375rem) {
+  .story-card-link {
+    scroll-margin-bottom: calc(
+      var(--shell-floating-nav-footprint, 0px) + var(--space-3)
+    );
+  }
+}
+
+/*
  * The shared app bar is 95% opaque. Content handed over beneath it (a pushed
  * out month heading, a card) stayed legible as a ghost. While month-grouped
  * Momente content is on screen the bar is backed by the page background; its

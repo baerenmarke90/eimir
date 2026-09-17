@@ -30,6 +30,17 @@ RECOVERY_TOOLING_PATHS = (
     "docs/SELF-HOSTED-RECOVERY.md",
 )
 
+SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
+    ".github/workflows/android-s8.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/g2-e2e.yml",
+    ".github/workflows/incident-runbooks.yml",
+    ".github/workflows/product-design-review.yml",
+    ".github/workflows/reuse-review.yml",
+    ".github/workflows/web-browser-qa.yml",
+    ".github/workflows/web-s8.yml",
+)
+
 
 class ChangeScopeTest(unittest.TestCase):
     def assert_scope(self, paths: list[str], *, enabled: set[str]) -> None:
@@ -46,6 +57,11 @@ class ChangeScopeTest(unittest.TestCase):
             ],
             enabled=set(),
         )
+
+    def test_self_validating_leaf_workflows_do_not_enable_core_gates(self) -> None:
+        for path in SELF_VALIDATING_LEAF_WORKFLOW_PATHS:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
 
     def test_web_ui_change_does_not_enable_backend_or_container_gates(self) -> None:
         self.assert_scope(["web/src/App.tsx"], enabled=set())
@@ -165,12 +181,37 @@ class ChangeScopeTest(unittest.TestCase):
     def test_ci_workflow_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths([".github/workflows/ci.yml"]).values()))
 
+    def test_owned_self_hosted_workflows_keep_specific_gates(self) -> None:
+        self.assert_scope(
+            [".github/workflows/self-hosted-deployment-guard.yml"],
+            enabled={"deployment_guard"},
+        )
+        self.assert_scope(
+            [".github/workflows/self-hosted-recovery.yml"],
+            enabled={"recovery"},
+        )
+
+    def test_non_allowlisted_workflow_changes_stay_fail_closed(self) -> None:
+        for path in (
+            ".github/workflows/release-publish.yml",
+            ".github/workflows/runtime-environment-drift-guard.yml",
+            ".github/workflows/future.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([path]).values()))
+
     def test_unknown_path_fails_closed(self) -> None:
         self.assertTrue(all(classify_paths(["future-build-system/config.toml"]).values()))
 
     def test_mixed_pr_combines_relevant_scopes(self) -> None:
         self.assert_scope(
             ["docs/ROADMAP.md", "web/src/App.tsx", "backend/tests/test_config.py"],
+            enabled={"backend"},
+        )
+
+    def test_mixed_leaf_workflow_and_backend_change_keeps_backend_scope(self) -> None:
+        self.assert_scope(
+            [".github/workflows/codeql.yml", "backend/tests/test_config.py"],
             enabled={"backend"},
         )
 

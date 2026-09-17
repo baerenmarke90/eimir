@@ -224,7 +224,9 @@ export function CommentsPanel({
         <div className="comments-compact-head">
           <h2
             id={headingId}
-            className={comments.length === 0 ? 'sr-only' : 'comments-compact-heading'}
+            className={
+              comments.length === 0 ? 'sr-only' : 'comments-compact-heading'
+            }
           >
             {t('comments.heading')}
           </h2>
@@ -417,7 +419,6 @@ export function CommentsPanel({
             rows={3}
             maxLength={2000}
             required
-            autoFocus={compact}
             placeholder={t('comments.placeholder')}
           />
           {compact ? (

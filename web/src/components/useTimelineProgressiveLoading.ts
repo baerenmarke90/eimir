@@ -49,7 +49,7 @@ export function useTimelineReveal({
   revision: number;
 }) {
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || revision <= 0) return;
     const root = rootRef.current;
     if (!root) return;
 
@@ -118,9 +118,12 @@ export function useTimelineAutoPagination({
   loadNextPage: () => Promise<boolean>;
 }) {
   const requestedCursorRef = useRef<string | null>(null);
+  const previousScopeKeyRef = useRef(scopeKey);
   const [manualFallback, setManualFallback] = useState(false);
 
   useEffect(() => {
+    if (previousScopeKeyRef.current === scopeKey) return;
+    previousScopeKeyRef.current = scopeKey;
     requestedCursorRef.current = null;
     setManualFallback(false);
   }, [scopeKey]);

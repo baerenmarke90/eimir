@@ -2,7 +2,7 @@
 
 **Owner:** [#989](https://github.com/baerenmarke90/eimir/issues/989), within the #955 Product Reference program.  
 **Authority:** [Product Reference v1](product-reference-v1.md), [R4 reference experience](reference-screens.md#r4--wir--today), [system direction](design-system-direction.md), the Today [Screen Template](../../SCREEN-TEMPLATES.md#3-template-today), and the accepted F1/F2/R1/R2/R3 contracts.  
-**Fresh baseline:** work began from `fd490e9f64fe56672aba47eb0b167258e456e0ee`; current `origin/main` at `e6fa8855ca04b416c57b0f9d1a8e86adc558bc65` was integrated on 2026-09-17 before the final product-source freeze.
+**Fresh baseline:** work began from `fd490e9f64fe56672aba47eb0b167258e456e0ee`; current `origin/main` at `3243c06322807dc63782b3f35726e89092375a25` was integrated on 2026-09-17 before the final product-source freeze.
 **Normative client:** Web / Mobile Web. Android is intentionally deferred and is not an acceptance criterion for this slice.  
 **Status:** Product Design Preflight recorded before R4 runtime changes. Product Owner acceptance remains a separate decision.
 
@@ -164,7 +164,7 @@ Alternatives rejected:
 
 ## Validation result before evidence freeze
 
-- Latest `origin/main` was fetched again immediately before publication and had advanced to `e6fa8855ca04b416c57b0f9d1a8e86adc558bc65`. The R4 branch was rebased onto it without conflict; the upstream delta was limited to CI workflow/change-scope tooling and did not alter the Today product surface.
+- Latest `origin/main` was fetched again immediately before publication and had advanced to `3243c06322807dc63782b3f35726e89092375a25`. The R4 branch was rebased onto it without conflict. The final upstream delta added CodeQL merge-protection handling and the Compact Momente browse layer; Today remained unchanged, while the shared story surface was revalidated with the R4 closing-reflection tests and visual evidence.
 - Product-role token check, TypeScript typecheck, Biome lint, Biome format check, production build, internal visual-proof typecheck, and `git diff --check` passed.
 - Full Web unit/component suite: 142 files passed, 1 skipped; 898 tests passed, 1 skipped.
 - Full Playwright CI-mode browser/axe gate: 333 tests passed with one worker.

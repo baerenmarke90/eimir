@@ -11,7 +11,8 @@ const DISTANT_ATTACHMENT = '55555555-5555-4555-8555-555555555555';
 const ME = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
 const PARTNER = { id: PARTNER_ID, displayName: 'Alex' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
-const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520"><rect width="800" height="520" fill="#d7c4b2"/></svg>';
+const SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520"><rect width="800" height="520" fill="#d7c4b2"/></svg>';
 
 type Tracker = {
   timelineRequests: string[];
@@ -147,10 +148,17 @@ async function installMocks(page: Page, tracker: Tracker) {
     )
       return json({ unreadCount: 0 });
 
-    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/timeline`) {
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
+    ) {
       tracker.timelineRequests.push(url.search);
       const cursor = url.searchParams.get('cursor');
-      if (cursor && tracker.failNextPageOnce && tracker.nextPageFailures === 0) {
+      if (
+        cursor &&
+        tracker.failNextPageOnce &&
+        tracker.nextPageFailures === 0
+      ) {
         tracker.nextPageFailures += 1;
         return json(
           {
@@ -262,9 +270,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
       name: /Gemeinsamer Septembermoment 19/,
     });
     await distant.scrollIntoViewIfNeeded();
-    await expect
-      .poll(() => tracker.mediaReadAccess.length)
-      .toBe(1);
+    await expect.poll(() => tracker.mediaReadAccess.length).toBe(1);
 
     await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
     await expect.poll(() => nextPageRequestCount(tracker)).toBe(1);

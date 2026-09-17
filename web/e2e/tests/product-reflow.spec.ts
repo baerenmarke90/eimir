@@ -246,6 +246,15 @@ async function installApiMocks(page: Page): Promise<string[]> {
 
     if (
       method === 'GET' &&
+      pathname.startsWith(`/api/v1/spaces/${SPACE_ID}/`) &&
+      pathname.endsWith('/comments')
+    ) {
+      await fulfillJson(EMPTY_PAGE);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
       await fulfillJson(EMPTY_PAGE);

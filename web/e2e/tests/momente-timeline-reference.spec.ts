@@ -682,7 +682,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.getByText('Thinking of you')).toBeVisible();
     const provenance = page.locator('.heart-moment-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText('Lea Sommer');
+    await expect(provenance).toContainText('Festgehalten von Lea am');
 
     // Capture 10-momente-timeline-heart-moment-detail.png
     await captureScreenshot(
@@ -716,7 +716,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText('Lea Sommer');
+    await expect(provenance).toContainText('Festgehalten von Lea am');
 
     // Capture 11-momente-timeline-milestone-detail.png
     await captureScreenshot(

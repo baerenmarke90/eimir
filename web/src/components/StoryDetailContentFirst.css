@@ -2,16 +2,6 @@
   gap: var(--space-4);
 }
 
-/* Successful detail navigation belongs to the persistent app bar. Loading,
- * error and edit states keep their local fallback controls, while successful
- * Story details expose exactly one back affordance in the sticky app bar. The
- * #main-content scope deliberately wins over the shared .back-link button
- * styling even when it loads later. */
-#main-content .memory-product-page > .back-link,
-#main-content .product-detail-page > .back-link {
-  display: none;
-}
-
 .product-detail-page .page-heading {
   margin-bottom: 0;
   border-bottom: 0;

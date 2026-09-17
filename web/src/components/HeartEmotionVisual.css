@@ -165,6 +165,10 @@
   border: 0;
 }
 
+.heart-moment-create-emotion-picker {
+  grid-column: 1 / -1;
+}
+
 .heart-emotion-picker > legend {
   margin-bottom: var(--space-3);
   color: var(--color-text);

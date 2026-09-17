@@ -445,9 +445,8 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
   const grid = page.locator('.momente-tapestry-columns').first();
   const columnCount = await grid.evaluate(
     (element) =>
-      getComputedStyle(element)
-        .gridTemplateColumns.split(' ')
-        .filter(Boolean).length,
+      getComputedStyle(element).gridTemplateColumns.split(' ').filter(Boolean)
+        .length,
   );
   expect(columnCount).toBe(1);
 

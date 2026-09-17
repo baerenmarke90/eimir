@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type DiscoverSelection,
+    DiscoverSelectionFromJSON,
+    DiscoverSelectionToJSON,
+} from '../models/DiscoverSelection';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -39,6 +44,10 @@ import {
     StoryViewReceiptToJSON,
 } from '../models/StoryViewReceipt';
 
+export interface GetStoryDiscoverRequest {
+    spaceId: string;
+}
+
 export interface GetStoryTimelineRequest {
     spaceId: string;
     type?: Array<StoryKind> | null;
@@ -57,6 +66,53 @@ export interface RecordStoryViewRequest {
  * 
  */
 export class StoryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getStoryDiscover without sending the request
+     */
+    async getStoryDiscoverRequestOpts(requestParameters: GetStoryDiscoverRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getStoryDiscover().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/discover`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Get Story Discover
+     */
+    async getStoryDiscoverRaw(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DiscoverSelection>> {
+        const requestOptions = await this.getStoryDiscoverRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DiscoverSelectionFromJSON(jsonValue));
+    }
+
+    /**
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Get Story Discover
+     */
+    async getStoryDiscover(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DiscoverSelection> {
+        const response = await this.getStoryDiscoverRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getStoryTimeline without sending the request

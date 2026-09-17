@@ -101,7 +101,7 @@ class SharedStoryCounts:
     milestones: int
 
 
-def _effective_date(model: StoryModel) -> Any:
+def effective_date_expression(model: StoryModel) -> Any:
     """Use `happenedOn`, falling back to the UTC calendar date of `createdAt`.
 
     The M2-D08 rule lives once for all three types. HeartMoment and Milestone
@@ -127,7 +127,7 @@ def _leg(
     visibility condition.
     """
     model = _MODELS[kind]
-    effective_date = _effective_date(model)
+    effective_date = effective_date_expression(model)
     statement = readable(model, context).with_only_columns(
         literal(_KIND_RANK[kind]).label("kind_rank"),
         effective_date.label("effective_date"),
@@ -358,7 +358,7 @@ def read_available_years(
     legs = []
     for kind in selected:
         model = _MODELS[kind]
-        effective_date = _effective_date(model)
+        effective_date = effective_date_expression(model)
         statement = readable(model, context).with_only_columns(
             cast(func.extract("year", effective_date), Integer).label("year")
         )

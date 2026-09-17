@@ -317,7 +317,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-test('ArrowLeft/ArrowRight moves focus and selection between the Pläne and Wünsche tabs', async ({
+test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishes tabs', async ({
   page,
 }) => {
   await installMocks(page);
@@ -343,7 +343,7 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Pläne and Wün
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
 });
 
-test('clicking the focal Plan navigates from the Planen overview to the read-first detail page', async ({
+test('clicking the focal Plan navigates from the Planning overview to the read-first detail page', async ({
   page,
 }) => {
   await installMocks(page);

@@ -335,7 +335,7 @@ test('an undated Plan is valid while optional context remains available', async 
 
   await page.getByLabel(m5s3.plan.intentionLabel).fill('Weekend in Berlin');
   await page.getByText(m5s3.plan.addDetails).click();
-  await page.getByLabel(m5s3.common.description).fill('Zeit nur für uns');
+  await page.getByLabel(m5s3.common.description).fill('Time just for us');
   await page.getByLabel(m5s3.common.place).selectOption('place-berlin');
   await page.getByRole('button', { name: m5s3.common.save }).click();
 
@@ -343,7 +343,7 @@ test('an undated Plan is valid while optional context remains available', async 
   expect(calls.planCreates).toBe(1);
   expect(calls.lastPlanBody).toMatchObject({
     title: 'Weekend in Berlin',
-    description: 'Zeit nur für uns',
+    description: 'Time just for us',
     placeId: 'place-berlin',
   });
   expect(calls.lastPlanBody).not.toHaveProperty('schedule');
@@ -357,17 +357,17 @@ test('failed save preserves the focused task and dirty cancellation requires con
   await page.goto('/plan/plans/new');
 
   const intention = page.getByLabel(m5s3.plan.intentionLabel);
-  await intention.fill('Unser nächstes Abenteuer');
+  await intention.fill('Our next adventure');
   await page.getByRole('button', { name: m5s3.common.save }).click();
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(intention).toHaveValue('Unser nächstes Abenteuer');
+  await expect(intention).toHaveValue('Our next adventure');
 
   await page.getByRole('button', { name: de.common.cancel }).click();
   await expect(
     page.getByRole('alertdialog', { name: taskBoundary.discardTitle }),
   ).toBeVisible();
   await page.getByRole('button', { name: taskBoundary.keepEditing }).click();
-  await expect(intention).toHaveValue('Unser nächstes Abenteuer');
+  await expect(intention).toHaveValue('Our next adventure');
 });
 
 test('the focused task remains reachable at 200% layout zoom', async ({

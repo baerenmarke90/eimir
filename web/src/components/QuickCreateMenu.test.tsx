@@ -353,7 +353,7 @@ describe('QuickCreateMenu -> shared route-entry handoff (#810/#839)', () => {
     );
   }
 
-  it('Quick Create -> Wunsch opens the focused task without forcing focus into its input', () => {
+  it('Quick Create -> Wish opens the focused task without forcing focus into its input', () => {
     renderQuickCreateWithPlanningComposer('/today');
 
     fireEvent.click(

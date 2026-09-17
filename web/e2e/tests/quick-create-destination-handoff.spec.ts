@@ -205,8 +205,8 @@ async function openQuickCreateAndChoose(
   await page.getByText(actionLabel, { exact: true }).click();
 }
 
-test.describe('Quick Create -> Wunsch / Plan: open the focused task without forcing focus', () => {
-  test('390x844: Wunsch opens the task, no forced focus/keyboard, Back returns to Today', async ({
+test.describe('Quick Create -> Wish / Plan: open the focused task without forcing focus', () => {
+  test('390x844: Wish opens the task, no forced focus/keyboard, Back returns to Today', async ({
     page,
   }) => {
     await installProductMocks(page);

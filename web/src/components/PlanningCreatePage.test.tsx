@@ -4,6 +4,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
+import de from '../i18n/locales/de';
+import m5s3 from '../i18n/locales/m5s3';
+import taskBoundary from '../i18n/locales/taskBoundary';
 import { PlanningCreatePage } from './PlanningCreatePage';
 
 beforeAll(() => {
@@ -77,17 +80,17 @@ function renderCreate(
 describe('PlanningCreatePage', () => {
   it('creates a valid undated Plan and opens the canonical result', async () => {
     const { createPlan, locations } = renderCreate('plan');
-    const title = screen.getByLabelText('Was habt ihr gemeinsam vor?');
+    const title = screen.getByLabelText(m5s3.plan.intentionLabel);
 
     expect(document.activeElement).not.toBe(title);
-    fireEvent.change(title, { target: { value: 'Picknick im Park' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    fireEvent.change(title, { target: { value: 'Park picnic' } });
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     expect(createPlan).toHaveBeenCalledWith({
       spaceId: 'space-1',
       planCreate: {
-        title: 'Picknick im Park',
+        title: 'Park picnic',
         description: undefined,
         placeId: undefined,
         schedule: undefined,
@@ -100,16 +103,14 @@ describe('PlanningCreatePage', () => {
 
   it('preserves date-only schedule semantics inside optional enrichment', async () => {
     const { createPlan } = renderCreate('plan');
-    fireEvent.change(screen.getByLabelText('Was habt ihr gemeinsam vor?'), {
-      target: { value: 'Ausflug' },
+    fireEvent.change(screen.getByLabelText(m5s3.plan.intentionLabel), {
+      target: { value: 'Day trip' },
     });
-    fireEvent.click(
-      screen.getByText('Termin, Ort und Beschreibung hinzufügen (optional)'),
-    );
-    fireEvent.change(screen.getByLabelText('Datum (optional)'), {
+    fireEvent.click(screen.getByText(m5s3.plan.addDetails));
+    fireEvent.change(screen.getByLabelText(m5s3.plan.plannedDate), {
       target: { value: '2026-10-03' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     const request = createPlan.mock.calls[0]?.[0];
@@ -121,7 +122,7 @@ describe('PlanningCreatePage', () => {
   it('creates and selects a Place without leaving the focused Plan task', async () => {
     const createPlace = vi
       .fn()
-      .mockResolvedValue({ id: 'place-new', name: 'Rosengarten' });
+      .mockResolvedValue({ id: 'place-new', name: 'Rose garden' });
     renderCreate('plan', {
       places: {
         listPlaces: vi.fn().mockResolvedValue({
@@ -133,22 +134,22 @@ describe('PlanningCreatePage', () => {
       } as unknown as SharedPlanningApis['places'],
     });
 
+    fireEvent.click(screen.getByText(m5s3.plan.addDetails));
     fireEvent.click(
-      screen.getByText('Termin, Ort und Beschreibung hinzufügen (optional)'),
+      screen.getByRole('button', { name: m5s3.plan.addNewPlace }),
     );
-    fireEvent.click(
-      screen.getByRole('button', { name: '+ Neuen Ort anlegen' }),
-    );
-    fireEvent.change(screen.getByLabelText('Name'), {
-      target: { value: 'Rosengarten' },
+    fireEvent.change(screen.getByLabelText(m5s3.place.name), {
+      target: { value: 'Rose garden' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Ort erstellen' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: m5s3.plan.newPlaceSave }),
+    );
 
     await waitFor(() => expect(createPlace).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect((screen.getByLabelText('Ort') as HTMLSelectElement).value).toBe(
-        'place-new',
-      ),
+      expect(
+        (screen.getByLabelText(m5s3.common.place) as HTMLSelectElement).value,
+      ).toBe('place-new'),
     );
   });
 
@@ -157,18 +158,18 @@ describe('PlanningCreatePage', () => {
     renderCreate('wish', {
       wishes: { createWish } as unknown as SharedPlanningApis['wishes'],
     });
-    const title = screen.getByLabelText('Was wünscht ihr euch?');
-    fireEvent.change(title, { target: { value: 'Polarlichter sehen' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    const title = screen.getByLabelText(m5s3.wish.intentionLabel);
+    fireEvent.change(title, { target: { value: 'See the northern lights' } });
+    fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createWish).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
-    expect((title as HTMLInputElement).value).toBe('Polarlichter sehen');
+    expect((title as HTMLInputElement).value).toBe('See the northern lights');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    fireEvent.click(screen.getByRole('button', { name: de.common.cancel }));
     expect(
       screen.getByRole('alertdialog', {
-        name: 'Eingaben verwerfen?',
+        name: taskBoundary.discardTitle,
       }),
     ).toBeDefined();
   });

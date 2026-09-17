@@ -322,7 +322,7 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-test('Pläne leads with the nearest intention, then later and undated Plans, while Wünsche stays a separate domain', async ({
+test('Plans leads with the nearest intention, then later and undated Plans, while Wishes stays a separate domain', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -331,11 +331,11 @@ test('Pläne leads with the nearest intention, then later and undated Plans, whi
   await signIn(page);
   await page.goto('/plan');
 
-  // Pläne is the default segment (#892) and must not mix in Wish items -
-  // those belong to the Wünsche domain even though the old future-map grouped
-  // them together. The Wünsche panel is rendered-but-hidden (not unmounted, so
+  // Plans is the default segment (#892) and must not mix in Wish items -
+  // those belong to the Wishes domain even though the old future-map grouped
+  // them together. The Wishes panel is rendered-but-hidden (not unmounted, so
   // the #810/#856 hash handoff can still find it), so scope to the visible
-  // Pläne panel rather than the page as a whole.
+  // Plans panel rather than the page as a whole.
   await expect(
     page.getByRole('tab', { name: m5s3.overview.segmentPlans }),
   ).toHaveAttribute('aria-selected', 'true');
@@ -442,7 +442,7 @@ for (const scenario of [
   });
 }
 
-test('Wünsche panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are excluded (#892)', async ({
+test('Wishes panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are excluded (#892)', async ({
   page,
 }) => {
   let requestedStatus: string | null = null;

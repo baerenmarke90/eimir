@@ -308,7 +308,7 @@ describe('SharedPlanningOverviewPage', () => {
     expect(wishesPanelHtml).not.toContain('Already turned into a plan');
     expect(wishesPanelHtml).not.toContain('Already come true');
 
-    // Pläne: dated PLANNED items lead, soonest first, then the undated group;
+    // Plans: dated PLANNED items lead, soonest first, then the undated group;
     // completed history remains present behind the receded disclosure.
     expect(html).toContain('Already experienced');
     const soonIndex = html.indexOf('Autumn hike');

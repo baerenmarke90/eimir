@@ -151,8 +151,7 @@ async function installMocks(page: Page): Promise<void> {
     }
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/memories/mem-commented/comments`
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-commented/comments`
     ) {
       await fulfillJson({
         items: [

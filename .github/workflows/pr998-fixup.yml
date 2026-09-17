@@ -1,0 +1,61 @@
+name: PR 998 temporary fixup
+
+on:
+  push:
+    branches:
+      - fix/memory-detail-content-first
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/memory-detail-content-first
+          fetch-depth: 0
+
+      - name: Update Browser QA contracts
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          timeline = Path('web/e2e/tests/momente-timeline-reference.spec.ts')
+          text = timeline.read_text()
+          old = "await expect(provenance).toContainText('Lea Sommer');"
+          if text.count(old) != 2:
+              raise SystemExit(f'expected 2 old provenance assertions, found {text.count(old)}')
+          text = text.replace(
+              old,
+              "await expect(provenance).toContainText('Festgehalten von Lea am');",
+          )
+          timeline.write_text(text)
+
+          reflow = Path('web/e2e/tests/product-reflow.spec.ts')
+          text = reflow.read_text()
+          anchor = """    if (\n      method === 'GET' &&\n      pathname === `/api/v1/spaces/${SPACE_ID}/activity`\n    ) {\n"""
+          if text.count(anchor) != 1:
+              raise SystemExit(f'expected 1 activity anchor, found {text.count(anchor)}')
+          comment_handler = """    if (\n      method === 'GET' &&\n      pathname.startsWith(`/api/v1/spaces/${SPACE_ID}/`) &&\n      pathname.endsWith('/comments')\n    ) {\n      await fulfillJson(EMPTY_PAGE);\n      return;\n    }\n\n"""
+          text = text.replace(anchor, comment_handler + anchor, 1)
+          reflow.write_text(text)
+          PY
+
+      - name: Commit Browser QA updates
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/e2e/tests/momente-timeline-reference.spec.ts web/e2e/tests/product-reflow.spec.ts
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "test(web): align browser QA with Story detail contracts"
+          git push origin HEAD:fix/memory-detail-content-first

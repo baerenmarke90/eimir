@@ -1,22 +1,46 @@
 /* #975: content unfolds once as it first enters the Timeline viewport. */
 .story-timeline-progressive-reveal {
   opacity: 0;
-  transform: translateY(14px);
+  transition: opacity 210ms var(--motion-easing-lift);
+  will-change: opacity;
+}
+
+/* Keep the task/navigation anchor itself geometrically stable while the
+ * visible card lifts into place. TaskOrigin measures the link's layout box;
+ * translating the parent item made that return coordinate transient. */
+.story-timeline-item.story-timeline-progressive-reveal .story-card {
+  translate: 0 14px;
+  transition:
+    translate 210ms var(--motion-easing-lift),
+    transform var(--motion-duration-medium) var(--motion-easing-lift),
+    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+  will-change: transform;
+}
+
+.story-timeline-heading-reveal {
+  transform: translateY(10px);
   transition:
     opacity 210ms var(--motion-easing-lift),
     transform 210ms var(--motion-easing-lift);
   will-change: opacity, transform;
 }
 
-.story-timeline-heading-reveal {
-  transform: translateY(10px);
-}
-
 .story-timeline-progressive-reveal[data-timeline-revealed="true"],
 .story-timeline-progressive-reveal:focus-within {
   opacity: 1;
-  transform: none;
   will-change: auto;
+}
+
+.story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
+  .story-card,
+.story-timeline-item.story-timeline-progressive-reveal:focus-within .story-card {
+  translate: 0 0;
+  will-change: auto;
+}
+
+.story-timeline-heading-reveal[data-timeline-revealed="true"],
+.story-timeline-heading-reveal:focus-within {
+  transform: none;
 }
 
 /* Keep the observer target layout-neutral. The 125% root margin owns when
@@ -62,6 +86,12 @@
   .story-timeline-heading-reveal {
     opacity: 1;
     transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .story-timeline-item.story-timeline-progressive-reveal .story-card {
+    translate: 0 0;
     transition: none;
     will-change: auto;
   }

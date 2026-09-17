@@ -246,17 +246,21 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
 
     const firstEntry = page.locator('.story-timeline-item').first();
     await expect(firstEntry).toHaveAttribute('data-timeline-revealed', 'true');
-    const motion = await firstEntry.evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        opacity: style.opacity,
-        transform: style.transform,
-        duration: style.transitionDuration,
-      };
-    });
-    expect(motion.opacity).toBe('1');
-    expect(motion.transform).toBe('none');
-    expect(motion.duration).toContain('0.21s');
+    const transitionDuration = await firstEntry.evaluate(
+      (element) => getComputedStyle(element).transitionDuration,
+    );
+    expect(transitionDuration).toContain('0.21s');
+    await expect
+      .poll(() =>
+        firstEntry.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return {
+            opacity: Number.parseFloat(style.opacity),
+            transform: style.transform,
+          };
+        }),
+      )
+      .toEqual({ opacity: 1, transform: 'none' });
     await expect(
       page.getByRole('button', {
         name: storyProducts.storyFilters.loadMore,

@@ -8,6 +8,7 @@ import { afterEach } from 'vitest';
 import type { M4ProductApis } from '../client/m4Product';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
 import { TodayPage } from './TodayPage';
 
@@ -23,7 +24,7 @@ const dashboard = {
     {
       id: 'plan-1',
       type: 'PLAN',
-      titleOrText: 'Gemeinsam ans Meer fahren',
+      titleOrText: 'A trip to the coast together',
       occurredOn: null,
       createdAt: null,
       scheduledAt: new Date('2026-09-20T10:00:00Z'),
@@ -35,7 +36,7 @@ const dashboard = {
     {
       id: 'memory-1',
       type: 'MEMORY',
-      titleOrText: 'Ein stiller Morgen am See',
+      titleOrText: 'A quiet morning by the lake',
       occurredOn: new Date('2026-09-01'),
       createdAt: null,
       scheduledAt: null,
@@ -121,7 +122,7 @@ describe('Today R4 origin and partial-failure behavior', () => {
     });
 
     const focal = await screen.findByRole('link', {
-      name: /Ein stiller Morgen am See/i,
+      name: /A quiet morning by the lake/i,
     });
     await user.click(focal);
     expect(
@@ -144,7 +145,9 @@ describe('Today R4 origin and partial-failure behavior', () => {
     });
 
     await user.click(
-      await screen.findByRole('link', { name: /Gemeinsam ans Meer fahren/i }),
+      await screen.findByRole('link', {
+        name: /A trip to the coast together/i,
+      }),
     );
     expect(
       screen.getByRole('heading', { name: 'Canonical plan detail' }),
@@ -166,14 +169,14 @@ describe('Today R4 origin and partial-failure behavior', () => {
     expect(
       await screen.findByText(m5s5.today.partialActivityError),
     ).not.toBeNull();
-    expect(screen.getByText('Ein stiller Morgen am See')).not.toBeNull();
+    expect(screen.getByText('A quiet morning by the lake')).not.toBeNull();
     expect(
       screen
-        .getByRole('button', { name: 'Erneut versuchen' })
+        .getByRole('button', { name: de.common.retry })
         .hasAttribute('disabled'),
     ).toBe(false);
     await waitFor(() => {
-      expect(screen.queryByText('Alles ist bereit')).toBeNull();
+      expect(screen.queryByText(m5s5.dashboard.newSpaceIntro)).toBeNull();
     });
   });
 });

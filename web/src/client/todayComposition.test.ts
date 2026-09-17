@@ -65,7 +65,10 @@ describe('selectTodayFocalItem', () => {
   });
 
   it('uses real shared story text when no Keepsake exists', () => {
-    const memory = item({ id: 'memory-text', titleOrText: 'Nur ein Satz' });
+    const memory = item({
+      id: 'memory-text',
+      titleOrText: 'A single shared sentence',
+    });
     expect(
       selectTodayFocalItem({
         keepsake: null,

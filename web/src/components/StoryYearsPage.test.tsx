@@ -163,7 +163,7 @@ describe('Story annual archive (#868)', () => {
     expect(html).not.toContain('story-year-month');
   });
 
-  it('uses availableYears for the Momente entry even when pagination has not loaded older items', () => {
+  it('keeps the compact Momente years entry independent of partially loaded pagination', () => {
     const html = renderStoryDiscover({
       items: [memory('m-2026', 'Aktueller Moment', '2026-09-12')],
       availableYears: [2026, 2024],
@@ -172,7 +172,8 @@ describe('Story annual archive (#868)', () => {
     });
 
     expect(html).toContain('href="/story/years"');
-    expect(html).toContain('href="/story/years/2026"');
-    expect(html).toContain('href="/story/years/2024"');
+    expect(html).not.toContain('href="/story/years/2026"');
+    expect(html).not.toContain('href="/story/years/2024"');
+    expect(html).not.toContain('momente-year-archive');
   });
 });

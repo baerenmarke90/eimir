@@ -24,9 +24,11 @@ describe('HeartEmotionVisual', () => {
     expect(radios).toHaveLength(HEART_EMOTIONS.length);
     expect(radios).toHaveLength(6);
     expect(
-      (screen.getByRole('radio', {
-        name: 'Wertgeschätzt',
-      }) as HTMLInputElement).checked,
+      (
+        screen.getByRole('radio', {
+          name: 'Wertgeschätzt',
+        }) as HTMLInputElement
+      ).checked,
     ).toBe(true);
     expect(
       (screen.getByRole('radio', { name: 'Geliebt' }) as HTMLInputElement)

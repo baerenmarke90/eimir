@@ -389,11 +389,13 @@ export function StoryList({
                           {presentation.mediaCount}
                         </span>
                       ) : null}
-                      <StoryCommentPresence
-                        item={item}
-                        commentsApi={commentsApi}
-                        spaceId={spaceId}
-                      />
+                      {commentsApi && spaceId ? (
+                        <StoryCommentPresence
+                          item={item}
+                          commentsApi={commentsApi}
+                          spaceId={spaceId}
+                        />
+                      ) : null}
                     </span>
                   </div>
                 </article>

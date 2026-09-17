@@ -95,6 +95,6 @@ Validation completed against the final implementation:
 - The consolidated Chromium suite for Planning creation, overview, detail, Plan/Wish completion, inline Place creation, accessibility, Quick Create, and Today freshness — 71/71 passed.
 - `git diff --check` — passed before commit.
 
-Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, cross-day ranges, and completion continuations. The product-source commit is recorded alongside that evidence after the implementation commit is created.
+Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, cross-day ranges, and completion continuations. The captures correspond to product-source commit `52cf5d9525a0bc1e0587ab9f3c006cf96446ba47`, recorded alongside checksums in the evidence directory.
 
 Known scope boundary: Android runtime adaptation and native device acceptance are intentionally deferred under #837. No Product Owner acceptance, native parity, or merge readiness is inferred from this record, local validation, or green CI.

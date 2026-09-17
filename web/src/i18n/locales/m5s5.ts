@@ -34,7 +34,10 @@ const m5s5 = {
     recentTitle: 'Zuletzt bei euch',
     allActivityAction: 'Alle Aktivitäten ansehen →',
     recentEmpty: 'Noch keine gemeinsamen Einträge vorhanden.',
-    storySummaryTitle: 'Eure Geschichte in Zahlen',
+    storySummaryKicker: 'Was schon zu euch gehört',
+    storySummaryTitle: 'Eure gemeinsame Geschichte wächst',
+    storySummaryIntro:
+      'Hier könnt ihr einzelne Spuren wiederfinden und weiterblättern.',
     storySummarySettingsTitle: 'Geschichte in Zahlen',
     storySummaryMemories: 'Momente',
     storySummaryMemoriesCount_one: '{{count}} Moment',
@@ -65,6 +68,8 @@ const m5s5 = {
       compactBody:
         'Sobald ihr ein Foto zu einer Erinnerung legt, steht es hier groß.',
       compactAction: 'Moment festhalten',
+      textContext: 'Ein Gedanke aus eurer Geschichte',
+      sharedTextContext: 'Von euch festgehalten',
     },
     upcoming: {
       allAction: 'Alle anzeigen',
@@ -97,6 +102,8 @@ const m5s5 = {
       viewAction: 'Ansehen',
       ariaLabel: 'Aktivität von {{name}} ansehen',
     },
+    partialActivityError:
+      'Aktuelle Beziehungssignale konnten nicht geladen werden. Eure übrigen Inhalte bleiben verfügbar.',
   },
   search: {
     eyebrow: 'Suche',

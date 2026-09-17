@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
@@ -7,9 +7,9 @@ import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
 
 /*
- * #850: `/today` composes the living home of a relationship in one normative
- * order — compact hero, `Demnächst`, `Euer Moment`, one `Gerade bei euch`
- * module, `Diesen Monat`, then a secondary `Zuletzt bei euch`.
+ * Product Reference v1 R4 calibrates `/today` as the living home of a
+ * relationship: compact couple presence, restrained current context, one
+ * focal item, and only relevant supporting relationship content.
  *
  * These tests assert that composition against real rendered pixels with real
  * photographs (the repository's own demo assets), across the Compact,
@@ -50,7 +50,7 @@ const thisMonth = (day: number) =>
 const inDays = (days: number) =>
   new Date(NOW.getTime() + days * 86_400_000).toISOString();
 
-/** The normative section order from #850, top to bottom. */
+/** The R4 section order when every eligible role is present, top to bottom. */
 const NORMATIVE_ORDER = [
   '.today-hero',
   '.today-section-upcoming',
@@ -135,7 +135,18 @@ const RICH_SPACE = {
   keepsake: MOMENT,
   retrospective: null,
   recentShared: [MOMENT, ...STRIP_PHOTOS, TRACE_ONLY, SHARED_WISH],
-  activity: [] as unknown[],
+  activity: [
+    {
+      id: 'act-rich-signal',
+      kind: 'COMMENT_CREATED',
+      actorId: PARTNER_ID,
+      targetType: 'WISH',
+      targetId: SHARED_WISH.id,
+      createdAt: inDays(-1),
+      occurredAt: inDays(-1),
+      sourceEventId: 'ev-rich-signal',
+    },
+  ],
 };
 
 /** `Diesen Monat` with a single photo: the plain, non-carousel wide band. */
@@ -236,7 +247,7 @@ async function expectNormativeOrder(page: Page): Promise<void> {
   );
   expect(
     order,
-    `Sections must appear in the #850 document order: ${expected.join(' -> ')}`,
+    `Sections must appear in the R4 document order: ${expected.join(' -> ')}`,
   ).toEqual(expected);
 }
 
@@ -261,7 +272,7 @@ async function expectSingleColumnVisualOrder(page: Page): Promise<void> {
 
   expect(
     [...tops].sort((a, b) => a - b),
-    'Compact sections must read top to bottom in the #850 order',
+    'Compact sections must read top to bottom in the R4 order',
   ).toEqual(tops);
 }
 
@@ -447,7 +458,7 @@ async function installMocks(
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
-        detail: `The Today #850 test did not define ${method} ${pathname}.`,
+        detail: `The Today R4 test did not define ${method} ${pathname}.`,
         status: 500,
         title: 'Unexpected browser test request',
       },
@@ -470,14 +481,20 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({
-    path: testInfo.outputPath(`today-850-${name}.png`),
+  const filename = `today-r4-${name}.png`;
+  const screenshot = await page.screenshot({
+    path: testInfo.outputPath(filename),
     fullPage: true,
   });
+  const exportDirectory = process.env.SCREENSHOT_EXPORT_DIR;
+  if (exportDirectory) {
+    mkdirSync(exportDirectory, { recursive: true });
+    writeFileSync(path.join(exportDirectory, filename), screenshot);
+  }
 }
 
-test.describe('Today #850: the living home of a relationship', () => {
-  test('composes the normative section order on a 390-class phone, in Light and Dark', async ({
+test.describe('Today R4: the living home of a relationship', () => {
+  test('composes the full eligible hierarchy on a 390-class phone, in Light and Dark', async ({
     page,
   }, testInfo) => {
     test.setTimeout(120_000);
@@ -786,7 +803,7 @@ test.describe('Today #850: the living home of a relationship', () => {
     await expectNormativeOrder(page);
   });
 
-  test('omits `Diesen Monat` and keeps `Euer Moment` compact when the space has no usable photo', async ({
+  test('omits `Diesen Monat` and gives real shared text deliberate focal treatment when no photo exists', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -801,23 +818,24 @@ test.describe('Today #850: the living home of a relationship', () => {
 
     await expect(page.locator('.today-section-monthly')).toHaveCount(0);
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
-    await expect(page.locator('.today-moment-compact')).toBeVisible();
+    await expect(page.locator('.today-moment-text')).toBeVisible();
+    await expect(page.getByText(TRACE_ONLY.titleOrText)).toBeVisible();
 
-    // The compact state is a quiet line with one action, not a large empty
-    // frame holding the best part of the first viewport.
-    const compactHeight = await page
-      .locator('.today-moment-compact')
+    // The text-first state remains compact and content-led, not a large empty
+    // photo-shaped frame holding the best part of the first viewport.
+    const textFocalHeight = await page
+      .locator('.today-moment-text')
       .evaluate((node) => Math.round(node.getBoundingClientRect().height));
-    expect(compactHeight).toBeLessThan(160);
+    expect(textFocalHeight).toBeLessThan(220);
 
-    // The contextual slot still finds a real candidate: a shared wish.
-    await expect(page.locator('.today-living-wish')).toHaveCount(1);
-    await expect(page.getByText(SHARED_WISH.titleOrText)).toBeVisible();
+    // Planning already owns the current horizon, so the contextual slot does
+    // not duplicate it with an unrelated Wish fallback.
+    await expect(page.locator('.today-section-living')).toHaveCount(0);
 
     await expectNormativeOrder(page);
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'sparse-390-light');
+    await capture(page, testInfo, 'text-first-no-photo-390-light');
   });
 
   test('never shows the same shared memory as both a partner signal and a later section', async ({
@@ -884,11 +902,12 @@ test.describe('Today #850: the living home of a relationship', () => {
     });
     await signInAndOpenToday(page);
 
-    // Selecting it would have duplicated `Euer Moment`, so the deterministic
-    // chain continued to the next eligible candidate instead.
+    // Selecting it would have duplicated `Euer Moment`. Because `Demnächst`
+    // already owns the current planning horizon, R4 does not fill the slot
+    // with a Wish or Plan fallback just to preserve a fixed stack.
     await expect(page.locator('.today-living-partner_signal')).toHaveCount(0);
-    await expect(page.locator('.today-living-wish')).toHaveCount(1);
-    await expect(page.locator('.today-living')).toHaveCount(1);
+    await expect(page.locator('.today-living-wish')).toHaveCount(0);
+    await expect(page.locator('.today-living')).toHaveCount(0);
     await expectNormativeOrder(page);
   });
 
@@ -1021,6 +1040,30 @@ test.describe('Today #850: the living home of a relationship', () => {
     await settleMotion(page);
     await expectNoWcagViolations(page);
     await capture(page, testInfo, '1440-dark');
+  });
+
+  test('preserves the R4 composition at the remaining Compact and wide evidence widths', async ({
+    page,
+  }, testInfo) => {
+    await installMocks(page, RICH_SPACE);
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize({ width: 360, height: 800 });
+    await signInAndOpenToday(page);
+
+    for (const viewport of [
+      { width: 360, height: 800, name: '360-light' },
+      { width: 430, height: 932, name: '430-light' },
+      { width: 1920, height: 1080, name: '1920-light' },
+    ]) {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await settleMotion(page);
+      await expectNormativeOrder(page);
+      await expectNoHorizontalOverflow(page);
+      await capture(page, testInfo, viewport.name);
+    }
   });
 
   test('stays readable and axe-clean at 200 percent layout zoom', async ({

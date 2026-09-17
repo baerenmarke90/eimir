@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
@@ -28,18 +28,16 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import {
-  ACTIVITY_ROUTE,
-  appRoutePath,
-  MEMORY_CREATE_ROUTE,
-} from '../client/routes';
+import { ACTIVITY_ROUTE, appRoutePath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import {
   type LivingModule,
   livingModuleContentId,
   selectLivingModule,
   selectMonthlyStrip,
+  selectTodayFocalItem,
 } from '../client/todayComposition';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
@@ -158,6 +156,48 @@ export type TodayPresentationRole =
   | 'relationship_signal' // 0-1 partner interaction signal (e.g. partner commented on memory)
   | 'shared_content' // Recent shared relationship moments
   | 'editorial_highlight'; // Retrospective discovery (e.g. "Weißt du noch?")
+
+function TodayDestinationLink({
+  to,
+  className,
+  ariaLabel,
+  children,
+}: {
+  to: string;
+  className?: string;
+  ariaLabel?: string;
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
+
+  function openFromToday(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+
+    const taskOriginKey = captureOrigin();
+    if (!taskOriginKey) return;
+    event.preventDefault();
+    void navigate(to, { state: { taskOriginKey } });
+  }
+
+  return (
+    <Link
+      to={to}
+      className={className}
+      aria-label={ariaLabel}
+      onClick={openFromToday}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function TodayModuleSection({
   id,
@@ -346,9 +386,9 @@ function RecentSharedItemCard({ item }: { item: DashboardItem }) {
 
   if (path) {
     return (
-      <Link to={path} className="today-recent-tile">
+      <TodayDestinationLink to={path} className="today-recent-tile">
         {tileInner}
-      </Link>
+      </TodayDestinationLink>
     );
   }
   return (
@@ -383,9 +423,12 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
 
   if (path) {
     return (
-      <Link to={path} className="today-agenda-row today-agenda-row-link">
+      <TodayDestinationLink
+        to={path}
+        className="today-agenda-row today-agenda-row-link"
+      >
         {rowInner}
-      </Link>
+      </TodayDestinationLink>
     );
   }
   return <div className="today-agenda-row">{rowInner}</div>;
@@ -403,9 +446,11 @@ function TodayAgendaRow({ item }: { item: DashboardItem }) {
 function TodayMomentFeature({
   item,
   loadMemoryImage,
+  isKeepsake,
 }: {
   item: DashboardItem;
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage?: (memoryId: string, attachmentId: string) => Promise<string>;
+  isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
   const path = dashboardItemPath(item.type, item.id);
@@ -413,11 +458,12 @@ function TodayMomentFeature({
   const date = rawDate ? formatDate(rawDate) : null;
   const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
   const previewAttachmentId = item.previewAttachmentId;
+  const hasImage = Boolean(previewAttachmentId && loadMemoryImage);
 
-  const figure = (
+  const feature = hasImage ? (
     <figure className="today-moment-figure eimir-motion-lift">
       <div className="today-moment-media">
-        {previewAttachmentId ? (
+        {previewAttachmentId && loadMemoryImage ? (
           <MemoryPreview
             memoryId={item.id}
             attachmentId={previewAttachmentId}
@@ -434,37 +480,36 @@ function TodayMomentFeature({
         ) : null}
       </figcaption>
     </figure>
+  ) : (
+    <article className="today-moment-text eimir-motion-lift">
+      <span className="today-moment-text-context">
+        {isKeepsake
+          ? t('m5s5.today.keepsake.textContext')
+          : t('m5s5.today.keepsake.sharedTextContext')}
+      </span>
+      <p className="today-moment-text-content">{title}</p>
+      {date ? (
+        <time
+          className="today-moment-text-date"
+          dateTime={rawDate?.toISOString()}
+        >
+          {date}
+        </time>
+      ) : null}
+    </article>
   );
 
   if (path) {
     return (
-      <Link to={path} className="today-moment today-moment-link">
-        {figure}
-      </Link>
+      <TodayDestinationLink
+        to={path}
+        className="today-moment today-moment-link"
+      >
+        {feature}
+      </TodayDestinationLink>
     );
   }
-  return <div className="today-moment">{figure}</div>;
-}
-
-/**
- * The `Euer Moment` slot when the space genuinely has no shared photo yet.
- *
- * A quiet single line with one action, not a full-height empty frame: an
- * oversized placeholder would spend the most valuable part of the first
- * viewport on the absence of content.
- */
-function TodayMomentCompactState() {
-  const { t } = useTranslation();
-  return (
-    <div className="today-moment-compact">
-      <p className="today-moment-compact-body">
-        {t('m5s5.today.keepsake.compactBody')}
-      </p>
-      <Link to={MEMORY_CREATE_ROUTE} className="today-moment-compact-action">
-        {t('m5s5.today.keepsake.compactAction')} →
-      </Link>
-    </div>
-  );
+  return <div className="today-moment">{feature}</div>;
 }
 
 /**
@@ -528,15 +573,15 @@ function TodayLivingModuleCard({
           {date ? <span className="today-living-meta">{date}</span> : null}
         </div>
         {path ? (
-          <Link
+          <TodayDestinationLink
             to={path}
             className="today-living-action"
-            aria-label={t('m5s5.today.relationshipSignal.ariaLabel', {
+            ariaLabel={t('m5s5.today.relationshipSignal.ariaLabel', {
               name: partnerName,
             })}
           >
             {t('m5s5.today.relationshipSignal.viewAction')} →
-          </Link>
+          </TodayDestinationLink>
         ) : null}
       </div>
     );
@@ -573,9 +618,9 @@ function TodayLivingModuleCard({
         {meta ? <span className="today-living-meta">{meta}</span> : null}
       </div>
       {path ? (
-        <Link to={path} className="today-living-action">
+        <TodayDestinationLink to={path} className="today-living-action">
           {action} →
-        </Link>
+        </TodayDestinationLink>
       ) : null}
     </div>
   );
@@ -614,10 +659,10 @@ function TodayMonthlyStrip({
         return (
           <li key={item.id} className="today-monthly-item">
             {path ? (
-              <Link to={path} className="today-monthly-tile">
+              <TodayDestinationLink to={path} className="today-monthly-tile">
                 {tile}
                 <span className="sr-only">{title}</span>
-              </Link>
+              </TodayDestinationLink>
             ) : (
               <span className="today-monthly-tile">
                 {tile}
@@ -788,26 +833,11 @@ export function TodayPage({
   );
 
   /*
-   * Today's normative composition (#850), in the order the Product Owner
-   * accepted on a real smartphone:
-   *
-   *   1 compact relationship hero
-   *   2 Demnächst          - the short shared horizon
-   *   3 Euer Moment        - the dominant emotional anchor
-   *   4 Gerade bei euch    - exactly one contextual relationship module
-   *   5 Diesen Monat       - a small strip of this month's shared photos
-   *   6 Zuletzt bei euch   - the quiet, secondary activity trace
-   *
-   * The order itself is fixed. Only availability decides what appears: a
-   * module with nothing real to show is omitted, never padded with a
-   * placeholder.
-   *
-   * This supersedes the #840 ordering, which let a date-specific
-   * retrospective float ahead of the planning area. The invariant #840 was
-   * protecting — a generic Keepsake must never outrank a genuinely
-   * current/upcoming signal — survives, and is now structural rather than
-   * conditional: `Demnächst` always precedes `Euer Moment`, and a
-   * retrospective is offered as one of the `Gerade bei euch` candidates.
+   * Product Reference v1 R4 calibrates the existing #850 composition rather
+   * than replacing its domains: couple presence first, compact next context,
+   * one real shared focal item, then only relevant supporting relationship
+   * content. Availability decides what exists; no domain receives placeholder
+   * chrome merely because it is registered.
    */
 
   // 2. Shared Planning Horizon. The item limit is the personal Account+Space
@@ -822,16 +852,14 @@ export function TodayPage({
   const retrospective = dashboardQuery.data?.retrospective;
   const serverKeepsake = dashboardQuery.data?.keepsake;
 
-  // 3. Euer Moment: the server-authoritative Keepsake role (a real Memory with
-  // a ready photo), not a client-side scan of the recency-limited
-  // recentShared list. Both an image loader and an actual preview attachment
-  // are required - leading with a Keepsake that has no photo would render an
-  // empty image frame, which is exactly the large dead surface this
-  // composition exists to remove.
-  const momentItem =
-    loadMemoryImage && serverKeepsake?.previewAttachmentId
-      ? serverKeepsake
-      : undefined;
+  // 3. Focal shared content. The authoritative Keepsake wins when present;
+  // otherwise a genuine shared story item receives intentional text-first
+  // treatment. No eligible photo means a different composition, never an
+  // empty image well or generic photo-onboarding copy.
+  const focalItem = selectTodayFocalItem({
+    keepsake: serverKeepsake,
+    recentShared,
+  });
 
   // 4. Gerade bei euch: one module, deterministic priority, never a stack.
   const livingModule = selectLivingModule({
@@ -839,7 +867,8 @@ export function TodayPage({
     activityItems: activityQuery.data?.items,
     retrospective,
     recentShared,
-    excludeItemIds: momentItem ? [momentItem.id] : [],
+    excludeItemIds: focalItem ? [focalItem.item.id] : [],
+    suppressPlanningFallback: upcoming.length > 0,
   });
 
   /*
@@ -857,7 +886,7 @@ export function TodayPage({
    * take, and only then do its photos become featured content for the trace.
    */
   const featuredIds = new Set<string>();
-  if (momentItem) featuredIds.add(momentItem.id);
+  if (focalItem) featuredIds.add(focalItem.item.id);
   const livingContentId = livingModuleContentId(livingModule);
   if (livingContentId) featuredIds.add(livingContentId);
 
@@ -943,12 +972,7 @@ export function TodayPage({
       !serverKeepsake,
   );
 
-  // The Keepsake role exists but has no usable photo (or no loader): keep the
-  // anchor, drop the frame. A full-height empty image well would spend the
-  // best part of the first viewport on missing content.
-  const showMomentSection = Boolean(
-    !isSparse && (momentItem || serverKeepsake || recentShared.length > 0),
-  );
+  const showMomentSection = Boolean(!isSparse && focalItem);
 
   return (
     <div className="page today-page">
@@ -1040,17 +1064,6 @@ export function TodayPage({
 
           {isSparse ? (
             <div className="new-space-experience eimir-motion-reveal">
-              <div className="new-space-mark" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="36"
-                  height="36"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
-              </div>
               <h2 className="new-space-title">
                 {partner
                   ? t('m5s5.dashboard.newSpacePartner', {
@@ -1098,26 +1111,19 @@ export function TodayPage({
                 </TodayModuleSection>
               ) : null}
 
-              {/* 3. Euer Moment — the dominant emotional anchor. */}
-              {showMomentSection && keepsakeVisible ? (
+              {/* 3. One real shared focal item — photo or deliberate text. */}
+              {showMomentSection && keepsakeVisible && focalItem ? (
                 <TodayModuleSection
                   className="today-section-moment"
-                  title={
-                    momentItem && loadMemoryImage
-                      ? t('m5s5.today.keepsake.title')
-                      : t('m5s5.today.keepsake.compactTitle')
-                  }
+                  title={t('m5s5.today.keepsake.title')}
                   kicker={t('m5s5.today.keepsake.kicker')}
                   animationDelay="80ms"
                 >
-                  {momentItem && loadMemoryImage ? (
-                    <TodayMomentFeature
-                      item={momentItem}
-                      loadMemoryImage={loadMemoryImage}
-                    />
-                  ) : (
-                    <TodayMomentCompactState />
-                  )}
+                  <TodayMomentFeature
+                    item={focalItem.item}
+                    loadMemoryImage={loadMemoryImage}
+                    isKeepsake={focalItem.kind === 'keepsake'}
+                  />
                 </TodayModuleSection>
               ) : null}
 
@@ -1135,6 +1141,19 @@ export function TodayPage({
                     loadMemoryImage={loadMemoryImage}
                   />
                 </TodayModuleSection>
+              ) : null}
+
+              {activityQuery.error && relationshipSignalVisible ? (
+                <div className="today-partial-error" role="status">
+                  <span>{t('m5s5.today.partialActivityError')}</span>
+                  <button
+                    type="button"
+                    className="today-partial-error-action"
+                    onClick={() => void activityQuery.refetch()}
+                  >
+                    {t('common.retry')}
+                  </button>
+                </div>
               ) : null}
 
               {/* 5. Diesen Monat — this month's shared life, shown rather than

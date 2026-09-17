@@ -78,6 +78,12 @@ describe('TodayPage', () => {
           titleOrText: 'Park Picnic',
           occurredOn: new Date('2026-09-01T14:00:00Z'),
         },
+        {
+          id: 'chapter-1',
+          type: 'CHAPTER',
+          titleOrText: 'Our first chapter',
+          createdAt: new Date('2026-08-30T14:00:00Z'),
+        },
       ],
       retrospective: {
         id: 'heart-1',
@@ -94,7 +100,7 @@ describe('TodayPage', () => {
     expect(html).toContain('Park Picnic');
     expect(html).toContain('Morning Smile');
 
-    // The normative #850 order, top to bottom.
+    // The full R4 order when every eligible role is present, top to bottom.
     const order = [
       'today-hero',
       'today-section-upcoming',
@@ -170,7 +176,7 @@ describe('TodayPage', () => {
     expect(html).toContain('couple-presence-title');
 
     expect(html).toContain('new-space-experience');
-    expect(html).toContain('new-space-mark');
+    expect(html).not.toContain('new-space-mark');
     expect(html).toContain('Marie');
     expect(html).toContain('href="/story/memories/new"');
   });
@@ -641,7 +647,7 @@ describe('TodayPage', () => {
     expect(html).toContain('today-living-retrospective');
   });
 
-  it('falls back to the compact `Euer Moment` state, never an empty photo frame, when no loadMemoryImage is supplied', () => {
+  it('uses a deliberate text-first `Euer Moment`, never an empty photo frame, when no image can render', () => {
     const html = renderTodayPage({
       space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
       relationshipDuration: null,
@@ -667,11 +673,12 @@ describe('TodayPage', () => {
 
     // No image loader means no photo to lead with. The anchor keeps its
     // place as a quiet one-line state rather than rendering an empty frame,
-    // and the memory itself is still reachable from the trace below.
+    // The actual shared words remain the focal content and canonical target.
     expect(html).not.toContain('today-moment-figure');
-    expect(html).toContain('today-moment-compact');
-    expect(html).toContain(m5s5.today.keepsake.compactTitle);
-    expect(html).toContain('today-section-recent');
+    expect(html).toContain('today-moment-text');
+    expect(html).toContain('Photo Memory');
+    expect(html).toContain('href="/story/memories/mem-photo"');
+    expect(html).not.toContain('today-moment-compact');
     expect(html).toContain('Photo Memory');
   });
 
@@ -753,8 +760,10 @@ describe('TodayPage', () => {
     expect(html).toContain(m5s5.kind.CHAPTER);
     expect(html).toContain(m5s5.kind.COLLECTION);
 
-    // Slices to max 4 items
-    expect(html).not.toContain('Should be sliced out');
+    // Still caps the remaining trace at four after higher-priority content is
+    // de-duplicated. A later item may enter the bounded trace when earlier
+    // items become the focal/context subjects.
+    expect(html.match(/today-recent-tile"/g)).toHaveLength(4);
 
     // Whatever the page already features above (here the Milestone, promoted
     // into the single `Gerade bei euch` slot) is not repeated as a trace row.
@@ -800,7 +809,7 @@ describe('TodayPage', () => {
           id: 'act-1',
           kind: 'COMMENT_CREATED',
           actorId: 'partner-1',
-          targetId: 'mem-1',
+          targetId: 'mem-signal',
           targetType: 'MEMORY',
           createdAt: new Date('2026-09-03T12:00:00Z'),
           occurredAt: new Date('2026-09-03T12:00:00Z'),
@@ -840,7 +849,7 @@ describe('TodayPage', () => {
     // The partner signal is the single `Gerade bei euch` module, below.
     expect(html).toContain('today-section-living');
     expect(html).toContain('today-living-partner_signal');
-    expect(html).toContain('href="/story/memories/mem-1"');
+    expect(html).toContain('href="/story/memories/mem-signal"');
     expect(html).toContain('today-living-action');
     expect(html.indexOf('today-section-living')).toBeGreaterThan(
       html.indexOf('today-section-upcoming'),
@@ -901,8 +910,10 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-section-upcoming');
     expect(html).not.toContain('today-living');
 
-    // Page flows directly into recent shared
-    expect(html).toContain('today-section-recent');
+    // The single real Memory is enough to form the focal composition; no
+    // duplicate recent trace or filler section is added.
+    expect(html).toContain('today-section-moment');
+    expect(html).not.toContain('today-section-recent');
     expect(html).toContain('Lake Walk');
   });
 
@@ -1678,7 +1689,10 @@ it('leaves the trace untouched when the month contributes no photos', () => {
   // No strip at all, so it can exclude nothing from the trace.
   expect(html).not.toContain('today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
-  expect(trace).toContain('Text Only Moment');
+  expect(sectionHtml(html, 'today-section-moment')).toContain(
+    'Text Only Moment',
+  );
+  expect(trace).not.toContain('Text Only Moment');
   expect(trace).toContain('Shared Chapter');
 });
 

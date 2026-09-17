@@ -1,4 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 
@@ -147,7 +149,14 @@ async function installDashboardMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
-      await fulfillJson({ items: [], nextCursor: null });
+      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
+    ) {
+      await fulfillJson({ items: [] });
       return;
     }
     if (
@@ -184,10 +193,16 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({
-    path: testInfo.outputPath(`shell-840-${name}.png`),
+  const filename = `today-r4-${name}.png`;
+  const screenshot = await page.screenshot({
+    path: testInfo.outputPath(filename),
     fullPage: true,
   });
+  const exportDirectory = process.env.SCREENSHOT_EXPORT_DIR;
+  if (exportDirectory) {
+    mkdirSync(exportDirectory, { recursive: true });
+    writeFileSync(path.join(exportDirectory, filename), screenshot);
+  }
 }
 
 const upcomingPlan = {
@@ -221,15 +236,12 @@ const baseSpace = {
 };
 
 /*
- * #850 replaced #840's conditional ordering with a fixed normative section
- * order: hero, Demnächst, Euer Moment, Gerade bei euch, Diesen Monat, and
- * finally Zuletzt bei euch. The invariant #840 established survives and is
- * now structural rather than conditional: a generic Keepsake can never
- * outrank a genuinely current/upcoming signal, because `Demnächst` always
- * precedes `Euer Moment`.
- * These tests assert that invariant against the new composition.
+ * Product Reference v1 R4 retains the useful #840/#850 regression invariant:
+ * a generic Keepsake never outranks genuinely current/upcoming context. The
+ * roles are now availability-driven rather than a promise that every section
+ * permanently exists.
  */
-test.describe('Today (#840/#850): current/upcoming signals outrank a generic Keepsake', () => {
+test.describe('Today R4: current/upcoming context outranks a generic Keepsake', () => {
   test('a genuinely current/upcoming signal precedes the Keepsake on Compact', async ({
     page,
   }, testInfo) => {
@@ -310,9 +322,10 @@ test.describe('Today (#840/#850): current/upcoming signals outrank a generic Kee
     });
     expect(keepsakeIsFirstContentSection).toBe(true);
 
-    // This Keepsake carries no ready photo, so the anchor keeps its place as
-    // the compact state rather than rendering an empty image frame.
-    await expect(page.locator('.today-moment-compact')).toBeVisible();
+    // This Keepsake carries no ready photo, so its real text becomes the
+    // focal content rather than an empty image frame or generic placeholder.
+    await expect(page.locator('.today-moment-text')).toBeVisible();
+    await expect(page.getByText(genericKeepsake.titleOrText)).toBeVisible();
     await expect(page.locator('.today-moment-figure')).toHaveCount(0);
 
     await expectHorizontalReflow(page);
@@ -425,6 +438,6 @@ test.describe('Today (#840/#850): current/upcoming signals outrank a generic Kee
 
     await expectHorizontalReflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'sparse-390-light');
+    await capture(page, testInfo, 'empty-new-relationship-390-light');
   });
 });

@@ -7,6 +7,7 @@ import {
   MONTHLY_STRIP_MAX_ITEMS,
   selectLivingModule,
   selectMonthlyStrip,
+  selectTodayFocalItem,
 } from './todayComposition';
 
 /**
@@ -48,6 +49,46 @@ function comment(overrides: Partial<ActivityItem> = {}) {
     ...overrides,
   } as ActivityItem;
 }
+
+describe('selectTodayFocalItem', () => {
+  it('keeps the server-authoritative Keepsake ahead of newer shared text', () => {
+    const keepsake = item({
+      id: 'keepsake',
+      previewAttachmentId: 'attachment-1',
+    });
+    expect(
+      selectTodayFocalItem({
+        keepsake,
+        recentShared: [item({ id: 'newer-text' })],
+      }),
+    ).toEqual({ kind: 'keepsake', item: keepsake });
+  });
+
+  it('uses real shared story text when no Keepsake exists', () => {
+    const memory = item({
+      id: 'memory-text',
+      titleOrText: 'A single shared sentence',
+    });
+    expect(
+      selectTodayFocalItem({
+        keepsake: null,
+        recentShared: [item({ id: 'plan', type: 'PLAN' }), memory],
+      }),
+    ).toEqual({ kind: 'shared_text', item: memory });
+  });
+
+  it('does not turn planning or utility data into filler focal content', () => {
+    expect(
+      selectTodayFocalItem({
+        keepsake: null,
+        recentShared: [
+          item({ id: 'plan', type: 'PLAN' }),
+          item({ id: 'place', type: 'PLACE' }),
+        ],
+      }),
+    ).toBeNull();
+  });
+});
 
 describe('selectLivingModule', () => {
   const wish = item({ id: 'w1', type: 'WISH' });
@@ -251,6 +292,18 @@ describe('selectLivingModule', () => {
     });
 
     expect(result?.kind).toBe('partner_signal');
+  });
+
+  it('suppresses duplicate Wish/Plan fallback when upcoming already owns the planning role', () => {
+    expect(
+      selectLivingModule({
+        partnerId: PARTNER_ID,
+        activityItems: [],
+        retrospective: null,
+        recentShared: [wish, plan, milestone],
+        suppressPlanningFallback: true,
+      })?.kind,
+    ).toBe('milestone');
   });
 
   it('keeps a partner comment with no target eligible, since it can duplicate nothing', () => {

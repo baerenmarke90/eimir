@@ -178,19 +178,6 @@
   }
 }
 
-.story-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
 .story-card h4 {
   margin: var(--space-2) 0;
   color: var(--color-text);
@@ -229,7 +216,7 @@
   line-height: 1.5;
 }
 
-/* Single authoritative base for the Timeline card footer (#795).
+/* Single authoritative base for the Timeline card footer (#795, #969).
  *
  * This rule previously competed with an equal-specificity copy in
  * `styles.css`, a `.story-card-link`-scoped layout copy in
@@ -240,32 +227,25 @@
  *
  * Descendants keep their own rules only where they express a deliberate
  * distinction from this base: `time` and `.media-label` are quieter and
- * smaller so date and attachment count read as one muted metadata pair. */
+ * smaller so date and attachment count read as one muted metadata pair.
+ *
+ * #969: one wrapping row instead of a stacked column on compact widths. Date
+ * starts the row and the author/visibility/photo group ends it; when they no
+ * longer fit (narrow screens, large text) the group moves to a second row and
+ * starts at the left edge, because `space-between` places a lone line item at
+ * the start. Nothing is truncated or allowed to escape the card. */
 .story-card-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
   margin-top: var(--space-3);
   border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-3);
   color: var(--color-text-secondary);
   font-size: 0.9rem;
   line-height: 1;
-}
-
-/* Compact cards stack date above author/attachment metadata. */
-@media (max-width: 640px) {
-  .story-card-footer {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 599px) {
-  .story-card-footer {
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-3);
-  }
 }
 
 .story-card-footer-actions {
@@ -303,10 +283,6 @@
   font-size: 1.25rem;
 }
 
-.story-card-heart-moment .story-card-meta {
-  justify-content: center;
-}
-
 /* Milestone */
 .story-card-milestone {
   border-color: var(--color-discovery-surface-soft);
@@ -330,10 +306,6 @@
   object-position: center 30%;
   border-radius: var(--radius-large);
   margin: var(--space-2) 0 var(--space-4);
-}
-
-.story-card-memory.has-image .story-card-meta {
-  margin-bottom: var(--space-2);
 }
 
 .story-card-memory.has-image h4 {

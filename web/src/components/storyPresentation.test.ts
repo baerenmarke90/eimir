@@ -92,6 +92,7 @@ describe('storyItemPresentation', () => {
       kindLabel: 'Erinnerung',
       title: 'Am See',
       author: 'Anna',
+      mediaCount: 2,
       mediaLabel: '2 Fotos',
     });
     expect(
@@ -108,7 +109,26 @@ describe('storyItemPresentation', () => {
       title: 'Danke für den schönen Abend.',
       preview: 'Dankbar',
       author: 'Ben',
+      visibility: 'SHARED',
+      visibilityLabel: i18n.t('story.shared'),
     });
+  });
+
+  it('states visibility only where it is a per-item choice (#969)', () => {
+    expect(
+      storyItemPresentation(memory('m-3', '2026-08-26', 'Am See', 0), i18n.t)
+        .visibility,
+    ).toBeUndefined();
+    expect(
+      storyItemPresentation(
+        milestone('ms-2', '2026-08-01', 'Eingezogen'),
+        i18n.t,
+      ).visibility,
+    ).toBeUndefined();
+    expect(
+      storyItemPresentation(memory('m-4', '2026-08-26', 'Am See', 0), i18n.t)
+        .mediaCount,
+    ).toBeUndefined();
   });
 
   it('shows only the first name on relationship-facing surfaces, never the full display name (#791 second follow-up)', () => {

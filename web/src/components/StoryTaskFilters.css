@@ -65,19 +65,3 @@
   white-space: normal;
   overflow-wrap: anywhere;
 }
-
-.story-page .story-card-footer-author,
-.story-page .story-card-footer-author .momente-author-meta {
-  min-width: 0;
-  max-width: 100%;
-  flex-wrap: wrap;
-  overflow-wrap: anywhere;
-}
-
-.story-page .story-card-footer time,
-.story-page .story-card-footer .media-label {
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.4;
-}

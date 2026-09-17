@@ -27,8 +27,17 @@ export interface StoryPresentation {
   title: string;
   preview?: string;
   author: string;
+  /** Number of photos shown as quiet icon metadata; absent when none. */
+  mediaCount?: number;
+  /** Accessible name for the photo count, e.g. "2 Fotos". */
   mediaLabel?: string;
-  sharedLabel?: string;
+  /**
+   * Set only where visibility is a per-item choice (#969). Memories and
+   * Milestones in Story are shared by construction, so repeating it on every
+   * card would be chrome, not information.
+   */
+  visibility?: 'SHARED' | 'PRIVATE';
+  visibilityLabel?: string;
 }
 
 export interface StoryGroup {
@@ -96,6 +105,7 @@ export function storyItemPresentation(
         kindLabel,
         title: item.memory.title,
         author: storyAuthorLabel(item.memory.author),
+        mediaCount: count > 0 ? count : undefined,
         mediaLabel: count > 0 ? t('story.photos', { count }) : undefined,
       };
     }
@@ -105,10 +115,13 @@ export function storyItemPresentation(
         title: compactText(item.heartMoment.text),
         preview: emotionLabel(item.heartMoment.emotion, t),
         author: storyAuthorLabel(item.heartMoment.author),
+        mediaCount: item.heartMoment.attachment ? 1 : undefined,
         mediaLabel: item.heartMoment.attachment
           ? t('story.photos', { count: 1 })
           : undefined,
-        sharedLabel: t('story.shared'),
+        // Only shared Heart Moments enter Story.
+        visibility: 'SHARED',
+        visibilityLabel: t('story.shared'),
       };
     case 'MILESTONE':
       return {

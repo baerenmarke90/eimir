@@ -120,7 +120,9 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    expect(html).toContain('von Alex');
+    // #969: the avatar makes the relationship obvious; no "by" prose.
+    expect(html).toContain('>Alex</span>');
+    expect(html).not.toContain('von Alex');
   });
 
   it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {
@@ -155,8 +157,8 @@ describe('StoryList', () => {
     // avatar's own aria-label is a separate, pre-existing accessibility
     // label unrelated to this fix and out of #791's scope, which is why
     // this doesn't assert on "Alex Winter" absence overall.)
-    expect(html).toContain('von Alex</span>');
-    expect(html).not.toContain('von Alex Winter');
+    expect(html).toContain('>Alex</span>');
+    expect(html).not.toContain('>Alex Winter</span>');
   });
 
   it('renders large image-led card when attachment exists and text-first card when absent (#860)', () => {

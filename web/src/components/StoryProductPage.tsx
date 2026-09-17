@@ -1,6 +1,13 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Link,
   useLocation,
@@ -56,6 +63,7 @@ import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryList } from './StoryList';
 import './StoryTaskFilters.css';
+import './StoryYearsPage.css';
 import {
   distributeIntoTapestryColumns,
   formatStoryDate,
@@ -425,6 +433,10 @@ export function StoryProductPage({
     () => items.filter((item) => item.kind === 'MILESTONE'),
     [items],
   );
+  const timelineMonthGroups = useMemo(
+    () => groupStoryItems(combinedStory?.items ?? [], locale),
+    [combinedStory, locale],
+  );
   const featuredItem = useMemo(() => selectFeaturedStoryItem(items), [items]);
 
   const tapestryColumnCount = useTapestryColumnCount();
@@ -448,6 +460,30 @@ export function StoryProductPage({
         ? heartMomentDetailPath(featuredItem.heartMoment.id)
         : milestoneDetailPath(featuredItem.milestone.id)
     : '';
+
+  /**
+   * Discover's featured highlight and tapestry links have no per-item
+   * loaded-range/scroll metadata to preserve (Discover is a single bounded
+   * fetch, not a paginated scope), but opening an item must still capture
+   * the exact tab+filter URL active at that moment. Without this, the
+   * TaskOrigin fallback for an uncaptured origin resets to bare `/story`
+   * on Back, which would silently discard a Timeline filter still parked
+   * in the URL while the user was merely looking at Discover.
+   */
+  function openDiscoverItem(event: MouseEvent<HTMLAnchorElement>, to: string) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const taskOriginKey = captureOrigin();
+    if (!taskOriginKey) return;
+    event.preventDefault();
+    void navigate(to, { state: { taskOriginKey } });
+  }
 
   return (
     <div className="page story-page">
@@ -570,6 +606,7 @@ export function StoryProductPage({
                 to={featuredPath}
                 className={`momente-hero-link ${featuredMedia ? 'has-media' : ''}`}
                 aria-label={`${t('story.featuredHighlight')}: ${featuredPresentation.title}`}
+                onClick={(event) => openDiscoverItem(event, featuredPath)}
               >
                 {featuredMedia ? (
                   <div className="momente-hero-media">
@@ -700,6 +737,9 @@ export function StoryProductPage({
                                   to={path}
                                   className="momente-tapestry-item momente-tapestry-milestone"
                                   aria-label={presentation.title}
+                                  onClick={(event) =>
+                                    openDiscoverItem(event, path)
+                                  }
                                 >
                                   <span
                                     className="momente-tapestry-milestone-icon"
@@ -736,6 +776,9 @@ export function StoryProductPage({
                                 to={path}
                                 className={`momente-tapestry-item momente-tapestry-${role}`}
                                 aria-label={presentation.title}
+                                onClick={(event) =>
+                                  openDiscoverItem(event, path)
+                                }
                               >
                                 {role === 'media' && entry.firstAttachment ? (
                                   <div className="momente-tapestry-media-frame">
@@ -1170,32 +1213,47 @@ export function StoryProductPage({
                 </div>
               ) : (
                 <>
-                  <StoryList
-                    items={combinedStory.items}
-                    loadMemoryImage={loadMemoryImage}
-                    loadHeartMomentImage={loadHeartMomentImage}
-                    profilesApi={profilesApi}
-                    spaceId={spaceId}
-                    onOpenItem={(event, item, to) => {
-                      if (
-                        event.button !== 0 ||
-                        event.metaKey ||
-                        event.ctrlKey ||
-                        event.shiftKey ||
-                        event.altKey
-                      )
-                        return;
-                      const taskOriginKey = captureOrigin({
-                        selectedKey: storyItemKey(item),
-                        selectedOffset:
-                          event.currentTarget.getBoundingClientRect().top,
-                        loadedPageCount,
-                      });
-                      if (!taskOriginKey) return;
-                      event.preventDefault();
-                      void navigate(to, { state: { taskOriginKey } });
-                    }}
-                  />
+                  <div className="story-year-months story-timeline-months">
+                    {timelineMonthGroups.map((group) => (
+                      <section
+                        key={group.key}
+                        className="story-year-month"
+                        aria-labelledby={`story-timeline-month-${group.key}`}
+                      >
+                        <header className="story-year-month-header">
+                          <h2 id={`story-timeline-month-${group.key}`}>
+                            {group.label}
+                          </h2>
+                        </header>
+                        <StoryList
+                          items={group.items}
+                          loadMemoryImage={loadMemoryImage}
+                          loadHeartMomentImage={loadHeartMomentImage}
+                          profilesApi={profilesApi}
+                          spaceId={spaceId}
+                          onOpenItem={(event, item, to) => {
+                            if (
+                              event.button !== 0 ||
+                              event.metaKey ||
+                              event.ctrlKey ||
+                              event.shiftKey ||
+                              event.altKey
+                            )
+                              return;
+                            const taskOriginKey = captureOrigin({
+                              selectedKey: storyItemKey(item),
+                              selectedOffset:
+                                event.currentTarget.getBoundingClientRect().top,
+                              loadedPageCount,
+                            });
+                            if (!taskOriginKey) return;
+                            event.preventDefault();
+                            void navigate(to, { state: { taskOriginKey } });
+                          }}
+                        />
+                      </section>
+                    ))}
+                  </div>
 
                   {storyQuery.hasNextPage ? (
                     <div className="story-pagination">

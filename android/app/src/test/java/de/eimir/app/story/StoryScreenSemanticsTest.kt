@@ -71,6 +71,23 @@ class StoryScreenSemanticsTest {
     }
 
     @Test
+    fun writesARealMonthHeadingAboveTheDaysItContains() {
+        val augustDay = LocalDate.of(2026, 8, 20)
+        val julyDay = LocalDate.of(2026, 7, 5)
+        render(listOf(memory(date = augustDay), memory(date = julyDay)))
+
+        val august = java.time.format.DateTimeFormatter
+            .ofPattern("MMMM yyyy", java.util.Locale.getDefault())
+            .format(java.time.YearMonth.from(augustDay))
+        val july = java.time.format.DateTimeFormatter
+            .ofPattern("MMMM yyyy", java.util.Locale.getDefault())
+            .format(java.time.YearMonth.from(julyDay))
+
+        composeRule.onNodeWithText(august).assertIsDisplayed()
+        composeRule.onNodeWithText(july).assertIsDisplayed()
+    }
+
+    @Test
     fun saysTheStoryIsEmptyRatherThanShowingNothing() {
         // An empty Story and a Story that failed to load must not look alike.
         render(emptyList())

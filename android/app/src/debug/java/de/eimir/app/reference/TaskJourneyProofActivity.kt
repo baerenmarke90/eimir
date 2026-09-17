@@ -18,7 +18,10 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.compose.rememberNavController
 import de.eimir.app.design.EimirTheme
+import de.eimir.app.shell.AppDestination
+import de.eimir.app.shell.navigateToPrimary
 import de.eimir.app.story.StoryEntryKind
+import de.eimir.app.story.StoryView
 import de.eimir.app.story.TimelineScope
 import eimir.api.models.*
 import java.io.IOException
@@ -56,13 +59,18 @@ class TaskJourneyProofActivity : ComponentActivity() {
                 LaunchedEffect(state.loggedIn) {
                     if (state.loggedIn && savedInstanceState == null) {
                         val direct = intent.getStringExtra("direct")
-                        val target = when (direct) {
-                            "create" -> MEMORY_CREATE_ROUTE
-                            "memory" -> "story/memories/${fixture.firstMemoryId}"
-                            else -> null
-                        }
-                        if (target != null) controller.navigate(target) {
-                            popUpTo(controller.graph.id) { inclusive = true }
+                        if (direct == "discover") {
+                            model.setStoryView(StoryView.DISCOVER)
+                            controller.navigateToPrimary(AppDestination.Story)
+                        } else {
+                            val target = when (direct) {
+                                "create" -> MEMORY_CREATE_ROUTE
+                                "memory" -> "story/memories/${fixture.firstMemoryId}"
+                                else -> null
+                            }
+                            if (target != null) controller.navigate(target) {
+                                popUpTo(controller.graph.id) { inclusive = true }
+                            }
                         }
                     }
                 }

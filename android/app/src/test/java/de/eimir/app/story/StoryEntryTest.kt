@@ -2,6 +2,7 @@ package de.eimir.app.story
 
 import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.YearMonth
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -135,6 +136,106 @@ class StoryEntryTest {
     @Test
     fun anEmptyStoryHasNoDays() {
         assertTrue(emptyList<StoryItem>().toStoryDays().isEmpty())
+    }
+
+    @Test
+    fun groupsConsecutiveDaysUnderARealMonthHeading() {
+        val augustLate = LocalDate.of(2026, 8, 26)
+        val augustEarly = LocalDate.of(2026, 8, 1)
+        val july = LocalDate.of(2026, 7, 5)
+
+        val months = listOf(
+            memoryItem(date = augustLate),
+            memoryItem(date = augustEarly),
+            memoryItem(date = july),
+        ).toStoryDays().toStoryMonths()
+
+        assertEquals(
+            listOf(YearMonth.of(2026, 8), YearMonth.of(2026, 7)),
+            months.map { it.month },
+        )
+        // The existing per-day grouping is preserved underneath the month, not
+        // flattened or replaced by it.
+        assertEquals(listOf(2, 1), months.map { it.days.size })
+    }
+
+    @Test
+    fun doesNotReorderMonthsEitherWhenTheServerOrderRepeatsAYear() {
+        val decemberLastYear = LocalDate.of(2025, 12, 1)
+        val januaryThisYear = LocalDate.of(2026, 1, 1)
+
+        val months = listOf(
+            memoryItem(date = januaryThisYear),
+            memoryItem(date = decemberLastYear),
+            memoryItem(date = januaryThisYear),
+        ).toStoryDays().toStoryMonths()
+
+        assertEquals(
+            listOf(YearMonth.of(2026, 1), YearMonth.of(2025, 12), YearMonth.of(2026, 1)),
+            months.map { it.month },
+        )
+    }
+
+    @Test
+    fun anEmptyStoryHasNoMonths() {
+        assertTrue(emptyList<StoryItem>().toStoryDays().toStoryMonths().isEmpty())
+    }
+
+    @Test
+    fun featuredPickHasNoItemsReturnsNull() {
+        assertEquals(null, emptyList<StoryItem>().selectFeaturedStoryItem())
+    }
+
+    @Test
+    fun featuredPickPrefersAPhotoBackedMemoryOverAHeartMomentOrMilestone() {
+        val textOnlyMemory = memoryItem()
+        val heart = heartMomentItem(withImage = true)
+        val milestone = milestoneItem()
+        val photoMemory = memoryItem(attachments = listOf(attachment(0, "READY")))
+
+        val featured = listOf(textOnlyMemory, heart, milestone, photoMemory).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.MEMORY, featured?.toEntry()?.kind)
+        assertTrue(featured?.toEntry()?.images?.isNotEmpty() == true)
+    }
+
+    @Test
+    fun featuredPickFallsBackToAHeartMomentWhenNoMemoryHasAReadyImage() {
+        val textOnlyMemory = memoryItem()
+        val heart = heartMomentItem(withImage = true)
+        val milestone = milestoneItem()
+
+        val featured = listOf(textOnlyMemory, heart, milestone).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.HEART_MOMENT, featured?.toEntry()?.kind)
+    }
+
+    @Test
+    fun featuredPickFallsBackToAnythingWhenOnlyMilestonesExist() {
+        val featured = listOf(milestoneItem(), milestoneItem()).selectFeaturedStoryItem()
+
+        assertEquals(StoryEntryKind.MILESTONE, featured?.toEntry()?.kind)
+    }
+
+    @Test
+    fun featuredPickIsStableForTheSameDayAndChangesOnlyWithTheDate() {
+        val pool = listOf(
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+            memoryItem(attachments = listOf(attachment(0, "READY"))),
+        )
+        val today = LocalDate.of(2026, 9, 16)
+
+        val first = pool.selectFeaturedStoryItem(today)
+        val second = pool.selectFeaturedStoryItem(today)
+        assertEquals(first?.toEntry()?.id, second?.toEntry()?.id)
+
+        // Different single-item pools may or may not coincide by chance, but a
+        // sufficiently different date over a 3-item pool must be able to
+        // select a different index at least once across the cycle.
+        val laterDates = (1..3).map { today.plusDays(it.toLong()) }
+        val laterPicks = laterDates.map { pool.selectFeaturedStoryItem(it)?.toEntry()?.id }
+        assertTrue(laterPicks.toSet().size > 1)
     }
 }
 

@@ -411,6 +411,116 @@ describe('StoryProductPage', () => {
     });
   });
 
+  describe('issue #966: real chronological month headings in Timeline', () => {
+    it('groups Timeline items under real month headings instead of one flat list', () => {
+      const html = renderStoryPage('/story?tab=timeline', {
+        items: [
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-08-26T00:00:00Z'),
+            memory: {
+              id: 'mem-august',
+              title: 'Late August Vacation',
+              occurredOn: new Date('2026-08-26T00:00:00Z'),
+              createdAt: new Date('2026-08-26T00:00:00Z'),
+              attachments: [],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-07-05T00:00:00Z'),
+            memory: {
+              id: 'mem-july',
+              title: 'Spring Picnic',
+              occurredOn: new Date('2026-07-05T00:00:00Z'),
+              createdAt: new Date('2026-07-05T00:00:00Z'),
+              attachments: [],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      // Real semantic month headings, not another surrounding card.
+      expect(html).toContain('story-year-month"');
+      expect(html).toContain('story-year-month-header');
+      expect(html).toContain('August 2026');
+      expect(html).toContain('Juli 2026');
+
+      // Server order (DESC by default) is preserved: newer month heads first.
+      const augustIndex = html.indexOf('August 2026');
+      const julyIndex = html.indexOf('Juli 2026');
+      expect(augustIndex).toBeGreaterThan(-1);
+      expect(julyIndex).toBeGreaterThan(-1);
+      expect(augustIndex).toBeLessThan(julyIndex);
+      expect(html.indexOf('Late August Vacation')).toBeLessThan(julyIndex);
+      expect(html.indexOf('Spring Picnic')).toBeGreaterThan(julyIndex);
+    });
+
+    it('keeps a single load-more control after the last month group, not one per month', () => {
+      const html = renderStoryPage('/story?tab=timeline', {
+        items: [
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-08-26T00:00:00Z'),
+            memory: {
+              id: 'mem-august',
+              title: 'Late August Vacation',
+              occurredOn: new Date('2026-08-26T00:00:00Z'),
+              createdAt: new Date('2026-08-26T00:00:00Z'),
+              attachments: [],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-07-05T00:00:00Z'),
+            memory: {
+              id: 'mem-july',
+              title: 'Spring Picnic',
+              occurredOn: new Date('2026-07-05T00:00:00Z'),
+              createdAt: new Date('2026-07-05T00:00:00Z'),
+              attachments: [],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+        ],
+        hasMore: true,
+        nextCursor: 'cursor-2',
+      });
+
+      const matches = html.match(/story-pagination/g) ?? [];
+      expect(matches.length).toBe(1);
+    });
+  });
+
   describe('issue #618: data-aware and recoverable timeline filters', () => {
     it('offers a bounded filter task while leaving the Timeline visible', () => {
       const html = renderStoryPage('/story?tab=timeline', {

@@ -893,8 +893,18 @@
     <string name="timeline_filter_all_years">Alle Jahre</string>
     <string name="timeline_filter_all_kinds">Alle Momente</string>
     <string name="timeline_filter_apply">Anwenden</string>
+    <string name="timeline_filter_cancel">Abbrechen</string>
     <string name="timeline_filter_reset">Filter zurücksetzen</string>
     <string name="timeline_filter_scope">%1$s · %2$s</string>
+    <string name="timeline_filter_order">Reihenfolge</string>
+    <string name="timeline_filter_order_newest">Neueste zuerst</string>
+    <string name="timeline_filter_order_oldest">Älteste zuerst</string>
     <string name="timeline_no_match">Für diese Auswahl gibt es keine Momente. Ändere den Zeitraum oder setze die Filter zurück.</string>
+    <string name="momente_tab_discover">Entdecken</string>
+    <string name="momente_tab_timeline">Zeitleiste</string>
+    <string name="momente_discover_continue">Alle in der Zeitleiste ansehen</string>
+    <string name="momente_discover_featured_kicker">Aus euren Momenten</string>
+    <string name="momente_discover_years_heading">Unsere Jahre</string>
+    <string name="momente_discover_open_year">Jahr %1$d öffnen</string>
 
 </resources>

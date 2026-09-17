@@ -10,8 +10,12 @@ describe('M5 S5/S3 product navigation', () => {
     expect(searchResultPath('MEMORY', 'memory/with space')).toBe(
       '/story/memories/memory%2Fwith%20space',
     );
-    expect(searchResultPath('HEART_MOMENT', 'heart-id')).toBe('/story');
-    expect(searchResultPath('MILESTONE', 'milestone-id')).toBe('/story');
+    expect(searchResultPath('HEART_MOMENT', 'heart-id')).toBe(
+      '/story/heart-moments/heart-id',
+    );
+    expect(searchResultPath('MILESTONE', 'milestone-id')).toBe(
+      '/story/milestones/milestone-id',
+    );
     expect(searchResultPath('WISH', 'wish-id')).toBe('/plan/wishes/wish-id');
     expect(searchResultPath('PLAN', 'plan-id')).toBe('/plan/plans/plan-id');
     expect(searchResultPath('PLACE', 'place-id')).toBe('/plan/places/place-id');

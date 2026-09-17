@@ -18,6 +18,9 @@ export interface TaskOriginMetadata {
   selectedKey?: string;
   selectedOffset?: number;
   loadedPageCount?: number;
+  /** Restores a Search origin's submitted query/type without ever putting it in the URL. */
+  searchQuery?: string;
+  searchKind?: string;
 }
 
 export interface TaskOrigin extends TaskOriginMetadata {
@@ -52,7 +55,8 @@ export function taskOriginPath(
   pathname: string,
   search: string,
 ): string | null {
-  if (!['/today', '/story', '/plan', '/more'].includes(pathname)) return null;
+  if (!['/today', '/story', '/plan', '/more', '/search'].includes(pathname))
+    return null;
   if (pathname !== '/story') return pathname;
   const input = new URLSearchParams(search);
   const safe = storyFiltersToSearch(parseStoryFilters(input));
@@ -131,6 +135,8 @@ export function TaskOriginProvider({
         focusTarget: snapshot.focusTarget,
         selectedKey: snapshot.selectedKey,
         selectedOffset: snapshot.selectedOffset,
+        searchQuery: snapshot.searchQuery,
+        searchKind: snapshot.searchKind,
         historyIndex: Number.isInteger(currentState?.idx)
           ? currentState.idx
           : null,

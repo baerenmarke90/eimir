@@ -152,6 +152,27 @@ Alternatives rejected:
 - **Operations / Self-Hosted:** identical client composition and existing APIs; no configuration, secret, provider, deployment, backup, or restore change.
 - **Testing:** targeted pure selectors/components, Today browser journeys, R1/R2/R3/F2/#976 regressions, axe/reflow/zoom/reduced-motion, full Web unit/Browser QA, type/lint/format/build/tokens, and exact-build evidence are required.
 
+## Implemented R4 result
+
+- The server-selected Keepsake remains authoritative. When it has no usable photo, its real text is now the focal content; when no Keepsake exists, the first eligible shared Memory, Heart Moment, or Milestone can carry the same deliberate text-first role. Today no longer fabricates a photo-shaped onboarding state around real text content.
+- Upcoming content remains the compact R3 projection. When it is present, the contextual selector no longer duplicates that planning role with a Wish or Plan fallback. Genuine partner activity, retrospective, and Milestone candidates remain eligible in deterministic order.
+- Memory, Plan, Wish, Heart Moment, and Milestone items keep canonical detail routes. Normal Today activations now capture the existing F2 Account+Space-scoped in-memory origin so explicit detail Back restores Today; modified-click and deep-link behavior remains native.
+- Activity-read failure is presented as a local, retryable status while safe Dashboard content stays visible. The initial Dashboard error, preferences error, and existing freshness/cache behavior remain distinct and unchanged.
+- The story summary retains its server-provided eligibility threshold and canonical filtered Momente destinations, but reads as a quiet closing reflection with text links rather than a decorative KPI badge group.
+- Empty/new relationship presentation retains couple presence, calm localized guidance, and one Memory-capture action. Sparse content is allowed to form a complete composition; dense content is de-duplicated and bounded through the established preference and selectors.
+- AppShell, global Quick Create, Thinking-of-You mutation/cooldown behavior, and `/today` persistent bottom navigation are unchanged. Android, backend, OpenAPI, generated clients, schema, and dependencies were not changed.
+
+## Validation result before evidence freeze
+
+- Latest `origin/main` was fetched again after implementation and remained `fd490e9f64fe56672aba47eb0b167258e456e0ee`; no integration delta existed.
+- Product-role token check, TypeScript typecheck, Biome lint, Biome format check, production build, internal visual-proof typecheck, and `git diff --check` passed.
+- Full Web unit/component suite: 142 files passed, 1 skipped; 898 tests passed, 1 skipped.
+- Full Playwright CI-mode browser/axe gate: 333 tests passed with one worker.
+- Targeted R4 coverage includes photo and text-first focal selection, planning-fallback suppression, canonical detail routes, Memory and Plan F2 return, local Activity failure, empty/sparse/dense composition, de-duplication, keyboard focus, axe, 320 reflow, 360/390/430 Compact, small-height, 200% zoom, reduced motion, Light/Dark, 1440 Expanded, and 1920 sanity.
+- Existing Thinking-of-You tests cover pending, confirmed, error, cooldown, and restored usability. Existing server Dashboard integration coverage remains the privacy authority for OWNER_ONLY/private exclusion and cross-Space access.
+- Backend tests and generated-client drift checks are not applicable because no backend, API contract, or generated client changed.
+- Product Owner acceptance remains outstanding.
+
 ## Evidence and delivery boundary
 
 Deterministic real-app evidence belongs in `docs/product/design/evidence/r4/`. Its README must map every requested state to a screenshot or behavioral assertion, record the exact product-source commit and reproducible command, and carry SHA-256 checksums. Evidence is generated only after integrating current `main` and validating the final product-source commit. A later evidence-only commit may add the captures and provenance; it must not silently change product source.

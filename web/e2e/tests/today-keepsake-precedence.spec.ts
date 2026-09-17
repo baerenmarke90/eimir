@@ -186,7 +186,7 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  const filename = `r4-today-${name}.png`;
+  const filename = `today-r4-${name}.png`;
   const screenshot = await page.screenshot({
     path: testInfo.outputPath(filename),
     fullPage: true,

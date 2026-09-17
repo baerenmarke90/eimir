@@ -78,12 +78,11 @@ const RECENT_SHARED_ITEMS = [
 ];
 
 /*
- * #850 gives the Milestone its own place in the single `Gerade bei euch`
- * slot, and the trace never repeats an entry the page already features above
- * it. Four of the five fixtures therefore remain as trace tiles, which is
- * still the section's four-item cap.
+ * R4 promotes the Heart Moment to the text-first focal role and the Milestone
+ * to the single `Gerade bei euch` slot. The trace never repeats content the
+ * page already features above it, so three fixtures remain as trace tiles.
  */
-const TRACE_TILE_COUNT = 4;
+const TRACE_TILE_COUNT = 3;
 
 async function installMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
@@ -222,6 +221,13 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
   const tiles = page.locator('.today-recent-tile');
   await expect(tiles).toHaveCount(TRACE_TILE_COUNT);
 
+  // The first eligible shared story item is the deliberate text-first focal
+  // item and is not repeated as a trace tile below it.
+  await expect(page.locator('.today-moment-text')).toHaveCount(1);
+  await expect(
+    page.getByText('Danke, dass du heute für mich da warst.'),
+  ).toHaveCount(1);
+
   // The promoted Milestone appears once, as the contextual module, and is
   // not duplicated as a trace tile below it.
   await expect(page.locator('.today-living-milestone')).toHaveCount(1);
@@ -265,10 +271,8 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
     expect(Math.abs(rect.width - agendaWidth)).toBeLessThan(1);
   }
 
-  // Ordinary titles must not be truncated just because the box is small -
-  // only a genuinely long title (a free-text Heart Moment message) may
-  // still ellipsize, matching the one long "Demnächst" title that
-  // legitimately truncates on the same viewport.
+  // Ordinary trace titles must not be truncated just because the box is
+  // small. The long free-text Heart Moment now owns the focal role above.
   const titleOverflow = await page
     .locator('.today-recent-tile-title')
     .evaluateAll((nodes) =>
@@ -278,10 +282,7 @@ test('Today "Zuletzt bei euch" renders as small bordered mini-tiles, not activit
       })),
     );
   const truncatedTitles = titleOverflow.filter((t) => t.truncated);
-  expect(truncatedTitles).toHaveLength(1);
-  expect(truncatedTitles[0]?.text).toContain(
-    'Danke, dass du heute für mich da warst.',
-  );
+  expect(truncatedTitles).toHaveLength(0);
 
   // Type is still available to assistive tech, but not as a separate
   // visible badge next to an already type-specific icon.
@@ -322,10 +323,8 @@ test('Today "Zuletzt bei euch" mini-tiles wrap 2-4 per row on both required desk
         nodes.map((node) => Math.round(node.getBoundingClientRect().top)),
       );
     const rowCount = new Set(tops).size;
-    // 4 tiles wrapping onto a single row would mean too few per line for
-    // "2-4 per row"; all 4 stacking one-per-row would be the old narrow
-    // left column this fix removes. Some wrapping, not all of it, is the
-    // target for this fixture's 4 tiles on a desktop-width viewport.
+    // The remaining three tiles may share one row; they must not stack into
+    // the old narrow one-item column with dead space beside it.
     expect(rowCount).toBeGreaterThan(0);
     expect(rowCount).toBeLessThan(RECENT_SHARED_ITEMS.length);
   }

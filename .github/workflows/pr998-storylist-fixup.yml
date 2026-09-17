@@ -1,0 +1,46 @@
+name: PR 998 StoryList test-runtime fixup
+
+on:
+  push:
+    branches:
+      - fix/memory-detail-content-first
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/memory-detail-content-first
+          fetch-depth: 0
+
+      - name: Guard comment-presence query behind authenticated runtime
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('web/src/components/StoryList.tsx')
+          text = path.read_text()
+          old = """                      <StoryCommentPresence\n                        item={item}\n                        commentsApi={commentsApi}\n                        spaceId={spaceId}\n                      />"""
+          new = """                      {commentsApi && spaceId ? (\n                        <StoryCommentPresence\n                          item={item}\n                          commentsApi={commentsApi}\n                          spaceId={spaceId}\n                        />\n                      ) : null}"""
+          if text.count(old) != 1:
+              raise SystemExit(f'expected 1 StoryCommentPresence call site, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Commit runtime guard and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/pr998-storylist-fixup.yml
+          git add web/src/components/StoryList.tsx
+          git diff --cached --check
+          git commit -m "fix(web): guard Timeline comment presence runtime"
+          git push origin HEAD:fix/memory-detail-content-first

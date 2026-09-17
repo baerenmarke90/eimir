@@ -2,6 +2,7 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -48,7 +49,7 @@ export function useTimelineReveal({
   scopeKey: string;
   revision: number;
 }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!enabled || revision <= 0) return;
     const root = rootRef.current;
     if (!root) return;

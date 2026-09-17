@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
+import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -12,6 +14,18 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
 
 const PLAN_TITLE = 'Picnic in the park';
 const WISH_TITLE = 'Weekend trip to Lisbon';
+const PLAN_START = '2099-09-14T14:00:00Z';
+
+function localTime(value: string): string {
+  return new Intl.DateTimeFormat('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 type MockOptions = {
   plansFail?: boolean;
@@ -197,7 +211,7 @@ async function installMocks(
                 id: PLAN_ID,
                 placeId: null,
                 plannedEnd: options.plannedEnd ?? null,
-                plannedStart: '2026-09-14T14:00:00Z',
+                plannedStart: PLAN_START,
                 sourceWishId: null,
                 spaceId: SPACE_ID,
                 status: 'PLANNED',
@@ -230,7 +244,7 @@ async function installMocks(
         id: PLAN_ID,
         placeId: null,
         plannedEnd: options.plannedEnd ?? null,
-        plannedStart: '2026-09-14T14:00:00Z',
+        plannedStart: PLAN_START,
         sourceWishId: null,
         spaceId: SPACE_ID,
         status: 'PLANNED',
@@ -293,10 +307,7 @@ async function capture(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({
-    path: testInfo.outputPath(`planning-951-range-${name}.png`),
-    fullPage: true,
-  });
+  await captureR3Evidence(page, testInfo, `r3-plan-detail-range-${name}.png`);
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -306,7 +317,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(1);
 }
 
-test('ArrowLeft/ArrowRight moves focus and selection between the Pläne and Wünsche tabs', async ({
+test('ArrowLeft/ArrowRight moves focus and selection between the Plans and Wishes tabs', async ({
   page,
 }) => {
   await installMocks(page);
@@ -332,7 +343,7 @@ test('ArrowLeft/ArrowRight moves focus and selection between the Pläne and Wün
   await expect(page.getByText(PLAN_TITLE)).toBeVisible();
 });
 
-test('clicking a Plan card navigates from the Planen overview to the Plan detail page', async ({
+test('clicking the focal Plan navigates from the Planning overview to the read-first detail page', async ({
   page,
 }) => {
   await installMocks(page);
@@ -340,14 +351,14 @@ test('clicking a Plan card navigates from the Planen overview to the Plan detail
   await page.goto('/plan');
 
   await page.getByRole('tab', { name: m5s3.overview.segmentPlans }).click();
-  await page.getByRole('heading', { name: PLAN_TITLE, level: 2 }).click();
+  await page.locator('.planen-next-link').click();
 
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
     page.getByRole('heading', { name: PLAN_TITLE, level: 1 }),
   ).toBeVisible();
   await expect(
-    page.getByRole('link', { name: m5s3.common.back }),
+    page.getByRole('button', { name: taskBoundary.back }),
   ).toBeVisible();
 });
 
@@ -392,6 +403,7 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
+  await page.getByText(m5s3.plan.actionsHeading).click();
 
   const disclosure = page.getByRole('button', { name: m5s3.plan.addEndTime });
   await expect(disclosure).toHaveAttribute('aria-expanded', 'false');
@@ -409,8 +421,8 @@ test('end time is progressive, blocks an invalid range, and submits the same-day
   await page.getByRole('button', { name: m5s3.plan.reschedule }).click();
   await expect.poll(() => scheduleBody).not.toBeNull();
   expect(scheduleBody).toMatchObject({
-    plannedStart: '2026-09-14T14:00:00.000Z',
-    plannedEnd: '2026-09-14T16:30:00.000Z',
+    plannedStart: '2099-09-14T14:00:00.000Z',
+    plannedEnd: new Date('2099-09-14T16:30').toISOString(),
   });
 });
 
@@ -423,7 +435,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       window.localStorage.setItem('eimir.theme', 'system'),
     );
     await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page, { plannedEnd: '2026-09-14T16:30:00Z' });
+    await installMocks(page, { plannedEnd: '2099-09-14T16:30:00Z' });
     await signIn(page);
     await page.goto(`/plan/plans/${PLAN_ID}`);
 
@@ -431,8 +443,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       'data-theme',
       colorScheme,
     );
-    await expect(page.getByText(/14:00–16:30/)).toBeVisible();
-    await expect(page.getByLabel(m5s3.plan.endTime)).toBeVisible();
+    const range = new RegExp(
+      `${escapeRegex(localTime(PLAN_START))}–${escapeRegex(
+        localTime('2099-09-14T16:30:00Z'),
+      )}`,
+    );
+    await expect(page.getByText(range)).toBeVisible();
+    await expect(page.getByLabel(m5s3.plan.endTime)).toBeHidden();
     await expectNoHorizontalOverflow(page);
 
     const result = await new AxeBuilder({ page })
@@ -455,17 +472,24 @@ test('cross-day Plan range reflows at 320px and keeps the same hierarchy when ex
 }, testInfo) => {
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 320, height: 568 });
-  await installMocks(page, { plannedEnd: '2026-09-15T01:15:00Z' });
+  await installMocks(page, { plannedEnd: '2099-09-15T01:15:00Z' });
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
 
-  await expect(page.getByText(/14:00.*15\. Sept\..*01:15/)).toBeVisible();
-  await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
+  const crossDayRange = new RegExp(
+    `${escapeRegex(localTime(PLAN_START))}.*${escapeRegex(
+      localTime('2099-09-15T01:15:00Z'),
+    )}`,
+  );
+  await expect(page.getByText(crossDayRange)).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '320-cross-day-light');
 
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await expect(page.getByLabel(m5s3.plan.endsAnotherDay)).toBeChecked();
+
   await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(page.getByText(/14:00.*15\. Sept\..*01:15/)).toBeVisible();
+  await expect(page.getByText(crossDayRange)).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, '1280-cross-day-light');
 });

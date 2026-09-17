@@ -294,6 +294,7 @@ test('Today dashboard reflects updated primary context after plan rescheduling w
   ).toBeVisible();
 
   // Reschedule to an earlier timed date using the #838 date + optional-time contract.
+  await page.getByText(m5s3.plan.actionsHeading).click();
   const dateInput = page.locator('#plan-schedule-date');
   const timeInput = page.locator('#plan-schedule-time');
   await expect(dateInput).toBeVisible();

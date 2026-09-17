@@ -1,20 +1,12 @@
 // @vitest-environment jsdom
 import '../i18n';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import { describe, expect, it } from 'vitest';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import { formatDateInputValue } from '../client/dateInput';
+import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
-import { i18n, resolvedLocale } from '../i18n';
+import { i18n } from '../i18n';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 
 const plan: PlanDetail = {
@@ -37,270 +29,65 @@ const plan: PlanDetail = {
   version: 4,
 };
 
-function makeApis(options: { failFirstLink?: boolean } = {}) {
-  const createMemory = vi.fn().mockResolvedValue({
-    id: 'memory-1',
-    title: plan.title,
-  });
-  const createMilestone = vi.fn().mockResolvedValue({
-    id: 'milestone-1',
-    title: plan.title,
-  });
-  const listChapters = vi.fn().mockResolvedValue({
-    items: [{ id: 'chapter-1', title: 'Summer 2026' }],
-    nextCursor: null,
-  });
-  const createChapter = vi.fn().mockResolvedValue({
-    id: 'chapter-new',
-    title: 'Our picnic summer',
-  });
-  const linkChapterMemory = options.failFirstLink
-    ? vi
-        .fn()
-        .mockRejectedValueOnce(new Error('link failed'))
-        .mockResolvedValueOnce(undefined)
-    : vi.fn().mockResolvedValue(undefined);
-  const linkChapterMilestone = vi.fn().mockResolvedValue(undefined);
-
-  const apis = {
-    memories: { createMemory },
-    milestones: { createMilestone },
-    chapters: { listChapters, createChapter },
-    chapterRelations: { linkChapterMemory, linkChapterMilestone },
-  } as unknown as SharedPlanningApis;
-
-  return {
-    apis,
-    createMemory,
-    createMilestone,
-    listChapters,
-    createChapter,
-    linkChapterMemory,
-    linkChapterMilestone,
-  };
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="location">{location.pathname}</output>;
 }
 
-function renderContinuation(apis: SharedPlanningApis) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-
-  const view = render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <PlanStoryContinuation apis={apis} spaceId="space-1" plan={plan} />
-      </MemoryRouter>
-    </QueryClientProvider>,
+function renderContinuation() {
+  return render(
+    <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+      <PlanStoryContinuation
+        apis={{} as SharedPlanningApis}
+        spaceId="space-1"
+        plan={plan}
+      />
+      <LocationProbe />
+    </MemoryRouter>,
   );
-  return { ...view, queryClient };
 }
-
-afterEach(() => cleanup());
 
 describe('PlanStoryContinuation', () => {
-  it('prefills a Memory from the completed Plan and links the saved Memory to an existing Chapter', async () => {
-    const mocks = makeApis();
-    const { queryClient } = renderContinuation(mocks.apis);
-    queryClient.setQueryData(
-      authorSummaryQueryKeys.relationTargets('space-1'),
-      ['stale-memory-target'],
-    );
+  it('hands Memory capture to the canonical R1 route without rendering a second editor', () => {
+    renderContinuation();
 
+    expect(screen.queryByLabelText(i18n.t('m5s3.common.title'))).toBeNull();
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.planStory.memoryAction'),
       }),
     );
-
-    const title = screen.getByLabelText(
-      i18n.t('m5s3.common.title'),
-    ) as HTMLInputElement;
-    const date = screen.getByLabelText(
-      i18n.t('m5s3.plan.experiencedOn'),
-    ) as HTMLInputElement;
-    const note = screen.getByLabelText(
-      i18n.t('m5s3.planStory.noteLabel'),
-    ) as HTMLTextAreaElement;
-
-    expect(title.value).toBe('Picnic in the park');
-    expect(title.required).toBe(false);
-    expect(date.value).toBe('2026-09-14');
-    expect(note.value).toBe('Bring the picnic blanket.');
-
-    fireEvent.change(title, { target: { value: '   ' } });
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.planStory.saveStory') }),
+    expect(screen.getByLabelText('location').textContent).toBe(
+      MEMORY_CREATE_ROUTE,
     );
-
-    const fallbackTitle = i18n.t('memoryProduct.createFallbackTitle', {
-      date: formatDateInputValue('2026-09-14', resolvedLocale()),
-    });
-    await waitFor(() => expect(mocks.createMemory).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(
-        queryClient.getQueryState(
-          authorSummaryQueryKeys.relationTargets('space-1'),
-        )?.isInvalidated,
-      ).toBe(true),
-    );
-    expect(mocks.createMemory).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      memoryCreate: {
-        title: fallbackTitle,
-        body: 'Bring the picnic blanket.',
-        happenedOn: new Date('2026-09-14T00:00:00Z'),
-      },
-    });
-
-    await screen.findByText(i18n.t('m5s3.planStory.memorySaved'));
-    await waitFor(() => expect(mocks.listChapters).toHaveBeenCalledTimes(1));
-
-    const chapterChoice = (await screen.findByLabelText(
-      i18n.t('m5s3.planStory.chapterChoiceLabel'),
-    )) as HTMLSelectElement;
-    fireEvent.change(chapterChoice, { target: { value: 'chapter-1' } });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterLink'),
-      }),
-    );
-
-    await waitFor(() =>
-      expect(mocks.linkChapterMemory).toHaveBeenCalledTimes(1),
-    );
-    expect(mocks.linkChapterMemory).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      chapterId: 'chapter-1',
-      targetId: 'memory-1',
-    });
   });
 
-  it('creates a Milestone from the completed Plan and uses the typed Milestone Chapter relation', async () => {
-    const mocks = makeApis();
-    const { queryClient } = renderContinuation(mocks.apis);
-    queryClient.setQueryData(
-      authorSummaryQueryKeys.relationTargets('space-1'),
-      ['stale-milestone-target'],
-    );
+  it('keeps the supported Milestone continuation secondary and canonical', () => {
+    renderContinuation();
 
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.planStory.milestoneAction'),
       }),
     );
-    const title = screen.getByLabelText(
-      i18n.t('m5s3.common.title'),
-    ) as HTMLInputElement;
-    expect(title.required).toBe(true);
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.planStory.saveStory') }),
+    expect(screen.getByLabelText('location').textContent).toBe(
+      MILESTONE_CREATE_ROUTE,
     );
-
-    await waitFor(() => expect(mocks.createMilestone).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(
-        queryClient.getQueryState(
-          authorSummaryQueryKeys.relationTargets('space-1'),
-        )?.isInvalidated,
-      ).toBe(true),
-    );
-    expect(mocks.createMilestone).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      milestoneCreate: {
-        title: 'Picnic in the park',
-        body: 'Bring the picnic blanket.',
-        happenedOn: new Date('2026-09-14T00:00:00Z'),
-      },
-    });
-    expect(mocks.createMemory).not.toHaveBeenCalled();
-
-    await screen.findByText(i18n.t('m5s3.planStory.milestoneSaved'));
-    const chapterChoice = (await screen.findByLabelText(
-      i18n.t('m5s3.planStory.chapterChoiceLabel'),
-    )) as HTMLSelectElement;
-    fireEvent.change(chapterChoice, { target: { value: 'chapter-1' } });
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterLink'),
-      }),
-    );
-
-    await waitFor(() =>
-      expect(mocks.linkChapterMilestone).toHaveBeenCalledTimes(1),
-    );
-    expect(mocks.linkChapterMilestone).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      chapterId: 'chapter-1',
-      targetId: 'milestone-1',
-    });
-    expect(mocks.linkChapterMemory).not.toHaveBeenCalled();
   });
 
-  it('retries only the typed Chapter link after a new Chapter was created', async () => {
-    const mocks = makeApis({ failFirstLink: true });
-    renderContinuation(mocks.apis);
-
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterAction'),
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterViaMemory'),
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: i18n.t('m5s3.planStory.saveStory') }),
-    );
-
-    await screen.findByText(i18n.t('m5s3.planStory.memorySaved'));
-    const chapterChoice = (await screen.findByLabelText(
-      i18n.t('m5s3.planStory.chapterChoiceLabel'),
-    )) as HTMLSelectElement;
-    fireEvent.change(chapterChoice, { target: { value: '__new__' } });
-
-    fireEvent.change(
-      screen.getByLabelText(i18n.t('m5s3.planStory.chapterNewTitle')),
-      { target: { value: 'Our picnic summer' } },
-    );
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterCreateAndLink'),
-      }),
-    );
-
-    await waitFor(() => expect(mocks.createChapter).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(mocks.linkChapterMemory).toHaveBeenCalledTimes(1),
-    );
-
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: i18n.t('m5s3.planStory.chapterRetryLink'),
-      }),
-    );
-
-    await waitFor(() =>
-      expect(mocks.linkChapterMemory).toHaveBeenCalledTimes(2),
-    );
-    expect(mocks.createMemory).toHaveBeenCalledTimes(1);
-    expect(mocks.createChapter).toHaveBeenCalledTimes(1);
-  });
-
-  it('allows the follow-up to be dismissed without creating Story content', () => {
-    const mocks = makeApis();
-    renderContinuation(mocks.apis);
+  it('allows the optional continuation to be skipped after completion', () => {
+    renderContinuation();
 
     fireEvent.click(
       screen.getByRole('button', { name: i18n.t('m5s3.planStory.later') }),
     );
-
-    expect(screen.queryByText(i18n.t('m5s3.planStory.intro'))).toBeNull();
-    expect(mocks.createMemory).not.toHaveBeenCalled();
-    expect(mocks.createMilestone).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n.t('m5s3.plan.completedTitle'),
+      }),
+    ).toBeNull();
+    expect(screen.getByLabelText('location').textContent).toBe(
+      '/plan/plans/plan-1',
+    );
   });
 });

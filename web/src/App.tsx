@@ -69,6 +69,7 @@ import {
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
   MORE_SETTINGS_ROUTE,
+  PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
   PLACE_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
@@ -77,6 +78,7 @@ import {
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
+  WISH_CREATE_ROUTE,
 } from './client/routes';
 import { createSharedPlanningApis } from './client/sharedPlanning';
 import { postSnackbar } from './client/snackbar';
@@ -112,6 +114,7 @@ import { MoreOverviewPage } from './components/MoreOverviewPage';
 import { PlaceProductPage } from './components/PlaceProductPage';
 import { PlacesOverviewPage } from './components/PlacesOverviewPage';
 import { PlanProductPage } from './components/PlanProductPage';
+import { PlanningCreatePage } from './components/PlanningCreatePage';
 import { PrivateAreaProductPage } from './components/PrivateAreaProductPage';
 import { ProblemState } from './components/ProblemState';
 import { ProfilePage } from './components/ProfilePage';
@@ -411,6 +414,18 @@ function AuthenticatedApp({
           <Route
             path={appRoutePath('plan')}
             element={<SharedPlanningOverviewPage {...planningProductProps} />}
+          />
+          <Route
+            path={PLAN_CREATE_ROUTE}
+            element={
+              <PlanningCreatePage kind="plan" {...planningProductProps} />
+            }
+          />
+          <Route
+            path={WISH_CREATE_ROUTE}
+            element={
+              <PlanningCreatePage kind="wish" {...planningProductProps} />
+            }
           />
           <Route
             path={WISH_DETAIL_ROUTE_PATTERN}

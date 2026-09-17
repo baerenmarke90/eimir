@@ -10,18 +10,18 @@ import {
   PRODUCT_CACHE_NETWORK_EVENT,
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
-import { TaskOriginProvider } from '../client/taskOrigin';
-import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
 import {
-  PRIMARY_APP_ROUTES,
   type AppRouteDefinition,
   activeNavigationArea,
   appRoutePath,
   DEFAULT_APP_ROUTE,
   MEMORY_CREATE_ROUTE,
+  PRIMARY_APP_ROUTES,
   SEARCH_ROUTE,
 } from '../client/routes';
+import { TaskOriginProvider } from '../client/taskOrigin';
+import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
@@ -151,7 +151,10 @@ function AuthenticatedAppShell({
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
-  const isMemoryTask = location.pathname === MEMORY_CREATE_ROUTE;
+  const isFocusedTask =
+    location.pathname === MEMORY_CREATE_ROUTE ||
+    location.pathname === '/plan/plans/new' ||
+    location.pathname === '/plan/wishes/new';
   const gamesPath = appRoutePath('games');
   const isGamesHub = location.pathname === gamesPath;
 
@@ -184,14 +187,14 @@ function AuthenticatedAppShell({
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
 
   return (
-    <div className="product-shell" data-focused-task={isMemoryTask}>
+    <div className="product-shell" data-focused-task={isFocusedTask}>
       <ThemeControl />
       <RouteEntryHandoff />
       <a className="skip-link" href="#main-content">
         {t('navigation.skipToContent')}
       </a>
 
-      {!isMemoryTask ? (
+      {!isFocusedTask ? (
         <header className="app-header product-topbar">
           <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
           <nav className="shell-nav" aria-label={t('navigation.primary')}>
@@ -279,7 +282,7 @@ function AuthenticatedAppShell({
         </main>
       </div>
 
-      {!isMemoryTask ? (
+      {!isFocusedTask ? (
         <div
           ref={bottomNavRef}
           className="mobile-bottom-shell"

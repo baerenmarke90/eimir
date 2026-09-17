@@ -97,7 +97,7 @@ No authorization required
 
 ## convertWishToPlan
 
-> convertWishToPlan(wishId, spaceId, ifMatch, wishToPlan)
+> WishToPlanResponse convertWishToPlan(wishId, spaceId, ifMatch, wishToPlan)
 
 Convert Wish To Plan
 
@@ -149,7 +149,7 @@ example().catch(console.error);
 
 ### Return type
 
-`void` (Empty response body)
+[**WishToPlanResponse**](WishToPlanResponse.md)
 
 ### Authorization
 

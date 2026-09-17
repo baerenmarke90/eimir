@@ -210,7 +210,7 @@ describe('WishDetectiveGamePage', () => {
     const wishesLink = screen.getByRole('link', {
       name: games.wishDetective.sparseAction,
     });
-    expect(wishesLink.getAttribute('href')).toBe('/plan#wish-title');
+    expect(wishesLink.getAttribute('href')).toBe('/plan/wishes/new');
   });
 
   it('does not start when the active Space is not a two-partner couple', async () => {

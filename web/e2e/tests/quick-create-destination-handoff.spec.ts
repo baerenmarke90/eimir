@@ -14,15 +14,13 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
  * Browser harness for the #810/#839 Quick Create destination contract:
  *
  *   Quick Create -> action -> correct destination -> correct create area
- *   -> correct vertical position -> relevant composition visible/open
+ *   -> correct vertical position -> relevant focused task visible
  *   -> no accidental focus -> no unnecessary keyboard
  *
  * All seven actions must land the user on the right composition, correctly
  * positioned, without any of them being forced into an input (no
  * unsolicited on-screen keyboard). This is driven by the single shared
- * `applyRouteEntryHandoff` handoff (see `routeEntryHandoff.ts`), mounted
- * once via `RouteEntryHandoff` in `AppShell` - not by per-destination
- * hacks.
+ * shared task-origin and route-entry primitives rather than destination hacks.
  */
 async function installProductMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
@@ -207,8 +205,8 @@ async function openQuickCreateAndChoose(
   await page.getByText(actionLabel, { exact: true }).click();
 }
 
-test.describe('Quick Create -> Wunsch / Plan: open the inline composer without forcing focus', () => {
-  test('390x844: Wunsch opens the composer, no forced focus/keyboard, Back returns to Today', async ({
+test.describe('Quick Create -> Wish / Plan: open the focused task without forcing focus', () => {
+  test('390x844: Wish opens the task, no forced focus/keyboard, Back returns to Today', async ({
     page,
   }) => {
     await installProductMocks(page);
@@ -218,10 +216,10 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
 
     await openQuickCreateAndChoose(page, navigation.quickCreateWish);
 
-    await expect(page).toHaveURL(/\/plan#wish-title$/);
+    await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    const titleInput = page.locator('#create-wish-title');
+    const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeVisible();
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
@@ -241,14 +239,14 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
 
     await openQuickCreateAndChoose(page, navigation.quickCreatePlan);
 
-    await expect(page).toHaveURL(/\/plan#plan-title$/);
+    await expect(page).toHaveURL(/\/plan\/plans\/new$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
-    const titleInput = page.locator('#create-plan-title');
+    const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeVisible();
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
-    await expect(page.locator('#create-plan-place')).not.toBeFocused();
+    await expect(page.locator('#planning-create-place')).not.toBeFocused();
   });
 
   test('a normal /plan visit without Quick Create does not force focus into either composer', async ({
@@ -264,8 +262,7 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
       page.getByRole('heading', { name: m5s3.overview.title }),
     ).toBeVisible();
 
-    await expect(page.locator('#create-wish-title')).not.toBeFocused();
-    await expect(page.locator('#create-plan-title')).not.toBeFocused();
+    await expect(page.locator('#planning-create-title')).toHaveCount(0);
   });
 
   test('320 CSS px reflow: the opened Wish composer stays reachable without horizontal overflow', async ({
@@ -278,7 +275,7 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
 
     await openQuickCreateAndChoose(page, navigation.quickCreateWish);
 
-    const titleInput = page.locator('#create-wish-title');
+    const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeVisible();
     await expect(titleInput).not.toBeFocused();
 
@@ -298,7 +295,7 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
 
     await openQuickCreateAndChoose(page, navigation.quickCreatePlan);
 
-    const titleInput = page.locator('#create-plan-title');
+    const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
   });
@@ -319,8 +316,8 @@ test.describe('Quick Create -> Wunsch / Plan: open the inline composer without f
       .getByRole('menuitem', { name: navigation.quickCreateWish })
       .click();
 
-    await expect(page).toHaveURL(/\/plan#wish-title$/);
-    const titleInput = page.locator('#create-wish-title');
+    await expect(page).toHaveURL(/\/plan\/wishes\/new$/);
+    const titleInput = page.locator('#planning-create-title');
     await expect(titleInput).toBeInViewport();
     await expect(titleInput).not.toBeFocused();
   });

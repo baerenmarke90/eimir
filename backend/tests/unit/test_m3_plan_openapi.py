@@ -145,6 +145,9 @@ def test_conversion_documents_both_success_answers() -> None:
     assert "201" in responses
     assert "200" in responses
     assert "409" in responses
+    expected_schema = {"$ref": "#/components/schemas/WishToPlanResponse"}
+    assert responses["200"]["content"]["application/json"]["schema"] == expected_schema
+    assert responses["201"]["content"]["application/json"]["schema"] == expected_schema
 
 
 def test_conversion_returns_both_resources() -> None:

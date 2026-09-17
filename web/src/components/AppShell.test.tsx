@@ -428,6 +428,18 @@ describe('AppShell', () => {
     expect(htmlBeforeShell).not.toContain('mobile-quick-create');
   });
 
+  it('keeps focused create tasks free of normal shell navigation', () => {
+    for (const path of [
+      '/story/memories/new',
+      '/plan/plans/new',
+      '/plan/wishes/new',
+    ]) {
+      const html = renderShell(path);
+      expect(html).not.toContain('product-topbar');
+      expect(html).not.toContain('mobile-bottom-shell');
+    }
+  });
+
   it('sets data-hidden="false" initially on /today, /plan, and /story (#970)', () => {
     const todayHtml = renderShell('/today');
     expect(todayHtml).toContain(

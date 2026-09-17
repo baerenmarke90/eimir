@@ -4,7 +4,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { WishDetail } from '../api/generated/models/WishDetail';
+import type { WishToPlanResponse } from '../api/generated/models/WishToPlanResponse';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { i18n } from '../i18n';
@@ -32,6 +34,40 @@ function completedWish(): WishDetail {
   };
 }
 
+function convertedPlan(): PlanDetail {
+  return {
+    capabilities: { canComment: false, canDelete: false, canEdit: true },
+    createdAt: new Date('2026-09-12T09:00:00Z'),
+    createdBy: 'account-anna',
+    creator: { id: 'account-anna', displayName: 'Anna' },
+    description: 'The authoritative converted Plan.',
+    experiencedOn: null,
+    id: 'plan-authoritative',
+    placeId: null,
+    plannedEnd: null,
+    plannedOn: null,
+    plannedStart: null,
+    sourceWishId: OPEN_WISH.id,
+    spaceId: 'space-1',
+    status: 'IDEA',
+    title: 'Authoritative northern lights Plan',
+    updatedAt: new Date('2026-09-12T09:00:00Z'),
+    version: 1,
+  };
+}
+
+function conversionResponse(): WishToPlanResponse {
+  return {
+    wish: {
+      ...OPEN_WISH,
+      status: 'PLANNED',
+      updatedAt: new Date('2026-09-12T09:00:00Z'),
+      version: 2,
+    },
+    plan: convertedPlan(),
+  };
+}
+
 function LocationProbe() {
   const location = useLocation();
   return (
@@ -46,6 +82,7 @@ function renderWish(
   wish: WishDetail,
   completeWish = vi.fn().mockResolvedValue(completedWish()),
   places: Array<{ id: string; name: string }> = [],
+  convertWishToPlan = vi.fn().mockResolvedValue(conversionResponse()),
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -63,6 +100,7 @@ function renderWish(
   );
 
   const apis = {
+    plans: { convertWishToPlan },
     wishes: {
       completeWish,
       getWish: vi.fn().mockResolvedValue(wish),
@@ -77,14 +115,62 @@ function renderWish(
             path="/plan/wishes/:wishId"
             element={<WishProductPage apis={apis} spaceId="space-1" />}
           />
+          <Route path="/plan/plans/:planId" element={<LocationProbe />} />
           <Route path="/story/memories/new" element={<LocationProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 
-  return { completeWish };
+  return { completeWish, convertWishToPlan, queryClient };
 }
+
+describe('WishProductPage conversion', () => {
+  it('opens the authoritative converted Plan while preserving request semantics', async () => {
+    const user = userEvent.setup();
+    const completeWish = vi.fn().mockResolvedValue(completedWish());
+    const response = conversionResponse();
+    const convertWishToPlan = vi.fn().mockResolvedValue(response);
+    const { queryClient } = renderWish(
+      OPEN_WISH,
+      completeWish,
+      [],
+      convertWishToPlan,
+    );
+
+    await user.click(screen.getByText(i18n.t('m5s3.wish.actionsHeading')));
+    await user.type(
+      screen.getByLabelText(i18n.t('m5s3.wish.planTitle')),
+      'Requested Plan title',
+    );
+    await user.click(
+      screen.getByRole('button', { name: i18n.t('m5s3.wish.convert') }),
+    );
+
+    await waitFor(() => {
+      expect(convertWishToPlan).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        wishId: OPEN_WISH.id,
+        ifMatch: '1',
+        wishToPlan: {
+          title: 'Requested Plan title',
+          description: undefined,
+          placeId: undefined,
+          schedule: undefined,
+        },
+      });
+    });
+    expect(completeWish).not.toHaveBeenCalled();
+    expect(
+      queryClient.getQueryData(
+        authorSummaryQueryKeys.planDetail('space-1', response.plan.id),
+      ),
+    ).toEqual(response.plan);
+    expect((await screen.findByLabelText('current-location')).textContent).toBe(
+      `/plan/plans/${response.plan.id}`,
+    );
+  });
+});
 
 describe('WishProductPage direct completion', () => {
   it('reads conversion places from the canonical selector cache', () => {
@@ -107,7 +193,7 @@ describe('WishProductPage direct completion', () => {
   it('completes server-side, focuses the continuation, and restores focus when dismissed', async () => {
     const user = userEvent.setup();
     const completeWish = vi.fn().mockResolvedValue(completedWish());
-    renderWish(OPEN_WISH, completeWish);
+    const { convertWishToPlan } = renderWish(OPEN_WISH, completeWish);
 
     await user.click(
       screen.getByRole('button', { name: i18n.t('m5s3.wish.complete') }),
@@ -120,6 +206,7 @@ describe('WishProductPage direct completion', () => {
         ifMatch: '1',
       });
     });
+    expect(convertWishToPlan).not.toHaveBeenCalled();
 
     const heading = await screen.findByRole('heading', {
       name: i18n.t('m5s3.wish.completionTitle'),
@@ -135,11 +222,11 @@ describe('WishProductPage direct completion', () => {
 
     expect(screen.getByText(i18n.t('m5s3.wish.completedBody'))).toBeTruthy();
     expect(document.activeElement).toBe(
-      screen.getByRole('link', { name: i18n.t('m5s3.common.back') }),
+      screen.getByRole('button', { name: i18n.t('m5s3.common.back') }),
     );
   });
 
-  it('hands only the editable Wish title to the canonical Memory composer', async () => {
+  it('hands completion to the canonical Memory composer without publishing Wish text in the URL', async () => {
     const user = userEvent.setup();
     renderWish(OPEN_WISH);
 
@@ -153,7 +240,7 @@ describe('WishProductPage direct completion', () => {
     );
 
     expect(screen.getByLabelText('current-location').textContent).toBe(
-      '/story/memories/new?title=Nordlichter+sehen',
+      '/story/memories/new',
     );
   });
 

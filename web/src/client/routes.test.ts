@@ -22,9 +22,11 @@ import {
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
+  PLAN_CREATE_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
   SEARCH_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
+  WISH_CREATE_ROUTE,
   activeNavigationArea,
   appRoutePath,
   chapterDetailPath,
@@ -146,6 +148,8 @@ describe('content deep links', () => {
   });
 
   it('builds encoded planning deep links under the Plan area', () => {
+    expect(WISH_CREATE_ROUTE).toBe('/plan/wishes/new');
+    expect(PLAN_CREATE_ROUTE).toBe('/plan/plans/new');
     expect(WISH_DETAIL_ROUTE_PATTERN).toBe('/plan/wishes/:wishId');
     expect(PLAN_DETAIL_ROUTE_PATTERN).toBe('/plan/plans/:planId');
     expect(PLACE_DETAIL_ROUTE_PATTERN).toBe('/plan/places/:placeId');

@@ -490,6 +490,7 @@ def return_plan_to_wish(
                 "plan; no second plan is created."
             ),
             "headers": ETAG_HEADERS,
+            "model": WishToPlanResponse,
         },
         201: {"headers": ETAG_HEADERS},
         **problem_responses(401, 404, 409, 422),

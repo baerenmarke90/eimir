@@ -55,6 +55,13 @@ describe('task origin privacy and lifetime', () => {
     expect(taskOriginPath('//other.example', '')).toBeNull();
     expect(taskOriginPath('/story/memories/secret', '')).toBeNull();
     expect(taskOriginPath('/more/private', '')).toBeNull();
+    expect(taskOriginPath('/plan/plans/plan-1', '?title=private')).toBe(
+      '/plan/plans/plan-1',
+    );
+    expect(taskOriginPath('/plan/wishes/wish-1', '')).toBe(
+      '/plan/wishes/wish-1',
+    );
+    expect(taskOriginPath('/plan/places/place-1', '')).toBeNull();
     expect(
       taskOriginPath(
         '/story',

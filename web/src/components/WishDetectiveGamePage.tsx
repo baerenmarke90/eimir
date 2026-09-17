@@ -511,7 +511,7 @@ export function WishDetectiveGamePage({
             {t('games.wishDetective.sparseTitle')}
           </h2>
           <p>{t('games.wishDetective.sparseBody')}</p>
-          <Link className="button-link" to="/plan#wish-title">
+          <Link className="button-link" to="/plan/wishes/new">
             {t('games.wishDetective.sparseAction')}
           </Link>
         </section>

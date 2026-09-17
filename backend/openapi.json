@@ -25196,6 +25196,13 @@
         },
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishToPlanResponse"
+                }
+              }
+            },
             "description": "The wish was already converted. The response returns the same original plan; no second plan is created.",
             "headers": {
               "ETag": {

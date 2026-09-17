@@ -10,11 +10,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
 import {
   type AppRouteIcon,
-  appRoutePath,
   HEART_MOMENT_CREATE_ROUTE,
   MEMORY_CREATE_ROUTE,
   MILESTONE_CREATE_ROUTE,
   MORE_PRIVATE_ROUTE,
+  PLAN_CREATE_ROUTE,
+  WISH_CREATE_ROUTE,
 } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
@@ -24,8 +25,6 @@ import './QuickCreateMenu.css';
 
 const PRIVATE_NOTE_CREATE_ROUTE = `${MORE_PRIVATE_ROUTE}/notes/new`;
 const PRIVATE_GIFT_IDEA_CREATE_ROUTE = `${PRIVATE_GIFT_IDEAS_PATH}/new`;
-const PLAN_ROUTE = appRoutePath('plan');
-
 type QuickCreateTarget = {
   id: string;
   labelKey: string;
@@ -64,7 +63,7 @@ const SHARED_TARGETS: readonly QuickCreateTarget[] = [
     id: 'wish',
     labelKey: 'navigation.quickCreateWish',
     sublineKey: 'navigation.quickCreateWishSubline',
-    to: `${PLAN_ROUTE}#wish-title`,
+    to: WISH_CREATE_ROUTE,
     icon: 'wish',
     tone: 'planning',
   },
@@ -72,7 +71,7 @@ const SHARED_TARGETS: readonly QuickCreateTarget[] = [
     id: 'plan',
     labelKey: 'navigation.quickCreatePlan',
     sublineKey: 'navigation.quickCreatePlanSubline',
-    to: `${PLAN_ROUTE}#plan-title`,
+    to: PLAN_CREATE_ROUTE,
     icon: 'plan',
     tone: 'planning',
   },
@@ -138,10 +137,17 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
 
   function openTarget(target: QuickCreateTarget): void {
     const handoff = () => {
-      const taskOriginKey =
-        target.id === 'memory'
-          ? captureOrigin({ focusTarget: 'quick-create' })
-          : null;
+      const taskOriginKey = ['memory', 'wish', 'plan'].includes(target.id)
+        ? captureOrigin({
+            focusTarget: 'quick-create',
+            planningSegment:
+              target.id === 'wish'
+                ? 'wishes'
+                : target.id === 'plan'
+                  ? 'plans'
+                  : undefined,
+          })
+        : null;
       setOpen(false);
       void navigate(target.to, {
         state: taskOriginKey ? { taskOriginKey } : undefined,

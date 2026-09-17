@@ -540,19 +540,21 @@ test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, an
   await expect(page.getByText(m5s3.overview.wishesEmpty)).toBeVisible();
   await page.getByRole('tab', { name: m5s3.overview.segmentPlans }).click();
 
-  const createPlan = page.locator('summary', { hasText: m5s3.plan.create });
-  await createPlan.focus();
-  await expect(createPlan).toBeFocused();
-  const createPlanBox = await createPlan.boundingBox();
-  expect(createPlanBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#create-plan-title')).toBeVisible();
-
   const revealAnimation = await page
     .locator('.planen-panel')
     .first()
     .evaluate((element) => getComputedStyle(element).animationName);
   expect(revealAnimation).toBe('none');
+
+  const createPlan = page.getByRole('link', { name: m5s3.overview.addPlan });
+  await createPlan.focus();
+  await expect(createPlan).toBeFocused();
+  const createPlanBox = await createPlan.boundingBox();
+  expect(createPlanBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#planning-create-title')).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/plan$/);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

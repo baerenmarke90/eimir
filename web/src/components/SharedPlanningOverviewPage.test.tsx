@@ -231,7 +231,7 @@ describe('SharedPlanningOverviewPage', () => {
     expect(placesHtml).toContain(i18n.t('m5s3.place.emptyOverview'));
   });
 
-  it('keeps Wishes and Plans in separate segments, orders dated Plans first, and excludes COMPLETED Plans', () => {
+  it('keeps Wishes and Plans separate and composes focal, later, undated, and receded history', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -258,7 +258,7 @@ describe('SharedPlanningOverviewPage', () => {
       ['m5-s3', 'plans', 'space-1'],
       infinitePage([
         plan({ id: 'plan-idea', title: 'Try a new recipe', status: 'IDEA' }),
-        // A defensively-tested rogue COMPLETED row must never reach the UI.
+        // Completed Plans remain discoverable only in the receded history.
         plan({
           id: 'plan-completed',
           title: 'Already experienced',
@@ -308,15 +308,16 @@ describe('SharedPlanningOverviewPage', () => {
     expect(wishesPanelHtml).not.toContain('Already turned into a plan');
     expect(wishesPanelHtml).not.toContain('Already come true');
 
-    // Pläne: dated PLANNED items lead, soonest first, then the IDEA item;
-    // the COMPLETED row is excluded entirely.
-    expect(html).not.toContain('Already experienced');
+    // Plans: dated PLANNED items lead, soonest first, then the undated group;
+    // completed history remains present behind the receded disclosure.
+    expect(html).toContain('Already experienced');
     const soonIndex = html.indexOf('Autumn hike');
     const laterIndex = html.indexOf('Concert in October');
     const ideaIndex = html.indexOf('Try a new recipe');
     expect(soonIndex).toBeGreaterThan(-1);
     expect(soonIndex).toBeLessThan(laterIndex);
     expect(laterIndex).toBeLessThan(ideaIndex);
+    expect(ideaIndex).toBeLessThan(html.indexOf('Already experienced'));
 
     // Creator attribution is real domain data, not a hardcoded name.
     expect(html).toContain(i18n.t('m5s3.overview.createdBy', { name: 'Lea' }));

@@ -1,7 +1,7 @@
 import { authorDisplayName } from '../client/authorPresentation';
 import { type FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -9,7 +9,6 @@ import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath } from '../client/routes';
 import {
-  planPillTone,
   planScheduleLabel,
   planStatusWord,
 } from '../client/planningPresentation';
@@ -25,6 +24,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { DestinationIcon } from './DestinationIcon';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
@@ -53,6 +53,10 @@ export function PlanProductPage({
   const { t } = useTranslation();
   const { planId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const taskState = location.state as { taskOriginKey?: unknown } | null;
+  const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -178,7 +182,7 @@ export function PlanProductPage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(appRoutePath('plan'), { replace: true });
+      navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
     },
   });
   const deleteMutation = useMutation({
@@ -198,7 +202,7 @@ export function PlanProductPage({
         }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(appRoutePath('plan'), { replace: true });
+      navigate(`${appRoutePath('plan')}#plans`, { replace: true });
     },
   });
 
@@ -288,9 +292,19 @@ export function PlanProductPage({
       ) : null}
       <PageHeader
         before={
-          <Link className="back-link" to={appRoutePath('plan')}>
-            {t('m5s3.common.back')}
-          </Link>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={() =>
+              requestReturn(originKey, `${appRoutePath('plan')}#plans`)
+            }
+          >
+            {t(
+              resolveOrigin(originKey)
+                ? 'taskBoundary.back'
+                : 'm5s3.common.back',
+            )}
+          </button>
         }
         title={plan.title}
         titleEditor={
@@ -321,16 +335,12 @@ export function PlanProductPage({
         className="planning-facts planen-detail-summary"
         aria-label={t('m5s3.plan.scheduleFacts')}
       >
-        <div className="planen-detail-pills">
-          {scheduleLabel ? (
-            <span className="planen-pill planen-pill-date">
-              {scheduleLabel}
-            </span>
-          ) : null}
-          <span className={`planen-pill planen-pill-${planPillTone(plan)}`}>
-            {planStatusWord(t, plan)}
-          </span>
-        </div>
+        <p className="planen-detail-schedule">
+          {scheduleLabel ?? t('m5s3.overview.undatedHeading')}
+        </p>
+        {plan.status === 'COMPLETED' ? (
+          <p className="planen-detail-status">{planStatusWord(t, plan)}</p>
+        ) : null}
         <p className="planen-detail-meta">
           {placeName
             ? `${t('m5s3.plan.placeLabel', { name: placeName })} · `
@@ -474,15 +484,6 @@ export function PlanProductPage({
           </section>
         ) : null}
 
-        {plan.status === 'COMPLETED' ? (
-          <PlanStoryContinuation
-            apis={apis}
-            spaceId={spaceId}
-            plan={plan}
-            focusOnMount={completeMutation.isSuccess}
-          />
-        ) : null}
-
         {!isEditing && plan.description ? (
           <section className="planen-section">
             <h2>{t('m5s3.plan.notesHeading')}</h2>
@@ -506,79 +507,94 @@ export function PlanProductPage({
           </div>
         ) : null}
 
-        {showsLifecycle ? (
-          <section className="planning-subsection">
-            <h2>{t('m5s3.plan.lifecycleHeading')}</h2>
-            <form className="form-grid" onSubmit={submitSchedule}>
-              <PlanScheduleFields
-                idPrefix="plan-schedule"
-                defaultDate={planScheduleDateInput(plan)}
-                defaultTime={planScheduleTimeInput(plan)}
-                defaultEnd={localDateTimeInput(plan.plannedEnd)}
-                includeEnd
-              />
-              <div className="form-actions">
-                <button type="submit" disabled={scheduleMutation.isPending}>
-                  {plan.status === 'PLANNED'
-                    ? t('m5s3.plan.reschedule')
-                    : t('m5s3.plan.schedule')}
-                </button>
-                {plan.status === 'PLANNED' ? (
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => unscheduleMutation.mutate(plan)}
-                    disabled={unscheduleMutation.isPending}
-                  >
-                    {t('m5s3.plan.unschedule')}
-                  </button>
-                ) : null}
-              </div>
-            </form>
+        {plan.status === 'COMPLETED' && completeMutation.isSuccess ? (
+          <PlanStoryContinuation
+            apis={apis}
+            spaceId={spaceId}
+            plan={plan}
+            focusOnMount={completeMutation.isSuccess}
+          />
+        ) : null}
 
-            {plan.sourceWishId ? (
-              <button
-                type="button"
-                className="tertiary"
-                onClick={() => returnMutation.mutate(plan)}
-                disabled={returnMutation.isPending}
-              >
-                {t('m5s3.plan.returnToWish')}
-              </button>
-            ) : null}
-            {lifecycleError ? (
-              <ProblemState
-                error={lifecycleError}
-                onRetry={() => void planQuery.refetch()}
-              />
-            ) : null}
+        {plan.status === 'COMPLETED' && !completeMutation.isSuccess ? (
+          <section className="planen-completed-result">
+            <p>{t('m5s3.plan.completedBody')}</p>
           </section>
         ) : null}
 
         {showsLifecycle ? (
-          <form
-            className="planen-complete-form"
-            onSubmit={submitComplete}
-            aria-label={t('m5s3.plan.complete')}
-          >
-            <label htmlFor="plan-complete-date">
-              {t('m5s3.plan.experiencedOn')}
-            </label>
-            <input
-              id="plan-complete-date"
-              name="experiencedOn"
-              type="date"
-              required
-              defaultValue={dateOnlyInput(new Date())}
-            />
-            <button
-              type="submit"
-              className="planen-complete-cta"
-              disabled={completeMutation.isPending}
-            >
-              {t('m5s3.plan.complete')}
-            </button>
-          </form>
+          <details className="planen-operations">
+            <summary>{t('m5s3.plan.actionsHeading')}</summary>
+            <section className="planning-subsection">
+              <h2>{t('m5s3.plan.lifecycleHeading')}</h2>
+              <form className="form-grid" onSubmit={submitSchedule}>
+                <PlanScheduleFields
+                  idPrefix="plan-schedule"
+                  defaultDate={planScheduleDateInput(plan)}
+                  defaultTime={planScheduleTimeInput(plan)}
+                  defaultEnd={localDateTimeInput(plan.plannedEnd)}
+                  includeEnd
+                />
+                <div className="form-actions">
+                  <button type="submit" disabled={scheduleMutation.isPending}>
+                    {plan.status === 'PLANNED'
+                      ? t('m5s3.plan.reschedule')
+                      : t('m5s3.plan.schedule')}
+                  </button>
+                  {plan.status === 'PLANNED' ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => unscheduleMutation.mutate(plan)}
+                      disabled={unscheduleMutation.isPending}
+                    >
+                      {t('m5s3.plan.unschedule')}
+                    </button>
+                  ) : null}
+                </div>
+              </form>
+
+              {plan.sourceWishId ? (
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => returnMutation.mutate(plan)}
+                  disabled={returnMutation.isPending}
+                >
+                  {t('m5s3.plan.returnToWish')}
+                </button>
+              ) : null}
+              {lifecycleError ? (
+                <ProblemState
+                  error={lifecycleError}
+                  onRetry={() => void planQuery.refetch()}
+                />
+              ) : null}
+              <form
+                className="planen-complete-form"
+                onSubmit={submitComplete}
+                aria-label={t('m5s3.plan.complete')}
+              >
+                <label htmlFor="plan-complete-date">
+                  {t('m5s3.plan.experiencedOn')}
+                </label>
+                <input
+                  id="plan-complete-date"
+                  name="experiencedOn"
+                  type="date"
+                  required
+                  defaultValue={dateOnlyInput(new Date())}
+                />
+                <button
+                  type="submit"
+                  className="planen-complete-cta"
+                  disabled={completeMutation.isPending}
+                >
+                  {t('m5s3.plan.complete')}
+                </button>
+              </form>
+            </section>
+          </details>
         ) : null}
       </div>
     </div>

@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import { captureR3Evidence } from './r3-evidence';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -11,6 +12,7 @@ const TEST_NOW = '2026-09-12T07:00:00Z';
 const EXPERIENCED_ON = '2026-09-11';
 
 async function installMocks(page: Page): Promise<void> {
+  let completed = false;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -157,6 +159,32 @@ async function installMocks(page: Page): Promise<void> {
         createdBy: ACCOUNT_ID,
         creator: { id: ACCOUNT_ID, displayName: 'Anna' },
         description: 'Remember the blanket.',
+        experiencedOn: completed ? EXPERIENCED_ON : null,
+        id: PLAN_ID,
+        placeId: null,
+        plannedEnd: null,
+        plannedStart: null,
+        sourceWishId: null,
+        spaceId: SPACE_ID,
+        status: completed ? 'COMPLETED' : 'PLANNED',
+        title: 'Picnic in the park',
+        updatedAt: TEST_NOW,
+        version: 4,
+      });
+      return;
+    }
+
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/complete`
+    ) {
+      completed = true;
+      await fulfillJson({
+        capabilities: { canComment: true, canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        createdBy: ACCOUNT_ID,
+        creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+        description: 'Remember the blanket.',
         experiencedOn: EXPERIENCED_ON,
         id: PLAN_ID,
         placeId: null,
@@ -254,6 +282,10 @@ async function prepareScenario(
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
 
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+
   await expect(
     page.getByRole('heading', { name: m5s3.plan.completedTitle }),
   ).toBeVisible();
@@ -262,9 +294,6 @@ async function prepareScenario(
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: m5s3.planStory.milestoneAction }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: m5s3.planStory.chapterAction }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: m5s3.planStory.later }),
@@ -281,10 +310,12 @@ async function captureEvidence(
   testInfo: TestInfo,
   name: string,
 ): Promise<void> {
-  await page.screenshot({
-    path: testInfo.outputPath(`planning-893-completion-${name}.png`),
-    fullPage: true,
-  });
+  await captureR3Evidence(
+    page,
+    testInfo,
+    `r3-plan-completion-${name}.png`,
+    false,
+  );
 }
 
 for (const scenario of visualScenarios) {
@@ -297,31 +328,23 @@ for (const scenario of visualScenarios) {
   });
 }
 
-test('completed Plan continuation preserves Memory capture semantics and Chapter disclosure', async ({
+test('completed Plan continuation opens canonical Memory capture and cancellation leaves completion authoritative', async ({
   page,
 }) => {
   await prepareScenario(page, visualScenarios[0]);
 
   await page.getByRole('button', { name: m5s3.planStory.memoryAction }).click();
-  const title = page.getByLabel(m5s3.common.title);
-  const date = page.getByLabel(m5s3.plan.experiencedOn);
-  const note = page.getByLabel(m5s3.planStory.noteLabel);
-  await expect(title).toHaveValue('Picnic in the park');
-  await expect(title).not.toHaveAttribute('required');
-  await expect(date).toHaveValue(EXPERIENCED_ON);
-  await expect(note).toHaveValue('Remember the blanket.');
+  await expect(page).toHaveURL(/\/story\/memories\/new$/);
+  await expect(
+    page.getByRole('heading', { name: de.memory.heading }),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: de.common.cancel }).click();
-  await page
-    .getByRole('button', { name: m5s3.planStory.chapterAction })
-    .click();
-  await expect(page.getByText(m5s3.planStory.chapterNeedsStory)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
+  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
   await expect(
-    page.getByRole('button', { name: m5s3.planStory.chapterViaMemory }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole('button', { name: m5s3.planStory.chapterViaMilestone }),
-  ).toBeVisible();
+    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
+  ).toHaveCount(0);
 });
 
 test('Later dismisses the continuation and restores focus to stable Plan navigation', async ({
@@ -329,7 +352,7 @@ test('Later dismisses the continuation and restores focus to stable Plan navigat
 }) => {
   await prepareScenario(page, visualScenarios[0]);
 
-  const backLink = page.getByRole('link', { name: m5s3.common.back });
+  const backLink = page.getByRole('button', { name: m5s3.common.back });
   await page.getByRole('button', { name: m5s3.planStory.later }).click();
 
   await expect(

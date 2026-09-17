@@ -1,12 +1,16 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { WishDetail } from '../api/generated/models/WishDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
-import { appRoutePath, MEMORY_CREATE_ROUTE } from '../client/routes';
+import {
+  appRoutePath,
+  MEMORY_CREATE_ROUTE,
+  planDetailPath,
+} from '../client/routes';
 import {
   loadAllPlaces,
   planningIfMatch,
@@ -14,6 +18,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { ListEntryIconButton } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
@@ -39,17 +44,23 @@ export function WishProductPage({
   const { t } = useTranslation();
   const { wishId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin, requestReturn, resolveOrigin } = useTaskOrigin();
+  const taskState = location.state as { taskOriginKey?: unknown } | null;
+  const originKey = taskState?.taskOriginKey;
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showCompletionContinuation, setShowCompletionContinuation] =
     useState(false);
   const completionHeadingRef = useRef<HTMLHeadingElement>(null);
-  const backLinkRef = useRef<HTMLAnchorElement>(null);
+  const backLinkRef = useRef<HTMLButtonElement>(null);
   const key = authorSummaryQueryKeys.wishDetail(spaceId, wishId);
 
   useEffect(() => {
-    if (showCompletionContinuation) completionHeadingRef.current?.focus();
+    if (!showCompletionContinuation) return;
+    completionHeadingRef.current?.focus();
+    completionHeadingRef.current?.scrollIntoView?.({ block: 'center' });
   }, [showCompletionContinuation]);
 
   const wishQuery = useQuery({
@@ -134,7 +145,12 @@ export function WishProductPage({
           wishToPlan: { title, description, placeId, schedule },
         }),
       ),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      queryClient.setQueryData(key, result.wish);
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.planDetail(spaceId, result.plan.id),
+        result.plan,
+      );
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ['m5-s3', 'wishes', spaceId],
@@ -145,7 +161,12 @@ export function WishProductPage({
         queryClient.invalidateQueries({ queryKey: key }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(appRoutePath('plan'), { replace: true });
+      navigate(planDetailPath(result.plan.id), {
+        replace: true,
+        state: resolveOrigin(originKey)
+          ? { taskOriginKey: originKey }
+          : undefined,
+      });
     },
   });
 
@@ -163,7 +184,7 @@ export function WishProductPage({
       await queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'wishes', spaceId],
       });
-      navigate(appRoutePath('plan'), { replace: true });
+      navigate(`${appRoutePath('plan')}#wishes`, { replace: true });
     },
   });
 
@@ -189,8 +210,6 @@ export function WishProductPage({
   }
   const wish = wishQuery.data;
   if (!wish) return null;
-  const memoryPrefillTitle = wish.title;
-
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!wish) return;
@@ -219,8 +238,16 @@ export function WishProductPage({
   }
 
   function openMemoryComposer() {
-    const query = new URLSearchParams({ title: memoryPrefillTitle });
-    navigate(`${MEMORY_CREATE_ROUTE}?${query.toString()}`);
+    if (!wish) return;
+    const continuationOriginKey = captureOrigin({
+      planningSegment: 'wishes',
+      selectedKey: wish.id,
+    });
+    navigate(MEMORY_CREATE_ROUTE, {
+      state: continuationOriginKey
+        ? { taskOriginKey: continuationOriginKey }
+        : undefined,
+    });
   }
 
   function dismissCompletionContinuation() {
@@ -241,13 +268,20 @@ export function WishProductPage({
       ) : null}
       <PageHeader
         before={
-          <Link
+          <button
+            type="button"
             ref={backLinkRef}
-            className="back-link"
-            to={appRoutePath('plan')}
+            className="back-link tertiary"
+            onClick={() =>
+              requestReturn(originKey, `${appRoutePath('plan')}#wishes`)
+            }
           >
-            {t('m5s3.common.back')}
-          </Link>
+            {t(
+              resolveOrigin(originKey)
+                ? 'taskBoundary.back'
+                : 'm5s3.common.back',
+            )}
+          </button>
         }
         eyebrow={t('m5s3.wish.detailEyebrow')}
         title={wish.title}
@@ -396,72 +430,74 @@ export function WishProductPage({
         ) : null}
 
         {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
-          <section className="planning-subsection">
-            <h2>{t('m5s3.wish.completeHeading')}</h2>
-            <p>{t('m5s3.wish.completeIntro')}</p>
-            <button
-              type="button"
-              onClick={() => completeMutation.mutate(wish)}
-              disabled={completeMutation.isPending}
-            >
-              {completeMutation.isPending
-                ? t('m5s3.wish.completing')
-                : t('m5s3.wish.complete')}
-            </button>
-            {completeMutation.error ? (
-              <ProblemState
-                error={completeMutation.error}
-                onRetry={() => void wishQuery.refetch()}
-              />
-            ) : null}
-          </section>
-        ) : null}
-
-        {wish.status === 'OPEN' && wish.capabilities.canEdit ? (
-          <section className="planning-subsection">
-            <h2>{t('m5s3.wish.convertHeading')}</h2>
-            <p>{t('m5s3.wish.convertIntro')}</p>
-            <form className="form-grid" onSubmit={submitConvert}>
-              <label htmlFor="wish-plan-title">
-                {t('m5s3.wish.planTitle')}
-              </label>
-              <input
-                id="wish-plan-title"
-                name="title"
-                maxLength={200}
-                placeholder={wish.title}
-              />
-              <label htmlFor="wish-plan-description">
-                {t('m5s3.common.description')}
-              </label>
-              <textarea
-                id="wish-plan-description"
-                name="description"
-                rows={4}
-              />
-              <label htmlFor="wish-plan-place">{t('m5s3.common.place')}</label>
-              <select id="wish-plan-place" name="placeId" defaultValue="">
-                <option value="">{t('m5s3.common.noPlace')}</option>
-                {placesQuery.data?.map((place) => (
-                  <option key={place.id} value={place.id}>
-                    {place.name}
-                  </option>
-                ))}
-              </select>
-              <PlanScheduleFields idPrefix="wish-plan-schedule" />
-              <button type="submit" disabled={convertMutation.isPending}>
-                {convertMutation.isPending
-                  ? t('m5s3.wish.converting')
-                  : t('m5s3.wish.convert')}
+          <details className="planen-operations wish-operations">
+            <summary>{t('m5s3.wish.actionsHeading')}</summary>
+            <section className="planning-subsection">
+              <h2>{t('m5s3.wish.completeHeading')}</h2>
+              <p>{t('m5s3.wish.completeIntro')}</p>
+              <button
+                type="button"
+                onClick={() => completeMutation.mutate(wish)}
+                disabled={completeMutation.isPending}
+              >
+                {completeMutation.isPending
+                  ? t('m5s3.wish.completing')
+                  : t('m5s3.wish.complete')}
               </button>
-              {convertMutation.error ? (
+              {completeMutation.error ? (
                 <ProblemState
-                  error={convertMutation.error}
+                  error={completeMutation.error}
                   onRetry={() => void wishQuery.refetch()}
                 />
               ) : null}
-            </form>
-          </section>
+            </section>
+            <section className="planning-subsection">
+              <h2>{t('m5s3.wish.convertHeading')}</h2>
+              <p>{t('m5s3.wish.convertIntro')}</p>
+              <form className="form-grid" onSubmit={submitConvert}>
+                <label htmlFor="wish-plan-title">
+                  {t('m5s3.wish.planTitle')}
+                </label>
+                <input
+                  id="wish-plan-title"
+                  name="title"
+                  maxLength={200}
+                  placeholder={wish.title}
+                />
+                <label htmlFor="wish-plan-description">
+                  {t('m5s3.common.description')}
+                </label>
+                <textarea
+                  id="wish-plan-description"
+                  name="description"
+                  rows={4}
+                />
+                <label htmlFor="wish-plan-place">
+                  {t('m5s3.common.place')}
+                </label>
+                <select id="wish-plan-place" name="placeId" defaultValue="">
+                  <option value="">{t('m5s3.common.noPlace')}</option>
+                  {placesQuery.data?.map((place) => (
+                    <option key={place.id} value={place.id}>
+                      {place.name}
+                    </option>
+                  ))}
+                </select>
+                <PlanScheduleFields idPrefix="wish-plan-schedule" />
+                <button type="submit" disabled={convertMutation.isPending}>
+                  {convertMutation.isPending
+                    ? t('m5s3.wish.converting')
+                    : t('m5s3.wish.convert')}
+                </button>
+                {convertMutation.error ? (
+                  <ProblemState
+                    error={convertMutation.error}
+                    onRetry={() => void wishQuery.refetch()}
+                  />
+                ) : null}
+              </form>
+            </section>
+          </details>
         ) : null}
       </div>
     </div>

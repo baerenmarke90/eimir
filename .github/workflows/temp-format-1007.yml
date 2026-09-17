@@ -1,0 +1,41 @@
+name: Temporary #1007 Format
+
+on:
+  push:
+    branches:
+      - feat/971-discover-web-integration
+    paths:
+      - .github/workflows/temp-format-1007.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feat/971-discover-web-integration
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.19.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Apply canonical Biome formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cd web
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx biome format e2e/tests/f2-task-boundaries.spec.ts e2e/tests/story-discover-tapestry.spec.ts --write
+          cd ..
+          rm .github/workflows/temp-format-1007.yml
+          git add -A
+          git commit -m "style(web): format Slice 4 browser fixtures"
+          git push origin HEAD:feat/971-discover-web-integration

@@ -14,10 +14,11 @@ npx playwright test tests/planning-focused-create.spec.ts tests/planning-upcomin
 - `r3-overview-*`: empty and dense Plans, focal upcoming intention, later agenda, undated Plans, receded history, 360/390/430 Compact, representative Expanded, Light/Dark, and reduced motion.
 - `r3-wishes-390-light.png`: Wishes as a separate peer mode without schedule/status pressure.
 - `r3-create-plan-*`: focused Plan creation at 320/390/Expanded and 200% layout zoom; the paired browser journey verifies an undated Plan, optional enrichment, save failure, dirty exit, Quick Create, and origin return.
+- `r3-create-wish-390-light.png`: focused Wish creation with domain-correct shared-visibility language.
 - `r3-plan-detail-range-*`: read-first detail with same-day and cross-day range presentation at 320/390/1280 in Light/Dark.
 - `r3-plan-completion-*`: authoritative completion followed by optional canonical Memory/Milestone continuations and the quiet Later route.
 - `r3-wish-completion-*`: direct Wish completion and optional canonical Memory continuation, including Compact, Expanded, Light, and Dark.
 
-Additional browser assertions outside the screenshot-producing cases cover existing-place and inline-place creation, Wish-to-Plan behavior, Plan scheduling after creation, refresh/error handling, tab keyboard behavior, Browser Back, no-autofocus task entry, axe checks, and Today cache freshness.
+Additional browser assertions outside the screenshot-producing cases cover existing-place and inline-place creation, authoritative Wish-to-Plan result ownership and return continuity, Plan scheduling after creation, refresh/error handling, tab keyboard behavior, Browser Back, no-autofocus task entry, axe checks, and Today cache freshness.
 
 Android runtime adaptation is intentionally not represented here. Per #837, this delivery establishes the Web product reference first; no native R3 parity claim is made.

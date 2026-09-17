@@ -73,7 +73,7 @@ The selected implementation reuses React Router, TanStack Query, native HTML con
 - **Resilience / offline:** reads retain known content; failed/offline writes preserve task state and never imply queued synchronization.
 - **Performance:** grouping is a linear pass over already loaded bounded pages. No additional per-item request or media processing is added.
 - **API / DTO / migration:** the response payload, database, routes and schedule DTO semantics remain unchanged. The OpenAPI declaration for the existing idempotent conversion response is corrected and the Web client is canonically regenerated to return `WishToPlanResponse`; no migration is required.
-- **Self-Hosted / release:** client-only composition, no configuration or provider difference.
+- **Self-Hosted / release:** response-declaration/client-generation correction only; no configuration, provider, payload, database or deployment difference.
 - **Testing:** pure selector/presentation tests, RTL component/task lifecycle tests, targeted and full browser tests, build/type/lint/format/governance gates, and exact-build visual/behavioral evidence are required.
 
 ## Native sequencing decision
@@ -91,10 +91,12 @@ Validation completed against the final implementation:
 - `npm run lint` — passed across 427 files.
 - `npm run format:check` — passed across 424 files.
 - `npm run build` — passed. Vite reported only its existing third-party `use client` notices and the non-blocking bundle-size advisory.
-- `npx vitest run --reporter=dot --maxWorkers=1` — 139 files passed, 1 skipped; 864 tests passed, 1 skipped. A preceding parallel run hit two unrelated five-second timeouts; both passed in isolation (20/20) before this clean serialized run.
-- The consolidated Chromium suite for Planning creation, overview, detail, Plan/Wish completion, inline Place creation, accessibility, Quick Create, and Today freshness — 71/71 passed.
+- `npx vitest run --reporter=dot --maxWorkers=1` — 139 files passed, 1 skipped; 866 tests passed, 1 skipped.
+- `uv run --frozen pytest tests/unit/test_m3_plan_openapi.py -q` — 15/15 passed; the live/versioned OpenAPI and generated-client drift checks also passed.
+- The exact-build Chromium R3 suite for Planning creation, overview, detail, authoritative Wish conversion, and Plan/Wish completion — 36/36 passed.
+- The remaining Chromium regressions for inline Place creation, accessibility, Quick Create, and Today freshness — 37/37 passed (73/73 across the combined R3 browser surface).
 - `git diff --check` — passed before commit.
 
-Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, cross-day ranges, and completion continuations. The captures correspond to product-source commit `52cf5d9525a0bc1e0587ab9f3c006cf96446ba47`, recorded alongside checksums in the evidence directory.
+Exact-build visual and behavioral evidence is stored in [`evidence/r3/`](evidence/r3/README.md), covering 320/360/390/430 px Compact, representative Expanded, 200% layout zoom, Light/Dark, reduced motion, sparse/dense/empty content, domain-correct Wish creation, cross-day ranges, authoritative conversion, and completion continuations. The captures correspond to product-source commit `6f77f6645a196bae213c3bcf61634226e558bb5e`, recorded alongside checksums in the evidence directory.
 
 Known scope boundary: Android runtime adaptation and native device acceptance are intentionally deferred under #837. No Product Owner acceptance, native parity, or merge readiness is inferred from this record, local validation, or green CI.

@@ -558,12 +558,15 @@ test('an older Memory returns to the same loaded Timeline range and position', a
 }, testInfo) => {
   const api = await installProductApi(page);
   await signIn(page);
-  await page
-    .getByRole('button', {
-      name: storyProducts.storyFilters.loadMore,
-      exact: true,
-    })
-    .click();
+  await page.locator('.story-pagination-sentinel').scrollIntoViewIfNeeded();
+  await expect
+    .poll(
+      () =>
+        api.timelineRequests.filter((query) => query.includes('cursor=older-page'))
+          .length,
+    )
+    .toBe(1);
+  await expect(page.getByText(older.title, { exact: true })).toBeAttached();
   const source = page
     .getByRole('link')
     .filter({ has: page.getByText(older.title, { exact: true }) });

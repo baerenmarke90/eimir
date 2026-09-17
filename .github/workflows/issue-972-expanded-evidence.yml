@@ -1,0 +1,91 @@
+name: Complete issue 972 expanded evidence
+
+on:
+  push:
+    branches:
+      - feat/972-momente-browse-layer
+
+permissions:
+  contents: write
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+
+      - name: Add expanded browser evidence capture
+        shell: bash
+        run: |
+          node --input-type=commonjs <<'NODE'
+          const fs = require('node:fs');
+          const file = 'web/e2e/tests/story-discover-tapestry.spec.ts';
+          let source = fs.readFileSync(file, 'utf8');
+          const before = `  await expectNoWcagViolations(page);
+});
+
+test('Momente Discover tapestry is axe-clean in dark mode'`;
+          const after = `  await expectNoWcagViolations(page);
+
+  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
+  await page.screenshot({
+    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-1440-light.png'),
+    fullPage: false,
+  });
+});
+
+test('Momente Discover tapestry is axe-clean in dark mode'`;
+          if (!source.includes(before)) throw new Error('Desktop evidence anchor missing');
+          source = source.replace(before, after);
+          fs.writeFileSync(file, source);
+
+          const readme = 'docs/product/design/evidence/972-momente-browse-layer/README.md';
+          let body = fs.readFileSync(readme, 'utf8');
+          const line = '- `972-browse-390-light.png`: 390 × 844, light theme.\n';
+          const expanded = '- `972-browse-1440-light.png`: 1440 × 1200, expanded Web, light theme.\n';
+          if (!body.includes(line)) throw new Error('Evidence README anchor missing');
+          if (!body.includes(expanded)) body = body.replace(line, expanded + line);
+          fs.writeFileSync(readme, body);
+          NODE
+
+      - name: Install locked Web dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install locked browser QA dependencies
+        working-directory: web/e2e
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Format changed TypeScript
+        working-directory: web
+        run: npm run format
+
+      - name: Typecheck Web
+        working-directory: web
+        run: npm run typecheck
+
+      - name: Install pinned Chromium runtime
+        working-directory: web/e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Capture and verify expanded Momente evidence
+        working-directory: web/e2e
+        run: ./node_modules/.bin/playwright test tests/story-discover-tapestry.spec.ts --project=chromium --workers=1 --grep "stays dense, chronological, and axe-clean on desktop"
+
+      - name: Commit expanded evidence
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/issue-972-expanded-evidence.yml
+          git add web/e2e/tests/story-discover-tapestry.spec.ts \
+            docs/product/design/evidence/972-momente-browse-layer/README.md \
+            docs/product/design/evidence/972-momente-browse-layer/972-browse-1440-light.png
+          git commit -m "test(web): add expanded evidence for Momente browse layer"
+          git push origin HEAD:feat/972-momente-browse-layer

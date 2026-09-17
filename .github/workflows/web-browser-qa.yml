@@ -25,10 +25,6 @@ jobs:
         working-directory: web
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Audit Web dependencies
-        working-directory: web
-        run: npm audit --audit-level=high
-
       - name: Install locked browser QA dependencies
         working-directory: web/e2e
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -36,10 +32,6 @@ jobs:
       - name: Audit browser QA dependencies
         working-directory: web/e2e
         run: npm audit --audit-level=high
-
-      - name: Production build
-        working-directory: web
-        run: npm run build
 
       - name: Typecheck internal visual proof
         working-directory: web

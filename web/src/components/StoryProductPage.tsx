@@ -313,17 +313,21 @@ export function StoryProductPage({
     retry: false,
   });
 
+  const [paginationGeneration, setPaginationGeneration] = useState(0);
   const pullRefresh = usePullToRefresh({
     enabled: true,
     blocked:
       activeView === 'timeline'
         ? storyQuery.isFetching
         : discoverQuery.isFetching,
-    onRefresh: () => {
+    onRefresh: async () => {
       if (activeView === 'timeline') {
-        return storyQuery.refetch();
+        const result = await storyQuery.refetch();
+        if (!result.isError) {
+          setPaginationGeneration((generation) => generation + 1);
+        }
       } else {
-        return discoverQuery.refetch();
+        await discoverQuery.refetch();
       }
     },
   });
@@ -502,6 +506,46 @@ export function StoryProductPage({
     timelineMonthsRef,
     activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
+  useTimelineReveal({
+    rootRef: timelineMonthsRef,
+    enabled: activeView === 'timeline' && timelineItems.length > 0,
+    scopeKey: `${spaceId}:${cacheResourceId}`,
+    revision: timelineItems.length,
+  });
+
+  const nextStoryCursor = storyQuery.hasNextPage
+    ? (storyQuery.data?.pages.at(-1)?.value.nextCursor ?? null)
+    : null;
+  const loadNextStoryPage = useCallback(async () => {
+    if (
+      !storyQuery.hasNextPage ||
+      storyQuery.isFetchingNextPage ||
+      pullRefresh.refreshing
+    ) {
+      return false;
+    }
+    const result = await storyQuery.fetchNextPage({ cancelRefetch: false });
+    return !result.isError;
+  }, [
+    pullRefresh.refreshing,
+    storyQuery.fetchNextPage,
+    storyQuery.hasNextPage,
+    storyQuery.isFetchingNextPage,
+  ]);
+  const progressivePagination = useTimelineAutoPagination({
+    sentinelRef: paginationSentinelRef,
+    enabled: activeView === 'timeline',
+    blocked:
+      (storyQuery.isFetching && !storyQuery.isFetchingNextPage) ||
+      pullRefresh.refreshing ||
+      restoringTimeline ||
+      Boolean(offline),
+    hasNextPage: Boolean(storyQuery.hasNextPage),
+    isFetchingNextPage: storyQuery.isFetchingNextPage,
+    cursor: nextStoryCursor,
+    scopeKey: `${spaceId}:${cacheResourceId}:${paginationGeneration}`,
+    loadNextPage: loadNextStoryPage,
+  });
 
   const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(

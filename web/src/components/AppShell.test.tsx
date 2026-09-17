@@ -426,4 +426,86 @@ describe('AppShell', () => {
     const htmlBeforeShell = html.slice(0, shellIndex);
     expect(htmlBeforeShell).not.toContain('mobile-quick-create');
   });
+
+  it('sets data-hidden="false" initially on /today, /plan, and /story (#970)', () => {
+    const todayHtml = renderShell('/today');
+    expect(todayHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+
+    const planHtml = renderShell('/plan');
+    expect(planHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+
+    const storyHtml = renderShell('/story');
+    expect(storyHtml).toContain(
+      'class="mobile-bottom-shell" data-hidden="false"',
+    );
+  });
+
+  it('keeps floating bottom shell persistent on /today and /plan even when scrolled (#970)', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    const { container, rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/today']}>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <div style={{ height: '3000px' }}>Long content</div>
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const bottomShell = container.querySelector('.mobile-bottom-shell');
+    expect(bottomShell).not.toBeNull();
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Simulate scroll down
+    Object.defineProperty(window, 'scrollY', { value: 500, writable: true });
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    // On /today, it must remain persistent!
+    expect(bottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    // Also check on /plan
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan']}>
+          <AppShell
+            onLogout={() => undefined}
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex Example' }}
+            spaceId="space-1"
+          >
+            <div style={{ height: '3000px' }}>Long content</div>
+          </AppShell>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const planBottomShell = container.querySelector('.mobile-bottom-shell');
+    expect(planBottomShell?.getAttribute('data-hidden')).toBe('false');
+
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+    expect(planBottomShell?.getAttribute('data-hidden')).toBe('false');
+  });
 });

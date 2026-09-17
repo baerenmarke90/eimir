@@ -28,7 +28,7 @@ function memory(index: number, withMedia = false) {
     memory: {
       id: `77777777-7777-4777-8777-${String(index + 1).padStart(12, '0')}`,
       title: `Gemeinsamer Septembermoment ${index + 1}`,
-      body: 'Ein ruhiger gemeinsamer Moment, den wir nicht vergessen wollen.',
+      body: 'A calm shared moment that we want to remember.',
       happenedOn: `2026-09-${day}`,
       createdAt: `2026-09-${day}T10:00:00Z`,
       author: ME,
@@ -63,7 +63,7 @@ const olderItem = {
     ...memory(0).memory,
     id: '88888888-8888-4888-8888-888888888888',
     title: 'Unser älterer Augustmoment',
-    body: 'Noch ein gemeinsamer Moment aus dem letzten Monat.',
+    body: 'Another shared moment from the previous month.',
     happenedOn: '2026-08-18',
     createdAt: '2026-08-18T10:00:00Z',
     attachments: [],

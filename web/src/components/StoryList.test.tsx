@@ -270,6 +270,63 @@ describe('StoryList', () => {
     expect(html).toContain('A small note with a photo');
   });
 
+  it('opts Timeline rendering into one-time reveal and deferred media without changing shared list defaults', () => {
+    const item = StoryItemFromJSON({
+      kind: 'MEMORY',
+      effectiveDate: '2026-08-26',
+      memory: {
+        attachments: [
+          {
+            id: 'att-progressive',
+            position: 0,
+            status: 'READY',
+            mediaType: 'IMAGE',
+            mimeType: 'image/jpeg',
+            hasThumbnail: true,
+            width: 800,
+            height: 800,
+            size: 1024,
+          },
+        ],
+        author: {
+          id: '00000000-0000-0000-0000-000000000001',
+          displayName: 'A',
+        },
+        capabilities: { canComment: true, canDelete: true, canEdit: true },
+        createdAt: '2026-08-26T08:00:00Z',
+        happenedOn: '2026-08-26',
+        id: '00000000-0000-0000-0000-000000000099',
+        title: 'Progressive memory',
+      },
+    });
+
+    const progressiveHtml = renderToStaticMarkup(
+      <MemoryRouter>
+        <StoryList
+          items={[item]}
+          loadMemoryImage={loadMemoryImage}
+          loadHeartMomentImage={loadHeartMomentImage}
+          progressiveReveal
+        />
+      </MemoryRouter>,
+    );
+    const sharedHtml = renderToStaticMarkup(
+      <MemoryRouter>
+        <StoryList
+          items={[item]}
+          loadMemoryImage={loadMemoryImage}
+          loadHeartMomentImage={loadHeartMomentImage}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(progressiveHtml).toContain('story-timeline-progressive-reveal');
+    expect(progressiveHtml).toContain('data-timeline-reveal-key="item:');
+    expect(progressiveHtml).toContain('data-media-deferred="true"');
+    expect(sharedHtml).not.toContain('story-timeline-progressive-reveal');
+    expect(sharedHtml).not.toContain('data-media-deferred="true"');
+  });
+
   it('announces an empty story as a status', () => {
     const html = renderToStaticMarkup(
       <StoryList

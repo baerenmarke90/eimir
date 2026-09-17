@@ -20,7 +20,7 @@ import {
   PRIMARY_APP_ROUTES,
   SEARCH_ROUTE,
 } from '../client/routes';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { Brand } from './Brand';
@@ -148,9 +148,14 @@ function AuthenticatedAppShell({
   }
 
   const location = useLocation();
+  const { requestReturn } = useTaskOrigin();
   const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
     useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
+  const isMemoryDetail = /^\/story\/memories\/[^/]+$/.test(location.pathname);
+  const taskOriginKey = (
+    location.state as { taskOriginKey?: unknown } | null
+  )?.taskOriginKey;
   const isFocusedTask =
     location.pathname === MEMORY_CREATE_ROUTE ||
     location.pathname === '/plan/plans/new' ||
@@ -196,7 +201,29 @@ function AuthenticatedAppShell({
 
       {!isFocusedTask ? (
         <header className="app-header product-topbar">
-          <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
+          {isMemoryDetail ? (
+            <button
+              type="button"
+              className="shell-utility-link shell-detail-back"
+              onClick={() => requestReturn(taskOriginKey)}
+              aria-label={t('taskBoundary.back')}
+              title={t('taskBoundary.back')}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+          ) : (
+            <Brand to={DEFAULT_APP_ROUTE} ariaLabel={t('brand.homeAria')} />
+          )}
           <nav className="shell-nav" aria-label={t('navigation.primary')}>
             <PrimaryNavigationLinks />
           </nav>

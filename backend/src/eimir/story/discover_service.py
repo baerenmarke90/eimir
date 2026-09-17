@@ -149,8 +149,11 @@ def _merge(pool: dict[StoryRef, Candidate], incoming: Candidate) -> None:
 
 
 def _date_distance(source: date, selection_date: date) -> int:
-    occurrence = clock.annual_occurrence(selection_date.year, source.month, source.day)
-    return abs((occurrence - selection_date).days)
+    occurrences = (
+        clock.annual_occurrence(year, source.month, source.day)
+        for year in range(selection_date.year - 1, selection_date.year + 2)
+    )
+    return min(abs((occurrence - selection_date).days) for occurrence in occurrences)
 
 
 def _date_pairs(selection_date: date, window_days: int) -> set[tuple[int, int]]:
@@ -159,8 +162,9 @@ def _date_pairs(selection_date: date, window_days: int) -> set[tuple[int, int]]:
     }
     pairs = {(value.month, value.day) for value in dates}
     # Canonical annual occurrence maps February 29 to February 28 in a
-    # non-leap target year, so both source dates are exact on that day.
-    if selection_date == clock.annual_occurrence(selection_date.year, 2, 29):
+    # non-leap target year. Include the raw February-29 source pair whenever
+    # that canonical occurrence falls anywhere inside the requested window.
+    if any(value == clock.annual_occurrence(value.year, 2, 29) for value in dates):
         pairs.add((2, 29))
     return pairs
 

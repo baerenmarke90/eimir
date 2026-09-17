@@ -8,7 +8,7 @@ from threading import Barrier
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from eimir.authorization import AuthorizationContext, ContentVisibility
@@ -18,6 +18,7 @@ from eimir.heart_moments import service as heart_service
 from eimir.heart_moments.models import HeartEmotion
 from eimir.main import create_app
 from eimir.memories import service as memory_service
+from eimir.outbox.models import OutboxEvent
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from eimir.story import discover_service
@@ -195,10 +196,63 @@ def test_leap_day_uses_canonical_annual_occurrence(
     leap = _memory(session, discover_setup, 1, date(2024, 2, 29))
     session.flush()
 
+    candidate = next(
+        item
+        for item in discover_service.generate_candidates(
+            session,
+            discover_setup["context"],  # type: ignore[arg-type]
+            date(2025, 2, 28),
+        )
+        if item.ref.item_id == leap.id
+    )
     body = _get(client, discover_setup).json()
 
+    assert discover_service.CandidateIntent.EXACT_DATE in candidate.intents
+    assert candidate.date_distance_days == 0
     assert _identity(body["lead"]) == str(leap.id)
     assert body["leadContext"] == {"type": "ON_THIS_DAY", "yearsAgo": 1}
+
+
+@pytest.mark.parametrize(
+    ("selection_date", "historical_date", "expected_distance"),
+    [
+        (date(2026, 1, 1), date(2024, 12, 31), 1),
+        (date(2026, 12, 31), date(2024, 1, 1), 1),
+        (date(2026, 1, 3), date(2024, 12, 31), 3),
+        (date(2025, 3, 1), date(2024, 2, 29), 1),
+    ],
+)
+def test_recurring_near_dates_use_nearest_canonical_annual_occurrence(
+    client,
+    session: Session,
+    discover_setup,
+    monkeypatch,
+    selection_date: date,
+    historical_date: date,
+    expected_distance: int,
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(
+        clock,
+        "now",
+        lambda: (
+            datetime.combine(selection_date, datetime.min.time(), tzinfo=UTC) + timedelta(hours=10)
+        ),
+    )
+    memory = _memory(session, discover_setup, 1, historical_date)
+    session.flush()
+
+    candidates = discover_service.generate_candidates(
+        session,
+        discover_setup["context"],  # type: ignore[arg-type]
+        selection_date,
+    )
+    candidate = next(item for item in candidates if item.ref.item_id == memory.id)
+
+    assert discover_service.CandidateIntent.NEAR_DATE in candidate.intents
+    assert candidate.date_distance_days == expected_distance
+    body = _get(client, discover_setup).json()
+    assert _identity(body["lead"]) == str(memory.id)
+    assert body["leadContext"] is None
 
 
 def test_same_day_snapshot_is_stable_and_algorithm_change_cannot_replace_it(
@@ -535,31 +589,52 @@ def test_concurrent_first_reads_commit_one_canonical_snapshot(engine, monkeypatc
         space_id = space.id
         account_ids = (viewer.id, partner.id)
 
-    barrier = Barrier(2)
+    try:
+        barrier = Barrier(2)
 
-    def read() -> dict[str, object]:
-        barrier.wait()
-        response = client.get(
-            f"/api/v1/spaces/{space_id}/discover",
-            headers=auth(token),
-        )
-        assert response.status_code == 200, response.text
-        return response.json()
+        def read() -> dict[str, object]:
+            barrier.wait()
+            response = client.get(
+                f"/api/v1/spaces/{space_id}/discover",
+                headers=auth(token),
+            )
+            assert response.status_code == 200, response.text
+            return response.json()
 
-    with (
-        TestClient(create_app(), raise_server_exceptions=False) as client,
-        ThreadPoolExecutor(max_workers=2) as executor,
-    ):
-        responses = list(executor.map(lambda _: read(), range(2)))
+        with (
+            TestClient(create_app(), raise_server_exceptions=False) as client,
+            ThreadPoolExecutor(max_workers=2) as executor,
+        ):
+            responses = list(executor.map(lambda _: read(), range(2)))
 
-    with maker() as session:
-        snapshots = session.execute(select(DiscoverSelectionSnapshot)).scalars().all()
-    assert responses[0] == responses[1]
-    assert len(snapshots) == 1
+        with maker() as session:
+            snapshots = (
+                session.execute(
+                    select(DiscoverSelectionSnapshot).where(
+                        DiscoverSelectionSnapshot.space_id == space_id,
+                        DiscoverSelectionSnapshot.viewer_account_id == account_ids[0],
+                    )
+                )
+                .scalars()
+                .all()
+            )
+        assert responses[0] == responses[1]
+        assert len(snapshots) == 1
+    finally:
+        with maker.begin() as session:
+            from eimir.identity.models import Account
+            from eimir.relationship.models import Space
 
-    with maker.begin() as session:
-        from eimir.identity.models import Account
-        from eimir.relationship.models import Space
+            session.execute(delete(OutboxEvent).where(OutboxEvent.space_id == space_id))
+            session.execute(delete(Space).where(Space.id == space_id))
+            session.execute(delete(Account).where(Account.id.in_(account_ids)))
 
-        session.query(Space).filter(Space.id == space_id).delete(synchronize_session=False)
-        session.query(Account).filter(Account.id.in_(account_ids)).delete(synchronize_session=False)
+        with maker() as session:
+            assert (
+                session.execute(
+                    select(func.count())
+                    .select_from(OutboxEvent)
+                    .where(OutboxEvent.space_id == space_id)
+                ).scalar_one()
+                == 0
+            )

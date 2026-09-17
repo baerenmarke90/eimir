@@ -35,10 +35,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
-import {
-  HeartEmotionBadge,
-  HeartEmotionPicker,
-} from './HeartEmotionVisual';
+import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';

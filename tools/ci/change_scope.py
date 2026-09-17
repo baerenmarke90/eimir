@@ -20,6 +20,8 @@ SCOPES = (
     "self_hosted",
     "api_clients",
     "supply_chain",
+    "supply_chain_backend",
+    "supply_chain_web",
     "deployment_guard",
     "recovery",
 )
@@ -91,6 +93,24 @@ RECOVERY_CONTRACT_EXACT = (
     "docs/SELF-HOSTING.md",
     "docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md",
     "docs/ARCANE.md",
+)
+
+SUPPLY_CHAIN_BACKEND_EXACT = (
+    "backend/pyproject.toml",
+    "backend/uv.lock",
+    "backend/Dockerfile",
+    "docs/DEPENDENCIES.md",
+)
+
+SUPPLY_CHAIN_WEB_EXACT = (
+    "web/Dockerfile",
+)
+
+# Dependabot configuration can change dependency/update behavior across all
+# ecosystems, so preserve the historical fail-closed Supply Chain coverage for
+# both build surfaces when this cross-ecosystem control changes.
+SUPPLY_CHAIN_CROSS_ECOSYSTEM_EXACT = (
+    ".github/dependabot.yml",
 )
 
 
@@ -184,20 +204,24 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["api_clients"] = True
             known = True
 
-        # Supply-chain work is dependency/build related; normal backend source
-        # changes do not need a fresh audit and two no-cache container builds.
-        if _matches(
-            path,
-            exact=(
-                "backend/pyproject.toml",
-                "backend/uv.lock",
-                "backend/Dockerfile",
-                "web/Dockerfile",
-                "docs/DEPENDENCIES.md",
-                ".github/dependabot.yml",
-            ),
-        ):
+        # Supply-chain work keeps one stable required status while distinguishing
+        # the expensive build surface underneath it. Backend dependency/build
+        # controls do not need a Web no-cache image build; Web Dockerfile changes
+        # do not need Python/uv/backend audit and build work.
+        if path in SUPPLY_CHAIN_BACKEND_EXACT:
             result["supply_chain"] = True
+            result["supply_chain_backend"] = True
+            known = True
+
+        if path in SUPPLY_CHAIN_WEB_EXACT:
+            result["supply_chain"] = True
+            result["supply_chain_web"] = True
+            known = True
+
+        if path in SUPPLY_CHAIN_CROSS_ECOSYSTEM_EXACT:
+            result["supply_chain"] = True
+            result["supply_chain_backend"] = True
+            result["supply_chain_web"] = True
             known = True
 
         # Network/port/CSP checks are tied to deployment and proxy surfaces.

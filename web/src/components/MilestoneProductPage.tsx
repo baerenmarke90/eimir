@@ -1,7 +1,7 @@
 import { authorFirstName } from '../client/authorPresentation';
 import { type FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
   MilestoneDetailFromJSON,
@@ -25,7 +25,6 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { localDateInputValue, openNativeDatePicker } from '../client/dateInput';
-import { useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { PageHeader } from './PageHeader';
@@ -64,23 +63,6 @@ export function MilestoneProductPage({
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { requestReturn, resolveOrigin } = useTaskOrigin();
-  const taskState = location.state as { taskOriginKey?: unknown } | null;
-  const originKey = taskState?.taskOriginKey;
-  const returnControl = (
-    <button
-      type="button"
-      className="back-link tertiary"
-      onClick={() => requestReturn(originKey)}
-    >
-      {t(
-        resolveOrigin(originKey)
-          ? 'taskBoundary.back'
-          : 'milestoneProduct.backToStory',
-      )}
-    </button>
-  );
   const params = useParams();
   const queryClient = useQueryClient();
   const milestoneId = params.milestoneId;

@@ -326,7 +326,6 @@ export function MemoryProductPage({
   if (memoryQuery.isLoading) {
     return (
       <div className="page page-reading">
-        {returnControl}
         <UiState kind="loading" title={t('memoryProduct.loading')} />
       </div>
     );

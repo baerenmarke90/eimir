@@ -404,11 +404,13 @@ test('Timeline footer metadata stays coherent across attachment shapes (#795)', 
 });
 
 /**
- * The compact stacked footer used to come from a Memory Detail media query
- * that reached the Timeline by accident. It is intended behaviour, so the
- * single owner now states it (#795).
+ * The compact footer used to stack date above author. Since #969 it is one
+ * wrapping row everywhere: date first, the author/visibility/photo group
+ * after it, moving to a second row only when it no longer fits.
  */
-test('Timeline footer stacks on compact widths (#795)', async ({ page }) => {
+test('Timeline footer is one wrapping row on compact widths (#795, #969)', async ({
+  page,
+}) => {
   await installMocks(page);
   await installFooterVariants(page);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -422,6 +424,6 @@ test('Timeline footer stacks on compact widths (#795)', async ({ page }) => {
       return { flexDirection: cs.flexDirection, flexWrap: cs.flexWrap };
     });
 
-  expect(layout.flexDirection).toBe('column');
+  expect(layout.flexDirection).toBe('row');
   expect(layout.flexWrap).toBe('wrap');
 });

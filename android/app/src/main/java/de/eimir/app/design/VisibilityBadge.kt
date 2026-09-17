@@ -98,7 +98,7 @@ fun VisibilityBadge(
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            VisibilityIcon(
+            VisibilityGlyph(
                 type = type,
                 color = textColor,
                 modifier = Modifier.size(14.dp),
@@ -117,8 +117,13 @@ fun VisibilityBadge(
     }
 }
 
+/**
+ * The bare visibility symbol without the pill, for compact metadata rows
+ * where a full badge would compete with the content. It carries no semantics
+ * of its own; the caller names it.
+ */
 @Composable
-private fun VisibilityIcon(
+fun VisibilityGlyph(
     type: VisibilityBadgeType,
     color: Color,
     modifier: Modifier = Modifier,

@@ -725,41 +725,6 @@ code {
   box-shadow: 0 0 0 5px var(--color-brand-surface);
 }
 
-.story-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.75rem;
-}
-
-.story-card-meta time {
-  margin-left: auto;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-.kind-badge,
-.shared-badge {
-  display: inline-flex;
-  min-height: 1.7rem;
-  align-items: center;
-  border-radius: var(--radius-pill);
-  padding: 0.25rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.kind-badge {
-  background: var(--color-brand-surface);
-  color: var(--color-brand-strong);
-}
-
-.shared-badge {
-  background: var(--color-shared-surface);
-  color: var(--color-shared);
-}
-
 .story-card h4 {
   margin-bottom: 0.4rem;
   font-size: 1.08rem;
@@ -1044,15 +1009,6 @@ code {
 
   .story-list {
     padding-left: 1.25rem;
-  }
-
-  .story-card-meta {
-    flex-wrap: wrap;
-  }
-
-  .story-card-meta time {
-    width: 100%;
-    margin-left: 0;
   }
 
   .form-actions {

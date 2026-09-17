@@ -191,10 +191,6 @@
     padding: var(--space-1) 0;
   }
 
-  .story-card-footer {
-    flex-direction: column;
-  }
-
   /* Activity/notifications: remove desktop flex bases from compact toolbars. */
   .m4-toolbar-row,
   .m4-notification-summary {

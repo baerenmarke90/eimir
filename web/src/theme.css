@@ -328,7 +328,6 @@ button.secondary,
   color: var(--color-text-inverse-muted);
 }
 
-.kind-badge,
 .story-empty-mark,
 .file-picker-icon {
   color: var(--color-brand-text);

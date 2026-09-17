@@ -163,6 +163,11 @@
     <string name="story_kind_milestone">Meilenstein</string>
     <string name="story_kind_heart_moment">Herzmoment</string>
     <string name="story_by_author">von %1$s</string>
+    <string name="story_visibility_shared">Für uns beide</string>
+    <plurals name="story_photo_count">
+        <item quantity="one">%d Foto</item>
+        <item quantity="other">%d Fotos</item>
+    </plurals>
     <string name="story_image_unavailable">Bild nicht geladen</string>
     <string name="story_empty_title">Eure Geschichte beginnt hier</string>
     <string name="story_empty_body">Sobald ihr eine Erinnerung festhaltet, erscheint sie an diesem Ort — nach Tagen geordnet.</string>

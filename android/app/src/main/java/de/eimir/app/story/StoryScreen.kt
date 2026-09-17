@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import de.eimir.app.design.MinimumTouchTarget
 import de.eimir.app.design.EimirDisplayFamily
 import de.eimir.app.design.EimirTheme
-import de.eimir.app.design.VisibilityBadge
 import de.eimir.app.reference.R
 import java.time.LocalDate
 import java.util.UUID
@@ -473,6 +472,32 @@ private fun StoryEntryCard(
     }
 }
 
+/**
+ * Title or words of an entry, led by the quiet kind glyph where the kind is
+ * not the default Memory (#969). No kind label or visibility pill precedes
+ * the content any more.
+ */
+@Composable
+private fun StoryEntryText(
+    entry: StoryEntry,
+    style: androidx.compose.ui.text.TextStyle,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step2),
+        verticalAlignment = Alignment.Top,
+    ) {
+        StoryKindGlyph(kind = entry.kind, lineHeight = style.lineHeight)
+        Text(
+            text = entry.text,
+            style = style,
+            color = EimirTheme.colors.textPrimary,
+            // A long title wraps rather than being cut: the words are the
+            // record, and truncation would hide part of it for good.
+            modifier = Modifier.widthIn(max = ReadingMeasure),
+        )
+    }
+}
+
 @Composable
 private fun MemoryCard(
     entry: StoryEntry,
@@ -493,39 +518,7 @@ private fun MemoryCard(
             modifier = Modifier.padding(EimirTheme.spacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(entry.kind.labelRes()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = EimirTheme.colors.shared,
-                )
-                VisibilityBadge(isShared = true)
-            }
-
-            Text(
-                text = entry.text,
-                style = EimirTheme.typography.titleMedium.copy(
-                    fontFamily = EimirDisplayFamily,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                color = EimirTheme.colors.textPrimary,
-                // A long title wraps rather than being cut: the words are the
-                // record, and truncation would hide part of it for good.
-                modifier = Modifier.widthIn(max = ReadingMeasure),
-            )
-
-            Text(
-                text = stringResource(R.string.story_by_author, entry.presentedAuthorName()),
-                style = MaterialTheme.typography.bodySmall,
-                color = EimirTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
+            // Content first: the photographs, then the title, then who and how.
             if (entry.images.isNotEmpty()) {
                 val primaryImage = entry.images.first()
                 val additionalImages = entry.images.drop(1).take(MAX_IMAGES_PER_ENTRY - 1)
@@ -561,10 +554,24 @@ private fun MemoryCard(
                     }
                 }
             }
+
+            StoryEntryText(
+                entry = entry,
+                style = EimirTheme.typography.titleMedium.copy(
+                    fontFamily = EimirDisplayFamily,
+                    fontWeight = FontWeight.SemiBold,
+                ),
+            )
+
+            StoryEntryMeta(entry)
         }
     }
 }
 
+/**
+ * A Milestone keeps its restrained accent border; the star glyph, not a
+ * label or stripe, says this is a special point in time.
+ */
 @Composable
 private fun MilestoneCard(
     entry: StoryEntry,
@@ -576,42 +583,22 @@ private fun MilestoneCard(
         border = BorderStroke(1.dp, EimirTheme.colors.discovery.copy(alpha = 0.35f)),
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("story-milestone-${entry.id}")
             .then(if (onOpen != null) Modifier.clickable(onClick = onOpen) else Modifier),
     ) {
         Column(
             modifier = Modifier.padding(EimirTheme.spacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(entry.kind.labelRes()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = EimirTheme.colors.discovery,
-                )
-                VisibilityBadge(isShared = true)
-            }
-
-            Text(
-                text = entry.text,
+            StoryEntryText(
+                entry = entry,
                 style = EimirTheme.typography.titleMedium.copy(
                     fontFamily = EimirDisplayFamily,
                     fontWeight = FontWeight.SemiBold,
                 ),
-                color = EimirTheme.colors.textPrimary,
-                modifier = Modifier.widthIn(max = ReadingMeasure),
             )
 
-            Text(
-                text = stringResource(R.string.story_by_author, entry.presentedAuthorName()),
-                style = MaterialTheme.typography.bodySmall,
-                color = EimirTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            StoryEntryMeta(entry)
         }
     }
 }
@@ -629,53 +616,13 @@ private fun HeartMomentCard(
         border = BorderStroke(1.dp, EimirTheme.colors.brand.copy(alpha = 0.25f)),
         modifier = Modifier
             .fillMaxWidth()
+            .testTag("story-heart-moment-${entry.id}")
             .then(if (onOpen != null) Modifier.clickable(onClick = onOpen) else Modifier),
     ) {
         Column(
             modifier = Modifier.padding(EimirTheme.spacing.cardPadding),
             verticalArrangement = Arrangement.spacedBy(EimirTheme.spacing.step3),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(
-                        text = "♥",
-                        color = EimirTheme.colors.brand,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = stringResource(entry.kind.labelRes()),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = EimirTheme.colors.brandStrong,
-                    )
-                }
-                VisibilityBadge(isShared = true)
-            }
-
-            Text(
-                text = entry.text,
-                style = EimirTheme.typography.titleMedium.copy(
-                    fontFamily = EimirDisplayFamily,
-                    fontStyle = FontStyle.Italic,
-                ),
-                color = EimirTheme.colors.textPrimary,
-                modifier = Modifier.widthIn(max = ReadingMeasure),
-            )
-
-            Text(
-                text = stringResource(R.string.story_by_author, entry.presentedAuthorName()),
-                style = MaterialTheme.typography.bodySmall,
-                color = EimirTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
             if (entry.images.isNotEmpty()) {
                 StoryImage(
                     image = entry.images[0],
@@ -687,6 +634,16 @@ private fun HeartMomentCard(
                         .clip(RoundedCornerShape(EimirTheme.radii.card)),
                 )
             }
+
+            StoryEntryText(
+                entry = entry,
+                style = EimirTheme.typography.titleMedium.copy(
+                    fontFamily = EimirDisplayFamily,
+                    fontStyle = FontStyle.Italic,
+                ),
+            )
+
+            StoryEntryMeta(entry)
         }
     }
 }
@@ -716,16 +673,6 @@ private fun StoryEmpty() {
  * too small to recognise. The rest belong to the Memory's own screen.
  */
 private const val MAX_IMAGES_PER_ENTRY = 3
-
-@Composable
-private fun StoryEntry.presentedAuthorName(): String =
-    if (authorIsFormerMember) stringResource(R.string.author_former_member) else authorName
-
-private fun StoryEntryKind.labelRes(): Int = when (this) {
-    StoryEntryKind.MEMORY -> R.string.story_kind_memory
-    StoryEntryKind.MILESTONE -> R.string.story_kind_milestone
-    StoryEntryKind.HEART_MOMENT -> R.string.story_kind_heart_moment
-}
 
 @Composable
 private fun StoryEntryKind.accent() = when (this) {

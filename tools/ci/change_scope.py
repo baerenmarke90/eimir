@@ -20,6 +20,8 @@ SCOPES = (
     "self_hosted",
     "api_clients",
     "supply_chain",
+    "supply_chain_backend",
+    "supply_chain_web",
     "deployment_guard",
     "recovery",
 )
@@ -38,6 +40,21 @@ SAFE_DOC_EXACT = (
     ".gitignore",
 )
 CANONICAL_COMPOSE_FILE = "compose.yaml"
+
+# These leaf workflows validate changes to their own workflow file on pull
+# requests and do not own any of the expensive core CI scopes below. Keeping
+# this list exact is intentional: new workflows stay fail-closed until their
+# safety boundary has been reviewed explicitly.
+SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
+    ".github/workflows/android-s8.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/g2-e2e.yml",
+    ".github/workflows/incident-runbooks.yml",
+    ".github/workflows/product-design-review.yml",
+    ".github/workflows/reuse-review.yml",
+    ".github/workflows/web-browser-qa.yml",
+    ".github/workflows/web-s8.yml",
+)
 
 # Account-deletion recovery authority is intentionally classified by semantic
 # module namespace plus a small exact set of orchestration/retention owners
@@ -78,6 +95,24 @@ RECOVERY_CONTRACT_EXACT = (
     "docs/ARCANE.md",
 )
 
+SUPPLY_CHAIN_BACKEND_EXACT = (
+    "backend/pyproject.toml",
+    "backend/uv.lock",
+    "backend/Dockerfile",
+    "docs/DEPENDENCIES.md",
+)
+
+SUPPLY_CHAIN_WEB_EXACT = (
+    "web/Dockerfile",
+)
+
+# Dependabot configuration can change dependency/update behavior across all
+# ecosystems, so preserve the historical fail-closed Supply Chain coverage for
+# both build surfaces when this cross-ecosystem control changes.
+SUPPLY_CHAIN_CROSS_ECOSYSTEM_EXACT = (
+    ".github/dependabot.yml",
+)
+
 
 def _matches(path: str, *, prefixes: tuple[str, ...] = (), exact: tuple[str, ...] = ()) -> bool:
     return path in exact or any(path.startswith(prefix) for prefix in prefixes)
@@ -104,7 +139,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         if path.startswith("tools/ci/") or path == ".github/workflows/ci.yml":
             return _all_enabled()
 
-        known = False
+        known = path in SELF_VALIDATING_LEAF_WORKFLOW_EXACT
 
         # Backend lint, typing, unit tests and the OpenAPI contract only depend
         # on backend files. Web/Android changes no longer wake this job up.
@@ -169,20 +204,24 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["api_clients"] = True
             known = True
 
-        # Supply-chain work is dependency/build related; normal backend source
-        # changes do not need a fresh audit and two no-cache container builds.
-        if _matches(
-            path,
-            exact=(
-                "backend/pyproject.toml",
-                "backend/uv.lock",
-                "backend/Dockerfile",
-                "web/Dockerfile",
-                "docs/DEPENDENCIES.md",
-                ".github/dependabot.yml",
-            ),
-        ):
+        # Supply-chain work keeps one stable required status while distinguishing
+        # the expensive build surface underneath it. Backend dependency/build
+        # controls do not need a Web no-cache image build; Web Dockerfile changes
+        # do not need Python/uv/backend audit and build work.
+        if path in SUPPLY_CHAIN_BACKEND_EXACT:
             result["supply_chain"] = True
+            result["supply_chain_backend"] = True
+            known = True
+
+        if path in SUPPLY_CHAIN_WEB_EXACT:
+            result["supply_chain"] = True
+            result["supply_chain_web"] = True
+            known = True
+
+        if path in SUPPLY_CHAIN_CROSS_ECOSYSTEM_EXACT:
+            result["supply_chain"] = True
+            result["supply_chain_backend"] = True
+            result["supply_chain_web"] = True
             known = True
 
         # Network/port/CSP checks are tied to deployment and proxy surfaces.

@@ -33,33 +33,60 @@ jobs:
         env:
           PUSH_BASE_SHA: ${{ github.event.before }}
           PUSH_HEAD_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         shell: bash
         run: |
           set -euo pipefail
 
           full_matrix='{"include":[{"language":"python","build-mode":"none"},{"language":"javascript-typescript","build-mode":"none"},{"language":"java-kotlin","build-mode":"manual"}]}'
 
-          # Pull requests keep the complete merge-protection analysis. Scheduled
-          # and manual runs also scan every language as the periodic safety net.
-          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+          # Scheduled and manual runs remain the periodic full-repository safety net.
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
             echo "run_analysis=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          base_sha="$PUSH_BASE_SHA"
-          head_sha="$PUSH_HEAD_SHA"
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              head_sha="$PR_HEAD_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BASE_SHA"
+              head_sha="$PUSH_HEAD_SHA"
+              ;;
+            *)
+              echo "Unknown event type; running all CodeQL languages."
+              echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
           if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
             || [[ "$base_sha" =~ ^0+$ ]] \
             || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
             || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
-            echo "Push range is unavailable; running all CodeQL languages."
+            echo "CodeQL diff range is unavailable; running all languages."
             echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
             echo "run_analysis=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/codeql-changed-files.txt
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
+              echo "Pull-request merge base is unavailable; running all CodeQL languages."
+              echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/codeql-changed-files.txt
+          else
+            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/codeql-changed-files.txt
+          fi
+
           echo "Changed files:"
           cat /tmp/codeql-changed-files.txt
 
@@ -116,7 +143,7 @@ jobs:
               if path in safe_exact or path.startswith(safe_prefixes):
                   continue
               # New repository surfaces are intentionally fail-closed so a new
-              # source tree cannot silently bypass CodeQL after merge.
+              # source tree cannot silently bypass CodeQL.
               fail_closed = True
               break
 
@@ -138,13 +165,20 @@ jobs:
           PY
           )
 
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           if [ "$matrix" = '{"include":[]}' ]; then
-            echo "run_analysis=false" >> "$GITHUB_OUTPUT"
-            echo "No CodeQL-owned source surface changed on main."
-          else
-            echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              matrix='{"include":[{"language":"python","build-mode":"none"}]}'
+              echo "No CodeQL-owned source surface changed in this pull request; running the Python baseline for merge protection."
+            else
+              echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=false" >> "$GITHUB_OUTPUT"
+              echo "No CodeQL-owned source surface changed on main."
+              exit 0
+            fi
           fi
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "run_analysis=true" >> "$GITHUB_OUTPUT"
 
   analyze:
     name: CodeQL (${{ matrix.language }})

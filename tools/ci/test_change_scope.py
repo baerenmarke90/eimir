@@ -30,6 +30,17 @@ RECOVERY_TOOLING_PATHS = (
     "docs/SELF-HOSTED-RECOVERY.md",
 )
 
+SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
+    ".github/workflows/android-s8.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/g2-e2e.yml",
+    ".github/workflows/incident-runbooks.yml",
+    ".github/workflows/product-design-review.yml",
+    ".github/workflows/reuse-review.yml",
+    ".github/workflows/web-browser-qa.yml",
+    ".github/workflows/web-s8.yml",
+)
+
 
 class ChangeScopeTest(unittest.TestCase):
     def assert_scope(self, paths: list[str], *, enabled: set[str]) -> None:
@@ -46,6 +57,11 @@ class ChangeScopeTest(unittest.TestCase):
             ],
             enabled=set(),
         )
+
+    def test_self_validating_leaf_workflows_do_not_enable_core_gates(self) -> None:
+        for path in SELF_VALIDATING_LEAF_WORKFLOW_PATHS:
+            with self.subTest(path=path):
+                self.assert_scope([path], enabled=set())
 
     def test_web_ui_change_does_not_enable_backend_or_container_gates(self) -> None:
         self.assert_scope(["web/src/App.tsx"], enabled=set())
@@ -90,16 +106,58 @@ class ChangeScopeTest(unittest.TestCase):
             enabled={"self_hosted", "deployment_guard", "recovery"},
         )
 
-    def test_web_dockerfile_enables_build_and_deployment_gates(self) -> None:
+    def test_web_dockerfile_enables_only_web_supply_chain_surface(self) -> None:
         self.assert_scope(
             ["web/Dockerfile"],
-            enabled={"self_hosted", "supply_chain", "deployment_guard"},
+            enabled={
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_web",
+                "deployment_guard",
+            },
+        )
+
+    def test_backend_dockerfile_enables_only_backend_supply_chain_surface(self) -> None:
+        self.assert_scope(
+            ["backend/Dockerfile"],
+            enabled={
+                "backend",
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_backend",
+                "deployment_guard",
+            },
         )
 
     def test_backend_dependency_change_runs_backend_integration_and_supply_chain(self) -> None:
         self.assert_scope(
             ["backend/uv.lock"],
-            enabled={"backend", "backend_integration", "supply_chain"},
+            enabled={
+                "backend",
+                "backend_integration",
+                "supply_chain",
+                "supply_chain_backend",
+            },
+        )
+
+    def test_mixed_supply_chain_change_runs_both_surfaces(self) -> None:
+        self.assert_scope(
+            ["backend/uv.lock", "web/Dockerfile"],
+            enabled={
+                "backend",
+                "backend_integration",
+                "self_hosted",
+                "supply_chain",
+                "supply_chain_backend",
+                "supply_chain_web",
+                "deployment_guard",
+            },
+        )
+
+    def test_dependabot_configuration_keeps_both_supply_chain_surfaces(self) -> None:
+        self.assert_scope(
+            [".github/dependabot.yml"],
+            enabled={"supply_chain", "supply_chain_backend", "supply_chain_web"},
         )
 
     def test_openapi_contract_enables_generated_client_check(self) -> None:
@@ -108,8 +166,27 @@ class ChangeScopeTest(unittest.TestCase):
     def test_openapi_generator_only_enables_client_check(self) -> None:
         self.assert_scope(["tools/openapi/generate.sh"], enabled={"api_clients"})
 
-    def test_dependency_inventory_only_enables_supply_chain(self) -> None:
-        self.assert_scope(["docs/DEPENDENCIES.md"], enabled={"supply_chain"})
+    def test_dependency_inventory_only_enables_backend_supply_chain(self) -> None:
+        self.assert_scope(
+            ["docs/DEPENDENCIES.md"],
+            enabled={"supply_chain", "supply_chain_backend"},
+        )
+
+    def test_supply_chain_union_matches_internal_subscopes(self) -> None:
+        for paths in (
+            ["backend/uv.lock"],
+            ["web/Dockerfile"],
+            ["backend/uv.lock", "web/Dockerfile"],
+            [".github/dependabot.yml"],
+            ["docs/ROADMAP.md"],
+            ["future-build-system/config.toml"],
+        ):
+            with self.subTest(paths=paths):
+                result = classify_paths(paths)
+                self.assertEqual(
+                    result["supply_chain"],
+                    result["supply_chain_backend"] or result["supply_chain_web"],
+                )
 
     def test_self_hosting_contract_enables_stack_deployment_and_recovery(self) -> None:
         for path in ("docs/SELF-HOSTING.md", "docs/ARCANE.md"):
@@ -165,12 +242,37 @@ class ChangeScopeTest(unittest.TestCase):
     def test_ci_workflow_changes_fail_closed(self) -> None:
         self.assertTrue(all(classify_paths([".github/workflows/ci.yml"]).values()))
 
+    def test_owned_self_hosted_workflows_keep_specific_gates(self) -> None:
+        self.assert_scope(
+            [".github/workflows/self-hosted-deployment-guard.yml"],
+            enabled={"deployment_guard"},
+        )
+        self.assert_scope(
+            [".github/workflows/self-hosted-recovery.yml"],
+            enabled={"recovery"},
+        )
+
+    def test_non_allowlisted_workflow_changes_stay_fail_closed(self) -> None:
+        for path in (
+            ".github/workflows/release-publish.yml",
+            ".github/workflows/runtime-environment-drift-guard.yml",
+            ".github/workflows/future.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(all(classify_paths([path]).values()))
+
     def test_unknown_path_fails_closed(self) -> None:
         self.assertTrue(all(classify_paths(["future-build-system/config.toml"]).values()))
 
     def test_mixed_pr_combines_relevant_scopes(self) -> None:
         self.assert_scope(
             ["docs/ROADMAP.md", "web/src/App.tsx", "backend/tests/test_config.py"],
+            enabled={"backend"},
+        )
+
+    def test_mixed_leaf_workflow_and_backend_change_keeps_backend_scope(self) -> None:
+        self.assert_scope(
+            [".github/workflows/codeql.yml", "backend/tests/test_config.py"],
             enabled={"backend"},
         )
 

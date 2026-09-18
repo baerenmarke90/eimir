@@ -13,7 +13,7 @@ eimir. is now developed and accepted Web-first. Mobile Web is the normative prod
 
 The repository also contains a native Android client implemented in Kotlin/Jetpack Compose. Earlier architecture work planned a second native UI in SwiftUI and a Kotlin Multiplatform shared non-visual core. That approach would require eimir. to maintain three product UI implementations -- Web, Android and iOS -- and to repeat feature implementation, product acceptance, visual calibration and regression work across them.
 
-The native Android client has already demonstrated that this parity cost is material. Android has therefore been removed from ordinary feature-parity scope: Web/backend work is not blocked by a missing Compose implementation, and Android is touched only for critical defects, security, required build/release compatibility or deliberate migration work.
+The native Android client has already demonstrated that this parity cost is material. Android has therefore been removed from ordinary feature-parity scope: Web/backend work is not blocked by a missing Compose implementation, and Android is touched only for critical defects, security, required build/release compatibility or deliberate migration work. Its retirement and removal are operationalized by #1008 and #1009.
 
 At the same time, eimir. benefits from App Store / Google Play distribution and selected native capabilities such as push notifications, photo access, deep links and sharing. The architecture therefore needs store-grade mobile delivery without reintroducing a second and third product UI stack.
 

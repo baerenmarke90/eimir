@@ -130,6 +130,41 @@ export function MediaGallery({
     return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
   }
 
+  function renderCarouselMedia(item: GalleryMediaItem) {
+    if (item.mediaType === MediaType.VIDEO || failed.has(item.id)) {
+      return (
+        <div className="media-gallery-unavailable">
+          {t('media.unavailable')}
+        </div>
+      );
+    }
+    const url = urls[item.id];
+    if (!url) {
+      return (
+        <div
+          className="media-gallery-loading"
+          role="status"
+          aria-label={t('media.loading')}
+        />
+      );
+    }
+    return (
+      <span className="media-gallery-carousel-visual">
+        <img
+          className="media-gallery-carousel-backdrop"
+          src={url}
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          className="media-gallery-carousel-content media-gallery-thumb-content"
+          src={url}
+          alt={t('gallery.imageAlt')}
+        />
+      </span>
+    );
+  }
+
   const activeItem = activeIndex === null ? null : items[activeIndex];
 
   return (
@@ -172,10 +207,7 @@ export function MediaGallery({
                   count: items.length,
                 })}
               >
-                {renderMedia(
-                  item,
-                  'media-gallery-carousel-content media-gallery-thumb-content',
-                )}
+                {renderCarouselMedia(item)}
               </button>
             ))}
           </div>

@@ -497,7 +497,7 @@ export function MilestoneProductPage({
       />
 
       <div className="milestone-detail-container">
-        <article className="story-surface product-detail-card">
+        <article className="story-surface product-detail-card coffee-table-layout">
           <p className="memory-detail-body">
             {milestone.body || t('milestoneProduct.noBody')}
           </p>

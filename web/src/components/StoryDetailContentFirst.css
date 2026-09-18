@@ -19,8 +19,13 @@
   padding: clamp(var(--space-5), 5vw, var(--space-8));
 }
 
+/* Matches the Memory detail body's own override (MemoryProductPage.css):
+ * same reading width and line-break fidelity, not the narrower 60ch default
+ * from the shared .memory-detail-body base. */
 .milestone-detail-container .memory-detail-body {
   margin: 0;
+  max-width: var(--reading-max);
+  white-space: pre-wrap;
 }
 
 .heart-moment-provenance-footer,

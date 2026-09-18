@@ -72,7 +72,7 @@ function renderDetail(taskOriginKey?: unknown) {
     authorSummaryQueryKeys.milestone('space-1', 'milestone-1'),
     { value: milestone, source: 'network' },
   );
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter
         initialEntries={[
@@ -143,6 +143,16 @@ describe('Milestone detail edit action (#1014)', () => {
     expect(editLink.textContent?.trim()).toBe('');
     expect(editLink.className).not.toContain('button-link');
     expect(editLink.className).not.toContain('secondary-link');
+  });
+});
+
+describe('Milestone/Memory detail hierarchy alignment (#1016)', () => {
+  it('renders the detail card with the shared coffee-table surface treatment', async () => {
+    const { container } = renderDetail();
+    await screen.findByText('First apartment together');
+    const card = container.querySelector('.product-detail-card');
+    expect(card?.className).toContain('coffee-table-layout');
+    expect(card?.querySelector('.memory-detail-body')).toBeTruthy();
   });
 });
 

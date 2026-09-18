@@ -31,7 +31,6 @@ RECOVERY_TOOLING_PATHS = (
 )
 
 SELF_VALIDATING_LEAF_WORKFLOW_PATHS = (
-    ".github/workflows/android-s8.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
     ".github/workflows/incident-runbooks.yml",
@@ -66,8 +65,9 @@ class ChangeScopeTest(unittest.TestCase):
     def test_web_ui_change_does_not_enable_backend_or_container_gates(self) -> None:
         self.assert_scope(["web/src/App.tsx"], enabled=set())
 
-    def test_android_change_does_not_enable_backend_gates(self) -> None:
-        self.assert_scope(["android/app/src/main/java/example/App.kt"], enabled=set())
+    def test_capacitor_wrapper_change_does_not_enable_backend_gates(self) -> None:
+        self.assert_scope(["android/app/src/main/AndroidManifest.xml"], enabled=set())
+        self.assert_scope(["ios/App/App/Info.plist"], enabled=set())
 
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:
         self.assert_scope(["backend/tests/test_config.py"], enabled={"backend"})

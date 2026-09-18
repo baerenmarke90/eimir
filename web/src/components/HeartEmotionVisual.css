@@ -107,10 +107,13 @@
 }
 
 .heart-emotion-badge--detail {
-  padding: 0.55rem 0.9rem 0.55rem 0.65rem;
-  font-size: 0.95rem;
-  box-shadow: 0 8px 26px
-    color-mix(in srgb, var(--heart-emotion-accent) 14%, transparent);
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  font-size: 1.2rem;
+  background: none;
+  border: none;
+  box-shadow: none;
 }
 
 .heart-emotion-icon {
@@ -130,18 +133,22 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
-  width: 2rem;
-  height: 2rem;
+  width: 6.5rem;
+  height: 6.5rem;
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon svg {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 3.25rem;
+  height: 3.25rem;
 }
 
 .heart-emotion-label {
   min-width: 0;
   overflow-wrap: break-word;
+}
+
+.heart-emotion-badge--detail .heart-emotion-label {
+  text-align: center;
 }
 
 /* Timeline cards keep their accepted hierarchy; the emotion is atmosphere, not taxonomy chrome. */
@@ -282,7 +289,7 @@
 /* Detail may be more expressive, but still uses one quiet shared motion pattern. */
 .heart-moment-detail-emotion {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   max-width: var(--content-reading-width, 760px);
   margin: calc(var(--space-2) * -1) auto var(--space-5);
   padding-inline: var(--space-1);

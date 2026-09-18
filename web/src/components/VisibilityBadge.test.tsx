@@ -67,4 +67,16 @@ describe('VisibilityBadge', () => {
       container.querySelector('.visibility-badge-label')?.textContent,
     ).toBe('Custom draft');
   });
+
+  it('renders a subdued, non-pill status when variant is subtle (#1014)', () => {
+    render(<VisibilityBadge visibility="SPACE_SHARED" variant="subtle" />);
+
+    const badge = screen.getByRole('status', {
+      name: relationshipComponents.visibilityShared,
+    });
+    expect(badge.className).toContain('visibility-badge-subtle');
+    expect(
+      screen.getByText(relationshipComponents.visibilityShared),
+    ).toBeTruthy();
+  });
 });

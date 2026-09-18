@@ -9,6 +9,7 @@ import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import { TaskOriginProvider } from '../client/taskOrigin';
+import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
@@ -139,6 +140,43 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
     const user = userEvent.setup();
     await user.click(back);
     expect(await screen.findByText('story landing')).toBeTruthy();
+  });
+});
+
+describe('Heart Moment detail edit action and shared state (#1014)', () => {
+  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+    renderDetail();
+    const editLink = await screen.findByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+    });
+    expect(editLink.getAttribute('href')).toBe(
+      '/story/heart-moments/heart-1/edit',
+    );
+    // Icon-only: the accessible name comes from aria-label, not visible text.
+    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.className).not.toContain('button-link');
+    expect(editLink.className).not.toContain('secondary-link');
+  });
+
+  it('shows shared visibility as subdued metadata instead of a prominent badge', async () => {
+    renderDetail();
+    await screen.findByText('I love you more each day');
+    const status = screen.getByRole('status', {
+      name: relationshipComponents.visibilityShared,
+    });
+    expect(status.className).toContain('visibility-badge-subtle');
+    expect(status.className).not.toContain('button-link');
+  });
+
+  it('keeps the visibility toggle as plain text beside the status, no heading or warning card', async () => {
+    renderDetail();
+    await screen.findByText('I love you more each day');
+    expect(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.makePrivate,
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByText(/Sichtbarkeit ändern/)).toBeNull();
   });
 });
 

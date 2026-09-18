@@ -30,6 +30,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
@@ -485,14 +486,12 @@ export function MilestoneProductPage({
       <PageHeader
         eyebrow={milestoneEyebrow}
         title={milestone.title}
-        action={
+        titleAction={
           milestone.capabilities.canEdit && !offline ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={milestoneEditPath(milestone.id)}
-            >
-              {t('milestoneProduct.edit')}
-            </Link>
+              label={t('milestoneProduct.edit')}
+            />
           ) : undefined
         }
       />

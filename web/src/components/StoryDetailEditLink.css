@@ -1,0 +1,13 @@
+.story-detail-edit-link {
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-medium);
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast);
+}
+
+.story-detail-edit-link:hover {
+  background: var(--color-surface-subtle);
+}

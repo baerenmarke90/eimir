@@ -38,6 +38,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: 1em;
 }
 
 /* Variant: Shared */
@@ -59,4 +60,19 @@
   background: var(--color-discovery-surface);
   color: var(--color-discovery);
   border: 1px solid var(--color-discovery);
+}
+
+/*
+ * Subtle: quiet metadata, not a status pill. Used where the badge chrome
+ * would compete with a Story title or content (#1014).
+ */
+.visibility-badge-subtle,
+.visibility-badge-subtle.visibility-shared,
+.visibility-badge-subtle.visibility-private,
+.visibility-badge-subtle.visibility-temporary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+  padding: 0;
+  font-weight: 400;
 }

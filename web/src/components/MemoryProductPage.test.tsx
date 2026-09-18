@@ -165,6 +165,90 @@ describe('Memory editor return context', () => {
   );
 });
 
+describe('Memory detail edit action (#1014)', () => {
+  function renderDetail() {
+    const memory: MemoryDetail = {
+      id: 'memory-1',
+      spaceId: 'space-1',
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+      title: 'A shared evening',
+      body: 'Quiet words',
+      attachments: [],
+      happenedOn: new Date('2025-09-15'),
+      createdAt: new Date('2025-09-15'),
+      updatedAt: new Date('2025-09-15'),
+      version: 1,
+      capabilities: { canEdit: true, canDelete: false, canComment: false },
+    };
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    client.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+      unreadCount: 0,
+    });
+    client.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+    client.setQueryData(authorSummaryQueryKeys.memory('space-1', memory.id), {
+      value: memory,
+      source: 'network',
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/story/memories/memory-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="http://example.test"
+              accessToken="test"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/memories/:memoryId"
+                  element={
+                    <MemoryProductPage
+                      mode="detail"
+                      apis={{} as ReferenceApis}
+                      apiBaseUrl="http://example.test"
+                      accessToken="test"
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                      loadMemoryImage={async () => ''}
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+    renderDetail();
+    const editLink = await screen.findByRole('link', {
+      name: memoryProduct.edit,
+    });
+    expect(editLink.getAttribute('href')).toBe('/story/memories/memory-1/edit');
+    // Icon-only: the accessible name comes from aria-label, not visible text.
+    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.className).not.toContain('button-link');
+    expect(editLink.className).not.toContain('secondary-link');
+  });
+});
+
 describe('Memory view receipt', () => {
   function setupReceiptTest(overrideRecordMock?: any) {
     const recordStoryViewMock =

@@ -36,6 +36,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
+import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -420,24 +421,13 @@ export function HeartMomentProductPage({
             </div>
 
             <div className="heart-moment-create-field-grid">
-              <div className="field-group heart-moment-create-field">
-                <label htmlFor="heart-moment-emotion">
-                  {t('heartMomentProduct.emotionLabel')}
-                </label>
-                <select
-                  id="heart-moment-emotion"
-                  name="emotion"
-                  defaultValue={HeartEmotion.LOVED}
-                >
-                  {Object.values(HeartEmotion).map((emotion) => (
-                    <option key={emotion} value={emotion}>
-                      {t(`heartEmotion.${emotion}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <HeartEmotionPicker
+                legend={t('heartMomentProduct.emotionLabel')}
+                idPrefix="heart-moment-create-emotion"
+                className="heart-moment-create-field heart-moment-create-emotion-picker"
+              />
 
-              <div className="field-group heart-moment-create-field">
+              <div className="field-group heart-moment-create-field heart-moment-create-date">
                 <label htmlFor="heart-moment-date">
                   {t('heartMomentProduct.happenedOnLabel')}
                 </label>
@@ -747,7 +737,6 @@ export function HeartMomentProductPage({
             size="small"
           />
         }
-        description={t(`heartEmotion.${heartMoment.emotion}`)}
         action={
           heartMoment.capabilities.canEdit && !offline ? (
             <Link
@@ -760,7 +749,14 @@ export function HeartMomentProductPage({
         }
       />
 
-      <div className="heart-moment-detail-container">
+      <div className="heart-moment-detail-emotion">
+        <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
+      </div>
+
+      <div
+        className="heart-moment-detail-container"
+        data-heart-emotion={heartMoment.emotion}
+      >
         <article className="story-surface product-detail-card coffee-table-layout">
           {heartMoment.attachment ? (
             <section aria-label={t('heartMomentProduct.photoLabel')}>
@@ -866,22 +862,11 @@ function HeartMomentFields({
           placeholder={t('heartMomentProduct.textPlaceholder')}
         />
       </div>
-      <div className="field-group">
-        <label htmlFor="heart-moment-emotion">
-          {t('heartMomentProduct.emotionLabel')}
-        </label>
-        <select
-          id="heart-moment-emotion"
-          name="emotion"
-          defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
-        >
-          {Object.values(HeartEmotion).map((emotion) => (
-            <option key={emotion} value={emotion}>
-              {t(`heartEmotion.${emotion}`)}
-            </option>
-          ))}
-        </select>
-      </div>
+      <HeartEmotionPicker
+        legend={t('heartMomentProduct.emotionLabel')}
+        defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
+        idPrefix="heart-moment-edit-emotion"
+      />
       <div className="field-group">
         <label htmlFor="heart-moment-date">
           {t('heartMomentProduct.happenedOnLabel')}

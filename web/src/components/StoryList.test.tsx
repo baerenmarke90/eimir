@@ -82,7 +82,9 @@ describe('StoryList', () => {
     );
 
     expect(html).toContain('href="/story/heart-moments/heart-1"');
-    expect(html).toContain('aria-label="Herzmoment: Thanks for today."');
+    expect(html).toContain(
+      'aria-label="Herzmoment: Thanks for today. Gefühl: Dankbar"',
+    );
     expect(html).toContain('href="/story/milestones/milestone-1"');
     expect(html).toContain('aria-label="Meilenstein: First apartment"');
     expect(html).not.toContain('Herzmoment öffnen');

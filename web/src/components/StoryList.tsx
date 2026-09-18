@@ -25,6 +25,7 @@ import {
   milestoneDetailPath,
 } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { HeartEmotionBadge } from './HeartEmotionVisual';
 import { MemoryPreview } from './MemoryPreview';
 import { AuthorAvatar } from './PersonIdentity';
 import {
@@ -298,6 +299,11 @@ export function StoryList({
             .join(' ');
 
           const metaId = `${listId}-meta-${index}`;
+          const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
+            item.kind === 'HEART_MOMENT' && presentation.preview
+              ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
+              : ''
+          }`;
 
           return (
             <li
@@ -313,10 +319,17 @@ export function StoryList({
                 to={productPath}
                 data-task-item-key={itemKey}
                 onClick={(event) => onOpenItem?.(event, item, productPath)}
-                aria-label={`${presentation.kindLabel}: ${presentation.title}`}
+                aria-label={accessibleName}
                 aria-describedby={metaId}
               >
-                <article className={cardClasses}>
+                <article
+                  className={cardClasses}
+                  data-heart-emotion={
+                    item.kind === 'HEART_MOMENT'
+                      ? item.heartMoment.emotion
+                      : undefined
+                  }
+                >
                   {imageAttachment && imageEntityId ? (
                     <MemoryPreview
                       memoryId={imageEntityId}
@@ -329,7 +342,9 @@ export function StoryList({
                   ) : null}
 
                   <h4>{presentation.title}</h4>
-                  {presentation.preview ? (
+                  {item.kind === 'HEART_MOMENT' ? (
+                    <HeartEmotionBadge emotion={item.heartMoment.emotion} />
+                  ) : presentation.preview ? (
                     <p className="story-preview">{presentation.preview}</p>
                   ) : null}
 

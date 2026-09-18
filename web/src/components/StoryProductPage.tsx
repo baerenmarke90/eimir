@@ -63,6 +63,7 @@ import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryList } from './StoryList';
+import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import {
@@ -78,6 +79,7 @@ import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
 import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 import {
+  useDiscoverReveal,
   useTimelineAutoPagination,
   useTimelineReveal,
 } from './useTimelineProgressiveLoading';
@@ -524,6 +526,15 @@ export function StoryProductPage({
     () => discoverQuery.data?.value.items ?? [],
     [discoverQuery.data],
   );
+  // The authoritative selection can be replaced in place by a different,
+  // same-length set (e.g. after a refresh). A plain count would then never
+  // change, so the reveal observer would silently skip the newly mounted
+  // keyed nodes. The joined item keys change whenever composition or order
+  // does, while staying stable (no replay) for an unchanged selection.
+  const discoverContentKey = useMemo(
+    () => discoverItems.map((item) => storyItemKey(item)).join('|'),
+    [discoverItems],
+  );
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
@@ -541,6 +552,14 @@ export function StoryProductPage({
     enabled: activeView === 'timeline' && timelineItems.length > 0,
     scopeKey: `${spaceId}:${cacheResourceId}`,
     revision: timelineItems.length,
+  });
+
+  const discoverTapestryRef = useRef<HTMLDivElement>(null);
+  useDiscoverReveal({
+    rootRef: discoverTapestryRef,
+    enabled: activeView === 'discover' && discoverItems.length > 0,
+    scopeKey: `discover:${accountId}:${spaceId}`,
+    revision: discoverContentKey,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage
@@ -851,7 +870,7 @@ export function StoryProductPage({
           </div>
         </div>
       ) : activeView === 'discover' && discoverQuery.data ? (
-        <div className="momente-discover-page eimir-motion-reveal">
+        <div className="momente-discover-page">
           {/* 1. Featured Editorial Highlight */}
           {featuredItem && featuredPresentation ? (
             <article className="momente-hero-highlight">
@@ -871,6 +890,7 @@ export function StoryProductPage({
                       }
                       attachmentId={featuredMedia.id}
                       loadImage={loadMemoryImage}
+                      loadingMode="immediate"
                     />
                   </div>
                 ) : null}
@@ -957,7 +977,7 @@ export function StoryProductPage({
                 {t('story.streamAll')}
               </button>
             </div>
-            <div className="momente-tapestry-bands">
+            <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
               {tapestryBands.map((band) => (
                 <section
                   className="momente-tapestry-band"
@@ -989,7 +1009,8 @@ export function StoryProductPage({
                           <Link
                             key={entry.key}
                             to={path}
-                            className="momente-tapestry-item momente-tapestry-milestone"
+                            className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
+                            data-discover-reveal-key={`item:${entry.key}`}
                             aria-label={presentation.title}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
@@ -1026,7 +1047,8 @@ export function StoryProductPage({
                         <Link
                           key={entry.key}
                           to={path}
-                          className={`momente-tapestry-item momente-tapestry-${role}`}
+                          className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
+                          data-discover-reveal-key={`item:${entry.key}`}
                           aria-label={presentation.title}
                           onClick={(event) => openDiscoverItem(event, path)}
                         >
@@ -1036,6 +1058,7 @@ export function StoryProductPage({
                                 memoryId={entry.memoryId}
                                 attachmentId={entry.firstAttachment.id}
                                 loadImage={loadMemoryImage}
+                                loadingMode="near-viewport"
                               />
                             </div>
                           ) : null}

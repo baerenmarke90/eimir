@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  useDiscoverReveal,
   useTimelineAutoPagination,
   useTimelineReveal,
 } from './useTimelineProgressiveLoading';
@@ -130,6 +131,149 @@ describe('useTimelineReveal', () => {
 
     expect(heading.dataset.timelineRevealed).toBe('true');
     expect(MockIntersectionObserver.instances).toHaveLength(0);
+  });
+});
+
+describe('useDiscoverReveal (#977)', () => {
+  it('reveals a tapestry entry once and remembers it across a Discover remount', () => {
+    const firstRoot = document.createElement('div');
+    const firstEntry = document.createElement('a');
+    firstEntry.dataset.discoverRevealKey = 'item:memory:one';
+    firstRoot.append(firstEntry);
+    document.body.append(firstRoot);
+
+    const first = renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: firstRoot },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 'memory:one',
+      }),
+    );
+
+    expect(firstEntry.dataset.discoverRevealed).toBeUndefined();
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger(firstEntry);
+    });
+    expect(firstEntry.dataset.discoverRevealed).toBe('true');
+    first.unmount();
+
+    const secondRoot = document.createElement('div');
+    const sameEntry = document.createElement('a');
+    sameEntry.dataset.discoverRevealKey = 'item:memory:one';
+    secondRoot.append(sameEntry);
+    document.body.append(secondRoot);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: secondRoot },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 'memory:one',
+      }),
+    );
+
+    expect(sameEntry.dataset.discoverRevealed).toBe('true');
+  });
+
+  it('shows tapestry content immediately when reduced motion is requested', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const root = document.createElement('div');
+    const entry = document.createElement('a');
+    entry.dataset.discoverRevealKey = 'item:memory:two';
+    root.append(entry);
+    document.body.append(root);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: root },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 'memory:two',
+      }),
+    );
+
+    expect(entry.dataset.discoverRevealed).toBe('true');
+    expect(MockIntersectionObserver.instances).toHaveLength(0);
+  });
+
+  it('never marks a Timeline reveal node through the Discover attribute namespace', () => {
+    const root = document.createElement('div');
+    const timelineEntry = document.createElement('article');
+    timelineEntry.dataset.timelineRevealKey = 'item:memory:three';
+    root.append(timelineEntry);
+    document.body.append(root);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: root },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 'memory:three',
+      }),
+    );
+
+    expect(
+      MockIntersectionObserver.instances[0]?.observe,
+    ).not.toHaveBeenCalled();
+    expect(timelineEntry.dataset.discoverRevealed).toBeUndefined();
+  });
+
+  it('re-observes a same-length Discover selection that was replaced in place (PO regression)', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+
+    const entryA = document.createElement('a');
+    entryA.dataset.discoverRevealKey = 'item:memory-a';
+    const entryB = document.createElement('a');
+    entryB.dataset.discoverRevealKey = 'item:memory-b';
+    root.append(entryA, entryB);
+
+    const { rerender } = renderHook(
+      ({ revision }) =>
+        useDiscoverReveal({
+          rootRef: { current: root },
+          enabled: true,
+          scopeKey: 'discover:account-1:space-1',
+          revision,
+        }),
+      { initialProps: { revision: 'memory-a|memory-b' } },
+    );
+
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger(entryA);
+      MockIntersectionObserver.instances[0].trigger(entryB);
+    });
+    expect(entryA.dataset.discoverRevealed).toBe('true');
+    expect(entryB.dataset.discoverRevealed).toBe('true');
+
+    // The selection refreshes with the same item count, but memory-b is
+    // replaced by memory-c. React would keep the memory-a node (same key)
+    // and mount a brand new node for memory-c; simulate that directly
+    // without unmounting the hook, the way a same-length refetch would.
+    entryB.remove();
+    const entryC = document.createElement('a');
+    entryC.dataset.discoverRevealKey = 'item:memory-c';
+    root.append(entryC);
+
+    rerender({ revision: 'memory-a|memory-c' });
+
+    // The still-present, already-revealed key stays visible without a
+    // replay (no fresh scopeKey, no fresh selectionDate dependency)...
+    expect(entryA.dataset.discoverRevealed).toBe('true');
+    // ...and the new key is picked up and observed normally, instead of
+    // being silently skipped because a count-only revision never changed.
+    const latestObserver = MockIntersectionObserver.instances.at(-1);
+    expect(latestObserver?.observe).toHaveBeenCalledWith(entryC);
+    expect(entryC.dataset.discoverRevealed).toBeUndefined();
+    act(() => {
+      latestObserver?.trigger(entryC);
+    });
+    expect(entryC.dataset.discoverRevealed).toBe('true');
   });
 });
 

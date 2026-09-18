@@ -8,7 +8,6 @@ import {
 } from 'react';
 import './StoryTimelineProgressive.css';
 
-const REVEAL_SELECTOR = '[data-timeline-reveal-key]';
 const MAX_REVEAL_SCOPES = 12;
 const revealedByScope = new Map<string, Set<string>>();
 
@@ -38,34 +37,53 @@ function prefersReducedMotion(): boolean {
   );
 }
 
-export function useTimelineReveal({
+/**
+ * Neutral first-entry reveal core behind #975 (Timeline) and #977 (Discover
+ * tapestry): a `data-${attrPrefix}-reveal-key` node fades in once, the first
+ * time it actually enters the viewport, and stays revealed for the rest of
+ * the session (per `scopeKey`) across remounts, re-renders and refreshes.
+ * `attrPrefix` namespaces both the query selector and the dataset flags so
+ * unrelated consumers never share DOM attribute names.
+ *
+ * `revision` re-runs the DOM scan/observe pass whenever it changes. A plain
+ * count (as Timeline passes) is enough there because pages only ever grow.
+ * A consumer whose backing collection can be replaced in place with a
+ * different, same-length set (Discover's selection refresh) must instead
+ * pass a value that encodes ordered content identity, e.g. the joined item
+ * keys — otherwise newly mounted keyed nodes are never (re-)observed.
+ */
+function useFirstEntryReveal({
   rootRef,
   enabled,
   scopeKey,
   revision,
+  attrPrefix,
 }: {
   rootRef: RefObject<HTMLElement | null>;
   enabled: boolean;
   scopeKey: string;
-  revision: number;
+  revision: number | string;
+  attrPrefix: string;
 }) {
   useLayoutEffect(() => {
-    if (!enabled || revision <= 0) return;
+    if (!enabled || !revision) return;
     const root = rootRef.current;
     if (!root) return;
 
+    const revealKeyAttr = `${attrPrefix}RevealKey`;
+    const revealedAttr = `${attrPrefix}Revealed`;
+    const selector = `[data-${attrPrefix}-reveal-key]`;
+
     const revealed = revealSetFor(scopeKey);
-    const nodes = Array.from(
-      root.querySelectorAll<HTMLElement>(REVEAL_SELECTOR),
-    );
+    const nodes = Array.from(root.querySelectorAll<HTMLElement>(selector));
     const reveal = (node: HTMLElement) => {
-      const key = node.dataset.timelineRevealKey;
+      const key = node.dataset[revealKeyAttr];
       if (key) revealed.add(key);
-      node.dataset.timelineRevealed = 'true';
+      node.dataset[revealedAttr] = 'true';
     };
 
     for (const node of nodes) {
-      const key = node.dataset.timelineRevealKey;
+      const key = node.dataset[revealKeyAttr];
       if (key && revealed.has(key)) reveal(node);
     }
 
@@ -91,12 +109,42 @@ export function useTimelineReveal({
     );
 
     for (const node of nodes) {
-      if (node.dataset.timelineRevealed === 'true') continue;
+      if (node.dataset[revealedAttr] === 'true') continue;
       observer.observe(node);
     }
 
     return () => observer.disconnect();
-  }, [enabled, revision, rootRef, scopeKey]);
+  }, [enabled, revision, rootRef, scopeKey, attrPrefix]);
+}
+
+export function useTimelineReveal(options: {
+  rootRef: RefObject<HTMLElement | null>;
+  enabled: boolean;
+  scopeKey: string;
+  revision: number;
+}) {
+  useFirstEntryReveal({ ...options, attrPrefix: 'timeline' });
+}
+
+/**
+ * Discover tapestry's own first-entry reveal (#977). Reuses the same core
+ * and session-scoped registry as #975's `useTimelineReveal`, but under
+ * `data-discover-reveal-key`/`data-discover-revealed` so Discover never
+ * shares DOM attribute names (or CSS) with Timeline.
+ *
+ * `revision` must be the tapestry's ordered content identity (e.g. the
+ * joined item keys), not just a count: the authoritative Discover selection
+ * can be replaced in place by a different, same-length set on refresh, and
+ * a count-only revision would never re-run the observe pass for the new
+ * keyed nodes React mounts in that case.
+ */
+export function useDiscoverReveal(options: {
+  rootRef: RefObject<HTMLElement | null>;
+  enabled: boolean;
+  scopeKey: string;
+  revision: string;
+}) {
+  useFirstEntryReveal({ ...options, attrPrefix: 'discover' });
 }
 
 export function useTimelineAutoPagination({

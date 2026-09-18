@@ -275,14 +275,41 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    // The visible byAuthor attribution text is first-name-only. (The
-    // avatar's own aria-label is a separate, pre-existing accessibility
-    // label unrelated to this fix and out of #791's scope, which is why
-    // this doesn't assert on "Alex Winter"/"Lea Sommer" absence overall.)
+    // Visible and accessible Discover attribution stay first-name-only.
     expect(html).toContain('von Alex</span>');
     expect(html).toContain('von Lea</span>');
+    expect(html).toContain('aria-label="von Alex"');
+    expect(html).toContain('aria-label="von Lea"');
     expect(html).not.toContain('von Alex Winter');
     expect(html).not.toContain('von Lea Sommer');
+  });
+
+  it('uses viewer-relative attribution for the current account in Discover (#1019)', () => {
+    const html = renderStoryPage('/story', {
+      items: [
+        {
+          kind: 'MEMORY',
+          effectiveDate: new Date('2026-08-26T00:00:00Z'),
+          memory: {
+            id: 'mem-own',
+            title: 'Our own moment',
+            notes: 'A small memory',
+            occurredOn: new Date('2026-08-26T00:00:00Z'),
+            createdAt: new Date('2026-08-26T00:00:00Z'),
+            attachments: [],
+            author: { id: 'account-1', displayName: 'Alex Winter' },
+            creator: { id: 'account-1', displayName: 'Alex Winter' },
+            capabilities: { canComment: true, canDelete: true, canEdit: true },
+          },
+        },
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
+
+    expect(html).toContain('aria-label="von dir"');
+    expect(html).toContain('>von dir</span>');
+    expect(html).not.toContain('aria-label="von Alex"');
   });
 
   it('renders timeline view when requested via query parameter', () => {

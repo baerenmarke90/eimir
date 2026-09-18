@@ -125,11 +125,15 @@ export function HeartEmotionBadge({
 }) {
   const { t } = useTranslation();
   const label = t(`heartEmotion.${emotion}`);
+  const accessibleLabel = `${t('heartMomentProduct.emotionLabel')}: ${label}`;
 
   return (
     <span
       className={`heart-emotion-badge heart-emotion-badge--${variant} ${className}`.trim()}
       data-emotion={emotion}
+      role="img"
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
     >
       <span className="heart-emotion-icon" aria-hidden="true">
         <EmotionIcon emotion={emotion} />

@@ -99,7 +99,9 @@
 
 .heart-emotion-badge--compact {
   padding: 0;
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .heart-emotion-badge--detail {
@@ -143,20 +145,8 @@
   overflow-wrap: break-word;
 }
 
-/* Compact Timeline: the icon is the visible emotional cue; the localized
- * label remains in the accessibility tree and is restored visually on
- * Expanded Web below. */
-.heart-emotion-badge--compact .heart-emotion-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
+/* Timeline keeps icon + localized emotion text together at every viewport.
+ * The pair is quiet content metadata, not badge/control chrome. */
 .heart-emotion-badge--detail .heart-emotion-label {
   text-align: left;
 }
@@ -335,19 +325,6 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@media (min-width: 768px) {
-  .story-card-heart-moment .heart-emotion-badge--compact .heart-emotion-label {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    clip-path: none;
-    white-space: normal;
   }
 }
 

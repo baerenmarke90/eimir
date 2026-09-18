@@ -31,10 +31,7 @@ const ATTACHMENTS = [
   },
 ] as const;
 
-function attachment(
-  value: (typeof ATTACHMENTS)[number],
-  position: number,
-) {
+function attachment(value: (typeof ATTACHMENTS)[number], position: number) {
   return {
     id: value.id,
     position,
@@ -76,9 +73,7 @@ const MULTI_MEMORY = memory(
   MEMORY_ID,
   ATTACHMENTS.map((value, index) => attachment(value, index)),
 );
-const SINGLE_MEMORY = memory(SINGLE_MEMORY_ID, [
-  attachment(ATTACHMENTS[0], 0),
-]);
+const SINGLE_MEMORY = memory(SINGLE_MEMORY_ID, [attachment(ATTACHMENTS[0], 0)]);
 
 function openItemLabel(index: number, count: number): string {
   return GALLERY.openItem
@@ -225,8 +220,7 @@ async function installApiMocks(page: Page) {
 
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
     ) {
       await fulfillJson({ unreadCount: 0 });
       return;
@@ -250,8 +244,7 @@ async function installApiMocks(page: Page) {
 
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/memories/${SINGLE_MEMORY_ID}`
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/${SINGLE_MEMORY_ID}`
     ) {
       await fulfillJson(SINGLE_MEMORY);
       return;
@@ -314,9 +307,7 @@ async function installApiMocks(page: Page) {
 
 async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('lea@example.org');
-  await page
-    .getByLabel(de.login.password)
-    .fill('a-long-enough-test-password');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
 }
@@ -412,9 +403,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
     expectStableGeometry(before, after);
   }
 
-  const activeSlide = page.locator(
-    '.media-gallery-carousel-slide.is-active',
-  );
+  const activeSlide = page.locator('.media-gallery-carousel-slide.is-active');
   const motion = await activeSlide.evaluate((element) => {
     const style = getComputedStyle(element);
     return {
@@ -461,10 +450,13 @@ test('Memory carousel keeps document and layout position stable across pointer a
   expectStableGeometry(beforeLightboxNext, await geometry(page));
   await page.keyboard.press('Escape');
 
-  const readParents = readAccessBodies.map((body) => body as {
-    parentType?: unknown;
-    parentId?: unknown;
-  });
+  const readParents = readAccessBodies.map(
+    (body) =>
+      body as {
+        parentType?: unknown;
+        parentId?: unknown;
+      },
+  );
   // StrictMode may start the read effect twice in development. Every issued
   // descriptor request still has to keep the Memory parent binding intact.
   expect(readParents.length).toBeGreaterThanOrEqual(3);
@@ -503,10 +495,7 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       if (!box) throw new Error('Next carousel control did not render.');
 
       const before = await geometry(page);
-      await page.touchscreen.tap(
-        box.x + box.width / 2,
-        box.y + box.height / 2,
-      );
+      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
       await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
         counterLabel(2, 3),
       );
@@ -586,9 +575,9 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
   await signIn(page);
   await openMemory(page, SINGLE_MEMORY_ID, SINGLE_MEMORY.title);
 
-  await expect(page.getByRole('button', { name: GALLERY.previous })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByRole('button', { name: GALLERY.previous }),
+  ).toHaveCount(0);
   await expect(page.getByRole('button', { name: GALLERY.next })).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),

@@ -160,7 +160,9 @@ export function MediaGallery({
                 type="button"
                 className={`media-gallery-carousel-slide${
                   index === carouselIndex
-                    ? ` is-active${carouselDirection ? ` is-${carouselDirection}` : ''}`
+                    ? ` is-active${
+                        carouselDirection ? ` is-${carouselDirection}` : ''
+                      }`
                     : ''
                 }`}
                 tabIndex={index === carouselIndex ? 0 : -1}
@@ -180,6 +182,15 @@ export function MediaGallery({
 
           {items.length > 1 ? (
             <>
+              <span
+                className="media-gallery-carousel-counter"
+                aria-live="polite"
+              >
+                {t('gallery.counter', {
+                  index: carouselIndex + 1,
+                  count: items.length,
+                })}
+              </span>
               <button
                 type="button"
                 className="media-gallery-carousel-nav media-gallery-carousel-prev"
@@ -187,7 +198,7 @@ export function MediaGallery({
                 onClick={() => changeCarousel(-1)}
                 aria-label={t('gallery.previous')}
               >
-                ‹
+                <span aria-hidden="true">‹</span>
               </button>
               <button
                 type="button"
@@ -196,32 +207,11 @@ export function MediaGallery({
                 onClick={() => changeCarousel(1)}
                 aria-label={t('gallery.next')}
               >
-                ›
+                <span aria-hidden="true">›</span>
               </button>
             </>
           ) : null}
         </div>
-
-        {items.length > 1 ? (
-          <div className="media-gallery-carousel-footer">
-            <span className="media-gallery-carousel-counter" aria-live="polite">
-              {t('gallery.counter', {
-                index: carouselIndex + 1,
-                count: items.length,
-              })}
-            </span>
-            <div className="media-gallery-carousel-dots" aria-hidden="true">
-              {items.map((item, index) => (
-                <span
-                  key={item.id}
-                  className={`media-gallery-carousel-dot${
-                    index === carouselIndex ? ' is-active' : ''
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
       </section>
 
       {activeItem && activeIndex !== null ? (
@@ -244,43 +234,47 @@ export function MediaGallery({
           }}
         >
           <div className="media-lightbox">
-            <div className="media-lightbox-toolbar">
-              <span aria-live="polite">
-                {t('gallery.counter', {
-                  index: activeIndex + 1,
-                  count: items.length,
-                })}
-              </span>
+            <div className="media-lightbox-stage">
+              {renderMedia(activeItem, 'media-lightbox-content')}
+
+              {items.length > 1 ? (
+                <span className="media-lightbox-counter" aria-live="polite">
+                  {t('gallery.counter', {
+                    index: activeIndex + 1,
+                    count: items.length,
+                  })}
+                </span>
+              ) : null}
+
               <button
                 ref={closeButton}
                 type="button"
-                className="tertiary"
+                className="media-lightbox-close"
                 onClick={() => setActiveIndex(null)}
+                aria-label={t('gallery.close')}
               >
-                {t('gallery.close')}
+                <span aria-hidden="true">×</span>
               </button>
-            </div>
-            <div className="media-lightbox-stage">
+
               {items.length > 1 ? (
-                <button
-                  type="button"
-                  className="media-lightbox-nav"
-                  onClick={() => changeActive(-1)}
-                  aria-label={t('gallery.previous')}
-                >
-                  ‹
-                </button>
-              ) : null}
-              {renderMedia(activeItem, 'media-lightbox-content')}
-              {items.length > 1 ? (
-                <button
-                  type="button"
-                  className="media-lightbox-nav"
-                  onClick={() => changeActive(1)}
-                  aria-label={t('gallery.next')}
-                >
-                  ›
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="media-lightbox-nav media-lightbox-prev"
+                    onClick={() => changeActive(-1)}
+                    aria-label={t('gallery.previous')}
+                  >
+                    <span aria-hidden="true">‹</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="media-lightbox-nav media-lightbox-next"
+                    onClick={() => changeActive(1)}
+                    aria-label={t('gallery.next')}
+                  >
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </>
               ) : null}
             </div>
           </div>

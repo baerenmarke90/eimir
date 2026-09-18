@@ -488,6 +488,42 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       0,
     );
 
+    const browseShell = page.locator('.momente-browse-links');
+    const browseLink = page.locator('.momente-browse-link').first();
+    const browseShape = await browseShell.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const root = getComputedStyle(document.documentElement);
+      return {
+        radius: style.borderRadius,
+        expectedRadius: root.getPropertyValue('--radius-card').trim(),
+        shadow: style.boxShadow,
+      };
+    });
+    const browseLinkShape = await browseLink.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const root = getComputedStyle(document.documentElement);
+      return {
+        radius: style.borderRadius,
+        expectedRadius: root.getPropertyValue('--radius-large').trim(),
+      };
+    });
+    expect(browseShape.radius).toBe(browseShape.expectedRadius);
+    expect(browseShape.shadow).not.toBe('none');
+    expect(browseLinkShape.radius).toBe(browseLinkShape.expectedRadius);
+
+    const compactEmotion = heartMomentCard.locator(
+      '.heart-emotion-badge--compact',
+    );
+    await expect(compactEmotion).toHaveAttribute('aria-label', 'Gefühl: Geliebt');
+    await expect(compactEmotion).toHaveAttribute('title', 'Gefühl: Geliebt');
+    await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
+    await expect(compactEmotion.locator('.heart-emotion-label')).not.toBeVisible();
+    await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
+    await expect(compactEmotion).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
+
     await captureScreenshot(
       page,
       testInfo,
@@ -495,6 +531,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       {
         fullPage: true,
       },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1018-momente-visual-polish-390-light.png',
+      { fullPage: true },
     );
 
     await captureScreenshot(
@@ -530,6 +572,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.waitForSelector('.story-timeline');
 
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    const compactEmotion = page
+      .locator('.story-card-heart-moment .heart-emotion-badge--compact')
+      .first();
+    await expect(compactEmotion.locator('.heart-emotion-label')).not.toBeVisible();
+    await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
+    await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
+
     await captureScreenshot(
       page,
       testInfo,
@@ -537,6 +586,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       {
         fullPage: true,
       },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1018-momente-visual-polish-390-dark.png',
+      { fullPage: true },
     );
   });
 
@@ -557,10 +612,21 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     });
     expect(hasHorizontalOverflow).toBe(false);
 
+    const browseLinks = page.locator('.momente-browse-link');
+    await expect(browseLinks).toHaveCount(3);
+    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-start', '1');
+    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-end', '-1');
+
     await captureScreenshot(
       page,
       testInfo,
       '03-momente-timeline-320-reflow.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1018-momente-visual-polish-320-reflow.png',
       { fullPage: true },
     );
   });
@@ -574,10 +640,27 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
+    const expandedEmotion = page
+      .locator('.story-card-heart-moment .heart-emotion-badge--compact')
+      .first();
+    await expect(expandedEmotion.locator('.heart-emotion-icon')).toBeVisible();
+    await expect(expandedEmotion.locator('.heart-emotion-label')).toBeVisible();
+    await expect(expandedEmotion).toHaveCSS('border-top-width', '0px');
+    const browseWidth = await page
+      .locator('.momente-browse-links')
+      .evaluate((element) => element.getBoundingClientRect().width);
+    expect(browseWidth).toBeLessThan(700);
+
     await captureScreenshot(
       page,
       testInfo,
       '04-momente-timeline-1440-expanded.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1018-momente-visual-polish-1440-expanded.png',
       { fullPage: true },
     );
   });
@@ -655,6 +738,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
     await expect(page.getByText('Thinking of you')).toBeVisible();
+    const detailEmotion = page.locator('.heart-emotion-badge--detail');
+    await expect(detailEmotion.locator('.heart-emotion-icon')).toBeVisible();
+    await expect(detailEmotion.locator('.heart-emotion-label')).toBeVisible();
+    await expect(detailEmotion).toHaveCSS('border-top-width', '0px');
+    await expect(detailEmotion).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
     const provenance = page.locator('.heart-moment-provenance-footer');
     await expect(provenance).toBeVisible();
     await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));

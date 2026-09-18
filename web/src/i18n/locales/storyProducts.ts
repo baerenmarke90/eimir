@@ -99,9 +99,6 @@ const storyProducts = {
     sharedHelp: 'Dieser Herzmoment ist für beide Personen im Space sichtbar.',
     privateHelp:
       'Dieser Herzmoment bleibt nur für dich sichtbar und erscheint nicht bei deinem Partner.',
-    visibilityChangeHeading: 'Sichtbarkeit ändern',
-    visibilityChangeWarning:
-      'Eine Änderung der Sichtbarkeit wirkt sich auf Story, Suche, Kommentare und andere Ansichten aus.',
     makeShared: 'Mit Partner teilen',
     makePrivate: 'Nur für mich behalten',
     visibilityChanging: 'Sichtbarkeit wird geändert …',

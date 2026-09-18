@@ -40,6 +40,7 @@ import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { VisibilityBadge } from './VisibilityBadge';
 import { UiState } from './UiState';
 
@@ -732,19 +733,11 @@ export function HeartMomentProductPage({
         eyebrow={heartMomentEyebrow}
         title={heartMoment.text}
         titleAction={
-          <VisibilityBadge
-            visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
-            size="small"
-          />
-        }
-        action={
           heartMoment.capabilities.canEdit && !offline ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={heartMomentEditPath(heartMoment.id)}
-            >
-              {t('heartMomentProduct.edit')}
-            </Link>
+              label={t('heartMomentProduct.edit')}
+            />
           ) : undefined
         }
       />
@@ -774,38 +767,8 @@ export function HeartMomentProductPage({
             </section>
           ) : null}
 
-          {heartMoment.capabilities.canEdit && !offline ? (
-            <section
-              className="visibility-panel"
-              aria-labelledby="visibility-change-heading"
-            >
-              <h2 id="visibility-change-heading">
-                {t('heartMomentProduct.visibilityChangeHeading')}
-              </h2>
-              <p>{t('heartMomentProduct.visibilityChangeWarning')}</p>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() =>
-                  visibilityMutation.mutate({
-                    current: heartMoment,
-                    visibility: shared
-                      ? ContentVisibility.PRIVATE
-                      : ContentVisibility.SHARED,
-                  })
-                }
-                disabled={changingVisibility}
-              >
-                {changingVisibility
-                  ? t('heartMomentProduct.visibilityChanging')
-                  : shared
-                    ? t('heartMomentProduct.makePrivate')
-                    : t('heartMomentProduct.makeShared')}
-              </button>
-              {visibilityMutation.error ? (
-                <ProblemState error={visibilityMutation.error} />
-              ) : null}
-            </section>
+          {visibilityMutation.error ? (
+            <ProblemState error={visibilityMutation.error} />
           ) : null}
 
           {changingVisibility ? (
@@ -833,6 +796,34 @@ export function HeartMomentProductPage({
                 createdAt: formatCreatedAt(heartMoment.createdAt),
               })}
             </p>
+            <div className="heart-moment-shared-status">
+              <VisibilityBadge
+                visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
+                size="small"
+                variant="subtle"
+              />
+              {heartMoment.capabilities.canEdit && !offline ? (
+                <button
+                  type="button"
+                  className="heart-moment-visibility-toggle"
+                  onClick={() =>
+                    visibilityMutation.mutate({
+                      current: heartMoment,
+                      visibility: shared
+                        ? ContentVisibility.PRIVATE
+                        : ContentVisibility.SHARED,
+                    })
+                  }
+                  disabled={changingVisibility}
+                >
+                  {changingVisibility
+                    ? t('heartMomentProduct.visibilityChanging')
+                    : shared
+                      ? t('heartMomentProduct.makePrivate')
+                      : t('heartMomentProduct.makeShared')}
+                </button>
+              ) : null}
+            </div>
           </footer>
         </article>
       </div>

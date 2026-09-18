@@ -209,9 +209,26 @@ export const ListEntryIconButton = forwardRef<
   );
 });
 
+export function EditPencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className={className}
+    >
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+    </svg>
+  );
+}
+
 function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'add') {
     return <AddIcon className="list-entry-icon" />;
+  }
+
+  if (kind === 'edit') {
+    return <EditPencilIcon className="list-entry-icon" />;
   }
 
   return (
@@ -243,9 +260,6 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
           <path d="M5 12h14" />
           <path d="M5 17h14" />
         </>
-      ) : null}
-      {kind === 'edit' ? (
-        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
       ) : null}
     </svg>
   );

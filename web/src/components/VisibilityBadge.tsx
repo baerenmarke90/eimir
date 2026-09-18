@@ -14,6 +14,13 @@ export interface VisibilityBadgeProps {
   showLabel?: boolean;
   customLabel?: string;
   className?: string;
+  /**
+   * 'badge' (default) is the outlined pill for places that need the status
+   * to stand out. 'subtle' drops the pill chrome for quiet metadata rows
+   * (e.g. beside a Story title) where the status must not compete with
+   * content.
+   */
+  variant?: 'badge' | 'subtle';
 }
 
 function normalizeVisibility(
@@ -38,19 +45,23 @@ export function VisibilityGlyph({
   return (
     <>
       {normalized === 'shared' ? (
-        // Two interlocking rings (eimir. symbol)
+        // Two people (shared with partner) - an established "shared" glyph,
+        // not a link/share-action icon, so it reads as status, not a control.
         <svg
           viewBox="0 0 24 24"
           width="16"
           height="16"
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
           aria-hidden="true"
         >
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M9 4.5a5.5 5.5 0 103.54 9.7 5.5 5.5 0 101.92-7.4A5.47 5.47 0 009 4.5zM5.5 10a3.5 3.5 0 115.65 2.76A5.47 5.47 0 009.5 15.5a3.5 3.5 0 01-4-5.5zm9 4a3.5 3.5 0 11-1.65-2.76 5.47 5.47 0 001.65-2.74A3.5 3.5 0 0114.5 14z"
-          />
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M15 3.13a4 4 0 0 1 0 7.75" />
         </svg>
       ) : normalized === 'private' ? (
         // Subtle lock icon
@@ -95,6 +106,7 @@ export function VisibilityBadge({
   showLabel = true,
   customLabel,
   className = '',
+  variant = 'badge',
 }: VisibilityBadgeProps) {
   const { t } = useTranslation();
   const normalized = normalizeVisibility(visibility);
@@ -110,7 +122,7 @@ export function VisibilityBadge({
 
   return (
     <span
-      className={`visibility-badge visibility-${normalized} visibility-size-${size} ${className}`}
+      className={`visibility-badge visibility-${normalized} visibility-size-${size} visibility-badge-${variant} ${className}`}
       role="status"
       aria-label={label}
       title={label}

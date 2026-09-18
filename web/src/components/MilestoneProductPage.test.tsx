@@ -130,6 +130,22 @@ describe('MilestoneProductPage Back restores origin (#966)', () => {
   });
 });
 
+describe('Milestone detail edit action (#1014)', () => {
+  it('replaces the oversized text button with a compact icon-only edit link', async () => {
+    renderDetail();
+    const editLink = await screen.findByRole('link', {
+      name: storyProducts.milestoneProduct.edit,
+    });
+    expect(editLink.getAttribute('href')).toBe(
+      '/story/milestones/milestone-1/edit',
+    );
+    // Icon-only: the accessible name comes from aria-label, not visible text.
+    expect(editLink.textContent?.trim()).toBe('');
+    expect(editLink.className).not.toContain('button-link');
+    expect(editLink.className).not.toContain('secondary-link');
+  });
+});
+
 describe('Milestone view receipt', () => {
   it('emits a receipt strictly on successful presentation', async () => {
     const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);

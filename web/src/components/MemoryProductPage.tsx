@@ -48,6 +48,7 @@ import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -657,15 +658,13 @@ export function MemoryProductPage({
       <PageHeader
         eyebrow={memoryEyebrow}
         title={memory.title}
-        action={
+        titleAction={
           memory.capabilities.canEdit && !offline ? (
-            <Link
-              className="button-link secondary-link"
+            <StoryDetailEditLink
               to={memoryEditPath(memory.id)}
+              label={t('memoryProduct.edit')}
               state={{ taskOriginKey: originKey }}
-            >
-              {t('memoryProduct.edit')}
-            </Link>
+            />
           ) : undefined
         }
       />

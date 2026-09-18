@@ -172,12 +172,21 @@ export function useHideOnScrollNav(pathname: string, search = '') {
   const [isVisible, setIsVisible] = useState(true);
   const stateRef = useRef<ScrollNavigationState>(createInitialScrollNavState());
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
 
   const navigationKey = `${pathname}${search}`;
 
   // Navigation identity changes (route or peer mode search params) always restore visible navigation state
   useEffect(() => {
     void navigationKey;
+    if (scrollFrameRef.current !== null && typeof window !== 'undefined') {
+      if (typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      } else {
+        window.clearTimeout(scrollFrameRef.current);
+      }
+      scrollFrameRef.current = null;
+    }
     stateRef.current = createInitialScrollNavState(
       typeof window !== 'undefined' ? window.scrollY : 0,
     );
@@ -190,7 +199,6 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       return;
     }
 
-    let scrollFrame: number | null = null;
     const scheduleFrame = (callback: FrameRequestCallback): number =>
       typeof window.requestAnimationFrame === 'function'
         ? window.requestAnimationFrame(callback)
@@ -204,7 +212,7 @@ export function useHideOnScrollNav(pathname: string, search = '') {
     };
 
     const updateFromScroll = () => {
-      scrollFrame = null;
+      scrollFrameRef.current = null;
       const isFocused = Boolean(
         shellRef.current &&
           document.activeElement &&
@@ -246,16 +254,16 @@ export function useHideOnScrollNav(pathname: string, search = '') {
         target === document.body ||
         target === event.currentTarget;
 
-      if (!isRootTarget || scrollFrame !== null) return;
-      scrollFrame = scheduleFrame(updateFromScroll);
+      if (!isRootTarget || scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = scheduleFrame(updateFromScroll);
     };
 
     const handleResize = () => {
       // Viewport / orientation resize resets to visible and cancels stale
       // scroll work scheduled against the previous geometry.
-      if (scrollFrame !== null) {
-        cancelFrame(scrollFrame);
-        scrollFrame = null;
+      if (scrollFrameRef.current !== null) {
+        cancelFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
       }
       stateRef.current = createInitialScrollNavState(window.scrollY);
       setIsVisible(true);
@@ -283,12 +291,12 @@ export function useHideOnScrollNav(pathname: string, search = '') {
     document.addEventListener('focusin', handleFocusIn);
 
     return () => {
-      if (scrollFrame !== null) cancelFrame(scrollFrame);
+      if (scrollFrameRef.current !== null) cancelFrame(scrollFrameRef.current);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('focusin', handleFocusIn);
     };
-  }, [isEnabled, navigationKey]);
+  }, [isEnabled]);
 
   return {
     isVisible: isEnabled ? isVisible : true,

@@ -80,9 +80,11 @@ function acquireSharedAvatar(
     entry.releaseTimer = null;
   }
 
-  if (!entry.pending && !entry.objectUrl) {
+  const currentEntry = entry;
+
+  if (!currentEntry.pending && !currentEntry.objectUrl) {
     const controller = new AbortController();
-    entry.controller = controller;
+    currentEntry.controller = controller;
     const pending = profilesApi
       .getProfileAvatarContentRaw(
         { accountId, spaceId },
@@ -94,22 +96,29 @@ function acquireSharedAvatar(
           throw new DOMException('Avatar load aborted', 'AbortError');
         }
         const objectUrl = URL.createObjectURL(blob);
-        entry!.objectUrl = objectUrl;
+        currentEntry.objectUrl = objectUrl;
         return objectUrl;
       })
       .finally(() => {
-        if (entry!.pending === pending) entry!.pending = null;
-        if (entry!.controller === controller) entry!.controller = null;
+        if (currentEntry.pending === pending) currentEntry.pending = null;
+        if (currentEntry.controller === controller) {
+          currentEntry.controller = null;
+        }
       });
-    entry.pending = pending;
+    currentEntry.pending = pending;
+  }
+
+  const promise = currentEntry.objectUrl
+    ? Promise.resolve(currentEntry.objectUrl)
+    : currentEntry.pending;
+  if (!promise) {
+    throw new Error('Shared avatar cache entry has no load promise.');
   }
 
   return {
-    entry,
-    promise: entry.objectUrl
-      ? Promise.resolve(entry.objectUrl)
-      : (entry.pending as Promise<string>),
-    release: () => releaseSharedAvatar(cache, key, entry!),
+    entry: currentEntry,
+    promise,
+    release: () => releaseSharedAvatar(cache, key, currentEntry),
   };
 }
 

@@ -938,7 +938,7 @@ export function StoryProductPage({
                         />
                         <span>
                           {t('story.byAuthor', {
-                            author: storyAuthorLabel(featuredAuthor),
+                            author: storyAuthorLabel(featuredAuthor, accountId),
                           })}
                         </span>
                       </span>
@@ -1102,7 +1102,10 @@ export function StoryProductPage({
                                   />
                                   <span>
                                     {t('story.byAuthor', {
-                                      author: storyAuthorLabel(entry.author),
+                                      author: storyAuthorLabel(
+                                        entry.author,
+                                        accountId,
+                                      ),
                                     })}
                                   </span>
                                 </span>
@@ -1349,6 +1352,7 @@ export function StoryProductPage({
                           loadHeartMomentImage={loadHeartMomentImage}
                           profilesApi={profilesApi}
                           spaceId={spaceId}
+                          currentAccountId={accountId}
                           progressiveReveal
                           onOpenItem={(event, item, to) => {
                             if (

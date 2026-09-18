@@ -457,13 +457,19 @@ test('Memory carousel keeps document and layout position stable across pointer a
       .evaluate((element) => getComputedStyle(element).objectFit),
   ).toBe('contain');
 
-  const ambientBackdrop = page.locator('.media-gallery-carousel-backdrop').first();
+  const ambientBackdrop = page
+    .locator('.media-gallery-carousel-backdrop')
+    .first();
   await expect(ambientBackdrop).toBeVisible();
   expect(
-    await ambientBackdrop.evaluate((element) => getComputedStyle(element).objectFit),
+    await ambientBackdrop.evaluate(
+      (element) => getComputedStyle(element).objectFit,
+    ),
   ).toBe('cover');
   expect(
-    await ambientBackdrop.evaluate((element) => getComputedStyle(element).filter),
+    await ambientBackdrop.evaluate(
+      (element) => getComputedStyle(element).filter,
+    ),
   ).toContain('blur');
 
   const pointerSteps = [

@@ -3,6 +3,7 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import type { StoryKind } from '../api/generated/models/StoryKind';
 import { authorDisplayName } from '../client/authorPresentation';
+import { i18n } from '../i18n';
 import { firstNameFromDisplayName } from '../client/personalName';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 
@@ -14,8 +15,14 @@ import relationshipComponents from '../i18n/locales/relationshipComponents';
  * name, so every call site funnels through this one helper rather than each
  * reading `.displayName` directly.
  */
-export function storyAuthorLabel(author: AuthorSummary): string {
+export function storyAuthorLabel(
+  author: AuthorSummary,
+  currentAccountId?: string,
+): string {
   if (author.isFormerMember === true) return authorDisplayName(author);
+  if (currentAccountId && author.id === currentAccountId) {
+    return i18n.t('story.authorSelf');
+  }
   return firstNameFromDisplayName(
     author.displayName,
     relationshipComponents.couplePresencePartnerFallback,

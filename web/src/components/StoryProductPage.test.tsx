@@ -278,8 +278,8 @@ describe('StoryProductPage', () => {
     // Visible and accessible Discover attribution stay first-name-only.
     expect(html).toContain('von Alex</span>');
     expect(html).toContain('von Lea</span>');
-    expect(html).toContain('aria-label="von Alex"');
-    expect(html).toContain('aria-label="von Lea"');
+    expect(html).toContain('class="sr-only">von Alex</span>');
+    expect(html).toContain('class="sr-only">von Lea</span>');
     expect(html).not.toContain('von Alex Winter');
     expect(html).not.toContain('von Lea Sommer');
   });
@@ -307,9 +307,9 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('aria-label="von dir"');
+    expect(html).toContain('class="sr-only">von dir</span>');
     expect(html).toContain('>von dir</span>');
-    expect(html).not.toContain('aria-label="von Alex"');
+    expect(html).not.toContain('class="sr-only">von Alex</span>');
   });
 
   it('renders timeline view when requested via query parameter', () => {

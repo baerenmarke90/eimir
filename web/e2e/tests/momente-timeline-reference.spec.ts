@@ -520,9 +520,28 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     await expect(compactEmotion).toHaveAttribute('title', 'Gefühl: Geliebt');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
-    await expect(
-      compactEmotion.locator('.heart-emotion-label'),
-    ).not.toBeVisible();
+    const compactEmotionLabel = compactEmotion.locator(
+      '.heart-emotion-label',
+    );
+    const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
+      (element) => {
+        const style = getComputedStyle(element);
+        return {
+          position: style.position,
+          width: style.width,
+          height: style.height,
+          overflow: style.overflow,
+          clipPath: style.clipPath,
+        };
+      },
+    );
+    expect(compactEmotionLabelStyle).toMatchObject({
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      overflow: 'hidden',
+    });
+    expect(compactEmotionLabelStyle.clipPath).not.toBe('none');
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
     await expect(compactEmotion).toHaveCSS(
       'background-color',
@@ -580,9 +599,28 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
       .first();
-    await expect(
-      compactEmotion.locator('.heart-emotion-label'),
-    ).not.toBeVisible();
+    const compactEmotionLabel = compactEmotion.locator(
+      '.heart-emotion-label',
+    );
+    const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
+      (element) => {
+        const style = getComputedStyle(element);
+        return {
+          position: style.position,
+          width: style.width,
+          height: style.height,
+          overflow: style.overflow,
+          clipPath: style.clipPath,
+        };
+      },
+    );
+    expect(compactEmotionLabelStyle).toMatchObject({
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      overflow: 'hidden',
+    });
+    expect(compactEmotionLabelStyle.clipPath).not.toBe('none');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
 

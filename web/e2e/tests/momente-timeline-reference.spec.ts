@@ -520,9 +520,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     await expect(compactEmotion).toHaveAttribute('title', 'Gefühl: Geliebt');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
-    const compactEmotionLabel = compactEmotion.locator(
-      '.heart-emotion-label',
-    );
+    const compactEmotionLabel = compactEmotion.locator('.heart-emotion-label');
     const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
       (element) => {
         const style = getComputedStyle(element);
@@ -599,9 +597,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
       .first();
-    const compactEmotionLabel = compactEmotion.locator(
-      '.heart-emotion-label',
-    );
+    const compactEmotionLabel = compactEmotion.locator('.heart-emotion-label');
     const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
       (element) => {
         const style = getComputedStyle(element);

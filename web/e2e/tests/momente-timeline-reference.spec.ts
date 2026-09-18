@@ -585,7 +585,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
     await expect(compactAuthor).toHaveAttribute('aria-label', 'von dir');
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
-      'dir',
+      'von dir',
     );
 
     const browseShell = page.locator('.momente-browse-links');
@@ -754,7 +754,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(compactEmotion.locator('.heart-emotion-label')).toHaveText(
       'Geliebt',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText('dir');
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      'von dir',
+    );
 
     await captureScreenshot(
       page,
@@ -798,7 +800,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'background-color',
       'rgba(0, 0, 0, 0)',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText('dir');
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      'von dir',
+    );
     const browseWidth = await page
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
@@ -997,7 +1001,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     const authorMeta = page.locator('.momente-author-meta').first();
     await expect(authorMeta).toHaveAttribute('aria-label', 'von Lea');
-    await expect(page.locator('.story-card-author').first()).toHaveText('Lea');
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      'von Lea',
+    );
 
     await page.goto('/story/memories/mem-canal');
     await expect(page.locator('.memory-provenance-footer')).toContainText(

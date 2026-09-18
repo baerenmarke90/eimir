@@ -301,8 +301,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       const event = new Event(type, { bubbles: true, cancelable: true });
       Object.defineProperty(event, 'touches', {
         configurable: true,
-        value:
-          y === undefined ? [] : [{ clientX: 0, clientY: y }],
+        value: y === undefined ? [] : [{ clientX: 0, clientY: y }],
       });
       document.dispatchEvent(event);
       return event.defaultPrevented;
@@ -327,9 +326,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     });
     document.dispatchEvent(event);
   });
-  await expect
-    .poll(() => dashboardRequestCount)
-    .toBe(requestsBeforePull + 1);
+  await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
 
   // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
   await page.getByRole('link', { name: /Later October trip/ }).click();

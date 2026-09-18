@@ -85,10 +85,10 @@
     opacity: 1;
     transform: none;
     transition: none;
-    }
+  }
 
   .story-timeline-item.story-timeline-progressive-reveal .story-card {
     translate: 0 0;
     transition: none;
-    }
+  }
 }

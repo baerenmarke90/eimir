@@ -154,7 +154,8 @@ export function useProfileAvatarUrl(
       })
       .catch((error: unknown) => {
         if (!active) return;
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if (error instanceof DOMException && error.name === 'AbortError')
+          return;
         setLoadFailed(true);
       });
 

@@ -11,22 +11,15 @@ import { usePullToRefresh } from './usePullToRefresh';
  * observers means the shell does not encode domain query keys or wake unrelated
  * inactive caches, while still refreshing the complete visible surface.
  */
-export function AppSurfacePullToRefresh({
-  pathname,
-}: {
-  pathname: string;
-}) {
+export function AppSurfacePullToRefresh({ pathname }: { pathname: string }) {
   const queryClient = useQueryClient();
   const activeFetches = useIsFetching();
   const decision = surfaceRefreshDecision(pathname);
   const enabled = decision.mode === 'pull_to_refresh';
 
-  const refreshActiveSurface = useCallback(
-    async () => {
-      await queryClient.refetchQueries({ type: 'active' });
-    },
-    [queryClient],
-  );
+  const refreshActiveSurface = useCallback(async () => {
+    await queryClient.refetchQueries({ type: 'active' });
+  }, [queryClient]);
 
   const state = usePullToRefresh({
     enabled,

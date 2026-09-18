@@ -301,7 +301,7 @@ export function StoryList({
           const metaId = `${listId}-meta-${index}`;
           const accessibleName = `${presentation.kindLabel}: ${presentation.title}${
             item.kind === 'HEART_MOMENT' && presentation.preview
-              ? `, ${presentation.preview}`
+              ? ` ${t('heartMomentProduct.emotionLabel')}: ${presentation.preview}`
               : ''
           }`;
 

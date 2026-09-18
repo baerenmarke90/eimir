@@ -515,10 +515,7 @@ export function MilestoneProductPage({
           <footer className="milestone-provenance-footer">
             <p>
               {t('milestoneProduct.provenance', {
-                author: storyAuthorLabel(
-                  milestone.author,
-                  currentAccountId,
-                ),
+                author: storyAuthorLabel(milestone.author, currentAccountId),
                 createdAt: formatCreatedAt(milestone.createdAt),
               })}
             </p>

@@ -1,4 +1,3 @@
-import { authorFirstName } from '../client/authorPresentation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -41,6 +40,7 @@ import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { storyAuthorLabel } from './storyPresentation';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
 
@@ -792,7 +792,10 @@ export function HeartMomentProductPage({
           <footer className="heart-moment-provenance-footer">
             <p>
               {t('heartMomentProduct.provenanceCompact', {
-                author: authorFirstName(heartMoment.author),
+                author: storyAuthorLabel(
+                  heartMoment.author,
+                  currentAccountId,
+                ),
                 createdAt: formatCreatedAt(heartMoment.createdAt),
               })}
             </p>

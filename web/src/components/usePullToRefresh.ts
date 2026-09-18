@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_THRESHOLD = 72;
 const START_SLOP = 8;
+const DIRECTION_LOCK_SLOP = 10;
 const MAX_PULL_DISTANCE = 64;
 const TOP_TOLERANCE = 1;
 const COARSE_POINTER_QUERY = '(pointer: coarse)';
@@ -39,12 +40,11 @@ function isAtDocumentTop(): boolean {
 }
 
 /**
- * Small, window-scroll pull-to-refresh primitive for the Momente timeline.
+ * Shared document-scroll pull-to-refresh interaction primitive.
  *
- * It deliberately owns only the gesture. The caller still owns data loading,
- * cache/offline semantics and pagination, so #974 reuses the existing Story
- * query rather than creating a second refresh architecture. The root class
- * lets CSS suppress browser-level overscroll while this interaction is active.
+ * It deliberately owns only gesture mechanics. The caller owns authoritative
+ * data loading, cache/offline semantics and pagination. The root class lets CSS
+ * suppress browser-level pull-to-refresh while an in-app surface is enabled.
  */
 export function usePullToRefresh({
   enabled,
@@ -92,20 +92,30 @@ export function usePullToRefresh({
     }
 
     const root = document.documentElement;
-    root.classList.add('story-pull-refresh-enabled');
+    root.classList.add('app-pull-refresh-enabled');
 
     let tracking = false;
+    let startX: number | null = null;
     let startY: number | null = null;
 
     const cancelGesture = () => {
       tracking = false;
+      startX = null;
       startY = null;
       resetPull();
     };
 
     const onTouchStart = (event: TouchEvent) => {
+      const target = event.target;
+      const interactiveTarget =
+        target instanceof Element
+          ? target.closest(
+              'a, button, input, textarea, select, [contenteditable="true"], dialog, [role="dialog"], [data-pull-to-refresh-block="true"]',
+            )
+          : null;
       if (
         event.touches.length !== 1 ||
+        interactiveTarget ||
         blockedRef.current ||
         refreshInFlightRef.current ||
         !isAtDocumentTop()
@@ -114,12 +124,19 @@ export function usePullToRefresh({
         return;
       }
       tracking = true;
+      startX = event.touches[0]?.clientX ?? null;
       startY = event.touches[0]?.clientY ?? null;
       resetPull();
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (!tracking || startY === null || event.touches.length !== 1) return;
+      if (
+        !tracking ||
+        startX === null ||
+        startY === null ||
+        event.touches.length !== 1
+      )
+        return;
       if (
         blockedRef.current ||
         refreshInFlightRef.current ||
@@ -129,20 +146,29 @@ export function usePullToRefresh({
         return;
       }
 
+      const currentX = event.touches[0]?.clientX;
       const currentY = event.touches[0]?.clientY;
-      if (currentY === undefined) return;
-      const delta = currentY - startY;
-      if (delta <= 0) {
+      if (currentX === undefined || currentY === undefined) return;
+      const deltaX = currentX - startX;
+      const deltaY = currentY - startY;
+      if (
+        Math.abs(deltaX) >= DIRECTION_LOCK_SLOP &&
+        Math.abs(deltaX) > Math.abs(deltaY)
+      ) {
+        cancelGesture();
+        return;
+      }
+      if (deltaY <= 0) {
         resetPull();
         return;
       }
-      if (delta < START_SLOP) return;
+      if (deltaY < START_SLOP) return;
 
       // Once the gesture is clearly a downward pull at the document top,
       // keep the browser's own pull-to-refresh from competing with the app.
       event.preventDefault();
-      setPullDistance(Math.min(MAX_PULL_DISTANCE, delta * 0.5));
-      const thresholdReached = delta >= threshold;
+      setPullDistance(Math.min(MAX_PULL_DISTANCE, deltaY * 0.5));
+      const thresholdReached = deltaY >= threshold;
       readyRef.current = thresholdReached;
       setReady(thresholdReached);
     };
@@ -155,6 +181,7 @@ export function usePullToRefresh({
         !refreshInFlightRef.current &&
         isAtDocumentTop();
       tracking = false;
+      startX = null;
       startY = null;
       resetPull();
       if (shouldRefresh) void runRefresh();
@@ -168,7 +195,7 @@ export function usePullToRefresh({
     document.addEventListener('touchcancel', onTouchCancel, { passive: true });
 
     return () => {
-      root.classList.remove('story-pull-refresh-enabled');
+      root.classList.remove('app-pull-refresh-enabled');
       document.removeEventListener('touchstart', onTouchStart);
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);

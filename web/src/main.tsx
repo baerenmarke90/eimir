@@ -39,7 +39,15 @@ import './memory-create-polish.css';
 initializeTheme();
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 15_000, retry: false } },
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      retry: false,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
+  },
 });
 
 const demoMode = isDemoModeConfigured();

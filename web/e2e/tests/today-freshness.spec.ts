@@ -16,9 +16,9 @@ async function signIn(page: Page): Promise<void> {
   await page.getByRole('button', { name: de.login.submit }).click();
 }
 
-test('Today dashboard reflects updated primary context after plan rescheduling without full page reload', async ({
+test('Today supports app-wide pull refresh and still revalidates after plan rescheduling', async ({
   page,
-}) => {
+}, testInfo) => {
   const unexpectedRequests: string[] = [];
   let dashboardRequestCount = 0;
   let isRescheduled = false;
@@ -268,6 +268,14 @@ test('Today dashboard reflects updated primary context after plan rescheduling w
     );
   });
 
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'maxTouchPoints', {
+      configurable: true,
+      get: () => 1,
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
   // Step 1: Open /today and sign in
   await page.goto('/today');
   await signIn(page);
@@ -283,7 +291,45 @@ test('Today dashboard reflects updated primary context after plan rescheduling w
   await expect(page.getByText('Later October trip')).toBeVisible();
   expect(dashboardRequestCount).toBe(1);
 
-  // Step 2: Navigate to plan details via in-app UI click (NO page.reload())
+  // Step 2: Pull-to-refresh is an app-level mobile interaction on Today.
+  const refreshIndicator = page.locator('.app-pull-refresh-indicator');
+  await expect(refreshIndicator).toHaveCount(1);
+  await expect(page.locator('html')).toHaveClass(/app-pull-refresh-enabled/);
+  await page.waitForTimeout(100);
+  const requestsBeforePull = dashboardRequestCount;
+  const browserRefreshSuppressed = await page.evaluate(() => {
+    const dispatch = (type: string, y?: number) => {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, 'touches', {
+        configurable: true,
+        value: y === undefined ? [] : [{ clientX: 0, clientY: y }],
+      });
+      document.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    dispatch('touchstart', 100);
+    return dispatch('touchmove', 190);
+  });
+  expect(browserRefreshSuppressed).toBe(true);
+  await expect(refreshIndicator).toHaveClass(/is-ready/);
+  await page.screenshot({
+    path: testInfo.outputPath('today-app-wide-pull-refresh-ready.png'),
+    fullPage: true,
+  });
+  await page.evaluate(() => {
+    const event = new Event('touchend', {
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, 'touches', {
+      configurable: true,
+      value: [],
+    });
+    document.dispatchEvent(event);
+  });
+  await expect.poll(() => dashboardRequestCount).toBe(requestsBeforePull + 1);
+
+  // Step 3: Navigate to plan details via in-app UI click (NO page.reload())
   await page.getByRole('link', { name: /Later October trip/ }).click();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
   await expect(
@@ -309,18 +355,18 @@ test('Today dashboard reflects updated primary context after plan rescheduling w
   await rescheduleButton.click();
   await expect(rescheduleButton).toBeEnabled();
 
-  // Step 3: Navigate back to Wir via client-side link (NO page.reload())
+  // Step 4: Navigate back to Wir via client-side link (NO page.reload())
   await page.getByRole('link', { name: navigation.today }).click();
   await expect(page).toHaveURL(/\/today$/);
 
-  // Step 4: Verify Dashboard query was automatically refetched (poll until React Query refetch completes)
+  // Step 5: Verify Dashboard query was automatically refetched after route re-entry.
   await expect.poll(() => dashboardRequestCount).toBeGreaterThanOrEqual(2);
 
-  // Step 5: Verify the rescheduled item is now visible in the Shared Planning
+  // Step 6: Verify the rescheduled item is now visible in the Shared Planning
   // Horizon agenda, and the stale title is gone
   await expect(page.getByText('Earlier September outing')).toBeVisible();
   await expect(page.getByText('Later October trip')).toHaveCount(0);
 
-  // Step 6: Verify no unexpected network requests occurred
+  // Step 7: Verify no unexpected network requests occurred
   expect(unexpectedRequests).toEqual([]);
 });

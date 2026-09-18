@@ -47,9 +47,7 @@ function TestProvider({
   client: QueryClient;
   children: ReactNode;
 }) {
-  return (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
-  );
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
 beforeEach(() => {
@@ -120,9 +118,7 @@ describe('AppSurfacePullToRefresh', () => {
       );
 
       expect(
-        document.documentElement.classList.contains(
-          'app-pull-refresh-enabled',
-        ),
+        document.documentElement.classList.contains('app-pull-refresh-enabled'),
       ).toBe(false);
     },
   );

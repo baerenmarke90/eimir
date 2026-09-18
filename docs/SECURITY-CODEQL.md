@@ -5,8 +5,7 @@
 eimir. uses GitHub CodeQL as an additional static application security testing (SAST) gate for:
 
 - Python backend
-- JavaScript/TypeScript web application
-- Kotlin/Java Android application
+- JavaScript/TypeScript Web application
 
 CodeQL complements existing dependency, secret, type, lint, integration and supply-chain checks. It does not replace them.
 
@@ -49,26 +48,10 @@ Build modes:
 | --- | --- |
 | Python | `none` |
 | JavaScript/TypeScript | `none` |
-| Kotlin/Java | `manual` Gradle compilation |
 
-### Android build path
-
-Android analysis mirrors the existing Android S8 toolchain:
-
-- JDK 17 via pinned `actions/setup-java`
-- pinned `gradle/actions/setup-gradle` v6.3.0
-- Android platform 37.1 and build-tools 36.0.0
-- repository Gradle Wrapper only
-- pinned wrapper JAR SHA-256 verification
-- strict Gradle Dependency Verification
-
-CodeQL compiles the Android sources with:
-
-```bash
-./gradlew --no-daemon --stacktrace --dependency-verification strict :app:compileDebugKotlin
-```
-
-The existing Gradle Dependency Verification, wrapper integrity checks and Android S8 gates remain active.
+The retired Kotlin/Compose product client is no longer a CodeQL product surface.
+Capacitor/native capability code receives focused security review when such a
+boundary is introduced; the old full native-client matrix is not retained by default.
 
 ## Permissions
 
@@ -85,9 +68,7 @@ No repository secrets and no additional write permissions are required.
 
 ## Generated sources and build output
 
-For Python and JavaScript/TypeScript no-build analysis, dependency and build-output directories are ignored. The generated web API client under `web/src/api/generated/**` is excluded because it is contract-generated rather than application-owned logic.
-
-Android uses manual compiled analysis. CodeQL therefore analyzes the Kotlin/Java source that participates in `:app:compileDebugKotlin`; generated Kotlin contract models that participate in that compilation can be included. Findings in such generated Android sources must be corrected at the generator, contract or build-input level rather than hidden with a blanket suppression.
+For Python and JavaScript/TypeScript no-build analysis, dependency and build-output directories are ignored. The generated Web API client under `web/src/api/generated/**` is excluded because it is contract-generated rather than application-owned logic.
 
 ## Findings handling
 
@@ -111,14 +92,9 @@ The fixture was removed in commit `3ac6ecc1f76063ca3aee9787e0a1cde1b8bcd6c9`. Th
 
 ## Reproduction
 
-The Android extraction/build path can be reproduced from the repository root with:
-
-```bash
-cd android
-./gradlew --no-daemon --stacktrace --dependency-verification strict :app:compileDebugKotlin
-```
-
-The complete SAST analysis is defined by `.github/workflows/codeql.yml` and `.github/codeql/codeql-config.yml` and is executed by GitHub CodeQL in CI.
+The complete SAST analysis is defined by `.github/workflows/codeql.yml` and
+`.github/codeql/codeql-config.yml` and is executed by GitHub CodeQL in CI.
+Both active languages use CodeQL no-build analysis.
 
 ## Merge protection
 

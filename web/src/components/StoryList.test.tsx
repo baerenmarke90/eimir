@@ -157,11 +157,9 @@ describe('StoryList', () => {
       </MemoryRouter>,
     );
 
-    // The visible byAuthor attribution text is first-name-only. (The
-    // avatar's own aria-label is a separate, pre-existing accessibility
-    // label unrelated to this fix and out of #791's scope, which is why
-    // this doesn't assert on "Alex Winter" absence overall.)
-    expect(html).toContain('>Alex</span>');
+    // #1019 adds viewer-relative prose while #791 still guarantees that
+    // partner attribution uses only the first name.
+    expect(html).toContain('>von Alex</span>');
     expect(html).not.toContain('>Alex Winter</span>');
   });
 

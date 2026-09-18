@@ -215,6 +215,7 @@ export function StoryList({
   loadHeartMomentImage,
   profilesApi,
   spaceId,
+  currentAccountId,
   onOpenItem,
   progressiveReveal = false,
 }: {
@@ -226,6 +227,7 @@ export function StoryList({
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
+  currentAccountId?: string;
   onOpenItem?: (
     event: MouseEvent<HTMLAnchorElement>,
     item: StoryItem,
@@ -270,6 +272,10 @@ export function StoryList({
           const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t);
           const author = storyItemAuthor(item);
+          const authorLabel = storyAuthorLabel(author, currentAccountId);
+          const authorAttribution = t('story.byAuthor', {
+            author: authorLabel,
+          });
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
           const heartAttachment =
@@ -357,18 +363,19 @@ export function StoryList({
                     <span className="story-card-footer-author">
                       {author ? (
                         <span className="momente-author-meta">
-                          <AuthorAvatar
-                            author={author}
-                            profilesApi={profilesApi}
-                            spaceId={spaceId}
-                          />
-                          {/* The avatar already names the author for
-                              assistive technology. */}
+                          <span className="sr-only">{authorAttribution}</span>
+                          <span aria-hidden="true">
+                            <AuthorAvatar
+                              author={author}
+                              profilesApi={profilesApi}
+                              spaceId={spaceId}
+                            />
+                          </span>
                           <span
                             className="story-card-author"
                             aria-hidden="true"
                           >
-                            {storyAuthorLabel(author)}
+                            {authorAttribution}
                           </span>
                         </span>
                       ) : (

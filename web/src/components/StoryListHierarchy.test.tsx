@@ -80,13 +80,14 @@ const milestone = StoryItemFromJSON({
   },
 });
 
-function renderList(items: StoryItem[]) {
+function renderList(items: StoryItem[], currentAccountId?: string) {
   return render(
     <MemoryRouter>
       <StoryList
         items={items}
         loadMemoryImage={loadImage}
         loadHeartMomentImage={loadImage}
+        currentAccountId={currentAccountId}
       />
     </MemoryRouter>,
   );
@@ -216,20 +217,36 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(footer.queryByText(privateLabel)).toBeNull();
   });
 
-  it('names the author by first name next to the avatar, without prose', () => {
-    const { container } = renderList([milestone]);
+  it('keeps partner attribution first-name-only and exposes matching semantics', () => {
+    const { container } = renderList([milestone], 'viewer-2');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe('Anna-Katharina');
-    // The avatar carries the accessible author name; the visible first
-    // name is not read twice.
+    expect(name?.textContent).toBe(
+      i18n.t('story.byAuthor', { author: 'Anna-Katharina' }),
+    );
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
-      screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
-    ).toBeDefined();
-    expect(container.textContent).not.toContain(
+      container.querySelector('.momente-author-meta .sr-only')?.textContent,
+    ).toBe(i18n.t('story.byAuthor', { author: 'Anna-Katharina' }));
+    expect(
+      screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
+    ).toBeNull();
+    expect(container.textContent).toContain(
       de.story.byAuthor.replace('{{author}}', 'Anna-Katharina'),
     );
+  });
+
+  it('shows viewer-relative self attribution visibly and accessibly (#1019)', () => {
+    const { container } = renderList([milestone], 'author-1');
+
+    const name = container.querySelector('.story-card-author');
+    expect(name?.textContent).toBe(
+      i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }),
+    );
+    expect(name?.getAttribute('aria-hidden')).toBe('true');
+    expect(
+      container.querySelector('.momente-author-meta .sr-only')?.textContent,
+    ).toBe(i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }));
   });
 
   it('starts every card with its content, not a metadata row', () => {

@@ -1,4 +1,3 @@
-import { authorFirstName } from '../client/authorPresentation';
 import { type FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -31,6 +30,7 @@ import { CommentsPanel } from './CommentsPanel';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
@@ -515,7 +515,7 @@ export function MilestoneProductPage({
           <footer className="milestone-provenance-footer">
             <p>
               {t('milestoneProduct.provenance', {
-                author: authorFirstName(milestone.author),
+                author: storyAuthorLabel(milestone.author, currentAccountId),
                 createdAt: formatCreatedAt(milestone.createdAt),
               })}
             </p>

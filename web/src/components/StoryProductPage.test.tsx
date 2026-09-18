@@ -15,6 +15,11 @@ import { StoryProductPage } from './StoryProductPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
 
+const SELF_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  de.story.authorSelf,
+);
+
 function renderStoryPage(route: string, cachedData: unknown): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
@@ -275,14 +280,41 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    // The visible byAuthor attribution text is first-name-only. (The
-    // avatar's own aria-label is a separate, pre-existing accessibility
-    // label unrelated to this fix and out of #791's scope, which is why
-    // this doesn't assert on "Alex Winter"/"Lea Sommer" absence overall.)
+    // Visible and accessible Discover attribution stay first-name-only.
     expect(html).toContain('von Alex</span>');
     expect(html).toContain('von Lea</span>');
+    expect(html).toContain('class="sr-only">von Alex</span>');
+    expect(html).toContain('class="sr-only">von Lea</span>');
     expect(html).not.toContain('von Alex Winter');
     expect(html).not.toContain('von Lea Sommer');
+  });
+
+  it('uses viewer-relative attribution for the current account in Discover (#1019)', () => {
+    const html = renderStoryPage('/story', {
+      items: [
+        {
+          kind: 'MEMORY',
+          effectiveDate: new Date('2026-08-26T00:00:00Z'),
+          memory: {
+            id: 'mem-own',
+            title: 'Our own moment',
+            notes: 'A small memory',
+            occurredOn: new Date('2026-08-26T00:00:00Z'),
+            createdAt: new Date('2026-08-26T00:00:00Z'),
+            attachments: [],
+            author: { id: 'account-1', displayName: 'Alex Winter' },
+            creator: { id: 'account-1', displayName: 'Alex Winter' },
+            capabilities: { canComment: true, canDelete: true, canEdit: true },
+          },
+        },
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
+
+    expect(html).toContain(`class="sr-only">${SELF_ATTRIBUTION}</span>`);
+    expect(html).toContain(`>${SELF_ATTRIBUTION}</span>`);
+    expect(html).not.toContain('class="sr-only">von Alex</span>');
   });
 
   it('renders timeline view when requested via query parameter', () => {

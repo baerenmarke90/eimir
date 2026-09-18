@@ -7,7 +7,6 @@ import {
   MemoryDetailToJSON,
 } from '../api/generated/models/MemoryDetail';
 import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
-import { authorDisplayName } from '../client/authorPresentation';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -49,6 +48,7 @@ import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -66,11 +66,6 @@ function formatCreatedAt(value: Date): string {
     month: '2-digit',
     year: 'numeric',
   }).format(value);
-}
-
-function firstNameOnly(displayName: string): string {
-  const trimmed = displayName.trim();
-  return trimmed.split(/\s+/u)[0] || trimmed;
 }
 
 export function MemoryProductPage({
@@ -628,10 +623,7 @@ export function MemoryProductPage({
 
   const bodyText = memory.body || t('memoryProduct.noBody');
   const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
-  const authorName = authorDisplayName(memory.author);
-  const provenanceAuthor = memory.author.isFormerMember
-    ? authorName
-    : firstNameOnly(authorName);
+  const provenanceAuthor = storyAuthorLabel(memory.author, currentAccountId);
 
   return (
     <div className="page memory-product-page">

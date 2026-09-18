@@ -20,6 +20,15 @@ const ME = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
 const PARTNER = { id: PARTNER_ID, displayName: 'Alex' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
 
+const SELF_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  de.story.authorSelf,
+);
+const ME_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  ME.displayName.replace(/ .*/u, ''),
+);
+
 const DETAIL_COMMENTS = [
   {
     id: 'comment-own',
@@ -582,6 +591,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       0,
     );
 
+    const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
+    await expect(compactAuthor.locator('.sr-only')).toHaveText(
+      SELF_ATTRIBUTION,
+    );
+    await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
+      SELF_ATTRIBUTION,
+    );
+
     const browseShell = page.locator('.momente-browse-links');
     const browseLink = page.locator('.momente-browse-link').first();
     const browseShape = await browseShell.evaluate((element) => {
@@ -748,6 +765,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(compactEmotion.locator('.heart-emotion-label')).toHaveText(
       'Geliebt',
     );
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      SELF_ATTRIBUTION,
+    );
 
     await captureScreenshot(
       page,
@@ -790,6 +810,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(expandedEmotion).toHaveCSS(
       'background-color',
       'rgba(0, 0, 0, 0)',
+    );
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      SELF_ATTRIBUTION,
     );
     const browseWidth = await page
       .locator('.momente-browse-links')
@@ -906,7 +929,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     const provenance = page.locator('.heart-moment-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));
+    await expect(provenance).toContainText(SELF_ATTRIBUTION);
     await expect(provenance).not.toContainText(ME.displayName);
 
     await captureScreenshot(
@@ -936,7 +959,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));
+    await expect(provenance).toContainText(SELF_ATTRIBUTION);
     await expect(provenance).not.toContainText(ME.displayName);
 
     await captureScreenshot(
@@ -944,6 +967,58 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       testInfo,
       '11-momente-timeline-milestone-detail.png',
       { fullPage: true },
+    );
+  });
+
+  test('Story details use viewer-relative self attribution across all Story types (#1019)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page);
+    await signIn(page);
+
+    const details = [
+      {
+        path: '/story/memories/mem-canal',
+        footer: '.memory-provenance-footer',
+      },
+      {
+        path: '/story/heart-moments/hm-love',
+        footer: '.heart-moment-provenance-footer',
+      },
+      {
+        path: '/story/milestones/ms-2years',
+        footer: '.milestone-provenance-footer',
+      },
+    ] as const;
+
+    for (const detail of details) {
+      await page.goto(detail.path);
+      await expect(page.locator(detail.footer)).toContainText(SELF_ATTRIBUTION);
+      await expect(page.locator(detail.footer)).not.toContainText(
+        ME.displayName.replace(/ .*/u, ''),
+      );
+    }
+  });
+
+  test('partner attribution keeps the partner first name in Timeline and detail (#1019)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, { asPartner: true });
+    await signIn(page);
+    await page.goto('/story?tab=timeline');
+    await page.waitForSelector('.story-timeline');
+
+    const authorMeta = page.locator('.momente-author-meta').first();
+    await expect(authorMeta.locator('.sr-only')).toHaveText(ME_ATTRIBUTION);
+    await expect(page.locator('.story-card-author').first()).toHaveText(
+      ME_ATTRIBUTION,
+    );
+
+    await page.goto('/story/memories/mem-canal');
+    await expect(page.locator('.memory-provenance-footer')).toContainText(
+      ME_ATTRIBUTION,
     );
   });
 
@@ -1037,6 +1112,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',
     );
+    const discoverAuthor = page
+      .locator('.momente-hero-meta .momente-author-meta')
+      .first();
+    await expect(discoverAuthor.locator('.sr-only')).toHaveText(
+      SELF_ATTRIBUTION,
+    );
+    await expect(discoverAuthor).toContainText(SELF_ATTRIBUTION);
 
     await captureScreenshot(
       page,

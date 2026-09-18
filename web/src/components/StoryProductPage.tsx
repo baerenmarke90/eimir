@@ -931,14 +931,21 @@ export function StoryProductPage({
                     </time>
                     {featuredAuthor ? (
                       <span className="momente-author-meta">
-                        <AuthorAvatar
-                          author={featuredAuthor}
-                          profilesApi={profilesApi}
-                          spaceId={spaceId}
-                        />
-                        <span>
+                        <span className="sr-only">
                           {t('story.byAuthor', {
-                            author: storyAuthorLabel(featuredAuthor),
+                            author: storyAuthorLabel(featuredAuthor, accountId),
+                          })}
+                        </span>
+                        <span aria-hidden="true">
+                          <AuthorAvatar
+                            author={featuredAuthor}
+                            profilesApi={profilesApi}
+                            spaceId={spaceId}
+                          />
+                        </span>
+                        <span aria-hidden="true">
+                          {t('story.byAuthor', {
+                            author: storyAuthorLabel(featuredAuthor, accountId),
                           })}
                         </span>
                       </span>
@@ -1095,14 +1102,27 @@ export function StoryProductPage({
                               <time dateTime={dateTime}>{dateLabel}</time>
                               {entry.author ? (
                                 <span className="momente-author-meta">
-                                  <AuthorAvatar
-                                    author={entry.author}
-                                    profilesApi={profilesApi}
-                                    spaceId={spaceId}
-                                  />
-                                  <span>
+                                  <span className="sr-only">
                                     {t('story.byAuthor', {
-                                      author: storyAuthorLabel(entry.author),
+                                      author: storyAuthorLabel(
+                                        entry.author,
+                                        accountId,
+                                      ),
+                                    })}
+                                  </span>
+                                  <span aria-hidden="true">
+                                    <AuthorAvatar
+                                      author={entry.author}
+                                      profilesApi={profilesApi}
+                                      spaceId={spaceId}
+                                    />
+                                  </span>
+                                  <span aria-hidden="true">
+                                    {t('story.byAuthor', {
+                                      author: storyAuthorLabel(
+                                        entry.author,
+                                        accountId,
+                                      ),
                                     })}
                                   </span>
                                 </span>
@@ -1349,6 +1369,7 @@ export function StoryProductPage({
                           loadHeartMomentImage={loadHeartMomentImage}
                           profilesApi={profilesApi}
                           spaceId={spaceId}
+                          currentAccountId={accountId}
                           progressiveReveal
                           onOpenItem={(event, item, to) => {
                             if (

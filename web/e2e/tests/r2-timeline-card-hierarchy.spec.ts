@@ -516,9 +516,10 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       await expect(
         coffee.getByRole('img', { name: de.story.shared }),
       ).toHaveCount(1);
-      // The author reads as a name, without the "byAuthor" prose.
+      // #1019 keeps the partner first-name-only while making the
+      // relationship attribution explicit.
       await expect(lake.locator('.story-card-author')).toHaveText(
-        'Anna-Katharina-Josephine',
+        de.story.byAuthor.replace('{{author}}', 'Anna-Katharina-Josephine'),
       );
 
       await expectContainedFooters(page);

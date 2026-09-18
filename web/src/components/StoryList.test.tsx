@@ -123,9 +123,10 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #969: the avatar makes the relationship obvious; no "by" prose.
-    expect(html).toContain('>Alex</span>');
-    expect(html).not.toContain('von Alex');
+    // #1019 makes the viewer-relative attribution explicit in both visible
+    // and accessible metadata.
+    expect(html).toContain('>von Alex</span>');
+    expect(html).toContain('class="sr-only">von Alex</span>');
   });
 
   it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {
@@ -156,11 +157,9 @@ describe('StoryList', () => {
       </MemoryRouter>,
     );
 
-    // The visible byAuthor attribution text is first-name-only. (The
-    // avatar's own aria-label is a separate, pre-existing accessibility
-    // label unrelated to this fix and out of #791's scope, which is why
-    // this doesn't assert on "Alex Winter" absence overall.)
-    expect(html).toContain('>Alex</span>');
+    // #1019 adds viewer-relative prose while #791 still guarantees that
+    // partner attribution uses only the first name.
+    expect(html).toContain('>von Alex</span>');
     expect(html).not.toContain('>Alex Winter</span>');
   });
 

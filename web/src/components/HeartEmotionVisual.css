@@ -107,10 +107,10 @@
 }
 
 .heart-emotion-badge--detail {
-  flex-direction: column;
+  flex-direction: row;
   gap: var(--space-3);
-  padding: var(--space-5) var(--space-6);
-  font-size: 1.2rem;
+  padding: 0;
+  font-size: 1.05rem;
   background: none;
   border: none;
   box-shadow: none;
@@ -133,13 +133,13 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
-  width: 6.5rem;
-  height: 6.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon svg {
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 1.45rem;
+  height: 1.45rem;
 }
 
 .heart-emotion-label {
@@ -148,7 +148,7 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-label {
-  text-align: center;
+  text-align: left;
 }
 
 /* Timeline cards keep their accepted hierarchy; the emotion is atmosphere, not taxonomy chrome. */
@@ -286,13 +286,11 @@
   transform: scale(1);
 }
 
-/* Detail may be more expressive, but still uses one quiet shared motion pattern. */
+/* The emotion marker is the first element of the content flow, not a
+ * separate hero widget - it reads as part of the same composition as the
+ * title above and the story content below. */
 .heart-moment-detail-emotion {
   display: flex;
-  justify-content: center;
-  max-width: var(--content-reading-width, 760px);
-  margin: calc(var(--space-2) * -1) auto var(--space-5);
-  padding-inline: var(--space-1);
 }
 
 .heart-moment-detail-container[data-heart-emotion] .product-detail-card {

@@ -63,7 +63,7 @@ const storyProducts = {
     save: 'Speichern',
     saving: 'Wird gespeichert …',
     cancel: 'Abbrechen',
-    delete: 'Eigenen Kommentar löschen',
+    delete: 'Löschen',
     timelinePresence: 'Kommentar vorhanden',
   },
   upload: {

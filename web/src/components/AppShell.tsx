@@ -24,6 +24,7 @@ import {
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { Brand } from './Brand';
 import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
@@ -313,6 +314,7 @@ function AuthenticatedAppShell({
           className="product-main eimir-motion-reveal"
           tabIndex={-1}
         >
+          <AppSurfacePullToRefresh pathname={location.pathname} />
           {isGamesHub ? (
             <GamesProductArea
               apiBaseUrl={apiBaseUrl}

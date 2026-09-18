@@ -134,12 +134,3 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .app-pull-refresh-indicator {
-    transition: none;
-  }
-
-  .app-pull-refresh-indicator.is-refreshing .app-pull-refresh-icon {
-    animation: none;
-  }
-}

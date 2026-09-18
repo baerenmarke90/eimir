@@ -457,6 +457,15 @@ test('Memory carousel keeps document and layout position stable across pointer a
       .evaluate((element) => getComputedStyle(element).objectFit),
   ).toBe('contain');
 
+  const ambientBackdrop = page.locator('.media-gallery-carousel-backdrop').first();
+  await expect(ambientBackdrop).toBeVisible();
+  expect(
+    await ambientBackdrop.evaluate((element) => getComputedStyle(element).objectFit),
+  ).toBe('cover');
+  expect(
+    await ambientBackdrop.evaluate((element) => getComputedStyle(element).filter),
+  ).toContain('blur');
+
   const pointerSteps = [
     { control: next, expected: 2 },
     { control: next, expected: 3 },
@@ -504,6 +513,10 @@ test('Memory carousel keeps document and layout position stable across pointer a
   await expect(close).toBeFocused();
   await nextFrame(page);
   expectStableGeometry(beforeOpen, await geometry(page));
+  await page.screenshot({
+    path: testInfo.outputPath('story-memory-lightbox-expanded.png'),
+    fullPage: false,
+  });
 
   const lightboxNext = lightbox.getByRole('button', {
     name: GALLERY.next,

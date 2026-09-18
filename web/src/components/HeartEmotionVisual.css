@@ -323,7 +323,7 @@
   }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 480px) {
   .heart-emotion-picker-grid {
     grid-template-columns: 1fr;
   }

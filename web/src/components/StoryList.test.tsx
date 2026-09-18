@@ -123,9 +123,11 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #969: the avatar makes the relationship obvious; no "by" prose.
+    // #969 keeps the visible row compact; #1019 gives the same metadata an
+    // explicit accessible attribution.
     expect(html).toContain('>Alex</span>');
-    expect(html).not.toContain('von Alex');
+    expect(html).toContain('aria-label="von Alex"');
+    expect(html).not.toContain('>von Alex</span>');
   });
 
   it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {

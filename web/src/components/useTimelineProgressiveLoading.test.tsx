@@ -2,6 +2,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  useDiscoverReveal,
   useTimelineAutoPagination,
   useTimelineReveal,
 } from './useTimelineProgressiveLoading';
@@ -130,6 +131,96 @@ describe('useTimelineReveal', () => {
 
     expect(heading.dataset.timelineRevealed).toBe('true');
     expect(MockIntersectionObserver.instances).toHaveLength(0);
+  });
+});
+
+describe('useDiscoverReveal (#977)', () => {
+  it('reveals a tapestry entry once and remembers it across a Discover remount', () => {
+    const firstRoot = document.createElement('div');
+    const firstEntry = document.createElement('a');
+    firstEntry.dataset.discoverRevealKey = 'item:memory:one';
+    firstRoot.append(firstEntry);
+    document.body.append(firstRoot);
+
+    const first = renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: firstRoot },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 1,
+      }),
+    );
+
+    expect(firstEntry.dataset.discoverRevealed).toBeUndefined();
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger(firstEntry);
+    });
+    expect(firstEntry.dataset.discoverRevealed).toBe('true');
+    first.unmount();
+
+    const secondRoot = document.createElement('div');
+    const sameEntry = document.createElement('a');
+    sameEntry.dataset.discoverRevealKey = 'item:memory:one';
+    secondRoot.append(sameEntry);
+    document.body.append(secondRoot);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: secondRoot },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 1,
+      }),
+    );
+
+    expect(sameEntry.dataset.discoverRevealed).toBe('true');
+  });
+
+  it('shows tapestry content immediately when reduced motion is requested', () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    const root = document.createElement('div');
+    const entry = document.createElement('a');
+    entry.dataset.discoverRevealKey = 'item:memory:two';
+    root.append(entry);
+    document.body.append(root);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: root },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 1,
+      }),
+    );
+
+    expect(entry.dataset.discoverRevealed).toBe('true');
+    expect(MockIntersectionObserver.instances).toHaveLength(0);
+  });
+
+  it('never marks a Timeline reveal node through the Discover attribute namespace', () => {
+    const root = document.createElement('div');
+    const timelineEntry = document.createElement('article');
+    timelineEntry.dataset.timelineRevealKey = 'item:memory:three';
+    root.append(timelineEntry);
+    document.body.append(root);
+
+    renderHook(() =>
+      useDiscoverReveal({
+        rootRef: { current: root },
+        enabled: true,
+        scopeKey: 'discover:account-1:space-1',
+        revision: 1,
+      }),
+    );
+
+    expect(
+      MockIntersectionObserver.instances[0]?.observe,
+    ).not.toHaveBeenCalled();
+    expect(timelineEntry.dataset.discoverRevealed).toBeUndefined();
   });
 });
 

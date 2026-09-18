@@ -63,6 +63,7 @@ import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryList } from './StoryList';
+import './StoryDiscoverReveal.css';
 import './StoryTaskFilters.css';
 import './StoryYearsPage.css';
 import {
@@ -78,6 +79,7 @@ import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
 import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 import {
+  useDiscoverReveal,
   useTimelineAutoPagination,
   useTimelineReveal,
 } from './useTimelineProgressiveLoading';
@@ -530,6 +532,14 @@ export function StoryProductPage({
     revision: timelineItems.length,
   });
 
+  const discoverTapestryRef = useRef<HTMLDivElement>(null);
+  useDiscoverReveal({
+    rootRef: discoverTapestryRef,
+    enabled: activeView === 'discover' && discoverItems.length > 0,
+    scopeKey: `discover:${accountId}:${spaceId}`,
+    revision: discoverItems.length,
+  });
+
   const nextStoryCursor = storyQuery.hasNextPage
     ? (storyQuery.data?.pages.at(-1)?.value.nextCursor ?? null)
     : null;
@@ -838,7 +848,7 @@ export function StoryProductPage({
           </div>
         </div>
       ) : activeView === 'discover' && discoverQuery.data ? (
-        <div className="momente-discover-page eimir-motion-reveal">
+        <div className="momente-discover-page">
           {/* 1. Featured Editorial Highlight */}
           {featuredItem && featuredPresentation ? (
             <article className="momente-hero-highlight">
@@ -858,6 +868,7 @@ export function StoryProductPage({
                       }
                       attachmentId={featuredMedia.id}
                       loadImage={loadMemoryImage}
+                      loadingMode="immediate"
                     />
                   </div>
                 ) : null}
@@ -944,7 +955,7 @@ export function StoryProductPage({
                 {t('story.streamAll')}
               </button>
             </div>
-            <div className="momente-tapestry-bands">
+            <div className="momente-tapestry-bands" ref={discoverTapestryRef}>
               {tapestryBands.map((band) => (
                 <section
                   className="momente-tapestry-band"
@@ -976,7 +987,8 @@ export function StoryProductPage({
                           <Link
                             key={entry.key}
                             to={path}
-                            className="momente-tapestry-item momente-tapestry-milestone"
+                            className="momente-tapestry-item momente-tapestry-milestone momente-tapestry-reveal"
+                            data-discover-reveal-key={`item:${entry.key}`}
                             aria-label={presentation.title}
                             onClick={(event) => openDiscoverItem(event, path)}
                           >
@@ -1013,7 +1025,8 @@ export function StoryProductPage({
                         <Link
                           key={entry.key}
                           to={path}
-                          className={`momente-tapestry-item momente-tapestry-${role}`}
+                          className={`momente-tapestry-item momente-tapestry-${role} momente-tapestry-reveal`}
+                          data-discover-reveal-key={`item:${entry.key}`}
                           aria-label={presentation.title}
                           onClick={(event) => openDiscoverItem(event, path)}
                         >
@@ -1023,6 +1036,7 @@ export function StoryProductPage({
                                 memoryId={entry.memoryId}
                                 attachmentId={entry.firstAttachment.id}
                                 loadImage={loadMemoryImage}
+                                loadingMode="near-viewport"
                               />
                             </div>
                           ) : null}

@@ -161,6 +161,86 @@ describe('StoryProductPage', () => {
     expect(html).toContain('First apartment together');
   });
 
+  describe('issue #977: curated reveal and viewport-aware media loading', () => {
+    it('gives tapestry entries a reveal key/class and defers their media until near the viewport, while the Discover page wrapper no longer replays a generic mount animation', () => {
+      const html = renderStoryPage('/story', {
+        items: [
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-08-26T00:00:00Z'),
+            memory: {
+              id: 'mem-1',
+              title: 'Summer Lake Vacation',
+              notes: 'Wonderful sunset together',
+              occurredOn: new Date('2026-08-26T00:00:00Z'),
+              createdAt: new Date('2026-08-26T00:00:00Z'),
+              attachments: [{ id: 'att-1', mediaType: 'image/jpeg' }],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+          {
+            kind: 'MEMORY',
+            effectiveDate: new Date('2026-08-20T00:00:00Z'),
+            memory: {
+              id: 'mem-2',
+              title: 'Weekend Hike',
+              notes: 'Fresh air, quiet trail',
+              occurredOn: new Date('2026-08-20T00:00:00Z'),
+              createdAt: new Date('2026-08-20T00:00:00Z'),
+              attachments: [{ id: 'att-2', mediaType: 'image/jpeg' }],
+              author: { id: 'author-1', displayName: 'Alex' },
+              creator: { id: 'author-1', displayName: 'Alex' },
+              capabilities: {
+                canComment: true,
+                canDelete: true,
+                canEdit: true,
+              },
+            },
+          },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      // The Discover page wrapper no longer carries the generic
+      // eimir-motion-reveal mount animation, which would otherwise replay
+      // on every remount and compete with the controlled tapestry reveal.
+      const discoverPageStart = html.indexOf('momente-discover-page');
+      expect(discoverPageStart).toBeGreaterThan(-1);
+      const wrapperOpenTag = html.slice(
+        html.lastIndexOf('<div', discoverPageStart),
+        html.indexOf('>', discoverPageStart) + 1,
+      );
+      expect(wrapperOpenTag).not.toContain('eimir-motion-reveal');
+
+      // The lead highlight's media loads eagerly: no deferred skeleton.
+      const heroStart = html.indexOf('momente-hero-media');
+      const tapestryStart = html.indexOf('momente-tapestry-bands');
+      const heroHtml = html.slice(heroStart, tapestryStart);
+      expect(heroHtml).not.toContain('data-media-deferred="true"');
+
+      // Tapestry entries carry their own reveal key/class...
+      const tapestryHtml = html.slice(tapestryStart);
+      expect(tapestryHtml).toContain('momente-tapestry-reveal');
+      expect(tapestryHtml).toContain(
+        'data-discover-reveal-key="item:memory-mem-2"',
+      );
+      // ...and never the Timeline's own reveal attribute/class.
+      expect(tapestryHtml).not.toContain('data-timeline-reveal-key');
+      expect(tapestryHtml).not.toContain('story-timeline-progressive-reveal');
+
+      // Tapestry media is viewport-aware: it renders the deferred skeleton
+      // instead of eagerly resolving the authenticated loader.
+      expect(tapestryHtml).toContain('data-media-deferred="true"');
+    });
+  });
+
   it('shows only the first name in Discover attribution, never the full display name (#791 second follow-up)', () => {
     const html = renderStoryPage('/story', {
       items: [

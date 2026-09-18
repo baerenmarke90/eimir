@@ -1,9 +1,12 @@
-"""HTTP contract for the shared story timeline.
+"""HTTP contract for the viewer-authorized story timeline.
 
-The route returns shared content exclusively. M2-D22 intentionally defines no
-``PRIVATE`` variant, no ``visibility`` parameter, and no owner mode here: the
-owner view for private heart moments is a separate projection through the
-HeartMoment collection.
+#1021 superseded M2-D22: the route returns each caller's own
+viewer-authorized Story, so a HeartMoment the caller marked ``PRIVATE`` stays
+part of their own Timeline at its ordinary chronological position, while
+remaining completely absent from their partner's. The route still takes no
+``visibility`` parameter and has no separate owner mode — the projection is
+authorization following the requesting account, not a new filter a client
+can choose.
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from eimir.api.v1.attachments import AttachmentSummary
 from eimir.api.v1.memories import MemoryAttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import Attachment, MediaType
-from eimir.authorization import PrivacyClass, readable
+from eimir.authorization import ContentVisibility, readable, visibility_of
 from eimir.core import clock
 from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.memories.models import Memory
@@ -54,11 +57,22 @@ class MemorySummary(ApiModel):
 
 
 class SharedHeartMomentSummary(ApiModel):
-    """A shared heart moment. There is deliberately no private variant."""
+    """A heart moment as it appears in the caller's own Story.
+
+    Despite the name, this is not shared-only (#1021 superseded M2-D22): a
+    HeartMoment the caller marked ``PRIVATE`` is projected here too, at its
+    ordinary Timeline position, with ``visibility`` reporting its actual
+    domain visibility rather than an assumed ``SHARED``. The type keeps its
+    established name — renaming it would force every generated client
+    (including hand-written Android test fixtures out of #1021's scope) to
+    follow along for no behavioral gain; the real contract fix is the
+    ``visibility`` field, not the type name.
+    """
 
     id: UUID
     text: str
     emotion: HeartEmotion
+    visibility: ContentVisibility
     happened_on: date
     created_at: datetime
     author: AuthorSummary
@@ -239,9 +253,10 @@ def get_story_timeline(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=service.MAX_LIMIT)] = service.DEFAULT_LIMIT,
 ) -> StoryPage:
-    """Return the shared timeline of memories, milestones, and heart moments.
+    """Return the caller's viewer-authorized timeline of memories, milestones, and heart moments.
 
-    Private heart moments never appear here, including for their owner.
+    A heart moment the caller marked ``PRIVATE`` remains part of their own
+    timeline; it never appears in their partner's (#1021).
     """
     kinds_tuple = tuple(type or ())
     page = service.read_timeline(
@@ -332,6 +347,7 @@ def project_story_items(
             heart_moment = heart_moments.get(item.id)
             if heart_moment is None:
                 continue
+            visibility = visibility_of(heart_moment.privacy_class)
             view.append(
                 StoryHeartMomentItem(
                     kind=StoryKind.HEART_MOMENT,
@@ -340,10 +356,17 @@ def project_story_items(
                         id=heart_moment.id,
                         text=heart_moment.payload.text,
                         emotion=heart_moment.payload.emotion,
+                        visibility=visibility,
                         happened_on=heart_moment.happened_on,
                         created_at=heart_moment.created_at,
                         author=_author(authors, heart_moment.owner_id),
-                        capabilities=_capabilities(heart_moment.owner_id, authorization),
+                        capabilities=_capabilities(
+                            heart_moment.owner_id,
+                            authorization,
+                            # A private heart moment is not a shared discussion
+                            # surface, same rule as the HeartMoment detail route.
+                            can_comment=visibility is ContentVisibility.SHARED,
+                        ),
                         attachment=(
                             _attachment_summary(attachments[heart_moment.attachment_id])
                             if heart_moment.attachment_id in attachments
@@ -383,9 +406,13 @@ def _load[ResourceT: (Memory, HeartMoment, Milestone)](
 ) -> dict[UUID, ResourceT]:
     if not ids:
         return {}
+    # Viewer-authorized like the Timeline query itself (#1021): `readable()`
+    # alone decides whether a HeartMoment among `ids` may be loaded, with no
+    # separate SPACE_SHARED clause to drift from `story.service._leg`. Every
+    # `ids` source into this function (Timeline, Discover) already applied
+    # its own eligibility rules before returning identity-only rows, so this
+    # is authorization on load, not a second privacy filter.
     statement = readable(model, authorization).where(model.id.in_(ids))
-    if model is HeartMoment:
-        statement = statement.where(HeartMoment.privacy_class == PrivacyClass.SPACE_SHARED.value)
     rows = session.execute(statement).scalars().all()
     return {row.id: row for row in rows}
 

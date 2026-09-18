@@ -81,7 +81,7 @@ During implementation, four additional `BLOCKING` decisions emerged that became 
 - **M2-D23** (#85) — order and parsers for Media processing.
 - **M2-D24** (#79) — read access to unbound Attachments.
 - **M2-D25** (#94) — write permissions for Milestone.
-- **M2-D22** (#104) — owner view for private HeartMoments. It was classified as `BEFORE_CLIENTS`, but shapes the Story route and was therefore promoted to `BLOCKING` before S7.
+- **M2-D22** (#104) — owner view for private HeartMoments. It was classified as `BEFORE_CLIENTS`, but shapes the Story route and was therefore promoted to `BLOCKING` before S7. Superseded post-M2 by #1021 (`/timeline` became viewer-authorized instead of a separate owner view); see `DECISION-LOG.md`.
 
 ## Runtime start rule
 
@@ -100,7 +100,7 @@ This rule also applies to M3 and later milestones. Completion of a milestone gat
 - #94 — Milestone Domain and API (PR #95). Dedicated model instead of a type flag on Memory; M2-D25 preserves the author rule from M2-D01 here as well.
 - #97 — Comments, Outbox, and Notification Hook (PR #98). Create/List nested under the parent, Update/Delete space-scoped, enumerated targets, atomic Outbox entry, and idempotent Retry. Closes the commitment from #80.
 - #87 — S3-compatible MediaStore adapter (PR #100). Presigned Upload and Read URL with TTLs from M2-D13, against the same contract test as the local adapter.
-- #113 — Story Read Model and `/timeline` (PR #114). Derived Timeline over Memory, Milestone, and shared HeartMoments only; sort key `(effectiveDate, createdAt, kindRank, id)` and Keyset Cursor per M2-D08. Private HeartMoments are never Story Items, including for their owner (M2-D22). No persisted Read Model.
+- #113 — Story Read Model and `/timeline` (PR #114). Derived Timeline over Memory, Milestone, and HeartMoment; sort key `(effectiveDate, createdAt, kindRank, id)` and Keyset Cursor per M2-D08. No persisted Read Model. At the time, private HeartMoments were never Story Items, including for their owner (M2-D22); #1021 later superseded that rule and made `/timeline` viewer-authorized, so an account's own private HeartMoment is now part of their own Timeline.
 - S8 — thin Web/Android reference flows: delivered.
 - #144 — real Web/Android G2 E2E evidence against API, Worker, PostgreSQL, and LocalMediaStore: delivered.
 - #147 / PR #170 — final G2 Gate Review: **G2: PASSED**.

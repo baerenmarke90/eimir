@@ -98,7 +98,7 @@ Two operational commitments resulting from this are binding and documented in [A
 
 Only `BEFORE_CLIENTS` decisions that become relevant before stable full integration remain open: M2-D10 (Notification Preview), M2-D17 (Export/Backup), M2-D18 (Client Cache), and M2-D21 (Search Index). They did not block G2 and are handled in their respective later milestones.
 
-M2-D22 (owner view) is no longer in that category: the question shapes the Story route and was therefore promoted to `BLOCKING` and decided in #104 — just as M2-D14 and M2-D15 had previously been in #78.
+M2-D22 (owner view) is no longer in that category: the question shapes the Story route and was therefore promoted to `BLOCKING` and decided in #104 — just as M2-D14 and M2-D15 had previously been in #78. M2-D22 was itself later superseded by #1021, which made `/timeline` viewer-authorized instead of routing the owner view through a separate collection; see `docs/m2/DECISION-LOG.md`.
 
 ## M2 — Runtime and G2
 
@@ -111,7 +111,7 @@ M2-D22 (owner view) is no longer in that category: the question shapes the Story
 - [x] **#94 — Milestone Domain and API** (PR #95): dedicated model instead of a type flag on Memory, author rule from M2-D25, `If-Match`/409, and Story-ready fields.
 - [x] **#97 — Comments, Outbox, and Notification Hook** (PR #98): Create/List nested under the parent, Update/Delete space-scoped, enumerated targets `MEMORY`/`MILESTONE`/`HEART_MOMENT`, atomic Outbox entry, and idempotent Retry.
 - [x] **#87 — S3-compatible MediaStore adapter** (PR #100): presigned Upload and Read URL with the TTLs from M2-D13, tested against the same contract test as the local adapter.
-- [x] **#113 — Story Read Model and `/timeline`** (PR #114): derived Timeline over Memory, Milestone, and shared HeartMoments only; sort key and Keyset Cursor per M2-D08, private HeartMoments never in the result — not even for their owner (M2-D22). No Story table.
+- [x] **#113 — Story Read Model and `/timeline`** (PR #114): derived Timeline over Memory, Milestone, and HeartMoment; sort key and Keyset Cursor per M2-D08. No Story table. At delivery, private HeartMoments were excluded from the result even for their owner (M2-D22); #1021 later superseded that and made the route viewer-authorized, so an account's own private HeartMoment is now included, never the partner's.
 - [x] **S8 — thin Web/Android reference flows:** Web and Android deliver the critical Memory/Media/Story reference path.
 - [x] **#144 — real G2 client E2E evidence:** Web and Android run against the same real eimir. stack of API, Worker, PostgreSQL, and LocalMediaStore.
 - [x] **#147 / PR #170 — final G2 Gate Review:** **G2: PASSED**.

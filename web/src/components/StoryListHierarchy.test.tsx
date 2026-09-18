@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { StoryItemFromJSON } from '../api/generated/models/StoryItem';
+import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import { StoryList } from './StoryList';
 
@@ -48,6 +49,22 @@ const heartMoment = StoryItemFromJSON({
     author,
     capabilities,
     attachment: null,
+    visibility: 'SHARED',
+  },
+});
+const privateHeartMoment = StoryItemFromJSON({
+  kind: 'HEART_MOMENT',
+  effectiveDate: '2026-08-23',
+  heartMoment: {
+    id: 'heart-2',
+    text: 'Just for me to remember.',
+    emotion: 'GRATEFUL',
+    happenedOn: '2026-08-23',
+    createdAt: '2026-08-23T08:00:00Z',
+    author,
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    attachment: null,
+    visibility: 'PRIVATE',
   },
 });
 const milestone = StoryItemFromJSON({
@@ -179,6 +196,24 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(
       milestoneFooter.queryByRole('img', { name: de.story.shared }),
     ).toBeNull();
+  });
+
+  it("marks the caller's own private HeartMoment with the quiet lock glyph, not a warning pill (#1021)", () => {
+    renderList([privateHeartMoment]);
+
+    const privateLabel = i18n.t('visibilityPrivate');
+    const footer = within(
+      cardFor(
+        `${de.story.kind.heartMoment}: Just for me to remember. Gefühl: Dankbar`,
+      ),
+    );
+    const marker = footer.getByRole('img', { name: privateLabel });
+    expect(marker.classList).toContain('story-card-visibility-private');
+    expect(marker.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    // The card content stays primary; no separate warning/pill element.
+    expect(footer.queryByText(privateLabel)).toBeNull();
   });
 
   it('names the author by first name next to the avatar, without prose', () => {

@@ -109,7 +109,12 @@ export function storyItemPresentation(
         mediaLabel: count > 0 ? t('story.photos', { count }) : undefined,
       };
     }
-    case 'HEART_MOMENT':
+    case 'HEART_MOMENT': {
+      // A Heart Moment's own authorized visibility (#1021 superseded
+      // M2-D22): Story now includes the caller's own PRIVATE Heart Moments,
+      // so the card must show their real status rather than an assumed
+      // SHARED.
+      const visibility = item.heartMoment.visibility;
       return {
         kindLabel,
         title: compactText(item.heartMoment.text),
@@ -119,10 +124,11 @@ export function storyItemPresentation(
         mediaLabel: item.heartMoment.attachment
           ? t('story.photos', { count: 1 })
           : undefined,
-        // Only shared Heart Moments enter Story.
-        visibility: 'SHARED',
-        visibilityLabel: t('story.shared'),
+        visibility,
+        visibilityLabel:
+          visibility === 'PRIVATE' ? t('visibilityPrivate') : t('story.shared'),
       };
+    }
     case 'MILESTONE':
       return {
         kindLabel,

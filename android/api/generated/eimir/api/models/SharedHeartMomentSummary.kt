@@ -25,6 +25,7 @@ package eimir.api.models
 
 import eimir.api.models.AttachmentSummary
 import eimir.api.models.AuthorSummary
+import eimir.api.models.ContentVisibility
 import eimir.api.models.HeartEmotion
 import eimir.api.models.ResourceCapabilities
 
@@ -33,7 +34,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A shared heart moment. There is deliberately no private variant.
+ * A heart moment as it appears in the caller's own Story.  Despite the name, this is not shared-only (#1021 superseded M2-D22): a HeartMoment the caller marked ``PRIVATE`` is projected here too, at its ordinary Timeline position, with ``visibility`` reporting its actual domain visibility rather than an assumed ``SHARED``. The type keeps its established name — renaming it would force every generated client (including hand-written Android test fixtures out of #1021's scope) to follow along for no behavioral gain; the real contract fix is the ``visibility`` field, not the type name.
  *
  * @param attachment 
  * @param author 
@@ -43,6 +44,7 @@ import kotlinx.serialization.Contextual
  * @param happenedOn 
  * @param id 
  * @param text 
+ * @param visibility 
  */
 @Serializable
 
@@ -70,7 +72,10 @@ data class SharedHeartMomentSummary (
     val id: java.util.UUID,
 
     @SerialName(value = "text")
-    val text: kotlin.String
+    val text: kotlin.String,
+
+    @Contextual @SerialName(value = "visibility")
+    val visibility: ContentVisibility
 
 ) {
 

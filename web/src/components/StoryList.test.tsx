@@ -58,6 +58,7 @@ describe('StoryList', () => {
         emotion: 'GRATEFUL',
         author: { id: 'author-1', displayName: 'A' },
         attachment: null,
+        visibility: 'SHARED',
       },
     } as unknown as StoryItem;
     const milestone = {
@@ -254,6 +255,7 @@ describe('StoryList', () => {
           height: 800,
           size: 1024,
         },
+        visibility: 'SHARED',
       },
     });
 

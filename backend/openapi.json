@@ -7317,7 +7317,7 @@
         "type": "object"
       },
       "SharedHeartMomentSummary": {
-        "description": "A shared heart moment. There is deliberately no private variant.",
+        "description": "A heart moment as it appears in the caller's own Story.\n\nDespite the name, this is not shared-only (#1021 superseded M2-D22): a\nHeartMoment the caller marked ``PRIVATE`` is projected here too, at its\nordinary Timeline position, with ``visibility`` reporting its actual\ndomain visibility rather than an assumed ``SHARED``. The type keeps its\nestablished name — renaming it would force every generated client\n(including hand-written Android test fixtures out of #1021's scope) to\nfollow along for no behavioral gain; the real contract fix is the\n``visibility`` field, not the type name.",
         "properties": {
           "attachment": {
             "anyOf": [
@@ -7356,12 +7356,16 @@
           "text": {
             "title": "Text",
             "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/ContentVisibility"
           }
         },
         "required": [
           "id",
           "text",
           "emotion",
+          "visibility",
           "happenedOn",
           "createdAt",
           "author",
@@ -24221,7 +24225,7 @@
     },
     "/api/v1/spaces/{spaceId}/timeline": {
       "get": {
-        "description": "Return the shared timeline of memories, milestones, and heart moments.\n\nPrivate heart moments never appear here, including for their owner.",
+        "description": "Return the caller's viewer-authorized timeline of memories, milestones, and heart moments.\n\nA heart moment the caller marked ``PRIVATE`` remains part of their own\ntimeline; it never appears in their partner's (#1021).",
         "operationId": "getStoryTimeline",
         "parameters": [
           {

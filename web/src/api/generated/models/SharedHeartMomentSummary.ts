@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ContentVisibility } from './ContentVisibility';
+import {
+    ContentVisibilityFromJSON,
+    ContentVisibilityFromJSONTyped,
+    ContentVisibilityToJSON,
+    ContentVisibilityToJSONTyped,
+} from './ContentVisibility';
 import type { ResourceCapabilities } from './ResourceCapabilities';
 import {
     ResourceCapabilitiesFromJSON,
@@ -43,7 +50,16 @@ import {
 } from './AttachmentSummary';
 
 /**
- * A shared heart moment. There is deliberately no private variant.
+ * A heart moment as it appears in the caller's own Story.
+ * 
+ * Despite the name, this is not shared-only (#1021 superseded M2-D22): a
+ * HeartMoment the caller marked ``PRIVATE`` is projected here too, at its
+ * ordinary Timeline position, with ``visibility`` reporting its actual
+ * domain visibility rather than an assumed ``SHARED``. The type keeps its
+ * established name — renaming it would force every generated client
+ * (including hand-written Android test fixtures out of #1021's scope) to
+ * follow along for no behavioral gain; the real contract fix is the
+ * ``visibility`` field, not the type name.
  * @export
  * @interface SharedHeartMomentSummary
  */
@@ -96,6 +112,12 @@ export interface SharedHeartMomentSummary {
      * @memberof SharedHeartMomentSummary
      */
     text: string;
+    /**
+     * 
+     * @type {ContentVisibility}
+     * @memberof SharedHeartMomentSummary
+     */
+    visibility: ContentVisibility;
 }
 
 
@@ -112,6 +134,7 @@ export function instanceOfSharedHeartMomentSummary(value: object): value is Shar
     if (!('happenedOn' in value) || value['happenedOn'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('text' in value) || value['text'] === undefined) return false;
+    if (!('visibility' in value) || value['visibility'] === undefined) return false;
     return true;
 }
 
@@ -133,6 +156,7 @@ export function SharedHeartMomentSummaryFromJSONTyped(json: any, ignoreDiscrimin
         'happenedOn': (new Date(json['happenedOn'])),
         'id': json['id'],
         'text': json['text'],
+        'visibility': ContentVisibilityFromJSON(json['visibility']),
     };
 }
 
@@ -155,6 +179,7 @@ export function SharedHeartMomentSummaryToJSONTyped(value?: SharedHeartMomentSum
         'happenedOn': value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
         'text': value['text'],
+        'visibility': ContentVisibilityToJSON(value['visibility']),
     };
 }
 

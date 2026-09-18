@@ -4,7 +4,7 @@
 **Date:** September 17, 2026  
 **Owning issue:** #1005  
 **Supersedes:** ADR 0007 (`0007-kotlin-multiplatform-shared-mobile-core.md`) as the target Android/iOS architecture  
-**Narrows:** ADR 0004 (`0004-android-uses-bottom-navigation-at-every-size.md`) to the legacy native Android client while it remains in maintenance  
+**Supersedes as active product guidance:** ADR 0004 (`0004-android-uses-bottom-navigation-at-every-size.md`); it remains historical context for the retired Compose client  
 **Preserves:** backend/OpenAPI authority, privacy/security contracts, product routes and the current Product Reference
 
 ## Context
@@ -109,21 +109,15 @@ Native/platform-specific code is appropriate for capabilities such as:
 
 Native code must stay thin and platform-focused. Business rules, authorization, feature semantics and ordinary product composition stay in the shared Web/backend contracts.
 
-### Existing native Android client becomes a legacy maintenance client
+### Legacy Kotlin/Compose product client is retired
 
-The current Kotlin/Jetpack Compose application is **not** the future feature-delivery target.
+The current Kotlin/Jetpack Compose application is **not** a fallback or future feature-delivery target. The Product Owner decision is to remove the duplicate native product client and its ordinary CI/product-parity obligations.
 
-Until the Capacitor replacement passes explicit Product Owner acceptance:
+Repository cleanup is tracked by #1008 and #1009 and may proceed in parallel with the PWA/Capacitor foundation. Full iOS readiness or final store-release acceptance is **not** a prerequisite for removing the legacy Compose product implementation.
 
-- it remains in the repository,
-- it receives no ordinary feature-parity work,
-- missing Compose parity does not block Web/backend acceptance,
-- it may receive critical bug, security, build/release compatibility and migration fixes,
-- existing contracts should not be intentionally broken when avoidable.
+The cutover must still preserve the externally relevant Android application identity and avoid creating an avoidable packaging/release dead end. A minimal canonical Capacitor Android wrapper must therefore be able to build the shared Web product before the legacy `android/` product project is replaced. This is a migration-safety condition, not a requirement to keep the old client as a maintained fallback.
 
-Removal or archival of the native Android client requires a separate explicit decision after replacement acceptance.
-
-ADR 0004 continues to describe the navigation behavior of that legacy Compose client while it exists. It no longer defines the target Android presentation architecture.
+ADR 0004 is historical guidance for the retired Compose client and no longer defines an active product surface.
 
 ### Previous KMP / SwiftUI target is superseded
 
@@ -175,21 +169,21 @@ Add Android and iOS wrapper projects around the same production Web bundle. Esta
 
 Add platform capabilities incrementally, starting with those needed for a convincing mobile product and store release: push, photo/media access and deep links; then sharing, authentication bridges or haptics where justified.
 
-### 4. Replacement acceptance
+### 4. Store/replacement acceptance
 
-The legacy Android feature client remains until the shared client proves the accepted critical journeys on real Android and iOS devices.
+Store-grade release acceptance remains a separate gate for shipping the Capacitor clients, not for retaining the retired Kotlin/Compose implementation.
 
-Replacement acceptance requires:
+Release acceptance requires:
 
-- accepted core product journeys on both platforms,
-- push/media/deep-link behavior proven on real devices,
+- accepted core product journeys on the target platforms,
+- required push/media/deep-link behavior proven on real devices,
 - acceptable performance,
 - correct safe areas, keyboards and lifecycle behavior,
 - accessibility and reduced-motion compliance,
 - no material privacy/security regression,
-- explicit Product Owner acceptance.
+- explicit Product Owner acceptance for the release candidate.
 
-Only then may a separate issue deprecate or remove the old native Android implementation.
+The legacy Compose product client does not need to remain in the repository while those store-release capabilities are completed.
 
 ## Consequences
 
@@ -209,7 +203,7 @@ Only then may a separate issue deprecate or remove the old native Android implem
 - Native integrations require careful bridge, lifecycle and security design.
 - Some highly platform-specific future experience may justify native code, but it must be explicitly scoped rather than becoming an alternative product UI by default.
 - PWA/service-worker caching and app updates introduce their own release semantics that need dedicated testing.
-- Existing native Android code remains temporarily as maintenance overhead until replacement acceptance.
+- The Android cutover must preserve package/signing/version continuity while the legacy product client is removed.
 
 ## Alternatives considered
 

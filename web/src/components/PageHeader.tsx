@@ -28,10 +28,10 @@ export function PageHeader({
           {titleEditor ? (
             titleEditor
           ) : (
-            <h1 className="page-heading-title-container">
-              <span>{title}</span>
+            <div className="page-heading-title-container">
+              <h1>{title}</h1>
               {titleAction}
-            </h1>
+            </div>
           )}
           {description ? <p>{description}</p> : null}
         </div>

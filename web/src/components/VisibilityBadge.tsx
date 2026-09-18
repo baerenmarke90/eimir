@@ -22,9 +22,9 @@ export interface VisibilityBadgeProps {
    */
   variant?: 'badge' | 'subtle';
   /**
-   * A shorter visible word (e.g. "Geteilt") for tight metadata rows. The
-   * accessible name (aria-label/title) always stays the full label, so
-   * screen reader users still hear "Mit Partner geteilt".
+   * A shorter visible label for tight metadata rows. The accessible
+   * name (aria-label/title) always stays the full label, so screen reader
+   * users still hear the full sharing status.
    */
   compactLabel?: string;
 }

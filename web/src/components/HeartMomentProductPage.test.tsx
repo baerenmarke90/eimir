@@ -158,7 +158,7 @@ describe('Heart Moment detail edit action and shared state (#1014)', () => {
     expect(editLink.className).not.toContain('secondary-link');
   });
 
-  it('shows "Mit Partner geteilt" as subdued metadata, not a prominent badge', async () => {
+  it('shows shared visibility as subdued metadata instead of a prominent badge', async () => {
     renderDetail();
     await screen.findByText('I love you more each day');
     const status = screen.getByRole('status', {

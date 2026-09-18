@@ -203,6 +203,10 @@
   flex-wrap: wrap;
 }
 
+.page-heading-title-container h1 {
+  margin: 0;
+}
+
 .page-heading > p:last-child,
 .page-heading > div > p:last-child {
   max-width: var(--reading-max);

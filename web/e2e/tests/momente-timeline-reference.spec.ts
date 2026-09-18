@@ -895,7 +895,10 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(detailEmotion.locator('.heart-emotion-label')).toHaveText(
       'Geliebt',
     );
-    await expect(detailEmotion).toHaveAttribute('aria-label', 'Gefühl: Geliebt');
+    await expect(detailEmotion).toHaveAttribute(
+      'aria-label',
+      'Gefühl: Geliebt',
+    );
     await expect(detailEmotion).toHaveCSS('border-top-width', '0px');
     await expect(detailEmotion).toHaveCSS(
       'background-color',

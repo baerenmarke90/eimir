@@ -557,7 +557,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await captureScreenshot(
       page,
       testInfo,
-      '1018-momente-visual-polish-390-light.png',
+      '1018-story-momente-visual-polish-390-light.png',
       { fullPage: true },
     );
 
@@ -631,7 +631,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await captureScreenshot(
       page,
       testInfo,
-      '1018-momente-visual-polish-390-dark.png',
+      '1018-story-momente-visual-polish-390-dark.png',
       { fullPage: true },
     );
   });
@@ -667,7 +667,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await captureScreenshot(
       page,
       testInfo,
-      '1018-momente-visual-polish-320-reflow.png',
+      '1018-story-momente-visual-polish-320-reflow.png',
       { fullPage: true },
     );
   });
@@ -701,7 +701,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await captureScreenshot(
       page,
       testInfo,
-      '1018-momente-visual-polish-1440-expanded.png',
+      '1018-story-momente-visual-polish-1440-expanded.png',
       { fullPage: true },
     );
   });

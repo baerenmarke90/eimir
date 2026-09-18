@@ -320,10 +320,10 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
     await page.goto('/story?tab=timeline&type=MEMORY');
     await page.waitForSelector('.story-timeline');
 
-    const indicator = page.locator('.story-pull-refresh-indicator');
+    const indicator = page.locator('.app-pull-refresh-indicator');
     await expect(indicator).toHaveCount(1);
     await expect(page.locator('html')).toHaveClass(
-      /story-pull-refresh-enabled/,
+      /app-pull-refresh-enabled/,
     );
     const browserOverscroll = await page
       .locator('html')

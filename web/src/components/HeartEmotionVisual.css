@@ -88,22 +88,32 @@
   max-width: 100%;
   align-items: center;
   gap: 0.45rem;
-  border: 1px solid
-    color-mix(in srgb, var(--heart-emotion-accent) 42%, transparent);
-  border-radius: 999px;
-  background: color-mix(
-    in srgb,
-    var(--heart-emotion-surface) 88%,
-    var(--color-surface) 12%
-  );
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: var(--color-text);
   font-weight: 650;
   line-height: 1.2;
 }
 
 .heart-emotion-badge--compact {
-  padding: 0.34rem 0.62rem 0.34rem 0.48rem;
+  padding: 0;
   font-size: 0.82rem;
+}
+
+/* Compact Timeline: the icon is the visible emotional cue; the localized
+ * label remains in the accessibility tree and is restored visually on
+ * Expanded Web below. */
+.heart-emotion-badge--compact .heart-emotion-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .heart-emotion-badge--detail {
@@ -325,6 +335,21 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@media (min-width: 768px) {
+  .story-card-heart-moment
+    .heart-emotion-badge--compact
+    .heart-emotion-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
   }
 }
 

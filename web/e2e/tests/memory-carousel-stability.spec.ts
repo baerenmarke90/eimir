@@ -109,13 +109,13 @@ async function swipeCarousel(
   page: Page,
   direction: 'previous' | 'next',
 ): Promise<void> {
-  await page.locator('.media-gallery-carousel-viewport').evaluate(
-    (element, swipeDirection) => {
+  await page
+    .locator('.media-gallery-carousel-viewport')
+    .evaluate((element, swipeDirection) => {
       const rect = element.getBoundingClientRect();
       const startX =
         swipeDirection === 'next' ? rect.right - 24 : rect.left + 24;
-      const endX =
-        swipeDirection === 'next' ? rect.left + 24 : rect.right - 24;
+      const endX = swipeDirection === 'next' ? rect.left + 24 : rect.right - 24;
       const clientY = rect.top + rect.height / 2;
       const start = new Touch({
         identifier: 1,
@@ -148,9 +148,7 @@ async function swipeCarousel(
           changedTouches: [end],
         }),
       );
-    },
-    direction,
-  );
+    }, direction);
 }
 
 async function installApiMocks(page: Page) {

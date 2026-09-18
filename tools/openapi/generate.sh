@@ -3,7 +3,8 @@
 # Generate the client API layers from the versioned OpenAPI contract.
 #
 #   tools/openapi/generate.sh          regenerate clients
-#   tools/openapi/generate.sh --check      check all committed clients for drift\n#   tools/openapi/generate.sh --check-web  check the canonical Web client for drift (CI)
+#   tools/openapi/generate.sh --check      check all committed clients for drift
+#   tools/openapi/generate.sh --check-web  check the canonical Web client for drift (CI)
 #
 # `backend/openapi.json` is the single source of truth consumed here. This
 # script does not produce the contract; backend code owns it, and the existing

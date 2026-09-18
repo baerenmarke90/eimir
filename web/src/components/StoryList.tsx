@@ -362,11 +362,8 @@ export function StoryList({
                     </time>
                     <span className="story-card-footer-author">
                       {author ? (
-                        <span
-                          className="momente-author-meta"
-                          role="group"
-                          aria-label={authorAttribution}
-                        >
+                        <span className="momente-author-meta">
+                          <span className="sr-only">{authorAttribution}</span>
                           <span aria-hidden="true">
                             <AuthorAvatar
                               author={author}

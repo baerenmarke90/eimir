@@ -378,7 +378,7 @@ export function StoryList({
                             className="story-card-author"
                             aria-hidden="true"
                           >
-                            {authorLabel}
+                            {authorAttribution}
                           </span>
                         </span>
                       ) : (

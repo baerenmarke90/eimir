@@ -102,20 +102,6 @@
   font-size: 0.82rem;
 }
 
-/* Compact Timeline: the icon is the visible emotional cue; the localized
- * label remains in the accessibility tree and is restored visually on
- * Expanded Web below. */
-.heart-emotion-badge--compact .heart-emotion-label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
 .heart-emotion-badge--detail {
   flex-direction: row;
   gap: var(--space-3);
@@ -155,6 +141,20 @@
 .heart-emotion-label {
   min-width: 0;
   overflow-wrap: break-word;
+}
+
+/* Compact Timeline: the icon is the visible emotional cue; the localized
+ * label remains in the accessibility tree and is restored visually on
+ * Expanded Web below. */
+.heart-emotion-badge--compact .heart-emotion-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .heart-emotion-badge--detail .heart-emotion-label {
@@ -339,9 +339,7 @@
 }
 
 @media (min-width: 768px) {
-  .story-card-heart-moment
-    .heart-emotion-badge--compact
-    .heart-emotion-label {
+  .story-card-heart-moment .heart-emotion-badge--compact .heart-emotion-label {
     position: static;
     width: auto;
     height: auto;

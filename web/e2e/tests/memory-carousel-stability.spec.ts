@@ -105,6 +105,52 @@ async function pointerClickWithoutScroll(
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+async function swipeCarousel(
+  page: Page,
+  direction: 'previous' | 'next',
+): Promise<void> {
+  await page
+    .locator('.media-gallery-carousel-viewport')
+    .evaluate((element, swipeDirection) => {
+      const rect = element.getBoundingClientRect();
+      const startX =
+        swipeDirection === 'next' ? rect.right - 24 : rect.left + 24;
+      const endX = swipeDirection === 'next' ? rect.left + 24 : rect.right - 24;
+      const clientY = rect.top + rect.height / 2;
+      const start = new Touch({
+        identifier: 1,
+        target: element,
+        clientX: startX,
+        clientY,
+      });
+      const end = new Touch({
+        identifier: 1,
+        target: element,
+        clientX: endX,
+        clientY,
+      });
+
+      element.dispatchEvent(
+        new TouchEvent('touchstart', {
+          bubbles: true,
+          cancelable: true,
+          touches: [start],
+          targetTouches: [start],
+          changedTouches: [start],
+        }),
+      );
+      element.dispatchEvent(
+        new TouchEvent('touchend', {
+          bubbles: true,
+          cancelable: true,
+          touches: [],
+          targetTouches: [],
+          changedTouches: [end],
+        }),
+      );
+    }, direction);
+}
+
 async function installApiMocks(page: Page) {
   const unexpectedRequests: string[] = [];
   const readAccessBodies: unknown[] = [];
@@ -402,6 +448,30 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const previous = page.getByRole('button', { name: GALLERY.previous });
   const counter = page.locator('.media-gallery-carousel-counter');
 
+  await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
+  await expect(page.locator('.media-gallery-carousel-dots')).toHaveCount(0);
+  expect(
+    await page
+      .locator('.media-gallery-carousel-content')
+      .first()
+      .evaluate((element) => getComputedStyle(element).objectFit),
+  ).toBe('contain');
+
+  const ambientBackdrop = page
+    .locator('.media-gallery-carousel-backdrop')
+    .first();
+  await expect(ambientBackdrop).toBeVisible();
+  expect(
+    await ambientBackdrop.evaluate(
+      (element) => getComputedStyle(element).objectFit,
+    ),
+  ).toBe('cover');
+  expect(
+    await ambientBackdrop.evaluate(
+      (element) => getComputedStyle(element).filter,
+    ),
+  ).toContain('blur');
+
   const pointerSteps = [
     { control: next, expected: 2 },
     { control: next, expected: 3 },
@@ -449,6 +519,16 @@ test('Memory carousel keeps document and layout position stable across pointer a
   await expect(close).toBeFocused();
   await nextFrame(page);
   expectStableGeometry(beforeOpen, await geometry(page));
+  expect(
+    await page.evaluate(() => {
+      const topElement = document.elementFromPoint(window.innerWidth / 2, 20);
+      return Boolean(topElement?.closest('.media-lightbox-backdrop'));
+    }),
+  ).toBe(true);
+  await page.screenshot({
+    path: testInfo.outputPath('story-memory-lightbox-expanded.png'),
+    fullPage: false,
+  });
 
   const lightboxNext = lightbox.getByRole('button', {
     name: GALLERY.next,
@@ -506,12 +586,11 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       await openMemory(page);
       await positionGalleryForReading(page);
 
-      const next = page.getByRole('button', { name: GALLERY.next });
-      const box = await next.boundingBox();
-      if (!box) throw new Error('Next carousel control did not render.');
+      const next = page.locator('.media-gallery-carousel-next');
+      await expect(next).toBeHidden();
 
       const before = await geometry(page);
-      await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+      await swipeCarousel(page, 'next');
       await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
         counterLabel(2, 3),
       );
@@ -595,6 +674,8 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
     page.getByRole('button', { name: GALLERY.previous }),
   ).toHaveCount(0);
   await expect(page.getByRole('button', { name: GALLERY.next })).toHaveCount(0);
+  await expect(page.locator('.media-gallery-carousel-counter')).toHaveCount(0);
+  await expect(page.locator('.media-gallery-carousel-footer')).toHaveCount(0);
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),
   ).toBeVisible();

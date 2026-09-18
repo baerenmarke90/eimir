@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MediaType,
   type MediaType as MediaTypeValue,
@@ -74,6 +75,15 @@ export function MediaGallery({
   }, [lightboxOpen]);
 
   useEffect(() => {
+    if (!lightboxOpen || typeof document === 'undefined') return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [lightboxOpen]);
+
+  useEffect(() => {
     if (!lightboxOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -130,6 +140,41 @@ export function MediaGallery({
     return <img className={className} src={url} alt={t('gallery.imageAlt')} />;
   }
 
+  function renderCarouselMedia(item: GalleryMediaItem) {
+    if (item.mediaType === MediaType.VIDEO || failed.has(item.id)) {
+      return (
+        <div className="media-gallery-unavailable">
+          {t('media.unavailable')}
+        </div>
+      );
+    }
+    const url = urls[item.id];
+    if (!url) {
+      return (
+        <div
+          className="media-gallery-loading"
+          role="status"
+          aria-label={t('media.loading')}
+        />
+      );
+    }
+    return (
+      <span className="media-gallery-carousel-visual">
+        <img
+          className="media-gallery-carousel-backdrop"
+          src={url}
+          alt=""
+          aria-hidden="true"
+        />
+        <img
+          className="media-gallery-carousel-content media-gallery-thumb-content"
+          src={url}
+          alt={t('gallery.imageAlt')}
+        />
+      </span>
+    );
+  }
+
   const activeItem = activeIndex === null ? null : items[activeIndex];
 
   return (
@@ -160,7 +205,9 @@ export function MediaGallery({
                 type="button"
                 className={`media-gallery-carousel-slide${
                   index === carouselIndex
-                    ? ` is-active${carouselDirection ? ` is-${carouselDirection}` : ''}`
+                    ? ` is-active${
+                        carouselDirection ? ` is-${carouselDirection}` : ''
+                      }`
                     : ''
                 }`}
                 tabIndex={index === carouselIndex ? 0 : -1}
@@ -170,16 +217,22 @@ export function MediaGallery({
                   count: items.length,
                 })}
               >
-                {renderMedia(
-                  item,
-                  'media-gallery-carousel-content media-gallery-thumb-content',
-                )}
+                {renderCarouselMedia(item)}
               </button>
             ))}
           </div>
 
           {items.length > 1 ? (
             <>
+              <span
+                className="media-gallery-carousel-counter"
+                aria-live="polite"
+              >
+                {t('gallery.counter', {
+                  index: carouselIndex + 1,
+                  count: items.length,
+                })}
+              </span>
               <button
                 type="button"
                 className="media-gallery-carousel-nav media-gallery-carousel-prev"
@@ -187,7 +240,7 @@ export function MediaGallery({
                 onClick={() => changeCarousel(-1)}
                 aria-label={t('gallery.previous')}
               >
-                ‹
+                <span aria-hidden="true">‹</span>
               </button>
               <button
                 type="button"
@@ -196,96 +249,82 @@ export function MediaGallery({
                 onClick={() => changeCarousel(1)}
                 aria-label={t('gallery.next')}
               >
-                ›
+                <span aria-hidden="true">›</span>
               </button>
             </>
           ) : null}
         </div>
-
-        {items.length > 1 ? (
-          <div className="media-gallery-carousel-footer">
-            <span className="media-gallery-carousel-counter" aria-live="polite">
-              {t('gallery.counter', {
-                index: carouselIndex + 1,
-                count: items.length,
-              })}
-            </span>
-            <div className="media-gallery-carousel-dots" aria-hidden="true">
-              {items.map((item, index) => (
-                <span
-                  key={item.id}
-                  className={`media-gallery-carousel-dot${
-                    index === carouselIndex ? ' is-active' : ''
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
       </section>
 
-      {activeItem && activeIndex !== null ? (
-        <div
-          className="media-lightbox-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('gallery.dialogAria')}
-          onTouchStart={(event) => {
-            lightboxTouchStartX.current = event.touches[0]?.clientX ?? null;
-          }}
-          onTouchEnd={(event) => {
-            const start = lightboxTouchStartX.current;
-            lightboxTouchStartX.current = null;
-            const end = event.changedTouches[0]?.clientX;
-            if (start === null || end === undefined) return;
-            const distance = end - start;
-            if (Math.abs(distance) < 48) return;
-            changeActive(distance > 0 ? -1 : 1);
-          }}
-        >
-          <div className="media-lightbox">
-            <div className="media-lightbox-toolbar">
-              <span aria-live="polite">
-                {t('gallery.counter', {
-                  index: activeIndex + 1,
-                  count: items.length,
-                })}
-              </span>
-              <button
-                ref={closeButton}
-                type="button"
-                className="tertiary"
-                onClick={() => setActiveIndex(null)}
-              >
-                {t('gallery.close')}
-              </button>
-            </div>
-            <div className="media-lightbox-stage">
-              {items.length > 1 ? (
-                <button
-                  type="button"
-                  className="media-lightbox-nav"
-                  onClick={() => changeActive(-1)}
-                  aria-label={t('gallery.previous')}
-                >
-                  ‹
-                </button>
-              ) : null}
-              {renderMedia(activeItem, 'media-lightbox-content')}
-              {items.length > 1 ? (
-                <button
-                  type="button"
-                  className="media-lightbox-nav"
-                  onClick={() => changeActive(1)}
-                  aria-label={t('gallery.next')}
-                >
-                  ›
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {activeItem && activeIndex !== null && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className="media-lightbox-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('gallery.dialogAria')}
+              onTouchStart={(event) => {
+                lightboxTouchStartX.current = event.touches[0]?.clientX ?? null;
+              }}
+              onTouchEnd={(event) => {
+                const start = lightboxTouchStartX.current;
+                lightboxTouchStartX.current = null;
+                const end = event.changedTouches[0]?.clientX;
+                if (start === null || end === undefined) return;
+                const distance = end - start;
+                if (Math.abs(distance) < 48) return;
+                changeActive(distance > 0 ? -1 : 1);
+              }}
+            >
+              <div className="media-lightbox">
+                <div className="media-lightbox-stage">
+                  {renderMedia(activeItem, 'media-lightbox-content')}
+
+                  {items.length > 1 ? (
+                    <span className="media-lightbox-counter" aria-live="polite">
+                      {t('gallery.counter', {
+                        index: activeIndex + 1,
+                        count: items.length,
+                      })}
+                    </span>
+                  ) : null}
+
+                  <button
+                    ref={closeButton}
+                    type="button"
+                    className="media-lightbox-close"
+                    onClick={() => setActiveIndex(null)}
+                    aria-label={t('gallery.close')}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+
+                  {items.length > 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        className="media-lightbox-nav media-lightbox-prev"
+                        onClick={() => changeActive(-1)}
+                        aria-label={t('gallery.previous')}
+                      >
+                        <span aria-hidden="true">‹</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="media-lightbox-nav media-lightbox-next"
+                        onClick={() => changeActive(1)}
+                        aria-label={t('gallery.next')}
+                      >
+                        <span aria-hidden="true">›</span>
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }

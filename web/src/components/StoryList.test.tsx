@@ -123,11 +123,10 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #969 keeps the visible row compact; #1019 gives the same metadata an
-    // explicit accessible attribution.
-    expect(html).toContain('>Alex</span>');
+    // #1019 makes the viewer-relative attribution explicit in both visible
+    // and accessible metadata.
+    expect(html).toContain('>von Alex</span>');
     expect(html).toContain('aria-label="von Alex"');
-    expect(html).not.toContain('>von Alex</span>');
   });
 
   it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {

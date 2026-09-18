@@ -21,7 +21,7 @@
   overflow: hidden;
   contain: layout paint;
   border-radius: var(--radius-large);
-  background: var(--color-entry-hero-start);
+  background: var(--color-surface-subtle);
   touch-action: pan-y;
 }
 
@@ -71,9 +71,43 @@
   outline-offset: -3px;
 }
 
+.media-gallery-carousel-visual {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+}
+
+.media-gallery-carousel-visual::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: color-mix(in srgb, var(--color-surface) 22%, transparent);
+  content: "";
+  pointer-events: none;
+}
+
+.media-gallery-carousel-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: -1.5rem;
+  width: calc(100% + 3rem);
+  height: calc(100% + 3rem);
+  object-fit: cover;
+  filter: blur(24px) saturate(0.88);
+  opacity: 0.46;
+  transform: scale(1.06);
+  pointer-events: none;
+  user-select: none;
+}
+
 .media-gallery-carousel-content,
 .media-gallery-carousel .media-gallery-loading,
 .media-gallery-carousel .media-gallery-unavailable {
+  position: relative;
+  z-index: 2;
   display: block;
   width: 100%;
   height: 100%;

@@ -10,6 +10,6 @@ paths-ignore:
   - '**/build/**'
   - 'web/src/api/generated/**'
 
-# Generated web API clients and build output are not application-owned
-# security surfaces. Runtime backend, handwritten web application code and
-# the Android sources built by the manual CodeQL build remain in scope.
+# Generated Web API clients and build output are not application-owned
+# security surfaces. Runtime backend and handwritten Web application code
+# remain the active CodeQL product surfaces.

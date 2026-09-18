@@ -39,7 +39,23 @@ describe('HeartEmotionVisual', () => {
     ).toBe(false);
   });
 
-  it('keeps the localized label alongside a distinct controlled motif', () => {
+  it.each(HEART_EMOTIONS)(
+    'keeps compact %s localized and accessibly named while using the canonical icon',
+    (emotion) => {
+      const { container } = render(<HeartEmotionBadge emotion={emotion} />);
+
+      const badge = container.querySelector(`[data-emotion="${emotion}"]`);
+      const label = badge?.querySelector('.heart-emotion-label')?.textContent;
+      expect(label).toBeTruthy();
+      expect(badge?.classList).toContain('heart-emotion-badge--compact');
+      expect(badge?.querySelector('svg')).not.toBeNull();
+      expect(badge?.getAttribute('aria-label')).toBe(`Gefühl: ${label}`);
+      expect(badge?.getAttribute('title')).toBe(`Gefühl: ${label}`);
+      expect(badge?.getAttribute('aria-label')).not.toContain(emotion);
+    },
+  );
+
+  it('keeps the localized label alongside a distinct controlled motif in detail', () => {
     const { container } = render(
       <HeartEmotionBadge emotion={HeartEmotion.SEEN} variant="detail" />,
     );
@@ -49,6 +65,7 @@ describe('HeartEmotionVisual', () => {
     expect(badge).not.toBeNull();
     expect(badge?.querySelector('svg')).not.toBeNull();
     expect(badge?.textContent).toBe('Gefühl: Gesehen');
-    expect(badge?.hasAttribute('aria-label')).toBe(false);
+    expect(badge?.getAttribute('aria-label')).toBe('Gefühl: Gesehen');
+    expect(badge?.getAttribute('title')).toBe('Gefühl: Gesehen');
   });
 });

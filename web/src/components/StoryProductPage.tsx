@@ -930,13 +930,21 @@ export function StoryProductPage({
                       {formatStoryDate(featuredItem.effectiveDate, locale)}
                     </time>
                     {featuredAuthor ? (
-                      <span className="momente-author-meta">
-                        <AuthorAvatar
-                          author={featuredAuthor}
-                          profilesApi={profilesApi}
-                          spaceId={spaceId}
-                        />
-                        <span>
+                      <span
+                        className="momente-author-meta"
+                        role="group"
+                        aria-label={t('story.byAuthor', {
+                          author: storyAuthorLabel(featuredAuthor, accountId),
+                        })}
+                      >
+                        <span aria-hidden="true">
+                          <AuthorAvatar
+                            author={featuredAuthor}
+                            profilesApi={profilesApi}
+                            spaceId={spaceId}
+                          />
+                        </span>
+                        <span aria-hidden="true">
                           {t('story.byAuthor', {
                             author: storyAuthorLabel(featuredAuthor, accountId),
                           })}
@@ -1094,13 +1102,24 @@ export function StoryProductPage({
                             <div className="momente-tapestry-meta">
                               <time dateTime={dateTime}>{dateLabel}</time>
                               {entry.author ? (
-                                <span className="momente-author-meta">
-                                  <AuthorAvatar
-                                    author={entry.author}
-                                    profilesApi={profilesApi}
-                                    spaceId={spaceId}
-                                  />
-                                  <span>
+                                <span
+                                  className="momente-author-meta"
+                                  role="group"
+                                  aria-label={t('story.byAuthor', {
+                                    author: storyAuthorLabel(
+                                      entry.author,
+                                      accountId,
+                                    ),
+                                  })}
+                                >
+                                  <span aria-hidden="true">
+                                    <AuthorAvatar
+                                      author={entry.author}
+                                      profilesApi={profilesApi}
+                                      spaceId={spaceId}
+                                    />
+                                  </span>
+                                  <span aria-hidden="true">
                                     {t('story.byAuthor', {
                                       author: storyAuthorLabel(
                                         entry.author,

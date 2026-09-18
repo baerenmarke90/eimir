@@ -379,6 +379,7 @@ export function StoryYearDetailPage({
                 loadHeartMomentImage={loadHeartMomentImage}
                 profilesApi={profilesApi}
                 spaceId={spaceId}
+                currentAccountId={accountId}
               />
             </section>
           ))}

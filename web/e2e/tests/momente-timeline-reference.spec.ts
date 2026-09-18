@@ -909,17 +909,17 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       {
         path: '/story/memories/mem-canal',
         marker: 'Breakfast by the canal',
-        shot: '1024-comments-memory-390-light.png',
+        shot: '1024-story-comments-memory-390-light.png',
       },
       {
         path: '/story/heart-moments/hm-love',
         marker: 'Thinking of you',
-        shot: '1024-comments-heart-390-light.png',
+        shot: '1024-story-comments-heart-390-light.png',
       },
       {
         path: '/story/milestones/ms-2years',
         marker: 'Two years together',
-        shot: '1024-comments-milestone-390-light.png',
+        shot: '1024-story-comments-milestone-390-light.png',
       },
     ] as const;
 
@@ -933,7 +933,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto('/story/memories/mem-canal');
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-comments-memory-320.png', {
+    await captureScreenshot(page, testInfo, '1024-story-comments-memory-320.png', {
       fullPage: true,
     });
 
@@ -941,7 +941,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story/memories/mem-canal');
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-comments-memory-200pct.png', {
+    await captureScreenshot(page, testInfo, '1024-story-comments-memory-200pct.png', {
       fullPage: true,
     });
 
@@ -951,7 +951,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story/milestones/ms-2years');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-comments-milestone-1440-dark.png', {
+    await captureScreenshot(page, testInfo, '1024-story-comments-milestone-1440-dark.png', {
       fullPage: true,
     });
   });

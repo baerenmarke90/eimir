@@ -447,12 +447,15 @@ export function StoryProductPage({
       void storyQuery.fetchNextPage();
       return;
     }
-    const frame = window.requestAnimationFrame(() => {
-      const selected = Array.from(
+    let settleFrame: number | null = null;
+    const findSelected = () =>
+      Array.from(
         document.querySelectorAll<HTMLElement>('[data-task-item-key]'),
       ).find(
         (element) => element.dataset.taskItemKey === returnOrigin.selectedKey,
       );
+    const restorePosition = () => {
+      const selected = findSelected();
       const top =
         selected && returnOrigin.selectedOffset !== undefined
           ? window.scrollY +
@@ -460,6 +463,10 @@ export function StoryProductPage({
             returnOrigin.selectedOffset
           : returnOrigin.scrollY;
       window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
+      return selected;
+    };
+    const frame = window.requestAnimationFrame(() => {
+      const selected = restorePosition();
       const focusTarget =
         selected ??
         (returnOrigin.focusTarget === 'quick-create'
@@ -468,10 +475,20 @@ export function StoryProductPage({
             ).find((element) => element.getClientRects().length > 0)
           : null);
       focusTarget?.focus({ preventScroll: true });
-      restoredEntryRef.current = entry;
-      setRestoredTimelineEntry(entry);
+
+      // Browser history restoration and late layout work can settle one frame
+      // after the first paint. Re-apply the exact captured offset before the
+      // task origin is marked restored so return continuity stays geometry-stable.
+      settleFrame = window.requestAnimationFrame(() => {
+        restorePosition();
+        restoredEntryRef.current = entry;
+        setRestoredTimelineEntry(entry);
+      });
     });
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (settleFrame !== null) window.cancelAnimationFrame(settleFrame);
+    };
   }, [
     returnOrigin,
     combinedStory,

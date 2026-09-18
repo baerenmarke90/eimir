@@ -256,9 +256,7 @@ export function MediaGallery({
         </div>
       </section>
 
-      {activeItem &&
-      activeIndex !== null &&
-      typeof document !== 'undefined'
+      {activeItem && activeIndex !== null && typeof document !== 'undefined'
         ? createPortal(
             <div
               className="media-lightbox-backdrop"
@@ -283,10 +281,7 @@ export function MediaGallery({
                   {renderMedia(activeItem, 'media-lightbox-content')}
 
                   {items.length > 1 ? (
-                    <span
-                      className="media-lightbox-counter"
-                      aria-live="polite"
-                    >
+                    <span className="media-lightbox-counter" aria-live="polite">
                       {t('gallery.counter', {
                         index: activeIndex + 1,
                         count: items.length,

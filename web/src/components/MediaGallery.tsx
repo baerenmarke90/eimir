@@ -10,6 +10,8 @@ export interface GalleryMediaItem {
   mediaType: MediaTypeValue;
 }
 
+type CarouselDirection = 'previous' | 'next' | null;
+
 export function MediaGallery({
   items,
   loadMedia,
@@ -21,6 +23,8 @@ export function MediaGallery({
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselDirection, setCarouselDirection] =
+    useState<CarouselDirection>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
   const carouselTouchStartX = useRef<number | null>(null);
@@ -32,6 +36,7 @@ export function MediaGallery({
     setUrls({});
     setFailed(new Set());
     setCarouselIndex(0);
+    setCarouselDirection(null);
 
     for (const item of items) {
       if (item.mediaType === MediaType.VIDEO) continue;
@@ -61,9 +66,15 @@ export function MediaGallery({
     setCarouselIndex(Math.max(0, items.length - 1));
   }, [carouselIndex, items.length]);
 
+  const lightboxOpen = activeIndex !== null;
+
   useEffect(() => {
-    if (activeIndex === null) return;
-    closeButton.current?.focus();
+    if (!lightboxOpen) return;
+    closeButton.current?.focus({ preventScroll: true });
+  }, [lightboxOpen]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setActiveIndex(null);
@@ -80,11 +91,12 @@ export function MediaGallery({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeIndex, items.length]);
+  }, [lightboxOpen, items.length]);
 
   if (items.length === 0) return null;
 
   function changeCarousel(delta: number) {
+    setCarouselDirection(delta < 0 ? 'previous' : 'next');
     setCarouselIndex(
       (current) => (current + delta + items.length) % items.length,
     );
@@ -141,15 +153,16 @@ export function MediaGallery({
             changeCarousel(distance > 0 ? -1 : 1);
           }}
         >
-          <div
-            className="media-gallery-carousel-track"
-            style={{ transform: `translate3d(-${carouselIndex * 100}%, 0, 0)` }}
-          >
+          <div className="media-gallery-carousel-track">
             {items.map((item, index) => (
               <button
                 key={item.id}
                 type="button"
-                className="media-gallery-carousel-slide"
+                className={`media-gallery-carousel-slide${
+                  index === carouselIndex
+                    ? ` is-active${carouselDirection ? ` is-${carouselDirection}` : ''}`
+                    : ''
+                }`}
                 tabIndex={index === carouselIndex ? 0 : -1}
                 onClick={() => setActiveIndex(index)}
                 aria-label={t('gallery.openItem', {
@@ -170,6 +183,7 @@ export function MediaGallery({
               <button
                 type="button"
                 className="media-gallery-carousel-nav media-gallery-carousel-prev"
+                onPointerDown={(event) => event.preventDefault()}
                 onClick={() => changeCarousel(-1)}
                 aria-label={t('gallery.previous')}
               >
@@ -178,6 +192,7 @@ export function MediaGallery({
               <button
                 type="button"
                 className="media-gallery-carousel-nav media-gallery-carousel-next"
+                onPointerDown={(event) => event.preventDefault()}
                 onClick={() => changeCarousel(1)}
                 aria-label={t('gallery.next')}
               >

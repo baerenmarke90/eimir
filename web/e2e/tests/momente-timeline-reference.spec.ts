@@ -583,7 +583,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor).toHaveAttribute('aria-label', 'von dir');
+    await expect(compactAuthor.locator('.sr-only')).toHaveText('von dir');
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
       'von dir',
     );
@@ -1000,7 +1000,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.waitForSelector('.story-timeline');
 
     const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta).toHaveAttribute('aria-label', 'von Lea');
+    await expect(authorMeta.locator('.sr-only')).toHaveText('von Lea');
     await expect(page.locator('.story-card-author').first()).toHaveText(
       'von Lea',
     );
@@ -1104,7 +1104,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor).toHaveAttribute('aria-label', 'von dir');
+    await expect(discoverAuthor.locator('.sr-only')).toHaveText('von dir');
     await expect(discoverAuthor).toContainText('von dir');
 
     await captureScreenshot(

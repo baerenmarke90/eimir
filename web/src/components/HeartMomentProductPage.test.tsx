@@ -141,3 +141,177 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
     expect(await screen.findByText('story landing')).toBeTruthy();
   });
 });
+
+describe('Heart Moment view receipt', () => {
+  it('emits a receipt strictly on successful presentation of a SHARED moment', async () => {
+    const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    let resolveQuery: (val: any) => void;
+    let getHeartMomentMock = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        resolveQuery = resolve;
+      }),
+    );
+    const apis = {
+      story: { recordStoryView: recordStoryViewMock },
+      heartMoments: {
+        getHeartMoment: (...args: any[]) => getHeartMomentMock(...args),
+      },
+    } as unknown as ReferenceApis;
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    queryClient.setQueryData(
+      ['m5-s5', 'notification-unread-count', 'space-1'],
+      {
+        unreadCount: 0,
+      },
+    );
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/story/heart-moments/heart-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="https://example.test"
+              accessToken="token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/heart-moments/:heartMomentId"
+                  element={
+                    <HeartMomentProductPage
+                      mode="detail"
+                      apis={apis}
+                      apiBaseUrl="https://example.test"
+                      accessToken="token"
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                      loadAttachment={async () => 'blob:test-image'}
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Should not emit while loading
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    // Now resolve the query with SHARED visibility
+    resolveQuery!({
+      ...heartMoment,
+      visibility: ContentVisibility.SHARED,
+    });
+
+    expect(await screen.findByText('I love you more each day')).toBeTruthy();
+
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'HEART_MOMENT', itemId: 'heart-1' },
+    });
+  });
+
+  it('does NOT emit a receipt for a PRIVATE moment', async () => {
+    const recordStoryViewMock = vi.fn().mockResolvedValue(undefined);
+    const apis = {
+      story: { recordStoryView: recordStoryViewMock },
+      heartMoments: {
+        getHeartMoment: vi.fn().mockResolvedValue({
+          ...heartMoment,
+          visibility: ContentVisibility.PRIVATE,
+        }),
+      },
+    } as unknown as ReferenceApis;
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    queryClient.setQueryData(
+      ['m5-s5', 'notification-unread-count', 'space-1'],
+      {
+        unreadCount: 0,
+      },
+    );
+    queryClient.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    // Resolve immediately with PRIVATE visibility in query client cache just to be safe
+    queryClient.setQueryData(
+      authorSummaryQueryKeys.heartMoment('space-1', 'heart-1'),
+      {
+        value: { ...heartMoment, visibility: ContentVisibility.PRIVATE },
+        source: 'network',
+      },
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/story/heart-moments/heart-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="https://example.test"
+              accessToken="token"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/heart-moments/:heartMomentId"
+                  element={
+                    <HeartMomentProductPage
+                      mode="detail"
+                      apis={apis}
+                      apiBaseUrl="https://example.test"
+                      accessToken="token"
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                      loadAttachment={async () => 'blob:test-image'}
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('I love you more each day')).toBeTruthy();
+
+    // MUST NOT EMIT
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+  });
+});

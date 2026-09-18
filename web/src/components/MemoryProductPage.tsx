@@ -24,6 +24,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
@@ -166,6 +167,14 @@ export function MemoryProductPage({
     },
     enabled: Boolean(memoryId),
     retry: false,
+  });
+
+  useStoryViewReceipt({
+    apis,
+    spaceId,
+    kind: 'MEMORY',
+    itemId: memoryId ?? '',
+    presented: mode === 'detail' && memoryQuery.isSuccess,
   });
 
   // Edit accepts new draft uploads only up to the capacity the Memory's

@@ -246,6 +246,8 @@ const de = {
     streamAll: 'Alle in der Zeitleiste ansehen →',
     featuredHighlight: 'Besonderer Moment',
     featuredKicker: 'Aus euren Momenten',
+    onThisDay_one: 'Heute vor einem Jahr',
+    onThisDay_other: 'Heute vor {{count}} Jahren',
     milestonesTitle: 'Meilensteine & gemeinsame Schritte',
     milestonesDesc: 'Große und kleine Stationen eurer gemeinsamen Geschichte.',
     chaptersTitle: 'Kapitel unserer Geschichte',

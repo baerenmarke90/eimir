@@ -244,6 +244,9 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         nextCursor: !noMatch && !hasCursor ? 'older-page' : null,
       });
     }
+    if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/story-views`) {
+      return route.fulfill({ status: 204 });
+    }
     if (
       method === 'GET' &&
       path.includes('/memories/') &&

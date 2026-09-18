@@ -274,6 +274,20 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/discover`
+    ) {
+      const items = generateTimelineItems();
+      await fulfillJson({
+        selectionDate: '2026-09-01',
+        lead: items[0] ?? null,
+        items: items.slice(1, 8),
+        leadContext: null,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/wishes`) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
@@ -360,65 +374,54 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    // Navigate to Momente / Story Timeline
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
     const bottomShell = page.locator('.mobile-bottom-shell');
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 1: Initial state (visible at top of page)
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '01-momente-initial-visible.png'),
     });
 
-    // Verify page has scrollable height
     const scrollHeight = await page.evaluate(
       () => document.documentElement.scrollHeight,
     );
     expect(scrollHeight).toBeGreaterThan(1200);
 
-    // Deliberate downward scroll: scroll down by 100px (> 50px threshold)
     await page.evaluate(() => {
       window.scrollTo({ top: 120, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Evidence 2: Hidden after deliberate downward scroll
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '02-momente-scrolled-down-hidden.png'),
     });
 
-    // Slight upward scroll: scroll up by 20px (> 15px reveal threshold)
     await page.evaluate(() => {
       window.scrollTo({ top: 95, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 3: Revealed quickly after slight upward scroll
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '03-momente-scrolled-up-revealed.png'),
     });
 
-    // Route change while scrolled/hidden: scroll down again so it hides
     await page.evaluate(() => {
       window.scrollTo({ top: 200, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Navigate to /plan while hidden (e.g. programmatically or via link dispatch)
     await page.evaluate(() => {
       document.querySelector<HTMLAnchorElement>('a[href="/plan"]')?.click();
     });
     await page.waitForURL('**/plan');
 
-    // Navigation must be visible on route change!
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 4: Reset to visible on route change
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '04-route-change-reset-visible.png'),
     });
@@ -437,7 +440,6 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Add content to make Heute long enough to scroll
     await page.evaluate(() => {
       const spacer = document.createElement('div');
       spacer.style.height = '1500px';
@@ -445,25 +447,20 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
       document.querySelector('main')?.appendChild(spacer);
     });
 
-    // Scroll down 200px on Heute
     await page.evaluate(() => {
       window.scrollTo({ top: 200, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
-    // Must remain visible!
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 5: Heute persistent when scrolled
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '05-heute-persistent-scrolled.png'),
     });
 
-    // Navigate to Planen
     await page.goto('/plan');
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Make Planen long enough to scroll
     await page.evaluate(() => {
       const spacer = document.createElement('div');
       spacer.style.height = '1500px';
@@ -471,15 +468,12 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
       document.querySelector('main')?.appendChild(spacer);
     });
 
-    // Scroll down 200px on Planen
     await page.evaluate(() => {
       window.scrollTo({ top: 200, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
-    // Must remain visible!
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 6: Planen persistent when scrolled
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '06-planen-persistent-scrolled.png'),
     });
@@ -498,21 +492,18 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     const bottomShell = page.locator('.mobile-bottom-shell');
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Scroll down 150px -> hides
     await page.evaluate(() => {
       window.scrollTo({ top: 150, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Scroll directly back to top (scrollY = 0)
     await page.evaluate(() => {
       window.scrollTo({ top: 0, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Evidence 7: Top of page reset
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '07-top-of-page-reset.png'),
     });
@@ -531,21 +522,17 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     const bottomShell = page.locator('.mobile-bottom-shell');
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Scroll down 100px -> hides
     await page.evaluate(() => {
       window.scrollTo({ top: 120, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Focus an element inside the bottom shell (e.g. Quick Create trigger)
     const trigger = bottomShell.locator('button.quick-create-trigger');
     await trigger.focus();
 
-    // Focusing must immediately reveal the navigation bar!
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Further downward scrolling while focused must not hide it
     await page.evaluate(() => {
       window.scrollTo({ top: 250, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
@@ -567,21 +554,17 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     const bottomShell = page.locator('.mobile-bottom-shell');
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // Check computed transition style
     const transition = await bottomShell.evaluate(
       (el) => window.getComputedStyle(el).transitionProperty,
     );
-    // In reduced motion, transition is none
     expect(transition).toBe('none');
 
-    // Scroll down -> hides immediately
     await page.evaluate(() => {
       window.scrollTo({ top: 120, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Evidence 8: Reduced motion hidden
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '08-reduced-motion-hidden.png'),
     });
@@ -605,7 +588,6 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
       dimensionsBefore.clientWidth + 1,
     );
 
-    // Scroll down 120px
     await page.evaluate(() => {
       window.scrollTo({ top: 120, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
@@ -620,7 +602,6 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     expect(dimensionsAfterHide.scrollWidth).toBe(dimensionsBefore.scrollWidth);
     expect(dimensionsAfterHide.clientWidth).toBe(dimensionsBefore.clientWidth);
 
-    // Scroll up 25px -> reveal
     await page.evaluate(() => {
       window.scrollTo({ top: 95, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
@@ -645,50 +626,41 @@ test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
     await signIn(page);
     await page.waitForURL('**/today');
 
-    // 1. Open /story?tab=discover
     await page.goto('/story?tab=discover');
     await page.waitForSelector('.momente-discover-page');
     const bottomShell = page.locator('.mobile-bottom-shell');
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // 2. Scroll enough to hide the bottom bar (> 50px downward scroll)
     await page.evaluate(() => {
       window.scrollTo({ top: 80, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // 3. Switch to Timeline through the actual product UI
     const timelineTab = page.getByRole('tab', { name: de.story.tabTimeline });
     await expect(timelineTab).toBeVisible();
     await timelineTab.click();
 
-    // Verify switch to Timeline mode
     await page.waitForSelector('.story-timeline');
     await expect(page).toHaveURL(/.*[?&]tab=timeline/);
 
-    // 4. Assert bottom navigation becomes visible
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
 
-    // 5. Verify reverse mode switch: scroll to hide while in Timeline
     await page.evaluate(() => {
       window.scrollTo({ top: window.scrollY + 80, behavior: 'instant' });
       window.dispatchEvent(new Event('scroll'));
     });
     await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
 
-    // Switch back to Discover through the actual product UI
     const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
     await expect(discoverTab).toBeVisible();
     await discoverTab.click();
 
-    // Verify switch back to Discover mode
     await page.waitForSelector('.momente-discover-page');
     await expect(page).toHaveURL(/.*[?&]tab=discover/);
 
-    // Assert bottom navigation becomes visible on reverse switch
     await expect(bottomShell).toBeVisible();
     await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
   });

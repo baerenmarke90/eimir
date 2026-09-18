@@ -164,3 +164,148 @@ describe('Memory editor return context', () => {
     },
   );
 });
+
+describe('Memory view receipt', () => {
+  function setupReceiptTest(overrideRecordMock?: any) {
+    const recordStoryViewMock =
+      overrideRecordMock || vi.fn().mockResolvedValue(undefined);
+    let resolveQuery: (val: any) => void;
+    let rejectQuery: (err: any) => void;
+    const getMemoryMock = vi.fn().mockReturnValue(
+      new Promise((resolve, reject) => {
+        resolveQuery = resolve;
+        rejectQuery = reject;
+      }),
+    );
+    const apis = {
+      story: { recordStoryView: recordStoryViewMock },
+      memories: { getMemory: (...args: any[]) => getMemoryMock(...args) },
+    } as unknown as ReferenceApis;
+
+    const memory: MemoryDetail = {
+      id: 'memory-1',
+      spaceId: 'space-1',
+      authorId: 'account-1',
+      author: { id: 'account-1', displayName: 'Alex' },
+      title: 'A shared evening',
+      body: 'Quiet words',
+      attachments: [],
+      happenedOn: new Date('2025-09-15'),
+      createdAt: new Date('2025-09-15'),
+      updatedAt: new Date('2025-09-15'),
+      version: 1,
+      capabilities: { canEdit: false, canDelete: false, canComment: false },
+    };
+
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    client.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+    client.setQueryData(['m5-s5', 'notification-unread-count', 'space-1'], {
+      unreadCount: 0,
+    });
+    client.setQueryData(authorSummaryQueryKeys.space('space-1'), {
+      id: 'space-1',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      partners: [],
+    });
+
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/story/memories/memory-1']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <AppShell
+              onLogout={() => undefined}
+              apiBaseUrl="http://example.test"
+              accessToken="test"
+              account={{ id: 'account-1', displayName: 'Alex' }}
+              spaceId="space-1"
+            >
+              <Routes>
+                <Route
+                  path="/story/memories/:memoryId"
+                  element={
+                    <MemoryProductPage
+                      mode="detail"
+                      apis={apis}
+                      apiBaseUrl="http://example.test"
+                      accessToken="test"
+                      spaceId="space-1"
+                      currentAccountId="account-1"
+                      loadMemoryImage={async () => ''}
+                    />
+                  }
+                />
+              </Routes>
+            </AppShell>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    return {
+      recordStoryViewMock,
+      resolveQuery: resolveQuery!,
+      rejectQuery: rejectQuery!,
+      memory,
+      client,
+    };
+  }
+
+  it('emits a receipt strictly on successful presentation, not during load or failure', async () => {
+    const { recordStoryViewMock, resolveQuery, memory } = setupReceiptTest();
+
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    resolveQuery(memory);
+
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+    expect(recordStoryViewMock).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      storyViewReceipt: { kind: 'MEMORY', itemId: 'memory-1' },
+    });
+  });
+
+  it('does not damage or replace the presented page if recordStoryView POST fails', async () => {
+    const recordStoryViewMock = vi
+      .fn()
+      .mockRejectedValue(new Error('Network Error'));
+    const { resolveQuery, memory } = setupReceiptTest(recordStoryViewMock);
+
+    resolveQuery(memory);
+
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not create a duplicate receipt burst on rerender or background query activity', async () => {
+    const { recordStoryViewMock, resolveQuery, memory, client } =
+      setupReceiptTest();
+
+    resolveQuery(memory);
+    expect(await screen.findByText('A shared evening')).toBeTruthy();
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+
+    await client.invalidateQueries();
+
+    expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('produces no receipt on failed canonical detail load', async () => {
+    const { recordStoryViewMock, rejectQuery } = setupReceiptTest();
+
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+
+    rejectQuery(new Error('Not Found'));
+
+    await screen.findByRole('button', { name: de.common.retry });
+    expect(recordStoryViewMock).not.toHaveBeenCalled();
+  });
+});

@@ -42,7 +42,6 @@ async function captureScreenshot(
 
 function getTimelineItems() {
   return [
-    // 1. Image-bearing memory (16:10 photographic presentation)
     {
       kind: 'MEMORY',
       effectiveDate: '2026-05-12T08:30:00Z',
@@ -69,8 +68,6 @@ function getTimelineItems() {
         ],
       },
     },
-
-    // 2. Second image-bearing memory
     {
       kind: 'MEMORY',
       effectiveDate: '2026-04-03T10:00:00Z',
@@ -97,8 +94,6 @@ function getTimelineItems() {
         ],
       },
     },
-
-    // 3. No-image memory (spacious text-first card)
     {
       kind: 'MEMORY',
       effectiveDate: '2026-03-28T14:00:00Z',
@@ -113,8 +108,6 @@ function getTimelineItems() {
         attachments: [],
       },
     },
-
-    // 4. Milestone
     {
       kind: 'MILESTONE',
       effectiveDate: '2026-02-14T00:00:00Z',
@@ -127,8 +120,6 @@ function getTimelineItems() {
         capabilities: CAPABILITIES,
       },
     },
-
-    // 5. Heart Moment (text-first emotional card)
     {
       kind: 'HEART_MOMENT',
       effectiveDate: '2026-01-20T19:00:00Z',
@@ -140,6 +131,7 @@ function getTimelineItems() {
         createdAt: '2026-01-20T19:00:00Z',
         author: ME,
         capabilities: CAPABILITIES,
+        visibility: 'SHARED',
         attachment: null,
       },
     },
@@ -266,7 +258,6 @@ async function installMocks(
       return;
     }
 
-    // Attachment read access & file streaming
     if (
       method === 'POST' &&
       pathname.includes('/attachments/') &&
@@ -295,7 +286,6 @@ async function installMocks(
       return;
     }
 
-    // Timeline endpoint
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
@@ -315,7 +305,20 @@ async function installMocks(
       return;
     }
 
-    // Memory detail
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/discover`
+    ) {
+      const items = getTimelineItems();
+      await fulfillJson({
+        selectionDate: '2026-09-17',
+        lead: items[0] ?? null,
+        items: items.slice(1),
+        leadContext: null,
+      });
+      return;
+    }
+
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-canal`
@@ -345,7 +348,6 @@ async function installMocks(
       return;
     }
 
-    // Heart Moment detail
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-love`
@@ -376,7 +378,6 @@ async function installMocks(
       return;
     }
 
-    // Milestone detail
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-2years`
@@ -405,7 +406,6 @@ async function installMocks(
       return;
     }
 
-    // Chapters list endpoint
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/chapters`
@@ -440,17 +440,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    // 1. Editorial Header
     await expect(
       page.getByRole('heading', { name: 'Momente', level: 1 }),
     ).toBeVisible();
     await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
 
-    // 2. Continuous spine & stable structural markers
     const markers = page.locator('.story-timeline-marker');
     await expect(markers).toHaveCount(5);
 
-    // Assert every marker uses single stable styling without alternating colors
     await expect(
       page.locator('.story-timeline-marker.marker-berry'),
     ).toHaveCount(0);
@@ -458,8 +455,6 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       page.locator('.story-timeline-marker.marker-teal'),
     ).toHaveCount(0);
 
-    // 3. Card hierarchy
-    // Image-bearing memory card (16:10 preview)
     const imageMemoryCard = page
       .locator('.story-card-memory.has-image')
       .first();
@@ -471,7 +466,6 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       imageMemoryCard.locator('img.story-media-preview'),
     ).toBeVisible();
 
-    // No-image memory card (spacious text-first)
     const noImageMemoryCard = page
       .locator('.story-card-memory.no-image')
       .first();
@@ -481,12 +475,10 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       0,
     );
 
-    // Milestone card
     const milestoneCard = page.locator('.story-card-milestone').first();
     await expect(milestoneCard).toBeVisible();
     await expect(milestoneCard.getByText('Two years together')).toBeVisible();
 
-    // Heart moment card (text-first emotional)
     const heartMomentCard = page
       .locator('.story-card-heart-moment.no-image')
       .first();
@@ -496,7 +488,6 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       0,
     );
 
-    // 4. Capture 01-momente-timeline-390-light.png
     await captureScreenshot(
       page,
       testInfo,
@@ -506,21 +497,18 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       },
     );
 
-    // 5. Capture 05-momente-timeline-image-memory.png
     await captureScreenshot(
       imageMemoryCard,
       testInfo,
       '05-momente-timeline-image-memory.png',
     );
 
-    // 6. Capture 06-momente-timeline-no-image-memory.png
     await captureScreenshot(
       noImageMemoryCard,
       testInfo,
       '06-momente-timeline-no-image-memory.png',
     );
 
-    // 7. Capture 07-momente-timeline-heart-moment.png
     await captureScreenshot(
       heartMomentCard,
       testInfo,
@@ -607,15 +595,11 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const filterPanel = page.locator('#story-filter-panel');
     const typeSelect = page.locator('#story-filter-type');
 
-    // Default collapsed state
     await expect(filterToggle).toBeVisible();
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'false');
     await expect(typeSelect).not.toBeVisible();
-
-    // The closed F2 modal has no controls that could receive keyboard focus.
     await expect(typeSelect).toHaveCount(0);
 
-    // Capture 08-momente-timeline-filter-collapsed.png
     await captureScreenshot(
       page,
       testInfo,
@@ -623,7 +607,6 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       { fullPage: true },
     );
 
-    // Expand filter toolbar
     await filterToggle.click();
     await expect(filterToggle).toHaveAttribute('aria-expanded', 'true');
     await expect(filterPanel).toHaveAttribute('aria-modal', 'true');
@@ -632,14 +615,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toBe(true);
     await expect(typeSelect).toBeVisible();
 
-    // Keyboard interactive when expanded
     await typeSelect.focus();
     const isFocusedWhenExpanded = await typeSelect.evaluate(
       (el) => document.activeElement === el,
     );
     expect(isFocusedWhenExpanded).toBe(true);
 
-    // Capture 09-momente-timeline-filter-expanded.png
     await captureScreenshot(
       page,
       testInfo,
@@ -647,9 +628,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       { fullPage: true },
     );
 
-    // Filter by MEMORY
     await typeSelect.selectOption('MEMORY');
-    // Draft choices do not change the applied Timeline until explicit Apply.
     await expect(page).not.toHaveURL(/type=MEMORY/);
     await filterPanel
       .getByRole('button', { name: storyProducts.storyFilters.apply })
@@ -670,22 +649,17 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    // Click on Heart Moment card
     await page.locator('.story-card-heart-moment').first().click();
     await expect(page).toHaveURL(/\/story\/heart-moments\/hm-love$/);
 
-    // Verify detail alignment to Memory Detail
-    // 1. Layout rail removed in detail mode
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
-    // 2. Reading hierarchy: Eyebrow, Text/Emotion, Provenance footer
     await expect(page.getByText('Thinking of you')).toBeVisible();
     const provenance = page.locator('.heart-moment-provenance-footer');
     await expect(provenance).toBeVisible();
     await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));
     await expect(provenance).not.toContainText(ME.displayName);
 
-    // Capture 10-momente-timeline-heart-moment-detail.png
     await captureScreenshot(
       page,
       testInfo,
@@ -703,15 +677,11 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=timeline');
     await page.waitForSelector('.story-timeline');
 
-    // Click on Milestone card
     await page.locator('.story-card-milestone').first().click();
     await expect(page).toHaveURL(/\/story\/milestones\/ms-2years$/);
 
-    // Verify detail alignment to Memory Detail
-    // 1. Layout rail removed in detail mode
     await expect(page.locator('.layout-split-lead-rail')).toHaveCount(0);
 
-    // 2. Reading hierarchy: Title, Provenance footer
     await expect(
       page.getByRole('heading', { name: 'Two years together', level: 1 }),
     ).toBeVisible();
@@ -720,7 +690,6 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(provenance).toContainText(ME.displayName.replace(/ .*/u, ''));
     await expect(provenance).not.toContainText(ME.displayName);
 
-    // Capture 11-momente-timeline-milestone-detail.png
     await captureScreenshot(
       page,
       testInfo,
@@ -729,7 +698,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
   });
 
-  test('Momente > Entdecken remains visually and structurally unchanged and captures 12-momente-timeline-discover-reference.png', async ({
+  test('Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png', async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -738,14 +707,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=discover');
     await page.waitForSelector('.momente-discover-page');
 
-    // Discover view has the standard heading and intro (not the timeline editorial text)
     await expect(page.getByText(de.story.title)).toBeVisible();
     await expect(page.getByText(de.story.intro)).toBeVisible();
-
-    // Timeline-specific toolbar is not present on discover
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
+    await expect(page.locator('.momente-hero-highlight')).toContainText(
+      'Breakfast by the canal',
+    );
 
-    // Capture 12-momente-timeline-discover-reference.png
     await captureScreenshot(
       page,
       testInfo,

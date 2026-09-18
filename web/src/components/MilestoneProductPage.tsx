@@ -13,6 +13,7 @@ import {
   loadProductWithReadCache,
 } from '../client/productReadCache';
 import { normalizeClientError } from '../client/problemDetails';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -85,6 +86,14 @@ export function MilestoneProductPage({
     },
     enabled: mode !== 'create' && Boolean(milestoneId),
     retry: false,
+  });
+
+  useStoryViewReceipt({
+    apis,
+    spaceId,
+    kind: 'MILESTONE',
+    itemId: milestoneId ?? '',
+    presented: mode === 'detail' && milestoneQuery.isSuccess,
   });
 
   const createMutation = useMutation({

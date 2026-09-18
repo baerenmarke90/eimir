@@ -246,6 +246,19 @@ async function installApiMocks(page: Page): Promise<string[]> {
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/discover`
+    ) {
+      await fulfillJson({
+        selectionDate: '2026-09-01',
+        lead: STORY_ITEMS[0],
+        items: STORY_ITEMS.slice(1),
+        leadContext: null,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       pathname.startsWith(`/api/v1/spaces/${SPACE_ID}/`) &&
       pathname.endsWith('/comments')
     ) {
@@ -417,11 +430,6 @@ async function expectHorizontalReflow(page: Page): Promise<void> {
       })
       .map((element) => {
         const rect = element.getBoundingClientRect();
-        // A control inside its own native horizontal-scroll region (a
-        // carousel using `overflow-x` + `scroll-snap`, no drag library) is
-        // reachable by swiping that region - it is not "clipped" the way a
-        // control genuinely stuck outside the page would be. Page-level
-        // overflow is still caught separately below via `scrollWidth`.
         let reachableByScroll = false;
         for (
           let ancestor = element.parentElement;

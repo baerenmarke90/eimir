@@ -5,6 +5,12 @@ const storyProducts = {
     addHeartMoment: 'Herzmoment',
     addMilestone: 'Meilenstein',
   },
+  storyItem: {
+    media: 'Erinnerung',
+    note: 'Herzmoment',
+    text: 'Erinnerung',
+    milestone: 'Meilenstein',
+  },
   storyFilters: {
     title: 'Filter',
     aria: 'Story filtern und sortieren',

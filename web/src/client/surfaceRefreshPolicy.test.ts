@@ -37,9 +37,12 @@ describe('surfaceRefreshDecision', () => {
     '/plan/collections/abc',
     '/story/memories/abc/edit',
     '/story/memories/new',
-  ])('keeps interaction-sensitive surface %s on automatic revalidation', (pathname) => {
-    expect(surfaceRefreshDecision(pathname).mode).toBe('automatic_only');
-  });
+  ])(
+    'keeps interaction-sensitive surface %s on automatic revalidation',
+    (pathname) => {
+      expect(surfaceRefreshDecision(pathname).mode).toBe('automatic_only');
+    },
+  );
 
   it('does not add a refresh gesture to the static More hub', () => {
     expect(surfaceRefreshDecision('/more').mode).toBe('none');

@@ -131,6 +131,7 @@ export function HeartEmotionBadge({
     <span
       className={`heart-emotion-badge heart-emotion-badge--${variant} ${className}`.trim()}
       data-emotion={emotion}
+      role="img"
       aria-label={accessibleLabel}
       title={accessibleLabel}
     >

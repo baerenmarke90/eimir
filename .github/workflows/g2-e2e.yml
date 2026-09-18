@@ -1,4 +1,4 @@
-name: G2 Client E2E
+name: G2 Web E2E
 
 on:
   pull_request:
@@ -29,16 +29,6 @@ on:
       - "web/src/client/referenceFlow.ts"
       - "web/src/client/referenceFlow.e2e.test.ts"
       - "web/src/api/generated/**"
-      - "android/app/build.gradle.kts"
-      - "android/build.gradle.kts"
-      - "android/settings.gradle.kts"
-      - "android/gradle/**"
-      - "android/gradlew"
-      - "android/gradlew.bat"
-      - "android/api/generated/**"
-      - "android/app/src/main/java/de/eimir/app/reference/**"
-      - "android/app/src/main/java/de/eimir/app/connectivity/**"
-      - "android/app/src/test/java/de/eimir/app/reference/**"
   schedule:
     - cron: '41 4 * * 1'
   workflow_dispatch:
@@ -47,7 +37,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: g2-client-e2e-${{ github.ref }}
+  group: g2-web-e2e-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -59,49 +49,13 @@ env:
 
 jobs:
   real-client-flow:
-    name: Real Web and Android client flow
+    name: Real Web client flow
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-
-      - name: Determine Android G2 scope
-        id: android_scope
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            echo "run_android=true" >> "$GITHUB_OUTPUT"
-            echo "Scheduled/manual G2 run: Android remains in the full compatibility pass."
-            exit 0
-          fi
-
-          if [ -z "$PR_BASE_SHA" ] || [ -z "$PR_HEAD_SHA" ] \
-            || ! git cat-file -e "${PR_BASE_SHA}^{commit}" 2>/dev/null \
-            || ! git cat-file -e "${PR_HEAD_SHA}^{commit}" 2>/dev/null \
-            || ! git merge-base "$PR_BASE_SHA" "$PR_HEAD_SHA" >/dev/null 2>&1; then
-            echo "run_android=true" >> "$GITHUB_OUTPUT"
-            echo "Pull-request diff range unavailable; running Android G2 fail-closed."
-            exit 0
-          fi
-
-          git diff --name-only --no-renames "$PR_BASE_SHA...$PR_HEAD_SHA" > /tmp/g2-changed-files.txt
-          echo "Changed files:"
-          cat /tmp/g2-changed-files.txt
-
-          if grep -Eq '^(android/|\.github/workflows/g2-e2e\.yml$)' /tmp/g2-changed-files.txt; then
-            echo "run_android=true" >> "$GITHUB_OUTPUT"
-            echo "Android or the G2 workflow changed; Android G2 is required."
-          else
-            echo "run_android=false" >> "$GITHUB_OUTPUT"
-            echo "No Android surface changed; Web/backend G2 remains authoritative for this PR."
-          fi
 
       - name: Reuse self-hosted stack for the gate harness
         run: |
@@ -170,69 +124,6 @@ jobs:
           if re.search(r"Tests\s+.*skipped", plain, re.IGNORECASE):
               raise SystemExit("Web E2E was skipped.")
           print("Web E2E: 1 real test passed and was not skipped.")
-          PY
-
-      - name: Android G2 is outside this PR scope
-        if: steps.android_scope.outputs.run_android != 'true'
-        run: echo "No Android surface changed; periodic/manual G2 still covers full Web + Android compatibility."
-
-      - name: Set up JDK 17
-        if: steps.android_scope.outputs.run_android == 'true'
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Gradle cache and validate wrapper
-        if: steps.android_scope.outputs.run_android == 'true'
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-
-      - name: Verify pinned Gradle wrapper JAR
-        if: steps.android_scope.outputs.run_android == 'true'
-        working-directory: android
-        shell: bash
-        run: |
-          printf '%s  %s\n' \
-            '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7' \
-            'gradle/wrapper/gradle-wrapper.jar' \
-            | sha256sum --check --strict -
-
-      - name: Install Android SDK 37.1
-        if: steps.android_scope.outputs.run_android == 'true'
-        run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.1" "build-tools;36.0.0"
-
-      - name: Android uses OkHttpReferenceApi against the same real stack
-        if: steps.android_scope.outputs.run_android == 'true'
-        working-directory: android
-        run: >-
-          ./gradlew --no-daemon --stacktrace --dependency-verification strict
-          :app:testDebugUnitTest
-          --tests de.eimir.app.reference.ReferenceFlowE2eTest
-
-      - name: Android E2E really ran and was not skipped
-        if: steps.android_scope.outputs.run_android == 'true'
-        run: |
-          python3 - <<'PY'
-          import glob
-          import xml.etree.ElementTree as ET
-
-          reports = glob.glob(
-              "android/app/build/test-results/testDebugUnitTest/TEST-*ReferenceFlowE2eTest.xml"
-          )
-          if len(reports) != 1:
-              raise SystemExit(f"Expected exactly one Android E2E report, found: {reports}")
-          root = ET.parse(reports[0]).getroot()
-          cases = root.findall(".//testcase")
-          skipped = sum(case.find("skipped") is not None for case in cases)
-          failures = sum(
-              case.find("failure") is not None or case.find("error") is not None for case in cases
-          )
-          if not cases:
-              raise SystemExit("No Android E2E test ran.")
-          if skipped or failures:
-              raise SystemExit(f"Android-E2E: {skipped} skipped, {failures} failed.")
-          print(f"Android E2E: {len(cases)} real test(s) passed.")
           PY
 
       - name: Logs on failure

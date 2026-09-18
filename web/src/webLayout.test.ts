@@ -167,7 +167,10 @@ describe('Story detail comment density (#1024)', () => {
       ruleBlock(commentsCss, '.comments-panel-compact .comment-card'),
     ).toContain('padding: var(--space-2) 0');
     expect(
-      ruleBlock(commentsCss, '.comments-panel-compact .comment-card:last-child'),
+      ruleBlock(
+        commentsCss,
+        '.comments-panel-compact .comment-card:last-child',
+      ),
     ).toContain('padding-bottom: 0');
   });
 });

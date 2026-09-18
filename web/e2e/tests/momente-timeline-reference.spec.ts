@@ -470,7 +470,9 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
   const [bodyBox, triggerBox, rowGap] = await Promise.all([
     finalBody.boundingBox(),
     trigger.boundingBox(),
-    panel.evaluate((element) => Number.parseFloat(getComputedStyle(element).rowGap)),
+    panel.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).rowGap),
+    ),
   ]);
   if (!bodyBox || !triggerBox || !Number.isFinite(rowGap)) {
     throw new Error('Comment spacing geometry is unavailable.');
@@ -479,7 +481,9 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
   expect(Math.abs(visibleGap - rowGap)).toBeLessThanOrEqual(1);
 
   const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth + 1,
   );
   expect(hasHorizontalOverflow).toBe(false);
 
@@ -933,27 +937,44 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.setViewportSize({ width: 320, height: 720 });
     await page.goto('/story/memories/mem-canal');
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-story-comments-memory-320.png', {
-      fullPage: true,
-    });
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1024-story-comments-memory-320.png',
+      {
+        fullPage: true,
+      },
+    );
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/story/memories/mem-canal');
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-story-comments-memory-200pct.png', {
-      fullPage: true,
-    });
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1024-story-comments-memory-200pct.png',
+      {
+        fullPage: true,
+      },
+    );
 
     await page.emulateMedia({ colorScheme: 'dark' });
-    await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'system'));
+    await page.evaluate(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto('/story/milestones/ms-2years');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expectCompactCommentHandoff(page);
-    await captureScreenshot(page, testInfo, '1024-story-comments-milestone-1440-dark.png', {
-      fullPage: true,
-    });
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1024-story-comments-milestone-1440-dark.png',
+      {
+        fullPage: true,
+      },
+    );
   });
 
   test('Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png', async ({

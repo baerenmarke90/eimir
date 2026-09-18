@@ -334,7 +334,7 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
         const event = new Event(type, { bubbles: true, cancelable: true });
         Object.defineProperty(event, 'touches', {
           configurable: true,
-          value: y === undefined ? [] : [{ clientY: y }],
+          value: y === undefined ? [] : [{ clientX: 0, clientY: y }],
         });
         document.dispatchEvent(event);
         return event.defaultPrevented;

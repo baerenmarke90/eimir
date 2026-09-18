@@ -742,15 +742,15 @@ export function HeartMomentProductPage({
         }
       />
 
-      <div className="heart-moment-detail-emotion">
-        <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
-      </div>
-
       <div
         className="heart-moment-detail-container"
         data-heart-emotion={heartMoment.emotion}
       >
         <article className="story-surface product-detail-card coffee-table-layout">
+          <div className="heart-moment-detail-emotion">
+            <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
+          </div>
+
           {heartMoment.attachment ? (
             <section aria-label={t('heartMomentProduct.photoLabel')}>
               <MediaGallery

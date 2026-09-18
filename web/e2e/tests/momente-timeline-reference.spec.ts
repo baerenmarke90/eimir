@@ -514,10 +514,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const compactEmotion = heartMomentCard.locator(
       '.heart-emotion-badge--compact',
     );
-    await expect(compactEmotion).toHaveAttribute('aria-label', 'Gefühl: Geliebt');
+    await expect(compactEmotion).toHaveAttribute(
+      'aria-label',
+      'Gefühl: Geliebt',
+    );
     await expect(compactEmotion).toHaveAttribute('title', 'Gefühl: Geliebt');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
-    await expect(compactEmotion.locator('.heart-emotion-label')).not.toBeVisible();
+    await expect(
+      compactEmotion.locator('.heart-emotion-label'),
+    ).not.toBeVisible();
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
     await expect(compactEmotion).toHaveCSS(
       'background-color',
@@ -575,7 +580,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
       .first();
-    await expect(compactEmotion.locator('.heart-emotion-label')).not.toBeVisible();
+    await expect(
+      compactEmotion.locator('.heart-emotion-label'),
+    ).not.toBeVisible();
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
 

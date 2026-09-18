@@ -11,20 +11,31 @@ function setScrollTop(value: number) {
   if (document.scrollingElement) document.scrollingElement.scrollTop = value;
 }
 
-function touchEvent(type: string, y?: number): TouchEvent {
+function touchEvent(type: string, y?: number, x = 0, target?: EventTarget): TouchEvent {
   const event = new Event(type, {
     bubbles: true,
     cancelable: true,
   }) as TouchEvent;
   Object.defineProperty(event, 'touches', {
     configurable: true,
-    value: y === undefined ? [] : [{ clientY: y }],
+    value: y === undefined ? [] : [{ clientX: x, clientY: y }],
   });
+  if (target) {
+    Object.defineProperty(event, 'target', {
+      configurable: true,
+      value: target,
+    });
+  }
   return event;
 }
 
-function dispatchTouch(type: string, y?: number): TouchEvent {
-  const event = touchEvent(type, y);
+function dispatchTouch(
+  type: string,
+  y?: number,
+  x = 0,
+  target?: EventTarget,
+): TouchEvent {
+  const event = touchEvent(type, y, x, target);
   document.dispatchEvent(event);
   return event;
 }
@@ -44,7 +55,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
-  document.documentElement.classList.remove('story-pull-refresh-enabled');
+  document.documentElement.classList.remove('app-pull-refresh-enabled');
   vi.restoreAllMocks();
 });
 
@@ -94,7 +105,7 @@ describe('usePullToRefresh', () => {
 
     expect(onRefresh).toHaveBeenCalledTimes(1);
     expect(
-      document.documentElement.classList.contains('story-pull-refresh-enabled'),
+      document.documentElement.classList.contains('app-pull-refresh-enabled'),
     ).toBe(true);
   });
 
@@ -132,7 +143,41 @@ describe('usePullToRefresh', () => {
     expect(result.current.refreshing).toBe(false);
   });
 
-  it('does nothing while another timeline fetch is blocking the gesture', () => {
+
+  it('cancels a horizontal gesture before it can become a refresh', () => {
+    const onRefresh = vi.fn();
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+
+    act(() => {
+      dispatchTouch('touchstart', 100, 100);
+      dispatchTouch('touchmove', 112, 180);
+      dispatchTouch('touchend');
+    });
+
+    expect(onRefresh).not.toHaveBeenCalled();
+  });
+
+  it('ignores gestures that begin on interactive or modal content', () => {
+    const onRefresh = vi.fn();
+    renderHook(() =>
+      usePullToRefresh({ enabled: true, blocked: false, onRefresh }),
+    );
+    const button = document.createElement('button');
+    document.body.append(button);
+
+    act(() => {
+      dispatchTouch('touchstart', 100, 0, button);
+      dispatchTouch('touchmove', 220, 0, button);
+      dispatchTouch('touchend', undefined, 0, button);
+    });
+
+    expect(onRefresh).not.toHaveBeenCalled();
+    button.remove();
+  });
+
+  it('does nothing while another surface fetch is blocking the gesture', () => {
     const onRefresh = vi.fn();
     renderHook(() =>
       usePullToRefresh({ enabled: true, blocked: true, onRefresh }),

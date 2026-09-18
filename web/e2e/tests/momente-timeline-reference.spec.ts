@@ -482,9 +482,7 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
 
   const [panelBox, panelHasHorizontalOverflow] = await Promise.all([
     panel.boundingBox(),
-    panel.evaluate(
-      (element) => element.scrollWidth > element.clientWidth + 1,
-    ),
+    panel.evaluate((element) => element.scrollWidth > element.clientWidth + 1),
   ]);
   const viewportWidth = page.viewportSize()?.width;
   if (!panelBox || viewportWidth === undefined) {

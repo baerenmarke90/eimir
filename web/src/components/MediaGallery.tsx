@@ -261,70 +261,72 @@ export function MediaGallery({
       typeof document !== 'undefined'
         ? createPortal(
             <div
-                      className="media-lightbox-backdrop"
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label={t('gallery.dialogAria')}
-                      onTouchStart={(event) => {
-                        lightboxTouchStartX.current = event.touches[0]?.clientX ?? null;
-                      }}
-                      onTouchEnd={(event) => {
-                        const start = lightboxTouchStartX.current;
-                        lightboxTouchStartX.current = null;
-                        const end = event.changedTouches[0]?.clientX;
-                        if (start === null || end === undefined) return;
-                        const distance = end - start;
-                        if (Math.abs(distance) < 48) return;
-                        changeActive(distance > 0 ? -1 : 1);
-                      }}
+              className="media-lightbox-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('gallery.dialogAria')}
+              onTouchStart={(event) => {
+                lightboxTouchStartX.current = event.touches[0]?.clientX ?? null;
+              }}
+              onTouchEnd={(event) => {
+                const start = lightboxTouchStartX.current;
+                lightboxTouchStartX.current = null;
+                const end = event.changedTouches[0]?.clientX;
+                if (start === null || end === undefined) return;
+                const distance = end - start;
+                if (Math.abs(distance) < 48) return;
+                changeActive(distance > 0 ? -1 : 1);
+              }}
+            >
+              <div className="media-lightbox">
+                <div className="media-lightbox-stage">
+                  {renderMedia(activeItem, 'media-lightbox-content')}
+
+                  {items.length > 1 ? (
+                    <span
+                      className="media-lightbox-counter"
+                      aria-live="polite"
                     >
-                      <div className="media-lightbox">
-                        <div className="media-lightbox-stage">
-                          {renderMedia(activeItem, 'media-lightbox-content')}
-            
-                          {items.length > 1 ? (
-                            <span className="media-lightbox-counter" aria-live="polite">
-                              {t('gallery.counter', {
-                                index: activeIndex + 1,
-                                count: items.length,
-                              })}
-                            </span>
-                          ) : null}
-            
-                          <button
-                            ref={closeButton}
-                            type="button"
-                            className="media-lightbox-close"
-                            onClick={() => setActiveIndex(null)}
-                            aria-label={t('gallery.close')}
-                          >
-                            <span aria-hidden="true">×</span>
-                          </button>
-            
-                          {items.length > 1 ? (
-                            <>
-                              <button
-                                type="button"
-                                className="media-lightbox-nav media-lightbox-prev"
-                                onClick={() => changeActive(-1)}
-                                aria-label={t('gallery.previous')}
-                              >
-                                <span aria-hidden="true">‹</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="media-lightbox-nav media-lightbox-next"
-                                onClick={() => changeActive(1)}
-                                aria-label={t('gallery.next')}
-                              >
-                                <span aria-hidden="true">›</span>
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-            ,
+                      {t('gallery.counter', {
+                        index: activeIndex + 1,
+                        count: items.length,
+                      })}
+                    </span>
+                  ) : null}
+
+                  <button
+                    ref={closeButton}
+                    type="button"
+                    className="media-lightbox-close"
+                    onClick={() => setActiveIndex(null)}
+                    aria-label={t('gallery.close')}
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+
+                  {items.length > 1 ? (
+                    <>
+                      <button
+                        type="button"
+                        className="media-lightbox-nav media-lightbox-prev"
+                        onClick={() => changeActive(-1)}
+                        aria-label={t('gallery.previous')}
+                      >
+                        <span aria-hidden="true">‹</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="media-lightbox-nav media-lightbox-next"
+                        onClick={() => changeActive(1)}
+                        aria-label={t('gallery.next')}
+                      >
+                        <span aria-hidden="true">›</span>
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </div>,
             document.body,
           )
         : null}

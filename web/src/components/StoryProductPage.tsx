@@ -179,6 +179,16 @@ function tapestryColumnCountForViewport(): number {
  * the plain chronological/priority order (#790 requires no forced desktop
  * masonry tricks on mobile, only a clear vertical, emotional sequence).
  */
+function documentLayoutTop(element: HTMLElement): number {
+  let top = 0;
+  let current: HTMLElement | null = element;
+  while (current) {
+    top += current.offsetTop;
+    current = current.offsetParent as HTMLElement | null;
+  }
+  return top;
+}
+
 function useTapestryColumnCount(): number {
   const [count, setCount] = useState(tapestryColumnCountForViewport);
 
@@ -458,9 +468,7 @@ export function StoryProductPage({
       const selected = findSelected();
       const top =
         selected && returnOrigin.selectedOffset !== undefined
-          ? window.scrollY +
-            selected.getBoundingClientRect().top -
-            returnOrigin.selectedOffset
+          ? documentLayoutTop(selected) - returnOrigin.selectedOffset
           : returnOrigin.scrollY;
       window.scrollTo({ top: Math.max(0, top), behavior: 'instant' });
       return selected;
@@ -479,6 +487,11 @@ export function StoryProductPage({
       // Browser history restoration and late layout work can settle one frame
       // after the first paint. Re-apply the exact captured offset before the
       // task origin is marked restored so return continuity stays geometry-stable.
+      // The position calculation intentionally uses layout coordinates rather
+      // than getBoundingClientRect(): Back remounts both AppShell's product-main
+      // and this Timeline wrapper with eimir-motion-reveal, so two transient
+      // 8px ancestor transforms can otherwise skew the captured coordinate by
+      // exactly 16px until their animations finish.
       settleFrame = window.requestAnimationFrame(() => {
         restorePosition();
         restoredEntryRef.current = entry;

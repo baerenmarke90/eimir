@@ -322,9 +322,7 @@ test.describe('Momente Timeline compact controls and refresh (#974)', () => {
 
     const indicator = page.locator('.app-pull-refresh-indicator');
     await expect(indicator).toHaveCount(1);
-    await expect(page.locator('html')).toHaveClass(
-      /app-pull-refresh-enabled/,
-    );
+    await expect(page.locator('html')).toHaveClass(/app-pull-refresh-enabled/);
     const browserOverscroll = await page
       .locator('html')
       .evaluate((element) => getComputedStyle(element).overscrollBehaviorY);

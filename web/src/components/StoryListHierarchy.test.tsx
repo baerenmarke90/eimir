@@ -221,11 +221,11 @@ describe('StoryList card hierarchy (#969)', () => {
     const { container } = renderList([milestone], 'viewer-2');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe('von Anna-Katharina');
+    expect(name?.textContent).toBe(i18n.t('story.byAuthor', { author: 'Anna-Katharina' }));
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
       container.querySelector('.momente-author-meta .sr-only')?.textContent,
-    ).toBe('von Anna-Katharina');
+    ).toBe(i18n.t('story.byAuthor', { author: 'Anna-Katharina' }));
     expect(
       screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
     ).toBeNull();
@@ -234,15 +234,15 @@ describe('StoryList card hierarchy (#969)', () => {
     );
   });
 
-  it('shows the current viewer as "dir" while exposing "von dir" accessibly (#1019)', () => {
+  it('shows viewer-relative self attribution visibly and accessibly (#1019)', () => {
     const { container } = renderList([milestone], 'author-1');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe('von dir');
+    expect(name?.textContent).toBe(i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }));
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
       container.querySelector('.momente-author-meta .sr-only')?.textContent,
-    ).toBe('von dir');
+    ).toBe(i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }));
   });
 
   it('starts every card with its content, not a metadata row', () => {

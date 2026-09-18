@@ -15,6 +15,12 @@ import { StoryProductPage } from './StoryProductPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
 
+const SELF_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  de.story.authorSelf,
+);
+
+
 function renderStoryPage(route: string, cachedData: unknown): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
@@ -307,8 +313,10 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain('class="sr-only">von dir</span>');
-    expect(html).toContain('>von dir</span>');
+    expect(html).toContain(
+      `class="sr-only">${SELF_ATTRIBUTION}</span>`,
+    );
+    expect(html).toContain(`>${SELF_ATTRIBUTION}</span>`);
     expect(html).not.toContain('class="sr-only">von Alex</span>');
   });
 

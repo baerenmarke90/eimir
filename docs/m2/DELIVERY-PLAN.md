@@ -182,7 +182,7 @@ The split is chosen so that no intermediate state reaches `READY` without applyi
 
 **Delivery scope**
 
-- Query Service for Memory, Milestone, and Shared HeartMoment only,
+- Query Service for Memory, Milestone, and HeartMoment,
 - author and Attachment projection,
 - filters `type`, `year`, `order`, `cursor`, `limit`,
 - stable Cursor Pagination and month groups,
@@ -190,11 +190,11 @@ The split is chosen so that no intermediate state reaches `READY` without applyi
 
 `q` is deliberately no longer listed here. M2-D08 moved global full-text Search to M4-A, and M2-D21 keeps open whether it is implemented directly in Postgres or through a separate index. The earlier entry came from the version before #70 and would have made S7 implement Search that the frozen contract does not know.
 
-According to M2-D22 (#104), the owner area for private HeartMoments is not part of this route: `/timeline` remains a pure Shared Read Model without a `visibility` parameter, and the owner view is served by the existing HeartMoment collection.
+M2-D22 (#104) originally kept the owner area for private HeartMoments out of this route entirely. #1021 superseded that decision: `/timeline` is viewer-authorized, so a caller's own `PRIVATE` HeartMoment remains part of their own Timeline (never the partner's), still without a `visibility` request parameter or a separate owner mode.
 
 **Acceptance**
 
-- `PRIVATE` is excluded before Search, Count, grouping, and Cursor creation,
+- an account's own `PRIVATE` HeartMoment is included at its ordinary position; the partner's `PRIVATE` HeartMoment is excluded before Count, grouping, and Cursor creation,
 - ordering and tie-breakers match the decision,
 - pages are stable and duplicate-free,
 - the Read Model is derived and not a second domain source of truth.

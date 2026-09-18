@@ -211,21 +211,44 @@ def test_all_shared_story_kinds_are_eligible(
     assert aggregate.item_kind == kind.value
 
 
-def test_owner_only_heart_moment_creates_no_aggregate(
+def test_owner_viewing_own_private_heart_moment_creates_an_aggregate(
     session: Session,
     story_setup,
 ) -> None:  # type: ignore[no-untyped-def]
+    """#1021 (superseding M2-D22): the owner's own OWNER_ONLY HeartMoment is
+    now part of their own Story, so opening it from their own Timeline is as
+    intentional a view as any shared one and must be recordable.
+    """
     private_heart = story_setup["private_heart"]
 
-    with pytest.raises(NotFoundError):
-        view_service.record_intentional_view(
-            session,
-            story_setup["context"],  # type: ignore[arg-type]
-            account_timezone="Europe/Berlin",
-            kind=StoryKind.HEART_MOMENT,
-            item_id=private_heart.id,  # type: ignore[union-attr]
-        )
+    aggregate = _record(session, story_setup, kind=StoryKind.HEART_MOMENT, item_key="private_heart")
 
+    assert aggregate.item_id == private_heart.id  # type: ignore[union-attr]
+    assert aggregate.viewer_account_id == story_setup["viewer"].id  # type: ignore[union-attr]
+
+
+def test_partner_cannot_record_a_view_for_the_owners_private_heart_moment(
+    client,
+    session: Session,
+    story_setup,
+) -> None:  # type: ignore[no-untyped-def]
+    """The owner-inclusion above must not weaken the partner's absence: the
+    partner gets the same non-enumerating 404 as any other unauthorized
+    target, and creates no aggregate.
+    """
+    partner = story_setup["partner"]
+    space = story_setup["space"]
+    private_heart = story_setup["private_heart"]
+    partner_token = sign_in(session, partner)
+
+    response = client.post(
+        f"/api/v1/spaces/{space.id}/story-views",  # type: ignore[union-attr]
+        json={"kind": "HEART_MOMENT", "itemId": str(private_heart.id)},  # type: ignore[union-attr]
+        headers=auth(partner_token),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["code"] == "RESOURCE_NOT_FOUND"
     assert _rows(session) == []
 
 
@@ -277,16 +300,14 @@ def test_missing_and_malformed_targets_are_equally_absent(
     assert _rows(session) == []
 
 
-def test_unauthorized_space_and_private_target_are_non_enumerating(
+def test_unauthorized_space_target_is_non_enumerating(
     client,
     session: Session,
     story_setup,
 ) -> None:  # type: ignore[no-untyped-def]
     outsider = story_setup["outsider"]
     space = story_setup["space"]
-    private_heart = story_setup["private_heart"]
     outsider_token = sign_in(session, outsider)
-    viewer_token = sign_in(session, story_setup["viewer"])
     path = f"/api/v1/spaces/{space.id}/story-views"  # type: ignore[union-attr]
 
     unauthorized = client.post(
@@ -294,13 +315,8 @@ def test_unauthorized_space_and_private_target_are_non_enumerating(
         json={"kind": "MEMORY", "itemId": str(story_setup["memory"].id)},  # type: ignore[union-attr]
         headers=auth(outsider_token),
     )
-    private = client.post(
-        path,
-        json={"kind": "HEART_MOMENT", "itemId": str(private_heart.id)},  # type: ignore[union-attr]
-        headers=auth(viewer_token),
-    )
 
-    assert unauthorized.status_code == private.status_code == 404
+    assert unauthorized.status_code == 404
     assert _rows(session) == []
 
 

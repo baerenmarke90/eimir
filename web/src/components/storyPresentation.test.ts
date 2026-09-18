@@ -31,7 +31,11 @@ function memory(
   } as unknown as StoryItem;
 }
 
-function heart(id: string, date: string): StoryItem {
+function heart(
+  id: string,
+  date: string,
+  visibility: 'SHARED' | 'PRIVATE' = 'SHARED',
+): StoryItem {
   return {
     kind: 'HEART_MOMENT',
     effectiveDate: new Date(`${date}T00:00:00Z`),
@@ -41,6 +45,7 @@ function heart(id: string, date: string): StoryItem {
       emotion: 'GRATEFUL',
       author: { id: 'author-2', displayName: 'Ben' },
       attachment: null,
+      visibility,
     },
   } as unknown as StoryItem;
 }
@@ -101,9 +106,9 @@ describe('storyItemPresentation', () => {
     ).toBe('1 Foto');
   });
 
-  it('marks HeartMoments as shared because only shared HeartMoments enter Story', () => {
+  it('marks a shared HeartMoment with the existing shared label', () => {
     expect(
-      storyItemPresentation(heart('h-1', '2026-08-12'), i18n.t),
+      storyItemPresentation(heart('h-1', '2026-08-12', 'SHARED'), i18n.t),
     ).toMatchObject({
       kindLabel: 'Herzmoment',
       title: 'Danke für den schönen Abend.',
@@ -111,6 +116,15 @@ describe('storyItemPresentation', () => {
       author: 'Ben',
       visibility: 'SHARED',
       visibilityLabel: i18n.t('story.shared'),
+    });
+  });
+
+  it("marks the caller's own private HeartMoment with the real PRIVATE visibility (#1021)", () => {
+    expect(
+      storyItemPresentation(heart('h-2', '2026-08-12', 'PRIVATE'), i18n.t),
+    ).toMatchObject({
+      visibility: 'PRIVATE',
+      visibilityLabel: i18n.t('visibilityPrivate'),
     });
   });
 

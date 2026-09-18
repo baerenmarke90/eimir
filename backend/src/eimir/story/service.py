@@ -9,6 +9,17 @@ visibility and cursor mechanics. Each leg starts from `readable()` and only
 changes projected columns instead of spelling the condition out a second
 time, which is where privacy filters otherwise start to drift. Cursor signing
 and binding come from `core.cursor`, just as for every other collection.
+
+#1021 superseded M2-D22 for the Timeline: `readable()` already resolves
+`OWNER_ONLY` correctly (owner yes, partner no), so a private HeartMoment now
+stays part of its author's own Timeline instead of being excluded outright.
+One privacy rule, expressed once, with the account making the request
+deciding the result rather than the module. `read_shared_story_counts`
+deliberately keeps the stricter `SPACE_SHARED`-only leg on top of that
+because it feeds the relationship-shared Dashboard count (#809), which must
+not grow when an account marks their own HeartMoment private. `_leg`'s
+`shared_only` flag is the single place that distinction lives; nothing else
+in this module reimplements privacy.
 """
 
 from __future__ import annotations
@@ -119,12 +130,19 @@ def _leg(
     context: AuthorizationContext,
     *,
     year: int | None,
+    shared_only: bool = False,
 ) -> Select[Any]:
     """Build one authorized union leg before selecting projected columns.
 
     `with_only_columns` retains the WHERE condition from `readable()` and
     changes only the projection. Story therefore cannot acquire a separate
     visibility condition.
+
+    `shared_only` narrows the leg further to `SPACE_SHARED` HeartMoments,
+    for the one caller (`read_shared_story_counts`) that needs the stricter
+    relationship-shared projection rather than the viewer-authorized one. The
+    default leaves `readable()`'s owner/partner resolution as the only
+    privacy rule in effect, which is what the Timeline itself needs (#1021).
     """
     model = _MODELS[kind]
     effective_date = effective_date_expression(model)
@@ -134,10 +152,7 @@ def _leg(
         model.created_at.label("created_at"),
         model.id.label("id"),
     )
-    if kind is StoryKind.HEART_MOMENT:
-        # M2-D22 and M2-D08: private HeartMoments are never Story items, even
-        # for their owner. Exclude them in the query rather than the projection
-        # so they are never read, counted, or represented in cursor state.
+    if shared_only and kind is StoryKind.HEART_MOMENT:
         statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
     if year is not None:
         statement = statement.where(
@@ -147,18 +162,21 @@ def _leg(
     return statement
 
 
-def require_shared_story_item(
+def require_readable_story_item(
     session: Session,
     context: AuthorizationContext,
     *,
     kind: StoryKind,
     item_id: UUID | str,
 ) -> UUID:
-    """Require one shared Story item and hold it for the current transaction.
+    """Require one viewer-authorized Story item and hold it for the current transaction.
 
     Intentional-view writes use this exact Story leg rather than recreating
-    HeartMoment visibility rules. The shared lock orders the receipt against a
-    concurrent target delete or shared-to-private transition.
+    HeartMoment visibility rules. Viewer-authorized rather than shared-only
+    (#1021): an account may open its own OWNER_ONLY HeartMoment from its own
+    Timeline, and that presentation is as intentional a view as any shared
+    one. The lock orders the receipt against a concurrent target delete or
+    visibility transition.
     """
     model = _MODELS[kind]
     identifier = item_id if isinstance(item_id, UUID) else parse_id(item_id)
@@ -176,15 +194,17 @@ def read_shared_story_counts(
     session: Session,
     context: AuthorizationContext,
 ) -> SharedStoryCounts:
-    """Count the shared Story without materializing Story rows.
+    """Count the relationship-shared Story without materializing Story rows.
 
-    The aggregation reuses the exact authorized Timeline legs. In particular,
-    OWNER_ONLY HeartMoments are excluded by ``_leg`` before counting, so they
-    cannot influence either a value or #809's presentation eligibility.
+    This is deliberately the stricter `shared_only` leg, not the
+    viewer-authorized Timeline leg: it feeds the relationship-shared
+    Dashboard count (#809), which must stay `SPACE_SHARED`-only so an
+    account's own private HeartMoment never inflates a "shared with your
+    partner" count (#1021).
     """
-    combined = union_all(*(_leg(kind, context, year=None) for kind in StoryKind)).subquery(
-        "shared_story_counts"
-    )
+    combined = union_all(
+        *(_leg(kind, context, year=None, shared_only=True) for kind in StoryKind)
+    ).subquery("shared_story_counts")
     rows = session.execute(
         select(combined.c.kind_rank, func.count())
         .group_by(combined.c.kind_rank)
@@ -210,10 +230,23 @@ def _cursor_binding(
     the same point. Anything changing the result set or its ordering belongs
     in the binding because otherwise the cursor would point into a list that
     no longer exists.
+
+    `accountId` binds the cursor to the requesting account (#1021). Since the
+    Timeline became viewer-authorized, two accounts in the same Space can now
+    have genuinely different authorized result sets — one account's own
+    OWNER_ONLY HeartMoments are woven into their Timeline at their ordinary
+    sort position but are absent from their partner's. Without this, a cursor
+    minted from one account's page could satisfy the other account's binding
+    check (same Space, same filters) while pointing at a position the
+    partner's own authorized set never produced, silently skipping or
+    repeating rows for them. A mismatched `accountId` fails the same generic
+    `INVALID_CURSOR` response as every other binding mismatch, so this closes
+    the gap without adding a new failure mode or disclosing anything.
     """
     return {
         "collection": "story",
         "spaceId": str(context.space_id),
+        "accountId": str(context.account_id),
         "kinds": [kind.value for kind in kinds],
         "year": year,
         "order": order.value,
@@ -278,10 +311,13 @@ def read_timeline(
     cursor: str | None = None,
     limit: int = DEFAULT_LIMIT,
 ) -> StoryPageResult:
-    """Return one page of the timeline.
+    """Return one page of the viewer-authorized timeline.
 
     An empty `kinds` means all three types. The filter narrows the already
-    authorized set and never expands it.
+    authorized set and never expands it. Viewer-authorized (#1021): the
+    result set is `readable()` for the requesting account, so it includes
+    that account's own OWNER_ONLY HeartMoments at their ordinary sort
+    position, but never the partner's.
     """
     selected = kinds or tuple(StoryKind)
     legs = [_leg(kind, context, year=year) for kind in selected]
@@ -353,6 +389,10 @@ def read_available_years(
     The active `year` filter is deliberately ignored: users need the full set of
     available years to change their selection, even when viewing a single year or
     when arriving from a deep link with 0 results (#618).
+
+    Viewer-authorized like the Timeline itself (#1021): `readable()` alone
+    decides which years an account's own OWNER_ONLY HeartMoments contribute,
+    with no separate HeartMoment-only clause to keep in sync with `_leg`.
     """
     selected = kinds or tuple(StoryKind)
     legs = []
@@ -362,8 +402,6 @@ def read_available_years(
         statement = readable(model, context).with_only_columns(
             cast(func.extract("year", effective_date), Integer).label("year")
         )
-        if kind is StoryKind.HEART_MOMENT:
-            statement = statement.where(model.privacy_class == PrivacyClass.SPACE_SHARED.value)
         legs.append(statement)
 
     combined = union_all(*legs).subquery("story_years")

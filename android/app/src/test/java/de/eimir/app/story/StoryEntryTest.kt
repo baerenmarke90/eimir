@@ -10,6 +10,7 @@ import org.junit.Test
 import eimir.api.models.AttachmentReadRequest
 import eimir.api.models.AttachmentSummary
 import eimir.api.models.AuthorSummary
+import eimir.api.models.ContentVisibility
 import eimir.api.models.HeartEmotion
 import eimir.api.models.MediaType
 import eimir.api.models.MemoryAttachmentSummary
@@ -323,6 +324,7 @@ private fun heartMomentItem(
             happenedOn = date,
             id = UUID.randomUUID(),
             text = "Thank you for today",
+            visibility = ContentVisibility.SHARED,
         ),
         kind = StoryHeartMomentItem.Kind.HEART_MOMENT,
     ),

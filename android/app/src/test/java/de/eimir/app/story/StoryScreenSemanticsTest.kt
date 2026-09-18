@@ -32,6 +32,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import eimir.api.models.AuthorSummary
+import eimir.api.models.ContentVisibility
 import eimir.api.models.HeartEmotion
 import eimir.api.models.MediaType
 import eimir.api.models.MemoryAttachmentSummary
@@ -313,6 +314,7 @@ private fun heartMoment(date: LocalDate = DAY) = StoryItem.HeartMomentWrapper(
             happenedOn = date,
             id = UUID.randomUUID(),
             text = "Thank you for today",
+            visibility = ContentVisibility.SHARED,
         ),
         kind = StoryHeartMomentItem.Kind.HEART_MOMENT,
     ),

@@ -85,7 +85,7 @@ No authorization required
 
 Get Story Timeline
 
-Return the shared timeline of memories, milestones, and heart moments.  Private heart moments never appear here, including for their owner.
+Return the caller\&#39;s viewer-authorized timeline of memories, milestones, and heart moments.  A heart moment the caller marked &#x60;&#x60;PRIVATE&#x60;&#x60; remains part of their own timeline; it never appears in their partner\&#39;s (#1021).
 
 ### Example
 

@@ -209,7 +209,8 @@ type StoryItem =
 ```
 
 - A StoryItem links to the original resource.
-- `OWNER_ONLY` is not an allowed Story variant.
+- `OWNER_ONLY` content is viewer-authorized in Story (#1021): it appears in its
+  own author's Timeline, never in the partner's.
 - Empty statistics blocks may be omitted; clients do not expect artificial
   zero-value cards.
 - Read Models contain the minimum information required for the view.

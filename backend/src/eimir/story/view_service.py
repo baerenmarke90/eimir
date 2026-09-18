@@ -34,11 +34,13 @@ def record_intentional_view(
 ) -> None:
     """Record one authorized detail presentation without creating an event history.
 
-    The Story source row is share-locked through the canonical shared-Story
-    predicate before the aggregate write. A concurrent delete or HeartMoment
-    privacy transition therefore wins wholly before or wholly after this write.
+    The Story source row is locked through the canonical viewer-authorized
+    Story predicate before the aggregate write, so an account's own private
+    HeartMoment is as eligible a target as a shared one (#1021). A concurrent
+    delete or HeartMoment privacy transition therefore wins wholly before or
+    wholly after this write.
     """
-    identifier = story_service.require_shared_story_item(
+    identifier = story_service.require_readable_story_item(
         session,
         context,
         kind=kind,

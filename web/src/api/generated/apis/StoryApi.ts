@@ -162,7 +162,7 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the shared timeline of memories, milestones, and heart moments.  Private heart moments never appear here, including for their owner.
+     * Return the caller\'s viewer-authorized timeline of memories, milestones, and heart moments.  A heart moment the caller marked ``PRIVATE`` remains part of their own timeline; it never appears in their partner\'s (#1021).
      * Get Story Timeline
      */
     async getStoryTimelineRaw(requestParameters: GetStoryTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StoryPage>> {
@@ -173,7 +173,7 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the shared timeline of memories, milestones, and heart moments.  Private heart moments never appear here, including for their owner.
+     * Return the caller\'s viewer-authorized timeline of memories, milestones, and heart moments.  A heart moment the caller marked ``PRIVATE`` remains part of their own timeline; it never appears in their partner\'s (#1021).
      * Get Story Timeline
      */
     async getStoryTimeline(requestParameters: GetStoryTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryPage> {

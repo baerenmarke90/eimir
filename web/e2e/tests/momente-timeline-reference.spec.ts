@@ -480,17 +480,41 @@ async function expectCompactCommentHandoff(page: Page): Promise<void> {
   const visibleGap = triggerBox.y - (bodyBox.y + bodyBox.height);
   expect(Math.abs(visibleGap - rowGap)).toBeLessThanOrEqual(1);
 
-  const hasHorizontalOverflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth >
-      document.documentElement.clientWidth + 1,
-  );
-  expect(hasHorizontalOverflow).toBe(false);
+  const [panelBox, panelHasHorizontalOverflow] = await Promise.all([
+    panel.boundingBox(),
+    panel.evaluate(
+      (element) => element.scrollWidth > element.clientWidth + 1,
+    ),
+  ]);
+  const viewportWidth = page.viewportSize()?.width;
+  if (!panelBox || viewportWidth === undefined) {
+    throw new Error('Comment panel reflow geometry is unavailable.');
+  }
+  for (const box of [panelBox, triggerBox]) {
+    expect(box.x).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewportWidth + 1);
+  }
+  expect(panelHasHorizontalOverflow).toBe(false);
 
   await trigger.click();
-  await expect(panel.locator('.comment-form-compact textarea')).toBeVisible();
-  await expect(panel.getByRole('button', { name: 'Abbrechen' })).toBeVisible();
-  await panel.getByRole('button', { name: 'Abbrechen' }).click();
+  const textarea = panel.locator('.comment-form-compact textarea');
+  const cancelButton = panel.getByRole('button', { name: 'Abbrechen' });
+  await expect(textarea).toBeVisible();
+  await expect(cancelButton).toBeVisible();
+
+  const [textareaBox, cancelBox] = await Promise.all([
+    textarea.boundingBox(),
+    cancelButton.boundingBox(),
+  ]);
+  if (!textareaBox || !cancelBox) {
+    throw new Error('Comment composer reflow geometry is unavailable.');
+  }
+  for (const box of [textareaBox, cancelBox]) {
+    expect(box.x).toBeGreaterThanOrEqual(-1);
+    expect(box.x + box.width).toBeLessThanOrEqual(viewportWidth + 1);
+  }
+
+  await cancelButton.click();
   await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
 }
 

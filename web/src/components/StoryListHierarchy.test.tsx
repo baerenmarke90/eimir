@@ -221,7 +221,7 @@ describe('StoryList card hierarchy (#969)', () => {
     const { container } = renderList([milestone], 'viewer-2');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe('Anna-Katharina');
+    expect(name?.textContent).toBe('von Anna-Katharina');
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
       screen.getByRole('group', { name: 'von Anna-Katharina' }),
@@ -229,7 +229,7 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(
       screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
     ).toBeNull();
-    expect(container.textContent).not.toContain(
+    expect(container.textContent).toContain(
       de.story.byAuthor.replace('{{author}}', 'Anna-Katharina'),
     );
   });
@@ -238,7 +238,7 @@ describe('StoryList card hierarchy (#969)', () => {
     const { container } = renderList([milestone], 'author-1');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe('dir');
+    expect(name?.textContent).toBe('von dir');
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(screen.getByRole('group', { name: 'von dir' })).toBeDefined();
   });

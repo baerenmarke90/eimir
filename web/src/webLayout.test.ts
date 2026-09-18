@@ -32,6 +32,7 @@ const layoutCss = readSource('./layout.css');
 const shellCss = readSource('./shell.css');
 const stylesCss = readSource('./styles.css');
 const memoryPolishCss = readSource('./memory-create-polish.css');
+const commentsCss = readSource('./components/CommentsPanel.css');
 
 describe('web layout primitives', () => {
   it('lets a page fill the bounded main region instead of a reading column', () => {
@@ -154,6 +155,20 @@ describe('web layout tokens', () => {
       ...new Set(consumed.filter((name) => !defined.has(name))),
     ];
     expect(unresolved).toEqual([]);
+  });
+});
+
+describe('Story detail comment density (#1024)', () => {
+  it('uses one compact shared handoff from the final comment to the compose action', () => {
+    expect(ruleBlock(commentsCss, '.comments-panel-compact')).toContain(
+      'gap: var(--space-2)',
+    );
+    expect(
+      ruleBlock(commentsCss, '.comments-panel-compact .comment-card'),
+    ).toContain('padding: var(--space-2) 0');
+    expect(
+      ruleBlock(commentsCss, '.comments-panel-compact .comment-card:last-child'),
+    ).toContain('padding-bottom: 0');
   });
 });
 

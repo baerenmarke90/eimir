@@ -20,6 +20,29 @@ const ME = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
 const PARTNER = { id: PARTNER_ID, displayName: 'Alex' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
 
+const DETAIL_COMMENTS = [
+  {
+    id: 'comment-own',
+    spaceId: SPACE_ID,
+    authorId: ACCOUNT_ID,
+    author: ME,
+    body: 'Still smiling about this.',
+    createdAt: '2026-09-16T18:00:00Z',
+    updatedAt: '2026-09-16T18:00:00Z',
+    version: 1,
+  },
+  {
+    id: 'comment-partner',
+    spaceId: SPACE_ID,
+    authorId: PARTNER_ID,
+    author: PARTNER,
+    body: 'Me too.',
+    createdAt: '2026-09-16T18:05:00Z',
+    updatedAt: '2026-09-16T18:05:00Z',
+    version: 1,
+  },
+];
+
 const TINY_PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
   'base64',
@@ -140,6 +163,7 @@ function getTimelineItems() {
 
 type MockOptions = {
   asPartner?: boolean;
+  withDetailComments?: boolean;
 };
 
 async function installMocks(
@@ -344,7 +368,11 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/memories/mem-canal/comments`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: options.withDetailComments ? DETAIL_COMMENTS : [],
+        nextCursor: null,
+      });
       return;
     }
 
@@ -374,7 +402,11 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments/hm-love/comments`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: options.withDetailComments ? DETAIL_COMMENTS : [],
+        nextCursor: null,
+      });
       return;
     }
 
@@ -402,7 +434,11 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/milestones/ms-2years/comments`
     ) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: options.withDetailComments ? DETAIL_COMMENTS : [],
+        nextCursor: null,
+      });
       return;
     }
 
@@ -420,6 +456,38 @@ async function installMocks(
 
     await fulfillJson({}, 200);
   });
+}
+
+async function expectCompactCommentHandoff(page: Page): Promise<void> {
+  const panel = page.locator('.comments-panel-compact');
+  await expect(panel.locator('.comment-card')).toHaveCount(2);
+
+  const finalBody = panel.locator('.comment-card').last().locator('p');
+  const trigger = panel.locator('.comment-compose-trigger');
+  await expect(finalBody).toBeVisible();
+  await expect(trigger).toBeVisible();
+
+  const [bodyBox, triggerBox, rowGap] = await Promise.all([
+    finalBody.boundingBox(),
+    trigger.boundingBox(),
+    panel.evaluate((element) => Number.parseFloat(getComputedStyle(element).rowGap)),
+  ]);
+  if (!bodyBox || !triggerBox || !Number.isFinite(rowGap)) {
+    throw new Error('Comment spacing geometry is unavailable.');
+  }
+  const visibleGap = triggerBox.y - (bodyBox.y + bodyBox.height);
+  expect(Math.abs(visibleGap - rowGap)).toBeLessThanOrEqual(1);
+
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await trigger.click();
+  await expect(panel.locator('.comment-form-compact textarea')).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Abbrechen' })).toBeVisible();
+  await panel.getByRole('button', { name: 'Abbrechen' }).click();
+  await expect(panel.locator('.comment-compose-trigger')).toBeVisible();
 }
 
 async function signIn(page: Page, email = 'lea@example.org'): Promise<void> {
@@ -828,6 +896,64 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       '11-momente-timeline-milestone-detail.png',
       { fullPage: true },
     );
+  });
+
+  test('shared Story detail comments keep a compact handoff across detail types and reflow states (#1024)', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installMocks(page, { withDetailComments: true });
+    await signIn(page);
+
+    const details = [
+      {
+        path: '/story/memories/mem-canal',
+        marker: 'Breakfast by the canal',
+        shot: '1024-comments-memory-390-light.png',
+      },
+      {
+        path: '/story/heart-moments/hm-love',
+        marker: 'Thinking of you',
+        shot: '1024-comments-heart-390-light.png',
+      },
+      {
+        path: '/story/milestones/ms-2years',
+        marker: 'Two years together',
+        shot: '1024-comments-milestone-390-light.png',
+      },
+    ] as const;
+
+    for (const detail of details) {
+      await page.goto(detail.path);
+      await expect(page.getByText(detail.marker).first()).toBeVisible();
+      await expectCompactCommentHandoff(page);
+      await captureScreenshot(page, testInfo, detail.shot, { fullPage: true });
+    }
+
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.goto('/story/memories/mem-canal');
+    await expectCompactCommentHandoff(page);
+    await captureScreenshot(page, testInfo, '1024-comments-memory-320.png', {
+      fullPage: true,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/story/memories/mem-canal');
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+    await expectCompactCommentHandoff(page);
+    await captureScreenshot(page, testInfo, '1024-comments-memory-200pct.png', {
+      fullPage: true,
+    });
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'system'));
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto('/story/milestones/ms-2years');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expectCompactCommentHandoff(page);
+    await captureScreenshot(page, testInfo, '1024-comments-milestone-1440-dark.png', {
+      fullPage: true,
+    });
   });
 
   test('Momente > Entdecken consumes the canonical Discover response and captures 12-momente-timeline-discover-reference.png', async ({

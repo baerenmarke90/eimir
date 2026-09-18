@@ -5,6 +5,7 @@ import {
   formatStoryDate,
   groupStoryItems,
   resolveStoryKindLabel,
+  storyAuthorLabel,
   storyItemPresentation,
   tapestryItemRole,
   tapestryRoleWeight,
@@ -86,6 +87,18 @@ describe('groupStoryItems', () => {
     expect(formatStoryDate(new Date('2026-08-26T00:00:00Z'), 'en')).toContain(
       '2026',
     );
+  });
+});
+
+describe('storyAuthorLabel (#1019)', () => {
+  const author = { id: 'author-1', displayName: 'Alex Winter' };
+
+  it('uses localized viewer-relative copy for the current account', () => {
+    expect(storyAuthorLabel(author, 'author-1')).toBe('dir');
+  });
+
+  it('keeps the partner first-name treatment for another account', () => {
+    expect(storyAuthorLabel(author, 'author-2')).toBe('Alex');
   });
 });
 

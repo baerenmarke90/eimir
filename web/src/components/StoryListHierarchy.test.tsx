@@ -224,8 +224,8 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(name?.textContent).toBe('von Anna-Katharina');
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
-      screen.getByRole('group', { name: 'von Anna-Katharina' }),
-    ).toBeDefined();
+      container.querySelector('.momente-author-meta .sr-only')?.textContent,
+    ).toBe('von Anna-Katharina');
     expect(
       screen.queryByRole('img', { name: 'Anna-Katharina Lindqvist' }),
     ).toBeNull();
@@ -240,7 +240,9 @@ describe('StoryList card hierarchy (#969)', () => {
     const name = container.querySelector('.story-card-author');
     expect(name?.textContent).toBe('von dir');
     expect(name?.getAttribute('aria-hidden')).toBe('true');
-    expect(screen.getByRole('group', { name: 'von dir' })).toBeDefined();
+    expect(
+      container.querySelector('.momente-author-meta .sr-only')?.textContent,
+    ).toBe('von dir');
   });
 
   it('starts every card with its content, not a metadata row', () => {

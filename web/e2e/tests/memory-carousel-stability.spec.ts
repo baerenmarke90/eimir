@@ -519,6 +519,12 @@ test('Memory carousel keeps document and layout position stable across pointer a
   await expect(close).toBeFocused();
   await nextFrame(page);
   expectStableGeometry(beforeOpen, await geometry(page));
+  expect(
+    await page.evaluate(() => {
+      const topElement = document.elementFromPoint(window.innerWidth / 2, 20);
+      return Boolean(topElement?.closest('.media-lightbox-backdrop'));
+    }),
+  ).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath('story-memory-lightbox-expanded.png'),
     fullPage: false,

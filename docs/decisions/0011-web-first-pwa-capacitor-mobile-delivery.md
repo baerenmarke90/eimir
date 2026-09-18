@@ -1,7 +1,7 @@
 # Decision 0011: Web-first PWA and Capacitor mobile delivery
 
 **Status:** Accepted  
-**Date:** September 17, 2026  
+**Date:** September 19, 2026  
 **Owning issue:** #1005  
 **Supersedes:** ADR 0007 (`0007-kotlin-multiplatform-shared-mobile-core.md`) as the target Android/iOS architecture  
 **Supersedes as active product guidance:** ADR 0004 (`0004-android-uses-bottom-navigation-at-every-size.md`); it remains historical context for the retired Compose client  

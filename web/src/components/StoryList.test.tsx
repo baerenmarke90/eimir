@@ -126,7 +126,7 @@ describe('StoryList', () => {
     // #1019 makes the viewer-relative attribution explicit in both visible
     // and accessible metadata.
     expect(html).toContain('>von Alex</span>');
-    expect(html).toContain('aria-label="von Alex"');
+    expect(html).toContain('class="sr-only">von Alex</span>');
   });
 
   it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {

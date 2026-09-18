@@ -140,9 +140,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src web android -name "*.py" -o -name "*.ts" \
-                -o -name "*.tsx" -o -name "*.kt" 2>/dev/null | sort) \
-            <(git ls-files backend/src web android | sort))
+            <(find backend/src web -name "*.py" -o -name "*.ts" \
+                -o -name "*.tsx" 2>/dev/null | sort) \
+            <(git ls-files backend/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -435,15 +435,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_clients == 'true'
     runs-on: ubuntu-latest
-    # The contract is the single source of truth for Web and Android DTOs. If
-    # committed client code differs, a contract change was merged without the
-    # corresponding client update, and the break would otherwise surface only
-    # in the client project.
+    # The contract is the single source of truth for the canonical Web client.
+    # Legacy Kotlin model generation remains repository cleanup work under #1009
+    # and is no longer part of the product-quality pipeline.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Generated client code matches the contract
-        run: tools/openapi/generate.sh --check
+        run: tools/openapi/generate.sh --check-web
 
       - name: The TypeScript client has no runtime dependency
         # The generator uses `typescript-fetch` so no HTTP package enters the
@@ -458,17 +457,6 @@ jobs:
           if [ -n "$external_imports" ]; then
             echo "The generated TypeScript client imports external packages:"
             echo "$external_imports" | sort -u
-            exit 1
-          fi
-
-      - name: The Kotlin client includes no HTTP stack
-        # Models only, with no service layer: the Android client's HTTP stack is
-        # an Android project decision and does not belong in this file.
-        run: |
-          matches=$(grep -rlE "retrofit2|io\.ktor|okhttp3" android/api/generated || true)
-          if [ -n "$matches" ]; then
-            echo "The generated Kotlin code introduces an HTTP stack:"
-            echo "$matches"
             exit 1
           fi
 

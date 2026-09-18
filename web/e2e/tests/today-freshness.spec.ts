@@ -274,6 +274,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       get: () => 1,
     });
   });
+  await page.setViewportSize({ width: 390, height: 844 });
 
   // Step 1: Open /today and sign in
   await page.goto('/today');

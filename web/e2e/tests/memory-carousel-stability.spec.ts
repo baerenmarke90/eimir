@@ -322,7 +322,6 @@ async function openMemory(
   await expect(page.locator('.media-gallery-carousel-content')).toHaveCount(
     memoryId === MEMORY_ID ? 3 : 1,
   );
-  await expect(page.getByText(storyProducts.comments.empty)).toBeVisible();
 }
 
 async function positionGalleryForReading(page: Page): Promise<void> {

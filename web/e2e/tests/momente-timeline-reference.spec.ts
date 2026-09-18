@@ -20,6 +20,16 @@ const ME = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
 const PARTNER = { id: PARTNER_ID, displayName: 'Alex' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
 
+const SELF_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  de.story.authorSelf,
+);
+const ME_ATTRIBUTION = de.story.byAuthor.replace(
+  '{{author}}',
+  ME.displayName.replace(/ .*/u, ''),
+);
+
+
 const DETAIL_COMMENTS = [
   {
     id: 'comment-own',
@@ -583,9 +593,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveText('von dir');
+    await expect(compactAuthor.locator('.sr-only')).toHaveText(SELF_ATTRIBUTION);
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
-      'von dir',
+      SELF_ATTRIBUTION,
     );
 
     const browseShell = page.locator('.momente-browse-links');
@@ -755,7 +765,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'Geliebt',
     );
     await expect(page.locator('.story-card-author').first()).toHaveText(
-      'von dir',
+      SELF_ATTRIBUTION,
     );
 
     await captureScreenshot(
@@ -801,7 +811,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'rgba(0, 0, 0, 0)',
     );
     await expect(page.locator('.story-card-author').first()).toHaveText(
-      'von dir',
+      SELF_ATTRIBUTION,
     );
     const browseWidth = await page
       .locator('.momente-browse-links')
@@ -918,7 +928,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
     const provenance = page.locator('.heart-moment-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText('von dir');
+    await expect(provenance).toContainText(SELF_ATTRIBUTION);
     await expect(provenance).not.toContainText(ME.displayName);
 
     await captureScreenshot(
@@ -948,7 +958,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     ).toBeVisible();
     const provenance = page.locator('.milestone-provenance-footer');
     await expect(provenance).toBeVisible();
-    await expect(provenance).toContainText('von dir');
+    await expect(provenance).toContainText(SELF_ATTRIBUTION);
     await expect(provenance).not.toContainText(ME.displayName);
 
     await captureScreenshot(
@@ -983,7 +993,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
 
     for (const detail of details) {
       await page.goto(detail.path);
-      await expect(page.locator(detail.footer)).toContainText('von dir');
+      await expect(page.locator(detail.footer)).toContainText(SELF_ATTRIBUTION);
       await expect(page.locator(detail.footer)).not.toContainText(
         ME.displayName.replace(/ .*/u, ''),
       );
@@ -1000,14 +1010,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.waitForSelector('.story-timeline');
 
     const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta.locator('.sr-only')).toHaveText('von Lea');
+    await expect(authorMeta.locator('.sr-only')).toHaveText(ME_ATTRIBUTION);
     await expect(page.locator('.story-card-author').first()).toHaveText(
-      'von Lea',
+      ME_ATTRIBUTION,
     );
 
     await page.goto('/story/memories/mem-canal');
     await expect(page.locator('.memory-provenance-footer')).toContainText(
-      'von Lea',
+      ME_ATTRIBUTION,
     );
   });
 
@@ -1104,8 +1114,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveText('von dir');
-    await expect(discoverAuthor).toContainText('von dir');
+    await expect(discoverAuthor.locator('.sr-only')).toHaveText(SELF_ATTRIBUTION);
+    await expect(discoverAuthor).toContainText(SELF_ATTRIBUTION);
 
     await captureScreenshot(
       page,

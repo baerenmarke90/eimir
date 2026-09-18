@@ -29,7 +29,6 @@ const ME_ATTRIBUTION = de.story.byAuthor.replace(
   ME.displayName.replace(/ .*/u, ''),
 );
 
-
 const DETAIL_COMMENTS = [
   {
     id: 'comment-own',
@@ -593,7 +592,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveText(SELF_ATTRIBUTION);
+    await expect(compactAuthor.locator('.sr-only')).toHaveText(
+      SELF_ATTRIBUTION,
+    );
     await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
       SELF_ATTRIBUTION,
     );
@@ -1114,7 +1115,9 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveText(SELF_ATTRIBUTION);
+    await expect(discoverAuthor.locator('.sr-only')).toHaveText(
+      SELF_ATTRIBUTION,
+    );
     await expect(discoverAuthor).toContainText(SELF_ATTRIBUTION);
 
     await captureScreenshot(

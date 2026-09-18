@@ -46,9 +46,7 @@ describe('EIMIR-M5-Web-S2-SCOPE media gallery accessibility smoke', () => {
       `aria-label="${i18n.t('gallery.openItem', { index: 1, count: 1 })}"`,
     );
     expect(html).not.toContain('media-gallery-carousel-counter');
-    expect(html).not.toContain(
-      `aria-label="${i18n.t('gallery.previous')}"`,
-    );
+    expect(html).not.toContain(`aria-label="${i18n.t('gallery.previous')}"`);
     expect(html).not.toContain(`aria-label="${i18n.t('gallery.next')}"`);
     expect(html.match(/type="button"/g)).toHaveLength(1);
   });

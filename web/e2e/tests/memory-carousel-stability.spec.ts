@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 
@@ -94,6 +94,15 @@ async function nextFrame(page: Page): Promise<void> {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       ),
   );
+}
+
+async function pointerClickWithoutScroll(
+  page: Page,
+  control: Locator,
+): Promise<void> {
+  const box = await control.boundingBox();
+  if (!box) throw new Error('Carousel control did not render.');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 async function installApiMocks(page: Page) {
@@ -215,6 +224,14 @@ async function installApiMocks(page: Page) {
         relationshipDuration: null,
         space: { spaceId: SPACE_ID, partner: null },
       });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/activity`
+    ) {
+      await fulfillJson({ items: [], hasMore: false, nextCursor: null });
       return;
     }
 
@@ -395,7 +412,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
 
   for (const step of pointerSteps) {
     const before = await geometry(page);
-    await step.control.click();
+    await pointerClickWithoutScroll(page, step.control);
     await expect(counter).toHaveText(counterLabel(step.expected, 3));
     await nextFrame(page);
     const after = await geometry(page);

@@ -11,7 +11,7 @@ function setScrollTop(value: number) {
   if (document.scrollingElement) document.scrollingElement.scrollTop = value;
 }
 
-function touchEvent(type: string, y?: number, x = 0, target?: EventTarget): TouchEvent {
+function touchEvent(type: string, y?: number, x = 0): TouchEvent {
   const event = new Event(type, {
     bubbles: true,
     cancelable: true,
@@ -20,12 +20,6 @@ function touchEvent(type: string, y?: number, x = 0, target?: EventTarget): Touc
     configurable: true,
     value: y === undefined ? [] : [{ clientX: x, clientY: y }],
   });
-  if (target) {
-    Object.defineProperty(event, 'target', {
-      configurable: true,
-      value: target,
-    });
-  }
   return event;
 }
 
@@ -33,10 +27,10 @@ function dispatchTouch(
   type: string,
   y?: number,
   x = 0,
-  target?: EventTarget,
+  target: EventTarget = document,
 ): TouchEvent {
-  const event = touchEvent(type, y, x, target);
-  document.dispatchEvent(event);
+  const event = touchEvent(type, y, x);
+  target.dispatchEvent(event);
   return event;
 }
 
@@ -142,7 +136,6 @@ describe('usePullToRefresh', () => {
     });
     expect(result.current.refreshing).toBe(false);
   });
-
 
   it('cancels a horizontal gesture before it can become a refresh', () => {
     const onRefresh = vi.fn();

@@ -221,7 +221,9 @@ describe('StoryList card hierarchy (#969)', () => {
     const { container } = renderList([milestone], 'viewer-2');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe(i18n.t('story.byAuthor', { author: 'Anna-Katharina' }));
+    expect(name?.textContent).toBe(
+      i18n.t('story.byAuthor', { author: 'Anna-Katharina' }),
+    );
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
       container.querySelector('.momente-author-meta .sr-only')?.textContent,
@@ -238,7 +240,9 @@ describe('StoryList card hierarchy (#969)', () => {
     const { container } = renderList([milestone], 'author-1');
 
     const name = container.querySelector('.story-card-author');
-    expect(name?.textContent).toBe(i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }));
+    expect(name?.textContent).toBe(
+      i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }),
+    );
     expect(name?.getAttribute('aria-hidden')).toBe('true');
     expect(
       container.querySelector('.momente-author-meta .sr-only')?.textContent,

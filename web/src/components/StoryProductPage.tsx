@@ -513,6 +513,15 @@ export function StoryProductPage({
     () => discoverQuery.data?.value.items ?? [],
     [discoverQuery.data],
   );
+  // The authoritative selection can be replaced in place by a different,
+  // same-length set (e.g. after a refresh). A plain count would then never
+  // change, so the reveal observer would silently skip the newly mounted
+  // keyed nodes. The joined item keys change whenever composition or order
+  // does, while staying stable (no replay) for an unchanged selection.
+  const discoverContentKey = useMemo(
+    () => discoverItems.map((item) => storyItemKey(item)).join('|'),
+    [discoverItems],
+  );
   const featuredItem = discoverQuery.data?.value.lead ?? null;
   const leadContext = discoverQuery.data?.value.leadContext ?? null;
   const locale = resolvedLocale();
@@ -537,7 +546,7 @@ export function StoryProductPage({
     rootRef: discoverTapestryRef,
     enabled: activeView === 'discover' && discoverItems.length > 0,
     scopeKey: `discover:${accountId}:${spaceId}`,
-    revision: discoverItems.length,
+    revision: discoverContentKey,
   });
 
   const nextStoryCursor = storyQuery.hasNextPage

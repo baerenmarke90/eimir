@@ -44,6 +44,13 @@ function prefersReducedMotion(): boolean {
  * the session (per `scopeKey`) across remounts, re-renders and refreshes.
  * `attrPrefix` namespaces both the query selector and the dataset flags so
  * unrelated consumers never share DOM attribute names.
+ *
+ * `revision` re-runs the DOM scan/observe pass whenever it changes. A plain
+ * count (as Timeline passes) is enough there because pages only ever grow.
+ * A consumer whose backing collection can be replaced in place with a
+ * different, same-length set (Discover's selection refresh) must instead
+ * pass a value that encodes ordered content identity, e.g. the joined item
+ * keys — otherwise newly mounted keyed nodes are never (re-)observed.
  */
 function useFirstEntryReveal({
   rootRef,
@@ -55,11 +62,11 @@ function useFirstEntryReveal({
   rootRef: RefObject<HTMLElement | null>;
   enabled: boolean;
   scopeKey: string;
-  revision: number;
+  revision: number | string;
   attrPrefix: string;
 }) {
   useLayoutEffect(() => {
-    if (!enabled || revision <= 0) return;
+    if (!enabled || !revision) return;
     const root = rootRef.current;
     if (!root) return;
 
@@ -124,12 +131,18 @@ export function useTimelineReveal(options: {
  * and session-scoped registry as #975's `useTimelineReveal`, but under
  * `data-discover-reveal-key`/`data-discover-revealed` so Discover never
  * shares DOM attribute names (or CSS) with Timeline.
+ *
+ * `revision` must be the tapestry's ordered content identity (e.g. the
+ * joined item keys), not just a count: the authoritative Discover selection
+ * can be replaced in place by a different, same-length set on refresh, and
+ * a count-only revision would never re-run the observe pass for the new
+ * keyed nodes React mounts in that case.
  */
 export function useDiscoverReveal(options: {
   rootRef: RefObject<HTMLElement | null>;
   enabled: boolean;
   scopeKey: string;
-  revision: number;
+  revision: string;
 }) {
   useFirstEntryReveal({ ...options, attrPrefix: 'discover' });
 }

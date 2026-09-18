@@ -522,7 +522,7 @@ describe('AppShell', () => {
     expect(planBottomShell?.getAttribute('data-hidden')).toBe('false');
   });
 
-  it('resets data-hidden="false" on same-path search query changes (/story?tab=discover <-> /story?tab=timeline) (#970)', () => {
+  it('resets data-hidden="false" on same-path search query changes (/story?tab=discover <-> /story?tab=timeline) (#970)', async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -581,7 +581,9 @@ describe('AppShell', () => {
       window.scrollY = 100;
       window.dispatchEvent(new Event('scroll'));
     });
-    expect(bottomShell?.getAttribute('data-hidden')).toBe('true');
+    await waitFor(() =>
+      expect(bottomShell?.getAttribute('data-hidden')).toBe('true'),
+    );
 
     // Peer mode switch on same pathname (/story?tab=discover -> /story?tab=timeline)
     act(() => {
@@ -595,7 +597,9 @@ describe('AppShell', () => {
       window.scrollY = 200;
       window.dispatchEvent(new Event('scroll'));
     });
-    expect(bottomShell?.getAttribute('data-hidden')).toBe('true');
+    await waitFor(() =>
+      expect(bottomShell?.getAttribute('data-hidden')).toBe('true'),
+    );
 
     // Switch back to discover mode (/story?tab=timeline -> /story?tab=discover)
     act(() => {

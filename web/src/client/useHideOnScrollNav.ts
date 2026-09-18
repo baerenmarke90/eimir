@@ -172,12 +172,21 @@ export function useHideOnScrollNav(pathname: string, search = '') {
   const [isVisible, setIsVisible] = useState(true);
   const stateRef = useRef<ScrollNavigationState>(createInitialScrollNavState());
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
 
   const navigationKey = `${pathname}${search}`;
 
   // Navigation identity changes (route or peer mode search params) always restore visible navigation state
   useEffect(() => {
     void navigationKey;
+    if (scrollFrameRef.current !== null && typeof window !== 'undefined') {
+      if (typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(scrollFrameRef.current);
+      } else {
+        window.clearTimeout(scrollFrameRef.current);
+      }
+      scrollFrameRef.current = null;
+    }
     stateRef.current = createInitialScrollNavState(
       typeof window !== 'undefined' ? window.scrollY : 0,
     );
@@ -190,21 +199,20 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       return;
     }
 
-    const handleScroll = (event: Event) => {
-      // Nested controls must not accidentally hide global navigation
-      const target = event.target;
-      const isRootTarget =
-        !target ||
-        target === window ||
-        target === document ||
-        target === document.documentElement ||
-        target === document.body ||
-        target === event.currentTarget;
-
-      if (!isRootTarget) {
-        return;
+    const scheduleFrame = (callback: FrameRequestCallback): number =>
+      typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame(callback)
+        : window.setTimeout(() => callback(Date.now()), 16);
+    const cancelFrame = (frame: number) => {
+      if (typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(frame);
+      } else {
+        window.clearTimeout(frame);
       }
+    };
 
+    const updateFromScroll = () => {
+      scrollFrameRef.current = null;
       const isFocused = Boolean(
         shellRef.current &&
           document.activeElement &&
@@ -220,6 +228,7 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = window.innerHeight;
       const maxScrollY = Math.max(0, scrollHeight - clientHeight);
+      const previousVisible = stateRef.current.isVisible;
 
       const nextState = computeScrollNavStep(stateRef.current, {
         currentScrollY: window.scrollY,
@@ -229,11 +238,33 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       });
 
       stateRef.current = nextState;
-      setIsVisible(nextState.isVisible);
+      if (nextState.isVisible !== previousVisible) {
+        setIsVisible(nextState.isVisible);
+      }
+    };
+
+    const handleScroll = (event: Event) => {
+      // Nested controls must not accidentally hide global navigation
+      const target = event.target;
+      const isRootTarget =
+        !target ||
+        target === window ||
+        target === document ||
+        target === document.documentElement ||
+        target === document.body ||
+        target === event.currentTarget;
+
+      if (!isRootTarget || scrollFrameRef.current !== null) return;
+      scrollFrameRef.current = scheduleFrame(updateFromScroll);
     };
 
     const handleResize = () => {
-      // Viewport / orientation resize resets to visible
+      // Viewport / orientation resize resets to visible and cancels stale
+      // scroll work scheduled against the previous geometry.
+      if (scrollFrameRef.current !== null) {
+        cancelFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
       stateRef.current = createInitialScrollNavState(window.scrollY);
       setIsVisible(true);
     };
@@ -260,6 +291,7 @@ export function useHideOnScrollNav(pathname: string, search = '') {
     document.addEventListener('focusin', handleFocusIn);
 
     return () => {
+      if (scrollFrameRef.current !== null) cancelFrame(scrollFrameRef.current);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('focusin', handleFocusIn);

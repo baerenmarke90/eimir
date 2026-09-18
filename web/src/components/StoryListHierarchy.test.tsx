@@ -106,7 +106,7 @@ describe('StoryList card hierarchy (#969)', () => {
       cardFor(`${de.story.kind.memory}: Evening at the lake`),
     ).toBeDefined();
     expect(
-      cardFor(`${de.story.kind.heartMoment}: Thanks for the coffee.`),
+      cardFor(`${de.story.kind.heartMoment}: Thanks for the coffee. Gefühl: Geliebt`),
     ).toBeDefined();
     expect(
       cardFor(`${de.story.kind.milestone}: Three years together`),
@@ -141,7 +141,7 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(memoryLink.contains(footer)).toBe(true);
 
     const heartFooterId = cardFor(
-      `${de.story.kind.heartMoment}: Thanks for the coffee.`,
+      `${de.story.kind.heartMoment}: Thanks for the coffee. Gefühl: Geliebt`,
     ).getAttribute('aria-describedby');
     expect(heartFooterId).not.toBe(footerId);
   });
@@ -160,7 +160,7 @@ describe('StoryList card hierarchy (#969)', () => {
     ).toBeNull();
 
     const heartFooter = within(
-      cardFor(`${de.story.kind.heartMoment}: Thanks for the coffee.`),
+      cardFor(`${de.story.kind.heartMoment}: Thanks for the coffee. Gefühl: Geliebt`),
     );
     const shared = heartFooter.getByRole('img', { name: de.story.shared });
     expect(shared.classList).toContain('story-card-visibility-shared');

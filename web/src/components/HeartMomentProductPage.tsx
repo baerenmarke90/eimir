@@ -792,10 +792,7 @@ export function HeartMomentProductPage({
           <footer className="heart-moment-provenance-footer">
             <p>
               {t('heartMomentProduct.provenanceCompact', {
-                author: storyAuthorLabel(
-                  heartMoment.author,
-                  currentAccountId,
-                ),
+                author: storyAuthorLabel(heartMoment.author, currentAccountId),
                 createdAt: formatCreatedAt(heartMoment.createdAt),
               })}
             </p>

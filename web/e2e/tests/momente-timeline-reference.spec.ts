@@ -615,25 +615,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(compactEmotion).toHaveAttribute('title', 'Gefühl: Geliebt');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
     const compactEmotionLabel = compactEmotion.locator('.heart-emotion-label');
-    const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
-      (element) => {
-        const style = getComputedStyle(element);
-        return {
-          position: style.position,
-          width: style.width,
-          height: style.height,
-          overflow: style.overflow,
-          clipPath: style.clipPath,
-        };
-      },
-    );
-    expect(compactEmotionLabelStyle).toMatchObject({
-      position: 'absolute',
-      width: '1px',
-      height: '1px',
-      overflow: 'hidden',
-    });
-    expect(compactEmotionLabelStyle.clipPath).not.toBe('none');
+    await expect(compactEmotionLabel).toBeVisible();
+    await expect(compactEmotionLabel).toHaveText('Geliebt');
+    await expect(
+      page.locator('.story-timeline-marker-heart-moment').first(),
+    ).toBeVisible();
+    await expect(
+      page.locator('.story-timeline-marker-heart-moment svg').first(),
+    ).toBeVisible();
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
     await expect(compactEmotion).toHaveCSS(
       'background-color',
@@ -652,6 +641,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       page,
       testInfo,
       '1018-story-momente-visual-polish-390-light.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1031-story-heart-emotion-label-390-light.png',
       { fullPage: true },
     );
 
@@ -692,27 +687,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
       .first();
     const compactEmotionLabel = compactEmotion.locator('.heart-emotion-label');
-    const compactEmotionLabelStyle = await compactEmotionLabel.evaluate(
-      (element) => {
-        const style = getComputedStyle(element);
-        return {
-          position: style.position,
-          width: style.width,
-          height: style.height,
-          overflow: style.overflow,
-          clipPath: style.clipPath,
-        };
-      },
-    );
-    expect(compactEmotionLabelStyle).toMatchObject({
-      position: 'absolute',
-      width: '1px',
-      height: '1px',
-      overflow: 'hidden',
-    });
-    expect(compactEmotionLabelStyle.clipPath).not.toBe('none');
+    await expect(compactEmotionLabel).toBeVisible();
+    await expect(compactEmotionLabel).toHaveText('Geliebt');
     await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(compactEmotion).toHaveCSS('border-top-width', '0px');
+    await expect(compactEmotion).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
 
     await captureScreenshot(
       page,
@@ -726,6 +708,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       page,
       testInfo,
       '1018-story-momente-visual-polish-390-dark.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1031-story-heart-emotion-label-390-dark.png',
       { fullPage: true },
     );
   });
@@ -752,6 +740,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(browseLinks.nth(2)).toHaveCSS('grid-column-start', '1');
     await expect(browseLinks.nth(2)).toHaveCSS('grid-column-end', '-1');
 
+    const compactEmotion = page
+      .locator('.story-card-heart-moment .heart-emotion-badge--compact')
+      .first();
+    await expect(compactEmotion.locator('.heart-emotion-icon')).toBeVisible();
+    await expect(compactEmotion.locator('.heart-emotion-label')).toBeVisible();
+    await expect(compactEmotion.locator('.heart-emotion-label')).toHaveText(
+      'Geliebt',
+    );
+
     await captureScreenshot(
       page,
       testInfo,
@@ -762,6 +759,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       page,
       testInfo,
       '1018-story-momente-visual-polish-320-reflow.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1031-story-heart-emotion-label-320-reflow.png',
       { fullPage: true },
     );
   });
@@ -780,7 +783,14 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       .first();
     await expect(expandedEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(expandedEmotion.locator('.heart-emotion-label')).toBeVisible();
+    await expect(expandedEmotion.locator('.heart-emotion-label')).toHaveText(
+      'Geliebt',
+    );
     await expect(expandedEmotion).toHaveCSS('border-top-width', '0px');
+    await expect(expandedEmotion).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)',
+    );
     const browseWidth = await page
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
@@ -796,6 +806,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       page,
       testInfo,
       '1018-story-momente-visual-polish-1440-expanded.png',
+      { fullPage: true },
+    );
+    await captureScreenshot(
+      page,
+      testInfo,
+      '1031-story-heart-emotion-label-1440-expanded.png',
       { fullPage: true },
     );
   });
@@ -876,6 +892,13 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const detailEmotion = page.locator('.heart-emotion-badge--detail');
     await expect(detailEmotion.locator('.heart-emotion-icon')).toBeVisible();
     await expect(detailEmotion.locator('.heart-emotion-label')).toBeVisible();
+    await expect(detailEmotion.locator('.heart-emotion-label')).toHaveText(
+      'Geliebt',
+    );
+    await expect(detailEmotion).toHaveAttribute(
+      'aria-label',
+      'Gefühl: Geliebt',
+    );
     await expect(detailEmotion).toHaveCSS('border-top-width', '0px');
     await expect(detailEmotion).toHaveCSS(
       'background-color',

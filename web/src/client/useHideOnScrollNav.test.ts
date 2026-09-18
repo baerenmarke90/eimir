@@ -1,6 +1,39 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+let nextFrameId = 1;
+let frameCallbacks = new Map<number, FrameRequestCallback>();
+
+function flushAnimationFrames() {
+  const callbacks = [...frameCallbacks.values()];
+  frameCallbacks.clear();
+  for (const callback of callbacks) callback(0);
+}
+
+beforeEach(() => {
+  nextFrameId = 1;
+  frameCallbacks = new Map();
+  vi.stubGlobal(
+    'requestAnimationFrame',
+    vi.fn((callback: FrameRequestCallback) => {
+      const id = nextFrameId++;
+      frameCallbacks.set(id, callback);
+      return id;
+    }),
+  );
+  vi.stubGlobal(
+    'cancelAnimationFrame',
+    vi.fn((id: number) => {
+      frameCallbacks.delete(id);
+    }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 import {
   computeScrollNavStep,
   createInitialScrollNavState,
@@ -213,6 +246,43 @@ describe('computeScrollNavStep', () => {
 });
 
 describe('useHideOnScrollNav hook', () => {
+  it('coalesces a burst of root scroll events into one animation-frame update', () => {
+    Object.defineProperty(document.documentElement, 'scrollHeight', {
+      value: 3000,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'innerHeight', {
+      value: 800,
+      configurable: true,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      value: 0,
+      writable: true,
+      configurable: true,
+    });
+
+    const { result } = renderHook(() =>
+      useHideOnScrollNav('/story', '?tab=timeline'),
+    );
+
+    act(() => {
+      window.scrollY = 12;
+      window.dispatchEvent(new Event('scroll'));
+      window.scrollY = 35;
+      window.dispatchEvent(new Event('scroll'));
+      window.scrollY = 100;
+      window.dispatchEvent(new Event('scroll'));
+    });
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    expect(result.current.isVisible).toBe(true);
+
+    act(() => {
+      flushAnimationFrames();
+    });
+    expect(result.current.isVisible).toBe(false);
+  });
+
   it('starts visible on /story?tab=discover', () => {
     const { result } = renderHook(() =>
       useHideOnScrollNav('/story', '?tab=discover'),
@@ -249,6 +319,7 @@ describe('useHideOnScrollNav hook', () => {
     act(() => {
       window.scrollY = 100;
       window.dispatchEvent(new Event('scroll'));
+      flushAnimationFrames();
     });
     expect(result.current.isVisible).toBe(false);
 
@@ -263,6 +334,7 @@ describe('useHideOnScrollNav hook', () => {
     act(() => {
       window.scrollY = 200;
       window.dispatchEvent(new Event('scroll'));
+      flushAnimationFrames();
     });
     expect(result.current.isVisible).toBe(false);
 

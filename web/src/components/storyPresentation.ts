@@ -254,24 +254,49 @@ export function distributeIntoTapestryColumns<T>(
   return columns;
 }
 
-export function formatStoryDate(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+const storyDateFormatters = new Map<string, Intl.DateTimeFormat>();
+const timelineDateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function storyDateFormatter(locale: string): Intl.DateTimeFormat {
+  const existing = storyDateFormatters.get(locale);
+  if (existing) return existing;
+  const created = new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(date);
+  });
+  storyDateFormatters.set(locale, created);
+  return created;
+}
+
+function timelineDateFormatter(
+  locale: string,
+  includeYear: boolean,
+): Intl.DateTimeFormat {
+  const key = `${locale}:${includeYear ? 'year' : 'current'}`;
+  const existing = timelineDateFormatters.get(key);
+  if (existing) return existing;
+  const created = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    ...(includeYear ? { year: 'numeric' } : {}),
+    timeZone: 'UTC',
+  });
+  timelineDateFormatters.set(key, created);
+  return created;
+}
+
+export function formatStoryDate(date: Date, locale: string): string {
+  return storyDateFormatter(locale).format(date);
 }
 
 export function formatTimelineDate(date: Date, locale: string): string {
   const currentYear = new Date().getUTCFullYear();
-  const itemYear = date.getUTCFullYear();
-  return new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'long',
-    ...(itemYear !== currentYear ? { year: 'numeric' } : {}),
-    timeZone: 'UTC',
-  }).format(date);
+  return timelineDateFormatter(
+    locale,
+    date.getUTCFullYear() !== currentYear,
+  ).format(date);
 }
 
 export function groupStoryItems(

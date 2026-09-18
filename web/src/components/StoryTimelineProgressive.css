@@ -1,8 +1,9 @@
-/* #975: content unfolds once as it first enters the Timeline viewport. */
+/* #975: content unfolds once as it first enters the Timeline viewport.
+ * #1028 deliberately avoids persistent will-change hints here: every loaded
+ * but unrevealed card otherwise reserves compositor resources off-screen. */
 .story-timeline-progressive-reveal {
   opacity: 0;
   transition: opacity 210ms var(--motion-easing-lift);
-  will-change: opacity;
 }
 
 /* Keep the task/navigation anchor itself geometrically stable while the
@@ -14,7 +15,6 @@
     translate 210ms var(--motion-easing-lift),
     transform var(--motion-duration-medium) var(--motion-easing-lift),
     box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
-  will-change: transform;
 }
 
 .story-timeline-heading-reveal {
@@ -22,13 +22,11 @@
   transition:
     opacity 210ms var(--motion-easing-lift),
     transform 210ms var(--motion-easing-lift);
-  will-change: opacity, transform;
 }
 
 .story-timeline-progressive-reveal[data-timeline-revealed="true"],
 .story-timeline-progressive-reveal:focus-within {
   opacity: 1;
-  will-change: auto;
 }
 
 .story-timeline-item.story-timeline-progressive-reveal[data-timeline-revealed="true"]
@@ -36,7 +34,6 @@
 .story-timeline-item.story-timeline-progressive-reveal:focus-within
   .story-card {
   translate: 0 0;
-  will-change: auto;
 }
 
 .story-timeline-heading-reveal[data-timeline-revealed="true"],
@@ -88,12 +85,10 @@
     opacity: 1;
     transform: none;
     transition: none;
-    will-change: auto;
-  }
+    }
 
   .story-timeline-item.story-timeline-progressive-reveal .story-card {
     translate: 0 0;
     transition: none;
-    will-change: auto;
-  }
+    }
 }

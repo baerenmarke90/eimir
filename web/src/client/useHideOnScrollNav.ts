@@ -190,21 +190,21 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       return;
     }
 
-    const handleScroll = (event: Event) => {
-      // Nested controls must not accidentally hide global navigation
-      const target = event.target;
-      const isRootTarget =
-        !target ||
-        target === window ||
-        target === document ||
-        target === document.documentElement ||
-        target === document.body ||
-        target === event.currentTarget;
-
-      if (!isRootTarget) {
-        return;
+    let scrollFrame: number | null = null;
+    const scheduleFrame = (callback: FrameRequestCallback): number =>
+      typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame(callback)
+        : window.setTimeout(() => callback(Date.now()), 16);
+    const cancelFrame = (frame: number) => {
+      if (typeof window.cancelAnimationFrame === 'function') {
+        window.cancelAnimationFrame(frame);
+      } else {
+        window.clearTimeout(frame);
       }
+    };
 
+    const updateFromScroll = () => {
+      scrollFrame = null;
       const isFocused = Boolean(
         shellRef.current &&
           document.activeElement &&
@@ -220,6 +220,7 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = window.innerHeight;
       const maxScrollY = Math.max(0, scrollHeight - clientHeight);
+      const previousVisible = stateRef.current.isVisible;
 
       const nextState = computeScrollNavStep(stateRef.current, {
         currentScrollY: window.scrollY,
@@ -229,11 +230,33 @@ export function useHideOnScrollNav(pathname: string, search = '') {
       });
 
       stateRef.current = nextState;
-      setIsVisible(nextState.isVisible);
+      if (nextState.isVisible !== previousVisible) {
+        setIsVisible(nextState.isVisible);
+      }
+    };
+
+    const handleScroll = (event: Event) => {
+      // Nested controls must not accidentally hide global navigation
+      const target = event.target;
+      const isRootTarget =
+        !target ||
+        target === window ||
+        target === document ||
+        target === document.documentElement ||
+        target === document.body ||
+        target === event.currentTarget;
+
+      if (!isRootTarget || scrollFrame !== null) return;
+      scrollFrame = scheduleFrame(updateFromScroll);
     };
 
     const handleResize = () => {
-      // Viewport / orientation resize resets to visible
+      // Viewport / orientation resize resets to visible and cancels stale
+      // scroll work scheduled against the previous geometry.
+      if (scrollFrame !== null) {
+        cancelFrame(scrollFrame);
+        scrollFrame = null;
+      }
       stateRef.current = createInitialScrollNavState(window.scrollY);
       setIsVisible(true);
     };
@@ -260,11 +283,12 @@ export function useHideOnScrollNav(pathname: string, search = '') {
     document.addEventListener('focusin', handleFocusIn);
 
     return () => {
+      if (scrollFrame !== null) cancelFrame(scrollFrame);
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('focusin', handleFocusIn);
     };
-  }, [isEnabled]);
+  }, [isEnabled, navigationKey]);
 
   return {
     isVisible: isEnabled ? isVisible : true,

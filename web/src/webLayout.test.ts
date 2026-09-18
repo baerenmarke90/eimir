@@ -33,6 +33,10 @@ const shellCss = readSource('./shell.css');
 const stylesCss = readSource('./styles.css');
 const memoryPolishCss = readSource('./memory-create-polish.css');
 const commentsCss = readSource('./components/CommentsPanel.css');
+const timelineProgressiveCss = readSource(
+  './components/StoryTimelineProgressive.css',
+);
+const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
 
 describe('web layout primitives', () => {
   it('lets a page fill the bounded main region instead of a reading column', () => {
@@ -141,6 +145,8 @@ describe('web layout tokens', () => {
       readSource('./components/SharedPlanningSanctuary.css'),
       readSource('./components/StoryMomentMetadata.css'),
       readSource('./components/StoryProductPages.css'),
+      timelineProgressiveCss,
+      discoverRevealCss,
       readSource('./components/TodayPage.css'),
     ].join('\n');
 
@@ -155,6 +161,13 @@ describe('web layout tokens', () => {
       ...new Set(consumed.filter((name) => !defined.has(name))),
     ];
     expect(unresolved).toEqual([]);
+  });
+});
+
+describe('mobile feed compositor budget (#1028)', () => {
+  it('does not pin every unrevealed Timeline or Discover item into a compositor layer', () => {
+    expect(timelineProgressiveCss).not.toContain('will-change:');
+    expect(discoverRevealCss).not.toContain('will-change:');
   });
 });
 

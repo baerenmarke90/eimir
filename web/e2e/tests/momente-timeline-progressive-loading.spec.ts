@@ -8,7 +8,12 @@ const PARTNER_ID = '99999999-9999-4999-8999-999999999999';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const DISTANT_ATTACHMENT = '55555555-5555-4555-8555-555555555555';
-const ME = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
+const AVATAR_ATTACHMENT = '66666666-6666-4666-8666-666666666666';
+const ME = {
+  id: ACCOUNT_ID,
+  displayName: 'Lea Sommer',
+  profileAttachmentId: AVATAR_ATTACHMENT,
+};
 const PARTNER = { id: PARTNER_ID, displayName: 'Alex' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
 const SVG =
@@ -19,6 +24,7 @@ type Tracker = {
   mediaReadAccess: string[];
   failNextPageOnce: boolean;
   nextPageFailures: number;
+  avatarRequests: string[];
 };
 
 function memory(index: number, withMedia = false) {
@@ -150,6 +156,19 @@ async function installMocks(page: Page, tracker: Tracker) {
 
     if (
       method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}/avatar/content`
+    ) {
+      tracker.avatarRequests.push(pathname);
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        body: SVG,
+      });
+    }
+
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
     ) {
       tracker.timelineRequests.push(url.search);
@@ -239,10 +258,16 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
       mediaReadAccess: [],
       failNextPageOnce: false,
       nextPageFailures: 0,
+      avatarRequests: [],
     };
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page, tracker);
     await signIn(page);
+
+    // All 22 initial cards carry the same author avatar. The shared loader
+    // must collapse them into one binary request/object URL rather than one
+    // request per card.
+    await expect.poll(() => tracker.avatarRequests.length).toBe(1);
 
     const firstEntry = page.locator('.story-timeline-item').first();
     await expect(firstEntry).toHaveAttribute('data-timeline-revealed', 'true');
@@ -283,6 +308,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     await expect(
       page.getByText(olderItem.memory.title, { exact: true }),
     ).toBeAttached();
+    expect(tracker.avatarRequests).toHaveLength(1);
     await expect(page.locator('.story-pagination-sentinel')).toHaveCount(0);
     await page.waitForTimeout(150);
     expect(nextPageRequestCount(tracker)).toBe(1);
@@ -305,6 +331,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
       mediaReadAccess: [],
       failNextPageOnce: true,
       nextPageFailures: 0,
+      avatarRequests: [],
     };
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page, tracker);
@@ -339,6 +366,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
       mediaReadAccess: [],
       failNextPageOnce: false,
       nextPageFailures: 0,
+      avatarRequests: [],
     };
     await page.setViewportSize({ width: 320, height: 640 });
     await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' });
@@ -377,6 +405,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
       mediaReadAccess: [],
       failNextPageOnce: false,
       nextPageFailures: 0,
+      avatarRequests: [],
     };
     await page.setViewportSize({ width: 1440, height: 900 });
     await installMocks(page, tracker);

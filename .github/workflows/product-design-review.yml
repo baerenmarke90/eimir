@@ -41,9 +41,10 @@ jobs:
           files="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
           printf '%s\n' "$files"
 
-          # Presentation and runtime design sources classified according to Issue #675:
-          # includes design/tokens.json, design/**, web/public/**, web/index.html,
-          # web/src/** (excluding web/src/api/generated/**), android/app/src/main/java/**, android/app/src/main/res/**.
+          # Presentation and runtime design sources classified according to the
+          # Web-first Product Reference: design/**, web/public/**, web/index.html,
+          # and web/src/** (excluding web/src/api/generated/**). Capacitor wrapper
+          # and native capability paths are not a second product-UI surface.
           ui_files="$(python3 scripts/classify_product_design_paths.py <<< "$files")"
 
           if [ -n "$ui_files" ]; then

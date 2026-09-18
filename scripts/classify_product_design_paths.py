@@ -9,8 +9,6 @@ Authoritative presentation/runtime source graph includes:
 - web/public/** (runtime brand, icons, favicons, entry scripts)
 - web/index.html (HTML entry point, meta tags, titles)
 - web/src/** EXCEPT contract-generated code in web/src/api/generated/**
-- android/app/src/main/java/**
-- android/app/src/main/res/**
 """
 
 from __future__ import annotations
@@ -26,8 +24,6 @@ USER_FACING_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^web/index\.html$"),
     re.compile(r"^web/public/"),
     re.compile(r"^web/src/"),
-    re.compile(r"^android/app/src/main/java/"),
-    re.compile(r"^android/app/src/main/res/"),
 )
 
 # Contract artifacts generated from OpenAPI are API schemas, not visual UI.

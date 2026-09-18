@@ -930,13 +930,12 @@ export function StoryProductPage({
                       {formatStoryDate(featuredItem.effectiveDate, locale)}
                     </time>
                     {featuredAuthor ? (
-                      <span
-                        className="momente-author-meta"
-                        role="group"
-                        aria-label={t('story.byAuthor', {
-                          author: storyAuthorLabel(featuredAuthor, accountId),
-                        })}
-                      >
+                      <span className="momente-author-meta">
+                        <span className="sr-only">
+                          {t('story.byAuthor', {
+                            author: storyAuthorLabel(featuredAuthor, accountId),
+                          })}
+                        </span>
                         <span aria-hidden="true">
                           <AuthorAvatar
                             author={featuredAuthor}
@@ -1102,16 +1101,15 @@ export function StoryProductPage({
                             <div className="momente-tapestry-meta">
                               <time dateTime={dateTime}>{dateLabel}</time>
                               {entry.author ? (
-                                <span
-                                  className="momente-author-meta"
-                                  role="group"
-                                  aria-label={t('story.byAuthor', {
-                                    author: storyAuthorLabel(
-                                      entry.author,
-                                      accountId,
-                                    ),
-                                  })}
-                                >
+                                <span className="momente-author-meta">
+                                  <span className="sr-only">
+                                    {t('story.byAuthor', {
+                                      author: storyAuthorLabel(
+                                        entry.author,
+                                        accountId,
+                                      ),
+                                    })}
+                                  </span>
                                   <span aria-hidden="true">
                                     <AuthorAvatar
                                       author={entry.author}

@@ -443,7 +443,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
     name: openItemLabel(3, 3),
   });
   const beforeOpen = await geometry(page);
-  await activeItem.click();
+  await pointerClickWithoutScroll(page, activeItem);
   const lightbox = page.locator('.media-lightbox');
   const close = lightbox.getByRole('button', { name: GALLERY.close });
   await expect(close).toBeFocused();

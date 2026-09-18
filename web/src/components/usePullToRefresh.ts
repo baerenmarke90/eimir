@@ -101,7 +101,6 @@ export function usePullToRefresh({
     const cancelGesture = () => {
       tracking = false;
       startX = null;
-      startX = null;
       startY = null;
       resetPull();
     };
@@ -182,6 +181,7 @@ export function usePullToRefresh({
         !refreshInFlightRef.current &&
         isAtDocumentTop();
       tracking = false;
+      startX = null;
       startY = null;
       resetPull();
       if (shouldRefresh) void runRefresh();

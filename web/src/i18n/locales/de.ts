@@ -264,6 +264,7 @@ const de = {
     emptyAction: 'Ersten Moment festhalten',
     aria: 'Gemeinsame Story',
     byAuthor: 'von {{author}}',
+    authorSelf: 'dir',
     kind: {
       memory: 'Erinnerung',
       heartMoment: 'Herzmoment',

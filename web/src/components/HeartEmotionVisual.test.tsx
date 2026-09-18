@@ -48,6 +48,7 @@ describe('HeartEmotionVisual', () => {
       const label = badge?.querySelector('.heart-emotion-label')?.textContent;
       expect(label).toBeTruthy();
       expect(badge?.classList).toContain('heart-emotion-badge--compact');
+      expect(badge?.getAttribute('role')).toBe('img');
       expect(badge?.querySelector('svg')).not.toBeNull();
       expect(badge?.getAttribute('aria-label')).toBe(`Gefühl: ${label}`);
       expect(badge?.getAttribute('title')).toBe(`Gefühl: ${label}`);
@@ -63,6 +64,7 @@ describe('HeartEmotionVisual', () => {
     expect(screen.getByText('Gesehen').textContent).toBe('Gesehen');
     const badge = container.querySelector('[data-emotion="SEEN"]');
     expect(badge).not.toBeNull();
+    expect(badge?.getAttribute('role')).toBe('img');
     expect(badge?.querySelector('svg')).not.toBeNull();
     expect(badge?.textContent).toBe('Gefühl: Gesehen');
     expect(badge?.getAttribute('aria-label')).toBe('Gefühl: Gesehen');

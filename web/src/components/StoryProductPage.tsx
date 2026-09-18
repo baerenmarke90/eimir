@@ -60,6 +60,7 @@ import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { AuthorAvatar } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import { PullToRefreshIndicator } from './PullToRefreshIndicator';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryBrowseLayer } from './StoryBrowseLayer';
 import { StoryList } from './StoryList';
@@ -656,43 +657,7 @@ export function StoryProductPage({
         </div>
       ) : null}
 
-      {activeView === 'timeline' && pullRefresh.supported ? (
-        <>
-          <div
-            className={`story-pull-refresh-indicator ${pullRefresh.pullDistance > 0 ? 'is-visible' : ''} ${pullRefresh.ready ? 'is-ready' : ''} ${pullRefresh.refreshing ? 'is-refreshing' : ''}`}
-            style={{
-              height: `${pullRefresh.refreshing ? 52 : pullRefresh.pullDistance}px`,
-            }}
-            aria-hidden="true"
-          >
-            <span className="story-pull-refresh-disc">
-              <svg
-                className="story-pull-refresh-icon"
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 11a8 8 0 1 0-2.34 5.66" />
-                <path d="M20 4v7h-7" />
-              </svg>
-            </span>
-          </div>
-          <div
-            className="sr-only"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {pullRefresh.refreshing ? t('common.refreshing') : ''}
-          </div>
-        </>
-      ) : null}
+      <PullToRefreshIndicator state={pullRefresh} />
 
       {activeView === 'timeline' ? (
         <PageHeader

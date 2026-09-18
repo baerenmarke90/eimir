@@ -41,7 +41,7 @@ import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
-import { VisibilityBadge } from './VisibilityBadge';
+import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
 
 export type HeartMomentProductMode = 'create' | 'detail' | 'edit';
@@ -791,39 +791,48 @@ export function HeartMomentProductPage({
 
           <footer className="heart-moment-provenance-footer">
             <p>
-              {t('heartMomentProduct.provenance', {
+              {t('heartMomentProduct.provenanceCompact', {
                 author: authorFirstName(heartMoment.author),
                 createdAt: formatCreatedAt(heartMoment.createdAt),
               })}
             </p>
-            <div className="heart-moment-shared-status">
-              <VisibilityBadge
-                visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
-                size="small"
-                variant="subtle"
-              />
-              {heartMoment.capabilities.canEdit && !offline ? (
-                <button
-                  type="button"
-                  className="heart-moment-visibility-toggle"
-                  onClick={() =>
-                    visibilityMutation.mutate({
-                      current: heartMoment,
-                      visibility: shared
-                        ? ContentVisibility.PRIVATE
-                        : ContentVisibility.SHARED,
-                    })
-                  }
-                  disabled={changingVisibility}
-                >
-                  {changingVisibility
-                    ? t('heartMomentProduct.visibilityChanging')
-                    : shared
-                      ? t('heartMomentProduct.makePrivate')
-                      : t('heartMomentProduct.makeShared')}
-                </button>
-              ) : null}
-            </div>
+            <VisibilityBadge
+              visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
+              size="small"
+              variant="subtle"
+              compactLabel={
+                shared ? t('heartMomentProduct.sharedCompact') : undefined
+              }
+            />
+            {heartMoment.capabilities.canEdit && !offline ? (
+              <button
+                type="button"
+                className="list-entry-icon-button tertiary heart-moment-visibility-action"
+                aria-label={
+                  shared
+                    ? t('heartMomentProduct.makePrivate')
+                    : t('heartMomentProduct.makeShared')
+                }
+                title={
+                  shared
+                    ? t('heartMomentProduct.makePrivate')
+                    : t('heartMomentProduct.makeShared')
+                }
+                onClick={() =>
+                  visibilityMutation.mutate({
+                    current: heartMoment,
+                    visibility: shared
+                      ? ContentVisibility.PRIVATE
+                      : ContentVisibility.SHARED,
+                  })
+                }
+                disabled={changingVisibility}
+              >
+                <VisibilityGlyph
+                  visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}
+                />
+              </button>
+            ) : null}
           </footer>
         </article>
       </div>

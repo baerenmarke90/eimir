@@ -85,6 +85,8 @@ const storyProducts = {
     detailEyebrow: 'Herzmoment',
     detailMetaAria: 'Angaben zu diesem Herzmoment',
     provenance: 'Festgehalten von {{author, firstName}} am {{createdAt}}',
+    provenanceCompact: 'von {{author, firstName}} · {{createdAt}}',
+    sharedCompact: 'Geteilt',
     loading: 'Herzmoment wird geladen …',
     textLabel: 'Moment',
     textPlaceholder: 'Was hat diesen Moment besonders gemacht?',

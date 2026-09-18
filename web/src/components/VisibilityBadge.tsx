@@ -21,6 +21,12 @@ export interface VisibilityBadgeProps {
    * content.
    */
   variant?: 'badge' | 'subtle';
+  /**
+   * A shorter visible word (e.g. "Geteilt") for tight metadata rows. The
+   * accessible name (aria-label/title) always stays the full label, so
+   * screen reader users still hear "Mit Partner geteilt".
+   */
+  compactLabel?: string;
 }
 
 function normalizeVisibility(
@@ -107,6 +113,7 @@ export function VisibilityBadge({
   customLabel,
   className = '',
   variant = 'badge',
+  compactLabel,
 }: VisibilityBadgeProps) {
   const { t } = useTranslation();
   const normalized = normalizeVisibility(visibility);
@@ -119,6 +126,7 @@ export function VisibilityBadge({
         : t('visibilityTemporary');
 
   const label = customLabel || defaultLabel;
+  const visibleText = compactLabel ?? label;
 
   return (
     <span
@@ -131,7 +139,9 @@ export function VisibilityBadge({
         <VisibilityGlyph visibility={visibility} />
       </span>
 
-      {showLabel && <span className="visibility-badge-label">{label}</span>}
+      {showLabel && (
+        <span className="visibility-badge-label">{visibleText}</span>
+      )}
     </span>
   );
 }

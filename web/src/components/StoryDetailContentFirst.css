@@ -30,42 +30,27 @@
 }
 
 /*
- * Quiet shared-state line under the provenance line, not a badge competing
- * with the title (#1014).
+ * One quiet metadata row - provenance, shared/private status and the
+ * visibility action all sit on the same line, even at 390px (#1014, PR
+ * #1020 follow-up). Milestone's footer stays plain centered text.
  */
-.heart-moment-shared-status {
+.heart-moment-provenance-footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: var(--space-2);
-  margin-top: var(--space-2);
 }
 
-/*
- * Sits beside the small status label as plain clickable text, matching its
- * size/color/weight exactly - a text block that happens to be clickable,
- * not a second button competing with the label (#1014).
- */
-.heart-moment-shared-status .heart-moment-visibility-toggle {
-  all: unset;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 400;
-  line-height: 1;
+.heart-moment-provenance-footer p {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.heart-moment-shared-status .heart-moment-visibility-toggle:disabled {
-  cursor: wait;
-}
-
-/*
- * The global button:hover rule nudges buttons up 1px on mouse hover, which
- * would only mask misalignment for a mouse and never for a touch tap. This
- * toggle has no hover effect at all, so the resting position - what touch
- * users actually see - is the one true alignment.
- */
-.heart-moment-shared-status .heart-moment-visibility-toggle:hover {
-  transform: none;
-  filter: none;
+/* Icon-only visibility action, sized like any other compact icon button. */
+.heart-moment-visibility-action {
+  flex: 0 0 auto;
 }

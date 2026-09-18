@@ -515,9 +515,7 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       expect(unexpectedRequests).toEqual([]);
 
       await page.screenshot({
-        path: testInfo.outputPath(
-          `story-memory-carousel-touch-${width}.png`,
-        ),
+        path: testInfo.outputPath(`story-memory-carousel-touch-${width}.png`),
         fullPage: true,
       });
     } finally {

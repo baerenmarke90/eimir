@@ -299,11 +299,7 @@ function AuthenticatedApp({
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (
-      heartMomentId: string,
-      attachmentId: string,
-      signal?: AbortSignal,
-    ) =>
+    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
       loadAuthorizedMedia(
         apis,
         apiBaseUrl,

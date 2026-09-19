@@ -70,11 +70,14 @@ Space preference inside the same Android application sandbox. Because
 `de.sidebyside.app` is intentionally preserved for store-update continuity,
 Android also preserves that sandbox during an in-place upgrade.
 
-`LegacyNativeDataCleanup` therefore runs from `MainActivity` on every start.
-It only deletes the retired database, its journal/WAL sidecars, the old Space
+`LegacyNativeDataCleanup` therefore runs from `MainActivity` at start until it
+has succeeded once. It only deletes the retired database, its journal/WAL sidecars, the old Space
 preference and the former owner-only cache Keystore entry. It never reads or
-migrates cached product content. Failed cleanup is retried on the next start.
-This bounded migration code is not a product-data store or a second client.
+migrates cached product content. Only when all three removals succeeded does it
+store a completion marker (`eimir_native_migrations` /
+`legacy_cleanup_v1_done`); later starts then skip it, so the retired names are
+not a permanent destructive hook. A failed removal writes no marker and is
+retried on the next start. This bounded migration code is not a product-data store or a second client.
 
 ## Deep Linking & OIDC Callback
 

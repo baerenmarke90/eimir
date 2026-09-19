@@ -96,8 +96,9 @@ Some names are deliberately not changed in place:
   existing app sandbox, the wrapper runs a one-way startup cleanup that deletes
   the old `sidebyside-read-cache.db`, the remembered-Space preference and the
   `sidebyside_owner_only_read_cache` Keystore entry. It never reads or migrates
-  their contents and retries cleanup on later starts if Android reports a
-  deletion failure. Server data continuity is unaffected.
+  their contents. It stores a completion marker only after all three removals
+  succeeded and then stops running; while Android reports a deletion failure it
+  retries on later starts. Server data continuity is unaffected.
 - The IndexedDB database `sidebyside-web-read-cache` remains stable. Web session,
   auth-return, theme, cache-context, and demo-mode keys are read once from their
   old names, written to canonical `eimir` keys, and then removed where removal

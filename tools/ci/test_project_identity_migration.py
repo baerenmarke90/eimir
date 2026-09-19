@@ -72,6 +72,15 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
         self.assertIn("context.deleteDatabase(LEGACY_DATABASE)", cleanup)
         self.assertIn("preferences.edit().clear().commit()", cleanup)
         self.assertIn("keyStore.deleteEntry(LEGACY_KEY_ALIAS)", cleanup)
+        # One-shot lifecycle: the marker is written only after all three
+        # removals succeeded, and a set marker skips the destructive cleanup.
+        self.assertIn('KEY_LEGACY_CLEANUP_DONE = "legacy_cleanup_v1_done"', cleanup)
+        self.assertIn("if (isCompleted(appContext))", cleanup)
+        self.assertLess(
+            cleanup.index("if (!databaseRemoved || !preferencesRemoved || !keyRemoved)"),
+            cleanup.index("markCompleted(appContext);"),
+        )
+        self.assertIn(".putBoolean(KEY_LEGACY_CLEANUP_DONE, true)", cleanup)
 
         main_activity = read(
             "android/app/src/main/java/de/eimir/app/MainActivity.java"

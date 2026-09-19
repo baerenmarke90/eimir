@@ -15,23 +15,62 @@ import java.security.KeyStore;
  * same application ID, so Android preserves the old app sandbox during an in-place update. Cleanup
  * therefore runs on every start until the retired Room database, remembered-Space preference, and
  * owner-only cache key are gone.
+ *
+ * <p>Lifecycle: TEMPORARY_UPGRADE_MIGRATION. Once all three removals have succeeded, a completion
+ * marker is stored and later starts skip the cleanup entirely, so the retired identifiers do not
+ * remain a permanent destructive hook. While any removal fails, no marker is written and the
+ * cleanup retries on the next start.
  */
 final class LegacyNativeDataCleanup {
     private static final String TAG = "eimir.LegacyCleanup";
     static final String LEGACY_DATABASE = "sidebyside-read-cache.db";
     static final String LEGACY_SPACE_PREFERENCES = "space_preferences";
     static final String LEGACY_KEY_ALIAS = "sidebyside_owner_only_read_cache";
+    static final String MIGRATION_PREFERENCES = "eimir_native_migrations";
+    static final String KEY_LEGACY_CLEANUP_DONE = "legacy_cleanup_v1_done";
 
     private LegacyNativeDataCleanup() {}
 
     static void run(Context context) {
         Context appContext = context.getApplicationContext();
+        if (isCompleted(appContext)) {
+            return;
+        }
+
         boolean databaseRemoved = removeLegacyDatabase(appContext);
         boolean preferencesRemoved = clearLegacyPreferences(appContext);
         boolean keyRemoved = removeLegacyKeystoreKey();
 
         if (!databaseRemoved || !preferencesRemoved || !keyRemoved) {
             Log.w(TAG, "Retired native cache cleanup will retry on the next app start.");
+            return;
+        }
+
+        markCompleted(appContext);
+    }
+
+    private static boolean isCompleted(Context context) {
+        try {
+            return context.getSharedPreferences(MIGRATION_PREFERENCES, Context.MODE_PRIVATE)
+                    .getBoolean(KEY_LEGACY_CLEANUP_DONE, false);
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not read the cleanup completion marker; cleaning up again.", error);
+            return false;
+        }
+    }
+
+    private static void markCompleted(Context context) {
+        try {
+            boolean stored =
+                    context.getSharedPreferences(MIGRATION_PREFERENCES, Context.MODE_PRIVATE)
+                            .edit()
+                            .putBoolean(KEY_LEGACY_CLEANUP_DONE, true)
+                            .commit();
+            if (!stored) {
+                Log.w(TAG, "Could not store the cleanup completion marker; will run again.");
+            }
+        } catch (RuntimeException error) {
+            Log.w(TAG, "Could not store the cleanup completion marker; will run again.", error);
         }
     }
 

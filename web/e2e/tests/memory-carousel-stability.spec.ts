@@ -173,6 +173,74 @@ async function swipeCarousel(
   }
 }
 
+async function swipeLightbox(
+  page: Page,
+  direction: 'previous' | 'next',
+): Promise<{
+  startScrollLeft: number;
+  midScrollLeft: number;
+  viewportWidth: number;
+  visibleSlides: number;
+}> {
+  const track = page.locator('.media-lightbox-track');
+  const box = await track.boundingBox();
+  if (!box) throw new Error('Lightbox track did not render.');
+
+  const startX =
+    direction === 'next' ? box.x + box.width * 0.82 : box.x + box.width * 0.18;
+  const endX =
+    direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
+  const midX = startX + (endX - startX) * 0.58;
+  const clientY = box.y + box.height / 2;
+  const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: midX, y: clientY }],
+    });
+    await nextFrame(page);
+
+    const midState = await track.evaluate((element) => {
+      const viewport = element.getBoundingClientRect();
+      const visibleSlides = Array.from(
+        element.querySelectorAll<HTMLElement>('.media-lightbox-slide'),
+      ).filter((slide) => {
+        const rect = slide.getBoundingClientRect();
+        return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
+      }).length;
+      return {
+        scrollLeft: element.scrollLeft,
+        viewportWidth: element.clientWidth,
+        visibleSlides,
+      };
+    });
+
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: endX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+
+    return {
+      startScrollLeft,
+      midScrollLeft: midState.scrollLeft,
+      viewportWidth: midState.viewportWidth,
+      visibleSlides: midState.visibleSlides,
+    };
+  } finally {
+    await client.detach();
+  }
+}
+
 async function expectCarouselSettled(page: Page, index: number): Promise<void> {
   await expect
     .poll(() =>
@@ -199,6 +267,35 @@ async function carouselInteractionContract(page: Page) {
       cloneCount: track.querySelectorAll(
         '.media-gallery-carousel-slide.is-clone',
       ).length,
+    };
+  });
+}
+
+async function expectLightboxSettled(page: Page, index: number): Promise<void> {
+  await expect
+    .poll(() =>
+      page
+        .locator('.media-lightbox-track')
+        .evaluate((track, expectedIndex) => {
+          const slide = track.querySelector<HTMLElement>(
+            `.media-lightbox-slide:not(.is-clone)[data-lightbox-index="${expectedIndex}"]`,
+          );
+          if (!slide) return Number.POSITIVE_INFINITY;
+          return Math.abs(track.scrollLeft - slide.offsetLeft);
+        }, index),
+    )
+    .toBeLessThanOrEqual(1);
+}
+
+async function lightboxInteractionContract(page: Page) {
+  return page.locator('.media-lightbox-track').evaluate((track) => {
+    const style = getComputedStyle(track);
+    return {
+      scrollSnapType: style.scrollSnapType,
+      overscrollBehaviorX: style.overscrollBehaviorX,
+      touchAction: style.touchAction,
+      cloneCount: track.querySelectorAll('.media-lightbox-slide.is-clone')
+        .length,
     };
   });
 }
@@ -574,6 +671,13 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const lightbox = page.locator('.media-lightbox');
   const close = lightbox.getByRole('button', { name: GALLERY.close });
   await expect(close).toBeFocused();
+  const lightboxInteraction = await lightboxInteractionContract(page);
+  expect(lightboxInteraction.scrollSnapType).toContain('x');
+  expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
+  expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');
+  expect(lightboxInteraction.touchAction).toBe('manipulation');
+  expect(lightboxInteraction.cloneCount).toBe(2);
+  await expectLightboxSettled(page, 2);
   await nextFrame(page);
   expectStableGeometry(beforeOpen, await geometry(page));
   expect(
@@ -594,12 +698,18 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const beforeLightboxNext = await geometry(page);
   await page.keyboard.press('Enter');
   await expect(lightboxNext).toBeFocused();
-  await nextFrame(page);
+  await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+    counterLabel(1, 3),
+  );
+  await expectLightboxSettled(page, 0);
   expectStableGeometry(beforeLightboxNext, await geometry(page));
 
   await page.keyboard.press('ArrowLeft');
   await expect(lightboxNext).toBeFocused();
-  await nextFrame(page);
+  await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+    counterLabel(3, 3),
+  );
+  await expectLightboxSettled(page, 2);
   expectStableGeometry(beforeLightboxNext, await geometry(page));
   await page.keyboard.press('Escape');
 
@@ -680,6 +790,43 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
         ).toHaveCount(0);
         expectStableGeometry(before, await geometry(page));
       }
+
+      const beforeLightbox = await geometry(page);
+      await page
+        .getByRole('button', { name: openItemLabel(1, 3) })
+        .click();
+      const lightbox = page.locator('.media-lightbox');
+      await expect(lightbox).toBeVisible();
+      const lightboxInteraction = await lightboxInteractionContract(page);
+      expect(lightboxInteraction.scrollSnapType).toContain('x');
+      expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
+      expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');
+      expect(lightboxInteraction.touchAction).toBe('manipulation');
+      expect(lightboxInteraction.cloneCount).toBe(2);
+      await expectLightboxSettled(page, 0);
+
+      const lightboxTouchSteps = [
+        { direction: 'next', expected: 2 },
+        { direction: 'previous', expected: 1 },
+        { direction: 'previous', expected: 3 },
+        { direction: 'next', expected: 1 },
+      ] as const;
+
+      for (const step of lightboxTouchSteps) {
+        const drag = await swipeLightbox(page, step.direction);
+        expect(
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
+        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
+        await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+          counterLabel(step.expected, 3),
+        );
+        await expectLightboxSettled(page, step.expected - 1);
+        expectStableGeometry(beforeLightbox, await geometry(page));
+      }
+
+      await lightbox.getByRole('button', { name: GALLERY.close }).click();
+      await expect(lightbox).toHaveCount(0);
       expect(unexpectedRequests).toEqual([]);
 
       await page.screenshot({

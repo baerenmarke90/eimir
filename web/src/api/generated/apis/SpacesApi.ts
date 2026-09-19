@@ -326,7 +326,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Renew caller presence and return the partner\\'s bounded state.
+     * Renew caller presence and return the partner\'s bounded state.
      * Touch Presence
      */
     async touchPresenceRaw(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
@@ -337,7 +337,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Renew caller presence and return the partner\\'s bounded state.
+     * Renew caller presence and return the partner\'s bounded state.
      * Touch Presence
      */
     async touchPresence(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {

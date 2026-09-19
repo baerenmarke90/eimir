@@ -296,7 +296,7 @@ describe('CommentsPanel', () => {
       const textarea = screen.getByPlaceholderText(
         'Schreib etwas dazu …',
       ) as HTMLTextAreaElement;
-      await user.type(textarea, 'Nicht verlieren');
+      await user.type(textarea, 'Keep this draft');
       await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
       await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
 
@@ -309,7 +309,7 @@ describe('CommentsPanel', () => {
           }).disabled,
         ).toBe(false),
       );
-      expect(textarea.value).toBe('Nicht verlieren');
+      expect(textarea.value).toBe('Keep this draft');
       expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
     });
   });

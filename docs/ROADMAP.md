@@ -1,8 +1,9 @@
 # eimir. Roadmap
 
-**Status:** Human-readable orientation and prioritization view  
-**Version:** 2.3  
-**As of:** September 1, 2026  
+<!-- status-surface: secondary-roadmap -->
+
+**Status:** milestone sequence and Release Gate contract; current state lives in [Implementation Status](./IMPLEMENTATION-STATUS.md)  
+**Version:** 2.4  
 **Time model:** phases and Release Gates, no committed calendar dates
 
 This roadmap translates the binding product requirements into an understandable sequence. It shows goals, dependencies, and release points. Actual implementation state is tracked in [Implementation Status](./IMPLEMENTATION-STATUS.md); rules for living status sources are defined in [Status Sources and Drift Rules](./STATUS-SOURCES.md).
@@ -15,7 +16,7 @@ The accepted sequencing decision is [ADR 0006 — Release the Core before option
 
 ![Roadmap from M0 Foundation through M6 launch readiness and post-launch M7-M9 expansion](./assets/roadmap/roadmap-overview.svg)
 
-**Current:** M0 through M5 are complete for their intended scope. **G1, G2, G3, and G4 have passed.** **M6 — Operate & Launch** is the next milestone; G5 has not yet been evaluated or passed.
+This diagram describes the release sequence, not the current execution state. See [Implementation Status](./IMPLEMENTATION-STATUS.md) for current milestone, gate, blocker, and acceptance status.
 
 The intended forward path is now deliberately:
 
@@ -64,51 +65,16 @@ The Master Specification remains authoritative for Clean-Room, Security, Privacy
 
 For **milestone numbering/order only**, Product Spec 1.1 and ADR 0006 supersede the old M6-M9 sequence in section 68 of the current Master Specification until that document is next consolidated. No other Master Specification rule is weakened.
 
-## Current milestone snapshot
+## Status ownership
 
-### M0 — Foundation: complete
+This roadmap defines milestone order, scope boundaries, and Release Gate criteria.
+It is deliberately **not** the authoritative source for current completion,
+blocker, or acceptance state. Use
+[Implementation Status](./IMPLEMENTATION-STATUS.md) for the current project/gate
+state and [Status Sources and Drift Rules](./STATUS-SOURCES.md) for the maintenance
+contract.
 
-API/DB conventions, migrations, Outbox, jobs, MediaStore foundation, ProtectedPayload boundary, versioned OpenAPI, PostgreSQL integration tests, Supply Chain checks, Secret Scan, and Provenance are present for the Foundation scope.
-
-### M1 — Identity & Relationship: complete, G1 passed
-
-Account/AuthIdentity, Sessions, Space/Membership/Tenant Guard, Invitations, Profile, RelatedPerson/ImportantDate, OIDC, Passkeys, Magic Link, email verification, and Recovery are delivered. Repository and Pre-Exposure hardening already completed in this historical scope remain valid.
-
-### M2 — Memories / Story Alpha: complete, G2 passed
-
-Memory, image Attachments, HeartMoment Privacy, Milestones, Comments, Story, MediaStore integration and thin real Web/Android reference flows are delivered. The [final G2 Gate Review](./reviews/2026-08-26-g2-final-gate-review.md) remains the immutable G2 decision.
-
-Video remains separate future work and is not implied by M2 completion.
-
-### M3 — Planning & Private Area: complete, G3 passed
-
-Wishes, Plans, Places, typed relations, Chapters, shared Collections and the owner-only Private Area are delivered with their Privacy/concurrency/evidence package. The [final G3 Gate Review](./reviews/2026-08-30-g3-gate-review.md) remains the immutable G3 decision.
-
-### M4 — Engage: complete
-
-Search/Dashboard, Activity/Notifications, Thinking-of-you/PushDelivery, Reminders, Rules and occurrence planning are delivered. Full Web/Android productization of these contracts was M5's scope and is complete.
-
-### M5 — Client Completion & Parity: complete, G4 passed
-
-*Historical record; the "complete Android productization" and "domain parity" items below are superseded terminology (see the architecture note at the top of this document and ADR 0011).*
-
-M5 turned the already delivered M0-M4 Core into a complete product on both clients. The binding decision source is the [G4 Gate Review](./reviews/2026-09-03-g4-gate-review.md). It owned:
-
-- complete Web productization;
-- complete Android productization;
-- stable route/Deep Link behavior;
-- versioned Export/Import;
-- bounded Read Cache/offline-read behavior;
-- systematic domain parity;
-- Accessibility;
-- final Core client Privacy/Security evidence.
-
-**2026-09-02 gate scope decision:** dedicated Performance evidence and manual Accessibility acceptance are deprioritized for G4 (see `docs/IMPLEMENTATION-STATUS.md`); the existing per-PR Cross-Cutting Quality review and per-slice automated Accessibility semantics stand as the accepted evidence instead. Domain parity is produced as a pragmatic Web/Android feature audit — closing or explicitly accepting real gaps — rather than a formal evidence document.
-
-**Parity audit outcome:** the audit ran on 2026-09-02 and is recorded on #295. Its six findings (#603-#608) were all closed rather than accepted. Android registers no OS-level App Link yet; that boundary stays declared under the S6 decision rather than counted as satisfied.
-
-**Scope protection:** M5 did not absorb new Relationship Depth domains. New Vibe/Energy, Love Note, achievement, Question or Recap runtime belongs to M7 after G5. M5 provided reusable navigation/settings/client primitives without inventing those new Domain contracts.
-
+## Forward milestones
 ## Forward milestones
 
 | Phase | Human goal | Scope | Outcome |
@@ -122,19 +88,26 @@ M5 turned the already delivered M0-M4 Core into a complete product on both clien
 
 ## M6 — Operate & Launch
 
-M6 is now the launch-readiness milestone and follows G4 directly.
+M6 is the launch-readiness milestone between G4 and G5. It covers the operational
+and release responsibilities needed to turn the Core Release Candidate into a
+reviewable launch candidate:
 
-Its readiness/delivery plan should separate at least these risk classes rather than building one monolithic release PR:
+1. release engineering and immutable artifact identity;
+2. backup, restore, upgrade, retention, deletion, and recovery;
+3. supported deployment/promotion/rollback boundaries for the declared launch
+   operating mode;
+4. safe administration, maintenance, and ServerAdmin behavior;
+5. provider-neutral, backend-authoritative commercial capability enforcement;
+6. observability, incident readiness, Security/Privacy, final accessibility, and
+   bounded launch QA.
 
-1. **Release engineering** — final application identity/versioning/signing, reproducible release artifacts, release provenance/SBOM where applicable.
-2. **Operations** — Backup/Restore/Upgrade, retention/cleanup, recovery evidence, failure handling.
-3. **Deployment** — Self-Hosted, persistent development/staging, promotion/rollback, Cloud/Managed deployment.
-4. **Administration** — runtime registration/maintenance controls and ServerAdmin surfaces.
-5. **Commercial capability runtime** — centralized Entitlement/capability model plus provider-neutral billing/licensing adapters consistent with #262.
-6. **Release QA** — Security, Privacy, Accessibility, performance, incident and recovery evidence.
+The frozen M6-S0 planning package is retained under [docs/m6](./m6/README.md).
+Current execution/blocker state belongs only in
+[Implementation Status](./IMPLEMENTATION-STATUS.md); the G5 evidence matrix and
+dated gate reviews remain evidence/decision records rather than a second roadmap
+status table.
 
-Existing issues such as #190, #192, #193, #194, #304, #334 and #335 should be classified against these M6 concerns when the detailed M6 package is assembled. Reclassification does not silently expand their issue scope.
-
+## M7 — Relationship Depth
 ## M7 — Relationship Depth
 
 M7 owns optional everyday relationship features. It starts with readiness rather than immediately adding independent domains.
@@ -277,9 +250,12 @@ and resource impact.
 
 ### G5 — Launch-ready
 
+This section defines the gate contract only. The current decision and remaining
+acceptance work are recorded in [Implementation Status](./IMPLEMENTATION-STATUS.md).
+
 G5 is evaluated after **M6**, before M7-M9 expansion is required. At minimum:
 
-- Cloud/Managed and Self-Hosted operation are documented and supported for the launch target;
+- every operating mode included in the declared launch target has a documented and supported operating contract; excluded modes are explicitly classified rather than presented as launch-ready;
 - Backup/Restore/Upgrade and rollback/recovery paths are demonstrated;
 - release application identity, signing/versioning and artifact pipeline are controlled;
 - administration/maintenance/recovery access is safe;

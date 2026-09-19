@@ -1,5 +1,7 @@
 # eimir.
 
+<!-- status-surface: secondary-overview -->
+
 A private digital companion for a couple's shared life.
 
 eimir. is an independent reimplementation. It is offered in two
@@ -85,11 +87,9 @@ localized product content.
 </p>
 
 <p align="center">
-  <strong>Current: M4 is complete. M5 — Client Completion & Parity is the active roadmap milestone.</strong><br>
-  <a href="docs/ROADMAP.md">View roadmap, parallel workstreams, and Release Gates</a> ·
-  <a href="docs/IMPLEMENTATION-STATUS.md">Open the actual implementation state</a> ·
-  <a href="docs/m4/M4-EVIDENCE.md">Open M4 completion evidence</a> ·
-  <a href="docs/reviews/2026-08-30-g3-gate-review.md">Open the final G3 Gate Review</a>
+  <a href="docs/IMPLEMENTATION-STATUS.md"><strong>Open the authoritative current implementation and gate status</strong></a><br>
+  <a href="docs/ROADMAP.md">View milestone sequence and Release Gate definitions</a> ·
+  <a href="docs/STATUS-SOURCES.md">View status-source and drift rules</a>
 </p>
 
 ## Principles
@@ -221,61 +221,17 @@ configuration keys.
 
 ## Status
 
-**M0 — technical platform complete.** Error format, Transactional Outbox, Job
-Queue, MediaStore and Provider interfaces, ProtectedPayload boundary,
-reproducible dependencies, OpenAPI contract, and CI/Supply-Chain checks exist
-for the M0 scope.
+[docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) is the single
+authoritative living source for current milestone, gate, launch-blocker, and
+acceptance status. This README intentionally does not duplicate that detailed
+state.
 
-**M1 / G1 — complete and passed.** Account, Space, Membership, Tenant Context,
-Owner/Privacy Guard, and Device Sessions with rotating Tokens are implemented.
-Local password, OIDC with PKCE/State/Nonce, OIDC invitation onboarding,
-Passkeys, Magic Link, email verification, Recovery, Invitations, SpaceProfile,
-PartnerProfile/ProfilePreference, and RelatedPerson/ImportantDate are present
-in the Backend and covered by PostgreSQL/Privacy/Tenant tests. #61 was closed
-with an explicit `preserve`/`cascade` Delete Policy and no destructive default.
+Use [docs/ROADMAP.md](docs/ROADMAP.md) for milestone order and gate definitions.
+For G5 evidence and decision records, follow the links from the living status
+rather than inferring launch readiness from a green CI run or a closed
+implementation issue.
 
-The [G1 Gate Review after #61](docs/reviews/2026-08-25-g1-gate-review-after-61.md)
-sets G1 to **PASSED**. #59 and #60 remain mandatory Pre-Exposure hardening
-before public/Managed operation; #25 remains Repository Hardening.
-
-**M2 / G2 — complete and passed.** Memory CRUD, HeartMoment with owner-only
-Privacy, image Attachments including safe ingest and binding, Milestone,
-Comments, S3-compatible MediaStore, Story Read Model, and the thin Web/Android
-reference flows are delivered. The real critical Memory/Media/Story flow was
-demonstrated against API, Worker, PostgreSQL, and LocalMediaStore on both
-client paths. (The Android reference flow was a Kotlin/Compose client; it was
-retired in #1009 in favor of the Capacitor wrapper, see
-[ADR 0011](docs/decisions/0011-web-first-pwa-capacitor-mobile-delivery.md).)
-
-The [final G2 Gate Review](docs/reviews/2026-08-26-g2-final-gate-review.md)
-sets G2 explicitly to **PASSED**. Manual Accessibility acceptance was not
-claimed as passed there; it remains part of later Client/Release QA in M5/G4.
-
-**M3 / G3 — complete and passed.** Wishes, Plans, Places, typed content
-relations, Chapters, Shared Collections, PrivateNote, GiftIdea, and
-PrivateCollection are delivered through the versioned REST/OpenAPI contract.
-M3-S9 assembled the five mandatory real HTTP/PostgreSQL G3 flows plus the
-binding Cross-Tenant, `OWNER_ONLY`, race, delete-preservation, redaction, and
-contract evidence.
-
-The [final G3 Gate Review](docs/reviews/2026-08-30-g3-gate-review.md) reviewed
-the merged S9 tree and exact successful workflow runs and sets G3 explicitly
-to **PASSED**. Complete client parity, Accessibility, Read Cache, Export/Import,
-Deep Links, and client performance remain M5/G4.
-
-**Next milestone: M4 — Engage.** The first defined delivery boundary is M4-A
-Search + Dashboard Read Models, followed by M4-B Activity + Notifications and
-M4-C Reminders + Rules. M3-S10 closes G3 only; it does not start M4
-implementation.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target architecture,
-[docs/SECURITY.md](docs/SECURITY.md) for Security invariants,
-[docs/m3/README.md](docs/m3/README.md) for the completed M3 package,
-[docs/reviews/2026-08-30-g3-gate-review.md](docs/reviews/2026-08-30-g3-gate-review.md)
-for the current gate decision, and
-[specification/PRODUCT-SPEC.md](specification/PRODUCT-SPEC.md) for functional
-scope.
-
+## Project control
 ## Project control
 
 The complete binding requirement is the
@@ -286,9 +242,11 @@ review snapshots; if they conflict with current normative guidance, the Master
 Specification remains authoritative.
 
 Parallel implementation work is coordinated through clearly scoped GitHub
-Issues, separate branches, and Pull Requests. While Branch Protection cannot
-be enforced technically for this private repository under the current plan,
-the PR/CI requirement remains a project rule.
+Issues, separate branches, and Pull Requests. Enforcement for `main` is
+defined by the repository's [active GitHub ruleset](https://github.com/baerenmarke90/eimir/rules/21286018);
+GitHub is the canonical source for repository visibility, required checks, and
+rule enforcement. This README intentionally does not copy a static required-check
+list that would drift independently.
 
 ## Security
 

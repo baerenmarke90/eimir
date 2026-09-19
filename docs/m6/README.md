@@ -1,15 +1,24 @@
 # M6 — Operate & Launch
 
-**Status:** readiness contract for #437  
-**Gate:** G5 — Launch-ready  
-**Planning baseline:** `main` at `7564800df85f53f9f0c9a99a7414de22906ade73` (2026-09-01)
+<!-- status-surface: historical-m6-planning -->
 
-M6 turns the G4 Core Release Candidate into an operable, recoverable, observable,
-administrable and commercially enforceable launch product. This package freezes the
-launch boundary before M6 runtime work is split across focused issues.
+**Document role:** frozen M6-S0 readiness/planning snapshot for #437  
+**Gate defined by this package:** G5 — Launch-ready  
+**Planning baseline:** `main` at `7564800df85f53f9f0c9a99a7414de22906ade73` (2026-09-01)  
+**Current status:** not maintained in this file; see [Implementation Status](../IMPLEMENTATION-STATUS.md).
 
-M6-S0 is documentation and issue planning only. It introduces no backend, Web or
-Android runtime behavior.
+This document preserves the M6-S0 planning context that turned the G4 Core Release
+Candidate into an operable, recoverable, observable, administrable, and
+commercially enforceable launch product. Workstream states and forward-looking
+statements below are frozen at the planning baseline and must not be read as current
+Issue or gate status.
+
+Current criterion evidence lives in [G5-EVIDENCE.md](G5-EVIDENCE.md). Dated G5
+reviews remain decision records; the authoritative current project/gate state lives
+only in [Implementation Status](../IMPLEMENTATION-STATUS.md).
+
+M6-S0 itself was documentation and issue planning only. It introduced no backend,
+Web, or Android runtime behavior.
 
 ## 1. Milestone boundary
 
@@ -57,7 +66,10 @@ G5 is evidence-testable. Launch-ready means all required items below have tracea
 
 ## 3. Workstream inventory
 
-| Workstream | Owner(s) | Readiness status | S0 treatment |
+The table below is the **frozen S0 planning inventory**. `OPEN` / `PARTIAL`
+values describe the 2026-09-01 baseline, not current GitHub Issue states.
+
+| Workstream | Owner(s) | S0 snapshot status | S0 treatment |
 |---|---|---|---|
 | M6-A Release engineering | #519, #193 | OPEN | #194 and #375 reused; publication/signing and provenance remain |
 | M6-B Operations/recovery/data lifecycle | #190, #518, #520 | PARTIAL | #190 reused; retention/offboarding/Account deletion remain |
@@ -125,9 +137,11 @@ The M5 Transfer Bundle (#345) is a user-facing, authorization-scoped portability
 artifact. `SHARED`/`PERSONAL` export semantics cannot replace an operational
 recovery point, and an operator backup cannot be exposed as a user export.
 
-## 7. Entitlement freeze rule
+## 7. Historical entitlement freeze rule
 
-#262 remains the authoritative product/architecture decision. Until it is resolved:
+At the S0 planning baseline, #262 was unresolved. The constraints below are retained
+as the historical pre-resolution rule that prevented accidental paywall/provider
+architecture:
 
 - do not broadly paywall existing features;
 - do not encode provider SKU/store concepts in Domain services;
@@ -135,11 +149,13 @@ recovery point, and an operator backup cannot be exposed as a user export.
 - do not invent trial/grace/grandfathering states in runtime;
 - do not select a Self-Hosted licensing behavior by accident.
 
-#523 implements only the accepted model. Each actual launch entitlement source
-(Google Play, hosted subscription, Self-Hosted commercial license, promotion, or
-other accepted source) receives its own focused adapter issue after #262 selects the
-required launch channels.
+That freeze has since been resolved: #262 and #523 are closed, and the initial
+launch entitlement source is `ADMIN_GRANT` as recorded in
+[ENTITLEMENT-BOUNDARY.md](ENTITLEMENT-BOUNDARY.md). Current gate status must be
+taken from [Implementation Status](../IMPLEMENTATION-STATUS.md), not from this
+historical planning snapshot.
 
+## 8. Parallelism and Android isolation
 ## 8. Parallelism and Android isolation
 
 #437 itself is intentionally safe to execute while M5 Android work continues: this

@@ -44,7 +44,7 @@ function snapshotState(
   const loading = new Set<string>();
 
   for (const resourceId of resourceIds) {
-    const entry = entries.get(resourceEntryKey(activeScopeKey, resourceId));
+    const entry = entries.get(resourceEntryKey(scopeKey, resourceId));
     if (!entry) continue;
     if (entry.status === 'ready' && entry.resource) {
       urls[resourceId] = entry.resource.url;

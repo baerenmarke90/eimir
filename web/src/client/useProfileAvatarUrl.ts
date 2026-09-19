@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import {
+  createOwnedObjectUrl,
+  type OwnedObjectUrl,
+} from './objectUrlResource';
 
 interface SharedAvatarEntry {
   consumers: number;
-  objectUrl: string | null;
+  resource: OwnedObjectUrl | null;
   pending: Promise<string> | null;
   controller: AbortController | null;
   releaseTimer: ReturnType<typeof setTimeout> | null;
@@ -45,7 +49,7 @@ function releaseSharedAvatar(
     entry.releaseTimer = null;
     if (entry.consumers > 0) return;
     entry.controller?.abort();
-    if (entry.objectUrl) URL.revokeObjectURL(entry.objectUrl);
+    entry.resource?.dispose();
     cache.delete(key);
   }, 0);
 }
@@ -82,7 +86,7 @@ function acquireSharedAvatar(
 
   const currentEntry = entry;
 
-  if (!currentEntry.pending && !currentEntry.objectUrl) {
+  if (!currentEntry.pending && !currentEntry.resource) {
     const controller = new AbortController();
     currentEntry.controller = controller;
     const pending = profilesApi
@@ -95,9 +99,9 @@ function acquireSharedAvatar(
         if (controller.signal.aborted) {
           throw new DOMException('Avatar load aborted', 'AbortError');
         }
-        const objectUrl = URL.createObjectURL(blob);
-        currentEntry.objectUrl = objectUrl;
-        return objectUrl;
+        const resource = createOwnedObjectUrl(blob);
+        currentEntry.resource = resource;
+        return resource.url;
       })
       .finally(() => {
         if (currentEntry.pending === pending) currentEntry.pending = null;
@@ -108,8 +112,8 @@ function acquireSharedAvatar(
     currentEntry.pending = pending;
   }
 
-  const promise = currentEntry.objectUrl
-    ? Promise.resolve(currentEntry.objectUrl)
+  const promise = currentEntry.resource
+    ? Promise.resolve(currentEntry.resource.url)
     : currentEntry.pending;
   if (!promise) {
     throw new Error('Shared avatar cache entry has no load promise.');
@@ -146,7 +150,7 @@ export function useProfileAvatarUrl(
       accountId,
       profileAttachmentId,
     );
-    setAvatarUrl(shared.entry.objectUrl);
+    setAvatarUrl(shared.entry.resource?.url ?? null);
 
     void shared.promise
       .then((loadedUrl) => {

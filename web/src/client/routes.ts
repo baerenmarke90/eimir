@@ -125,8 +125,7 @@ export const SETTINGS_CATEGORY_IDS = [
 
 export type SettingsCategoryId = (typeof SETTINGS_CATEGORY_IDS)[number];
 
-export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN =
-  `${MORE_SETTINGS_ROUTE}/:settingsCategory`;
+export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:settingsCategory`;
 
 export const SETTINGS_CATEGORY_ROUTES = {
   relationship: `${MORE_SETTINGS_ROUTE}/relationship`,

@@ -26,6 +26,8 @@ jobs:
     container: node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Install locked Web dependencies
         working-directory: web
@@ -55,6 +57,24 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: web/e2e
         run: npm run test:pr
+
+      - name: Verify changed browser specs
+        if: github.event_name == 'pull_request'
+        working-directory: web/e2e
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mapfile -t changed_specs < <(
+            git -C ../.. diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'web/e2e/tests/*.spec.ts'               | sed 's#^web/e2e/##'
+          )
+          if [ "${#changed_specs[@]}" -eq 0 ]; then
+            echo "No browser spec files changed."
+            exit 0
+          fi
+          printf 'Changed browser specs:\n'
+          printf '  %s\n' "${changed_specs[@]}"
+          npm run test:full -- "${changed_specs[@]}"
 
       - name: Full browser regression
         if: github.event_name != 'pull_request'

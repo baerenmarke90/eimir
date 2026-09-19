@@ -29,6 +29,10 @@ import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { personInitials } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
+import {
+  containModalTabFocus,
+  useModalLifecycle,
+} from './useModalLifecycle';
 
 const RELATIONSHIPS = Object.values(PersonRelationship);
 const VISIBILITIES = Object.values(ContentVisibility);
@@ -217,20 +221,10 @@ export function RelatedPersonEditorSheet({
     };
   }, []);
 
-  useEffect(() => {
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    nameInputRef.current?.focus();
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      previousFocus?.focus();
-    };
-  }, []);
+  useModalLifecycle({
+    active: true,
+    initialFocusRef: nameInputRef,
+  });
 
   const closeEditor = useEditorHistoryEntry({
     isDirty,
@@ -270,24 +264,7 @@ export function RelatedPersonEditorSheet({
       }
       return;
     }
-    if (event.key !== 'Tab' || !dialogRef.current) return;
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), summary, [href], [tabindex]:not([tabindex="-1"])',
-      ),
-    ).filter((element) => element.offsetParent !== null);
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    containModalTabFocus(event, dialogRef.current, { visibleOnly: true });
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {

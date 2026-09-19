@@ -279,11 +279,7 @@ export function StoryYearDetailPage({
   ]);
 
   const loadHeartMomentImage = useCallback(
-    (
-      heartMomentId: string,
-      attachmentId: string,
-      signal?: AbortSignal,
-    ) =>
+    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
       loadAuthorizedStoryImage(
         apis,
         spaceId,

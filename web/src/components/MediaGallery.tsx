@@ -58,10 +58,7 @@ export function MediaGallery({
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
   const activeIndexRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    setCarouselIndex(0);
-  }, [itemIdentity]);
+  const carouselItemsIdentityRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
@@ -69,11 +66,15 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
+    if (carouselItemsIdentityRef.current === itemIdentity) return;
+    carouselItemsIdentityRef.current = itemIdentity;
+    setCarouselIndex(0);
+
     const track = carouselTrack.current;
     const firstSlide = carouselSlides.current[0];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [itemIdentity]);
+  }, [itemIdentity, items.length]);
 
   useEffect(
     () => () => {

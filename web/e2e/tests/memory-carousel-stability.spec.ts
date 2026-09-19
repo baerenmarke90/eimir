@@ -531,8 +531,7 @@ test('Memory carousel keeps document and layout position stable across pointer a
   expect(interaction.scrollSnapType).toContain('x');
   expect(interaction.scrollSnapType).toContain('mandatory');
   expect(interaction.overscrollBehaviorX).toBe('contain');
-  expect(interaction.touchAction).toContain('pan-x');
-  expect(interaction.touchAction).toContain('pan-y');
+  expect(interaction.touchAction).toBe('manipulation');
   expect(interaction.cloneCount).toBe(2);
   await expectCarouselSettled(page, 0);
 
@@ -654,8 +653,7 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       expect(interaction.scrollSnapType).toContain('x');
       expect(interaction.scrollSnapType).toContain('mandatory');
       expect(interaction.overscrollBehaviorX).toBe('contain');
-      expect(interaction.touchAction).toContain('pan-x');
-      expect(interaction.touchAction).toContain('pan-y');
+      expect(interaction.touchAction).toBe('manipulation');
       expect(interaction.cloneCount).toBe(2);
       await expectCarouselSettled(page, 0);
 

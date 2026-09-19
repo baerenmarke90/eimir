@@ -26,9 +26,7 @@ describe('Object URL resource ownership', () => {
 
   beforeEach(() => {
     nextObjectUrl = 0;
-    createObjectUrl = vi.fn(
-      () => `blob:resource-${++nextObjectUrl}`,
-    );
+    createObjectUrl = vi.fn(() => `blob:resource-${++nextObjectUrl}`);
     revokeObjectUrl = vi.fn();
     URL.createObjectURL = createObjectUrl;
     URL.revokeObjectURL = revokeObjectUrl;
@@ -104,8 +102,7 @@ describe('Object URL resource ownership', () => {
       resourceId === 'attachment:a' ? first.promise : second.promise,
     );
     const { result, rerender, unmount } = renderHook(
-      ({ resourceId }) =>
-        useObjectUrlResource('memory:1', resourceId, load),
+      ({ resourceId }) => useObjectUrlResource('memory:1', resourceId, load),
       { initialProps: { resourceId: 'attachment:a' } },
     );
 
@@ -138,8 +135,7 @@ describe('Object URL resource ownership', () => {
       resourceId === 'attachment:a' ? first.promise : second.promise,
     );
     const { result, rerender } = renderHook(
-      ({ resourceId }) =>
-        useObjectUrlResource('memory:1', resourceId, load),
+      ({ resourceId }) => useObjectUrlResource('memory:1', resourceId, load),
       { initialProps: { resourceId: 'attachment:a' } },
     );
 
@@ -171,8 +167,7 @@ describe('Object URL resource ownership', () => {
         pending[resourceId as keyof typeof pending].promise,
     );
     const { result, rerender, unmount } = renderHook(
-      ({ resourceId }) =>
-        useObjectUrlResource('scope', resourceId, load),
+      ({ resourceId }) => useObjectUrlResource('scope', resourceId, load),
       { initialProps: { resourceId: 'a' } },
     );
 
@@ -211,9 +206,7 @@ describe('Object URL resource ownership', () => {
       { initialProps: { resourceId: 'attachment:1' as string | null } },
     );
 
-    await waitFor(() =>
-      expect(result.current.url).toBe('blob:single-owner'),
-    );
+    await waitFor(() => expect(result.current.url).toBe('blob:single-owner'));
     rerender({ resourceId: null });
     expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
 
@@ -223,7 +216,9 @@ describe('Object URL resource ownership', () => {
 
   it('preserves unchanged gallery resources and does not reload on callback churn', async () => {
     const firstLoad = vi.fn(async (resourceId: string) => `blob:${resourceId}`);
-    const secondLoad = vi.fn(async (resourceId: string) => `blob:new-${resourceId}`);
+    const secondLoad = vi.fn(
+      async (resourceId: string) => `blob:new-${resourceId}`,
+    );
     const { result, rerender, unmount } = renderHook(
       ({ ids, load }) => useObjectUrlResources('memory:1', ids, load),
       {

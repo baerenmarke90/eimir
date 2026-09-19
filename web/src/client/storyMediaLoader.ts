@@ -10,6 +10,7 @@ export type StoryMediaParentType = Extract<
 type StoryMediaLoaderOptions = {
   fetchApi?: typeof fetch;
   createObjectUrl?: (blob: Blob) => string;
+  signal?: AbortSignal;
 };
 
 /**
@@ -34,16 +35,21 @@ export async function loadAuthorizedStoryImage(
 
   let blob: Blob;
   if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
-    const response = await (options.fetchApi ?? fetch)(descriptor.url);
+    const fetchApi = options.fetchApi ?? fetch;
+    const response = options.signal
+      ? await fetchApi(descriptor.url, { signal: options.signal })
+      : await fetchApi(descriptor.url);
     if (!response.ok) {
       throw new Error(`Story media load failed: ${response.status}`);
     }
     blob = await response.blob();
   } else {
-    const response = await apis.attachments.getAttachmentContentRaw({
-      spaceId,
-      attachmentId,
-    });
+    const request = { spaceId, attachmentId };
+    const response = options.signal
+      ? await apis.attachments.getAttachmentContentRaw(request, {
+          signal: options.signal,
+        })
+      : await apis.attachments.getAttachmentContentRaw(request);
     blob = await response.raw.blob();
   }
 

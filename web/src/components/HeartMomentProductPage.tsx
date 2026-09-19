@@ -14,7 +14,7 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { localDateInputValue, openNativeDatePicker } from '../client/dateInput';
+import { localDateInputValue } from '../client/dateInput';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
@@ -37,6 +37,7 @@ import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import { MediaGallery } from './MediaGallery';
+import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -436,19 +437,15 @@ export function HeartMomentProductPage({
                 className="heart-moment-create-field heart-moment-create-emotion-picker"
               />
 
-              <div className="field-group heart-moment-create-field heart-moment-create-date">
-                <label htmlFor="heart-moment-date">
-                  {t('heartMomentProduct.happenedOnLabel')}
-                </label>
-                <input
-                  id="heart-moment-date"
-                  name="happenedOn"
-                  type="date"
-                  required
-                  defaultValue={localDateInputValue()}
-                  onClick={openNativeDatePicker}
-                />
-              </div>
+              <NativeDateField
+                id="heart-moment-date"
+                name="happenedOn"
+                label={t('heartMomentProduct.happenedOnLabel')}
+                required
+                defaultValue={localDateInputValue()}
+                openPickerOnClick
+                fieldClassName="heart-moment-create-field heart-moment-create-date"
+              />
             </div>
 
             <fieldset className="heart-moment-create-visibility">
@@ -861,20 +858,15 @@ function HeartMomentFields({
         defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
         idPrefix="heart-moment-edit-emotion"
       />
-      <div className="field-group">
-        <label htmlFor="heart-moment-date">
-          {t('heartMomentProduct.happenedOnLabel')}
-        </label>
-        <input
-          id="heart-moment-date"
-          name="happenedOn"
-          type="date"
-          required
-          defaultValue={
-            heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
-          }
-        />
-      </div>
+      <NativeDateField
+        id="heart-moment-date"
+        name="happenedOn"
+        label={t('heartMomentProduct.happenedOnLabel')}
+        required
+        defaultValue={
+          heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
+        }
+      />
     </>
   );
 }

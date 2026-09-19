@@ -1,11 +1,16 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import privateArea from '../../src/i18n/locales/privateArea';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const PRIVATE_NOTE_ID = '44444444-4444-4444-8444-444444444444';
+const PRIVATE_COLLECTION_ID = '55555555-5555-4555-8555-555555555555';
+const PRIVATE_ITEM_ID = '66666666-6666-4666-8666-666666666666';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
@@ -40,11 +45,52 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
+  let collectionTitle = 'Packing list';
+  let collectionVersion = 1;
+  let itemTitle = 'Book train tickets';
+  let itemCompleted = false;
+  let itemVersion = 1;
+
+  const privateNote = {
+    body: 'Check the quiet cabin by the lake.',
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    id: PRIVATE_NOTE_ID,
+    ownerId: ACCOUNT_ID,
+    pinned: false,
+    spaceId: SPACE_ID,
+    title: 'Hidden cabin idea',
+    updatedAt: TEST_NOW,
+    version: 1,
+  };
+  const privateItem = () => ({
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    collectionId: PRIVATE_COLLECTION_ID,
+    completed: itemCompleted,
+    createdAt: TEST_NOW,
+    id: PRIVATE_ITEM_ID,
+    position: 0,
+    title: itemTitle,
+    updatedAt: TEST_NOW,
+    version: itemVersion,
+  });
+  const privateCollection = () => ({
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    id: PRIVATE_COLLECTION_ID,
+    items: [privateItem()],
+    ownerId: ACCOUNT_ID,
+    spaceId: SPACE_ID,
+    title: collectionTitle,
+    updatedAt: TEST_NOW,
+    version: collectionVersion,
+  });
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
-    const pathname = new URL(request.url()).pathname;
+    const requestUrl = new URL(request.url());
+    const pathname = requestUrl.pathname;
 
     const fulfillJson = async (body: unknown, status = 200) =>
       route.fulfill({
@@ -188,8 +234,78 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/search`
+    ) {
+      const query = requestUrl.searchParams.get('q')?.trim() ?? '';
+      await fulfillJson({
+        hasMore: false,
+        items: query
+          ? [
+              {
+                excerpt: privateNote.body,
+                id: PRIVATE_NOTE_ID,
+                occurredOn: null,
+                parentId: null,
+                scope: 'PRIVATE',
+                title: privateNote.title,
+                type: 'PRIVATE_NOTE',
+              },
+            ]
+          : [],
+        nextCursor: null,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`
+    ) {
+      await fulfillJson(privateNote);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/private/collections/${PRIVATE_COLLECTION_ID}`
+    ) {
+      await fulfillJson(privateCollection());
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/private/collections/${PRIVATE_COLLECTION_ID}/items/${PRIVATE_ITEM_ID}`
+    ) {
+      const body = request.postDataJSON() as {
+        completed?: boolean;
+        title?: string;
+      };
+      if (typeof body.completed === 'boolean') itemCompleted = body.completed;
+      if (typeof body.title === 'string') itemTitle = body.title;
+      itemVersion += 1;
+      await fulfillJson(privateItem());
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/private/collections/${PRIVATE_COLLECTION_ID}`
+    ) {
+      const body = request.postDataJSON() as { title?: string };
+      if (typeof body.title === 'string') collectionTitle = body.title;
+      collectionVersion += 1;
+      await fulfillJson(privateCollection());
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       [
-        `/api/v1/spaces/${SPACE_ID}/search`,
         `/api/v1/spaces/${SPACE_ID}/notifications`,
         `/api/v1/spaces/${SPACE_ID}/story`,
         `/api/v1/spaces/${SPACE_ID}/collections`,
@@ -387,3 +503,120 @@ for (const viewport of [
     expect(unexpectedRequests).toEqual([]);
   });
 }
+
+
+test('private Search restores query and type after detail edit/cancel/return', async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await signInAndOpenPrivateArea(page);
+
+  await page.goto('/search');
+  await page.getByLabel(m5s5.search.label).fill('cabin');
+  await page.getByLabel(m5s5.search.typeLabel).selectOption('PRIVATE_NOTE');
+  await page.getByRole('button', { name: m5s5.search.submit }).click();
+
+  const result = page.locator('.search-result-link').filter({
+    hasText: 'Hidden cabin idea',
+  });
+  await expect(result).toBeVisible();
+  await result.click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/more/private/notes/${PRIVATE_NOTE_ID}$`),
+  );
+  await expect(
+    page.getByRole('heading', { name: 'Hidden cabin idea' }),
+  ).toBeVisible();
+
+  await page.getByRole('link', { name: privateArea.edit }).click();
+  await expect(
+    page.getByRole('heading', { name: privateArea.notes.editTitle }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: de.common.cancel }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Hidden cabin idea' }),
+  ).toBeVisible();
+  await page
+    .getByRole('button', { name: privateArea.backToSearch })
+    .click();
+
+  await expect(page).toHaveURL(/\/search$/);
+  await expect(page.getByLabel(m5s5.search.label)).toHaveValue('cabin');
+  await expect(page.getByLabel(m5s5.search.typeLabel)).toHaveValue(
+    'PRIVATE_NOTE',
+  );
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('private-search-return-390-light.png'),
+    fullPage: true,
+  });
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('private collection is read/check-first and discloses management in Edit', async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eimir.theme', 'system');
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await signInAndOpenPrivateArea(page);
+
+  await page.goto(
+    `/more/private/collections/${PRIVATE_COLLECTION_ID}`,
+  );
+  await expect(
+    page.getByRole('heading', { name: 'Packing list' }),
+  ).toBeVisible();
+  await expect(page.locator('.private-collection-item-title')).toHaveText(
+    'Book train tickets',
+  );
+  await expect(
+    page.getByPlaceholder(privateArea.collections.itemTitleLabel),
+  ).toHaveCount(0);
+  await expect(
+    page.getByLabel(privateArea.collections.rename),
+  ).toHaveCount(0);
+
+  await page
+    .getByRole('button', { name: privateArea.collections.markComplete })
+    .click();
+  await expect(
+    page.getByRole('button', { name: privateArea.collections.markOpen }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: de.common.edit }).click();
+  await expect(
+    page.getByPlaceholder(privateArea.collections.itemTitleLabel),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel(privateArea.collections.rename),
+  ).toBeVisible();
+
+  const titleInput = page.getByLabel(privateArea.collections.titleLabel);
+  await titleInput.fill('Packing for Lisbon');
+  await page
+    .getByRole('button', { name: m5s3.common.saveChanges })
+    .click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Packing for Lisbon' }),
+  ).toBeVisible();
+  await expect(
+    page.getByPlaceholder(privateArea.collections.itemTitleLabel),
+  ).toHaveCount(0);
+  await expect(page.locator('.private-collection-item-title')).toBeVisible();
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('private-collection-read-first-390-dark.png'),
+    fullPage: true,
+  });
+  expect(unexpectedRequests).toEqual([]);
+});

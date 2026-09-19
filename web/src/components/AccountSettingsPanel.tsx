@@ -36,6 +36,8 @@ export interface AccountSettingsPanelProps {
   demoMode: boolean;
   /** Test/host override. Production uses the existing local logout/cache boundary. */
   onDeletionAccepted?: () => void | Promise<void>;
+  /** Host navigation for the optional export detour. */
+  onOpenDataExport?: () => void;
 }
 
 export function AccountSettingsPanel({
@@ -43,6 +45,7 @@ export function AccountSettingsPanel({
   accessToken,
   demoMode,
   onDeletionAccepted,
+  onOpenDataExport,
 }: AccountSettingsPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -163,6 +166,10 @@ export function AccountSettingsPanel({
   function goToDataExport() {
     if (busy) return;
     closeDialog();
+    if (onOpenDataExport) {
+      onOpenDataExport();
+      return;
+    }
     window.location.hash = 'settings-data';
   }
 

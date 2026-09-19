@@ -347,8 +347,8 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
       .getByRole('button', { name: de.spaceContext.createFirstSpaceSubmit })
       .click();
 
-    // Handoff to settings-connection
-    await expect(page).toHaveURL(/.*\/more\/settings#settings-connection/);
+    // Handoff to the focused relationship settings category
+    await expect(page).toHaveURL(/.*\/more\/settings\/relationship/);
     await expect(page.locator('#settings-connection')).toBeVisible();
     expect(spacesCreated).toBe(true);
   });

@@ -46,6 +46,7 @@ export function ProfileIdentityPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
+  const [editingIdentity, setEditingIdentity] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
 
@@ -117,6 +118,7 @@ export function ProfileIdentityPanel({
     onSuccess: async (profile) => {
       await acceptUpdatedProfile(profile);
       setEditingName(false);
+      setEditingIdentity(false);
     },
     onError: () => displayNameInputRef.current?.focus(),
   });
@@ -158,12 +160,18 @@ export function ProfileIdentityPanel({
         setUploadPhase(null);
       }
     },
-    onSuccess: acceptUpdatedProfile,
+    onSuccess: async (profile) => {
+      await acceptUpdatedProfile(profile);
+      setEditingIdentity(false);
+    },
   });
 
   const removeAvatarMutation = useMutation({
     mutationFn: async () => updateIdentity({ profileAttachmentId: null }),
-    onSuccess: acceptUpdatedProfile,
+    onSuccess: async (profile) => {
+      await acceptUpdatedProfile(profile);
+      setEditingIdentity(false);
+    },
   });
 
   function resetActionState() {
@@ -235,67 +243,91 @@ export function ProfileIdentityPanel({
               />
             </div>
 
-            <div className="profile-identity-actions-row">
+            <div className="profile-identity-edit-entry">
               <button
                 type="button"
                 className="secondary compact-action"
                 onClick={() => {
-                  displayNameMutation.reset();
-                  setSaved(false);
-                  setEditingName((previous) => !previous);
+                  if (editingIdentity) {
+                    setEditingName(false);
+                    displayNameMutation.reset();
+                  } else {
+                    setSaved(false);
+                  }
+                  setEditingIdentity((previous) => !previous);
                 }}
                 disabled={pending}
+                aria-expanded={editingIdentity}
               >
-                {editingName
-                  ? t('common.cancel')
-                  : t('profileIdentity.editName')}
+                {editingIdentity
+                  ? t('profileIdentity.closeProfileEdit')
+                  : t('profileIdentity.editProfile')}
               </button>
+            </div>
 
-              <button
-                type="button"
-                className="secondary compact-action"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={pending}
-              >
-                {avatarMutation.isPending
-                  ? t('profileIdentity.replacingAvatar')
-                  : t('profileIdentity.changeAvatar')}
-              </button>
-
-              {profile.profileAttachmentId ? (
+            {editingIdentity ? (
+              <div className="profile-identity-actions-row eimir-motion-reveal">
                 <button
                   type="button"
-                  className="tertiary compact-action"
-                  disabled={pending}
+                  className="secondary compact-action"
                   onClick={() => {
-                    resetActionState();
-                    removeAvatarMutation.mutate();
+                    displayNameMutation.reset();
+                    setSaved(false);
+                    setEditingName((previous) => !previous);
                   }}
+                  disabled={pending}
                 >
-                  {removeAvatarMutation.isPending
-                    ? t('profileIdentity.removingAvatar')
-                    : t('profileIdentity.removeAvatar')}
+                  {editingName
+                    ? t('common.cancel')
+                    : t('profileIdentity.editName')}
                 </button>
-              ) : null}
 
-              <input
-                ref={fileInputRef}
-                id="profile-avatar-file"
-                className="profile-identity-file-input visually-hidden-input"
-                type="file"
-                accept="image/*"
-                aria-label={t('profileIdentity.changeAvatar')}
-                tabIndex={-1}
-                disabled={pending}
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0];
-                  event.currentTarget.value = '';
-                  if (!file) return;
-                  resetActionState();
-                  avatarMutation.mutate(file);
-                }}
-              />
-            </div>
+                <button
+                  type="button"
+                  className="secondary compact-action"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={pending}
+                >
+                  {avatarMutation.isPending
+                    ? t('profileIdentity.replacingAvatar')
+                    : t('profileIdentity.changeAvatar')}
+                </button>
+
+                {profile.profileAttachmentId ? (
+                  <button
+                    type="button"
+                    className="tertiary compact-action"
+                    disabled={pending}
+                    onClick={() => {
+                      resetActionState();
+                      removeAvatarMutation.mutate();
+                    }}
+                  >
+                    {removeAvatarMutation.isPending
+                      ? t('profileIdentity.removingAvatar')
+                      : t('profileIdentity.removeAvatar')}
+                  </button>
+                ) : null}
+
+                <input
+                  ref={fileInputRef}
+                  id="profile-avatar-file"
+                  className="profile-identity-file-input visually-hidden-input"
+                  type="file"
+                  accept="image/*"
+                  aria-label={t('profileIdentity.changeAvatar')}
+                  tabIndex={-1}
+                  disabled={pending}
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = '';
+                    if (!file) return;
+                    resetActionState();
+                    avatarMutation.mutate(file);
+                  }}
+                />
+              </div>
+            ) : null}
 
             {phaseKey ? (
               <span className="profile-identity-status" role="status">
@@ -311,7 +343,7 @@ export function ProfileIdentityPanel({
         </div>
       ) : null}
 
-      {editingName && profile ? (
+      {editingIdentity && editingName && profile ? (
         <form
           key={`name-${profile.displayName}`}
           className="profile-name-inline-form form-grid eimir-motion-reveal"

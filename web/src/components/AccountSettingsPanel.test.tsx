@@ -8,7 +8,11 @@ import * as recentAuthentication from '../client/recentAuthentication';
 import accountSettings from '../i18n/locales/accountSettings';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
 
-function renderPanel(demoMode = false, onDeletionAccepted = vi.fn()) {
+function renderPanel(
+  demoMode = false,
+  onDeletionAccepted = vi.fn(),
+  onOpenDataExport?: () => void,
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -19,6 +23,7 @@ function renderPanel(demoMode = false, onDeletionAccepted = vi.fn()) {
         accessToken="session-token"
         demoMode={demoMode}
         onDeletionAccepted={onDeletionAccepted}
+        onOpenDataExport={onOpenDataExport}
       />
     </QueryClientProvider>,
   );
@@ -153,6 +158,19 @@ describe('AccountSettingsPanel', () => {
 
     expect(screen.queryByText(accountSettings.finalTitle)).toBeNull();
     expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('offers export as a host-routed detour before deletion', () => {
+    const onOpenDataExport = vi.fn();
+    renderPanel(false, vi.fn(), onOpenDataExport);
+
+    openConsequences();
+    fireEvent.click(
+      screen.getByRole('button', { name: accountSettings.exportBefore }),
+    );
+
+    expect(onOpenDataExport).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('keeps the final step open when the irreversible request fails', async () => {

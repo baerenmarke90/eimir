@@ -10,9 +10,11 @@ import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 function renderPanel({
   demoMode = false,
   onSpaceLeft = vi.fn(),
+  onOpenDataExport,
 }: {
   demoMode?: boolean;
   onSpaceLeft?: () => void | Promise<void>;
+  onOpenDataExport?: () => void;
 } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,6 +31,7 @@ function renderPanel({
         spaceId="space-a"
         demoMode={demoMode}
         onSpaceLeft={onSpaceLeft}
+        onOpenDataExport={onOpenDataExport}
       />
     </QueryClientProvider>,
   );
@@ -135,12 +138,13 @@ describe('SpaceOffboardingPanel', () => {
     });
   });
 
-  it('offers export as an optional detour without calling the exit API', () => {
+  it('offers export as a host-routed detour without calling the exit API', () => {
     const leaveSpy = vi.spyOn(
       SpacesApi.prototype,
       'leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost',
     );
-    renderPanel();
+    const onOpenDataExport = vi.fn();
+    renderPanel({ onOpenDataExport });
 
     fireEvent.click(
       screen.getByRole('button', { name: spaceOffboarding.action }),
@@ -149,7 +153,7 @@ describe('SpaceOffboardingPanel', () => {
       screen.getByRole('button', { name: spaceOffboarding.exportBefore }),
     );
 
-    expect(window.location.hash).toBe('#settings-data');
+    expect(onOpenDataExport).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(leaveSpy).not.toHaveBeenCalled();
   });

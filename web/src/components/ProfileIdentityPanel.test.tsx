@@ -54,6 +54,9 @@ function renderPanel() {
   );
 
   fireEvent.click(
+    screen.getByRole('button', { name: profileIdentity.editProfile }),
+  );
+  fireEvent.click(
     screen.getByRole('button', { name: profileIdentity.editName }),
   );
   return { onDisplayNameChanged };

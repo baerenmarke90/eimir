@@ -67,6 +67,22 @@
   line-height: 1.35;
 }
 
+.profile-identity-edit-entry {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+
+.profile-identity-edit-entry .compact-action {
+  min-height: 44px;
+}
+
+@media (min-width: 36rem) {
+  .profile-identity-edit-entry {
+    justify-content: flex-start;
+  }
+}
+
 .profile-identity-actions-row {
   display: flex;
   flex-wrap: wrap;

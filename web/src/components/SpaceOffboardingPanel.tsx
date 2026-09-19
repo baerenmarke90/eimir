@@ -17,6 +17,8 @@ export interface SpaceOffboardingPanelProps {
   demoMode: boolean;
   /** Test/host override. Production reuses the normal Space-context reset boundary. */
   onSpaceLeft?: () => void | Promise<void>;
+  /** Host navigation for the optional export detour. */
+  onOpenDataExport?: () => void;
 }
 
 export function SpaceOffboardingPanel({
@@ -24,6 +26,7 @@ export function SpaceOffboardingPanel({
   spaceId,
   demoMode,
   onSpaceLeft,
+  onOpenDataExport,
 }: SpaceOffboardingPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -83,6 +86,10 @@ export function SpaceOffboardingPanel({
   function goToDataExport() {
     if (mutation.isPending) return;
     closeDialog();
+    if (onOpenDataExport) {
+      onOpenDataExport();
+      return;
+    }
     window.location.hash = 'settings-data';
   }
 

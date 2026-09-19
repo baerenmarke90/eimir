@@ -6,6 +6,8 @@ const profileIdentity = {
   displayNameLabel: 'Anzeigename',
   displayNameHelp:
     'Der Anzeigename ändert nur deine sichtbare Darstellung. Anmeldung und Konto bleiben unverändert.',
+  editProfile: 'Profil bearbeiten',
+  closeProfileEdit: 'Bearbeitung schließen',
   editName: 'Name ändern',
   saveName: 'Anzeigenamen speichern',
   savingName: 'Wird gespeichert …',
@@ -33,16 +35,21 @@ const profileIdentity = {
   settingsIntro:
     'Hier verwaltest du deine persönlichen App-Einstellungen, Verbindungen und Daten.',
   settingsPageIntro:
-    'Eure Verbindung zuerst, danach Benachrichtigungen, Dashboard, Darstellung, Daten und sensible Aktionen.',
+    'Wähle den Bereich, den du anpassen möchtest. Jede Einstellung bleibt dort, wo du sie erwartest.',
   settingsIdentity: 'Profilbild und Anzeigename',
   settingsRelationship: 'Partner und Verbindung',
+  settingsRelationshipIntro:
+    'Verwalte euren gemeinsamen Startpunkt und die Verbindung zu deinem Partner.',
   settingsNotifications: 'Benachrichtigungen',
   settingsNotificationsIntro:
     'Lege fest, wie eimir. dich über Neuigkeiten informiert. Deine aktuellen Mitteilungen findest du im Posteingang.',
   settingsNotificationsAction: 'Zum Benachrichtigungs-Posteingang',
-  settingsDashboard: 'Dashboard',
+  settingsToday: 'Wir',
+  settingsTodayIntro:
+    'Lege fest, welche Bereiche und wie viele kommende Einträge du auf „Wir“ sehen möchtest.',
+  settingsDashboard: 'Inhalte auf „Wir“',
   settingsDashboardIntro:
-    'Entscheide, welche Bereiche auf eurem gemeinsamen Ort für dich sichtbar sind.',
+    'Entscheide, welche Bereiche auf „Wir“ für dich sichtbar sind.',
   dashboardModulesTitle: 'Sichtbare Bereiche',
   dashboardModulesIntro:
     'Blende einzelne Bereiche für dich aus oder wieder ein. Dein Partner sieht weiterhin seine eigene Auswahl.',
@@ -70,6 +77,13 @@ const profileIdentity = {
   anniversaryReminderLoading: 'Einstellungen werden geladen …',
   settingsPrivacy: 'Privater Bereich',
   settingsData: 'Daten und Portabilität',
+  settingsDataIntro:
+    'Exportiere deine Daten oder importiere unterstützte Inhalte mit den bestehenden Prüfungen.',
+  settingsAccount: 'Konto und gemeinsamer Bereich',
+  settingsAccountIntro:
+    'Verlassen des gemeinsamen Bereichs und Löschen deines Kontos bleiben getrennte, bewusst bestätigte Aktionen.',
+  settingsBackToMore: 'Zurück zu Mehr',
+  settingsBackToIndex: 'Zurück zu Einstellungen',
   settingsSensitiveEyebrow: 'Mit Bedacht',
   settingsSensitiveTitle: 'Sensible Aktionen',
   settingsSensitiveIntro:

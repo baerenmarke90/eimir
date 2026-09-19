@@ -262,6 +262,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await signIn(page);
 
     await page.goto('/more/profile');
+    await page
+      .getByRole('button', { name: profileIdentity.editProfile })
+      .click();
     const changeAvatar = page
       .locator('.profile-identity-actions-row button')
       .filter({ hasText: profileIdentity.changeAvatar });

@@ -18,7 +18,12 @@ const de = {
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro:
-      'Wichtige Menschen, Orte, gemeinsame Listen und dein Bereich für persönliche Gedanken.',
+      'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
+    groups: {
+      personal: 'Für dich',
+      shared: 'Gemeinsam organisieren',
+      utility: 'App und Konto',
+    },
     people: {
       title: 'Menschen',
       description:
@@ -33,13 +38,17 @@ const de = {
       description: 'Packlisten, Ideen und Sammlungen für euch beide.',
     },
     private: {
-      title: 'Für mich',
+      title: 'Nur für mich',
       description:
-        'Notizen, Geschenkideen und Gedanken, die erst einmal nur für dich bestimmt sind.',
+        'Notizen, Geschenkideen und Gedanken, die ausschließlich für dich bestimmt sind.',
     },
     notifications: {
       title: 'Benachrichtigungen',
       description: 'Was es seit deinem letzten Besuch Neues für dich gibt.',
+    },
+    activity: {
+      description:
+        'Gemeinsame Änderungen und Aktionen in zeitlicher Reihenfolge.',
     },
     profile: {
       title: 'Profil',

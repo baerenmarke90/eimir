@@ -279,6 +279,36 @@ describe('CommentsPanel', () => {
       expect(createMemoryComment).toHaveBeenCalledTimes(1);
     });
 
+    it('keeps a newer draft even when its text matches the submitted value', async () => {
+      const user = userEvent.setup();
+      let resolveCreate!: (value: CommentDetail) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      renderInteractivePanel([], { createMemoryComment });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Same words');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      await user.clear(textarea);
+      await user.type(textarea, 'Same words');
+      resolveCreate(comment({ id: 'new-a', body: 'Same words' }));
+
+      await waitFor(() => expect(textarea.value).toBe('Same words'));
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+      expect(createMemoryComment).toHaveBeenCalledTimes(1);
+    });
+
     it('retains the current draft when comment creation fails', async () => {
       const user = userEvent.setup();
       let rejectCreate!: (reason?: unknown) => void;

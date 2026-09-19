@@ -239,9 +239,11 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
 
     # Account rows are pseudonymized rather than necessarily hard-deleted, so
     # their ON DELETE cascade is not the lifecycle authority for behavior data.
+    from eimir.memories import create_receipts
     from eimir.story import view_service
 
     view_service.purge_viewer(session, viewer_account_id=account_id)
+    create_receipts.purge_account(session, account_id=account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.

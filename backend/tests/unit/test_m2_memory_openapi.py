@@ -75,3 +75,24 @@ def test_the_gallery_is_replaced_as_a_whole_and_needs_if_match() -> None:
         parameter for parameter in route["parameters"] if parameter["name"] == "If-Match"
     )
     assert if_match["required"] is True
+
+
+def test_memory_create_documents_the_optional_request_identity_contract() -> None:
+    """Additive #961 contract: optional header, replay 200, explicit conflict codes."""
+    route = _schema()["paths"]["/api/v1/spaces/{spaceId}/memories"]["post"]  # type: ignore[index]
+    header = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "Idempotency-Key"
+    )
+    assert header["in"] == "header"
+    assert header["required"] is False
+
+    responses = route["responses"]
+    assert {"200", "201", "401", "404", "409", "422"} <= set(responses)
+    for status in ("200", "201"):
+        assert responses[status]["headers"]["ETag"]
+        assert responses[status]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/MemoryDetail"
+        }
+    # Older clients keep working: the request body and required parameters are unchanged.
+    assert route["requestBody"]["required"] is True
+    assert [p["name"] for p in route["parameters"] if p.get("required")] == ["spaceId"]

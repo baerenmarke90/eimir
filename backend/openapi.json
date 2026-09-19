@@ -16703,6 +16703,7 @@
         ]
       },
       "post": {
+        "description": "Create a Memory.\n\nSend an `Idempotency-Key` to make the save reconcilable after a lost\nresponse: the identical request repeated with the same key returns the\noriginal Memory (`200`); the same key with a different payload is a `409`\n(`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the\nanswer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.",
         "operationId": "createMemory",
         "parameters": [
           {
@@ -16712,6 +16713,24 @@
             "schema": {
               "title": "Spaceid",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -16726,6 +16745,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -16763,6 +16800,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {

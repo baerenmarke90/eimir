@@ -11,7 +11,18 @@ const taskBoundary = {
     'Noch nicht gespeichert. Deine Eingaben bleiben hier. Versuche es erneut, wenn du wieder online bist.',
   uncertainTitle: 'Die Bestätigung fehlt',
   uncertainBody:
-    'Vielleicht wurde dein Moment bereits gespeichert. Wir speichern ihn nicht noch einmal. Prüfe eure Momente, bevor du eine neue Erinnerung anlegst. Deine Eingaben bleiben bis zum Verlassen dieser Seite erhalten.',
+    'Vielleicht wurde dein Moment bereits gespeichert. Deine Eingaben bleiben hier erhalten. Wir können prüfen, ob er gespeichert wurde. Dabei wird kein zweiter Moment angelegt.',
+  verify: 'Speicherung prüfen',
+  verifying:
+    'Wir prüfen, ob dein Moment gespeichert wurde. Bitte bleib kurz hier.',
+  verifyUnavailable:
+    'Die Prüfung war noch nicht möglich. Deine Eingaben bleiben erhalten. Versuche es erneut, sobald du wieder online bist.',
+  unverifiableTitle: 'Die Speicherung lässt sich nicht mehr prüfen',
+  unverifiableBody:
+    'Dein Moment könnte gespeichert sein, aber wir können es von hier aus nicht mehr bestätigen. Prüfe eure Momente, bevor du einen neuen anlegst. Deine Eingaben bleiben bis zum Verlassen dieser Seite erhalten.',
+  deletedTitle: 'Dieser Moment wurde inzwischen gelöscht',
+  deletedBody:
+    'Er war gespeichert, ist aber nicht mehr vorhanden. Deine Eingaben sind noch da. Du kannst sie als neuen Moment speichern.',
   checkMoments: 'Momente prüfen',
   partialTitle: 'Dein Text ist gespeichert',
   partialBody:

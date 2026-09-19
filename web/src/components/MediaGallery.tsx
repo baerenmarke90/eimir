@@ -11,6 +11,7 @@ import {
   type MediaType as MediaTypeValue,
 } from '../api/generated/models/MediaType';
 import { useTranslation } from '../i18n';
+import { useModalLifecycle } from './useModalLifecycle';
 
 export interface GalleryMediaItem {
   id: string;
@@ -160,19 +161,10 @@ export function MediaGallery({
     [items.length],
   );
 
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    closeButton.current?.focus({ preventScroll: true });
-  }, [lightboxOpen]);
-
-  useEffect(() => {
-    if (!lightboxOpen || typeof document === 'undefined') return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [lightboxOpen]);
+  useModalLifecycle({
+    active: lightboxOpen,
+    initialFocusRef: closeButton,
+  });
 
   useEffect(() => {
     if (!lightboxOpen) return;

@@ -15,12 +15,20 @@ import {
   privateAreaQueryKeys,
   privateCollectionPath,
 } from '../client/privateArea';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import './SharedPlanningPages.css';
-import { LoadMoreButton, PrivateAreaBackToMore } from './PrivateAreaLayout';
+import {
+  LoadMoreButton,
+  PrivateAreaBackToHub,
+  PrivateAreaDetailBack,
+  PrivateEditorDiscardSheet,
+  usePrivateAreaTaskContext,
+  usePrivateTaskEditorLifecycle,
+} from './PrivateAreaLayout';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
@@ -183,6 +191,7 @@ export function PrivateCollectionCreatePage({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [dirty, setDirty] = useState(false);
   const mutation = useMutation({
     mutationFn: (title: string) =>
       privateApiCall(() =>
@@ -195,7 +204,12 @@ export function PrivateCollectionCreatePage({
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
       });
-      navigate(privateCollectionPath(collection.id), { replace: true });
+      closeTask(() => {
+        navigate(privateCollectionPath(collection.id), {
+          replace: true,
+          state: navigationState,
+        });
+      });
     },
   });
   const titleValidation = useRequiredTitleValidation(
@@ -203,6 +217,17 @@ export function PrivateCollectionCreatePage({
     'PRIVATE_COLLECTION_TITLE_REQUIRED',
     mutation.reset,
   );
+  const {
+    navigationState,
+    showDiscardConfirm,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = usePrivateTaskEditorLifecycle({
+    fallbackPath: PRIVATE_COLLECTIONS_PATH,
+    isDirty: dirty,
+    isCloseBlocked: mutation.isPending,
+  });
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -217,23 +242,34 @@ export function PrivateCollectionCreatePage({
     <>
       <PageHeader
         before={
-          <Link className="back-link" to={PRIVATE_COLLECTIONS_PATH}>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={requestClose}
+            aria-disabled={mutation.isPending}
+          >
             {t('privateArea.collections.detailBack')}
-          </Link>
+          </button>
         }
         title={t('privateArea.collections.createTitle')}
         description={t('privateArea.collections.intro')}
       />
       <section className="form-card private-area-editor">
-        <form className="form-grid" onSubmit={submit}>
+        <form
+          className="form-grid"
+          onSubmit={submit}
+          onChange={() => setDirty(true)}
+        >
           <CollectionFields titleValidation={titleValidation} />
           <div className="form-actions">
-            <Link
+            <button
+              type="button"
               className="button-link secondary-link"
-              to={PRIVATE_COLLECTIONS_PATH}
+              onClick={requestClose}
+              disabled={mutation.isPending}
             >
               {t('common.cancel')}
-            </Link>
+            </button>
             <button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
                 ? t('privateArea.saving')
@@ -245,6 +281,11 @@ export function PrivateCollectionCreatePage({
           <ProblemState error={mutation.error} />
         ) : null}
       </section>
+      <PrivateEditorDiscardSheet
+        open={showDiscardConfirm}
+        onKeep={keepEditing}
+        onDiscard={() => closeTask()}
+      />
     </>
   );
 }
@@ -254,7 +295,8 @@ function CollectionItems({
   accountId,
   spaceId,
   collection,
-}: Props & { collection: PrivateCollectionDetail }) {
+  editing,
+}: Props & { collection: PrivateCollectionDetail; editing: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const collectionKey = privateAreaQueryKeys.collection(
@@ -334,7 +376,10 @@ function CollectionItems({
   );
   const reorder = useListItemReorder({
     itemIds: baseItems.map((item) => item.id),
-    disabled: !collection.capabilities.canEdit || reorderMutation.isPending,
+    disabled:
+      !editing ||
+      !collection.capabilities.canEdit ||
+      reorderMutation.isPending,
     onReorder: (itemIds) => reorderMutation.mutate(itemIds),
   });
   const itemById = new Map(baseItems.map((item) => [item.id, item]));
@@ -398,53 +443,63 @@ function CollectionItems({
         >
           {item.completed ? '✓' : ''}
         </button>
-        <div className="planning-item-title-form">
-          <label className="sr-only" htmlFor={`private-item-${item.id}`}>
-            {t('privateArea.collections.rename')}
-          </label>
-          <input
-            id={`private-item-${item.id}`}
-            name="title"
-            className={`private-checklist-title-input${item.completed ? ' is-completed' : ''}`}
-            defaultValue={item.title}
-            required
-            maxLength={200}
-            disabled={!collection.capabilities.canEdit}
-            onBlur={(event) => {
-              commitRename(
-                item,
-                event.currentTarget.value,
-                event.currentTarget,
-              );
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                event.currentTarget.blur();
-              } else if (event.key === 'Escape') {
-                event.currentTarget.value = item.title;
-                event.currentTarget.blur();
-              }
-            }}
-          />
-        </div>
-        {collection.capabilities.canEdit ? (
-          <ListEntryIconButton
-            icon="reorder"
-            className="tertiary"
-            label={t('privateArea.collections.reorderItem')}
-            {...reorder.handleProps(item.id)}
-          />
-        ) : null}
-        {collection.capabilities.canEdit ? (
-          <ListEntryIconButton
-            icon="delete"
-            className="tertiary"
-            label={t('privateArea.collections.removeItem')}
-            onClick={() => deleteMutation.mutate(item)}
-            disabled={deleteMutation.isPending}
-          />
-        ) : null}
+        {editing ? (
+          <>
+            <div className="planning-item-title-form">
+              <label className="sr-only" htmlFor={`private-item-${item.id}`}>
+                {t('privateArea.collections.rename')}
+              </label>
+              <input
+                id={`private-item-${item.id}`}
+                name="title"
+                className={`private-checklist-title-input${item.completed ? ' is-completed' : ''}`}
+                defaultValue={item.title}
+                required
+                maxLength={200}
+                disabled={!collection.capabilities.canEdit}
+                onBlur={(event) => {
+                  commitRename(
+                    item,
+                    event.currentTarget.value,
+                    event.currentTarget,
+                  );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  } else if (event.key === 'Escape') {
+                    event.currentTarget.value = item.title;
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+            </div>
+            {collection.capabilities.canEdit ? (
+              <ListEntryIconButton
+                icon="reorder"
+                className="tertiary"
+                label={t('privateArea.collections.reorderItem')}
+                {...reorder.handleProps(item.id)}
+              />
+            ) : null}
+            {collection.capabilities.canEdit ? (
+              <ListEntryIconButton
+                icon="delete"
+                className="tertiary"
+                label={t('privateArea.collections.removeItem')}
+                onClick={() => deleteMutation.mutate(item)}
+                disabled={deleteMutation.isPending}
+              />
+            ) : null}
+          </>
+        ) : (
+          <span
+            className={`private-collection-item-title${item.completed ? ' is-completed' : ''}`}
+          >
+            {item.title}
+          </span>
+        )}
       </li>
     );
   }
@@ -458,7 +513,7 @@ function CollectionItems({
         {t('privateArea.collections.itemsTitle')}
       </h2>
 
-      {collection.capabilities.canEdit ? (
+      {editing && collection.capabilities.canEdit ? (
         <form className="planning-inline-create" onSubmit={submitItem}>
           <label className="sr-only" htmlFor="private-list-new-item">
             {t('privateArea.collections.itemTitleLabel')}
@@ -521,6 +576,8 @@ export function PrivateCollectionDetailPage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
+  const { navigationState } =
+    usePrivateAreaTaskContext(PRIVATE_COLLECTIONS_PATH);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -601,6 +658,22 @@ export function PrivateCollectionDetailPage({
 
   const isTitleDirty =
     titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title;
+  const {
+    showDiscardConfirm: showEditDiscard,
+    keepEditing: keepCollectionEditing,
+    closeConfirmed: closeCollectionEdit,
+    requestClose: requestCollectionEditClose,
+  } = useTaskEditorLifecycle({
+    isActive: isEditing,
+    isDirty: isTitleDirty,
+    isCloseBlocked:
+      updateCollectionMutation.isPending || deleteMutation.isPending,
+    onClose: () => {
+      setIsEditing(false);
+      setConfirmDelete(false);
+      setTitleDraft(collection.title);
+    },
+  });
 
   function submitCollectionTitle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -613,9 +686,10 @@ export function PrivateCollectionDetailPage({
       <PageHeader
         className="page-heading-collection"
         before={
-          <Link className="back-link" to={PRIVATE_COLLECTIONS_PATH}>
-            {t('privateArea.collections.detailBack')}
-          </Link>
+          <PrivateAreaDetailBack
+            fallbackPath={PRIVATE_COLLECTIONS_PATH}
+            fallbackLabel={t('privateArea.collections.detailBack')}
+          />
         }
         eyebrow={t('privateArea.privacyLabel')}
         title={
@@ -687,12 +761,11 @@ export function PrivateCollectionDetailPage({
                 <button
                   type="button"
                   className="button-link secondary-link"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setConfirmDelete(false);
-                    setTitleDraft(collection.title);
-                  }}
-                  disabled={updateCollectionMutation.isPending}
+                  onClick={requestCollectionEditClose}
+                  disabled={
+                    updateCollectionMutation.isPending ||
+                    deleteMutation.isPending
+                  }
                 >
                   {t('common.cancel')}
                 </button>
@@ -716,6 +789,7 @@ export function PrivateCollectionDetailPage({
         accountId={accountId}
         spaceId={spaceId}
         collection={collection}
+        editing={isEditing}
       />
 
       {isEditing && collection.capabilities.canDelete ? (
@@ -764,6 +838,11 @@ export function PrivateCollectionDetailPage({
           ) : null}
         </section>
       ) : null}
+      <PrivateEditorDiscardSheet
+        open={showEditDiscard}
+        onKeep={keepCollectionEditing}
+        onDiscard={() => closeCollectionEdit()}
+      />
     </div>
   );
 }
@@ -772,7 +851,8 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { query } = usePrivateCollection(api, accountId, spaceId);
+  const [dirty, setDirty] = useState(false);
+  const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
   const mutation = useMutation({
     mutationFn: ({
       collection,
@@ -797,7 +877,12 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
       });
-      navigate(privateCollectionPath(collection.id), { replace: true });
+      closeTask(() => {
+        navigate(privateCollectionPath(collection.id), {
+          replace: true,
+          state: navigationState,
+        });
+      });
     },
   });
   const titleValidation = useRequiredTitleValidation(
@@ -805,6 +890,21 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     'PRIVATE_COLLECTION_TITLE_REQUIRED',
     mutation.reset,
   );
+  const detailFallback = collectionId
+    ? privateCollectionPath(collectionId)
+    : PRIVATE_COLLECTIONS_PATH;
+  const {
+    navigationState,
+    showDiscardConfirm,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = usePrivateTaskEditorLifecycle({
+    fallbackPath: detailFallback,
+    isDirty: dirty,
+    isCloseBlocked: mutation.isPending,
+    closeToFallback: true,
+  });
 
   if (query.isLoading) {
     return (
@@ -845,26 +945,37 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <Link className="back-link" to={privateCollectionPath(collection.id)}>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={requestClose}
+            aria-disabled={mutation.isPending}
+          >
             {t('privateArea.collections.detailBack')}
-          </Link>
+          </button>
         }
         title={t('privateArea.collections.editTitle')}
         description={t('privateArea.collections.intro')}
       />
       <section className="form-card private-area-editor">
-        <form className="form-grid" onSubmit={submit}>
+        <form
+          className="form-grid"
+          onSubmit={submit}
+          onChange={() => setDirty(true)}
+        >
           <CollectionFields
             collection={collection}
             titleValidation={titleValidation}
           />
           <div className="form-actions">
-            <Link
+            <button
+              type="button"
               className="button-link secondary-link"
-              to={privateCollectionPath(collection.id)}
+              onClick={requestClose}
+              disabled={mutation.isPending}
             >
               {t('common.cancel')}
-            </Link>
+            </button>
             <button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
                 ? t('privateArea.saving')
@@ -876,6 +987,11 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
           <ProblemState error={mutation.error} />
         ) : null}
       </section>
+      <PrivateEditorDiscardSheet
+        open={showDiscardConfirm}
+        onKeep={keepEditing}
+        onDiscard={() => closeTask()}
+      />
     </>
   );
 }

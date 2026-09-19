@@ -88,7 +88,7 @@ For a `pull_request` touching `web/**` or the workflow itself:
 
 For a push to `main` touching the same surfaces, and for manual execution, the workflow runs `npm run test:full` instead.
 
-The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group.
+The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group. The targeted changed-spec run uses a separate Playwright output directory so it cannot erase PR-gate screenshots before artifact upload.
 
 ## Maintenance rule
 

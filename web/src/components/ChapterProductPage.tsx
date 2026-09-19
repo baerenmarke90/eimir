@@ -11,16 +11,18 @@ import {
   planningIfMatch,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { STORY_CHAPTERS_ROUTE } from '../client/routes';
+import { placeDetailPath, STORY_CHAPTERS_ROUTE } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
-import { useTranslation } from '../i18n';
+import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ListEntryIconButton } from './ListEntryActions';
+import { NativeDateField } from './NativeDateField';
 import {
   PlanningDiscardConfirmation,
   usePlanningEditorLifecycle,
@@ -54,6 +56,13 @@ function chapterDraft(chapter: ChapterDetail): ChapterDraft {
     endOn: dateOnlyInput(chapter.endOn),
     placeId: chapter.placeId ?? '',
   };
+}
+
+function formatChapterDate(value: Date): string {
+  return new Intl.DateTimeFormat(resolvedLocale(), {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).format(value);
 }
 
 function ChapterEditor({
@@ -146,28 +155,22 @@ function ChapterEditor({
           onChange={(event) => updateDraft({ description: event.target.value })}
         />
         <div className="planning-coordinate-grid">
-          <div className="field-group">
-            <label htmlFor="chapter-edit-start">
-              {t('m5s3.chapter.startOn')}
-            </label>
-            <input
-              id="chapter-edit-start"
-              name="startOn"
-              type="date"
-              value={draft.startOn}
-              onChange={(event) => updateDraft({ startOn: event.target.value })}
-            />
-          </div>
-          <div className="field-group">
-            <label htmlFor="chapter-edit-end">{t('m5s3.chapter.endOn')}</label>
-            <input
-              id="chapter-edit-end"
-              name="endOn"
-              type="date"
-              value={draft.endOn}
-              onChange={(event) => updateDraft({ endOn: event.target.value })}
-            />
-          </div>
+          <NativeDateField
+            id="chapter-edit-start"
+            name="startOn"
+            label={t('m5s3.chapter.startOn')}
+            value={draft.startOn}
+            onChange={(event) => updateDraft({ startOn: event.target.value })}
+            openPickerOnClick
+          />
+          <NativeDateField
+            id="chapter-edit-end"
+            name="endOn"
+            label={t('m5s3.chapter.endOn')}
+            value={draft.endOn}
+            onChange={(event) => updateDraft({ endOn: event.target.value })}
+            openPickerOnClick
+          />
         </div>
         <label htmlFor="chapter-edit-place">{t('m5s3.common.place')}</label>
         <select
@@ -268,6 +271,11 @@ export function ChapterProductPage({
   const { t } = useTranslation();
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { captureOrigin, requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (
+    location.state as { taskOriginKey?: unknown } | null
+  )?.taskOriginKey;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ChapterDraft | null>(null);
@@ -378,14 +386,29 @@ export function ChapterProductPage({
     );
   const chapter = chapterQuery.data;
   if (!chapter) return null;
+  const linkedPlace = chapter.placeId
+    ? (placesQuery.data?.find((place) => place.id === chapter.placeId) ?? null)
+    : null;
+  const startLabel = chapter.startOn
+    ? formatChapterDate(chapter.startOn)
+    : null;
+  const endLabel = chapter.endOn ? formatChapterDate(chapter.endOn) : null;
 
   return (
     <div className="page planning-page">
       <PageHeader
         before={
-          <Link className="back-link" to={STORY_CHAPTERS_ROUTE}>
-            {t('m5s3.common.backToChapters')}
-          </Link>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={() => requestReturn(originKey, STORY_CHAPTERS_ROUTE)}
+          >
+            {t(
+              resolveOrigin(originKey)
+                ? 'taskBoundary.back'
+                : 'm5s3.common.backToChapters',
+            )}
+          </button>
         }
         eyebrow={t('m5s3.chapter.detailEyebrow')}
         title={chapter.title}
@@ -425,6 +448,61 @@ export function ChapterProductPage({
         }
       />
 
+      {!isEditing ? (
+        <section className="planning-subsection planning-chapter-context">
+          <h2>{t('m5s3.chapter.contextHeading')}</h2>
+          {startLabel && endLabel ? (
+            <p className="planning-chapter-period">
+              {startLabel} – {endLabel}
+            </p>
+          ) : startLabel ? (
+            <p className="planning-chapter-period">
+              {t('m5s3.chapter.startOn')}: {startLabel}
+            </p>
+          ) : endLabel ? (
+            <p className="planning-chapter-period">
+              {t('m5s3.chapter.endOn')}: {endLabel}
+            </p>
+          ) : (
+            <p className="planning-meta">{t('m5s3.chapter.noPeriod')}</p>
+          )}
+          {chapter.placeId ? (
+            linkedPlace ? (
+              <Link
+                className="planning-context-link"
+                to={placeDetailPath(linkedPlace.id)}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(placeDetailPath(linkedPlace.id), {
+                    state: { taskOriginKey },
+                  });
+                }}
+              >
+                {t('m5s3.chapter.placeLabel', { name: linkedPlace.name })}
+              </Link>
+            ) : placesQuery.isLoading ? (
+              <p className="planning-meta">{t('m5s3.chapter.placeLoading')}</p>
+            ) : (
+              <p className="planning-meta">
+                {t('m5s3.chapter.placeUnavailable')}
+              </p>
+            )
+          ) : (
+            <p className="planning-meta">{t('m5s3.chapter.noPlace')}</p>
+          )}
+        </section>
+      ) : null}
+
       {isEditing && draft ? (
         <ChapterEditor
           chapter={chapter}
@@ -462,6 +540,7 @@ export function ChapterProductPage({
         spaceId={spaceId}
         ownerKind="chapter"
         ownerId={chapter.id}
+        canManage={chapter.capabilities.canEdit}
       />
     </div>
   );

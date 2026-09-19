@@ -39,6 +39,7 @@ export interface ModalLifecycleOptions {
   restoreFocusRef?: RefObject<HTMLElement | null>;
   restoreFocus?: boolean;
   focusDelayMs?: number;
+  deferRestoreFocus?: boolean;
   shouldRestoreFocus?: () => boolean;
 }
 
@@ -52,6 +53,7 @@ export function useModalLifecycle({
   restoreFocusRef,
   restoreFocus = true,
   focusDelayMs = 0,
+  deferRestoreFocus = false,
   shouldRestoreFocus,
 }: ModalLifecycleOptions): void {
   const shouldRestoreFocusRef = useRef(shouldRestoreFocus);
@@ -90,15 +92,18 @@ export function useModalLifecycle({
         previousFocus instanceof HTMLElement;
 
       if (mayRestore) {
-        queueMicrotask(() => {
+        const restore = () => {
           if (previousFocus.isConnected) {
             previousFocus.focus({ preventScroll: true });
           }
-        });
+        };
+        if (deferRestoreFocus) queueMicrotask(restore);
+        else restore();
       }
     };
   }, [
     active,
+    deferRestoreFocus,
     focusDelayMs,
     initialFocusRef,
     restoreFocus,

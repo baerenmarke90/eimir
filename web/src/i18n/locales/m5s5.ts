@@ -143,6 +143,7 @@ const m5s5 = {
     emptyPreview: 'Keine neuen Benachrichtigungen',
     showAll: 'Alle Benachrichtigungen anzeigen →',
     unreadCount: '{{count}} ungelesen',
+    unreadLoading: 'Ungelesene Benachrichtigungen werden geladen …',
     markAllRead: 'Alle als gelesen markieren',
     markingAllRead: 'Wird aktualisiert …',
     emptyTitle: 'Keine Benachrichtigungen',

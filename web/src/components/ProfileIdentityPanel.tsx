@@ -118,6 +118,7 @@ export function ProfileIdentityPanel({
     onSuccess: async (profile) => {
       await acceptUpdatedProfile(profile);
       setEditingName(false);
+      setEditingIdentity(false);
     },
     onError: () => displayNameInputRef.current?.focus(),
   });
@@ -159,12 +160,18 @@ export function ProfileIdentityPanel({
         setUploadPhase(null);
       }
     },
-    onSuccess: acceptUpdatedProfile,
+    onSuccess: async (profile) => {
+      await acceptUpdatedProfile(profile);
+      setEditingIdentity(false);
+    },
   });
 
   const removeAvatarMutation = useMutation({
     mutationFn: async () => updateIdentity({ profileAttachmentId: null }),
-    onSuccess: acceptUpdatedProfile,
+    onSuccess: async (profile) => {
+      await acceptUpdatedProfile(profile);
+      setEditingIdentity(false);
+    },
   });
 
   function resetActionState() {

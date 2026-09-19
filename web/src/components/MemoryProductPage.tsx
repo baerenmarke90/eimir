@@ -85,7 +85,11 @@ export function MemoryProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -675,9 +679,10 @@ export function MemoryProductPage({
               id: attachment.id,
               mediaType: attachment.mediaType,
             }))}
-            loadMedia={(attachmentId) =>
-              loadMemoryImage(memory.id, attachmentId)
+            loadMedia={(attachmentId, signal) =>
+              loadMemoryImage(memory.id, attachmentId, signal)
             }
+            resourceScopeKey={`memory:${memory.id}`}
           />
         </section>
       ) : null}

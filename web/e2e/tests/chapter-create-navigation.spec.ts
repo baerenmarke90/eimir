@@ -228,6 +228,14 @@ async function installChapterApiMocks(
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',

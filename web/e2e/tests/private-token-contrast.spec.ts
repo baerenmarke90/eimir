@@ -131,6 +131,14 @@ async function installMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

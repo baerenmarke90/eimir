@@ -48,6 +48,18 @@ describe('Object URL resource ownership', () => {
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:direct-owner');
   });
 
+  it('keeps the disposer captured when ownership transfers', () => {
+    const resource = adoptObjectUrl('blob:captured-owner');
+    const replacementRevoke = vi.fn();
+    URL.revokeObjectURL = replacementRevoke;
+
+    resource.dispose();
+
+    expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:captured-owner');
+    expect(replacementRevoke).not.toHaveBeenCalled();
+  });
+
   it('creates one owned URL and revokes the final active resource on unmount', async () => {
     const load = vi.fn(async () => new Blob(['image']));
     const { result, unmount } = renderHook(() =>

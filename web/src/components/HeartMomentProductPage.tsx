@@ -40,6 +40,7 @@ import { MediaGallery } from './MediaGallery';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
@@ -723,120 +724,109 @@ export function HeartMomentProductPage({
     : t('heartMomentProduct.detailEyebrow').toUpperCase();
 
   return (
-    <div className="page product-detail-page">
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        eyebrow={heartMomentEyebrow}
-        title={heartMoment.text}
-        titleAction={
-          heartMoment.capabilities.canEdit && !offline ? (
-            <StoryDetailEditLink
-              to={heartMomentEditPath(heartMoment.id)}
-              label={t('heartMomentProduct.edit')}
-            />
-          ) : undefined
-        }
-      />
-
-      <div
-        className="heart-moment-detail-container"
-        data-heart-emotion={heartMoment.emotion}
-      >
-        <article className="story-surface product-detail-card coffee-table-layout">
-          <div className="heart-moment-detail-emotion">
-            <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
-          </div>
-
-          {heartMoment.attachment ? (
-            <section aria-label={t('heartMomentProduct.photoLabel')}>
-              <MediaGallery
-                items={[
-                  {
-                    id: heartMoment.attachment.id,
-                    mediaType: heartMoment.attachment.mediaType,
-                  },
-                ]}
-                loadMedia={(attachmentId) =>
-                  loadAttachment(heartMoment.id, attachmentId)
-                }
-              />
-            </section>
-          ) : null}
-
-          {visibilityMutation.error ? (
-            <ProblemState error={visibilityMutation.error} />
-          ) : null}
-
-          {changingVisibility ? (
-            <p className="muted" role="status">
-              {t('heartMomentProduct.visibilityChanging')}
-            </p>
-          ) : shared ? (
-            <CommentsPanel
-              commentsApi={apis.comments}
-              spaceId={spaceId}
-              parentKind="heartMoment"
-              parentId={heartMoment.id}
-              currentAccountId={currentAccountId}
-              canComment={heartMoment.capabilities.canComment}
-              offline={offline}
-            />
-          ) : (
-            <p className="muted">{t('heartMomentProduct.commentsPrivate')}</p>
-          )}
-
-          <footer className="heart-moment-provenance-footer">
-            <p>
-              {t('heartMomentProduct.provenanceCompact', {
-                author: storyAuthorLabel(heartMoment.author, currentAccountId),
-                createdAt: formatCreatedAt(heartMoment.createdAt),
-              })}
-            </p>
-            <VisibilityBadge
-              visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
-              size="small"
-              variant="subtle"
-              compactLabel={
-                shared ? t('heartMomentProduct.sharedCompact') : undefined
-              }
-            />
-            {heartMoment.capabilities.canEdit && !offline ? (
-              <button
-                type="button"
-                className="list-entry-icon-button tertiary heart-moment-visibility-action"
-                aria-label={
-                  shared
-                    ? t('heartMomentProduct.makePrivate')
-                    : t('heartMomentProduct.makeShared')
-                }
-                title={
-                  shared
-                    ? t('heartMomentProduct.makePrivate')
-                    : t('heartMomentProduct.makeShared')
-                }
-                onClick={() =>
-                  visibilityMutation.mutate({
-                    current: heartMoment,
-                    visibility: shared
-                      ? ContentVisibility.PRIVATE
-                      : ContentVisibility.SHARED,
-                  })
-                }
-                disabled={changingVisibility}
-              >
-                <VisibilityGlyph
-                  visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}
-                />
-              </button>
-            ) : null}
-          </footer>
-        </article>
+    <StoryDetailPageShell
+      eyebrow={heartMomentEyebrow}
+      title={heartMoment.text}
+      titleAction={
+        heartMoment.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={heartMomentEditPath(heartMoment.id)}
+            label={t('heartMomentProduct.edit')}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      containerClassName="heart-moment-detail-container"
+      containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
+    >
+      <div className="heart-moment-detail-emotion">
+        <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
       </div>
-    </div>
+
+      {heartMoment.attachment ? (
+        <section aria-label={t('heartMomentProduct.photoLabel')}>
+          <MediaGallery
+            items={[
+              {
+                id: heartMoment.attachment.id,
+                mediaType: heartMoment.attachment.mediaType,
+              },
+            ]}
+            loadMedia={(attachmentId) =>
+              loadAttachment(heartMoment.id, attachmentId)
+            }
+          />
+        </section>
+      ) : null}
+
+      {visibilityMutation.error ? (
+        <ProblemState error={visibilityMutation.error} />
+      ) : null}
+
+      {changingVisibility ? (
+        <p className="muted" role="status">
+          {t('heartMomentProduct.visibilityChanging')}
+        </p>
+      ) : shared ? (
+        <CommentsPanel
+          commentsApi={apis.comments}
+          spaceId={spaceId}
+          parentKind="heartMoment"
+          parentId={heartMoment.id}
+          currentAccountId={currentAccountId}
+          canComment={heartMoment.capabilities.canComment}
+          offline={offline}
+        />
+      ) : (
+        <p className="muted">{t('heartMomentProduct.commentsPrivate')}</p>
+      )}
+
+      <footer className="heart-moment-provenance-footer">
+        <p>
+          {t('heartMomentProduct.provenanceCompact', {
+            author: storyAuthorLabel(heartMoment.author, currentAccountId),
+            createdAt: formatCreatedAt(heartMoment.createdAt),
+          })}
+        </p>
+        <VisibilityBadge
+          visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
+          size="small"
+          variant="subtle"
+          compactLabel={
+            shared ? t('heartMomentProduct.sharedCompact') : undefined
+          }
+        />
+        {heartMoment.capabilities.canEdit && !offline ? (
+          <button
+            type="button"
+            className="list-entry-icon-button tertiary heart-moment-visibility-action"
+            aria-label={
+              shared
+                ? t('heartMomentProduct.makePrivate')
+                : t('heartMomentProduct.makeShared')
+            }
+            title={
+              shared
+                ? t('heartMomentProduct.makePrivate')
+                : t('heartMomentProduct.makeShared')
+            }
+            onClick={() =>
+              visibilityMutation.mutate({
+                current: heartMoment,
+                visibility: shared
+                  ? ContentVisibility.PRIVATE
+                  : ContentVisibility.SHARED,
+              })
+            }
+            disabled={changingVisibility}
+          >
+            <VisibilityGlyph
+              visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}
+            />
+          </button>
+        ) : null}
+      </footer>
+    </StoryDetailPageShell>
   );
 }
 

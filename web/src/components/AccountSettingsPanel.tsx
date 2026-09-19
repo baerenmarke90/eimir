@@ -1,7 +1,6 @@
 import {
   type FormEvent,
   type KeyboardEvent,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -22,6 +21,10 @@ import { clearProductReadCache } from '../client/productReadCache';
 import { clearStoredSession } from '../client/sessionPersistence';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import {
+  containModalTabFocus,
+  useModalLifecycle,
+} from './useModalLifecycle';
 import './AccountSettingsPanel.css';
 
 type DeletionStep = 'consequences' | 'reauthenticate' | 'confirm' | null;
@@ -140,21 +143,10 @@ export function AccountSettingsPanel({
     capabilitiesMutation.isPending ||
     recentAuthenticationMutation.isPending;
 
-  useEffect(() => {
-    if (!step) return;
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    cancelButtonRef.current?.focus();
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      previousFocus?.focus();
-    };
-  }, [step]);
+  useModalLifecycle({
+    active: Boolean(step),
+    initialFocusRef: cancelButtonRef,
+  });
 
   function resetRecentAuthentication() {
     setPassword('');
@@ -183,24 +175,7 @@ export function AccountSettingsPanel({
       closeDialog();
       return;
     }
-    if (event.key !== 'Tab' || !dialogRef.current) return;
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    containModalTabFocus(event, dialogRef.current);
   }
 
   function beginRecentAuthentication() {

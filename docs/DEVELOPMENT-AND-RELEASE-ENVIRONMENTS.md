@@ -65,9 +65,13 @@ Normal Self-Hosted ordering is:
 postgres -> migrate -> api/worker -> web
 ```
 
-`demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup. `migrate`
-must succeed before API/worker, and Web waits for API readiness. Production is never the
-first persistent environment to execute a new migration.
+`demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup; it is run
+explicitly for a Demo deployment. `migrate` must succeed before API/worker, and Web waits
+for API readiness. The released launcher runs `migrate` before it replaces any running
+service, so a refused or failed migration leaves the current release serving. Production
+is never the first persistent environment to execute a new migration. The per-service
+keep/demo-only decisions and the upgrade/rollback guarantees are recorded in
+[`SELF-HOSTING.md`](SELF-HOSTING.md#runtime-topology).
 
 ## 4. Local and persistent Development
 

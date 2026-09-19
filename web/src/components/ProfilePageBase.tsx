@@ -30,6 +30,10 @@ import { AddIcon, DestinationIcon } from './DestinationIcon';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import {
+  containModalTabFocus,
+  useModalLifecycle,
+} from './useModalLifecycle';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE
@@ -433,26 +437,12 @@ export function PreferenceDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
 
-  // Preserve and restore body scroll position and overflow.
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
-
-  // Initial focus on the first real focusable form control.
-  useEffect(() => {
-    if (isOpen) {
-      // Small timeout ensures element is mounted and accessible in DOM.
-      const timer = setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 20);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+  useModalLifecycle({
+    active: isOpen,
+    initialFocusRef: firstInputRef,
+    restoreFocus: false,
+    focusDelayMs: 20,
+  });
 
   // Keyboard navigation: Escape key closes, Tab/Shift+Tab trap inside dialog.
   useEffect(() => {
@@ -462,32 +452,9 @@ export function PreferenceDialog({
         onCancel();
         return;
       }
-      if (e.key === 'Tab' && dialogRef.current) {
-        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey) {
-          if (
-            document.activeElement === first ||
-            !dialogRef.current.contains(document.activeElement)
-          ) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (
-            document.activeElement === last ||
-            !dialogRef.current.contains(document.activeElement)
-          ) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
+      containModalTabFocus(e, dialogRef.current, {
+        wrapFromOutside: true,
+      });
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);

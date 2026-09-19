@@ -70,7 +70,7 @@ function acquireSharedAvatar(
   if (!entry) {
     entry = {
       consumers: 0,
-      objectUrl: null,
+      resource: null,
       pending: null,
       controller: null,
       releaseTimer: null,

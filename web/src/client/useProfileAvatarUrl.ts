@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
-import {
-  createOwnedObjectUrl,
-  type OwnedObjectUrl,
-} from './objectUrlResource';
+import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 
 interface SharedAvatarEntry {
   consumers: number;

@@ -81,7 +81,9 @@ function ownedPreparedSetup(
   };
 }
 
-function ownPreparedSetup(setup: OurMomentsGameSetup): OwnedOurMomentsGameSetup {
+function ownPreparedSetup(
+  setup: OurMomentsGameSetup,
+): OwnedOurMomentsGameSetup {
   const resources = setup.moments
     .filter((moment) => moment.imageUrl.startsWith('blob:'))
     .map((moment) => adoptObjectUrl(moment.imageUrl));

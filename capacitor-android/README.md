@@ -34,9 +34,34 @@ Requires **Java 21** and Android SDK installed (e.g. at `$ANDROID_HOME` or confi
 # Build Debug APK:
 ./gradlew assembleDebug
 
-# Output APK:
-# app/build/outputs/apk/debug/app-debug.apk
+# Build Unsigned Release Artifacts (APK + AAB) with strict dependency verification:
+./gradlew --dependency-verification strict \
+  -PeimirVersionCode=1 \
+  -PeimirVersionName="0.1.0" \
+  :app:assembleRelease :app:bundleRelease
+
+# Build Signed Release Artifacts:
+EIMIR_RELEASE_KEYSTORE="/path/to/keystore.jks" \
+EIMIR_RELEASE_KEYSTORE_PASSWORD="password" \
+EIMIR_RELEASE_KEY_ALIAS="key-alias" \
+EIMIR_RELEASE_KEY_PASSWORD="key-password" \
+./gradlew --dependency-verification strict \
+  -PeimirVersionCode=1 \
+  -PeimirVersionName="0.1.0" \
+  :app:assembleRelease :app:bundleRelease
 ```
+
+### Release Properties & Signing Configuration
+
+`app/build.gradle` evaluates:
+- `eimirVersionCode` (Gradle property, fallback `sbsVersionCode`, default `1`)
+- `eimirVersionName` (Gradle property, default `"0.1.0"`)
+- Keystore file: `eimirReleaseKeystore` property or `EIMIR_RELEASE_KEYSTORE` env var (fallback `sbsReleaseKeystore` / `SBS_RELEASE_KEYSTORE`)
+- Keystore password: `eimirReleaseKeystorePassword` property or `EIMIR_RELEASE_KEYSTORE_PASSWORD` env var (fallback `sbsReleaseKeystorePassword` / `SBS_RELEASE_KEYSTORE_PASSWORD`)
+- Key alias: `eimirReleaseKeyAlias` property or `EIMIR_RELEASE_KEY_ALIAS` env var (fallback `sbsReleaseKeyAlias` / `SBS_RELEASE_KEY_ALIAS`)
+- Key password: `eimirReleaseKeyPassword` property or `EIMIR_RELEASE_KEY_PASSWORD` env var (fallback `sbsReleaseKeyPassword` / `SBS_RELEASE_KEY_PASSWORD`)
+
+Supply-chain dependencies are strictly verified against `gradle/verification-metadata.xml`.
 
 ## Deep Linking & OIDC Callback
 

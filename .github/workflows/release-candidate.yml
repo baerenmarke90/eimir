@@ -17,6 +17,10 @@ on:
         description: Monotonically increasing Play versionCode.
         required: true
         type: number
+      android_api_base_url:
+        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
+        required: true
+        type: string
       initial_release:
         description: Select only for the first product release with no previous known-good release.
         required: true
@@ -46,9 +50,51 @@ jobs:
       - name: Run focused release-manifest tests
         run: python3 tools/ci/test_release_manifest.py
 
+  preflight:
+    name: Verify candidate inputs
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate candidate inputs
+        env:
+          API_BASE_URL: ${{ inputs.android_api_base_url }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import urllib.parse
+
+          url = os.environ.get("API_BASE_URL", "").strip()
+          version = os.environ.get("RELEASE_VERSION", "").strip()
+
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", version):
+              raise SystemExit(f"Invalid release_version format: {version}")
+
+          if not url or url.endswith(".invalid") or ".invalid" in url:
+              raise SystemExit("Release candidate requires an explicit, non-test android_api_base_url.")
+          if re.search(r"\s", url):
+              raise SystemExit("android_api_base_url must not contain whitespace")
+          parsed = urllib.parse.urlsplit(url)
+          if parsed.scheme != "https":
+              raise SystemExit("android_api_base_url must use https scheme")
+          if not parsed.netloc:
+              raise SystemExit("android_api_base_url must include host")
+          if parsed.username or parsed.password:
+              raise SystemExit("android_api_base_url must not contain userinfo")
+          if parsed.query or parsed.fragment:
+              raise SystemExit("android_api_base_url must not contain query or fragment")
+          PY
+
   evidence:
     name: Build and attest one source revision
     if: github.event_name != 'pull_request'
+    needs: [contract, preflight]
     permissions:
       contents: read
       id-token: write
@@ -56,6 +102,8 @@ jobs:
     uses: ./.github/workflows/release-evidence.yml
     with:
       android_version_code: ${{ inputs.android_version_code }}
+      android_api_base_url: ${{ inputs.android_api_base_url }}
+      release_version: ${{ inputs.release_version }}
 
   manifest:
     name: Bind release identity and candidate bundle
@@ -77,6 +125,31 @@ jobs:
 
       - name: Verify #193 transport checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
+
+      - name: Verify evidence index contains expected Android metadata
+        env:
+          EXPECTED_API_BASE_URL: ${{ inputs.android_api_base_url }}
+          EXPECTED_VERSION: ${{ inputs.release_version }}
+          EXPECTED_VERSION_CODE: ${{ inputs.android_version_code }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          index = json.loads(Path("release-evidence/evidence-index.json").read_text(encoding="utf-8"))
+          android = index.get("android", {})
+          expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+          if android.get("apiBaseUrl") != expected_api:
+              raise SystemExit(f"evidence-index apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
+          if android.get("versionName") != os.environ["EXPECTED_VERSION"]:
+              raise SystemExit("evidence-index versionName mismatch")
+          if android.get("versionCode") != int(os.environ["EXPECTED_VERSION_CODE"]):
+              raise SystemExit("evidence-index versionCode mismatch")
+          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+              raise SystemExit("evidence-index launchableActivity mismatch")
+          PY
 
       - name: Resolve previous-known-good manifest
         id: previous

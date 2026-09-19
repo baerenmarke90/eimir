@@ -26,6 +26,10 @@ on:
         description: Monotonically increasing Google Play versionCode.
         required: true
         type: number
+      android_api_base_url:
+        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
+        required: true
+        type: string
       initial_release:
         description: Select only for the first product release with no previous known-good release.
         required: true
@@ -51,6 +55,7 @@ concurrency:
 env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
+  ANDROID_PROJECT_DIR: "capacitor-android"
 
 jobs:
   contract:
@@ -78,6 +83,8 @@ jobs:
     uses: ./.github/workflows/release-evidence.yml
     with:
       android_version_code: ${{ inputs.android_version_code }}
+      android_api_base_url: ${{ inputs.android_api_base_url }}
+      release_version: ${{ inputs.release_version }}
 
   preflight:
     name: Verify immutable release inputs
@@ -101,6 +108,38 @@ jobs:
 
       - name: Verify #193 transport checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
+
+      - name: Validate candidate inputs
+        env:
+          API_BASE_URL: ${{ inputs.android_api_base_url }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import urllib.parse
+
+          url = os.environ.get("API_BASE_URL", "").strip()
+          version = os.environ.get("RELEASE_VERSION", "").strip()
+
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", version):
+              raise SystemExit(f"Invalid release_version format: {version}")
+
+          if not url or url.endswith(".invalid") or ".invalid" in url:
+              raise SystemExit("Release publication requires an explicit, non-test android_api_base_url.")
+          if re.search(r"\s", url):
+              raise SystemExit("android_api_base_url must not contain whitespace")
+          parsed = urllib.parse.urlsplit(url)
+          if parsed.scheme != "https":
+              raise SystemExit("android_api_base_url must use https scheme")
+          if not parsed.netloc:
+              raise SystemExit("android_api_base_url must include host")
+          if parsed.username or parsed.password:
+              raise SystemExit("android_api_base_url must not contain userinfo")
+          if parsed.query or parsed.fragment:
+              raise SystemExit("android_api_base_url must not contain query or fragment")
+          PY
 
       - name: Require explicit publish confirmation
         env:
@@ -219,6 +258,7 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
+          EXPECTED_API_BASE_URL: ${{ inputs.android_api_base_url }}
           PREVIOUS_ARGUMENT: ${{ steps.previous.outputs.argument }}
         run: |
           set -euo pipefail
@@ -230,6 +270,19 @@ jobs:
             $PREVIOUS_ARGUMENT \
             --output release-preflight/preflight-manifest.json
           test "$(python3 -c 'import json; print(json.load(open("release-preflight/preflight-manifest.json"))["sourceRevision"])')" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("release-preflight/preflight-manifest.json").read_text(encoding="utf-8"))
+          expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+          android = manifest.get("android", {})
+          if android.get("apiBaseUrl") != expected_api:
+              raise SystemExit(f"preflight-manifest apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
+          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+              raise SystemExit("preflight-manifest launchableActivity mismatch")
+          PY
 
       - name: Upload verified preflight state
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -279,21 +332,26 @@ jobs:
       - name: Re-verify transported #193 evidence
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
-      - name: Set up JDK 17
+      - name: Set up Node.js 22.19.0
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: "22.19.0"
+
+      - name: Set up JDK 21
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Verify pinned Gradle wrapper JAR
-        working-directory: android
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         run: |
           printf '%s  %s\n' \
-            '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7' \
+            '7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
@@ -302,8 +360,25 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-37.1" "build-tools;36.0.0"
 
+      - name: Build and sync Capacitor web bundle
+        working-directory: web
+        env:
+          ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
+        run: |
+          set -euo pipefail
+          npm ci
+          VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web
+          npm run cap:sync
+
+      - name: Verify generated native wrapper files have not drifted
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- \
+            capacitor-android/capacitor.settings.gradle \
+            capacitor-android/app/capacitor.build.gradle
+
       - name: Build and verify final signed Android artifacts
-        working-directory: android
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
@@ -330,6 +405,7 @@ jobs:
 
           ./gradlew --no-daemon --stacktrace --dependency-verification strict \
             -PeimirVersionCode="$ANDROID_VERSION_CODE" \
+            -PeimirVersionName="$RELEASE_VERSION" \
             :app:assembleRelease :app:bundleRelease
 
           apk=$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)
@@ -338,15 +414,57 @@ jobs:
           test -n "$aab"
           test -s "$apk"
           test -s "$aab"
+          export apk aab
 
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
           jarsigner -verify "$aab" >/dev/null
+
+          aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          test -x "$aapt"
+          badging=$("$aapt" dump badging "$apk")
+          echo "$badging" | grep -q "package: name='de.sidebyside.app'"
+          echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
+          echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
+          echo "$badging" | grep -q "launchable-activity: name='de.eimir.app.MainActivity'"
 
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$analyzer"
           test "$("$analyzer" manifest application-id "$apk")" = "de.sidebyside.app"
           test "$("$analyzer" manifest version-name "$apk")" = "$RELEASE_VERSION"
           test "$("$analyzer" manifest version-code "$apk")" = "$ANDROID_VERSION_CODE"
+
+          python3 - <<'PY'
+          import json
+          import os
+          import zipfile
+          from pathlib import Path
+
+          apk_path = Path(os.environ["apk"])
+          aab_path = Path(os.environ["aab"])
+
+          def inspect_archive(archive_path: Path, prefix: str) -> None:
+              with zipfile.ZipFile(archive_path, "r") as z:
+                  names = set(z.namelist())
+                  index_html_path = f"{prefix}public/index.html"
+                  config_path = f"{prefix}capacitor.config.json"
+                  if index_html_path not in names:
+                      raise SystemExit(f"Missing {index_html_path} in {archive_path.name}")
+                  if config_path not in names:
+                      raise SystemExit(f"Missing {config_path} in {archive_path.name}")
+                  config_data = json.loads(z.read(config_path).decode("utf-8"))
+                  server = config_data.get("server", {})
+                  if "url" in server:
+                      raise SystemExit(f"Forbidden remote server.url in {config_path} of {archive_path.name}")
+                  if "allowNavigation" in server:
+                      raise SystemExit(f"Forbidden allowNavigation in {config_path} of {archive_path.name}")
+                  cap_http = config_data.get("plugins", {}).get("CapacitorHttp", {})
+                  if cap_http.get("enabled") is not True:
+                      raise SystemExit(f"CapacitorHttp plugin must be enabled in {config_path} of {archive_path.name}")
+
+          inspect_archive(apk_path, "assets/")
+          inspect_archive(aab_path, "base/assets/")
+          print("Verified signed APK and AAB bundle contents.")
+          PY
 
           mkdir -p ../release-evidence/android
           cp -- "$apk" ../release-evidence/android/eimir-release.apk
@@ -385,6 +503,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
+          ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
           SOURCE_REVISION: ${{ github.sha }}
         run: |
           python3 - <<'PY'
@@ -406,6 +525,11 @@ jobs:
               raise SystemExit("Android versionName does not match release version")
           if android.get("versionCode") != int(os.environ["ANDROID_VERSION_CODE"]):
               raise SystemExit("Android versionCode does not match publication input")
+          expected_api = os.environ["ANDROID_API_BASE_URL"].strip().rstrip("/")
+          if android.get("apiBaseUrl") != expected_api:
+              raise SystemExit("Android apiBaseUrl does not match publication input")
+          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+              raise SystemExit("Unexpected Android launchableActivity in #193 evidence")
 
           def sha256(path: Path) -> str:
               digest = hashlib.sha256()

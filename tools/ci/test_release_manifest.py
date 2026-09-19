@@ -321,6 +321,36 @@ class ReleaseManifestTest(unittest.TestCase):
                 stem="mismatch",
             )
 
+    def test_android_api_base_url_validation(self) -> None:
+        self.evidence["android"]["apiBaseUrl"] = "https://api.eimir.invalid/"
+        _, _, android = release_manifest.validate_evidence(self.evidence, "0.1.0")
+        self.assertEqual(android["apiBaseUrl"], "https://api.eimir.invalid")
+
+        invalid_urls = [
+            "http://api.eimir.invalid",
+            "https://",
+            "https://user:pass@api.example.com",
+            "https://api.example.com?query=1",
+            "https://api.example.com#hash",
+            "https://api. example.com",
+            "",
+            123,
+        ]
+        for bad_url in invalid_urls:
+            with self.subTest(bad_url=bad_url):
+                self.evidence["android"]["apiBaseUrl"] = bad_url
+                with self.assertRaises(release_manifest.ManifestError):
+                    release_manifest.validate_evidence(self.evidence, "0.1.0")
+
+    def test_android_launchable_activity_validation(self) -> None:
+        self.evidence["android"]["launchableActivity"] = "de.eimir.app.MainActivity"
+        _, _, android = release_manifest.validate_evidence(self.evidence, "0.1.0")
+        self.assertEqual(android["launchableActivity"], "de.eimir.app.MainActivity")
+
+        self.evidence["android"]["launchableActivity"] = "de.sidebyside.app.MainActivity"
+        with self.assertRaisesRegex(release_manifest.ManifestError, "launchableActivity"):
+            release_manifest.validate_evidence(self.evidence, "0.1.0")
+
 
 if __name__ == "__main__":
     unittest.main()

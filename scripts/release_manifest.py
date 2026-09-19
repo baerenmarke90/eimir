@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import re
+import urllib.parse
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -175,18 +176,88 @@ def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list
     if set(by_id["web-runtime"].get("roles", [])) != {"web"}:
         raise ManifestError("Web artifact role is inconsistent")
 
-    android = evidence.get("android")
+def validate_android_record(android: dict[str, Any], *, version: str | None = None) -> None:
     if not isinstance(android, dict):
         raise ManifestError("Evidence lacks Android release identity")
     if android.get("applicationId") != "de.sidebyside.app":
         raise ManifestError("Android release applicationId must remain de.sidebyside.app")
-    if android.get("versionName") != version:
+    if version is not None and android.get("versionName") != version:
         raise ManifestError(
             f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"
         )
     version_code = android.get("versionCode")
     if not isinstance(version_code, int) or isinstance(version_code, bool) or version_code <= 0:
         raise ManifestError("Android versionCode must be a positive integer")
+
+    if "apiBaseUrl" in android:
+        url = android.get("apiBaseUrl")
+        if not isinstance(url, str):
+            raise ManifestError("Android apiBaseUrl must be a string")
+        url = url.strip()
+        if not url:
+            raise ManifestError("Android apiBaseUrl must not be empty")
+        if re.search(r"\s", url):
+            raise ManifestError("Android apiBaseUrl must not contain whitespace")
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != "https":
+            raise ManifestError("Android apiBaseUrl must use https scheme")
+        if not parsed.netloc:
+            raise ManifestError("Android apiBaseUrl must have non-empty host")
+        if parsed.username or parsed.password:
+            raise ManifestError("Android apiBaseUrl must not contain user credentials")
+        if parsed.query or parsed.fragment:
+            raise ManifestError("Android apiBaseUrl must not contain query or fragment")
+        android["apiBaseUrl"] = url.rstrip("/")
+
+    if "launchableActivity" in android:
+        activity = android.get("launchableActivity")
+        if activity != "de.eimir.app.MainActivity":
+            raise ManifestError(
+                f"Android launchableActivity must be de.eimir.app.MainActivity, got: {activity!r}"
+            )
+
+
+def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+    require_semver(version)
+    if evidence.get("schemaVersion") != 1:
+        raise ManifestError("Unsupported #193 evidence schema")
+    source = evidence.get("sourceRevision")
+    if not isinstance(source, str) or not SHA40.fullmatch(source):
+        raise ManifestError("Evidence sourceRevision must be one immutable 40-hex commit SHA")
+    if evidence.get("sbomFormat") != "SPDX-2.3 JSON":
+        raise ManifestError("Release evidence must use SPDX-2.3 JSON")
+
+    artifacts = evidence.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ManifestError("Evidence artifacts must be a list")
+    by_id: dict[str, dict[str, Any]] = {}
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            raise ManifestError("Every evidence artifact must be an object")
+        artifact_id = artifact.get("id")
+        if not isinstance(artifact_id, str) or artifact_id in by_id:
+            raise ManifestError(f"Duplicate or invalid artifact id: {artifact_id!r}")
+        safe_relative_path(str(artifact.get("path", "")))
+        safe_relative_path(str(artifact.get("sbom", "")))
+        if not SHA256.fullmatch(str(artifact.get("sha256", ""))):
+            raise ManifestError(f"Invalid SHA-256 for {artifact_id}")
+        if not SHA256.fullmatch(str(artifact.get("sbomSha256", ""))):
+            raise ManifestError(f"Invalid SBOM SHA-256 for {artifact_id}")
+        by_id[artifact_id] = artifact
+
+    if set(by_id) != REQUIRED_ARTIFACTS:
+        raise ManifestError(
+            "Release evidence must contain exactly backend, Web, APK and AAB artifacts"
+        )
+    if set(by_id["backend-runtime"].get("roles", [])) != BACKEND_ROLES:
+        raise ManifestError("Backend artifact must cover API, worker and migrate together")
+    if set(by_id["web-runtime"].get("roles", [])) != {"web"}:
+        raise ManifestError("Web artifact role is inconsistent")
+
+    android = evidence.get("android")
+    if not isinstance(android, dict):
+        raise ManifestError("Evidence lacks Android release identity")
+    validate_android_record(android, version=version)
 
     return source, [by_id[key] for key in sorted(by_id)], android
 
@@ -260,10 +331,7 @@ def validate_manifest_shape(
     android = manifest.get("android")
     if not isinstance(android, dict):
         raise ManifestError("Release manifest lacks Android identity")
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Release manifest has the wrong Android applicationId")
-    if android.get("versionName") != version:
-        raise ManifestError("Release Android versionName differs from product version")
+    validate_android_record(android, version=version)
     if require_signed_android and android.get("signing") != "signed-release":
         raise ManifestError("Final publication requires a signed-release Android artifact set")
 

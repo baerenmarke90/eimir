@@ -79,8 +79,18 @@ Build metadata (`+...`) is rejected for release publication because the product 
 is also used as an OCI discovery tag. The common release preflight additionally rejects
 a `v<version>` value longer than the OCI 128-character tag limit.
 
-`android/app/build.gradle.kts` remains authoritative for `versionName`. Android
-`versionCode` is a positive monotonically increasing integer supplied by publication.
+Android release packaging builds from `capacitor-android/` (#1008 Slice B). Android
+`versionName` is parameterized via the release version (`-PeimirVersionName="$RELEASE_VERSION"`,
+defaulting to `0.1.0` in `capacitor-android/app/build.gradle`). Android `versionCode`
+is a positive monotonically increasing integer supplied by publication
+(`-PeimirVersionCode="$ANDROID_VERSION_CODE"`, with deprecated `sbs*` fallback).
+The legacy client under `android/` is completely decoupled from all release pipelines
+and will be retired in #1009.
+
+Release builds require `android_api_base_url` to build the embedded web bundle
+(`VITE_EIMIR_API_BASE_URL`), synchronize native assets via `npm run cap:sync`, and build
+artifacts with pinned Node 22.19.0, JDK 21, and strict Gradle dependency verification
+(`gradle/verification-metadata.xml`).
 
 For Self-Hosted Production, `EIMIR_RELEASE_VERSION` is mandatory. Versioned or
 digest-qualified image references must still carry exactly that same release version.
@@ -171,7 +181,8 @@ It verifies:
 - exact source SHA reachable from `main`;
 - pre-existing CI/security checks completed green;
 - requested tag/Release unused;
-- requested version matches Android `versionName`;
+- valid `android_api_base_url` (must be `https://`, no credentials/query/fragment/whitespace, `.invalid` rejected);
+- requested version matches release preflight rules;
 - valid initial/previous-known-good choice;
 - #193 transport checksums intact.
 
@@ -179,7 +190,10 @@ It verifies:
 
 After protected environment approval it:
 
-1. signs/verifies final Android APK/AAB from the same `github.sha`;
+1. builds web assets with `android_api_base_url`, performs `npm run cap:sync` with native
+   drift check, compiles and signs/verifies final Android APK/AAB from `capacitor-android/`
+   using pinned Node 22.19.0, JDK 21, and strict Gradle dependency verification, followed
+   by apksigner, jarsigner, aapt badging, and offline web asset security verification;
 2. regenerates signed-byte SBOMs and attestations;
 3. builds/verifies the final signed release manifest;
 4. loads exact #193 backend/Web archives with `docker load`;

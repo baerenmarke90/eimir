@@ -221,5 +221,25 @@ ac75428097821ff60a6f09c8ab67ec41662c30390e65a54ec449251a5cdcaaa7  app/build/outp
 ```
 
 ### Physical Device Smoke Test Status
-- **Status**: Open Product Owner Acceptance Criteria.
-- **Note**: During automated foundation verification, no ADB devices or emulators were attached to the build environment. The debug APK has been built and verified via `aapt` inspection, asset verification, and build pipeline; physical device execution is pending PO testing.
+- **Status**: Accepted on real Pixel device (#1044 / PR #1046).
+
+---
+
+## 11. Post-Foundation Release Migration — #1008 Slice B
+
+Issue `#1008` (Slice B) migrated all release, signing, SBOM attestation, and publication workflows from the legacy Kotlin/Compose client under `android/` to the Capacitor Android wrapper under `capacitor-android/`:
+
+- **Workflows Migrated**:
+  - `.github/workflows/release-evidence.yml`: builds unsigned release APK/AAB from `capacitor-android/`, generates SPDX 2.3 SBOMs, and records release evidence.
+  - `.github/workflows/release-candidate.yml`: validates release inputs (`android_api_base_url`, `release_version`), forwards them to `release-evidence.yml`, and binds the immutable release candidate manifest.
+  - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `capacitor-android/`, re-attests signed bytes, and binds release publications.
+- **Tooling & Build Steps**:
+  - Pinned Actions: Node.js `22.19.0` via `actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a` (`v4.2.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
+  - Pinned Gradle Wrapper: distribution SHA-256 `ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c`; wrapper JAR SHA-256 `7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172`.
+  - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
+  - Native Wrapper Drift Guard: `git diff --exit-code -- capacitor-android/capacitor.settings.gradle capacitor-android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
+  - Strict Dependency Verification: `capacitor-android/gradle/verification-metadata.xml` generated with sha256 checksums, verified via `--dependency-verification strict`.
+  - Release Signing Configuration: `capacitor-android/app/build.gradle` reads properties and environment variables (`eimirReleaseKeystore`, `eimirReleaseKeystorePassword`, `eimirReleaseKeyAlias`, `eimirReleaseKeyPassword` with temporary backward compatibility fallbacks for `sbs*`).
+  - Identity Extraction: release identity is directly extracted from built APK artifacts via `aapt dump badging` rather than parsing legacy Gradle files.
+  - Legacy Isolation: legacy `android/` code is completely untouched and decoupled from release pipelines; removal will take place in Issue `#1009`.
+

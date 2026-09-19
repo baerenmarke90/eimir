@@ -119,9 +119,17 @@ for a different signed store artifact.
 ## 5. Build identity and coherence
 
 Both container builds receive exactly `EIMIR_BUILD_REVISION=$GITHUB_SHA`.
-`evidence-index.json` records the same source revision. Android's existing product
-identity is extracted from `android/app/build.gradle.kts`; its monotonic
-`versionCode` is supplied as a workflow input.
+`evidence-index.json` records the same source revision. Android packaging is built
+from `capacitor-android/` (#1008 Slice B); its product identity is verified dynamically
+via `aapt dump badging` from the built APK (`package: name='de.sidebyside.app'
+versionCode='...' versionName='...'`), and `evidence-index.json` records canonical
+`apiBaseUrl` and `launchableActivity` (`de.eimir.app.MainActivity`). Its monotonic
+`versionCode` is supplied as a workflow input (`-PeimirVersionCode`), and `versionName`
+is parameterized via `release_version` (`-PeimirVersionName`).
+The Gradle build uses verified Gradle wrapper checksums and strict dependency verification
+(`gradle/verification-metadata.xml`) under pinned JDK 21 and Node 22.19.0.
+The legacy client under `android/` is completely decoupled from evidence pipelines and
+will be retired in #1009.
 
 #519 will add the human product version/tag and final release manifest. #193 does not
 pre-empt that decision or introduce a second version source.

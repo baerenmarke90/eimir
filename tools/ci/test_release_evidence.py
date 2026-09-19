@@ -13,6 +13,7 @@ ACTION = ROOT / ".github/actions/attest-release-artifact/action.yml"
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-node": "1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a",
     "actions/setup-java": "dd06d9cba3e5552c54d9f8ea23572deb30010f7c",
     "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
@@ -121,6 +122,35 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_evidence_transport_is_checksum_verified(self) -> None:
         self.assertIn("SHA256SUMS", self.workflow)
         self.assertGreaterEqual(self.workflow.count("sha256sum --check --strict"), 3)
+
+    def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
+        self.assertIn('java-version: "21"', self.workflow)
+        self.assertIn("7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172", self.workflow)
+        self.assertIn('node-version: "22.19.0"', self.workflow)
+
+    def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
+        self.assertIn('ANDROID_PROJECT_DIR: "capacitor-android"', self.workflow)
+        self.assertIn("working-directory: ${{ env.ANDROID_PROJECT_DIR }}", self.workflow)
+        self.assertIn("npm run cap:sync", self.workflow)
+        self.assertIn('VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web', self.workflow)
+        self.assertIn("git diff --exit-code --", self.workflow)
+        self.assertIn("capacitor-android/capacitor.settings.gradle", self.workflow)
+        self.assertIn("capacitor-android/app/capacitor.build.gradle", self.workflow)
+
+    def test_apk_and_aab_packaging_and_badging_verified(self) -> None:
+        self.assertIn("dump badging", self.workflow)
+        self.assertIn("build-tools/36.0.0/aapt", self.workflow)
+        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("launchable-activity: name='de.eimir.app.MainActivity'", self.workflow)
+        self.assertIn("public/index.html", self.workflow)
+        self.assertIn("capacitor.config.json", self.workflow)
+        self.assertIn("CapacitorHttp", self.workflow)
+        self.assertIn("server.url", self.workflow)
+        self.assertIn("allowNavigation", self.workflow)
+
+    def test_legacy_android_directory_not_referenced(self) -> None:
+        self.assertNotIn("working-directory: android", self.workflow)
+        self.assertNotIn("android/app/build.gradle.kts", self.workflow)
 
 
 if __name__ == "__main__":

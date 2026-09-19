@@ -630,7 +630,9 @@ test.describe('Today R4: the living home of a relationship', () => {
       await expect(
         leaPage.getByText(relationshipComponents.couplePresenceActive),
       ).toHaveCount(0);
-      await expect(leaPage.locator('.couple-presence-indicator')).toHaveCount(0);
+      await expect(leaPage.locator('.couple-presence-indicator')).toHaveCount(
+        0,
+      );
       await expectNoWcagViolations(leaPage);
     } finally {
       await leaContext.close();

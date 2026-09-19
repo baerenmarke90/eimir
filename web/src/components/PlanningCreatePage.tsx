@@ -24,7 +24,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
@@ -68,7 +68,6 @@ export function PlanningCreatePage({
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceAddress, setNewPlaceAddress] = useState('');
   const [enrichmentDirty, setEnrichmentDirty] = useState(false);
-  const [showDiscard, setShowDiscard] = useState(false);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [pending, setPending] = useState(false);
@@ -86,25 +85,20 @@ export function PlanningCreatePage({
     () => requestReturn(originKey, '/plan'),
     [originKey, requestReturn],
   );
-  const closeTask = useEditorHistoryEntry({
+  const {
+    showDiscardConfirm: showDiscard,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = useTaskEditorLifecycle({
     isDirty: dirty,
     isCloseBlocked: pending,
-    onDiscardRequested: () => setShowDiscard(true),
     onClose,
   });
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
-  useEffect(() => {
-    if (!dirty && !pending) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty, pending]);
 
   const createMutation = useMutation({
     mutationFn: async (values: {
@@ -179,12 +173,6 @@ export function PlanningCreatePage({
     if (!name || createPlaceMutation.isPending) return;
     const address = newPlaceAddress.trim();
     createPlaceMutation.mutate({ name, address: address || undefined });
-  }
-
-  function requestClose() {
-    if (pending) return;
-    if (dirty) setShowDiscard(true);
-    else closeTask();
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -429,14 +417,14 @@ export function PlanningCreatePage({
         open={showDiscard}
         role="alertdialog"
         title={t('taskBoundary.discardTitle')}
-        onClose={() => setShowDiscard(false)}
+        onClose={keepEditing}
       >
         <p>{t('taskBoundary.discardBody')}</p>
         <div className="form-actions">
           <button
             type="button"
             className="secondary"
-            onClick={() => setShowDiscard(false)}
+            onClick={keepEditing}
           >
             {t('taskBoundary.keepEditing')}
           </button>

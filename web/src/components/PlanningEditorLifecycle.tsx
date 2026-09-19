@@ -1,12 +1,5 @@
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from 'react';
-import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { type RefObject, useEffect, useId, useRef } from 'react';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 
 export function usePlanningEditorLifecycle({
@@ -26,23 +19,17 @@ export function usePlanningEditorLifecycle({
   onEscape?: () => boolean;
   onClose: () => void;
 }) {
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const closeEditor = useEditorHistoryEntry({
+  const {
+    showDiscardConfirm,
+    keepEditing,
+    closeConfirmed,
+    requestClose,
+  } = useTaskEditorLifecycle({
     isActive,
     isDirty,
     isCloseBlocked: isPending,
-    onDiscardRequested: () => setShowDiscardConfirm(true),
     onClose,
   });
-
-  const requestClose = useCallback(() => {
-    if (isPending) return;
-    if (isDirty) {
-      setShowDiscardConfirm(true);
-      return;
-    }
-    closeEditor();
-  }, [closeEditor, isDirty, isPending]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -56,22 +43,25 @@ export function usePlanningEditorLifecycle({
       if (event.key !== 'Escape' || isPending) return;
       event.preventDefault();
       if (onEscape?.()) return;
-      if (showDiscardConfirm) setShowDiscardConfirm(false);
+      if (showDiscardConfirm) keepEditing();
       else requestClose();
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, isPending, onEscape, requestClose, showDiscardConfirm]);
-
-  useEffect(() => {
-    if (!isActive) setShowDiscardConfirm(false);
-  }, [isActive]);
+  }, [
+    isActive,
+    isPending,
+    keepEditing,
+    onEscape,
+    requestClose,
+    showDiscardConfirm,
+  ]);
 
   return {
     showDiscardConfirm,
-    keepEditing: () => setShowDiscardConfirm(false),
-    discard: closeEditor,
+    keepEditing,
+    discard: closeConfirmed,
     requestClose,
   };
 }

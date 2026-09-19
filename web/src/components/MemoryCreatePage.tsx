@@ -31,7 +31,7 @@ import { createReferenceApis } from '../client/referenceFlow';
 import { memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
-import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { DestinationIcon } from './DestinationIcon';
@@ -77,7 +77,6 @@ export function MemoryCreatePage({
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
     null,
   );
-  const [showDiscard, setShowDiscard] = useState(false);
   const discardDestinationRef = useRef<'timeline' | null>(null);
   const confirmRef = useRef<ShortTaskSheetHandle>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -140,27 +139,21 @@ export function MemoryCreatePage({
     if (exitAction.current) exitAction.current();
     else requestReturn(originKey);
   }, [originKey, requestReturn]);
-  const closeTask = useEditorHistoryEntry({
+  const {
+    showDiscardConfirm: showDiscard,
+    keepEditing: keepDiscardEditing,
+    closeConfirmed: closeTask,
+    requestClose: requestTaskClose,
+  } = useTaskEditorLifecycle({
     isDirty: dirty || uncertain || Boolean(partial),
     isCloseBlocked: pending,
-    onDiscardRequested: () => setShowDiscard(true),
     onClose,
   });
   function requestClose() {
     if (owner.current.pending) return;
     discardDestinationRef.current = null;
-    if (dirty || uncertain || partial) setShowDiscard(true);
-    else closeTask();
+    requestTaskClose();
   }
-  useEffect(() => {
-    if (!dirty && !pending && !uncertain && !partial) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty, pending, uncertain, partial]);
 
   function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
     if (!owner.current.active || exitAction.current) return;
@@ -486,7 +479,7 @@ export function MemoryCreatePage({
                 : 'taskBoundary.discardTitle',
           )}
           onClose={() => {
-            setShowDiscard(false);
+            keepDiscardEditing();
             discardDestinationRef.current = null;
           }}
         >
@@ -504,7 +497,7 @@ export function MemoryCreatePage({
               type="button"
               className="secondary"
               onClick={() => {
-                setShowDiscard(false);
+                keepDiscardEditing();
                 discardDestinationRef.current = null;
               }}
             >
@@ -517,7 +510,7 @@ export function MemoryCreatePage({
                 const checkTimeline =
                   discardDestinationRef.current === 'timeline';
                 confirmRef.current?.closeForNavigation(() => {
-                  setShowDiscard(false);
+                  keepDiscardEditing();
                   if (checkTimeline)
                     exitAction.current = () =>
                       navigate('/story?tab=timeline', { replace: true });

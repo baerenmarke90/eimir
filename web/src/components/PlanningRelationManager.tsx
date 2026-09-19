@@ -410,10 +410,7 @@ export function PlanningRelationManager({
     (target) => !linkedKeys.has(targetKey(target.kind, target.id)),
   );
 
-  function openTarget(
-    event: MouseEvent<HTMLAnchorElement>,
-    path: string,
-  ) {
+  function openTarget(event: MouseEvent<HTMLAnchorElement>, path: string) {
     if (
       event.button !== 0 ||
       event.metaKey ||

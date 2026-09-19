@@ -47,7 +47,7 @@ localized product content.
 - [Content and Privacy Guidelines](docs/CONTENT-PRIVACY-GUIDELINES.md) — tone, system text, Notifications, and Analytics boundaries
 - [Design System Delivery](docs/DESIGN-SYSTEM-DELIVERY.md) — Token pipeline, component stages, and delivery phases
 - [Design Tokens](design/tokens.json) — colors, typography, spacing, layout, and Motion as a machine-readable source
-- [Component Manifest](design/component-manifest.json) — cross-platform implementation status
+- [Component Manifest](design/component-manifest.json) — canonical Web product-UI implementation status
 
 <table>
   <tr>

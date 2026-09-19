@@ -320,7 +320,7 @@ def test_unauthorized_space_target_is_non_enumerating(
     assert _rows(session) == []
 
 
-def test_shared_to_private_purges_and_resharing_starts_fresh(
+def test_visibility_transitions_purge_view_aggregates_in_both_directions(
     session: Session,
     story_setup,
 ) -> None:  # type: ignore[no-untyped-def]
@@ -340,6 +340,19 @@ def test_shared_to_private_purges_and_resharing_starts_fresh(
         visibility=ContentVisibility.PRIVATE,
     )
     assert _rows(session) == []
+
+    # #1021 allows the owner to record intentional views while the HeartMoment
+    # is private. Those aggregates must not survive a later PRIVATE -> SHARED
+    # transition or they could immediately become #971 partner-affinity input.
+    for offset in range(3):
+        aggregate = _record(
+            session,
+            story_setup,
+            kind=StoryKind.HEART_MOMENT,
+            item_key="shared_heart",
+            at=datetime(2026, 1, 2 + offset, 12, tzinfo=UTC),
+        )
+    assert aggregate.distinct_view_days_capped == 3
 
     heart_service.change_visibility(
         session,

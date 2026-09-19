@@ -227,7 +227,6 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
-  await page.goto('/story?tab=timeline');
   await page.waitForSelector('.story-timeline');
 }
 

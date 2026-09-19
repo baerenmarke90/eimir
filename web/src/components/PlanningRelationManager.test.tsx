@@ -2,6 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -19,7 +20,7 @@ function memoryStory(id: string, title: string): StoryItem {
   } as StoryItem;
 }
 
-function renderManager(apis: SharedPlanningApis) {
+function renderManager(apis: SharedPlanningApis, canManage = true) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Number.POSITIVE_INFINITY },
@@ -28,12 +29,15 @@ function renderManager(apis: SharedPlanningApis) {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <PlanningRelationManager
-        apis={apis}
-        spaceId="space-1"
-        ownerKind="chapter"
-        ownerId="chapter-1"
-      />
+      <MemoryRouter initialEntries={['/plan/chapters/chapter-1']}>
+        <PlanningRelationManager
+          apis={apis}
+          spaceId="space-1"
+          ownerKind="chapter"
+          ownerId="chapter-1"
+          canManage={canManage}
+        />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return queryClient;
@@ -148,6 +152,11 @@ describe('PlanningRelationManager pagination', () => {
       memoryId: 'memory-late',
     });
     expect(
+      screen
+        .getByRole('link', { name: /Our older memory/ })
+        .getAttribute('href'),
+    ).toBe('/story/memories/memory-late');
+    expect(
       screen.getByRole('button', { name: i18n.t('m5s3.relations.unlink') }),
     ).toBeTruthy();
   });
@@ -171,6 +180,43 @@ describe('PlanningRelationManager pagination', () => {
       await screen.findByText(i18n.t('m5s3.relations.contentFallback')),
     ).toBeTruthy();
     expect(screen.queryByText('private-heart')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('uses the owner capability for relation mutation affordances', async () => {
+    const getStoryTimeline = vi.fn().mockResolvedValue({
+      items: [memoryStory('candidate', 'Candidate')],
+      nextCursor: null,
+    });
+    renderManager(
+      relationApis({
+        story: { getStoryTimeline },
+        chapterRelations: {
+          listChapterContent: vi.fn().mockResolvedValue({
+            items: [{ targetId: 'memory-late', targetType: 'MEMORY' }],
+          }),
+          unlinkChapterMemory: vi.fn(),
+        },
+        memories: {
+          getMemory: vi.fn().mockResolvedValue({
+            id: 'memory-late',
+            title: 'Readable memory',
+            happenedOn: new Date('2026-09-01T00:00:00Z'),
+            createdAt: new Date('2026-09-01T00:00:00Z'),
+          }),
+        },
+      }),
+      false,
+    );
+
+    expect(await screen.findByText('Readable memory')).toBeTruthy();
+    expect(getStoryTimeline).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('m5s3.relations.unlink') }),
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText(i18n.t('m5s3.relations.addLabel')),
+    ).toBeNull();
   });
 
   it('stops a cursor cycle deterministically without reconstructing cursors', () => {

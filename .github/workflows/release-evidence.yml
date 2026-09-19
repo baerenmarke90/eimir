@@ -398,8 +398,8 @@ jobs:
           name: release-evidence-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
-          retention-days: 30
-          compression-level: 0
+          retention-days: 7
+          compression-level: 6
 
   attest:
     name: Attest exact artifact bytes
@@ -492,4 +492,4 @@ jobs:
           name: release-attestations-${{ github.sha }}
           path: release-evidence/attestations/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7

@@ -49,6 +49,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
+import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -417,30 +418,24 @@ export function MemoryProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link
-              className="back-link"
-              to={memoryDetailPath(memory.id)}
-              state={{ taskOriginKey: originKey }}
-            >
-              {t('memoryProduct.backToMemory')}
-            </Link>
-          }
-          eyebrow={t('memoryProduct.editEyebrow')}
-          title={t('memoryProduct.editHeading')}
-          description={t('memoryProduct.editIntro')}
-          className="create-heading"
-        />
-
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="memory-edit-heading"
-        >
-          <h2 id="memory-edit-heading" className="sr-only">
-            {t('memoryProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={memoryDetailPath(memory.id)}
+            state={{ taskOriginKey: originKey }}
+          >
+            {t('memoryProduct.backToMemory')}
+          </Link>
+        }
+        eyebrow={t('memoryProduct.editEyebrow')}
+        title={t('memoryProduct.editHeading')}
+        description={t('memoryProduct.editIntro')}
+        headerClassName="create-heading"
+        sectionLabelledBy="memory-edit-heading"
+        sectionHeading={t('memoryProduct.formAria')}
+      >
+        <>
           <form
             key={memory.version}
             onSubmit={submit}
@@ -613,8 +608,8 @@ export function MemoryProductPage({
               )}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 

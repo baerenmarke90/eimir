@@ -38,6 +38,7 @@ import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { StoryCreatePageShell } from './StoryFormPageShell';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -270,30 +271,31 @@ export function MemoryCreatePage({
     void save();
   }
   return (
-    <div className="page page-reading create-page memory-task-page">
-      <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
-        <PageHeader
-          before={
-            <button
-              type="button"
-              className="back-link tertiary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('taskBoundary.close')}
-            </button>
-          }
-          eyebrow={t('memory.eyebrow')}
-          title={t('memory.heading')}
-          description={t('memory.intro')}
-          className="create-heading"
-        />
-      </div>
-
-      <section
-        className="immersive-create-card eimir-motion-reveal"
-        aria-labelledby="memory-form-heading"
-      >
+    <StoryCreatePageShell
+      header={
+        <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
+          <PageHeader
+            before={
+              <button
+                type="button"
+                className="back-link tertiary"
+                onClick={requestClose}
+                aria-disabled={pending}
+              >
+                {t('taskBoundary.close')}
+              </button>
+            }
+            eyebrow={t('memory.eyebrow')}
+            title={t('memory.heading')}
+            description={t('memory.intro')}
+            className="create-heading"
+          />
+        </div>
+      }
+      pageClassName="memory-task-page"
+      labelledBy="memory-form-heading"
+    >
+      <>
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
@@ -527,7 +529,7 @@ export function MemoryCreatePage({
             </button>
           </div>
         </ShortTaskSheet>
-      </section>
-    </div>
+      </>
+    </StoryCreatePageShell>
   );
 }

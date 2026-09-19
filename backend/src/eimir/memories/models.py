@@ -2,10 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import ClassVar
+from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, Index, SmallInteger, UniqueConstraint, text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.authorization import PrivacyClass, PrivateResourceMixin, ResourceAbsence
@@ -72,6 +85,57 @@ class Memory(
             ),
             postgresql_using="gin",
         ),
+    )
+
+
+class MemoryCreateReceipt(IdMixin, Base):
+    """Technical receipt tying one request identity to the Memory it created.
+
+    The receipt is written in the same transaction as the Memory, so it exists
+    exactly when the create committed. It deliberately stores no request
+    content: only a fingerprint used to detect identity reuse with a different
+    payload. Rows are bounded in lifetime (see ``create_receipts``) and the
+    reference to the Memory is nulled, not cascaded, so a later delete cannot
+    make a stale retry recreate the Memory.
+    """
+
+    __tablename__ = "memory_create_receipts"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    idempotency_key: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    # NULL while the creating transaction is still open, and afterwards when
+    # the Memory has been deleted.
+    memory_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("memories.id", ondelete="SET NULL"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "space_id",
+            "account_id",
+            "idempotency_key",
+            name="uq_memory_create_receipts_identity",
+        ),
+        CheckConstraint(
+            "char_length(request_fingerprint) = 64",
+            name="request_fingerprint_is_sha256_hex",
+        ),
+        Index("ix_memory_create_receipts_created_at", "created_at"),
+        Index("ix_memory_create_receipts_memory_id", "memory_id"),
     )
 
 

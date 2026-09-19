@@ -90,6 +90,7 @@ export function HeartMomentProductPage({
   loadAttachment: (
     heartMomentId: string,
     attachmentId: string,
+    signal?: AbortSignal,
   ) => Promise<string>;
 }) {
   const { t } = useTranslation();
@@ -625,9 +626,10 @@ export function HeartMomentProductPage({
                       mediaType: heartMoment.attachment.mediaType,
                     },
                   ]}
-                  loadMedia={(attachmentId) =>
-                    loadAttachment(heartMoment.id, attachmentId)
+                  loadMedia={(attachmentId, signal) =>
+                    loadAttachment(heartMoment.id, attachmentId, signal)
                   }
+                  resourceScopeKey={`heart-moment:${heartMoment.id}`}
                 />
                 <button
                   type="button"
@@ -753,9 +755,10 @@ export function HeartMomentProductPage({
                 mediaType: heartMoment.attachment.mediaType,
               },
             ]}
-            loadMedia={(attachmentId) =>
-              loadAttachment(heartMoment.id, attachmentId)
+            loadMedia={(attachmentId, signal) =>
+              loadAttachment(heartMoment.id, attachmentId, signal)
             }
+            resourceScopeKey={`heart-moment:${heartMoment.id}`}
           />
         </section>
       ) : null}

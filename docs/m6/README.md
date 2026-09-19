@@ -156,7 +156,6 @@ taken from [Implementation Status](../IMPLEMENTATION-STATUS.md), not from this
 historical planning snapshot.
 
 ## 8. Parallelism and Android isolation
-## 8. Parallelism and Android isolation
 
 #437 itself is intentionally safe to execute while M5 Android work continues: this
 branch changes only `docs/m6/` and issue planning.

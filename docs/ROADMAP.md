@@ -75,7 +75,6 @@ state and [Status Sources and Drift Rules](./STATUS-SOURCES.md) for the maintena
 contract.
 
 ## Forward milestones
-## Forward milestones
 
 | Phase | Human goal | Scope | Outcome |
 |---|---|---|---|
@@ -107,7 +106,6 @@ Current execution/blocker state belongs only in
 dated gate reviews remain evidence/decision records rather than a second roadmap
 status table.
 
-## M7 — Relationship Depth
 ## M7 — Relationship Depth
 
 M7 owns optional everyday relationship features. It starts with readiness rather than immediately adding independent domains.

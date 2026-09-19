@@ -232,7 +232,6 @@ rather than inferring launch readiness from a green CI run or a closed
 implementation issue.
 
 ## Project control
-## Project control
 
 The complete binding requirement is the
 [Clean-Room Master Specification](specification/CLEAN-ROOM-MASTER-SPEC.md).

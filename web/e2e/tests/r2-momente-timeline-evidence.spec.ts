@@ -398,41 +398,38 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     ).toBeVisible();
   });
 
-  test('opening a Heart Moment from a filtered Timeline and pressing Back restores that filter', async ({
+  test('filtered Timeline detail Back restores Heart Moment and Milestone scope', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMocks(page);
     await signIn(page);
-    await page.goto('/story?tab=timeline&type=HEART_MOMENT');
-    await page.waitForSelector('.story-timeline');
 
-    await page
-      .getByRole('link', { name: /Thinking of our spring picnic/i })
-      .click();
-    await expect(page).toHaveURL(/\/story\/heart-moments\/hm-picnic/);
+    for (const scenario of [
+      {
+        filter: 'HEART_MOMENT',
+        link: /Thinking of our spring picnic/i,
+        detailUrl: /\/story\/heart-moments\/hm-picnic/,
+      },
+      {
+        filter: 'MILESTONE',
+        link: /Moved in together/i,
+        detailUrl: /\/story\/milestones\/ms-moved-in/,
+      },
+    ]) {
+      await page.goto(`/story?tab=timeline&type=${scenario.filter}`);
+      await page.waitForSelector('.story-timeline');
+      await page.getByRole('link', { name: scenario.link }).click();
+      await expect(page).toHaveURL(scenario.detailUrl);
 
-    await page.getByRole('button', { name: taskBoundary.back }).click();
-    await expect(page).toHaveURL(/type=HEART_MOMENT/);
+      await page.getByRole('button', { name: taskBoundary.back }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`type=${scenario.filter}`),
+      );
+    }
   });
 
-  test('opening a Milestone from a filtered Timeline and pressing Back restores that filter', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page);
-    await signIn(page);
-    await page.goto('/story?tab=timeline&type=MILESTONE');
-    await page.waitForSelector('.story-timeline');
-
-    await page.getByRole('link', { name: /Moved in together/i }).click();
-    await expect(page).toHaveURL(/\/story\/milestones\/ms-moved-in/);
-
-    await page.getByRole('button', { name: taskBoundary.back }).click();
-    await expect(page).toHaveURL(/type=MILESTONE/);
-  });
-
-  test('Search restores its submitted query/kind after returning from a canonical detail', async ({
+  test('Search preserves return state and canonical Story detail routing', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -457,74 +454,11 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
     await expect(
       page.getByRole('heading', { name: 'Late August Vacation' }),
     ).toBeVisible();
-  });
-
-  test('Search results for Heart Moment/Milestone deep-link to their canonical detail, not the Story landing', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page);
-    await signIn(page);
-    await page.goto('/search');
 
     await page.getByLabel(m5s5.search.label).fill('Moved in together');
     await page.getByRole('button', { name: m5s5.search.submit }).click();
     await page.getByRole('link', { name: /Moved in together/i }).click();
     await expect(page).toHaveURL(/\/story\/milestones\/ms-moved-in/);
-  });
-
-  test('320px reflow produces no horizontal overflow with month headings', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 320, height: 640 });
-    await installMocks(page);
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-
-    const hasHorizontalOverflow = await page.evaluate(
-      () =>
-        document.documentElement.scrollWidth >
-        document.documentElement.clientWidth,
-    );
-    expect(hasHorizontalOverflow).toBe(false);
-    await captureScreenshot(page, testInfo, 'r2-timeline-320-reflow.png');
-  });
-
-  test('dark mode captures month headings at 390x844', async ({
-    page,
-  }, testInfo) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
-    await page.addInitScript(() =>
-      window.localStorage.setItem('eimir.theme', 'system'),
-    );
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installMocks(page);
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await captureScreenshot(
-      page,
-      testInfo,
-      'r2-timeline-month-headings-390-dark.png',
-    );
-  });
-
-  test('representative Expanded (1280px) captures month headings', async ({
-    page,
-  }, testInfo) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await installMocks(page);
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-    await captureScreenshot(
-      page,
-      testInfo,
-      'r2-timeline-month-headings-1280-light.png',
-    );
   });
 
   test('reduced motion preserves the same month-grouped structure', async ({

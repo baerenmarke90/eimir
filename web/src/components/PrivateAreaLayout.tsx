@@ -75,9 +75,8 @@ export function PrivateAreaBackToHub() {
 export function usePrivateAreaTaskContext(fallbackPath: string) {
   const location = useLocation();
   const { resolveOrigin, requestReturn } = useTaskOrigin();
-  const taskOriginKey = (
-    location.state as { taskOriginKey?: unknown } | null
-  )?.taskOriginKey;
+  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const origin = resolveOrigin(taskOriginKey);
   const navigationState =
     origin && typeof taskOriginKey === 'string' ? { taskOriginKey } : undefined;

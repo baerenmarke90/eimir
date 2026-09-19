@@ -28,6 +28,8 @@ describe('PrivateAreaProductPage', () => {
     const html = renderPrivateArea('/more/private');
 
     expect(html).toContain('private-area-reference-overview');
+    expect(html).toContain(`href="/more"`);
+    expect(html).toContain(privateArea.backToMore);
     expect(html).toContain('private-area-privacy-banner');
     expect(html).toContain(privateArea.entry.privacy);
     expect(html).toContain('href="/more/private/notes"');

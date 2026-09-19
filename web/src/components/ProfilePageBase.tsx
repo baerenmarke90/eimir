@@ -1115,19 +1115,21 @@ export function ProfilePreferencesSection({
       ) : null}
 
       {partner ? (
-        <div className="profile-partner-block">
-          <PartnerIdentityPanel
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            account={account}
-            spaceId={spaceId}
-          />
-          <PartnerProfileSection
-            profilesApi={profilesApi}
-            spaceId={spaceId}
-            partnerId={partner.id}
-            partnerName={partner.displayName}
-          />
+        <>
+          <div className="profile-partner-block">
+            <PartnerIdentityPanel
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              account={account}
+              spaceId={spaceId}
+            />
+            <PartnerProfileSection
+              profilesApi={profilesApi}
+              spaceId={spaceId}
+              partnerId={partner.id}
+              partnerName={partner.displayName}
+            />
+          </div>
           {preferencesQuery.data ? (
             <PrivatePartnerNotesSection
               profilesApi={profilesApi}
@@ -1137,7 +1139,7 @@ export function ProfilePreferencesSection({
               items={privatePartnerNotes}
             />
           ) : null}
-        </div>
+        </>
       ) : null}
     </div>
   );

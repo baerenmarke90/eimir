@@ -27,7 +27,8 @@ Current #1042 state:
 
 - 46 spec files
 - original full-regression baseline: **351** browser tests
-- Phase B retained full regression: **319** browser tests
+- Phase B Slice 1 retained full regression: **319** browser tests
+- Phase B Slice 2 retained full regression: **314** browser tests
 - PR-critical group: **150** browser tests
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
@@ -39,6 +40,14 @@ Phase B reduces test-case overhead without dropping checked states. Three dense 
 - `r1-memory-capture-evidence.spec.ts`: 19 -> 11 tests, while retaining all initial-empty Light/Dark viewport evidence plus every focused capture/reflow/motion/save scenario.
 
 The earlier `LOWER_LEVEL` candidates were also re-audited. Product reflow, private-state axe contrast and forced-colors behavior all depend on real browser layout/media/computed-style behavior and therefore remain browser regression coverage rather than being forced into a weaker unit-test substitute.
+
+Phase B Slice 2 removes only three R2 presentation-evidence cases whose contracts are already covered more strongly by later retained suites:
+
+- 320px Timeline reflow: retained in `momente-timeline-reference.spec.ts` plus the integrated 320/200% collision checks in `r2-timeline-card-hierarchy.spec.ts`;
+- 390px Dark Timeline presentation: retained in the Momente Product Reference plus the dark sticky-heading/integrated-shell regression;
+- 1280px Expanded month-heading presentation: retained by the two explicit 1280 hierarchy/pinning tests.
+
+The unique R2 contracts remain: month ordering, oldest-first filter behavior, filtered-detail Back restoration, Search return/deep-link behavior and reduced-motion month grouping. Heart Moment/Milestone Back restoration and the two Search flows now share one signed-in test session per contract family instead of duplicating full setup.
 
 ### PR-critical group
 
@@ -79,7 +88,7 @@ For a `pull_request` touching `web/**` or the workflow itself:
 
 For a push to `main` touching the same surfaces, and for manual execution, the workflow runs `npm run test:full` instead.
 
-The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group.
+The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group. The targeted changed-spec run uses a separate Playwright output directory so it cannot erase PR-gate screenshots before artifact upload.
 
 ## Maintenance rule
 

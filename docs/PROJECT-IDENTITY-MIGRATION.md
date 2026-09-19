@@ -91,10 +91,13 @@ Some names are deliberately not changed in place:
 - Android `applicationId` `de.sidebyside.app`, its debug suffix, and the OIDC
   callback scheme remain stable so stores and installed devices receive an
   upgrade rather than a second application.
-- The retired Kotlin client's Room read cache and Keystore alias no longer exist
-  (removed in #1009). They held only a non-authoritative copy of server data;
-  the Capacitor wrapper keeps no native user-data store, so app updates need no
-  native cache continuity. Server data continuity is unaffected.
+- The retired Kotlin client's Room read cache and Keystore alias are not part of
+  the Capacitor architecture. Because an in-place Android update preserves the
+  existing app sandbox, the wrapper runs a one-way startup cleanup that deletes
+  the old `sidebyside-read-cache.db`, the remembered-Space preference and the
+  `sidebyside_owner_only_read_cache` Keystore entry. It never reads or migrates
+  their contents and retries cleanup on later starts if Android reports a
+  deletion failure. Server data continuity is unaffected.
 - The IndexedDB database `sidebyside-web-read-cache` remains stable. Web session,
   auth-return, theme, cache-context, and demo-mode keys are read once from their
   old names, written to canonical `eimir` keys, and then removed where removal

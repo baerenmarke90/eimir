@@ -46,6 +46,17 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             )
             self.assertEqual(check_file(path), [])
 
+    def test_pwa_offline_product_copy_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "offline.html"
+            path.write_text(
+                "<h1>Gerade keine Verbindung.</h1>\n"
+                "<p>Deine privaten Inhalte werden nicht offline zwischengespeichert.</p>\n"
+                "<p>Sobald die Verbindung wieder da ist, kannst du eimir. normal weiterverwenden.</p>\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(check_file(path), [])
+
     def test_common_english_article_is_not_a_german_marker(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.md"

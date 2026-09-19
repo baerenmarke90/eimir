@@ -127,7 +127,7 @@ versionCode='...' versionName='...'`), and `evidence-index.json` records canonic
 `versionCode` is supplied as a workflow input (`-PeimirVersionCode`), and `versionName`
 is parameterized via `release_version` (`-PeimirVersionName`).
 The Gradle build uses verified Gradle wrapper checksums and strict dependency verification
-(`gradle/verification-metadata.xml`) under pinned JDK 21 and Node 22.19.0.
+(`gradle/verification-metadata.xml`) under pinned JDK 21 and Node 24.21.0.
 The legacy client under `android/` is completely decoupled from evidence pipelines and
 will be retired in #1009.
 

@@ -89,7 +89,7 @@ and will be retired in #1009.
 
 Release builds require `android_api_base_url` to build the embedded web bundle
 (`VITE_EIMIR_API_BASE_URL`), synchronize native assets via `npm run cap:sync`, and build
-artifacts with pinned Node 22.19.0, JDK 21, and strict Gradle dependency verification
+artifacts with pinned Node 24.21.0, JDK 21, and strict Gradle dependency verification
 (`gradle/verification-metadata.xml`).
 
 For Self-Hosted Production, `EIMIR_RELEASE_VERSION` is mandatory. Versioned or
@@ -192,7 +192,7 @@ After protected environment approval it:
 
 1. builds web assets with `android_api_base_url`, performs `npm run cap:sync` with native
    drift check, compiles and signs/verifies final Android APK/AAB from `android/`
-   using pinned Node 22.19.0, JDK 21, and strict Gradle dependency verification, followed
+   using pinned Node 24.21.0, JDK 21, and strict Gradle dependency verification, followed
    by apksigner, jarsigner, aapt badging, and offline web asset security verification;
 2. regenerates signed-byte SBOMs and attestations;
 3. builds/verifies the final signed release manifest;

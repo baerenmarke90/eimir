@@ -29,10 +29,19 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.clock import now
 from eimir.core.errors import ConflictError, ErrorCode, ValidationError
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.memories import create_receipts
 from eimir.memories.models import Memory, MemoryPayload, shared_privacy
 from eimir.outbox import service as outbox_service
 
 _MEMORY_SUBJECT_TYPE = "memory"
+
+
+@dataclass(frozen=True)
+class MemoryCreateResult:
+    """A create outcome; ``created`` is false when an identity was replayed."""
+
+    memory: Memory
+    created: bool
 
 
 @dataclass(frozen=True)
@@ -102,6 +111,40 @@ def create_memory(
     _record(session, memory, context.account_id, EventType.MEMORY_CREATED)
     _flush(session)
     return memory
+
+
+def create_memory_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    title: str,
+    body: str,
+    happened_on: date | None,
+) -> MemoryCreateResult:
+    """Create a Memory, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt and
+    creating the Memory share this transaction (see ``create_receipts``).
+    """
+    if idempotency_key is None:
+        memory = create_memory(session, context, title=title, body=body, happened_on=happened_on)
+        return MemoryCreateResult(memory, created=True)
+
+    normalized_title = _normalize_title(title)
+    request_fingerprint = create_receipts.fingerprint(
+        title=normalized_title, body=body, happened_on=happened_on
+    )
+    receipt_id = create_receipts.claim(session, context, idempotency_key, request_fingerprint)
+    if receipt_id is None:
+        memory = create_receipts.replay(session, context, idempotency_key, request_fingerprint)
+        return MemoryCreateResult(memory, created=False)
+
+    memory = create_memory(
+        session, context, title=normalized_title, body=body, happened_on=happened_on
+    )
+    create_receipts.attach(session, receipt_id, memory.id)
+    return MemoryCreateResult(memory, created=True)
 
 
 def get_memory(

@@ -13,6 +13,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentSummary
 from eimir.attachments import binding
@@ -154,23 +155,47 @@ def _memory_detail(
     response_model=MemoryDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createMemory",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an equivalent "
+                "request. The response returns the original Memory in its current state; no "
+                "second Memory is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": MemoryDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_memory(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: MemoryCreate,
+    idempotency_key: IdempotencyKey,
 ) -> MemoryDetail:
-    memory = service.create_memory(
+    """Create a Memory.
+
+    Send an `Idempotency-Key` to make the save reconcilable after a lost
+    response: the identical request repeated with the same key returns the
+    original Memory (`200`); the same key with a different payload is a `409`
+    (`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the
+    answer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.
+    """
+    result = service.create_memory_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         title=body.title,
         body=body.body,
         happened_on=body.happened_on,
     )
-    response.headers["ETag"] = etag_for(memory.version)
-    return _memory_detail(session, authorization, memory)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.memory.version)
+    return _memory_detail(session, authorization, result.memory)
 
 
 @router.get(

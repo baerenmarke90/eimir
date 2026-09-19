@@ -25,7 +25,7 @@ jobs:
     if: github.event_name == 'pull_request'
     name: PR-critical ${{ matrix.shard }}/2
     runs-on: ubuntu-latest
-    container: node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
     strategy:
       fail-fast: false
       matrix:
@@ -129,7 +129,7 @@ jobs:
     needs: changed-spec-plan
     name: Changed browser specs
     runs-on: ubuntu-latest
-    container: node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -200,7 +200,7 @@ jobs:
     if: github.event_name != 'pull_request'
     name: Full regression ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    container: node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
     strategy:
       fail-fast: false
       matrix:

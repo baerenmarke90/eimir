@@ -189,6 +189,91 @@ describe('createMemoryWithReadyAttachments', () => {
     expect(replaceMemoryAttachments).not.toHaveBeenCalled();
   });
 
+  it('sends the request identity so a replay resolves to the original Memory', async () => {
+    const memory = {
+      id: 'original',
+      version: 1,
+      attachments: [],
+    } as unknown as MemoryDetail;
+    const createMemory = vi.fn().mockResolvedValue(memory);
+    const apis = { memories: { createMemory } } as unknown as ReferenceApis;
+    const snapshot = { title: 'Lake', body: '' };
+
+    await createMemoryWithReadyAttachments(apis, 'space-1', snapshot, [], {
+      idempotencyKey: 'key-1',
+    });
+
+    expect(createMemory).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      memoryCreate: snapshot,
+      idempotencyKey: 'key-1',
+    });
+  });
+
+  it('continues a replayed create with the existing reconciling binding instead of creating again', async () => {
+    const replayed = {
+      id: 'original',
+      version: 1,
+      attachments: [],
+    } as unknown as MemoryDetail;
+    const bound = { ...replayed, version: 2 } as unknown as MemoryDetail;
+    const apis = {
+      memories: {
+        createMemory: vi.fn().mockResolvedValue(replayed),
+        getMemory: vi.fn().mockResolvedValue(replayed),
+        replaceMemoryAttachments: vi.fn().mockResolvedValue(bound),
+      },
+    } as unknown as ReferenceApis;
+
+    const result = await createMemoryWithReadyAttachments(
+      apis,
+      'space-1',
+      { title: 'Lake', body: '' },
+      ['attachment-1'],
+      { idempotencyKey: 'key-1', reconcile: true },
+    );
+
+    expect(result.memory).toBe(bound);
+    expect(apis.memories.createMemory).toHaveBeenCalledTimes(1);
+    expect(apis.memories.getMemory).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      memoryId: 'original',
+    });
+    expect(apis.memories.replaceMemoryAttachments).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryId: 'original', ifMatch: '1' }),
+    );
+  });
+
+  it('does not overwrite a different gallery found on the replayed Memory', async () => {
+    const replayed = {
+      id: 'original',
+      version: 1,
+      attachments: [],
+    } as unknown as MemoryDetail;
+    const edited = {
+      ...replayed,
+      attachments: [{ id: 'someone-elses', position: 0 }],
+    } as unknown as MemoryDetail;
+    const apis = {
+      memories: {
+        createMemory: vi.fn().mockResolvedValue(replayed),
+        getMemory: vi.fn().mockResolvedValue(edited),
+        replaceMemoryAttachments: vi.fn(),
+      },
+    } as unknown as ReferenceApis;
+
+    await expect(
+      createMemoryWithReadyAttachments(
+        apis,
+        'space-1',
+        { title: 'Lake', body: '' },
+        ['attachment-1'],
+        { idempotencyKey: 'key-1', reconcile: true },
+      ),
+    ).rejects.toBeInstanceOf(MemoryAttachmentBindingError);
+    expect(apis.memories.replaceMemoryAttachments).not.toHaveBeenCalled();
+  });
+
   it('keeps confirmation independent of a failing Story projection read', async () => {
     const memory = { id: 'confirmed', version: 1 } as MemoryDetail;
     const apis = {

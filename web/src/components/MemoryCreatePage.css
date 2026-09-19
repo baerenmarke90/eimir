@@ -43,6 +43,30 @@
   outline: none;
 }
 
+/* Same for the unknown-outcome notice: focus moves to it programmatically so
+ * assistive technology and keyboard users land on the explanation, but the
+ * heading itself is not a control. */
+.memory-task-page .inline-message h2:focus {
+  outline: none;
+}
+
+/* The notice reuses the task action row: secondary first in the DOM, primary
+ * last, so Compact (column-reverse) shows the primary verify action on top. */
+.memory-task-page .inline-message .form-actions {
+  margin-top: 0.65rem;
+}
+
+.memory-task-page .inline-message .form-actions .secondary {
+  width: auto;
+  margin-top: 0;
+}
+
+@container product-content (max-width: 37.4375rem) {
+  .memory-task-page .inline-message .form-actions .secondary {
+    width: 100%;
+  }
+}
+
 .product-shell[data-focused-task="true"] {
   --shell-content-bottom-clearance: calc(
     var(--space-6) +

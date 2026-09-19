@@ -3,8 +3,8 @@
   "baseline": {
     "main": "5ed0fa8581555b6a6c81a9912d07b2c0609ac12f",
     "specFiles": 46,
-    "tests": 314,
-    "prCriticalTests": 150
+    "tests": 316,
+    "prCriticalTests": 152
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -30,7 +30,7 @@
     },
     "f2-task-boundaries.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 32
+      "baselineTests": 34
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",

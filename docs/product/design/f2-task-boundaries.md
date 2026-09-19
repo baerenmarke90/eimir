@@ -73,6 +73,8 @@ Installed: React/DOM 19.1.1, React Router 7.18.2, TanStack Query 5.85.5; Android
 
 Backend follow-up [#961](https://github.com/baerenmarke90/eimir/issues/961) owns request identity/reconciliation for a Memory create whose response is lost. F2 must not infer non-creation from a timeout or repeat POST in that state. The follow-up was recorded before depending on recovery; F2's uncertainty handling does not depend on its implementation.
 
+**Update (#961, [ADR 0012](../../decisions/0012-memory-create-request-identity.md)):** the backend follow-up is delivered. Web now sends an `Idempotency-Key` with every Memory create and offers an explicit, user-initiated *verify* action in the unknown-outcome state. Verification replays the identical request with the same key, so it can never create a second Memory: `200`/`201` opens the actual saved Memory and continues the existing photo association against that ID; a Memory deleted in the meantime is reported honestly and never recreated; a key older than the 12-hour client window is declared unverifiable and points to the Moments list. F2's own rules still hold: content stays visible and read-only while the outcome is unknown, nothing is replayed automatically, and a late result cannot replace newer task state. Older clients that send no key keep the original F2 limitation.
+
 ### Delivered ownership
 
 | Boundary | Web | Android |

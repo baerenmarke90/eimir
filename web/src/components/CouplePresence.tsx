@@ -114,7 +114,10 @@ export function CouplePresence({
             {relationshipDuration && (
               <>
                 {resolvedStatusText ? (
-                  <span className="couple-presence-separator" aria-hidden="true">
+                  <span
+                    className="couple-presence-separator"
+                    aria-hidden="true"
+                  >
                     ·
                   </span>
                 ) : null}

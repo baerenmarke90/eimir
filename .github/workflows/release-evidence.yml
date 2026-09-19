@@ -119,6 +119,10 @@ jobs:
             --pull \
             --no-cache \
             --build-arg "EIMIR_BUILD_REVISION=$GITHUB_SHA" \
+            --label "org.opencontainers.image.title=eimir backend runtime" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_VERSION" \
             --tag "$image" \
             ./backend
           docker image save --output release-evidence/backend-runtime.image.tar "$image"
@@ -131,6 +135,10 @@ jobs:
             --pull \
             --no-cache \
             --build-arg "EIMIR_BUILD_REVISION=$GITHUB_SHA" \
+            --label "org.opencontainers.image.title=eimir web runtime" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$RELEASE_VERSION" \
             --tag "$image" \
             ./web
           docker image save --output release-evidence/web-runtime.image.tar "$image"

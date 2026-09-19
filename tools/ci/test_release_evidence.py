@@ -104,6 +104,30 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertIn("docker image save", self.workflow)
         self.assertIn("docker-archive:", self.workflow)
 
+    def test_runtime_images_carry_oci_identity_labels(self) -> None:
+        """Each runtime image names its own source revision and release version (#827).
+
+        The labels are baked into the build-once image, so they are covered by the
+        attested archive digest and can be verified again before publication.
+        """
+        for step_name in (
+            "Build backend runtime image archive",
+            "Build Web runtime image archive",
+        ):
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn(
+                    '--label "org.opencontainers.image.revision=$GITHUB_SHA"', step
+                )
+                self.assertIn(
+                    '--label "org.opencontainers.image.version=$RELEASE_VERSION"', step
+                )
+                self.assertIn(
+                    '--label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"',
+                    step,
+                )
+                self.assertIn("docker image save", step)
+
     def test_each_subject_has_spdx_23_json_evidence(self) -> None:
         for path in REQUIRED_SBOMS:
             with self.subTest(path=path):

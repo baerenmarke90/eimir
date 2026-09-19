@@ -31,6 +31,10 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
+import {
+  StoryCreatePageShell,
+  StoryEditorPageShell,
+} from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -220,22 +224,23 @@ export function MilestoneProductPage({
     }
 
     return (
-      <div className="page page-reading create-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={appRoutePath('story')}>
-              {t('milestoneProduct.backToStory')}
-            </Link>
-          }
-          eyebrow={t('milestoneProduct.createEyebrow')}
-          title={t('milestoneProduct.createHeading')}
-          description={t('milestoneProduct.createIntro')}
-          className="create-heading"
-        />
-        <section
-          className="immersive-create-card eimir-motion-reveal"
-          aria-labelledby="milestone-form-heading"
-        >
+      <StoryCreatePageShell
+        header={
+          <PageHeader
+            before={
+              <Link className="back-link" to={appRoutePath('story')}>
+                {t('milestoneProduct.backToStory')}
+              </Link>
+            }
+            eyebrow={t('milestoneProduct.createEyebrow')}
+            title={t('milestoneProduct.createHeading')}
+            description={t('milestoneProduct.createIntro')}
+            className="create-heading"
+          />
+        }
+        labelledBy="milestone-form-heading"
+      >
+        <>
           <h2 id="milestone-form-heading" className="sr-only">
             {t('milestoneProduct.createHeading')}
           </h2>
@@ -302,8 +307,8 @@ export function MilestoneProductPage({
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryCreatePageShell>
     );
   }
 
@@ -382,24 +387,19 @@ export function MilestoneProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={milestoneDetailPath(milestone.id)}>
-              {t('milestoneProduct.backToMilestone')}
-            </Link>
-          }
-          eyebrow={t('milestoneProduct.editEyebrow')}
-          title={t('milestoneProduct.editHeading')}
-          description={t('milestoneProduct.editIntro')}
-        />
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="milestone-edit-heading"
-        >
-          <h2 id="milestone-edit-heading" className="sr-only">
-            {t('milestoneProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link className="back-link" to={milestoneDetailPath(milestone.id)}>
+            {t('milestoneProduct.backToMilestone')}
+          </Link>
+        }
+        eyebrow={t('milestoneProduct.editEyebrow')}
+        title={t('milestoneProduct.editHeading')}
+        description={t('milestoneProduct.editIntro')}
+        sectionLabelledBy="milestone-edit-heading"
+        sectionHeading={t('milestoneProduct.formAria')}
+      >
+        <>
           <form className="form-grid" onSubmit={submitEdit}>
             <MilestoneFields milestone={milestone} />
             <div className="form-actions">
@@ -468,8 +468,8 @@ export function MilestoneProductPage({
               ) : null}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 

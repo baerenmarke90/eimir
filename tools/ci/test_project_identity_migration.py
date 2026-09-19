@@ -52,15 +52,31 @@ class ProjectIdentityMigrationContractTest(unittest.TestCase):
         self.assertIn("appId: 'de.sidebyside.app'", capacitor_config)
         self.assertIn("path: '../android'", capacitor_config)
 
-    def test_retired_native_client_left_no_source_or_persistent_state(self) -> None:
-        # The former Kotlin client's Room read cache and Keystore key alias were
-        # a non-authoritative device cache, not server data continuity. They
-        # were removed with the client; the wrapper must not regrow Kotlin code.
+    def test_retired_native_client_has_no_product_source_and_cleans_old_state(
+        self,
+    ) -> None:
         android = ROOT / "android"
         self.assertEqual([], sorted(android.rglob("*.kt")))
         self.assertEqual([], sorted(android.rglob("*.kts")))
         self.assertFalse((ROOT / "capacitor-android").exists())
         self.assertFalse((android / "api" / "generated").exists())
+
+        cleanup = read(
+            "android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java"
+        )
+        self.assertIn('LEGACY_DATABASE = "sidebyside-read-cache.db"', cleanup)
+        self.assertIn('LEGACY_SPACE_PREFERENCES = "space_preferences"', cleanup)
+        self.assertIn(
+            'LEGACY_KEY_ALIAS = "sidebyside_owner_only_read_cache"', cleanup
+        )
+        self.assertIn("context.deleteDatabase(LEGACY_DATABASE)", cleanup)
+        self.assertIn("preferences.edit().clear().commit()", cleanup)
+        self.assertIn("keyStore.deleteEntry(LEGACY_KEY_ALIAS)", cleanup)
+
+        main_activity = read(
+            "android/app/src/main/java/de/eimir/app/MainActivity.java"
+        )
+        self.assertIn("LegacyNativeDataCleanup.run(this)", main_activity)
 
     def test_browser_state_has_canonical_write_and_legacy_read_keys(self) -> None:
         session = read("web/src/client/sessionPersistence.ts")

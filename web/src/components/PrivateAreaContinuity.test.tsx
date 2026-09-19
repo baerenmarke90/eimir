@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import {
   BrowserRouter,
   Route,
@@ -106,7 +106,7 @@ function SearchOrigin() {
   );
 }
 
-function Providers({ children }: { children: React.ReactNode }) {
+function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client()}>
       <BrowserRouter>

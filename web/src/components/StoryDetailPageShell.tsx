@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 
@@ -10,7 +10,7 @@ export interface StoryDetailPageShellProps {
   beforeHeader?: ReactNode;
   pageClassName?: string;
   containerClassName: string;
-  containerProps?: Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
+  containerDataAttributes?: Record<`data-${string}`, string>;
   articleClassName?: string;
   children: ReactNode;
 }
@@ -30,7 +30,7 @@ export function StoryDetailPageShell({
   beforeHeader,
   pageClassName = 'product-detail-page',
   containerClassName,
-  containerProps,
+  containerDataAttributes,
   articleClassName = 'product-detail-card',
   children,
 }: StoryDetailPageShellProps) {
@@ -46,7 +46,7 @@ export function StoryDetailPageShell({
       ) : null}
       <PageHeader eyebrow={eyebrow} title={title} titleAction={titleAction} />
 
-      <div {...containerProps} className={containerClassName}>
+      <div {...containerDataAttributes} className={containerClassName}>
         <article
           className={`story-surface ${articleClassName} coffee-table-layout`.trim()}
         >

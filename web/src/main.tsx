@@ -7,6 +7,7 @@ import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { DemoBanner } from './components/DemoBanner';
 import { i18n } from './i18n';
+import { registerProductionServiceWorker } from './pwa';
 import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
@@ -37,6 +38,7 @@ import './product-reflow.css';
 import './memory-create-polish.css';
 
 initializeTheme();
+registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
   defaultOptions: {

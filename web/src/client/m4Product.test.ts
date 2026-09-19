@@ -33,9 +33,9 @@ describe('M5 S5/S3 product navigation', () => {
     expect(searchResultPath('GIFT_IDEA', 'gift-id')).toBe(
       '/more/private/gift-ideas/gift-id',
     );
-    expect(searchResultPath('PRIVATE_COLLECTION', 'private-collection-id')).toBe(
-      '/more/private/collections/private-collection-id',
-    );
+    expect(
+      searchResultPath('PRIVATE_COLLECTION', 'private-collection-id'),
+    ).toBe('/more/private/collections/private-collection-id');
     expect(
       searchResultPath(
         'PRIVATE_COLLECTION_ITEM',
@@ -43,9 +43,7 @@ describe('M5 S5/S3 product navigation', () => {
         'private-collection-id',
       ),
     ).toBe('/more/private/collections/private-collection-id');
-    expect(
-      searchResultPath('PRIVATE_COLLECTION_ITEM', 'item-id'),
-    ).toBeNull();
+    expect(searchResultPath('PRIVATE_COLLECTION_ITEM', 'item-id')).toBeNull();
   });
 
   it('routes engagement targets to canonical detail routes and guards null targets', () => {

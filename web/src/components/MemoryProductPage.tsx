@@ -435,178 +435,180 @@ export function MemoryProductPage({
         sectionLabelledBy="memory-edit-heading"
         sectionHeading={t('memoryProduct.formAria')}
       >
-        <form
-                    key={memory.version}
-                    onSubmit={submit}
-                    className="form-grid memory-form"
-                  >
-                    <div className="field-group">
-                      <label htmlFor="memory-edit-title">
-                        {t('memory.titleLabel')}
-                      </label>
-                      <input
-                        id="memory-edit-title"
-                        name="title"
-                        required
-                        maxLength={200}
-                        defaultValue={memory.title}
-                      />
-                    </div>
-                    <div className="field-group">
-                      <label htmlFor="memory-edit-body">{t('memory.bodyLabel')}</label>
-                      <textarea
-                        id="memory-edit-body"
-                        name="body"
-                        rows={6}
-                        defaultValue={memory.body}
-                      />
-                    </div>
-                    <div className="field-group">
-                      <label htmlFor="memory-edit-date">{t('memory.dateLabel')}</label>
-                      <input
-                        id="memory-edit-date"
-                        name="happenedOn"
-                        type="date"
-                        defaultValue={memoryDateInputValue(memory.happenedOn)}
-                      />
-                    </div>
+        <>
+          <form
+            key={memory.version}
+            onSubmit={submit}
+            className="form-grid memory-form"
+          >
+            <div className="field-group">
+              <label htmlFor="memory-edit-title">
+                {t('memory.titleLabel')}
+              </label>
+              <input
+                id="memory-edit-title"
+                name="title"
+                required
+                maxLength={200}
+                defaultValue={memory.title}
+              />
+            </div>
+            <div className="field-group">
+              <label htmlFor="memory-edit-body">{t('memory.bodyLabel')}</label>
+              <textarea
+                id="memory-edit-body"
+                name="body"
+                rows={6}
+                defaultValue={memory.body}
+              />
+            </div>
+            <div className="field-group">
+              <label htmlFor="memory-edit-date">{t('memory.dateLabel')}</label>
+              <input
+                id="memory-edit-date"
+                name="happenedOn"
+                type="date"
+                defaultValue={memoryDateInputValue(memory.happenedOn)}
+              />
+            </div>
 
-                    {readyAttachments.length > 0 ? (
-                      <fieldset className="memory-existing-attachments">
-                        <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
-                        <p className="field-help">
-                          {t('memoryProduct.existingPhotosHelp')}
-                        </p>
-                        <ul className="memory-edit-attachment-list">
-                          {readyAttachments.map((attachment) => {
-                            const removed = removedAttachmentIds.has(attachment.id);
-                            return (
-                              <li
-                                key={attachment.id}
-                                className={`memory-edit-attachment${
-                                  removed ? ' memory-edit-attachment-removed' : ''
-                                }`}
-                              >
-                                <MemoryPreview
-                                  memoryId={memory.id}
-                                  attachmentId={attachment.id}
-                                  loadImage={loadMemoryImage}
-                                />
-                                <div className="memory-edit-attachment-actions">
-                                  {removed ? (
-                                    <span role="status">
-                                      {t('memoryProduct.photoMarkedForRemoval')}
-                                    </span>
-                                  ) : null}
-                                  <button
-                                    type="button"
-                                    className="tertiary"
-                                    onClick={() =>
-                                      toggleAttachmentRemoval(attachment.id)
-                                    }
-                                  >
-                                    {removed
-                                      ? t('memoryProduct.keepPhoto')
-                                      : t('memoryProduct.markPhotoForRemoval')}
-                                  </button>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </fieldset>
-                    ) : null}
-
-                    <div className="memory-new-attachments-heading">
-                      <strong>{t('memoryProduct.newPhotosHeading')}</strong>
-                      {readyAttachments.length > 0 ? (
-                        <p className="field-help">
-                          {t('memoryProduct.editPhotosPreserved')}
-                        </p>
-                      ) : null}
-                    </div>
-                    <AttachmentDraftPicker
-                      id="memory-edit-images"
-                      attachments={attachments}
-                      multiple
-                    />
-
-                    <div className="form-actions">
-                      <Link
-                        className="button-link secondary-link"
-                        to={memoryDetailPath(memory.id)}
-                        state={{ taskOriginKey: originKey }}
-                        onClick={() => setConfirmDelete(false)}
+            {readyAttachments.length > 0 ? (
+              <fieldset className="memory-existing-attachments">
+                <legend>{t('memoryProduct.existingPhotosHeading')}</legend>
+                <p className="field-help">
+                  {t('memoryProduct.existingPhotosHelp')}
+                </p>
+                <ul className="memory-edit-attachment-list">
+                  {readyAttachments.map((attachment) => {
+                    const removed = removedAttachmentIds.has(attachment.id);
+                    return (
+                      <li
+                        key={attachment.id}
+                        className={`memory-edit-attachment${
+                          removed ? ' memory-edit-attachment-removed' : ''
+                        }`}
                       >
-                        {t('common.cancel')}
-                      </Link>
-                      <button
-                        type="submit"
-                        disabled={updateMutation.isPending || attachments.hasPending}
-                      >
-                        {updateMutation.isPending
-                          ? t('memoryProduct.saving')
-                          : t('memoryProduct.save')}
-                      </button>
-                    </div>
-                  </form>
-                  {updateMutation.error ? (
+                        <MemoryPreview
+                          memoryId={memory.id}
+                          attachmentId={attachment.id}
+                          loadImage={loadMemoryImage}
+                        />
+                        <div className="memory-edit-attachment-actions">
+                          {removed ? (
+                            <span role="status">
+                              {t('memoryProduct.photoMarkedForRemoval')}
+                            </span>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="tertiary"
+                            onClick={() =>
+                              toggleAttachmentRemoval(attachment.id)
+                            }
+                          >
+                            {removed
+                              ? t('memoryProduct.keepPhoto')
+                              : t('memoryProduct.markPhotoForRemoval')}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </fieldset>
+            ) : null}
+
+            <div className="memory-new-attachments-heading">
+              <strong>{t('memoryProduct.newPhotosHeading')}</strong>
+              {readyAttachments.length > 0 ? (
+                <p className="field-help">
+                  {t('memoryProduct.editPhotosPreserved')}
+                </p>
+              ) : null}
+            </div>
+            <AttachmentDraftPicker
+              id="memory-edit-images"
+              attachments={attachments}
+              multiple
+            />
+
+            <div className="form-actions">
+              <Link
+                className="button-link secondary-link"
+                to={memoryDetailPath(memory.id)}
+                state={{ taskOriginKey: originKey }}
+                onClick={() => setConfirmDelete(false)}
+              >
+                {t('common.cancel')}
+              </Link>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending || attachments.hasPending}
+              >
+                {updateMutation.isPending
+                  ? t('memoryProduct.saving')
+                  : t('memoryProduct.save')}
+              </button>
+            </div>
+          </form>
+          {updateMutation.error ? (
+            <ProblemState
+              error={updateMutation.error}
+              onRetry={() => void reloadCurrentMemory()}
+            />
+          ) : null}
+
+          {memory.capabilities.canDelete && !offline ? (
+            <div style={{ marginTop: 'var(--space-8)' }}>
+              {!confirmDelete ? (
+                <button
+                  type="button"
+                  className="button-link danger-link"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  {t('memoryProduct.delete')}
+                </button>
+              ) : (
+                <section
+                  className="memory-danger-zone memory-delete-confirmation"
+                  aria-label={t('memoryProduct.delete')}
+                  role="alert"
+                >
+                  <div>
+                    <h2>{t('memoryProduct.deleteConfirmTitle')}</h2>
+                    <p>{t('memoryProduct.deleteConfirmBody')}</p>
+                  </div>
+                  <div className="memory-actions">
+                    <button
+                      type="button"
+                      className="tertiary"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {t('memoryProduct.deleteCancel')}
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => deleteMutation.mutate(memory)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending
+                        ? t('memoryProduct.deleting')
+                        : t('memoryProduct.deleteConfirm')}
+                    </button>
+                  </div>
+                  {deleteMutation.error && (
                     <ProblemState
-                      error={updateMutation.error}
-                      onRetry={() => void reloadCurrentMemory()}
+                      error={deleteMutation.error}
+                      onRetry={() => deleteMutation.reset()}
                     />
-                  ) : null}
-
-                  {memory.capabilities.canDelete && !offline ? (
-                    <div style={{ marginTop: 'var(--space-8)' }}>
-                      {!confirmDelete ? (
-                        <button
-                          type="button"
-                          className="button-link danger-link"
-                          onClick={() => setConfirmDelete(true)}
-                        >
-                          {t('memoryProduct.delete')}
-                        </button>
-                      ) : (
-                        <section
-                          className="memory-danger-zone memory-delete-confirmation"
-                          aria-label={t('memoryProduct.delete')}
-                          role="alert"
-                        >
-                          <div>
-                            <h2>{t('memoryProduct.deleteConfirmTitle')}</h2>
-                            <p>{t('memoryProduct.deleteConfirmBody')}</p>
-                          </div>
-                          <div className="memory-actions">
-                            <button
-                              type="button"
-                              className="tertiary"
-                              onClick={() => setConfirmDelete(false)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              {t('memoryProduct.deleteCancel')}
-                            </button>
-                            <button
-                              type="button"
-                              className="danger"
-                              onClick={() => deleteMutation.mutate(memory)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              {deleteMutation.isPending
-                                ? t('memoryProduct.deleting')
-                                : t('memoryProduct.deleteConfirm')}
-                            </button>
-                          </div>
-                          {deleteMutation.error && (
-                            <ProblemState
-                              error={deleteMutation.error}
-                              onRetry={() => deleteMutation.reset()}
-                            />
-                          )}
-                        </section>
-                      )}
-                    </div>
-                  ) : null}
+                  )}
+                </section>
+              )}
+            </div>
+          ) : null}
+        </>
       </StoryEditorPageShell>
     );
   }

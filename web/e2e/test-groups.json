@@ -1,9 +1,9 @@
 {
   "version": 1,
   "baseline": {
-    "main": "754234eeb6e4d22679749e7c10f53dabc814fcec",
+    "main": "5ed0fa8581555b6a6c81a9912d07b2c0609ac12f",
     "specFiles": 46,
-    "tests": 319,
+    "tests": 314,
     "prCriticalTests": 150
   },
   "dispositions": {
@@ -141,7 +141,47 @@
     },
     "r2-momente-timeline-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 10
+      "baselineTests": 5,
+      "reason": "Phase B keeps unique R2 behavior (month ordering, explicit order change, filtered Back restoration, Search return/deep-link behavior, reduced motion) and removes only presentation cases covered more strongly elsewhere.",
+      "removedRedundant": [
+        {
+          "test": "320px reflow produces no horizontal overflow with month headings",
+          "coveredBy": [
+            "momente-timeline-reference.spec.ts: 320px reflow produces no horizontal overflow and captures 03-momente-timeline-320-reflow.png",
+            "r2-timeline-card-hierarchy.spec.ts: 320px and 200% text keep the integrated shell free of collisions (#970)"
+          ]
+        },
+        {
+          "test": "dark mode captures month headings at 390x844",
+          "coveredBy": [
+            "momente-timeline-reference.spec.ts: dark mode at 390x844 captures 02-momente-timeline-390-dark.png",
+            "r2-timeline-card-hierarchy.spec.ts: dark mode keeps pinned heading and hidden bar coherent (#970)"
+          ]
+        },
+        {
+          "test": "representative Expanded (1280px) captures month headings",
+          "coveredBy": [
+            "r2-timeline-card-hierarchy.spec.ts: Expanded 1280px pins month headings without a bottom bar (#970)",
+            "r2-timeline-card-hierarchy.spec.ts: Expanded 1280px adapts the same card system"
+          ]
+        }
+      ],
+      "consolidated": [
+        {
+          "from": [
+            "opening a Heart Moment from a filtered Timeline and pressing Back restores that filter",
+            "opening a Milestone from a filtered Timeline and pressing Back restores that filter"
+          ],
+          "into": "filtered Timeline detail Back restores Heart Moment and Milestone scope"
+        },
+        {
+          "from": [
+            "Search restores its submitted query/kind after returning from a canonical detail",
+            "Search results for Heart Moment/Milestone deep-link to their canonical detail, not the Story landing"
+          ],
+          "into": "Search preserves return state and canonical Story detail routing"
+        }
+      ]
     },
     "r2-timeline-card-hierarchy.spec.ts": {
       "disposition": "FULL_REGRESSION",

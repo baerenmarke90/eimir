@@ -60,6 +60,39 @@ describe('loadAuthorizedStoryImage', () => {
     expect(result).toBe('blob:heart-moment');
   });
 
+  it('forwards cancellation to signed media transport', async () => {
+    const { apis } = storyApis({
+      descriptor: {
+        method: ReadDescriptorMethodEnum.SIGNED_URL,
+        url: 'https://media.example.test/cancellable-image',
+      },
+    });
+    const controller = new AbortController();
+    const fetchApi = vi.fn().mockResolvedValue(
+      new Response(new Blob(['signed-image'], { type: 'image/jpeg' }), {
+        status: 200,
+      }),
+    ) as unknown as typeof fetch;
+
+    await loadAuthorizedStoryImage(
+      apis,
+      'space-1',
+      AttachmentReadRequestParentTypeEnum.MEMORY,
+      'memory-1',
+      'att-memory',
+      {
+        fetchApi,
+        createObjectUrl: vi.fn().mockReturnValue('blob:cancellable-image'),
+        signal: controller.signal,
+      },
+    );
+
+    expect(fetchApi).toHaveBeenCalledWith(
+      'https://media.example.test/cancellable-image',
+      { signal: controller.signal },
+    );
+  });
+
   it('uses the issued URL directly for signed media reads', async () => {
     const { apis, getAttachmentContentRaw } = storyApis({
       descriptor: {

@@ -273,9 +273,8 @@ export function ChapterProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { captureOrigin, requestReturn, resolveOrigin } = useTaskOrigin();
-  const originKey = (
-    location.state as { taskOriginKey?: unknown } | null
-  )?.taskOriginKey;
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<ChapterDraft | null>(null);

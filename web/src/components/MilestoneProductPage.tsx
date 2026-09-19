@@ -227,16 +227,17 @@ export function MilestoneProductPage({
       <StoryCreatePageShell
         header={
           <PageHeader
-          before={
-          <Link className="back-link" to={appRoutePath('story')}>
-          {t('milestoneProduct.backToStory')}
-          </Link>
-          }
-          eyebrow={t('milestoneProduct.createEyebrow')}
-          title={t('milestoneProduct.createHeading')}
-          description={t('milestoneProduct.createIntro')}
-          className="create-heading"
+            before={
+              <Link className="back-link" to={appRoutePath('story')}>
+                {t('milestoneProduct.backToStory')}
+              </Link>
+            }
+            eyebrow={t('milestoneProduct.createEyebrow')}
+            title={t('milestoneProduct.createHeading')}
+            description={t('milestoneProduct.createIntro')}
+            className="create-heading"
           />
+
         }
         labelledBy="milestone-form-heading"
       >
@@ -397,74 +398,74 @@ export function MilestoneProductPage({
         sectionLabelledBy="milestone-edit-heading"
         sectionHeading={t('milestoneProduct.formAria')}
       >
-<form className="form-grid" onSubmit={submitEdit}>
-          <MilestoneFields milestone={milestone} />
-          <div className="form-actions">
-            <Link
-              className="button-link secondary-link"
-              to={milestoneDetailPath(milestone.id)}
-              onClick={() => setConfirmDelete(false)}
-            >
-              {t('common.cancel')}
-            </Link>
-            <button type="submit" disabled={updateMutation.isPending}>
-              {updateMutation.isPending
-                ? t('milestoneProduct.saving')
-                : t('milestoneProduct.save')}
-            </button>
-          </div>
-        </form>
-        {updateMutation.error ? (
-          <ProblemState error={updateMutation.error} />
-        ) : null}
+        <form className="form-grid" onSubmit={submitEdit}>
+                    <MilestoneFields milestone={milestone} />
+                    <div className="form-actions">
+                      <Link
+                        className="button-link secondary-link"
+                        to={milestoneDetailPath(milestone.id)}
+                        onClick={() => setConfirmDelete(false)}
+                      >
+                        {t('common.cancel')}
+                      </Link>
+                      <button type="submit" disabled={updateMutation.isPending}>
+                        {updateMutation.isPending
+                          ? t('milestoneProduct.saving')
+                          : t('milestoneProduct.save')}
+                      </button>
+                    </div>
+                  </form>
+                  {updateMutation.error ? (
+                    <ProblemState error={updateMutation.error} />
+                  ) : null}
 
-        {milestone.capabilities.canDelete && !offline ? (
-          <div style={{ marginTop: 'var(--space-8)' }}>
-            {!confirmDelete ? (
-              <button
-                type="button"
-                className="button-link danger-link"
-                onClick={() => setConfirmDelete(true)}
-              >
-                {t('milestoneProduct.delete')}
-              </button>
-            ) : (
-              <section
-                className="memory-danger-zone memory-delete-confirmation"
-                aria-label={t('milestoneProduct.delete')}
-                role="alert"
-              >
-                <div>
-                  <h2>{t('milestoneProduct.deleteConfirmTitle')}</h2>
-                  <p>{t('milestoneProduct.deleteConfirmBody')}</p>
-                </div>
-                <div className="memory-actions">
-                  <button
-                    type="button"
-                    className="tertiary"
-                    onClick={() => setConfirmDelete(false)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    {t('milestoneProduct.deleteCancel')}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => deleteMutation.mutate(milestone)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    {deleteMutation.isPending
-                      ? t('milestoneProduct.deleting')
-                      : t('milestoneProduct.deleteConfirm')}
-                  </button>
-                </div>
-              </section>
-            )}
-            {deleteMutation.error ? (
-              <ProblemState error={deleteMutation.error} />
-            ) : null}
-          </div>
-        ) : null}
+                  {milestone.capabilities.canDelete && !offline ? (
+                    <div style={{ marginTop: 'var(--space-8)' }}>
+                      {!confirmDelete ? (
+                        <button
+                          type="button"
+                          className="button-link danger-link"
+                          onClick={() => setConfirmDelete(true)}
+                        >
+                          {t('milestoneProduct.delete')}
+                        </button>
+                      ) : (
+                        <section
+                          className="memory-danger-zone memory-delete-confirmation"
+                          aria-label={t('milestoneProduct.delete')}
+                          role="alert"
+                        >
+                          <div>
+                            <h2>{t('milestoneProduct.deleteConfirmTitle')}</h2>
+                            <p>{t('milestoneProduct.deleteConfirmBody')}</p>
+                          </div>
+                          <div className="memory-actions">
+                            <button
+                              type="button"
+                              className="tertiary"
+                              onClick={() => setConfirmDelete(false)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              {t('milestoneProduct.deleteCancel')}
+                            </button>
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => deleteMutation.mutate(milestone)}
+                              disabled={deleteMutation.isPending}
+                            >
+                              {deleteMutation.isPending
+                                ? t('milestoneProduct.deleting')
+                                : t('milestoneProduct.deleteConfirm')}
+                            </button>
+                          </div>
+                        </section>
+                      )}
+                      {deleteMutation.error ? (
+                        <ProblemState error={deleteMutation.error} />
+                      ) : null}
+                    </div>
+                  ) : null}
       </StoryEditorPageShell>
     );
   }

@@ -26,10 +26,16 @@ def upgrade() -> None:
         sa.Column("account_id", UUID, nullable=False),
         sa.Column("last_active_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["space_id"], ["spaces.id"], name="fk_space_presence_space_id_spaces", ondelete="CASCADE"
+            ["space_id"],
+            ["spaces.id"],
+            name="fk_space_presence_space_id_spaces",
+            ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["account_id"], ["accounts.id"], name="fk_space_presence_account_id_accounts", ondelete="CASCADE"
+            ["account_id"],
+            ["accounts.id"],
+            name="fk_space_presence_account_id_accounts",
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("space_id", "account_id", name="pk_space_presence"),
     )

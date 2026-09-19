@@ -461,8 +461,7 @@ async function installPlanningMocks(
     if (
       options.secondaryDomains &&
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/chapters/${CHAPTER_ID}/content`
+      pathname === `/api/v1/spaces/${SPACE_ID}/chapters/${CHAPTER_ID}/content`
     ) {
       await fulfillJson({ items: [] });
       return;
@@ -668,17 +667,10 @@ test('P2 Chapter to Place reads as relationship content and preserves return con
     ),
   ).toBeLessThanOrEqual(1);
   expect(
-    (
-      await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa'])
-        .analyze()
-    ).violations,
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze())
+      .violations,
   ).toEqual([]);
-  await captureR3Evidence(
-    page,
-    testInfo,
-    'planning-p2-chapter-390-light.png',
-  );
+  await captureR3Evidence(page, testInfo, 'planning-p2-chapter-390-light.png');
 
   await placeLink.click();
   await expect(page).toHaveURL(new RegExp(`/plan/places/${PLACE_ID}$`));

@@ -30,6 +30,7 @@ import { CommentsPanel } from './CommentsPanel';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -477,52 +478,43 @@ export function MilestoneProductPage({
     : t('milestoneProduct.detailEyebrow').toUpperCase();
 
   return (
-    <div className="page product-detail-page">
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        eyebrow={milestoneEyebrow}
-        title={milestone.title}
-        titleAction={
-          milestone.capabilities.canEdit && !offline ? (
-            <StoryDetailEditLink
-              to={milestoneEditPath(milestone.id)}
-              label={t('milestoneProduct.edit')}
-            />
-          ) : undefined
-        }
+    <StoryDetailPageShell
+      eyebrow={milestoneEyebrow}
+      title={milestone.title}
+      titleAction={
+        milestone.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={milestoneEditPath(milestone.id)}
+            label={t('milestoneProduct.edit')}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      containerClassName="milestone-detail-container"
+    >
+      <p className="memory-detail-body">
+        {milestone.body || t('milestoneProduct.noBody')}
+      </p>
+
+      <CommentsPanel
+        commentsApi={apis.comments}
+        spaceId={spaceId}
+        parentKind="milestone"
+        parentId={milestone.id}
+        currentAccountId={currentAccountId}
+        canComment={milestone.capabilities.canComment}
+        offline={offline}
       />
 
-      <div className="milestone-detail-container">
-        <article className="story-surface product-detail-card coffee-table-layout">
-          <p className="memory-detail-body">
-            {milestone.body || t('milestoneProduct.noBody')}
-          </p>
-
-          <CommentsPanel
-            commentsApi={apis.comments}
-            spaceId={spaceId}
-            parentKind="milestone"
-            parentId={milestone.id}
-            currentAccountId={currentAccountId}
-            canComment={milestone.capabilities.canComment}
-            offline={offline}
-          />
-
-          <footer className="milestone-provenance-footer">
-            <p>
-              {t('milestoneProduct.provenance', {
-                author: storyAuthorLabel(milestone.author, currentAccountId),
-                createdAt: formatCreatedAt(milestone.createdAt),
-              })}
-            </p>
-          </footer>
-        </article>
-      </div>
-    </div>
+      <footer className="milestone-provenance-footer">
+        <p>
+          {t('milestoneProduct.provenance', {
+            author: storyAuthorLabel(milestone.author, currentAccountId),
+            createdAt: formatCreatedAt(milestone.createdAt),
+          })}
+        </p>
+      </footer>
+    </StoryDetailPageShell>
   );
 }
 

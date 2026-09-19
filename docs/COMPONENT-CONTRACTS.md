@@ -355,7 +355,7 @@ These signature building blocks represent the core relationship-first identity o
 **Purpose:** Anchors the top of the relationship home view (`/today`), presenting shared space identity, partner presence, and milestone duration.
 
 - **Anatomy:** `PartnerAvatarPair`, space name heading, optional bounded Presence text, relationship duration link, and optional contextual action slot.
-- **Variants:** `active` (`Gerade hier`, with pip), `recent` (`Vor Kurzem hier`, text-only), `unknown` (no Presence assertion), `waiting` (`Wartet auf Partner`). Membership alone never selects an online state.
+- **Variants:** `active` (localized active-presence text with pip), `recent` (localized recent-presence text, text-only), `unknown` (no Presence assertion), `waiting` (localized waiting/invitation text). Membership alone never selects a Presence state.
 - **Behavior:** Presence is server-authoritative and ephemeral; the client never receives an exact last-active timestamp. Clicking the relationship duration navigates to the relationship milestone details.
 - **Accessibility:** Headings use appropriate levels (`titleLarge`), interactive duration triggers announce their action explicitly.
 - **Tokens:** Use existing semantic typography, spacing, and identity tokens. The relationship masthead does not require a bounded elevated card; a radius, border, or elevation is used only when its selected v1 surface role needs that boundary.

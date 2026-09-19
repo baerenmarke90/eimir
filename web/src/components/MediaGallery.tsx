@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   MediaType,
@@ -11,20 +11,6 @@ export interface GalleryMediaItem {
   mediaType: MediaTypeValue;
 }
 
-type CarouselDirection = 'previous' | 'next' | null;
-
-interface CarouselTransitionState {
-  index: number;
-  outgoingIndex: number | null;
-  direction: CarouselDirection;
-}
-
-const INITIAL_CAROUSEL_STATE: CarouselTransitionState = {
-  index: 0,
-  outgoingIndex: null,
-  direction: null,
-};
-
 export function MediaGallery({
   items,
   loadMedia,
@@ -35,24 +21,21 @@ export function MediaGallery({
   const { t } = useTranslation();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
-  const [carousel, setCarousel] = useState<CarouselTransitionState>(
-    INITIAL_CAROUSEL_STATE,
-  );
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
-  const carouselTouchStartX = useRef<number | null>(null);
+  const carouselTrack = useRef<HTMLDivElement | null>(null);
+  const carouselSlides = useRef<Array<HTMLButtonElement | null>>([]);
+  const carouselScrollFrame = useRef<number | null>(null);
+  const carouselScrollEndTimer = useRef<number | null>(null);
   const lightboxTouchStartX = useRef<number | null>(null);
-
-  const carouselIndex = carousel.index;
-  const carouselDirection = carousel.direction;
-  const carouselOutgoingIndex = carousel.outgoingIndex;
 
   useEffect(() => {
     let active = true;
     const loadedUrls: string[] = [];
     setUrls({});
     setFailed(new Set());
-    setCarousel(INITIAL_CAROUSEL_STATE);
+    setCarouselIndex(0);
 
     for (const item of items) {
       if (item.mediaType === MediaType.VIDEO) continue;
@@ -79,12 +62,27 @@ export function MediaGallery({
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
-    setCarousel({
-      index: Math.max(0, items.length - 1),
-      outgoingIndex: null,
-      direction: null,
-    });
+    setCarouselIndex(Math.max(0, items.length - 1));
   }, [carouselIndex, items.length]);
+
+  useLayoutEffect(() => {
+    const track = carouselTrack.current;
+    const firstSlide = carouselSlides.current[0];
+    if (!track || !firstSlide || items.length < 2) return;
+    track.scrollLeft = firstSlide.offsetLeft;
+  }, [items]);
+
+  useEffect(
+    () => () => {
+      if (carouselScrollFrame.current !== null) {
+        window.cancelAnimationFrame(carouselScrollFrame.current);
+      }
+      if (carouselScrollEndTimer.current !== null) {
+        window.clearTimeout(carouselScrollEndTimer.current);
+      }
+    },
+    [],
+  );
 
   const lightboxOpen = activeIndex !== null;
 
@@ -124,24 +122,96 @@ export function MediaGallery({
 
   if (items.length === 0) return null;
 
+  function nearestCarouselSlide(track: HTMLDivElement): HTMLElement | null {
+    const slides = Array.from(
+      track.querySelectorAll<HTMLElement>('[data-carousel-index]'),
+    );
+    if (slides.length === 0) return null;
+
+    return slides.reduce((nearest, slide) =>
+      Math.abs(slide.offsetLeft - track.scrollLeft) <
+      Math.abs(nearest.offsetLeft - track.scrollLeft)
+        ? slide
+        : nearest,
+    );
+  }
+
+  function finishCarouselScroll(track: HTMLDivElement) {
+    const nearest = nearestCarouselSlide(track);
+    if (!nearest) return;
+
+    const index = Number(nearest.dataset.carouselIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
+
+    setCarouselIndex(index);
+
+    if (nearest.dataset.carouselClone) {
+      const realSlide = carouselSlides.current[index];
+      if (realSlide) {
+        track.scrollLeft = realSlide.offsetLeft;
+      }
+    }
+  }
+
+  function handleCarouselScroll(track: HTMLDivElement) {
+    if (carouselScrollFrame.current === null) {
+      carouselScrollFrame.current = window.requestAnimationFrame(() => {
+        carouselScrollFrame.current = null;
+        const nearest = nearestCarouselSlide(track);
+        if (!nearest) return;
+        const index = Number(nearest.dataset.carouselIndex);
+        if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          setCarouselIndex(index);
+        }
+      });
+    }
+
+    if (carouselScrollEndTimer.current !== null) {
+      window.clearTimeout(carouselScrollEndTimer.current);
+    }
+    carouselScrollEndTimer.current = window.setTimeout(() => {
+      carouselScrollEndTimer.current = null;
+      finishCarouselScroll(track);
+    }, 100);
+  }
+
   function changeCarousel(delta: number) {
-    const direction: CarouselDirection = delta < 0 ? 'previous' : 'next';
+    if (items.length < 2) return;
+
+    const direction = delta < 0 ? -1 : 1;
+    const nextIndex =
+      (carouselIndex + direction + items.length) % items.length;
+    const track = carouselTrack.current;
+    if (!track) {
+      setCarouselIndex(nextIndex);
+      return;
+    }
+
     const reducedMotion =
       typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setCarousel((current) => {
-      const nextIndex = (current.index + delta + items.length) % items.length;
-      if (nextIndex === current.index) return current;
-      if (reducedMotion) {
-        return { index: nextIndex, outgoingIndex: null, direction: null };
+
+    if (reducedMotion) {
+      const realSlide = carouselSlides.current[nextIndex];
+      if (realSlide) {
+        track.scrollLeft = realSlide.offsetLeft;
       }
-      return {
-        index: nextIndex,
-        outgoingIndex: current.index,
-        direction,
-      };
-    });
+      setCarouselIndex(nextIndex);
+      return;
+    }
+
+    let target: HTMLElement | null = carouselSlides.current[nextIndex] ?? null;
+    if (direction < 0 && carouselIndex === 0) {
+      target = track.querySelector<HTMLElement>(
+        '[data-carousel-clone="start"]',
+      );
+    } else if (direction > 0 && carouselIndex === items.length - 1) {
+      target = track.querySelector<HTMLElement>('[data-carousel-clone="end"]');
+    }
+
+    if (!target) return;
+    track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
   }
 
   function changeActive(delta: number) {
@@ -215,51 +285,39 @@ export function MediaGallery({
         className="media-gallery-carousel"
         aria-label={t('gallery.aria')}
       >
-        <div
-          className="media-gallery-carousel-viewport"
-          onTouchStart={(event) => {
-            carouselTouchStartX.current = event.touches[0]?.clientX ?? null;
-          }}
-          onTouchEnd={(event) => {
-            const start = carouselTouchStartX.current;
-            carouselTouchStartX.current = null;
-            const end = event.changedTouches[0]?.clientX;
-            if (start === null || end === undefined || items.length < 2) return;
-            const distance = end - start;
-            if (Math.abs(distance) < 48) return;
-            changeCarousel(distance > 0 ? -1 : 1);
-          }}
-        >
-          <div className="media-gallery-carousel-track">
+        <div className="media-gallery-carousel-viewport">
+          <div
+            ref={carouselTrack}
+            className="media-gallery-carousel-track"
+            onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+          >
+            {items.length > 1 ? (
+              <div
+                className="media-gallery-carousel-slide is-clone"
+                data-carousel-index={items.length - 1}
+                data-carousel-clone="start"
+                aria-hidden="true"
+              >
+                {renderCarouselMedia(items[items.length - 1]!)}
+              </div>
+            ) : null}
+
             {items.map((item, index) => {
               const isActive = index === carouselIndex;
-              const isOutgoing =
-                carouselDirection !== null &&
-                index === carouselOutgoingIndex &&
-                index !== carouselIndex;
-              const directionClass = carouselDirection
-                ? ` is-${carouselDirection}`
-                : '';
 
               return (
                 <button
+                  ref={(element) => {
+                    carouselSlides.current[index] = element;
+                  }}
                   key={item.id}
                   type="button"
                   className={`media-gallery-carousel-slide${
-                    isActive ? ` is-active${directionClass}` : ''
-                  }${isOutgoing ? ` is-outgoing${directionClass}` : ''}`}
+                    isActive ? ' is-active' : ''
+                  }`}
+                  data-carousel-index={index}
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => setActiveIndex(index)}
-                  onAnimationEnd={(event) => {
-                    if (!isOutgoing || event.target !== event.currentTarget) {
-                      return;
-                    }
-                    setCarousel((current) =>
-                      current.outgoingIndex === index
-                        ? { ...current, outgoingIndex: null, direction: null }
-                        : current,
-                    );
-                  }}
                   aria-label={t('gallery.openItem', {
                     index: index + 1,
                     count: items.length,
@@ -269,6 +327,17 @@ export function MediaGallery({
                 </button>
               );
             })}
+
+            {items.length > 1 ? (
+              <div
+                className="media-gallery-carousel-slide is-clone"
+                data-carousel-index={0}
+                data-carousel-clone="end"
+                aria-hidden="true"
+              >
+                {renderCarouselMedia(items[0]!)}
+              </div>
+            ) : null}
           </div>
 
           {items.length > 1 ? (

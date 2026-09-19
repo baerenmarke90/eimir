@@ -142,7 +142,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Return only the bounded semantic state of the other active partner.\\n\\nNo timestamp is exposed. Missing, stale, or absent partner presence is\\nrepresented as null so this cannot become a last-seen surface.
      * Get Partner Presence
      */
     async getPartnerPresenceRaw(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
@@ -153,7 +153,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Return only the bounded semantic state of the other active partner.\\n\\nNo timestamp is exposed. Missing, stale, or absent partner presence is\\nrepresented as null so this cannot become a last-seen surface.
      * Get Partner Presence
      */
     async getPartnerPresence(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {
@@ -326,7 +326,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Renew caller presence and return the partner's bounded state.
+     * Renew caller presence and return the partner\\'s bounded state.
      * Touch Presence
      */
     async touchPresenceRaw(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
@@ -337,7 +337,7 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Renew caller presence and return the partner's bounded state.
+     * Renew caller presence and return the partner\\'s bounded state.
      * Touch Presence
      */
     async touchPresence(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {

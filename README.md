@@ -43,7 +43,7 @@ localized product content.
 - [Screen Templates](docs/SCREEN-TEMPLATES.md) — responsive layouts for Compact, Medium, and Expanded
 - [Component Contracts](docs/COMPONENT-CONTRACTS.md) — behavior, variants, and Accessibility of shared components
 - [API/UI Contracts](docs/API-UI-CONTRACTS.md) — shared DTOs, errors, Privacy classes, Cache, and Concurrency
-- [Accessibility and QA Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) — binding Release Gates for Web and Android
+- [Accessibility and QA Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) — binding Release Gates for Web and the Android wrapper
 - [Content and Privacy Guidelines](docs/CONTENT-PRIVACY-GUIDELINES.md) — tone, system text, Notifications, and Analytics boundaries
 - [Design System Delivery](docs/DESIGN-SYSTEM-DELIVERY.md) — Token pipeline, component stages, and delivery phases
 - [Design Tokens](design/tokens.json) — colors, typography, spacing, layout, and Motion as a machine-readable source
@@ -110,7 +110,7 @@ Clients do not redundantly write `privacyClass` as a second source of truth.
 ```text
 backend/             FastAPI, SQLAlchemy 2, Alembic, PostgreSQL
 web/                 React, TypeScript, Vite
-android/             Kotlin, Jetpack Compose
+android/             Capacitor Android wrapper around the canonical React/Vite Web product
 compose.yaml         the single Docker Compose manifest for all supported profiles
 deploy/              deployment environment templates and PostgreSQL init data
 docs/                architecture, security, Privacy model, dependencies
@@ -243,7 +243,9 @@ Privacy, image Attachments including safe ingest and binding, Milestone,
 Comments, S3-compatible MediaStore, Story Read Model, and the thin Web/Android
 reference flows are delivered. The real critical Memory/Media/Story flow was
 demonstrated against API, Worker, PostgreSQL, and LocalMediaStore on both
-client paths.
+client paths. (The Android reference flow was a Kotlin/Compose client; it was
+retired in #1009 in favor of the Capacitor wrapper, see
+[ADR 0011](docs/decisions/0011-web-first-pwa-capacitor-mobile-delivery.md).)
 
 The [final G2 Gate Review](docs/reviews/2026-08-26-g2-final-gate-review.md)
 sets G2 explicitly to **PASSED**. Manual Accessibility acceptance was not

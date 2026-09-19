@@ -306,7 +306,7 @@ G5 is evaluated after **M6**, before M7-M9 expansion is required. At minimum:
 | M5 never finishes because new product ideas keep entering it | explicit M5 Core scope protection; new Relationship Depth work starts in M7 |
 | Optional expansion delays a safe first release | M6/G5 now precedes M7-M9 |
 | Runtime starts before contracts are resolved | readiness/decision slices and contract-testable OpenAPI before runtime |
-| Web and Android drift apart | shared OpenAPI contract and M5 parity gate |
+| Web and Android drift apart | resolved by construction since ADR 0011: Android packages the single Web product UI; the shared OpenAPI contract remains the API authority |
 | Feature flags, Entitlements and user choices become one ambiguous switch | separate deployment capability, Entitlement, Space module config and personal preference |
 | Privacy classes become Client Domain | clear separation of `SHARED/PRIVATE` vs. `SPACE_SHARED/OWNER_ONLY` |
 | Location integrations leak into ordinary provider work | M9 owns user-visible active location/context semantics |

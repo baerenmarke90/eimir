@@ -5,7 +5,7 @@
 **Status:** normative; Product Owner approved.<br/>
 **Decision date:** 2026-09-15.<br/>
 **Decision and program owner:** [#955](https://github.com/baerenmarke90/eimir/issues/955).<br/>
-**Scope:** product character, composition and interaction across couple-facing Web and native clients; approved target direction, not a claim that remediation has shipped.
+**Scope:** product character, composition and interaction across couple-facing Web, which the Capacitor Android app packages unchanged; approved target direction, not a claim that remediation has shipped.
 
 If historical audits, calibration proposals, screenshots, previous Product References, older issue wording or implementation details conflict with this document, **eimir. Product Reference v1 takes precedence unless a later explicit Product Owner decision supersedes it**. In particular, earlier near-1:1 expectations for Planning (#859) and Moments Timeline (#860) are superseded where they conflict. Historical evidence does not create an alternative design authority.
 
@@ -161,7 +161,7 @@ All eight decisions are **accepted by #955**; their implementation remains track
 
 [R1–R5](reference-screens.md) define hierarchy, composition, interaction model, content priority, surface usage, visual rhythm and mobile behavior. They are not immutable screenshots. Implementation may improve richness and detail while preserving content dominance, Mobile First, hierarchy, accessibility, predictable interaction and this Design DNA. Calm reference areas must not become empty or sterile implementation.
 
-R1 captures a new moment; R2 browses and rediscovers history; R3 expresses anticipation; R4 is the emotional entry point now; R5 provides calm, recognizable utility. Translate the same human job to native controls, not pixel-identical Web layouts.
+R1 captures a new moment; R2 browses and rediscovers history; R3 expresses anticipation; R4 is the emotional entry point now; R5 provides calm, recognizable utility. Mobile Web is the normative implementation; the Capacitor Android app reuses these screens and adapts only platform affordances such as system bars, insets and Back.
 
 ## Review and final acceptance
 

@@ -48,13 +48,13 @@ The `eimir.` mark evolves the signature two-ring motif:
 
 ### Asset Delivery
 - **Web:** Self-contained inline vector mark and standalone `favicon.svg` with 135° warm gradient (`#D93D59` → `#BE2340`).
-- **Android:** Adaptive vector drawable (`ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`) and dynamic Compose component (`BrandMark.kt`) rendered with hardware-accelerated linear gradient brush.
+- **Android:** Adaptive launcher vector drawables in the Capacitor wrapper (`android/app/src/main/res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`); in-app brand marks come from the Web client.
 
 ---
 
 ## 4. Color Architecture & Token Authority
 
-`design/tokens.json` is the sole source of truth for all color, typography, spacing, radius, and motion tokens across Web and Android.
+`design/tokens.json` is the sole source of truth for all color, typography, spacing, radius, and motion tokens across Web and the Android wrapper.
 
 The runtime palettes are `color.scheme.light` and `color.scheme.dark`.
 `color.semantic` retains compatibility fallbacks; its earlier printed values are
@@ -115,7 +115,7 @@ Typography is self-hosted with zero runtime CDN dependencies.
 - Use the active scheme's `background` role for the warm page ground; D1 retains the palette direction without freezing older fallback hex values.
 - Highlight the terminal dot in the brand lockup with `Brand Strong` / `Brand Coral`.
 - Maintain WCAG 2.2 AA contrast ratios (at least 4.5:1 for body text, 3:1 for UI controls).
-- Keep design tokens in sync between `design/tokens.json`, Web CSS, and Android Compose.
+- Keep design tokens in sync between `design/tokens.json` and Web CSS (the Android wrapper packages the Web bundle).
 
 ### Don't:
 - Never capitalize as "Eimir" or "EIMIR" in marketing copy, app titles, or UI strings.

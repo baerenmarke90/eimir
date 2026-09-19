@@ -4,7 +4,7 @@
 - **Parent issue:** #295
 - **S6 prerequisite:** #303
 - **S6 runtime follow-ups:** #345 Transfer Bundle backend/OpenAPI, #346 Web runtime
-- **Android offline/read-cache owner:** #328
+- **Android offline/read-cache owner:** #328 (historical: the native Android read cache was retired with the Kotlin client in #1009; see [ADR 0011](../decisions/0011-web-first-pwa-capacitor-mobile-delivery.md))
 
 This package controls the staged productization of the eimir. Web
 client. M5 Web may progress in parallel with M4 only where the required Domain
@@ -107,13 +107,13 @@ Important consequences:
 
 - **#345 — Transfer Bundle backend/OpenAPI:** implements job-backed Export/Import,
   manifest v1, authorization, media/staging, archive abuse limits, cleanup,
-  ProblemDetails, `backend/openapi.json`, and generated TypeScript/Kotlin
-  clients.
+  ProblemDetails, `backend/openapi.json`, and the generated TypeScript client
+  (the Kotlin client generation was retired in #1009).
 - **#346 — Web S6 runtime:** implements canonical Deep Links, safe auth return,
   invalidation of the provisional S2 IndexedDB schema, Account/Space/scope cache
   v2 with seven-day expiry, complete clearing/invalidation, localized read-only
   cache age, and generated-client Export/Import UI after #345 merges.
-- **#328 — Android resilience/read cache:** consumes the same M2-D18 policy for
+- **#328 — Android resilience/read cache (historical, see above):** consumed the same M2-D18 policy for
   Android and owns cold-start/offline product resilience; it must not weaken the
   Keystore requirement for persistent owner-only payloads.
 

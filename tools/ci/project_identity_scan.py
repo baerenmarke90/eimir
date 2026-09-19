@@ -195,7 +195,7 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         Path("android/README.md"),
     ) and any(
         legacy_property in normalized
-        for legacy_property in ("sbsapibaseurl", "sbsversioncode", "sbsrelease")
+        for legacy_property in ("sbsversioncode", "sbsrelease")
     ):
         return (
             Classification.TEMP_COMPAT,

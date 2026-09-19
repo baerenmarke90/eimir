@@ -1,5 +1,7 @@
 # Account deletion and retention lifecycle
 
+> **Note (#1009):** references to an Android/native cache or client in this document describe the retired Kotlin client. Android is now the Capacitor wrapper around the Web client; see [Reading older documents](../CAPACITOR-ANDROID-FOUNDATION.md#reading-older-documents).
+
 **Version:** 1.0  
 **Owner:** #520  
 **Baseline:** `main` at `e9e175aab3eccb03ef392a21b53bcb89db4dfed2`  

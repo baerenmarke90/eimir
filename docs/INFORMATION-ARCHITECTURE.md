@@ -6,7 +6,7 @@
 **Route model decided by:** `decisions/0003-primary-navigation-and-route-model.md`  
 **Harmonized by:** `decisions/0008-product-ia-harmonization-and-domain-alignment.md`  
 **Games placement decided by:** `decisions/0010-games-secondary-navigation-under-more.md`  
-**Navigation surface decided by:** `decisions/0004-android-uses-bottom-navigation-at-every-size.md`
+**Navigation surface decided by:** the Web shell (`design/eimir/SHELL-RESCUE-A1.md`, Product Reference v1); `decisions/0004-android-uses-bottom-navigation-at-every-size.md` is historical (ADR 0011)
 
 This document defines navigation, naming, routes, and product-function
 assignment. Web and Android use the same domain architecture and stable route
@@ -60,8 +60,8 @@ and `/story` path.
 The surface is a platform adaptation; the primary destinations, their order and
 their route IDs are not.
 
-- **App:** Bottom Navigation with icon and text label, at every window size.
-  See `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
+- **Android app:** renders the Web shell below (Capacitor wrapper). The retired Compose client's at-every-size Bottom Navigation is recorded in the historical
+  `decisions/0004-android-uses-bottom-navigation-at-every-size.md`.
 - **Web, Compact/Medium windows below 840 px:** Bottom Navigation with icon and text label.
 - **Web, Expanded from 840 px:** horizontal header navigation, as accepted in [A1](./design/eimir/SHELL-RESCUE-A1.md); older sidebar wording is superseded.
 - **Web persistent header:** global utilities and the current-user account

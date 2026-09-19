@@ -15,7 +15,7 @@ Before relevant work, read at least these documents:
 7. `docs/EXTERNAL-PROVIDER-CANDIDATES.md` when providers, infrastructure, or platform components are affected
 8. `docs/ROADMAP.md` and the relevant milestone/project-control documentation
 
-For every user-facing Web or Android change, the following are additional mandatory sources before implementation starts:
+For every user-facing Web change (Android ships the same UI through the Capacitor wrapper), the following are additional mandatory sources before implementation starts:
 
 9. `docs/product/design/README.md`, `docs/product/design/product-reference-v1.md`, and the relevant reference experience/system direction
 10. `docs/DESIGN-PRINCIPLES.md`
@@ -108,7 +108,7 @@ eimir. is a private partner app. Couple-facing screens must follow `docs/PARTNER
 
 ### Required before implementation starts
 
-For every new or materially changed user-facing Web or Android feature, identify in the issue or PR:
+For every new or materially changed user-facing Web feature or native capability, identify in the issue or PR:
 
 - the relevant Product Reference v1 rules/reference experience, followed by the owning Screen Template or the reason a new pattern is required;
 - the existing design-system components and tokens to reuse;
@@ -224,7 +224,7 @@ A relevant pull request without a traceable reuse review is not merge-ready. Pur
 
 Every development pull request must contain a traceable Business/Freemium Model Consistency result. `No business/freemium impact` is acceptable only with a short rationale. A recognizable conflict with `docs/BUSINESS-MODEL.md`, `docs/FREEMIUM-FEATURE-MATRIX.md`, or the current working decisions for unclassified future features must be resolved before merge or routed through an explicit owning product decision.
 
-Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web or Android changes must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
+Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web changes, or wrapper/native-capability changes that alter what couples see, must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
 
 Larger runtime slices, client features, and production user flows must document their relevant cross-cutting consequences in the pull request. The pull-request template is the minimum review surface; deeper decisions belong in the owning issue, decision document, or ADR.
 

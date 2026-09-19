@@ -1,6 +1,6 @@
-# Capacitor Android Staging Wrapper (`eimir.`)
+# Capacitor Android Wrapper (`eimir.`)
 
-This directory contains the canonical Capacitor Android wrapper project for **eimir.** (Issue `#1044`, parent `#1005`).
+This directory contains the canonical (and only) Android Gradle project for **eimir.**: a Capacitor wrapper around the React/Vite Web product in `web/` (Issues `#1044`, `#1008`, `#1009`; ADR 0011). It holds no product UI code; native code is limited to bounded platform capabilities.
 
 ## Overview
 

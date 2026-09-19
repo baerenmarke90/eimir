@@ -126,7 +126,7 @@ Web and App share semantics, tone, tokens, and component logic.
 
 - The same function uses the same name and color role.
 - Platform conventions take precedence over pixel-level equality.
-- Android remains Android; Web remains Web.
+- Android is the Capacitor wrapper around the Web product: platform conventions (system bars, insets, Back) are adapted, the screens are not re-implemented.
 - New one-off components are allowed only when existing patterns are insufficient.
 
 ### 2.10 Motion explains change

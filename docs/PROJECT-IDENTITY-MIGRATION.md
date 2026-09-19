@@ -17,8 +17,8 @@ passed its complete protected-branch gate matrix.
 | Web package | `eimir-web` | Package and build metadata use the new identity |
 | OCI images | `ghcr.io/baerenmarke90/eimir-backend`, `ghcr.io/baerenmarke90/eimir-web` | New releases publish only the canonical names |
 | Release assets | `eimir-*` | New releases publish canonical asset names; prior manifests remain readable |
-| OpenAPI | title `eimir.`, schemas under `eimir.*` | Generated TypeScript and Kotlin clients use the new model/package identity |
-| Android namespace | `de.eimir.app.reference` | Source and generated packages move without changing installed-app identity |
+| OpenAPI | title `eimir.`, schemas under `eimir.*` | The generated TypeScript client uses the new model identity (the Kotlin client was retired in #1009) |
+| Android namespace | `de.eimir.app` | The Capacitor wrapper (#1009) uses the new namespace; the installed-app identity `de.sidebyside.app` is unchanged |
 
 ## Before upgrading a Self-Hosted installation
 
@@ -60,9 +60,10 @@ later repository rename.
 
 For every prior `SBS_<NAME>` setting, use `EIMIR_<NAME>`. For Web build-time
 settings, use `VITE_EIMIR_<NAME>` instead of `VITE_SBS_<NAME>`. Android release
-builds use `eimirVersionCode`, `eimirVersionName`, `eimirApiBaseUrl`, and
-`eimirRelease*` properties (`eimirReleaseStoreFile`, `eimirReleaseStorePassword`,
-`eimirReleaseKeyAlias`, `eimirReleaseKeyPassword`). In `capacitor-android/app/build.gradle`,
+builds use `eimirVersionCode`, `eimirVersionName`, and `eimirRelease*`
+properties (`eimirReleaseKeystore`, `eimirReleaseKeystorePassword`,
+`eimirReleaseKeyAlias`, `eimirReleaseKeyPassword`); the API base URL is a Web
+build-time setting (`VITE_EIMIR_API_BASE_URL`). In `android/app/build.gradle`,
 `sbsVersionCode` and `sbsRelease*` are accepted as lower-precedence `TEMP_COMPAT` fallbacks;
 `sbsVersionName` is deliberately not introduced because no such legacy property existed.
 
@@ -90,9 +91,10 @@ Some names are deliberately not changed in place:
 - Android `applicationId` `de.sidebyside.app`, its debug suffix, and the OIDC
   callback scheme remain stable so stores and installed devices receive an
   upgrade rather than a second application.
-- The Android Room database `sidebyside-read-cache.db` and Keystore alias
-  `sidebyside_owner_only_read_cache` remain stable so offline data stays
-  decryptable after an app update.
+- The retired Kotlin client's Room read cache and Keystore alias no longer exist
+  (removed in #1009). They held only a non-authoritative copy of server data;
+  the Capacitor wrapper keeps no native user-data store, so app updates need no
+  native cache continuity. Server data continuity is unaffected.
 - The IndexedDB database `sidebyside-web-read-cache` remains stable. Web session,
   auth-return, theme, cache-context, and demo-mode keys are read once from their
   old names, written to canonical `eimir` keys, and then removed where removal

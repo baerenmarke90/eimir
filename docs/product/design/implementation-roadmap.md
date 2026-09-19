@@ -9,11 +9,11 @@ This roadmap executes [Product Reference v1](product-reference-v1.md), the [five
 
 **F1 → bounded F2 → R1 → R2 → R3 → R4 → R5 → P1 → P2 → P3 → C1.**
 
-This is D8's accepted delivery order. Later preparation may proceed when useful, but must not preempt an earlier slice's product decisions. Native implementation for a reference experience belongs to that experience's acceptance; P3 closes remaining parity gaps rather than postponing every native journey. F2 provides a minimum real-flow proof before R1, and R1 revalidates it in the finished capture composition.
+This is D8's accepted delivery order. Later preparation may proceed when useful, but must not preempt an earlier slice's product decisions. There is no separate native implementation of a reference experience: Android receives every accepted Web reference through the Capacitor wrapper ([ADR 0011](../../decisions/0011-web-first-pwa-capacitor-mobile-delivery.md)), and P3 (native parity) is retired. F2 provides a minimum real-flow proof before R1, and R1 revalidates it in the finished capture composition.
 
 The identity migration #953 is complete. Every implementation starts from fresh `origin/main`, rechecks #955 and its comments, and reconciles open PRs and the relevant audit-remediation owners. Do not repeat completed #951/#952 work or overwrite newer valid decisions. This design sequence complements the [milestone roadmap](../../ROADMAP.md) and [implementation status](../../IMPLEMENTATION-STATUS.md); it does not redefine G5 or waive unresolved privacy, security, lifecycle, or release findings.
 
-Complexities below are relative: **M** = bounded shared change; **L** = a complete journey with several states; **XL** = multiple native journeys and device evidence. They are not delivery estimates.
+Complexities below are relative: **M** = bounded shared change; **L** = a complete journey with several states; **XL** = multiple journeys and device evidence. They are not delivery estimates.
 
 ## Shared entry and acceptance rules
 
@@ -24,17 +24,17 @@ Acceptance records evidence from the actual commit/build:
 - Follow **open → interact → save/complete → observe result → return**, with browse-only variants where no write exists; screenshots alone do not establish continuity.
 - Demonstrate Compact at approximately 360/390/430 px, 320 px reflow, representative Expanded, Light/Dark, long localized labels, 200% text, keyboard/focus, and reduced motion where relevant.
 - Distinguish empty, sparse, dense, loading, no-match, error/retry, offline, pending, uncertain write outcome, and confirmed success. Never promise offline write synchronization or unsupported Undo.
-- Verify native System Back, TalkBack, picker interruptions, keyboard/insets, and orientation on a device/emulator for affected native journeys. Record platform evidence and remaining gaps explicitly.
+- Mobile Web is the normative evidence surface. Verify System Back, TalkBack, picker interruptions, keyboard/insets, and orientation on a device only when a change touches the Capacitor wrapper, its configuration, or a native platform capability; ordinary Web changes reach Android through packaging and need no separate native acceptance. Record platform evidence and remaining gaps explicitly.
 - Keep authorization, existing data, canonical links, compatibility mappings, and valid privacy boundaries intact. Reuse current APIs and media derivatives; a new backend, durable draft store, provider, or tier boundary requires a separate explicit decision.
 
 ## F1 — Visual roles / design-system foundations
 
-- **Objective:** Make the minimum visual vocabulary for v1 usable consistently by Web and Android.
+- **Objective:** Make the minimum visual vocabulary for v1 usable consistently by Web, which Android packages unchanged.
 - **In-scope outcomes:** Map bare/reading/content/tinted/elevated surfaces, editorial/UI typography, image treatment, radius/border/depth, rhythm/gutters, and restrained motion to existing semantic roles; add only demonstrated gaps. Reconcile token/adapter/prose drift and implement D7 through the token boundary. Document contracts and actual delivery status.
 - **Out of scope:** Palette/font replacement, a design-system rewrite, broad selector overrides, screen redesigns, a universal card abstraction, new image processing, or new component dependencies without a current reuse decision.
 - **Dependencies:** Committed v1; current baseline and collision review. F2 consumes the resulting visual roles.
 - **Reference:** [System direction](design-system-direction.md), visual language and content composition; [Product Reference](product-reference-v1.md), D1/D2/D7 and Design DNA.
-- **Likely components/patterns:** `design/tokens.json`, `web/src/theme.css`, existing Web media/text/state components, Android `EimirTheme`, `EimirDimensions`, `EimirTypography`, generated token pipeline, component contracts/manifest. Exact changes follow the live consumer inventory.
+- **Likely components/patterns:** `design/tokens.json`, `web/src/theme.css`, existing Web media/text/state components, generated token pipeline, component contracts/manifest. Exact changes follow the live consumer inventory.
 - **Acceptance concept:** One bounded internal proof composition demonstrates a photo memory, a text memory, and a compact utility group in both adapters, with a controlled sheet/depth sample. No public product route is required for the proof. Essential contrast pairs, image fallback, no-photo composition, touch targets, Light/Dark and 360/390/430 layouts are evidenced. Any global token effect receives representative regression evidence; evidence fixtures do not count as completed R1–R5.
 - **Suggested complexity:** M.
 
@@ -45,7 +45,7 @@ Acceptance records evidence from the actual commit/build:
 - **Out of scope:** All-app UX remediation, a replacement router, universal form engine, new persistence/sync, new domain APIs, migrating every editor/filter, or R1/R2's full composition.
 - **Dependencies:** F1; existing lifecycle and audit-safety owners reconciled. R1 and R2 verify the contract again in their complete experiences.
 - **Reference:** [Product Reference](product-reference-v1.md), Interaction DNA and input philosophy; [reference experiences](reference-screens.md), R1/R2; [system direction](design-system-direction.md), sheets, state and motion.
-- **Likely components/patterns:** `QuickCreateMenu`, `PlanningEditorLifecycle`, `useEditorHistoryEntry`, `RelatedPersonEditorSheet`, `routes.ts`, `routeEntryHandoff.ts`, `MemoryCreatePage`, existing Story URL/query state; Android `AppNavigation`, `QuickCreateFab`, `PlanningSheets`, reference-flow/ViewModel ownership. These are candidates for reuse, not declarations of compliance.
+- **Likely components/patterns:** `QuickCreateMenu`, `PlanningEditorLifecycle`, `useEditorHistoryEntry`, `RelatedPersonEditorSheet`, `routes.ts`, `routeEntryHandoff.ts`, `MemoryCreatePage`, existing Story URL/query state. These are candidates for reuse, not declarations of compliance.
 - **Acceptance concept:** Prove one existing Quick Create → Memory create → canonical saved detail → origin journey, plus a scoped Timeline detail/return case. A sheet has visible Close, meaningful initial focus, keyboard containment/inactive background and focus restoration; deliberate navigation hands focus to the destination. Back unwinds the innermost task; dirty/pending/error states retain work and do not create duplicate writes. Return preserves the relevant tab/filter/loaded range/position without persisting sensitive payloads. A direct link has a safe fallback when origin is absent. Only the minimum consumer integration needed to prove this contract belongs here.
 - **Suggested complexity:** L.
 
@@ -58,7 +58,7 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Out of scope:** Durable drafts, new media types, new attachment infrastructure, a private Memory mode, or rewriting the Timeline.
 - **Dependencies:** F1/F2; current Memory/attachment and mutation contracts.
 - **Reference:** [R1 reference experience](reference-screens.md), capture hierarchy, states and continuity; [system direction](design-system-direction.md), input/media/state roles.
-- **Likely components/patterns:** `MemoryCreatePage`, `MemoryProductPage`, `AttachmentDraftPicker`, `useAttachmentDrafts`, `memoryAttachmentDraft`, existing detail/gallery/feedback, native reference flow and ViewModel; a small capture/completion composition only if reuse is demonstrated.
+- **Likely components/patterns:** `MemoryCreatePage`, `MemoryProductPage`, `AttachmentDraftPicker`, `useAttachmentDrafts`, `memoryAttachmentDraft`, existing detail/gallery/feedback; a small capture/completion composition only if reuse is demonstrated.
 - **Acceptance concept:** Image-only, text-only, title-only and mixed input; no mandatory title burden; main content visible before optional detail; no unsolicited keyboard; failed/pending upload retains work; delayed response cannot erase newer input; one confirmed save opens the returned object. Verify cancel, Back, picker interruption and keyboard clearance in the full R1 composition.
 - **Suggested complexity:** L.
 
@@ -69,7 +69,7 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Out of scope:** New archive/search backend, private content in shared Story, new media derivatives, or a universal content-card renderer.
 - **Dependencies:** F1/F2/R1; current Story pagination, ordering and authorization.
 - **Reference:** [R2 reference experience](reference-screens.md), scope/return and chronology; [Product Reference](product-reference-v1.md), D2/D4 and content priority.
-- **Likely components/patterns:** `StoryProductPage`, `StoryList`, Story presentation/grouping helpers, filters in the current Story composition, `StoryYearsPage`, existing route/search/cache APIs and native Story equivalents.
+- **Likely components/patterns:** `StoryProductPage`, `StoryList`, Story presentation/grouping helpers, filters in the current Story composition, `StoryYearsPage`, existing route/search/cache APIs.
 - **Acceptance concept:** Media and authored words dominate; text-only/failed-media entries remain complete; active scope remains readable when filters close; peer tabs are operable; no duplicated featured item; years/chapters are discoverable. Back from an older item restores scope, loaded range and position. Shared chronology reveals no private content or private counts.
 - **Suggested complexity:** L.
 
@@ -80,7 +80,7 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Out of scope:** Project-management boards, unsupported Plan photos/reminder features, new lifecycle states, or reopening the accepted #952 schedule semantics.
 - **Dependencies:** F1/F2/R1/R2 in the delivery sequence; current Wish/Plan contracts and #952 baseline.
 - **Reference:** [R3 reference experience](reference-screens.md), anticipation and operational disclosure; [Product Reference](product-reference-v1.md), D5.
-- **Likely components/patterns:** `SharedPlanningOverviewPage`, `PlanProductPage`, `WishProductPage`, current schedule fields/sheets, `PlanStoryContinuation`, canonical create handoff and native planning components.
+- **Likely components/patterns:** `SharedPlanningOverviewPage`, `PlanProductPage`, `WishProductPage`, current schedule fields/sheets, `PlanStoryContinuation`, canonical create handoff.
 - **Acceptance concept:** One clear upcoming experience leads; local create is reachable without traversing a long list; Wish return retains Wish context; date-only/range/cross-day behavior remains truthful. Completing without a Memory remains valid, and failure of a later Memory save does not undo or misrepresent confirmed Plan completion.
 - **Suggested complexity:** L.
 
@@ -91,7 +91,7 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Out of scope:** Widget dashboard, new ranking/scoring/streaks, invented anniversaries, AI selection, new domains, or unrelated preference changes.
 - **Dependencies:** F1/F2/R2/R3; current Today selector and preference contracts.
 - **Reference:** [R4 reference experience](reference-screens.md), focal point and relevance; [partner-app standard](../../PARTNER-APP-EXPERIENCE-STANDARD.md), Today orchestration.
-- **Likely components/patterns:** `TodayPage`, `TodayAgendaRow`, `CouplePresence`, keepsake/media, `SharedStorySummary`, existing preference/selection logic and native Today destinations.
+- **Likely components/patterns:** `TodayPage`, `TodayAgendaRow`, `CouplePresence`, keepsake/media, `SharedStorySummary`, existing preference/selection logic.
 - **Acceptance concept:** Identity, anticipation and rediscovery have differentiated weight; irrelevant regions collapse; existing upcoming-count preferences and count eligibility remain correct; sparse/no-photo/hidden-hero states feel composed. Every offered action opens its real target; image and supporting text work in both themes.
 - **Suggested complexity:** M.
 
@@ -102,7 +102,7 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Out of scope:** Forced romantic decoration, new entitlement gates, billing changes, settings-data migration, new reminder channels, or weakened sensitive-action checks.
 - **Dependencies:** F1/F2 and R4 in the sequence; existing identity, privacy, authentication and offboarding contracts.
 - **Reference:** [R5 reference experience](reference-screens.md), practical hierarchy; [Product Reference](product-reference-v1.md), D6.
-- **Likely components/patterns:** `MoreOverviewPage`, identity/preference panels, settings panels, existing mutations/visibility, category navigation and native equivalents.
+- **Likely components/patterns:** `MoreOverviewPage`, identity/preference panels, settings panels, existing mutations/visibility, category navigation.
 - **Acceptance concept:** Profile and settings are explicitly reachable through Mehr; Pro placement does not interrupt personal preferences or invent a gate. Immediate versus staged save is clear; private partner notes stay owner-only; Back and old links work; export/import and destructive-action scopes remain intact.
 - **Suggested complexity:** L.
 
@@ -128,16 +128,12 @@ The heading preserves the intentional de-DE product label; engineering prose rem
 - **Acceptance concept:** Read access never implies write access. Linked content opens before unlink is offered; delayed comment submission preserves newer text; loading failure differs from empty notifications; target/Back behavior retains the correct context; private/cross-tenant negatives remain covered.
 - **Suggested complexity:** L.
 
-## P3 — Android / native parity
+## P3 — Android / native parity (retired)
 
-- **Objective:** Close remaining native journey gaps against the proven references and contracts.
-- **In-scope outcomes:** Remaining route targets, results, draft safety, state distinctions, navigation hierarchy and content priority across accepted reference/private/secondary tasks; native device evidence and parity inventory.
-- **Out of scope:** Treating a Web screenshot as native acceptance, deferring core native R1–R5 work until this slice, OS App Links or new Games/features without their own approved scope.
-- **Dependencies:** F2 and accepted R1–R5/P1/P2 contracts; current native capability baseline.
-- **Reference:** [Reference experiences](reference-screens.md), native implications; [design-system delivery](../../DESIGN-SYSTEM-DELIVERY.md), semantic/platform parity.
-- **Likely components/patterns:** `ReferenceFlowScreen`, ViewModels, `AppNavigation`, current Compose product screens, native media/cache and design adapter.
-- **Acceptance concept:** No accepted action has an omitted callback or generic fallback; editor reset follows confirmed success; nested destinations/System Back, TalkBack, 200% text, IME/insets, rotation and interruption are verified on device/emulator. The parity record separates supported, proven behavior from future scope.
-- **Suggested complexity:** XL; split into coherent PRs against this bounded parity inventory.
+**Status: SUPERSEDED by [ADR 0011](../../decisions/0011-web-first-pwa-capacitor-mobile-delivery.md) (#1005) and removed with #1009.** This slice planned to close native Compose journey gaps against the Web references. The Compose client no longer exists: Android is the Capacitor wrapper around the canonical Web product, so there is no screen-by-screen native parity inventory to close.
+
+- **What remains:** acceptance of the Capacitor wrapper and of individual native platform capabilities (for example push, haptics, sharing) in the slices that introduce them, on a real device where the platform behavior matters.
+- **What does not remain:** native reference-flow screens, ViewModels, Compose semantics tests, or emulator screenshots for ordinary Web features.
 
 ## C1 — Cleanup / retire old patterns
 

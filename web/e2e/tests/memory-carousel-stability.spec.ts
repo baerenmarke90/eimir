@@ -173,22 +173,18 @@ async function swipeCarousel(
   }
 }
 
-async function expectCarouselSettled(
-  page: Page,
-  index: number,
-): Promise<void> {
+async function expectCarouselSettled(page: Page, index: number): Promise<void> {
   await expect
     .poll(() =>
-      page.locator('.media-gallery-carousel-track').evaluate(
-        (track, expectedIndex) => {
+      page
+        .locator('.media-gallery-carousel-track')
+        .evaluate((track, expectedIndex) => {
           const slide = track.querySelector<HTMLElement>(
             `.media-gallery-carousel-slide:not(.is-clone)[data-carousel-index="${expectedIndex}"]`,
           );
           if (!slide) return Number.POSITIVE_INFINITY;
           return Math.abs(track.scrollLeft - slide.offsetLeft);
-        },
-        index,
-      ),
+        }, index),
     )
     .toBeLessThanOrEqual(1);
 }
@@ -200,8 +196,9 @@ async function carouselInteractionContract(page: Page) {
       scrollSnapType: style.scrollSnapType,
       overscrollBehaviorX: style.overscrollBehaviorX,
       touchAction: style.touchAction,
-      cloneCount: track.querySelectorAll('.media-gallery-carousel-slide.is-clone')
-        .length,
+      cloneCount: track.querySelectorAll(
+        '.media-gallery-carousel-slide.is-clone',
+      ).length,
     };
   });
 }

@@ -26,6 +26,13 @@ All URIs are relative to *http://localhost*
 | [**requestMagicLinkApiV1AuthMagicLinkRequestPost**](AuthApi.md#requestmagiclinkapiv1authmagiclinkrequestpost) | **POST** /api/v1/auth/magic-link/request | Request Magic Link |
 | [**requestRecoveryApiV1AuthRecoveryRequestPost**](AuthApi.md#requestrecoveryapiv1authrecoveryrequestpost) | **POST** /api/v1/auth/recovery/request | Request Recovery |
 | [**requestSignupApiV1AuthSignupRequestPost**](AuthApi.md#requestsignupapiv1authsignuprequestpost) | **POST** /api/v1/auth/signup/request | Request Signup |
+| [**serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet**](AuthApi.md#serveradmincapabilitiesapiv1authrecentauthenticationserveradmincapabilitiesget) | **GET** /api/v1/auth/recent-authentication/server-admin/capabilities | Server Admin Capabilities |
+| [**serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet**](AuthApi.md#serveradmincapabilitiesapiv1authrecentauthenticationserveradminget) | **GET** /api/v1/auth/recent-authentication/server-admin | Server Admin Capabilities |
+| [**serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost**](AuthApi.md#serveradmincompleteoidcapiv1authrecentauthenticationserveradminoidcconnectionidcallbackpost) | **POST** /api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback | Server Admin Complete Oidc |
+| [**serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost**](AuthApi.md#serveradminfinishpasskeyapiv1authrecentauthenticationserveradminpasskeysfinishpost) | **POST** /api/v1/auth/recent-authentication/server-admin/passkeys/finish | Server Admin Finish Passkey |
+| [**serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost**](AuthApi.md#serveradminpasswordapiv1authrecentauthenticationserveradminpasswordpost) | **POST** /api/v1/auth/recent-authentication/server-admin/password | Server Admin Password |
+| [**serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost**](AuthApi.md#serveradminstartoidcapiv1authrecentauthenticationserveradminoidcconnectionidstartpost) | **POST** /api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start | Server Admin Start Oidc |
+| [**serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost**](AuthApi.md#serveradminstartpasskeyapiv1authrecentauthenticationserveradminpasskeysstartpost) | **POST** /api/v1/auth/recent-authentication/server-admin/passkeys/start | Server Admin Start Passkey |
 | [**signInApiV1AuthSignInPost**](AuthApi.md#signinapiv1authsigninpost) | **POST** /api/v1/auth/sign-in | Sign In |
 | [**signOutApiV1AuthSignOutPost**](AuthApi.md#signoutapiv1authsignoutpost) | **POST** /api/v1/auth/sign-out | Sign Out |
 | [**startOidcApiV1AuthOidcConnectionIdStartPost**](AuthApi.md#startoidcapiv1authoidcconnectionidstartpost) | **POST** /api/v1/auth/oidc/{connectionId}/start | Start Oidc |
@@ -1518,6 +1525,480 @@ No authorization required
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
 | **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet
+
+> CapabilitiesView serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet(client)
+
+Server Admin Capabilities
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // RecentAuthenticationClient (optional)
+    client: ...,
+  } satisfies ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest;
+
+  try {
+    const data = await api.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **client** | `RecentAuthenticationClient` |  | [Optional] [Defaults to `undefined`] [Enum: web, android] |
+
+### Return type
+
+[**CapabilitiesView**](CapabilitiesView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet
+
+> CapabilitiesView serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(client)
+
+Server Admin Capabilities
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // RecentAuthenticationClient (optional)
+    client: ...,
+  } satisfies ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest;
+
+  try {
+    const data = await api.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **client** | `RecentAuthenticationClient` |  | [Optional] [Defaults to `undefined`] [Enum: web, android] |
+
+### Return type
+
+[**CapabilitiesView**](CapabilitiesView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost
+
+> RecentAuthenticationView serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(connectionId, eimirApiV1RecentAuthenticationOidcCallbackRequest)
+
+Server Admin Complete Oidc
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // string
+    connectionId: connectionId_example,
+    // EimirApiV1RecentAuthenticationOidcCallbackRequest
+    eimirApiV1RecentAuthenticationOidcCallbackRequest: ...,
+  } satisfies ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest;
+
+  try {
+    const data = await api.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **connectionId** | `string` |  | [Defaults to `undefined`] |
+| **eimirApiV1RecentAuthenticationOidcCallbackRequest** | [EimirApiV1RecentAuthenticationOidcCallbackRequest](EimirApiV1RecentAuthenticationOidcCallbackRequest.md) |  | |
+
+### Return type
+
+[**RecentAuthenticationView**](RecentAuthenticationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost
+
+> RecentAuthenticationView serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(passkeyFinishRequest)
+
+Server Admin Finish Passkey
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // PasskeyFinishRequest
+    passkeyFinishRequest: ...,
+  } satisfies ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest;
+
+  try {
+    const data = await api.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **passkeyFinishRequest** | [PasskeyFinishRequest](PasskeyFinishRequest.md) |  | |
+
+### Return type
+
+[**RecentAuthenticationView**](RecentAuthenticationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost
+
+> RecentAuthenticationView serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(passwordRequest)
+
+Server Admin Password
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // PasswordRequest
+    passwordRequest: ...,
+  } satisfies ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest;
+
+  try {
+    const data = await api.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **passwordRequest** | [PasswordRequest](PasswordRequest.md) |  | |
+
+### Return type
+
+[**RecentAuthenticationView**](RecentAuthenticationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost
+
+> OidcStartView serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(connectionId, client)
+
+Server Admin Start Oidc
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  const body = {
+    // string
+    connectionId: connectionId_example,
+    // RecentAuthenticationClient (optional)
+    client: ...,
+  } satisfies ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest;
+
+  try {
+    const data = await api.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **connectionId** | `string` |  | [Defaults to `undefined`] |
+| **client** | `RecentAuthenticationClient` |  | [Optional] [Defaults to `undefined`] [Enum: web, android] |
+
+### Return type
+
+[**OidcStartView**](OidcStartView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost
+
+> { [key: string]: any | null; } serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost()
+
+Server Admin Start Passkey
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthApi,
+} from '';
+import type { ServerAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthApi();
+
+  try {
+    const data = await api.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**{ [key: string]: any | null; }**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

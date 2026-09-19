@@ -2,6 +2,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
+import { vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { i18n } from '../i18n';
 import games from '../i18n/locales/games';
@@ -97,6 +98,39 @@ describe('OurMomentsGamePage', () => {
     expect(
       screen.queryByRole('region', { name: games.momentsGame.boardAria }),
     ).toBeNull();
+  });
+
+  it('keeps blob media alive through StrictMode replay and releases it once on real unmount', async () => {
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const revokeObjectUrl = vi.fn();
+    URL.revokeObjectURL = revokeObjectUrl;
+
+    try {
+      const value = setup(3);
+      const blobSetup: OurMomentsGameSetup = {
+        ...value,
+        moments: value.moments.map((moment, index) => ({
+          ...moment,
+          imageUrl: `blob:game-${index + 1}`,
+        })),
+      };
+      const view = renderPage(blobSetup, { strictMode: true });
+
+      await screen.findByRole('region', {
+        name: games.momentsGame.boardAria,
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(revokeObjectUrl).not.toHaveBeenCalled();
+
+      view.unmount();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(revokeObjectUrl).toHaveBeenCalledTimes(3);
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:game-1');
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:game-2');
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:game-3');
+    } finally {
+      URL.revokeObjectURL = originalRevokeObjectURL;
+    }
   });
 
   it('keeps the session interactive under React StrictMode', async () => {

@@ -26,7 +26,6 @@ import {
   PrivateAreaBackToHub,
   PrivateAreaDetailBack,
   PrivateEditorDiscardSheet,
-  usePrivateAreaTaskContext,
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
@@ -576,8 +575,6 @@ export function PrivateCollectionDetailPage({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { collectionId, query } = usePrivateCollection(api, accountId, spaceId);
-  const { navigationState } =
-    usePrivateAreaTaskContext(PRIVATE_COLLECTIONS_PATH);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -611,10 +608,13 @@ export function PrivateCollectionDetailPage({
       void queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
       });
-      setIsEditing(false);
-      setConfirmDelete(false);
-      setShowTitleSaved(true);
-      setTimeout(() => setShowTitleSaved(false), 2000);
+      closeCollectionEdit(() => {
+        setIsEditing(false);
+        setConfirmDelete(false);
+        setTitleDraft(updated.title);
+        setShowTitleSaved(true);
+        setTimeout(() => setShowTitleSaved(false), 2000);
+      });
     },
   });
 
@@ -640,7 +640,33 @@ export function PrivateCollectionDetailPage({
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
       });
-      navigate(PRIVATE_COLLECTIONS_PATH, { replace: true });
+      closeCollectionEdit(() =>
+        navigate(PRIVATE_COLLECTIONS_PATH, { replace: true }),
+      );
+    },
+  });
+
+  const hasTitleChanges = collection
+    ? titleDraft !== collection.title
+    : false;
+  const isTitleDirty = collection
+    ? titleDraft.trim().length > 0 &&
+      titleDraft.trim() !== collection.title
+    : false;
+  const {
+    showDiscardConfirm: showEditDiscard,
+    keepEditing: keepCollectionEditing,
+    closeConfirmed: closeCollectionEdit,
+    requestClose: requestCollectionEditClose,
+  } = useTaskEditorLifecycle({
+    isActive: isEditing && Boolean(collection),
+    isDirty: hasTitleChanges,
+    isCloseBlocked:
+      updateCollectionMutation.isPending || deleteMutation.isPending,
+    onClose: () => {
+      setIsEditing(false);
+      setConfirmDelete(false);
+      if (collection) setTitleDraft(collection.title);
     },
   });
 
@@ -655,25 +681,6 @@ export function PrivateCollectionDetailPage({
     );
   }
   if (!collection) return null;
-
-  const isTitleDirty =
-    titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title;
-  const {
-    showDiscardConfirm: showEditDiscard,
-    keepEditing: keepCollectionEditing,
-    closeConfirmed: closeCollectionEdit,
-    requestClose: requestCollectionEditClose,
-  } = useTaskEditorLifecycle({
-    isActive: isEditing,
-    isDirty: isTitleDirty,
-    isCloseBlocked:
-      updateCollectionMutation.isPending || deleteMutation.isPending,
-    onClose: () => {
-      setIsEditing(false);
-      setConfirmDelete(false);
-      setTitleDraft(collection.title);
-    },
-  });
 
   function submitCollectionTitle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

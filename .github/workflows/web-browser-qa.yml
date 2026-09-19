@@ -5,6 +5,12 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/web-browser-qa.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web-browser-qa.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,9 +47,19 @@ jobs:
         working-directory: web/e2e
         run: ./node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Browser E2E and accessibility gate
+      - name: Validate browser test inventory
         working-directory: web/e2e
-        run: npm test
+        run: npm run test:inventory
+
+      - name: PR-critical browser E2E and accessibility gate
+        if: github.event_name == 'pull_request'
+        working-directory: web/e2e
+        run: npm run test:pr
+
+      - name: Full browser regression
+        if: github.event_name != 'pull_request'
+        working-directory: web/e2e
+        run: npm run test:full
 
       - name: Upload product visual evidence
         if: always()

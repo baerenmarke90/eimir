@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: web-browser-qa-${{ github.ref }}
@@ -62,13 +63,11 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: web/e2e
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -eu
-          changed_specs="$(
-            git -C ../.. diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'web/e2e/tests/*.spec.ts'               | sed 's#^web/e2e/##'
-          )"
+          changed_specs="$(node scripts/changed-specs.mjs)"
           if [ -z "$changed_specs" ]; then
             echo "No browser spec files changed."
             exit 0

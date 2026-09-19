@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 
 from eimir.administration.models import InstanceAdministrationActionEvent
-from eimir.auth import passwords
+from eimir.auth import passwords, recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.identity import service as accounts
@@ -53,6 +53,19 @@ def _admin(session):  # type: ignore[no-untyped-def]
     account = make_account(session, "Operator")
     _add_email(session, account, verified=True)
     return account, sign_in(session, account)
+
+
+def _grant_server_admin_action(session, account) -> None:  # type: ignore[no-untyped-def]
+    device_session = session.execute(
+        select(DeviceSession).where(DeviceSession.account_id == account.id)
+    ).scalar_one()
+    recent_auth.issue_grant(
+        session,
+        account,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+        method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
+    )
 
 
 def test_server_admin_endpoints_require_authentication(client) -> None:  # type: ignore[no-untyped-def]
@@ -433,7 +446,8 @@ def test_operator_email_verification_requires_exact_typed_confirmation(
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    _, token = _admin(session)
+    admin, token = _admin(session)
+    _grant_server_admin_action(session, admin)
     target = make_account(session, "Target")
     email = _add_email(session, target, email="target@example.test", verified=False)
 
@@ -463,7 +477,8 @@ def test_operator_assisted_recovery_reuses_normal_one_time_recovery_flow(
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    _, admin_token = _admin(session)
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
     target = accounts.create_account(
         session,
         display_name="Target",

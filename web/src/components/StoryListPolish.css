@@ -158,7 +158,7 @@
 }
 
 /*
- * Metadata footer (#969). Date, author, visibility and photo count are one
+ * Metadata footer (#969). Date, author avatar, visibility and photo count are one
  * quiet row of secondary information. Every part may wrap at word
  * boundaries; nothing uses `nowrap` on text that can grow, and nothing is
  * cut with an ellipsis.
@@ -194,17 +194,6 @@
 /* The avatar keeps its size when a long name wraps beside it. */
 .story-card-footer-author .person-identity {
   flex: 0 0 auto;
-}
-
-/* A long name wraps at its own break points (e.g. hyphens) beside the avatar
-   and only moves below it when even one segment no longer fits; it is never
-   split mid-word by the layout. */
-.story-card-footer .story-card-author {
-  flex: 1 1 min-content;
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  line-height: 1.3;
-  overflow-wrap: break-word;
 }
 
 .story-card-link .story-card-footer .story-card-meta-item {

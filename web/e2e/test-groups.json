@@ -1,9 +1,9 @@
 {
   "version": 1,
   "baseline": {
-    "main": "019e995713f342df8d28ad59034cebc709182029",
+    "main": "754234eeb6e4d22679749e7c10f53dabc814fcec",
     "specFiles": 46,
-    "tests": 351,
+    "tests": 319,
     "prCriticalTests": 150
   },
   "dispositions": {
@@ -109,27 +109,27 @@
       "baselineTests": 7
     },
     "private-token-contrast.spec.ts": {
-      "disposition": "LOWER_LEVEL",
+      "disposition": "FULL_REGRESSION",
       "baselineTests": 1,
-      "reason": "Deterministic token/contrast invariant; retain in full regression until equivalent lower-level coverage is proven."
+      "reason": "The contract is an axe scan against the rendered private-state route, not a static token-only invariant."
     },
     "product-accessibility.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 12
     },
     "product-gutters.spec.ts": {
-      "disposition": "LOWER_LEVEL",
-      "baselineTests": 20,
-      "reason": "Dense breakpoint/container matrix is a candidate for deterministic lower-level invariant coverage; retain in full regression meanwhile."
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 4,
+      "reason": "Real CSS layout/container-query coverage remains browser-native; Phase B consolidates the full breakpoint matrix into four tests without dropping any checked width."
     },
     "product-reference-foundations.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 19
+      "baselineTests": 11
     },
     "product-reflow.spec.ts": {
-      "disposition": "LOWER_LEVEL",
+      "disposition": "FULL_REGRESSION",
       "baselineTests": 4,
-      "reason": "Global reflow invariants overlap representative PR accessibility coverage; retain in full regression until replacement is proven."
+      "reason": "WCAG reflow and clipped-control checks depend on real rendered geometry across routed product surfaces and remain browser-native."
     },
     "quick-create-destination-handoff.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -137,7 +137,7 @@
     },
     "r1-memory-capture-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 19
+      "baselineTests": 11
     },
     "r2-momente-timeline-evidence.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -172,9 +172,9 @@
       "baselineTests": 7
     },
     "theme-forced-colors.spec.ts": {
-      "disposition": "LOWER_LEVEL",
+      "disposition": "FULL_REGRESSION",
       "baselineTests": 1,
-      "reason": "Forced-colors styling invariant is a lower-level candidate; retain in full regression until equivalent coverage is proven."
+      "reason": "Forced-colors behavior depends on Chromium media emulation and computed styles and remains browser-native."
     },
     "today-agenda-composition.spec.ts": {
       "disposition": "FULL_REGRESSION",

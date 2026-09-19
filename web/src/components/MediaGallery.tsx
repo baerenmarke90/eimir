@@ -130,7 +130,8 @@ export function MediaGallery({
         typeof window.matchMedia === 'function' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      let target: HTMLElement | null = lightboxSlides.current[nextIndex] ?? null;
+      let target: HTMLElement | null =
+        lightboxSlides.current[nextIndex] ?? null;
       if (!reducedMotion && direction < 0 && current === 0) {
         target = track.querySelector<HTMLElement>(
           '[data-lightbox-clone="start"]',

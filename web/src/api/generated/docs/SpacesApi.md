@@ -81,7 +81,7 @@ No authorization required
 
 Get Partner Presence
 
-Return only the bounded semantic state of the other active partner.\n\nNo timestamp is exposed. Missing, stale, or absent partner presence is\nrepresented as null so this cannot become a last-seen surface.
+Return only the bounded semantic state of the other active partner.\\n\\nNo timestamp is exposed. Missing, stale, or absent partner presence is\\nrepresented as null so this cannot become a last-seen surface.
 
 ### Example
 
@@ -142,7 +142,6 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 
 ## getSpaceApiV1SpacesSpaceIdGet
@@ -416,7 +415,6 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 
 ## updateSpaceProfileApiV1SpacesSpaceIdProfilePut

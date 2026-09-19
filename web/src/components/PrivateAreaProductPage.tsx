@@ -18,7 +18,7 @@ import {
   PrivateCollectionEditPage,
   PrivateCollectionsListPage,
 } from './PrivateCollectionsPage';
-import { PrivateAreaFrame } from './PrivateAreaLayout';
+import { PrivateAreaBackToMore, PrivateAreaFrame } from './PrivateAreaLayout';
 import {
   PrivateNoteCreatePage,
   PrivateNoteDetailPage,
@@ -79,6 +79,7 @@ function PrivateAreaOverview() {
   const { t } = useTranslation();
   return (
     <div className="private-area-reference-overview">
+      <PrivateAreaBackToMore />
       <section className="private-area-privacy-banner" role="note">
         <span className="private-area-privacy-banner-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

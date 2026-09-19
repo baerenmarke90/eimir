@@ -29,10 +29,7 @@ import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { personInitials } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 const RELATIONSHIPS = Object.values(PersonRelationship);
 const VISIBILITIES = Object.values(ContentVisibility);

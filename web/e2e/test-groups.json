@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "baseline": {
+    "main": "019e995713f342df8d28ad59034cebc709182029",
+    "specFiles": 46,
+    "tests": 351,
+    "prCriticalTests": 150
+  },
+  "dispositions": {
+    "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
+    "FULL_REGRESSION": "Runs in the full regression after merge/manual execution, not every Web pull request.",
+    "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
+  },
+  "specs": {
+    "browser-session-reload.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
+    },
+    "chapter-create-navigation.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
+    "cloud-onboarding-entry.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "create-surface-visual-checks.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 15
+    },
+    "f2-task-boundaries.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 32
+    },
+    "floating-bottom-nav-scroll.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "floating-bottom-nav.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9
+    },
+    "heart-moment-create-product-reference.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5
+    },
+    "hidden-file-inputs.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
+    "i18n-accessible-names.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "memory-carousel-stability.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "memory-create-defaults.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "momente-discover-canonical.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "momente-timeline-filter-refresh.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
+    },
+    "momente-timeline-progressive-loading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "momente-timeline-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 13
+    },
+    "people-important-dates-mobile-first.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "plan-inline-place-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "planning-completion-story-continuation.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6
+    },
+    "planning-focused-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8
+    },
+    "planning-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9
+    },
+    "planning-upcoming.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "planning-wish-completion-continuation.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6
+    },
+    "private-area-reference.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "private-token-contrast.spec.ts": {
+      "disposition": "LOWER_LEVEL",
+      "baselineTests": 1,
+      "reason": "Deterministic token/contrast invariant; retain in full regression until equivalent lower-level coverage is proven."
+    },
+    "product-accessibility.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 12
+    },
+    "product-gutters.spec.ts": {
+      "disposition": "LOWER_LEVEL",
+      "baselineTests": 20,
+      "reason": "Dense breakpoint/container matrix is a candidate for deterministic lower-level invariant coverage; retain in full regression meanwhile."
+    },
+    "product-reference-foundations.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 19
+    },
+    "product-reflow.spec.ts": {
+      "disposition": "LOWER_LEVEL",
+      "baselineTests": 4,
+      "reason": "Global reflow invariants overlap representative PR accessibility coverage; retain in full regression until replacement is proven."
+    },
+    "quick-create-destination-handoff.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 18
+    },
+    "r1-memory-capture-evidence.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 19
+    },
+    "r2-momente-timeline-evidence.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 10
+    },
+    "r2-timeline-card-hierarchy.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 16
+    },
+    "shared-story-summary-visual.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "story-discover-tapestry.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "story-featured-metadata.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "story-timeline-attachment-meta.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "story-timeline-comment-presence.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "story-years-product-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7
+    },
+    "theme-forced-colors.spec.ts": {
+      "disposition": "LOWER_LEVEL",
+      "baselineTests": 1,
+      "reason": "Forced-colors styling invariant is a lower-level candidate; retain in full regression until equivalent coverage is proven."
+    },
+    "today-agenda-composition.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7
+    },
+    "today-freshness.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "today-keepsake-precedence.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5
+    },
+    "today-living-home.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 24
+    },
+    "today-recent-trace.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5
+    },
+    "wish-detective.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    }
+  }
+}

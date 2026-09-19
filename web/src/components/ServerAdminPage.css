@@ -219,7 +219,9 @@
   color: var(--color-text-secondary);
 }
 
-.server-admin-badge.is-warning {
+.server-admin-badge.is-warning,
+.server-admin-status.is-danger,
+.server-admin-badge.is-danger {
   color: var(--color-danger, var(--color-text));
 }
 

@@ -42,6 +42,7 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 from eimir.identity import service as accounts
+from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import (
     Account,
     AccountEmail,
@@ -165,6 +166,7 @@ class ServerAdminAccountSummary(ApiModel):
     email_verified: bool
     created_at: datetime
     disabled_at: datetime | None
+    deletion_status: AccountDeletionStatus | None = None
     auth_methods: list[str]
     active_session_count: int
     active_membership_count: int
@@ -177,6 +179,7 @@ class ServerAdminAccountDetail(ServerAdminAccountSummary):
     last_session_activity_at: datetime | None
     mail_recovery_available: bool
     local_password_available: bool
+    deletion_accepted_at: datetime | None = None
 
 
 class ServerAdminAccountList(ApiModel):
@@ -267,6 +270,16 @@ class ServerAdminRecoveryEmailResult(ApiModel):
     requested: bool
 
 
+class ServerAdminAccountDeletionRequest(ApiModel):
+    confirmation: str
+
+
+class ServerAdminAccountDeletionResult(ApiModel):
+    account_id: UUID
+    accepted_at: datetime
+    status: AccountDeletionStatus
+
+
 def _settings_view(settings: InstanceAdministrationSettings) -> ServerAdminSettings:
     registration_enabled = bool(settings.registration_enabled)
     maintenance_mode = bool(settings.maintenance_mode)
@@ -313,6 +326,9 @@ def _account_summary(
     current_time: datetime,
 ) -> ServerAdminAccountSummary:
     primary = account_operations.primary_email(session, account.id)
+    deletion_status_val = session.execute(
+        select(AccountDeletion.status).where(AccountDeletion.account_id == account.id)
+    ).scalar_one_or_none()
     active_sessions = session.execute(
         select(func.count())
         .select_from(DeviceSession)
@@ -333,6 +349,9 @@ def _account_summary(
         email_verified=bool(primary is not None and primary.verified_at is not None),
         created_at=account.created_at,
         disabled_at=account.disabled_at,
+        deletion_status=AccountDeletionStatus(deletion_status_val)
+        if deletion_status_val is not None
+        else None,
         auth_methods=_auth_methods(session, account.id),
         active_session_count=active_sessions,
         active_membership_count=active_memberships,
@@ -346,6 +365,9 @@ def _account_detail(
     current_time: datetime,
 ) -> ServerAdminAccountDetail:
     summary = _account_summary(session, account, current_time=current_time)
+    deletion_accepted_at = session.execute(
+        select(AccountDeletion.accepted_at).where(AccountDeletion.account_id == account.id)
+    ).scalar_one_or_none()
     email_rows = list(
         session.execute(
             select(AccountEmail)
@@ -377,6 +399,7 @@ def _account_detail(
     local_password_available = AuthProvider.LOCAL_PASSWORD.value in summary.auth_methods
     return ServerAdminAccountDetail(
         **summary.model_dump(),
+        deletion_accepted_at=deletion_accepted_at,
         emails=[
             ServerAdminAccountEmail(
                 id=email.id,
@@ -1163,6 +1186,38 @@ def issue_server_admin_operator_recovery(
     return ServerAdminRecoveryProof(
         recovery_url=proof.recovery_url,
         expires_at=proof.expires_at,
+    )
+
+
+@router.post(
+    "/accounts/{accountId}/deletion",
+    response_model=ServerAdminAccountDeletionResult,
+    responses=problem_responses(401, 403, 404, 422, 503),
+)
+def delete_server_admin_account(
+    admin: CurrentServerAdmin,
+    device_session: CurrentSession,
+    session: DbSession,
+    account_id: Annotated[str, Path(alias="accountId")],
+    body: ServerAdminAccountDeletionRequest,
+) -> ServerAdminAccountDeletionResult:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
+    parsed_id = _parse_account_id(account_id)
+    deletion = account_operations.delete_account(
+        session,
+        actor=admin,
+        target_account_id=parsed_id,
+        confirmation=body.confirmation,
+    )
+    return ServerAdminAccountDeletionResult(
+        account_id=parsed_id,
+        accepted_at=deletion.accepted_at,
+        status=AccountDeletionStatus(deletion.status),
     )
 
 

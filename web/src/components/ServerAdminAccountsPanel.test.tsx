@@ -72,17 +72,23 @@ function stepUpRequired() {
 function renderPanel({
   verifyEmail = vi.fn(),
   operatorRecovery = vi.fn(),
+  deleteAccount = vi.fn(),
+  summary = accountSummary,
+  detail = accountDetail,
 }: {
   verifyEmail?: ReturnType<typeof vi.fn>;
   operatorRecovery?: ReturnType<typeof vi.fn>;
+  deleteAccount?: ReturnType<typeof vi.fn>;
+  summary?: ServerAdminAccountSummary;
+  detail?: ServerAdminAccountDetail;
 } = {}) {
   const listAccounts = vi.fn().mockResolvedValue({
-    items: [accountSummary],
+    items: [summary],
     limit: 25,
     offset: 0,
     total: 1,
   });
-  const loadAccount = vi.fn().mockResolvedValue(accountDetail);
+  const loadAccount = vi.fn().mockResolvedValue(detail);
   const loadActivity = vi.fn().mockResolvedValue([]);
   const api = {
     getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet: loadAccount,
@@ -93,6 +99,8 @@ function renderPanel({
     listServerAdminAccountsApiV1ServerAdminAccountsGet: listAccounts,
     verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost:
       verifyEmail,
+    deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost:
+      deleteAccount,
   } as unknown as ServerAdminApi;
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -112,7 +120,13 @@ function renderPanel({
     </QueryClientProvider>,
   );
 
-  return { listAccounts, loadAccount, verifyEmail, operatorRecovery };
+  return {
+    listAccounts,
+    loadAccount,
+    verifyEmail,
+    operatorRecovery,
+    deleteAccount,
+  };
 }
 
 async function openAccountDetail() {
@@ -200,5 +214,49 @@ describe('ServerAdminAccountsPanel recent-auth integration', () => {
       operatorRecovery.mock.calls[0]?.[0],
     );
     await screen.findByDisplayValue(recoveryProof.recoveryUrl);
+  });
+
+  it('opens deletion dialog when delete account button is clicked', async () => {
+    renderPanel();
+    await openAccountDetail();
+
+    const deleteBtn = screen.getByRole('button', {
+      name: serverAdmin.accounts.detail.deleteAccount,
+    });
+    fireEvent.click(deleteBtn);
+
+    await screen.findByText(serverAdmin.accounts.deletionDialog.stage1Title);
+  });
+
+  it('displays pending deletion status in table and notice in detail view', async () => {
+    const pendingSummary: ServerAdminAccountSummary = {
+      ...accountSummary,
+      deletionStatus: 'PENDING',
+    };
+    const pendingDetail: ServerAdminAccountDetail = {
+      ...accountDetail,
+      deletionStatus: 'PENDING',
+      deletionAcceptedAt: new Date('2026-09-19T18:00:00Z'),
+    };
+
+    renderPanel({ summary: pendingSummary, detail: pendingDetail });
+
+    // Status in table
+    expect(
+      await screen.findByText(serverAdmin.accounts.status.pendingDeletion),
+    ).toBeTruthy();
+
+    await openAccountDetail();
+
+    // Notice in detail view
+    expect(
+      screen.getByText(serverAdmin.accounts.detail.deletionNotice),
+    ).toBeTruthy();
+    // Delete button should not be shown
+    expect(
+      screen.queryByRole('button', {
+        name: serverAdmin.accounts.detail.deleteAccount,
+      }),
+    ).toBeNull();
   });
 });

@@ -592,12 +592,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
-    await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(compactAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(imageMemoryCard.locator('.story-card-author')).toHaveCount(0);
+    await expect(
+      compactAuthor.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
     const browseShell = page.locator('.momente-browse-links');
     const browseLink = page.locator('.momente-browse-link').first();
@@ -765,9 +765,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(compactEmotion.locator('.heart-emotion-label')).toHaveText(
       'Geliebt',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
 
     await captureScreenshot(
       page,
@@ -811,9 +809,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'background-color',
       'rgba(0, 0, 0, 0)',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
     const browseWidth = await page
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
@@ -1001,7 +997,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     }
   });
 
-  test('partner attribution keeps the partner first name in Timeline and detail (#1019)', async ({
+  test('Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1011,8 +1007,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.waitForSelector('.story-timeline');
 
     const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta.locator('.sr-only')).toHaveText(ME_ATTRIBUTION);
-    await expect(page.locator('.story-card-author').first()).toHaveText(
+    await expect(authorMeta.locator('.sr-only')).toHaveCount(0);
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
+    await expect(
+      authorMeta.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    await expect(page.locator('.story-timeline')).not.toContainText(
       ME_ATTRIBUTION,
     );
 
@@ -1051,6 +1051,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       await page.goto(detail.path);
       await expect(page.getByText(detail.marker).first()).toBeVisible();
       await expectCompactCommentHandoff(page);
+      const commentAuthors = page.locator('.comment-author');
+      await expect(commentAuthors).toHaveCount(2);
+      await expect(commentAuthors.nth(0)).toHaveText(
+        `Lea · ${storyProducts.comments.authorSelf}`,
+      );
+      await expect(commentAuthors.nth(1)).toHaveText('Alex');
+      await expect(page.locator('.comment-list')).not.toContainText(
+        ME.displayName,
+      );
       await captureScreenshot(page, testInfo, detail.shot, { fullPage: true });
     }
 
@@ -1115,10 +1124,11 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
-    await expect(discoverAuthor).toContainText(SELF_ATTRIBUTION);
+    await expect(discoverAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(
+      discoverAuthor.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    await expect(discoverAuthor).not.toContainText(SELF_ATTRIBUTION);
 
     await captureScreenshot(
       page,

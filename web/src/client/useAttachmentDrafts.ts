@@ -18,10 +18,7 @@ import {
   uploadMemoryDraftAttachment,
   type DraftUploadPhase,
 } from './memoryAttachmentDraft';
-import {
-  createOwnedObjectUrl,
-  type OwnedObjectUrl,
-} from './objectUrlResource';
+import { createOwnedObjectUrl, type OwnedObjectUrl } from './objectUrlResource';
 import type { ReferenceApis } from './referenceFlow';
 
 /**

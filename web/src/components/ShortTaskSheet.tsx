@@ -83,6 +83,7 @@ export function ShortTaskSheet({
     active: open,
     initialFocusRef: initialFocusRef ?? closeRef,
     restoreFocusRef,
+    deferRestoreFocus: true,
     shouldRestoreFocus: () => !navigatingRef.current,
   });
 

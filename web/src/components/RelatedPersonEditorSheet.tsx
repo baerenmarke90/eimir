@@ -17,6 +17,10 @@ import {
   type DraftUploadPhase,
   uploadMemoryDraftAttachment,
 } from '../client/memoryAttachmentDraft';
+import {
+  createOwnedObjectUrl,
+  type OwnedObjectUrl,
+} from '../client/objectUrlResource';
 import { createReferenceApis } from '../client/referenceFlow';
 import {
   birthdayFromInput,
@@ -199,22 +203,18 @@ export function RelatedPersonEditorSheet({
     if (!hasBirthday) setShowBirthdayOnDashboard(false);
   }, [hasBirthday]);
 
-  const createdObjectUrlRef = useRef<string | null>(null);
-  const setPreviewUrl = useCallback((url: string | null) => {
-    if (createdObjectUrlRef.current && createdObjectUrlRef.current !== url) {
-      URL.revokeObjectURL(createdObjectUrlRef.current);
-      createdObjectUrlRef.current = null;
-    }
-    createdObjectUrlRef.current = url;
-    setAvatarPreviewUrl(url);
+  const previewResourceRef = useRef<OwnedObjectUrl | null>(null);
+  const setPreviewFile = useCallback((file: File | null) => {
+    previewResourceRef.current?.dispose();
+    const resource = file ? createOwnedObjectUrl(file) : null;
+    previewResourceRef.current = resource;
+    setAvatarPreviewUrl(resource?.url ?? null);
   }, []);
 
   useEffect(() => {
     return () => {
-      if (createdObjectUrlRef.current) {
-        URL.revokeObjectURL(createdObjectUrlRef.current);
-        createdObjectUrlRef.current = null;
-      }
+      previewResourceRef.current?.dispose();
+      previewResourceRef.current = null;
     };
   }, []);
 
@@ -286,7 +286,7 @@ export function RelatedPersonEditorSheet({
           setUploadPhase,
         );
         setCurrentAvatarId(ready.attachmentId);
-        setPreviewUrl(URL.createObjectURL(file));
+        setPreviewFile(file);
       } catch (err) {
         setUploadError(
           err instanceof Error ? err.message : t('flow.uploadFailed'),
@@ -297,12 +297,12 @@ export function RelatedPersonEditorSheet({
       return;
     }
 
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewFile(file);
   }
 
   function handleAvatarRemove() {
     setCurrentAvatarId(null);
-    setPreviewUrl(null);
+    setPreviewFile(null);
     setUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }

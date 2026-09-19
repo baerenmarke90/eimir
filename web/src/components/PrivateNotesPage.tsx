@@ -21,7 +21,7 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToMore,
+  PrivateAreaBackToHub,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
@@ -136,7 +136,7 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToMore />}
+        before={<PrivateAreaBackToHub />}
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={

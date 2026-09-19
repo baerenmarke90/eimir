@@ -640,8 +640,13 @@ function TodayMonthlyStrip({
   loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const isCarousel = items.length > 1;
   return (
-    <ul className={`today-monthly-strip today-monthly-strip-${items.length}`}>
+    <ul
+      className={`today-monthly-strip today-monthly-strip-${items.length}${
+        isCarousel ? ' eimir-media-snap-track' : ''
+      }`}
+    >
       {items.map((item) => {
         const path = dashboardItemPath(item.type, item.id);
         const title = item.titleOrText || t('m5s5.dashboard.itemFallback');
@@ -657,7 +662,14 @@ function TodayMonthlyStrip({
           </span>
         );
         return (
-          <li key={item.id} className="today-monthly-item">
+          <li
+            key={item.id}
+            className={`today-monthly-item${
+              isCarousel
+                ? ' eimir-media-snap-item eimir-media-snap-item-start'
+                : ''
+            }`}
+          >
             {path ? (
               <TodayDestinationLink to={path} className="today-monthly-tile">
                 {tile}

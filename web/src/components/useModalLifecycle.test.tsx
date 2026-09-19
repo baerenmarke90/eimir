@@ -44,7 +44,7 @@ describe('useModalLifecycle', () => {
     function Harness({ active }: { active: boolean }) {
       const initialRef = useRef<HTMLButtonElement>(null);
       useModalLifecycle({ active, initialFocusRef: initialRef });
-      return <button ref={initialRef}>inside</button>;
+      return <button ref={initialRef} type="button">inside</button>;
     }
 
     const view = render(<Harness active={false} />);
@@ -62,8 +62,8 @@ describe('containModalTabFocus', () => {
   it('wraps Tab and Shift+Tab within a custom dialog', () => {
     const view = render(
       <section>
-        <button>first</button>
-        <button>last</button>
+        <button type="button">first</button>
+        <button type="button">last</button>
       </section>,
     );
     const container = view.container.querySelector('section');
@@ -95,8 +95,8 @@ describe('containModalTabFocus', () => {
     document.body.append(outside);
     const view = render(
       <section>
-        <button>first</button>
-        <button>last</button>
+        <button type="button">first</button>
+        <button type="button">last</button>
       </section>,
     );
     const container = view.container.querySelector('section');

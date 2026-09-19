@@ -107,28 +107,43 @@ Normal production hardening remains mandatory. The demo should additionally be p
 reverse proxy's ordinary request/rate-limit controls because it is intentionally reachable without
 a personal account.
 
-### Automatic Compose bootstrap
+### Explicit Compose bootstrap
 
-Both supported Compose stacks contain a one-shot `demo-init` service. Startup order is:
+Demo initialization is **not** part of the normal Self-Hosted startup chain. The canonical
+`compose.yaml` defines a one-shot `demo-init` service in the additive `demo` profile only;
+`api` and `worker` do not depend on it. Normal startup stays:
 
 ```text
-postgres -> migrate -> demo-init -> api / worker -> web
+postgres -> migrate -> api / worker -> web
 ```
 
-`demo-init` runs `python -m scripts.demo_space ensure` after successful migrations.
+For an intentional Demo deployment, deploy normally and then run the idempotent one-shot
+explicitly. `self-hosted` supplies its `migrate` dependency and `demo` supplies the service:
+
+```bash
+docker compose --profile self-hosted --profile demo --env-file .env run --rm demo-init
+```
+
+`demo-init` runs `python -m scripts.demo_space ensure` from the same backend image as `api`
+after `migrate` has succeeded.
 
 - on `EIMIR_ENVIRONMENT=demo` with `EIMIR_DEMO_MODE=true`, it creates the canonical Lea/Alex Space if it
   is missing;
-- creation is idempotent, so ordinary redeploys do not duplicate or replace an existing demo Space;
+- creation is idempotent, so running it again or redeploying does not duplicate or replace an
+  existing demo Space (it reports `already present`);
 - initial Account passwords are generated ephemerally inside the process and are never printed or
   stored in `.env`/Arcane;
 - on development and ordinary production deployments, `ensure` exits successfully without creating
   demo data;
-- API and worker start only after this one-shot step has completed successfully;
+- API and worker do not wait for it: until the command has completed, `POST /api/v1/demo/entry`
+  answers `404 DEMO_IDENTITY_MISSING`. Concurrent `ensure` and periodic reset are serialized by the
+  canonical-dataset lock, and the first reset is scheduled one interval after startup;
+- do not put `demo` into `COMPOSE_PROFILES` and use `up --wait`: Compose treats an exited standalone
+  one-shot as a failed wait;
 - migrations themselves still never seed product data.
 
-This removes the previous manual post-deployment bootstrap command for a public demo instance.
 Manual `create` remains available for local development/QA and explicit troubleshooting.
+`scripts/self_hosted_upgrade_rehearsal.py --scenario demo` exercises this lifecycle end to end.
 
 ## Demo-instance banner
 

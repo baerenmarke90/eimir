@@ -31,7 +31,9 @@ postgres -> migrate -> api/worker -> web
 ```
 
 `demo-init` is an explicit Demo-only lifecycle service and is not part of normal
-Self-Hosted startup.
+Self-Hosted startup. Run it on demand with
+`docker compose --profile self-hosted --profile demo run --rm demo-init`; do not add
+`demo` to the project's default profiles (see [`DEMO-SPACE.md`](DEMO-SPACE.md)).
 
 ## Persistent Development in Arcane
 

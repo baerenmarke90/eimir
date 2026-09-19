@@ -8,6 +8,9 @@ on:
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/test_self_hosted_release.py"
+      - "scripts/self_hosted_upgrade_rehearsal.py"
+      - "scripts/test_self_hosted_upgrade_rehearsal.py"
+      - "tools/ci/test_self_hosted_topology.py"
       - "scripts/check_runtime_environment.py"
       - "scripts/test_check_runtime_environment.py"
       - "scripts/build_self_hosted_source.py"
@@ -24,6 +27,9 @@ on:
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/test_self_hosted_release.py"
+      - "scripts/self_hosted_upgrade_rehearsal.py"
+      - "scripts/test_self_hosted_upgrade_rehearsal.py"
+      - "tools/ci/test_self_hosted_topology.py"
       - "scripts/check_runtime_environment.py"
       - "scripts/test_check_runtime_environment.py"
       - "scripts/build_self_hosted_source.py"
@@ -56,6 +62,8 @@ jobs:
           python3 -m py_compile \
             scripts/self_hosted_release.py \
             scripts/test_self_hosted_release.py \
+            scripts/self_hosted_upgrade_rehearsal.py \
+            scripts/test_self_hosted_upgrade_rehearsal.py \
             scripts/check_runtime_environment.py \
             scripts/test_check_runtime_environment.py \
             scripts/build_self_hosted_source.py \
@@ -64,9 +72,13 @@ jobs:
             scripts/test_compose_checked.py
           python3 -m unittest \
             scripts.test_self_hosted_release \
+            scripts.test_self_hosted_upgrade_rehearsal \
             scripts.test_check_runtime_environment \
             scripts.test_build_self_hosted_source \
             scripts.test_compose_checked
+
+      - name: Released topology contract (#827)
+        run: python3 tools/ci/test_self_hosted_topology.py -v
 
       - name: Create release-contract identity fixture
         run: |

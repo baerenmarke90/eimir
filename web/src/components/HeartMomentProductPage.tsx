@@ -737,7 +737,7 @@ export function HeartMomentProductPage({
       }
       offline={offline}
       containerClassName="heart-moment-detail-container"
-      containerProps={{ 'data-heart-emotion': heartMoment.emotion }}
+      containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
     >
       <div className="heart-moment-detail-emotion">
         <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />

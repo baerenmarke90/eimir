@@ -169,14 +169,11 @@ describe('ActivityProductPage task origin (#1084)', () => {
     const user = userEvent.setup();
     renderActivity();
 
-    await user.click(
-      await screen.findByRole('link', { name: /Our memory/i }),
-    );
+    await user.click(await screen.findByRole('link', { name: /Our memory/i }));
 
     expect(probeLocation.pathname).toBe('/story/memories/mem-1');
-    const key = (
-      probeLocation.state as { taskOriginKey?: unknown } | null
-    )?.taskOriginKey;
+    const key = (probeLocation.state as { taskOriginKey?: unknown } | null)
+      ?.taskOriginKey;
     expect(key).toMatch(/^task-/);
     expect(probeOrigin.resolveOrigin(key)?.to).toBe('/today/activity');
 

@@ -31,7 +31,10 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
-import { StoryEditorPageShell } from './StoryFormPageShell';
+import {
+  StoryCreatePageShell,
+  StoryEditorPageShell,
+} from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -221,90 +224,89 @@ export function MilestoneProductPage({
     }
 
     return (
-      <div className="page page-reading create-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={appRoutePath('story')}>
-              {t('milestoneProduct.backToStory')}
-            </Link>
-          }
-          eyebrow={t('milestoneProduct.createEyebrow')}
-          title={t('milestoneProduct.createHeading')}
-          description={t('milestoneProduct.createIntro')}
-          className="create-heading"
-        />
-        <section
-          className="immersive-create-card eimir-motion-reveal"
-          aria-labelledby="milestone-form-heading"
-        >
-          <h2 id="milestone-form-heading" className="sr-only">
-            {t('milestoneProduct.createHeading')}
-          </h2>
-          <form onSubmit={submitCreate} className="immersive-create-form">
-            <div className="immersive-create-hero">
-              <label htmlFor="milestone-title" className="sr-only">
-                {t('milestoneProduct.titleLabel')}
-              </label>
-              <input
-                id="milestone-title"
-                name="title"
-                required
-                maxLength={200}
-                placeholder={t('milestoneProduct.titlePlaceholder')}
-                className="immersive-create-title"
-              />
-            </div>
-
-            <div className="field-group">
-              <label htmlFor="milestone-date">
-                {t('milestoneProduct.happenedOnLabel')}
-              </label>
-              <input
-                id="milestone-date"
-                name="happenedOn"
-                type="date"
-                required
-                defaultValue={localDateInputValue()}
-                onClick={openNativeDatePicker}
-              />
-            </div>
-
-            <details className="immersive-create-details">
-              <summary>{t('milestoneProduct.addMoreDetails')}</summary>
-              <div className="immersive-create-details-content">
-                <div className="field-group">
-                  <label htmlFor="milestone-body">
-                    {t('milestoneProduct.bodyLabel')}
-                  </label>
-                  <textarea
-                    id="milestone-body"
-                    name="body"
-                    rows={4}
-                    placeholder={t('milestoneProduct.bodyPlaceholder')}
+      <StoryCreatePageShell
+        header={
+          <PageHeader
+                    before={
+                      <Link className="back-link" to={appRoutePath('story')}>
+                        {t('milestoneProduct.backToStory')}
+                      </Link>
+                    }
+                    eyebrow={t('milestoneProduct.createEyebrow')}
+                    title={t('milestoneProduct.createHeading')}
+                    description={t('milestoneProduct.createIntro')}
+                    className="create-heading"
                   />
-                </div>
-              </div>
-            </details>
-
-            <div className="form-actions">
-              <Link
-                className="button-link secondary-link"
-                to={appRoutePath('story')}
-              >
-                {t('common.cancel')}
-              </Link>
-              <button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending
-                  ? t('milestoneProduct.saving')
-                  : t('milestoneProduct.save')}
-              </button>
-            </div>
-          </form>
-          {createMutation.error ? (
-            <ProblemState error={createMutation.error} />
-          ) : null}
-        </section>
-      </div>
+        }
+        labelledBy="milestone-form-heading"
+      >
+                  <h2 id="milestone-form-heading" className="sr-only">
+                    {t('milestoneProduct.createHeading')}
+                  </h2>
+                  <form onSubmit={submitCreate} className="immersive-create-form">
+                    <div className="immersive-create-hero">
+                      <label htmlFor="milestone-title" className="sr-only">
+                        {t('milestoneProduct.titleLabel')}
+                      </label>
+                      <input
+                        id="milestone-title"
+                        name="title"
+                        required
+                        maxLength={200}
+                        placeholder={t('milestoneProduct.titlePlaceholder')}
+                        className="immersive-create-title"
+                      />
+                    </div>
+        
+                    <div className="field-group">
+                      <label htmlFor="milestone-date">
+                        {t('milestoneProduct.happenedOnLabel')}
+                      </label>
+                      <input
+                        id="milestone-date"
+                        name="happenedOn"
+                        type="date"
+                        required
+                        defaultValue={localDateInputValue()}
+                        onClick={openNativeDatePicker}
+                      />
+                    </div>
+        
+                    <details className="immersive-create-details">
+                      <summary>{t('milestoneProduct.addMoreDetails')}</summary>
+                      <div className="immersive-create-details-content">
+                        <div className="field-group">
+                          <label htmlFor="milestone-body">
+                            {t('milestoneProduct.bodyLabel')}
+                          </label>
+                          <textarea
+                            id="milestone-body"
+                            name="body"
+                            rows={4}
+                            placeholder={t('milestoneProduct.bodyPlaceholder')}
+                          />
+                        </div>
+                      </div>
+                    </details>
+        
+                    <div className="form-actions">
+                      <Link
+                        className="button-link secondary-link"
+                        to={appRoutePath('story')}
+                      >
+                        {t('common.cancel')}
+                      </Link>
+                      <button type="submit" disabled={createMutation.isPending}>
+                        {createMutation.isPending
+                          ? t('milestoneProduct.saving')
+                          : t('milestoneProduct.save')}
+                      </button>
+                    </div>
+                  </form>
+                  {createMutation.error ? (
+                    <ProblemState error={createMutation.error} />
+                  ) : null}
+      </StoryCreatePageShell>
     );
   }
 

@@ -43,7 +43,11 @@ interface StoryYearsProps {
   apis: ReferenceApis;
   accountId: string;
   spaceId: string;
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   profilesApi?: ProfilesApi;
 }
 
@@ -275,13 +279,18 @@ export function StoryYearDetailPage({
   ]);
 
   const loadHeartMomentImage = useCallback(
-    (heartMomentId: string, attachmentId: string) =>
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+    ) =>
       loadAuthorizedStoryImage(
         apis,
         spaceId,
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
+        { signal },
       ),
     [apis, spaceId],
   );

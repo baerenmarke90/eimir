@@ -225,7 +225,9 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(
       screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
     ).toBeTruthy();
-    expect(container.textContent).not.toContain('von Anna-Katharina');
+    expect(container.textContent).not.toContain(
+      i18n.t('story.byAuthor', { author: 'Anna-Katharina' }),
+    );
   });
 
   it('uses the same avatar-only presentation for the current viewer (#1064)', () => {
@@ -236,7 +238,9 @@ describe('StoryList card hierarchy (#969)', () => {
     expect(
       screen.getByRole('img', { name: 'Anna-Katharina Lindqvist' }),
     ).toBeTruthy();
-    expect(container.textContent).not.toContain('von dir');
+    expect(container.textContent).not.toContain(
+      i18n.t('story.byAuthor', { author: i18n.t('story.authorSelf') }),
+    );
   });
 
   it('starts every card with its content, not a metadata row', () => {

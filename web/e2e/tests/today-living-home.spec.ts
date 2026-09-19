@@ -716,10 +716,35 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     // The overflow that makes swiping possible is contained in the strip
     // itself, never leaking out to the page.
-    const stripOverflow = await page
+    const monthlyInteraction = await page
       .locator('.today-monthly-strip')
-      .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
-    expect(stripOverflow).toBe(true);
+      .evaluate((node) => {
+        const style = getComputedStyle(node);
+        const items = Array.from(
+          node.querySelectorAll<HTMLElement>('.today-monthly-item'),
+        );
+        return {
+          usesSharedTrack: node.classList.contains('eimir-media-snap-track'),
+          allItemsUseSharedSnap: items.every(
+            (item) =>
+              item.classList.contains('eimir-media-snap-item') &&
+              item.classList.contains('eimir-media-snap-item-start'),
+          ),
+          scrollSnapType: style.scrollSnapType,
+          overscrollBehaviorX: style.overscrollBehaviorX,
+          touchAction: style.touchAction,
+          overflow: node.scrollWidth > node.clientWidth + 1,
+          snapStops: items.map((item) => getComputedStyle(item).scrollSnapStop),
+        };
+      });
+    expect(monthlyInteraction.usesSharedTrack).toBe(true);
+    expect(monthlyInteraction.allItemsUseSharedSnap).toBe(true);
+    expect(monthlyInteraction.scrollSnapType).toContain('x');
+    expect(monthlyInteraction.scrollSnapType).toContain('mandatory');
+    expect(monthlyInteraction.overscrollBehaviorX).toBe('contain');
+    expect(monthlyInteraction.touchAction).toBe('manipulation');
+    expect(monthlyInteraction.overflow).toBe(true);
+    expect(monthlyInteraction.snapStops).toEqual(['always', 'always']);
 
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);

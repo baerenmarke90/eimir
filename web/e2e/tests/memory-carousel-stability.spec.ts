@@ -261,6 +261,8 @@ async function carouselInteractionContract(page: Page) {
   return page.locator('.media-gallery-carousel-track').evaluate((track) => {
     const style = getComputedStyle(track);
     return {
+      usesSharedTrack: track.classList.contains('eimir-media-snap-track'),
+      sharedItemCount: track.querySelectorAll('.eimir-media-snap-item').length,
       scrollSnapType: style.scrollSnapType,
       overscrollBehaviorX: style.overscrollBehaviorX,
       touchAction: style.touchAction,
@@ -289,6 +291,8 @@ async function lightboxInteractionContract(page: Page) {
   return page.locator('.media-lightbox-track').evaluate((track) => {
     const style = getComputedStyle(track);
     return {
+      usesSharedTrack: track.classList.contains('eimir-media-snap-track'),
+      sharedItemCount: track.querySelectorAll('.eimir-media-snap-item').length,
       scrollSnapType: style.scrollSnapType,
       overscrollBehaviorX: style.overscrollBehaviorX,
       touchAction: style.touchAction,
@@ -623,6 +627,8 @@ test('Memory carousel keeps document and layout position stable across pointer a
   ).toContain('blur');
 
   const interaction = await carouselInteractionContract(page);
+  expect(interaction.usesSharedTrack).toBe(true);
+  expect(interaction.sharedItemCount).toBe(5);
   expect(interaction.scrollSnapType).toContain('x');
   expect(interaction.scrollSnapType).toContain('mandatory');
   expect(interaction.overscrollBehaviorX).toBe('contain');
@@ -670,6 +676,8 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const close = lightbox.getByRole('button', { name: GALLERY.close });
   await expect(close).toBeFocused();
   const lightboxInteraction = await lightboxInteractionContract(page);
+  expect(lightboxInteraction.usesSharedTrack).toBe(true);
+  expect(lightboxInteraction.sharedItemCount).toBe(5);
   expect(lightboxInteraction.scrollSnapType).toContain('x');
   expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
   expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');
@@ -758,6 +766,8 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       await expect(next).toBeHidden();
 
       const interaction = await carouselInteractionContract(page);
+      expect(interaction.usesSharedTrack).toBe(true);
+      expect(interaction.sharedItemCount).toBe(5);
       expect(interaction.scrollSnapType).toContain('x');
       expect(interaction.scrollSnapType).toContain('mandatory');
       expect(interaction.overscrollBehaviorX).toBe('contain');
@@ -794,6 +804,8 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       const lightbox = page.locator('.media-lightbox');
       await expect(lightbox).toBeVisible();
       const lightboxInteraction = await lightboxInteractionContract(page);
+      expect(lightboxInteraction.usesSharedTrack).toBe(true);
+      expect(lightboxInteraction.sharedItemCount).toBe(5);
       expect(lightboxInteraction.scrollSnapType).toContain('x');
       expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
       expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');

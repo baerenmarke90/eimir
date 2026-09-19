@@ -935,8 +935,8 @@
 
 /* Compact real-device follow-up (#858 second pass): two or three photos now
  * scroll horizontally on Compact instead of squeezing into a static grid -
- * `overflow-x` + `scroll-snap`, no drag library or JS carousel, the same
- * native-scroll principle as the Demnächst carousel above. The tile width is
+ * the shared media swipe primitive, no drag library or JS carousel. The same
+ * browser-native gesture contract is reused by Story galleries. The tile width is
  * tuned narrower than that carousel's 85%: a photo tile stretched that wide
  * is close to a full-screen square, not a strip. ~60% keeps one photo
  * primary while a deliberate slice of the next is already visible as the
@@ -953,18 +953,14 @@
 .today-monthly-strip-3 {
   display: flex;
   flex-flow: row nowrap;
-  overflow-x: auto;
   contain: paint;
-  scroll-snap-type: x mandatory;
   scroll-padding-inline: var(--space-2);
-  -webkit-overflow-scrolling: touch;
 }
 
 .today-monthly-strip-2 .today-monthly-item,
 .today-monthly-strip-3 .today-monthly-item {
   flex: 0 0 60%;
   max-width: 60%;
-  scroll-snap-align: start;
 }
 
 .today-monthly-tile {

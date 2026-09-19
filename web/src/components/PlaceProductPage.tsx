@@ -315,9 +315,8 @@ export function PlaceProductPage({
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
-  const originKey = (
-    location.state as { taskOriginKey?: unknown } | null
-  )?.taskOriginKey;
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<PlaceDraft | null>(null);

@@ -390,9 +390,7 @@ function CollectionItems({
   const reorder = useListItemReorder({
     itemIds: baseItems.map((item) => item.id),
     disabled:
-      !editing ||
-      !collection.capabilities.canEdit ||
-      reorderMutation.isPending,
+      !editing || !collection.capabilities.canEdit || reorderMutation.isPending,
     onReorder: (itemIds) => reorderMutation.mutate(itemIds),
   });
   const itemById = new Map(baseItems.map((item) => [item.id, item]));
@@ -661,12 +659,9 @@ export function PrivateCollectionDetailPage({
     },
   });
 
-  const hasTitleChanges = collection
-    ? titleDraft !== collection.title
-    : false;
+  const hasTitleChanges = collection ? titleDraft !== collection.title : false;
   const isTitleDirty = collection
-    ? titleDraft.trim().length > 0 &&
-      titleDraft.trim() !== collection.title
+    ? titleDraft.trim().length > 0 && titleDraft.trim() !== collection.title
     : false;
   const {
     showDiscardConfirm: showEditDiscard,

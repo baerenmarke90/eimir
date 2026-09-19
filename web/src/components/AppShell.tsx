@@ -30,6 +30,7 @@ import { DestinationIcon } from './DestinationIcon';
 import { GamesProductArea } from './GamesProductArea';
 import { HeaderNotificationsMenu } from './HeaderNotificationsMenu';
 import { HeaderProfileMenu } from './HeaderProfileMenu';
+import { PresenceHeartbeat } from './PresenceHeartbeat';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { RouteEntryHandoff } from './RouteEntryHandoff';
 import { Snackbar } from './Snackbar';
@@ -212,6 +213,7 @@ function AuthenticatedAppShell({
     <div className="product-shell" data-focused-task={isFocusedTask}>
       <ThemeControl />
       <RouteEntryHandoff />
+      <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
       <a className="skip-link" href="#main-content">
         {t('navigation.skipToContent')}
       </a>

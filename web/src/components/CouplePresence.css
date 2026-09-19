@@ -69,16 +69,17 @@
   border-radius: var(--radius-pill);
 }
 
-.couple-presence-indicator.status-connected .couple-presence-dot {
+.couple-presence-indicator.status-active .couple-presence-dot {
   background: var(--color-shared);
+}
+
+.couple-presence-indicator.status-recent {
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
 .couple-presence-indicator.status-waiting .couple-presence-dot {
   background: var(--color-brand);
-}
-
-.couple-presence-indicator.status-offline .couple-presence-dot {
-  background: var(--color-text-muted);
 }
 
 .couple-presence-separator {

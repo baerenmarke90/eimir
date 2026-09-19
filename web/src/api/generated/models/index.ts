@@ -110,6 +110,7 @@ export * from './NotificationsReadAllResult';
 export * from './OidcStartRequest';
 export * from './OidcStartView';
 export * from './OnceSchedule';
+export * from './PartnerPresenceView';
 export * from './PartnerProfileView';
 export * from './PartnerView';
 export * from './PasskeyAuthenticationRequest';

@@ -42,6 +42,8 @@ EXPECTED_PROBLEM_RESPONSES: dict[tuple[str, str], set[int]] = {
     ("/api/v1/spaces/{spaceId}/invitations/{invitationId}", "delete"): {401, 404},
     ("/api/v1/invitations/accept", "post"): {401, 409, 422},
     ("/api/v1/spaces/{spaceId}", "get"): {401, 404},
+    ("/api/v1/spaces/{spaceId}/presence", "get"): {401, 404},
+    ("/api/v1/spaces/{spaceId}/presence", "post"): {401, 404},
     ("/api/v1/spaces/{spaceId}/profile", "get"): {401, 404},
     ("/api/v1/spaces/{spaceId}/profile", "put"): {401, 404, 409, 422},
 }

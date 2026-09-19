@@ -394,7 +394,7 @@ async function expectContainedFooters(page: Page): Promise<void> {
       }
       const leaves = Array.from(
         footer.querySelectorAll(
-          'time, .story-card-author, .story-card-meta-item',
+          'time, .momente-author-meta, .story-card-meta-item',
         ),
       ).map((el) => el.getBoundingClientRect());
       for (let i = 0; i < leaves.length; i += 1) {
@@ -516,9 +516,12 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
       await expect(
         coffee.getByRole('img', { name: de.story.shared }),
       ).toHaveCount(1);
-      // #1019 keeps the partner first-name-only while making the
-      // relationship attribution explicit.
-      await expect(lake.locator('.story-card-author')).toHaveText(
+      // #1064 keeps author identity on the avatar without visible prose.
+      await expect(lake.locator('.story-card-author')).toHaveCount(0);
+      await expect(
+        lake.getByRole('img', { name: PARTNER.displayName }),
+      ).toHaveCount(1);
+      await expect(lake).not.toContainText(
         de.story.byAuthor.replace('{{author}}', 'Anna-Katharina-Josephine'),
       );
 

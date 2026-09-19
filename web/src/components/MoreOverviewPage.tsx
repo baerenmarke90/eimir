@@ -100,7 +100,10 @@ function MoreDestinationRow({
   return (
     <li>
       <Link className="more-destination" to={destination.path}>
-        <span className="more-destination-icon" aria-hidden={leading ? undefined : true}>
+        <span
+          className="more-destination-icon"
+          aria-hidden={leading ? undefined : true}
+        >
           {leading ?? <DestinationIcon icon={destination.icon} />}
         </span>
         <span className="more-destination-copy">

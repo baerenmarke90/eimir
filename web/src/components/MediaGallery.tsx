@@ -32,6 +32,9 @@ export function MediaGallery({
   resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();
+  const itemIdentity = JSON.stringify(
+    items.map((item) => [item.id, item.mediaType]),
+  );
   const imageResourceIds = items
     .filter((item) => item.mediaType !== MediaType.VIDEO)
     .map((item) => item.id);
@@ -58,7 +61,7 @@ export function MediaGallery({
 
   useEffect(() => {
     setCarouselIndex(0);
-  }, [items]);
+  }, [itemIdentity]);
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
@@ -70,7 +73,7 @@ export function MediaGallery({
     const firstSlide = carouselSlides.current[0];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [items]);
+  }, [itemIdentity]);
 
   useEffect(
     () => () => {

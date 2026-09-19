@@ -8,6 +8,7 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ACTIVITY_ROUTE, MORE_NOTIFICATIONS_ROUTE } from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
 const MAX_ORIGINS = 12;
@@ -60,9 +61,21 @@ export function taskOriginPath(
   const planningDetail = /^\/plan\/(plans|wishes)\/(?!new$)[^/]+$/.test(
     pathname,
   );
+  const secondaryDetail = /^\/plan\/(places|chapters)\/(?!new$)[^/]+$/.test(
+    pathname,
+  );
   if (
     !planningDetail &&
-    !['/today', '/story', '/plan', '/more', '/search'].includes(pathname)
+    !secondaryDetail &&
+    ![
+      '/today',
+      '/story',
+      '/plan',
+      '/more',
+      '/search',
+      ACTIVITY_ROUTE,
+      MORE_NOTIFICATIONS_ROUTE,
+    ].includes(pathname)
   )
     return null;
   if (pathname !== '/story') return pathname;

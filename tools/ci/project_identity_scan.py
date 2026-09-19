@@ -46,6 +46,14 @@ GUARD_FILES = {
 }
 
 ANDROID_IMMUTABLE_IDENTIFIERS = ("de.sidebyside.app",)
+LEGACY_ANDROID_CLEANUP_FILES = {
+    Path("android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java"),
+    Path("tools/ci/test_project_identity_migration.py"),
+}
+LEGACY_ANDROID_CLEANUP_IDENTIFIERS = (
+    "sidebyside-read-cache.db",
+    "sidebyside_owner_only_read_cache",
+)
 WEB_PERSISTENCE_IDENTIFIERS = (
     "sidebyside-session-v1",
     "sidebyside-auth-return-v1",
@@ -146,6 +154,14 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         return (
             Classification.TEMP_COMPAT,
             "the released Android application and OIDC callback identity cannot change in-place",
+        )
+
+    if path in LEGACY_ANDROID_CLEANUP_FILES and any(
+        identifier in normalized for identifier in LEGACY_ANDROID_CLEANUP_IDENTIFIERS
+    ):
+        return (
+            Classification.TEMP_COMPAT,
+            "the one-way Android upgrade cleanup must name retired local-storage identifiers so it can delete them",
         )
 
     if any(identifier in normalized for identifier in WEB_PERSISTENCE_IDENTIFIERS):

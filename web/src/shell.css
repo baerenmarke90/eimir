@@ -38,7 +38,7 @@
 }
 
 .product-shell:not([data-focused-task="true"])::before {
-  content: '';
+  content: "";
   position: fixed;
   top: 0;
   left: 0;

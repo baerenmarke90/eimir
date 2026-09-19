@@ -9,8 +9,12 @@ function readWebFile(relativePath: string): string {
 describe('Capacitor safe-area & statusbar insets (#1044)', () => {
   it('configures SystemBars plugin with insetsHandling: css in capacitor.config.ts', () => {
     const configContent = readWebFile('capacitor.config.ts');
-    expect(configContent).toContain("SystemBars: {\n      insetsHandling: 'css',\n    }");
-    expect(configContent).toContain('CapacitorHttp: {\n      enabled: true,\n    }');
+    expect(configContent).toContain(
+      "SystemBars: {\n      insetsHandling: 'css',\n    }",
+    );
+    expect(configContent).toContain(
+      'CapacitorHttp: {\n      enabled: true,\n    }',
+    );
   });
 
   it('binds .app-header sticky top to the native safe-area inset instead of top: 0', () => {
@@ -44,7 +48,9 @@ describe('Capacitor safe-area & statusbar insets (#1044)', () => {
 
   it('provides a fixed statusbar backdrop scrim on product-shell matching header surface', () => {
     const shellCss = readWebFile('src/shell.css');
-    expect(shellCss).toContain('.product-shell:not([data-focused-task="true"])::before');
+    expect(shellCss).toContain(
+      '.product-shell:not([data-focused-task="true"])::before',
+    );
     expect(shellCss).toContain(
       'height: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));',
     );

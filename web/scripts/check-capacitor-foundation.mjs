@@ -52,7 +52,8 @@ assert(
   'capacitor.config.ts must enable CapacitorHttp plugin for native container cross-origin transport',
 );
 assert(
-  capConfig.includes('SystemBars') && capConfig.includes("insetsHandling: 'css'"),
+  capConfig.includes('SystemBars') &&
+    capConfig.includes("insetsHandling: 'css'"),
   "capacitor.config.ts must configure SystemBars with insetsHandling: 'css'",
 );
 assert(
@@ -63,7 +64,9 @@ assert(
 // 2. Check CSS safe-area rules for statusbar separation
 const stylesCss = readWeb('src/styles.css');
 assert(
-  stylesCss.includes('top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px))'),
+  stylesCss.includes(
+    'top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+  ),
   '.app-header in styles.css must use var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
 );
 assert(
@@ -79,8 +82,9 @@ assert(
 
 const shellCss = readWeb('src/shell.css');
 assert(
-  shellCss.includes('var(--safe-area-inset-top, env(safe-area-inset-top, 0px))') &&
-    shellCss.includes('product-shell'),
+  shellCss.includes(
+    'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+  ) && shellCss.includes('product-shell'),
   '.product-shell in shell.css must include statusbar backdrop for native top inset',
 );
 

@@ -15,17 +15,12 @@ body {
   margin: 0;
   display: grid;
   place-items: center;
-  padding:
-    max(1.5rem, env(safe-area-inset-top, 0px))
+  padding: max(1.5rem, env(safe-area-inset-top, 0px))
     max(1.5rem, env(safe-area-inset-right, 0px))
     max(1.5rem, env(safe-area-inset-bottom, 0px))
     max(1.5rem, env(safe-area-inset-left, 0px));
   background:
-    radial-gradient(
-      circle at top left,
-      rgb(217 61 89 / 0.12),
-      transparent 40%
-    ),
+    radial-gradient(circle at top left, rgb(217 61 89 / 0.12), transparent 40%),
     #faf7f5;
 }
 

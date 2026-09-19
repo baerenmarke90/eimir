@@ -1,9 +1,4 @@
-import {
-  type FormEvent,
-  type KeyboardEvent,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { normalizeClientError } from '../client/problemDetails';

@@ -23,12 +23,12 @@ from eimir.administration.models import (
     AdministrationSetting,
     InstanceAdministrationSettings,
 )
-from eimir.api.deps import CurrentServerAdmin, DbSession
+from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.api.v1.health import build_revision
 from eimir.attachments.models import Attachment, AttachmentStatus
-from eimir.auth import cloud
+from eimir.auth import cloud, recent_auth
 from eimir.config import MailTransport
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import now
@@ -1066,10 +1066,17 @@ def revoke_server_admin_account_sessions(
 def verify_server_admin_account_email(
     body: ServerAdminEmailVerificationRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     account_email_id: Annotated[str, Path(alias="accountEmailId")],
 ) -> ServerAdminAccountEmail:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed_email_id = parse_id(account_email_id)
     if parsed_email_id is None:
         raise NotFoundError(
@@ -1136,9 +1143,16 @@ def request_server_admin_account_recovery_email(
 def issue_server_admin_operator_recovery(
     response: Response,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> ServerAdminRecoveryProof:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     proof = account_operations.issue_operator_recovery(
         session,
         actor=admin,

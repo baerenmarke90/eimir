@@ -232,10 +232,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-    if (
-      method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/search`
-    ) {
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/search`) {
       const query = requestUrl.searchParams.get('q')?.trim() ?? '';
       await fulfillJson({
         hasMore: false,
@@ -259,8 +256,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
 
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`
+      pathname === `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`
     ) {
       await fulfillJson(privateNote);
       return;
@@ -539,9 +535,7 @@ test('private Search restores query and type after detail edit/cancel/return', a
   await expect(
     page.getByRole('heading', { name: 'Hidden cabin idea' }),
   ).toBeVisible();
-  await page
-    .getByRole('button', { name: privateArea.backToSearch })
-    .click();
+  await page.getByRole('button', { name: privateArea.backToSearch }).click();
 
   await expect(page).toHaveURL(/\/search$/);
   await expect(page.getByLabel(m5s5.search.label)).toHaveValue('cabin');
@@ -567,9 +561,7 @@ test('private collection is read/check-first and discloses management in Edit', 
   await page.setViewportSize({ width: 390, height: 844 });
   const unexpectedRequests = await signInAndOpenPrivateArea(page);
 
-  await page.goto(
-    `/more/private/collections/${PRIVATE_COLLECTION_ID}`,
-  );
+  await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
   await expect(
     page.getByRole('heading', { name: 'Packing list' }),
   ).toBeVisible();
@@ -579,9 +571,7 @@ test('private collection is read/check-first and discloses management in Edit', 
   await expect(
     page.getByPlaceholder(privateArea.collections.itemTitleLabel),
   ).toHaveCount(0);
-  await expect(
-    page.getByLabel(privateArea.collections.rename),
-  ).toHaveCount(0);
+  await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(0);
 
   await page
     .getByRole('button', { name: privateArea.collections.markComplete })
@@ -594,15 +584,11 @@ test('private collection is read/check-first and discloses management in Edit', 
   await expect(
     page.getByPlaceholder(privateArea.collections.itemTitleLabel),
   ).toBeVisible();
-  await expect(
-    page.getByLabel(privateArea.collections.rename),
-  ).toBeVisible();
+  await expect(page.getByLabel(privateArea.collections.rename)).toBeVisible();
 
   const titleInput = page.getByLabel(privateArea.collections.titleLabel);
   await titleInput.fill('Packing for Lisbon');
-  await page
-    .getByRole('button', { name: m5s3.common.saveChanges })
-    .click();
+  await page.getByRole('button', { name: m5s3.common.saveChanges }).click();
 
   await expect(
     page.getByRole('heading', { name: 'Packing for Lisbon' }),

@@ -8,6 +8,7 @@ import { identityBuildVariable } from './client/identityEnvironment';
 import { DemoBanner } from './components/DemoBanner';
 import { i18n } from './i18n';
 import { registerProductionServiceWorker } from './pwa';
+import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
@@ -63,6 +64,7 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .replace(/\/+$/, '');
 
 function RootApp() {
+  useCapacitorShell();
   return (
     <>
       {demoMode ? (

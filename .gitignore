@@ -27,6 +27,13 @@ android/.gradle/
 android/.kotlin/
 android/local.properties
 android/**/build/
+capacitor-android/.gradle/
+capacitor-android/local.properties
+capacitor-android/**/build/
+capacitor-android/app/src/main/assets/public/
+capacitor-android/app/src/main/assets/capacitor.config.json
+capacitor-android/app/src/main/assets/capacitor.plugins.json
+capacitor-android/app/src/main/res/xml/config.xml
 *.apk
 # Release signing material, in every shape it usually takes. It is supplied by
 # the publishing environment and must never reach this repository.

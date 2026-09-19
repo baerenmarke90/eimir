@@ -1,7 +1,11 @@
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import type { CapabilitiesView } from '../api/generated/models/CapabilitiesView';
+import { RecentAuthenticationClient } from '../api/generated/models/RecentAuthenticationClient';
 import type { RecentAuthenticationView } from '../api/generated/models/RecentAuthenticationView';
 import { Configuration } from '../api/generated/runtime';
+import { isCapacitorNative } from '../pwa';
 import { normalizeClientError } from './problemDetails';
 
 const OIDC_POPUP_POLL_MS = 200;
@@ -105,13 +109,32 @@ async function normalize<T>(operation: () => Promise<T>): Promise<T> {
 export async function loadRecentAuthenticationCapabilities(
   apiBaseUrl: string,
   accessToken: string,
+  client?: RecentAuthenticationClient,
 ): Promise<CapabilitiesView> {
-  return normalize(() =>
+  const isNative = isCapacitorNative();
+  const effectiveClient =
+    client ?? (isNative ? RecentAuthenticationClient.android : undefined);
+
+  const capabilities = await normalize(() =>
     api(
       apiBaseUrl,
       accessToken,
-    ).capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet(),
+    ).capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet({
+      client: effectiveClient,
+    }),
   );
+
+  if (isNative) {
+    // Direct eimir.-WebAuthn via navigator.credentials in Android WebView is not
+    // proven/supported in this foundational slice (no Credential Manager/DAL integration).
+    // Native container must not offer direct passkey re-authentication.
+    return {
+      ...capabilities,
+      passkey: false,
+    };
+  }
+
+  return capabilities;
 }
 
 export async function authenticateRecentPassword(
@@ -133,6 +156,11 @@ export async function authenticateRecentPasskey(
   apiBaseUrl: string,
   accessToken: string,
 ): Promise<RecentAuthenticationView> {
+  if (isCapacitorNative()) {
+    throw new Error(
+      'Direct passkey authentication is not supported in the native Android container.',
+    );
+  }
   if (!window.PublicKeyCredential || !navigator.credentials) {
     throw new Error('WebAuthn is not available in this browser.');
   }
@@ -201,6 +229,89 @@ function waitForOidcCallback(
   });
 }
 
+export function parseOidcCallbackUrl(
+  rawUrl: string,
+  expectedState: string,
+): { code: string; state: string } | null {
+  try {
+    const callback = new URL(rawUrl);
+    if (
+      callback.protocol === 'de.sidebyside.app:' &&
+      callback.host === 'recent-authentication' &&
+      callback.pathname === '/oidc'
+    ) {
+      const state = callback.searchParams.get('state');
+      if (state !== expectedState) return null;
+
+      const providerError = callback.searchParams.get('error');
+      if (providerError) {
+        throw new Error('The identity provider rejected reauthentication.');
+      }
+
+      const code = callback.searchParams.get('code');
+      if (!code) return null;
+      return { code, state };
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('identity provider rejected')
+    ) {
+      throw error;
+    }
+  }
+  return null;
+}
+
+export function waitForCapacitorOidcCallback(
+  expectedState: string,
+): Promise<{ code: string; state: string }> {
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    const startedAt = Date.now();
+
+    const cleanup = () => {
+      resolved = true;
+      clearInterval(timer);
+      void listenerPromise.then((handle) => handle.remove());
+    };
+
+    const handleUrl = (rawUrl: string) => {
+      if (resolved) return;
+      try {
+        const result = parseOidcCallbackUrl(rawUrl, expectedState);
+        if (result) {
+          cleanup();
+          resolve(result);
+        }
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    // 1. Listen for intent URL open while running in background
+    const listenerPromise = App.addListener('appUrlOpen', (event) => {
+      handleUrl(event.url);
+    });
+
+    // 2. Check cold start launch URL
+    void App.getLaunchUrl().then((launchUrl) => {
+      if (launchUrl?.url) {
+        handleUrl(launchUrl.url);
+      }
+    });
+
+    // 3. Timeout polling
+    const timer = setInterval(() => {
+      if (Date.now() - startedAt > OIDC_POPUP_TIMEOUT_MS) {
+        cleanup();
+        reject(new Error('OIDC reauthentication timed out.'));
+      }
+    }, OIDC_POPUP_POLL_MS);
+  });
+}
+
 export async function authenticateRecentOidc(
   apiBaseUrl: string,
   accessToken: string,
@@ -208,6 +319,32 @@ export async function authenticateRecentOidc(
 ): Promise<RecentAuthenticationView> {
   return normalize(async () => {
     const authApi = api(apiBaseUrl, accessToken);
+
+    if (isCapacitorNative()) {
+      const started =
+        await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
+          {
+            connectionId,
+            client: RecentAuthenticationClient.android,
+          },
+        );
+
+      const callbackPromise = waitForCapacitorOidcCallback(started.state);
+      await Browser.open({ url: started.authorizationUrl });
+
+      try {
+        const callback = await callbackPromise;
+        return await authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
+          {
+            connectionId,
+            eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
+          },
+        );
+      } finally {
+        await Browser.close().catch(() => {});
+      }
+    }
+
     const started =
       await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
         { connectionId },

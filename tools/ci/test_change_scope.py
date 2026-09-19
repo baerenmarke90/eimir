@@ -280,6 +280,12 @@ class ChangeScopeTest(unittest.TestCase):
         result = classify_paths(["docs/ROADMAP.md", "future-build-system/config.toml"])
         self.assertTrue(all(result.values()))
 
+    def test_capacitor_android_staging_wrapper_does_not_enable_backend_gates(self) -> None:
+        self.assert_scope(
+            ["capacitor-android/app/build.gradle", "capacitor-android/app/src/main/AndroidManifest.xml"],
+            enabled=set(),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -79,6 +79,7 @@ export function CommentsPanel({
   const [composerOpen, setComposerOpen] = useState(false);
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
+  const commentDraftRevisionRef = useRef(0);
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
@@ -104,7 +105,13 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
-    mutationFn: async ({ body }: { body: string; draftSnapshot: string }) => {
+    mutationFn: async ({
+      body,
+    }: {
+      body: string;
+      draftSnapshot: string;
+      draftRevision: number;
+    }) => {
       try {
         return await createComment(
           commentsApi,
@@ -122,7 +129,10 @@ export function CommentsPanel({
         queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: presenceKey }),
       ]);
-      if (commentDraftRef.current === submission.draftSnapshot) {
+      if (
+        commentDraftRevisionRef.current === submission.draftRevision &&
+        commentDraftRef.current === submission.draftSnapshot
+      ) {
         commentDraftRef.current = '';
         setCommentDraft('');
         setComposerOpen(false);
@@ -189,9 +199,10 @@ export function CommentsPanel({
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const draftSnapshot = commentDraftRef.current;
+    const draftRevision = commentDraftRevisionRef.current;
     const body = draftSnapshot.trim();
     if (!body) return;
-    createMutation.mutate({ body, draftSnapshot });
+    createMutation.mutate({ body, draftSnapshot, draftRevision });
   }
 
   const comments =
@@ -404,6 +415,7 @@ export function CommentsPanel({
             placeholder={t('comments.placeholder')}
             value={commentDraft}
             onChange={(event) => {
+              commentDraftRevisionRef.current += 1;
               commentDraftRef.current = event.currentTarget.value;
               setCommentDraft(event.currentTarget.value);
             }}

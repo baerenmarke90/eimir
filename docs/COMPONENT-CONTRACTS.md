@@ -344,8 +344,8 @@ These signature building blocks represent the core relationship-first identity o
 
 **Purpose:** Renders the two partners of a shared space as an interconnected unit with overlapping circles and connection state.
 
-- **Anatomy:** Primary user circle, overlapping secondary circle (partner or waiting invitation placeholder), connection status pip.
-- **Variants:** `connected`, `waiting` (partner pending/invitation slot), `offline`.
+- **Anatomy:** Primary user circle, overlapping secondary circle (partner or waiting invitation placeholder), optional active-presence pip.
+- **Variants:** `active`, `recent`, `unknown`, `waiting` (partner pending/invitation slot). The pip is rendered only for `active`; `recent` is text-only and `unknown` makes no Presence claim.
 - **States:** Default, hover/press on invitation slot, disabled.
 - **Accessibility:** Group container provides a composite accessible description combining user and partner names or announcing pending invitation status. Interactive invitation triggers use `role="button"` and clear accessible labels.
 - **Tokens:** Overlap offset derived from size (`-28%`), border uses `--color-surface` / `eimir.Theme.colors.surface` for crisp visual separation.
@@ -354,9 +354,9 @@ These signature building blocks represent the core relationship-first identity o
 
 **Purpose:** Anchors the top of the relationship home view (`/today`), presenting shared space identity, partner presence, and milestone duration.
 
-- **Anatomy:** `PartnerAvatarPair`, space name heading, live status pip with descriptive text, relationship duration link, and optional contextual action slot.
-- **Variants:** `connected` (shared status), `waiting` (brand invitation prompt), `offline` (subtle muted indicator).
-- **Behavior:** Clicking the relationship duration navigates to the relationship milestone details.
+- **Anatomy:** `PartnerAvatarPair`, space name heading, optional bounded Presence text, relationship duration link, and optional contextual action slot.
+- **Variants:** `active` (`Gerade hier`, with pip), `recent` (`Vor Kurzem hier`, text-only), `unknown` (no Presence assertion), `waiting` (`Wartet auf Partner`). Membership alone never selects an online state.
+- **Behavior:** Presence is server-authoritative and ephemeral; the client never receives an exact last-active timestamp. Clicking the relationship duration navigates to the relationship milestone details.
 - **Accessibility:** Headings use appropriate levels (`titleLarge`), interactive duration triggers announce their action explicitly.
 - **Tokens:** Use existing semantic typography, spacing, and identity tokens. The relationship masthead does not require a bounded elevated card; a radius, border, or elevation is used only when its selected v1 surface role needs that boundary.
 

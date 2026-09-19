@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1693,7 +1693,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1.0,
+            "minimum": 1,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -2835,7 +2835,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Position",
             "type": "integer"
           }
@@ -3612,6 +3612,31 @@
           "at"
         ],
         "title": "OnceSchedule",
+        "type": "object"
+      },
+      "PartnerPresenceView": {
+        "description": "Privacy-bounded state of the other active partner in this Space.",
+        "properties": {
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACTIVE",
+                  "RECENT"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerPresenceView",
         "type": "object"
       },
       "PartnerProfileView": {
@@ -20256,6 +20281,110 @@
         "summary": "Unschedule Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/presence": {
+      "get": {
+        "description": "Return only the bounded semantic state of the other active partner.\\n\\nNo timestamp is exposed. Missing, stale, or absent partner presence is\\nrepresented as null so this cannot become a last-seen surface.",
+        "operationId": "getPartnerPresence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPresenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Partner Presence",
+        "tags": [
+          "spaces"
+        ]
+      },
+      "post": {
+        "description": "Renew caller presence and return the partner's bounded state.",
+        "operationId": "touchPresence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPresenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Touch Presence",
+        "tags": [
+          "spaces"
         ]
       }
     },

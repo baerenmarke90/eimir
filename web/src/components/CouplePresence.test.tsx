@@ -16,7 +16,7 @@ describe('CouplePresence', () => {
         spaceTitle="Philipp & Lea"
         primaryPerson={{ displayName: 'Philipp' }}
         secondaryPerson={{ displayName: 'Lea' }}
-        status="connected"
+        status="active"
         relationshipDuration="3y"
       />,
     );
@@ -25,7 +25,7 @@ describe('CouplePresence', () => {
       screen.getByRole('heading', { level: 2, name: 'Philipp & Lea' }),
     ).toBeDefined();
     expect(
-      screen.getByText(relationshipComponents.couplePresenceConnected),
+      screen.getByText(relationshipComponents.couplePresenceActive),
     ).toBeDefined();
     expect(screen.getByText('3y')).toBeDefined();
   });
@@ -36,7 +36,7 @@ describe('CouplePresence', () => {
         spaceTitle="Lea Winters & Alex Winter"
         primaryPerson={{ displayName: 'Lea Winters' }}
         secondaryPerson={{ displayName: 'Alex Winter' }}
-        status="connected"
+        status="active"
       />,
     );
 
@@ -45,6 +45,31 @@ describe('CouplePresence', () => {
     ).toBeDefined();
     expect(document.body.innerHTML).not.toContain('Winters');
     expect(document.body.innerHTML).not.toContain('Winter');
+  });
+
+  it('renders recent presence without an online dot and unknown without a claim', () => {
+    const { rerender } = render(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="recent"
+      />,
+    );
+
+    expect(screen.getByText(relationshipComponents.couplePresenceRecent)).toBeDefined();
+    expect(document.querySelector('.couple-presence-dot')).toBeNull();
+
+    rerender(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="unknown"
+      />,
+    );
+    expect(screen.queryByText(relationshipComponents.couplePresenceRecent)).toBeNull();
+    expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });
 
   it('calls onDurationClick when relationship duration button is pressed', () => {

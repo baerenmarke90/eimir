@@ -9,7 +9,11 @@ export interface PartnerAvatarPerson {
 }
 
 export type PartnerAvatarSize = 'small' | 'medium' | 'large';
-export type PartnerPresenceStatus = 'connected' | 'waiting' | 'offline';
+export type PartnerPresenceStatus =
+  | 'active'
+  | 'recent'
+  | 'waiting'
+  | 'unknown';
 
 export interface PartnerAvatarPairProps {
   primaryPerson: PartnerAvatarPerson;
@@ -62,7 +66,7 @@ export function PartnerAvatarPair({
   primaryPerson,
   secondaryPerson = null,
   size = 'medium',
-  status = 'connected',
+  status = 'unknown',
   className = '',
   onInviteClick,
 }: PartnerAvatarPairProps) {
@@ -113,11 +117,11 @@ export function PartnerAvatarPair({
         )}
       </div>
 
-      {status === 'connected' && (
+      {status === 'active' && (
         <span
           className="partner-presence-pip"
           aria-hidden="true"
-          title={t('couplePresenceConnected')}
+          title={t('couplePresenceActive')}
         />
       )}
     </section>

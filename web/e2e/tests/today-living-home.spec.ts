@@ -319,10 +319,16 @@ async function installMocks(
   presenceSession?: PresenceSession,
 ): Promise<void> {
   const viewer = presenceSession
-    ? { id: presenceSession.accountId, displayName: presenceSession.displayName }
+    ? {
+        id: presenceSession.accountId,
+        displayName: presenceSession.displayName,
+      }
     : { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
   const partner = presenceSession
-    ? { id: presenceSession.partnerId, displayName: presenceSession.partnerName }
+    ? {
+        id: presenceSession.partnerId,
+        displayName: presenceSession.partnerName,
+      }
     : { id: PARTNER_ID, displayName: 'Alex Berger' };
 
   await page.route('**/media/**', async (route) => {

@@ -388,6 +388,7 @@ async function openMemory(
 }
 
 async function positionGalleryForReading(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
   const galleryTop = await page
     .locator('.media-gallery-carousel-viewport')
     .evaluate(
@@ -434,6 +435,30 @@ function expectStableGeometry(
   ).toBeLessThanOrEqual(1);
 }
 
+async function motionLayers(page: Page) {
+  return page.evaluate(() => {
+    const active = document.querySelector<HTMLElement>(
+      '.media-gallery-carousel-slide.is-active',
+    );
+    const outgoing = document.querySelector<HTMLElement>(
+      '.media-gallery-carousel-slide.is-outgoing',
+    );
+    if (!active || !outgoing) {
+      throw new Error('Carousel transition layers did not coexist.');
+    }
+    const activeStyle = getComputedStyle(active);
+    const outgoingStyle = getComputedStyle(outgoing);
+    return {
+      activeClass: active.className,
+      outgoingClass: outgoing.className,
+      activeAnimationName: activeStyle.animationName,
+      activeAnimationDuration: activeStyle.animationDuration,
+      outgoingAnimationName: outgoingStyle.animationName,
+      outgoingAnimationDuration: outgoingStyle.animationDuration,
+    };
+  });
+}
+
 test('Memory carousel keeps document and layout position stable across pointer and keyboard navigation', async ({
   page,
 }, testInfo) => {
@@ -473,32 +498,50 @@ test('Memory carousel keeps document and layout position stable across pointer a
   ).toContain('blur');
 
   const pointerSteps = [
-    { control: next, expected: 2 },
-    { control: next, expected: 3 },
-    { control: next, expected: 1 },
-    { control: previous, expected: 3 },
-    { control: previous, expected: 2 },
+    { control: next, expected: 2, direction: 'next' },
+    { control: next, expected: 3, direction: 'next' },
+    { control: next, expected: 1, direction: 'next' },
+    { control: previous, expected: 3, direction: 'previous' },
+    { control: previous, expected: 2, direction: 'previous' },
   ] as const;
 
   for (const step of pointerSteps) {
     const before = await geometry(page);
     await pointerClickWithoutScroll(page, step.control);
+    const transition = await motionLayers(page);
     await expect(counter).toHaveText(counterLabel(step.expected, 3));
+    expect(transition.activeClass).toContain(`is-${step.direction}`);
+    expect(transition.outgoingClass).toContain(`is-${step.direction}`);
+    expect(transition.activeAnimationName).toContain(
+      `media-gallery-carousel-enter-${step.direction}`,
+    );
+    expect(transition.outgoingAnimationName).toContain(
+      `media-gallery-carousel-exit-${step.direction}`,
+    );
+    expect(
+      Number.parseFloat(transition.activeAnimationDuration),
+    ).toBeGreaterThan(0);
+    expect(
+      Number.parseFloat(transition.outgoingAnimationDuration),
+    ).toBeGreaterThan(0);
     await nextFrame(page);
     const after = await geometry(page);
     expectStableGeometry(before, after);
   }
 
-  const activeSlide = page.locator('.media-gallery-carousel-slide.is-active');
-  const motion = await activeSlide.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return {
-      animationName: style.animationName,
-      animationDuration: style.animationDuration,
-    };
-  });
-  expect(motion.animationName).not.toBe('none');
-  expect(Number.parseFloat(motion.animationDuration)).toBeGreaterThan(0);
+  const beforeBurst = await geometry(page);
+  await pointerClickWithoutScroll(page, next);
+  await pointerClickWithoutScroll(page, next);
+  await pointerClickWithoutScroll(page, next);
+  await expect(counter).toHaveText(counterLabel(2, 3));
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-active'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(1);
+  await nextFrame(page);
+  expectStableGeometry(beforeBurst, await geometry(page));
 
   await next.focus();
   await expect(next).toBeFocused();
@@ -580,6 +623,9 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
     });
     const page = await context.newPage();
     try {
+      await page.emulateMedia({
+        colorScheme: width === 390 ? 'dark' : 'light',
+      });
       const { unexpectedRequests } = await installApiMocks(page);
       await page.goto('/today');
       await signIn(page);
@@ -589,13 +635,25 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       const next = page.locator('.media-gallery-carousel-next');
       await expect(next).toBeHidden();
 
-      const before = await geometry(page);
-      await swipeCarousel(page, 'next');
-      await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-        counterLabel(2, 3),
-      );
-      await nextFrame(page);
-      expectStableGeometry(before, await geometry(page));
+      const touchSteps = [
+        { direction: 'next', expected: 2 },
+        { direction: 'previous', expected: 1 },
+        { direction: 'previous', expected: 3 },
+        { direction: 'next', expected: 1 },
+      ] as const;
+
+      for (const step of touchSteps) {
+        const before = await geometry(page);
+        await swipeCarousel(page, step.direction);
+        const touchTransition = await motionLayers(page);
+        await expect(
+          page.locator('.media-gallery-carousel-counter'),
+        ).toHaveText(counterLabel(step.expected, 3));
+        expect(touchTransition.activeClass).toContain(`is-${step.direction}`);
+        expect(touchTransition.outgoingClass).toContain(`is-${step.direction}`);
+        await nextFrame(page);
+        expectStableGeometry(before, await geometry(page));
+      }
       expect(unexpectedRequests).toEqual([]);
 
       await page.screenshot({
@@ -630,6 +688,9 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   await nextFrame(page);
   expectStableGeometry(before, await geometry(page));
 
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(0);
   const reducedMotion = await page
     .locator('.media-gallery-carousel-slide.is-active')
     .evaluate((element) => {
@@ -679,6 +740,12 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),
   ).toBeVisible();
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-active'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(0);
 
   const frameHeight = await page
     .locator('.media-gallery-carousel-viewport')

@@ -679,13 +679,20 @@ export function ServerAdminPage({
     retry: false,
     enabled: section === 'activity',
   });
+  // Both toggles write the same server-serialized settings row. A response
+  // snapshot can arrive out of order, so never paint it; refetch the
+  // authoritative row instead (invalidation cancels older in-flight reads).
+  function settleSettingsMutation() {
+    void queryClient.invalidateQueries({
+      queryKey: ['server-admin', 'settings'],
+    });
+  }
   const registrationMutation = useMutation({
     mutationFn: (enabled: boolean) =>
       apis.serverAdmin.updateRegistrationSettingApiV1ServerAdminSettingsRegistrationPut(
         { serverAdminSettingUpdate: { enabled } },
       ),
-    onSuccess: (settings) => {
-      queryClient.setQueryData(['server-admin', 'settings'], settings);
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'activity'],
       });
@@ -693,14 +700,14 @@ export function ServerAdminPage({
         queryKey: ['server-admin', 'overview'],
       });
     },
+    onSettled: settleSettingsMutation,
   });
   const maintenanceMutation = useMutation({
     mutationFn: (enabled: boolean) =>
       apis.serverAdmin.updateMaintenanceSettingApiV1ServerAdminSettingsMaintenancePut(
         { serverAdminSettingUpdate: { enabled } },
       ),
-    onSuccess: (settings) => {
-      queryClient.setQueryData(['server-admin', 'settings'], settings);
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['server-admin', 'activity'],
       });
@@ -708,6 +715,7 @@ export function ServerAdminPage({
         queryKey: ['server-admin', 'overview'],
       });
     },
+    onSettled: settleSettingsMutation,
   });
   const refreshing =
     (overviewSection && overviewQuery.isFetching) ||

@@ -4,6 +4,8 @@ As of: September 3, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
 Current gate status: **G3 passed; M4 complete; M5 complete; G4 passed; M6 is the next milestone, evaluated by G5**
 
+> **Architecture note (ADR 0011 / #1005 / #1009):** the Web/Android parity, "complete Android client" and "across Web and Android" wording in the milestone records below is historical M5/G4 terminology. It describes work accepted before the Kotlin/Compose client was retired and does not require a second product UI: the canonical Web UI is the only product UI, and Android ships it through the Capacitor wrapper in `android/`. See [Capacitor Android Foundation](CAPACITOR-ANDROID-FOUNDATION.md).
+
 ## Document roles
 
 - **Binding source:** [Clean-Room Master Specification](../specification/CLEAN-ROOM-MASTER-SPEC.md)
@@ -210,6 +212,8 @@ No current open issue documents an actual G3-blocking Critical/High Security/Pri
 The final M4 migration order is `0028 -> 0029 -> 0030 -> 0031 -> 0032`. M4 remains Free/Core at the delivered baseline and reuses PostgreSQL FTS, the transactional Outbox and the existing PostgreSQL Job Queue rather than adding a parallel search, broker, scheduler, notification, or push stack.
 
 ## M5 — Client Completion & Parity
+
+*Historical record; the parity and Android-client terminology is superseded by ADR 0011 (see the architecture note at the top of this document).*
 
 **Status: complete.** M5 productized the stable M0-M4 contracts across Web and Android: the Web slices tracked by #295 and the Android slices tracked by #350, plus the shared S6 runtime (#303 decisions, #345 Transfer Bundle, #346 Web Deep Links/cache/portability, #328 Android resilience) and the route-model decision #360.
 

@@ -7,6 +7,8 @@
 
 This roadmap translates the binding product requirements into an understandable sequence. It shows goals, dependencies, and release points. Actual implementation state is tracked in [Implementation Status](./IMPLEMENTATION-STATUS.md); rules for living status sources are defined in [Status Sources and Drift Rules](./STATUS-SOURCES.md).
 
+> **Architecture note (ADR 0011 / #1005 / #1009):** "Web/Android parity", "complete Android client" and "Client Completion & Parity" are historical M5/G4 labels for work that was accepted before the Kotlin/Compose client was retired. They are superseded terminology and do not describe current architecture: the canonical React/Vite Web UI is the only product UI, and Android ships it through the Capacitor wrapper in `android/`. Future work needs no second product UI; Android-specific acceptance applies only to the wrapper and native platform capabilities. Current implementation guidance is [ADR 0011](./decisions/0011-web-first-pwa-capacitor-mobile-delivery.md) and [Capacitor Android Foundation](./CAPACITOR-ANDROID-FOUNDATION.md).
+
 The accepted sequencing decision is [ADR 0006 — Release the Core before optional product expansion](./decisions/0006-release-before-optional-expansion.md). It changes only the **forward M6-M9 ordering**. M0-M4 remain historical milestones and M5 remains Client Completion & Parity.
 
 ## Roadmap at a glance
@@ -88,6 +90,8 @@ Search/Dashboard, Activity/Notifications, Thinking-of-you/PushDelivery, Reminder
 
 ### M5 — Client Completion & Parity: complete, G4 passed
 
+*Historical record; the "complete Android productization" and "domain parity" items below are superseded terminology (see the architecture note at the top of this document and ADR 0011).*
+
 M5 turned the already delivered M0-M4 Core into a complete product on both clients. The binding decision source is the [G4 Gate Review](./reviews/2026-09-03-g4-gate-review.md). It owned:
 
 - complete Web productization;
@@ -109,7 +113,7 @@ M5 turned the already delivered M0-M4 Core into a complete product on both clien
 
 | Phase | Human goal | Scope | Outcome |
 |---|---|---|---|
-| **M5 · Client Completion & Parity** | Web and Android are fully usable | complete client integration, Export/Import, Read Cache, Deep Links, Accessibility, parity audit | **G4 Core Release Candidate** |
+| **M5 · Client Completion & Parity** (historical label) | the canonical Web client, also delivered as the Android app, is fully usable | complete client integration, Export/Import, Read Cache, Deep Links, Accessibility, parity audit | **G4 Core Release Candidate** |
 | **M6 · Operate & Launch** | the Core can be safely operated and released | Self-Hosted, Cloud/Managed, Backup/Restore/Upgrade, administration, observability, Entitlements/Billing adapters, hardening, release engineering and final launch QA | **G5 Launch-ready** |
 | **M7 · Relationship Depth** | deepen everyday connection without making it mandatory | module configuration, Daily Check-in/Vibe/Energy, partner notes/support gestures, Questions, shared achievements, monthly/yearly recaps | optional post-launch relationship depth |
 | **M8 · Discover & Integrations** | bring optional external inspiration into the product | Shopping, Recipes, Events/Entertainment, external media and provider adapters | integrations without Core dependency |

@@ -48,6 +48,7 @@ import { MemoryPreview } from './MemoryPreview';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -626,84 +627,84 @@ export function MemoryProductPage({
   const provenanceAuthor = storyAuthorLabel(memory.author, currentAccountId);
 
   return (
-    <div className="page memory-product-page">
-      {taskState?.memorySaved ? (
-        <div className="inline-message inline-message-success" role="status">
-          {t(
-            taskState.photosUnconfirmed
-              ? 'taskBoundary.photosUnconfirmed'
-              : 'taskBoundary.saved',
-          )}
-        </div>
-      ) : null}
-      {memoryQuery.error ? (
-        <ProblemState
-          error={memoryQuery.error}
-          onRetry={() => void memoryQuery.refetch()}
-        />
-      ) : null}
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        eyebrow={memoryEyebrow}
-        title={memory.title}
-        titleAction={
-          memory.capabilities.canEdit && !offline ? (
-            <StoryDetailEditLink
-              to={memoryEditPath(memory.id)}
-              label={t('memoryProduct.edit')}
-              state={{ taskOriginKey: originKey }}
+    <StoryDetailPageShell
+      eyebrow={memoryEyebrow}
+      title={memory.title}
+      titleAction={
+        memory.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={memoryEditPath(memory.id)}
+            label={t('memoryProduct.edit')}
+            state={{ taskOriginKey: originKey }}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      beforeHeader={
+        <>
+          {taskState?.memorySaved ? (
+            <div
+              className="inline-message inline-message-success"
+              role="status"
+            >
+              {t(
+                taskState.photosUnconfirmed
+                  ? 'taskBoundary.photosUnconfirmed'
+                  : 'taskBoundary.saved',
+              )}
+            </div>
+          ) : null}
+          {memoryQuery.error ? (
+            <ProblemState
+              error={memoryQuery.error}
+              onRetry={() => void memoryQuery.refetch()}
             />
-          ) : undefined
-        }
+          ) : null}
+        </>
+      }
+      pageClassName="memory-product-page"
+      containerClassName="memory-detail-container"
+      articleClassName="memory-detail-card"
+    >
+      <p className="memory-detail-body">
+        {bodyDropCap ? (
+          <span className="drop-cap-letter">{bodyDropCap}</span>
+        ) : null}
+        {bodyRest}
+      </p>
+
+      {readyAttachments.length > 0 ? (
+        <section aria-label={t('memory.photoLabel')}>
+          <MediaGallery
+            items={readyAttachments.map((attachment) => ({
+              id: attachment.id,
+              mediaType: attachment.mediaType,
+            }))}
+            loadMedia={(attachmentId) =>
+              loadMemoryImage(memory.id, attachmentId)
+            }
+          />
+        </section>
+      ) : null}
+
+      <CommentsPanel
+        commentsApi={apis.comments}
+        spaceId={spaceId}
+        parentKind="memory"
+        parentId={memory.id}
+        currentAccountId={currentAccountId}
+        canComment={memory.capabilities.canComment}
+        offline={offline}
       />
 
-      <div className="memory-detail-container">
-        <article className="story-surface memory-detail-card coffee-table-layout">
-          <p className="memory-detail-body">
-            {bodyDropCap ? (
-              <span className="drop-cap-letter">{bodyDropCap}</span>
-            ) : null}
-            {bodyRest}
-          </p>
-
-          {readyAttachments.length > 0 ? (
-            <section aria-label={t('memory.photoLabel')}>
-              <MediaGallery
-                items={readyAttachments.map((attachment) => ({
-                  id: attachment.id,
-                  mediaType: attachment.mediaType,
-                }))}
-                loadMedia={(attachmentId) =>
-                  loadMemoryImage(memory.id, attachmentId)
-                }
-              />
-            </section>
-          ) : null}
-
-          <CommentsPanel
-            commentsApi={apis.comments}
-            spaceId={spaceId}
-            parentKind="memory"
-            parentId={memory.id}
-            currentAccountId={currentAccountId}
-            canComment={memory.capabilities.canComment}
-            offline={offline}
-          />
-
-          <footer className="memory-provenance-footer">
-            <p>
-              {t('memoryProduct.provenance', {
-                author: provenanceAuthor,
-                createdAt: formatCreatedAt(memory.createdAt),
-              })}
-            </p>
-          </footer>
-        </article>
-      </div>
-    </div>
+      <footer className="memory-provenance-footer">
+        <p>
+          {t('memoryProduct.provenance', {
+            author: provenanceAuthor,
+            createdAt: formatCreatedAt(memory.createdAt),
+          })}
+        </p>
+      </footer>
+    </StoryDetailPageShell>
   );
 }

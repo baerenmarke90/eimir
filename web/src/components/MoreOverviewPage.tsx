@@ -89,9 +89,11 @@ const UTILITY_DESTINATIONS: readonly MoreDestination[] = [
 function MoreDestinationRow({
   destination,
   leading,
+  description,
 }: {
   destination: MoreDestination;
   leading?: ReactNode;
+  description?: ReactNode;
 }) {
   const { t } = useTranslation();
 
@@ -111,7 +113,7 @@ function MoreDestinationRow({
             ) : null}
           </span>
           <span className="more-destination-description">
-            {t(destination.descriptionKey)}
+            {description ?? t(destination.descriptionKey)}
           </span>
         </span>
         <span className="more-destination-chevron" aria-hidden="true">
@@ -175,6 +177,7 @@ export function MoreOverviewPage({
         <MoreDestinationGroup title={t('more.groups.personal')}>
           <MoreDestinationRow
             destination={profileDestination}
+            description={displayName}
             leading={
               <PersonIdentity
                 displayName={displayName}

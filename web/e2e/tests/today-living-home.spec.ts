@@ -572,6 +572,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     });
     const leaPage = await leaContext.newPage();
     const alexPage = await alexContext.newPage();
+    let alexClosed = false;
 
     try {
       await installMocks(leaPage, RICH_SPACE, 1, null, true, {
@@ -589,10 +590,12 @@ test.describe('Today R4: the living home of a relationship', () => {
         shared,
       });
 
+      await leaPage.bringToFront();
       await signInAndOpenToday(leaPage);
       await expect
         .poll(() => shared.lastActiveByAccount.has(ACCOUNT_ID))
         .toBe(true);
+      await alexPage.bringToFront();
       await signInAndOpenToday(alexPage);
       await expect
         .poll(() => shared.lastActiveByAccount.has(PARTNER_ID))
@@ -610,7 +613,9 @@ test.describe('Today R4: the living home of a relationship', () => {
       await expect(alexPage.locator('.partner-presence-pip')).toHaveCount(1);
 
       await alexContext.close();
+      alexClosed = true;
       shared.nowMs += 2 * 60_000;
+      await leaPage.bringToFront();
       await leaPage.reload();
       await expect(
         leaPage.getByText(relationshipComponents.couplePresenceRecent),
@@ -629,9 +634,7 @@ test.describe('Today R4: the living home of a relationship', () => {
       await expectNoWcagViolations(leaPage);
     } finally {
       await leaContext.close();
-      if (alexContext.pages().length > 0) {
-        await alexContext.close();
-      }
+      if (!alexClosed) await alexContext.close();
     }
   });
 

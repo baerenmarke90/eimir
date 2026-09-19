@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "web/**"
+      - "capacitor-android/**"
       - "design/tokens.json"
       - ".github/workflows/web-s8.yml"
 
@@ -42,6 +43,9 @@ jobs:
 
       - name: Tests
         run: npm test
+
+      - name: Capacitor foundation check
+        run: npm run cap:check
 
       - name: Production build
         run: npm run build

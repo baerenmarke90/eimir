@@ -1,8 +1,20 @@
+import { Capacitor } from '@capacitor/core';
+
+export function isCapacitorNative(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
 export function canRegisterProductionServiceWorker(
   isProduction: boolean,
   serviceWorkerSupported: boolean,
+  isNative: boolean = isCapacitorNative(),
 ): boolean {
-  return isProduction && serviceWorkerSupported;
+  return isProduction && serviceWorkerSupported && !isNative;
 }
 
 export function registerProductionServiceWorker(): void {

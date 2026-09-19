@@ -187,9 +187,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect(
       page.getByRole('heading', { name: 'Summer vacation checklist' }),
     ).toBeVisible();
-    await expect(
-      page.locator('input.private-checklist-title-input'),
-    ).toHaveValue('Passport and boarding pass');
+    await expect(page.locator('.private-collection-item-title')).toHaveText(
+      'Passport and boarding pass',
+    );
 
     const currentUrl = page.url();
     expect(currentUrl).toContain(deepPath);
@@ -204,9 +204,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect(
       page.getByRole('heading', { name: 'Summer vacation checklist' }),
     ).toBeVisible();
-    await expect(
-      page.locator('input.private-checklist-title-input'),
-    ).toHaveValue('Passport and boarding pass');
+    await expect(page.locator('.private-collection-item-title')).toHaveText(
+      'Passport and boarding pass',
+    );
 
     // 7. Verify login screen was never shown
     await expect(page.getByLabel(de.login.email)).not.toBeVisible();

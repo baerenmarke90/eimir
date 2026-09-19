@@ -12,7 +12,10 @@ export function partnerPresenceQueryKey(accountId: string, spaceId: string) {
   return ['partner-presence', accountId, spaceId] as const;
 }
 
-export function createPresenceApi(apiBaseUrl: string, accessToken: string): SpacesApi {
+export function createPresenceApi(
+  apiBaseUrl: string,
+  accessToken: string,
+): SpacesApi {
   return new SpacesApi(
     new Configuration({
       basePath: apiBaseUrl,

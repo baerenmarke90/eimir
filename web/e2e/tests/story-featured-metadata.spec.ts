@@ -26,10 +26,9 @@ async function renderFixture(
         <div class="momente-hero-meta">
           <time datetime="2026-09-05">5. September 2026</time>
           <span class="momente-author-meta">
-            <span class="person-identity" aria-hidden="true">
-              <span class="person-identity-avatar-small">A</span>
+            <span class="person-identity">
+              <span class="person-identity-avatar-small" role="img" aria-label="${LONG_AUTHOR_NAME}">A</span>
             </span>
-            <span>by ${LONG_AUTHOR_NAME}</span>
           </span>
         </div>
       </article>
@@ -37,10 +36,9 @@ async function renderFixture(
         <div class="momente-tapestry-meta">
           <time datetime="2026-09-05">5. September 2026</time>
           <span class="momente-author-meta">
-            <span class="person-identity" aria-hidden="true">
-              <span class="person-identity-avatar-small">A</span>
+            <span class="person-identity">
+              <span class="person-identity-avatar-small" role="img" aria-label="${LONG_AUTHOR_NAME}">A</span>
             </span>
-            <span>by ${LONG_AUTHOR_NAME}</span>
           </span>
         </div>
       </article>
@@ -83,8 +81,7 @@ async function expectMetadataContract(
     const author = row.querySelector<HTMLElement>(
       ':scope > .momente-author-meta',
     );
-    const authorLabel = author?.querySelector<HTMLElement>('span:last-child');
-    if (!date || !author || !authorLabel) {
+    if (!date || !author) {
       throw new Error('Expected date and author metadata');
     }
 
@@ -103,8 +100,6 @@ async function expectMetadataContract(
       rowScrollWidth: row.scrollWidth,
       authorClientWidth: author.clientWidth,
       authorScrollWidth: author.scrollWidth,
-      authorLabelClientWidth: authorLabel.clientWidth,
-      authorLabelScrollWidth: authorLabel.scrollWidth,
     };
   });
 
@@ -116,7 +111,6 @@ async function expectMetadataContract(
   expect(geometry.authorLeft).toBeGreaterThanOrEqual(geometry.dateRight);
   expectFits(geometry.rowScrollWidth, geometry.rowClientWidth);
   expectFits(geometry.authorScrollWidth, geometry.authorClientWidth);
-  expectFits(geometry.authorLabelScrollWidth, geometry.authorLabelClientWidth);
 }
 
 test('Featured Moment metadata uses the shared layout', async ({
@@ -127,7 +121,10 @@ test('Featured Moment metadata uses the shared layout', async ({
       await renderFixture(page, width, colorScheme);
 
       const heroMetadata = page.locator('.momente-hero-meta');
-      await expect(heroMetadata).toContainText(LONG_AUTHOR_NAME);
+      await expect(heroMetadata).not.toContainText(LONG_AUTHOR_NAME);
+      await expect(
+        heroMetadata.getByRole('img', { name: LONG_AUTHOR_NAME }),
+      ).toHaveCount(1);
       const childTags = await heroMetadata
         .locator(':scope > *')
         .evaluateAll((nodes) =>

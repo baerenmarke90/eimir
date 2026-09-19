@@ -55,6 +55,7 @@ const storyProducts = {
     empty: 'Noch keine Kommentare.',
     offline: 'Kommentare sind in der Offline-Ansicht nicht verfügbar.',
     edited: 'bearbeitet',
+    authorSelf: 'von dir',
     inputLabel: 'Kommentar',
     placeholder: 'Schreib etwas dazu …',
     send: 'Kommentieren',

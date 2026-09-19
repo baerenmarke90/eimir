@@ -104,12 +104,7 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
-    mutationFn: async ({
-      body,
-    }: {
-      body: string;
-      draftSnapshot: string;
-    }) => {
+    mutationFn: async ({ body }: { body: string; draftSnapshot: string }) => {
       try {
         return await createComment(
           commentsApi,

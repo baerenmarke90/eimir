@@ -1629,8 +1629,13 @@ it('never repeats a `Diesen Monat` photo as a `Zuletzt bei euch` row', () => {
   const monthly = sectionHtml(html, 'today-section-monthly');
   const trace = sectionHtml(html, 'today-section-recent');
 
-  // The strip took the three eligible photos below the featured one.
+  // The strip took the three eligible photos below the featured one and
+  // uses the same shared media-swipe primitive as Story galleries.
   expect(html).toContain('today-monthly-strip-3');
+  expect(html).toContain('eimir-media-snap-track');
+  expect(
+    html.split('eimir-media-snap-item eimir-media-snap-item-start').length - 1,
+  ).toBe(3);
   for (const title of ['Strip Photo A', 'Strip Photo B', 'Strip Photo C']) {
     expect(monthly).toContain(title);
     expect(trace).not.toContain(title);

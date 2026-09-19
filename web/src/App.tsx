@@ -68,6 +68,7 @@ import {
   MORE_PLACES_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
@@ -528,7 +529,17 @@ function AuthenticatedApp({
               />
             }
           />
-          <Route path={appRoutePath('more')} element={<MoreOverviewPage />} />
+          <Route
+            path={appRoutePath('more')}
+            element={
+              <MoreOverviewPage
+                apiBaseUrl={apiBaseUrl}
+                accessToken={tokens.accessToken}
+                account={account}
+                spaceId={spaceId}
+              />
+            }
+          />
           <Route
             path={MORE_NOTIFICATIONS_ROUTE}
             element={
@@ -565,6 +576,17 @@ function AuthenticatedApp({
           />
           <Route
             path={MORE_SETTINGS_ROUTE}
+            element={
+              <SettingsPage
+                apiBaseUrl={apiBaseUrl}
+                accessToken={tokens.accessToken}
+                account={account}
+                spaceId={spaceId}
+              />
+            }
+          />
+          <Route
+            path={MORE_SETTINGS_CATEGORY_ROUTE_PATTERN}
             element={
               <SettingsPage
                 apiBaseUrl={apiBaseUrl}

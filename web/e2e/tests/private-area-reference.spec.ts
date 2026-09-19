@@ -500,7 +500,6 @@ for (const viewport of [
   });
 }
 
-
 test('private Search restores query and type after detail edit/cancel/return', async ({
   page,
 }, testInfo) => {

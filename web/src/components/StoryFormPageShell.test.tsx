@@ -27,13 +27,17 @@ describe('StoryEditorPageShell', () => {
         '.page.page-reading.create-page.product-editor-page',
       ),
     ).not.toBeNull();
-    expect(container.querySelector('.page-heading.create-heading')).not.toBeNull();
+    expect(
+      container.querySelector('.page-heading.create-heading'),
+    ).not.toBeNull();
     expect(
       container.querySelector(
         '.form-card.product-sheet[aria-labelledby="editor-heading"]',
       ),
     ).not.toBeNull();
-    expect(screen.getByText('Edit form').classList.contains('sr-only')).toBe(true);
+    expect(screen.getByText('Edit form').classList.contains('sr-only')).toBe(
+      true,
+    );
     expect(screen.getByText('Fields')).not.toBeNull();
   });
 });

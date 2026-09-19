@@ -23,7 +23,7 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToMore,
+  PrivateAreaBackToHub,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
@@ -232,7 +232,7 @@ export function GiftIdeasListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToMore />}
+        before={<PrivateAreaBackToHub />}
         title={t('privateArea.gifts.title')}
         description={t('privateArea.gifts.intro')}
         action={

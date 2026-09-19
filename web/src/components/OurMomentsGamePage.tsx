@@ -35,20 +35,57 @@ export interface OurMomentsGameSetup {
 
 interface OwnedOurMomentsGameSetup {
   setup: OurMomentsGameSetup;
-  dispose(): void;
+  acquire(): () => void;
+}
+
+function ownedPreparedSetup(
+  setup: OurMomentsGameSetup,
+  resources: readonly OwnedObjectUrl[],
+): OwnedOurMomentsGameSetup {
+  let consumers = 0;
+  let disposed = false;
+  let releaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    if (releaseTimer !== null) clearTimeout(releaseTimer);
+    releaseTimer = null;
+    for (const resource of resources) resource.dispose();
+  };
+
+  return {
+    setup,
+    acquire() {
+      consumers += 1;
+      if (releaseTimer !== null) {
+        clearTimeout(releaseTimer);
+        releaseTimer = null;
+      }
+
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        consumers = Math.max(0, consumers - 1);
+        if (consumers > 0 || releaseTimer !== null) return;
+
+        // Match the shared-avatar StrictMode contract: defer one task so
+        // effect cleanup/replay cannot revoke URLs that the replay still uses.
+        releaseTimer = setTimeout(() => {
+          releaseTimer = null;
+          if (consumers === 0) dispose();
+        }, 0);
+      };
+    },
+  };
 }
 
 function ownPreparedSetup(setup: OurMomentsGameSetup): OwnedOurMomentsGameSetup {
   const resources = setup.moments
     .filter((moment) => moment.imageUrl.startsWith('blob:'))
     .map((moment) => adoptObjectUrl(moment.imageUrl));
-
-  return {
-    setup,
-    dispose() {
-      for (const resource of resources) resource.dispose();
-    },
-  };
+  return ownedPreparedSetup(setup, resources);
 }
 
 function orderParticipants(
@@ -355,12 +392,7 @@ async function loadDefaultSetup({
     return result.value;
   });
 
-  return {
-    setup: { participants, moments },
-    dispose() {
-      for (const resource of resources) resource.dispose();
-    },
-  };
+  return ownedPreparedSetup({ participants, moments }, resources);
 }
 
 export function OurMomentsGamePage({
@@ -391,6 +423,9 @@ export function OurMomentsGamePage({
               signal,
             });
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          throw error;
+        }
         throw await normalizeClientError(error);
       }
     },
@@ -400,7 +435,8 @@ export function OurMomentsGamePage({
 
   useEffect(() => {
     const ownedSetup = setupQuery.data;
-    return () => ownedSetup?.dispose();
+    if (!ownedSetup) return;
+    return ownedSetup.acquire();
   }, [setupQuery.data]);
 
   const setup = setupQuery.data?.setup;

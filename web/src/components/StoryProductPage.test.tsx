@@ -307,7 +307,9 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).not.toContain('von dir');
+    expect(html).not.toContain(
+      de.story.byAuthor.replace('{{author}}', de.story.authorSelf),
+    );
     expect(html).not.toContain('class="sr-only">von Alex</span>');
     expect(html).toContain('role="img" aria-label="Alex Winter"');
   });

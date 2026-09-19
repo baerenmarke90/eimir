@@ -74,3 +74,4 @@ export function PartnerPresenceViewToJSONTyped(value?: PartnerPresenceView | nul
         'state': value['state'],
     };
 }
+

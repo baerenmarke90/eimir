@@ -65,16 +65,18 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          mapfile -t changed_specs < <(
+          set -eu
+          changed_specs="$(
             git -C ../.. diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'web/e2e/tests/*.spec.ts'               | sed 's#^web/e2e/##'
-          )
-          if [ "${#changed_specs[@]}" -eq 0 ]; then
+          )"
+          if [ -z "$changed_specs" ]; then
             echo "No browser spec files changed."
             exit 0
           fi
-          printf 'Changed browser specs:\n'
-          printf '  %s\n' "${changed_specs[@]}"
-          npm run test:full -- "${changed_specs[@]}"
+          printf 'Changed browser specs:\n%s\n' "$changed_specs"
+          # Spec filenames are repository-controlled and contain no whitespace.
+          # Intentional word splitting passes each changed spec as one Playwright argument.
+          npm run test:full -- $changed_specs
 
       - name: Full browser regression
         if: github.event_name != 'pull_request'

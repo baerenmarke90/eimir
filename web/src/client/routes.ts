@@ -113,6 +113,57 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Existing surface; the Web shell exposes it through the avatar/account tree. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
+
+export const SETTINGS_CATEGORY_IDS = [
+  'relationship',
+  'notifications',
+  'today',
+  'appearance',
+  'data',
+  'account',
+] as const;
+
+export type SettingsCategoryId = (typeof SETTINGS_CATEGORY_IDS)[number];
+
+export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN =
+  `${MORE_SETTINGS_ROUTE}/:settingsCategory`;
+
+export const SETTINGS_CATEGORY_ROUTES = {
+  relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
+  notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
+  today: `${MORE_SETTINGS_ROUTE}/today`,
+  appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
+  data: `${MORE_SETTINGS_ROUTE}/data`,
+  account: `${MORE_SETTINGS_ROUTE}/account`,
+} as const satisfies Record<SettingsCategoryId, string>;
+
+export function isSettingsCategoryId(
+  value: string | undefined,
+): value is SettingsCategoryId {
+  return SETTINGS_CATEGORY_IDS.includes(value as SettingsCategoryId);
+}
+
+export function settingsCategoryPath(category: SettingsCategoryId): string {
+  return SETTINGS_CATEGORY_ROUTES[category];
+}
+
+const SETTINGS_CATEGORY_HASHES: Readonly<Record<string, SettingsCategoryId>> = {
+  'settings-connection': 'relationship',
+  'settings-notifications': 'notifications',
+  'settings-dashboard': 'today',
+  'settings-appearance': 'appearance',
+  'settings-appearance-panel': 'appearance',
+  'settings-data': 'data',
+  'settings-account': 'account',
+};
+
+export function settingsCategoryIdFromHash(
+  hash: string,
+): SettingsCategoryId | null {
+  const normalized = hash.replace(/^#/, '');
+  return SETTINGS_CATEGORY_HASHES[normalized] ?? null;
+}
+
 export const MORE_PRIVATE_ROUTE = '/more/private';
 
 /**

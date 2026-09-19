@@ -36,6 +36,16 @@
   font-size: 0.86rem;
 }
 
+.comment-author {
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.comment-author-self {
+  font-weight: 400;
+}
+
 .comment-actions {
   display: flex;
   gap: var(--space-2);

@@ -75,7 +75,7 @@ jobs:
           printf 'Changed browser specs:\n%s\n' "$changed_specs"
           # Spec filenames are repository-controlled and contain no whitespace.
           # Intentional word splitting passes each changed spec as one Playwright argument.
-          npm run test:full -- $changed_specs
+          npm run test:full -- $changed_specs --output=test-results-changed-specs
 
       - name: Full browser regression
         if: github.event_name != 'pull_request'
@@ -98,5 +98,15 @@ jobs:
             web/e2e/test-results/**/f1-*.json
             web/e2e/test-results/**/f2-*.png
             web/e2e/test-results/**/f2-*.json
+            web/e2e/test-results-changed-specs/**/planning-*.png
+            web/e2e/test-results-changed-specs/**/shell-*.png
+            web/e2e/test-results-changed-specs/**/today-*.png
+            web/e2e/test-results-changed-specs/**/private-area-*.png
+            web/e2e/test-results-changed-specs/**/*story-*.png
+            web/e2e/test-results-changed-specs/**/wish-detective-*.png
+            web/e2e/test-results-changed-specs/**/f1-*.png
+            web/e2e/test-results-changed-specs/**/f1-*.json
+            web/e2e/test-results-changed-specs/**/f2-*.png
+            web/e2e/test-results-changed-specs/**/f2-*.json
           if-no-files-found: error
           retention-days: 3

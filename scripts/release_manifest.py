@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import re
+import urllib.parse
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -138,6 +139,47 @@ def cloud_images_from_compose(config: dict[str, Any]) -> tuple[str, str]:
     return backend_reference, web_reference
 
 
+def validate_android_record(android: dict[str, Any], *, version: str | None = None) -> None:
+    if not isinstance(android, dict):
+        raise ManifestError("Evidence lacks Android release identity")
+    if android.get("applicationId") != "de.sidebyside.app":
+        raise ManifestError("Android release applicationId must remain de.sidebyside.app")
+    if version is not None and android.get("versionName") != version:
+        raise ManifestError(
+            f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"
+        )
+    version_code = android.get("versionCode")
+    if not isinstance(version_code, int) or isinstance(version_code, bool) or version_code <= 0:
+        raise ManifestError("Android versionCode must be a positive integer")
+
+    if "apiBaseUrl" in android:
+        url = android.get("apiBaseUrl")
+        if not isinstance(url, str):
+            raise ManifestError("Android apiBaseUrl must be a string")
+        url = url.strip()
+        if not url:
+            raise ManifestError("Android apiBaseUrl must not be empty")
+        if re.search(r"\s", url):
+            raise ManifestError("Android apiBaseUrl must not contain whitespace")
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != "https":
+            raise ManifestError("Android apiBaseUrl must use https scheme")
+        if not parsed.netloc:
+            raise ManifestError("Android apiBaseUrl must have non-empty host")
+        if parsed.username or parsed.password:
+            raise ManifestError("Android apiBaseUrl must not contain user credentials")
+        if parsed.query or parsed.fragment:
+            raise ManifestError("Android apiBaseUrl must not contain query or fragment")
+        android["apiBaseUrl"] = url.rstrip("/")
+
+    if "launchableActivity" in android:
+        activity = android.get("launchableActivity")
+        if activity != "de.eimir.app.MainActivity":
+            raise ManifestError(
+                f"Android launchableActivity must be de.eimir.app.MainActivity, got: {activity!r}"
+            )
+
+
 def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     require_semver(version)
     if evidence.get("schemaVersion") != 1:
@@ -178,15 +220,7 @@ def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list
     android = evidence.get("android")
     if not isinstance(android, dict):
         raise ManifestError("Evidence lacks Android release identity")
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Android release applicationId must remain de.sidebyside.app")
-    if android.get("versionName") != version:
-        raise ManifestError(
-            f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"
-        )
-    version_code = android.get("versionCode")
-    if not isinstance(version_code, int) or isinstance(version_code, bool) or version_code <= 0:
-        raise ManifestError("Android versionCode must be a positive integer")
+    validate_android_record(android, version=version)
 
     return source, [by_id[key] for key in sorted(by_id)], android
 
@@ -260,10 +294,7 @@ def validate_manifest_shape(
     android = manifest.get("android")
     if not isinstance(android, dict):
         raise ManifestError("Release manifest lacks Android identity")
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Release manifest has the wrong Android applicationId")
-    if android.get("versionName") != version:
-        raise ManifestError("Release Android versionName differs from product version")
+    validate_android_record(android, version=version)
     if require_signed_android and android.get("signing") != "signed-release":
         raise ManifestError("Final publication requires a signed-release Android artifact set")
 

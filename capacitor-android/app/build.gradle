@@ -1,5 +1,45 @@
 apply plugin: 'com.android.application'
 
+def eimirVersionCode = Integer.parseInt((project.findProperty('eimirVersionCode')
+    ?: project.findProperty('sbsVersionCode')
+    ?: '1') as String)
+
+def eimirVersionName = (project.findProperty('eimirVersionName') ?: '0.1.0') as String
+
+def resolveSecret = { String property, String envVar, String legacyProp = null, String legacyEnv = null ->
+    def value = project.findProperty(property)
+    if (value != null && !value.toString().isEmpty()) return value.toString()
+    value = System.getenv(envVar)
+    if (value != null && !value.isEmpty()) return value
+    if (legacyProp != null) {
+        value = project.findProperty(legacyProp)
+        if (value != null && !value.toString().isEmpty()) return value.toString()
+    }
+    if (legacyEnv != null) {
+        value = System.getenv(legacyEnv)
+        if (value != null && !value.isEmpty()) return value
+    }
+    return null
+}
+
+def releaseKeystore = resolveSecret(
+    'eimirReleaseKeystore',
+    'EIMIR_RELEASE_KEYSTORE',
+    'sbsReleaseKeystore',
+    'SBS_RELEASE_KEYSTORE'
+)
+
+def requireSecret = { String property, String envVar, String legacyProp = null, String legacyEnv = null ->
+    def value = resolveSecret(property, envVar, legacyProp, legacyEnv)
+    if (value == null || value.isEmpty()) {
+        throw new GradleException(
+            "Release signing needs ${property} or ${envVar}. " +
+            "Supply it from the publishing environment; it must never be committed."
+        )
+    }
+    return value
+}
+
 android {
     namespace = "de.eimir.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,13 +47,38 @@ android {
         applicationId "de.sidebyside.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode eimirVersionCode
+        versionName eimirVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (releaseKeystore != null && !releaseKeystore.isEmpty()) {
+            release {
+                storeFile file(releaseKeystore)
+                storePassword requireSecret(
+                    'eimirReleaseKeystorePassword',
+                    'EIMIR_RELEASE_KEYSTORE_PASSWORD',
+                    'sbsReleaseKeystorePassword',
+                    'SBS_RELEASE_KEYSTORE_PASSWORD'
+                )
+                keyAlias requireSecret(
+                    'eimirReleaseKeyAlias',
+                    'EIMIR_RELEASE_KEY_ALIAS',
+                    'sbsReleaseKeyAlias',
+                    'SBS_RELEASE_KEY_ALIAS'
+                )
+                keyPassword requireSecret(
+                    'eimirReleaseKeyPassword',
+                    'EIMIR_RELEASE_KEY_PASSWORD',
+                    'sbsReleaseKeyPassword',
+                    'SBS_RELEASE_KEY_PASSWORD'
+                )
+            }
         }
     }
     buildTypes {
@@ -22,6 +87,7 @@ android {
             versionNameSuffix "-debug"
         }
         release {
+            signingConfig signingConfigs.findByName("release")
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

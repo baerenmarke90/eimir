@@ -61,7 +61,10 @@ later repository rename.
 For every prior `SBS_<NAME>` setting, use `EIMIR_<NAME>`. For Web build-time
 settings, use `VITE_EIMIR_<NAME>` instead of `VITE_SBS_<NAME>`. Android release
 builds use `eimirVersionCode`, `eimirVersionName`, `eimirApiBaseUrl`, and
-`eimirRelease*` properties.
+`eimirRelease*` properties (`eimirReleaseStoreFile`, `eimirReleaseStorePassword`,
+`eimirReleaseKeyAlias`, `eimirReleaseKeyPassword`). In `capacitor-android/app/build.gradle`,
+`sbsVersionCode` and `sbsRelease*` are accepted as lower-precedence `TEMP_COMPAT` fallbacks;
+`sbsVersionName` is deliberately not introduced because no such legacy property existed.
 
 During the compatibility window:
 

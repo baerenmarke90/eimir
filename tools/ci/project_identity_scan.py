@@ -194,7 +194,11 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
             "the deprecated configuration name is accepted as a lower-precedence upgrade alias",
         )
 
-    if path == Path("android/app/build.gradle.kts") and (
+    if path in (
+        Path("android/app/build.gradle.kts"),
+        Path("capacitor-android/app/build.gradle"),
+        Path("capacitor-android/README.md"),
+    ) and (
         "providers.gradleproperty" in normalized
         or any(
             legacy_property in normalized

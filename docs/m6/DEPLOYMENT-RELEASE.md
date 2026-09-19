@@ -97,6 +97,15 @@ Delivered #194 freezes:
 
 These are `BEFORE_RELEASE`, not M5 Android feature work.
 
+Delivered #1008 (Slice B) migrates Android release packaging, signing, and publication to the Capacitor Android wrapper (`capacitor-android/`):
+
+- build-time web bundle compilation with validated `android_api_base_url` (`VITE_EIMIR_API_BASE_URL`), native sync via `npm run cap:sync`, and native config drift checks;
+- Gradle project properties `eimirVersionCode` (with deprecated `sbs*` compatibility fallback) and `eimirVersionName`;
+- release signing credentials reading `eimirRelease*` (with deprecated `sbs*` fallbacks) materialized ephemerally in `$RUNNER_TEMP`;
+- strict dependency verification (`gradle/verification-metadata.xml`) and verified Gradle wrapper checksums;
+- verification of offline web assets, runtime security (`CapacitorHttp`), and dynamic badging (`de.sidebyside.app` / `de.eimir.app.MainActivity`);
+- legacy client under `android/` is decoupled from all release automation and scheduled for retirement in #1009.
+
 ## 6. Promotion contract
 
 The required release order is:

@@ -18,6 +18,7 @@ import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
+import { useModalLifecycle } from './useModalLifecycle';
 
 function useIsCompact(query = '(max-width: 640px)'): boolean {
   const [isCompact, setIsCompact] = useState(() => {
@@ -168,15 +169,10 @@ export function HeaderNotificationsMenu({
 
   const isCompact = useIsCompact();
 
-  // Manage body scroll locking when mobile bottom sheet is open
-  useEffect(() => {
-    if (!isOpen || !isCompact || typeof document === 'undefined') return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen, isCompact]);
+  useModalLifecycle({
+    active: isOpen && isCompact,
+    restoreFocus: false,
+  });
 
   const popoverContent = (
     <section

@@ -257,7 +257,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
     }
 
     if (
-      method === 'POST' &&
+      (method === 'GET' || method === 'POST') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
       await fulfillJson({ state: null });

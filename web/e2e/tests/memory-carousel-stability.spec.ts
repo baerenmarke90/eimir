@@ -274,15 +274,13 @@ async function carouselInteractionContract(page: Page) {
 async function expectLightboxSettled(page: Page, index: number): Promise<void> {
   await expect
     .poll(() =>
-      page
-        .locator('.media-lightbox-track')
-        .evaluate((track, expectedIndex) => {
-          const slide = track.querySelector<HTMLElement>(
-            `.media-lightbox-slide:not(.is-clone)[data-lightbox-index="${expectedIndex}"]`,
-          );
-          if (!slide) return Number.POSITIVE_INFINITY;
-          return Math.abs(track.scrollLeft - slide.offsetLeft);
-        }, index),
+      page.locator('.media-lightbox-track').evaluate((track, expectedIndex) => {
+        const slide = track.querySelector<HTMLElement>(
+          `.media-lightbox-slide:not(.is-clone)[data-lightbox-index="${expectedIndex}"]`,
+        );
+        if (!slide) return Number.POSITIVE_INFINITY;
+        return Math.abs(track.scrollLeft - slide.offsetLeft);
+      }, index),
     )
     .toBeLessThanOrEqual(1);
 }
@@ -792,9 +790,7 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       }
 
       const beforeLightbox = await geometry(page);
-      await page
-        .getByRole('button', { name: openItemLabel(1, 3) })
-        .click();
+      await page.getByRole('button', { name: openItemLabel(1, 3) }).click();
       const lightbox = page.locator('.media-lightbox');
       await expect(lightbox).toBeVisible();
       const lightboxInteraction = await lightboxInteractionContract(page);

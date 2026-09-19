@@ -218,10 +218,15 @@ export function StoryList({
   progressiveReveal = false,
 }: {
   items: StoryItem[];
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   loadHeartMomentImage: (
     heartMomentId: string,
     attachmentId: string,
+    signal?: AbortSignal,
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   spaceId?: string;

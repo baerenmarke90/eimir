@@ -63,6 +63,9 @@ const firstPage = Array.from({ length: 14 }, (_, index) =>
 async function installProductApi(page: Page, scenario: Scenario = {}) {
   const state = {
     createRequests: 0,
+    createdMemories: 0,
+    createKeys: [] as string[],
+    savedKey: null as string | null,
     bindRequests: 0,
     uploadRequests: 0,
     timelineRequests: [] as string[],
@@ -171,9 +174,17 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       });
     if (path === `/api/v1/spaces/${SPACE}/memories` && method === 'POST') {
       state.createRequests += 1;
+      const requestKey = request.headers()['idempotency-key'] ?? '';
+      state.createKeys.push(requestKey);
       if (scenario.create === 'hold') await createGate;
       if (scenario.create === 'validation')
         return problem(422, 'VALIDATION_ERROR');
+      // The server honours the request identity: an equivalent repeat returns
+      // the original Memory instead of creating another one.
+      if (requestKey && state.saved && state.savedKey === requestKey)
+        return json(state.saved, 200);
+      state.createdMemories += 1;
+      state.savedKey = requestKey;
       const payload = request.postDataJSON();
       state.saved = {
         ...memory(MEMORY, payload.title, payload.happenedOn),
@@ -704,6 +715,106 @@ test('unknown create outcome retains content and blocks blind resubmission', asy
     .click();
   await expect(page).toHaveURL(/\/story\?tab=timeline$/);
   expect(api.createRequests).toBe(1);
+});
+
+test('an unknown create outcome is verified with the same identity and opens the one saved Memory', async ({
+  page,
+}, testInfo) => {
+  const api = await installProductApi(page, { create: 'unknown' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await openMemory(page);
+  await fillMemory(page);
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  // Nothing is replayed on its own, and the input stays visible.
+  expect(api.createRequests).toBe(1);
+  expect(api.createdMemories).toBe(1);
+  await expect(
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
+  ).toHaveValue(TITLE);
+  const verify = page.getByRole('button', {
+    name: taskBoundary.verify,
+    exact: true,
+  });
+  await expect(verify).toBeInViewport();
+  expect((await verify.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    // Measure the settled theme, not a colour transition in flight: let the
+    // style change start its transitions, then wait until none are running.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await page.waitForFunction(() => document.getAnimations().length === 0);
+    const accessibility = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: testInfo.outputPath(`f2-verify-unknown-outcome-${colorScheme}.png`),
+      fullPage: true,
+    });
+  }
+
+  // Reflow: the notice and its actions stay usable at 320 px and adapt, not
+  // replace, the composition at Expanded width.
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await expectNoOverflow(page);
+    await expect(verify).toBeVisible();
+    await verify.scrollIntoViewIfNeeded();
+    await expect(verify).toBeInViewport();
+    if (width === 1280) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({
+        path: testInfo.outputPath('f2-verify-unknown-outcome-expanded.png'),
+        fullPage: true,
+      });
+    }
+  }
+
+  await verify.click();
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  await expect(
+    page.getByRole('heading', { name: TITLE, exact: true }),
+  ).toBeVisible();
+  expect(api.createRequests).toBe(2);
+  expect(api.createdMemories).toBe(1);
+  expect(api.createKeys[0]).toMatch(/^[0-9a-f-]{36}$/);
+  expect(api.createKeys[1]).toBe(api.createKeys[0]);
+  expect(api.unexpected).toEqual([]);
+});
+
+test('a verified unknown create continues photo association against the same Memory once', async ({
+  page,
+}) => {
+  const api = await installProductApi(page, { create: 'unknown' });
+  await signIn(page);
+  await openMemory(page);
+  await fillMemory(page, true);
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  expect(api.bindRequests).toBe(0);
+
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  expect(api.createdMemories).toBe(1);
+  expect(api.createRequests).toBe(2);
+  expect(api.bindRequests).toBe(1);
+  expect(api.unexpected).toEqual([]);
 });
 
 test('confirmed create is still a success when a subsequent Timeline refresh fails', async ({

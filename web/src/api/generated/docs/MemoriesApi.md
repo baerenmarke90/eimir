@@ -15,9 +15,11 @@ All URIs are relative to *http://localhost*
 
 ## createMemory
 
-> MemoryDetail createMemory(spaceId, memoryCreate)
+> MemoryDetail createMemory(spaceId, memoryCreate, idempotencyKey)
 
 Create Memory
+
+Create a Memory.  Send an &#x60;Idempotency-Key&#x60; to make the save reconcilable after a lost response: the identical request repeated with the same key returns the original Memory (&#x60;200&#x60;); the same key with a different payload is a &#x60;409&#x60; (&#x60;IDEMPOTENCY_KEY_REUSED&#x60;); if the original Memory was deleted meanwhile the answer is &#x60;404&#x60; (&#x60;MEMORY_CREATE_RESULT_DELETED&#x60;) and nothing is recreated.
 
 ### Example
 
@@ -37,6 +39,8 @@ async function example() {
     spaceId: spaceId_example,
     // MemoryCreate
     memoryCreate: ...,
+    // string | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. (optional)
+    idempotencyKey: idempotencyKey_example,
   } satisfies CreateMemoryRequest;
 
   try {
@@ -58,6 +62,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **memoryCreate** | [MemoryCreate](MemoryCreate.md) |  | |
+| **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -76,9 +81,11 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
+| **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

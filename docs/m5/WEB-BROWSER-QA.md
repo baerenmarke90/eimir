@@ -29,7 +29,8 @@ Current #1042 state:
 - original full-regression baseline: **351** browser tests
 - Phase B Slice 1 retained full regression: **319** browser tests
 - Phase B Slice 2 retained full regression: **314** browser tests
-- PR-critical group: **150** browser tests
+- #961 adds two retained tests to `f2-task-boundaries.spec.ts` (unknown-create verification and its photo continuation), so the full regression is **316** tests
+- PR-critical group: **152** browser tests
 - Phase C topology: **2 PR shards** / **4 full-regression shards**, one Playwright worker per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.

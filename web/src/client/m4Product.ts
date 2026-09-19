@@ -18,6 +18,11 @@ import {
   placeDetailPath,
   wishDetailPath,
 } from './routes';
+import {
+  privateCollectionPath,
+  privateGiftIdeaPath,
+  privateNotePath,
+} from './privateArea';
 
 export interface M4ProductApis {
   activity: ActivityApi;
@@ -43,7 +48,11 @@ export function createM4ProductApis(
   };
 }
 
-export function searchResultPath(type: SearchKind, id: string): string | null {
+export function searchResultPath(
+  type: SearchKind,
+  id: string,
+  parentId: string | null = null,
+): string | null {
   switch (type) {
     case 'MEMORY':
       return memoryDetailPath(id);
@@ -63,6 +72,14 @@ export function searchResultPath(type: SearchKind, id: string): string | null {
       return collectionDetailPath(id);
     case 'COLLECTION_ITEM':
       return appRoutePath('more');
+    case 'PRIVATE_NOTE':
+      return privateNotePath(id);
+    case 'GIFT_IDEA':
+      return privateGiftIdeaPath(id);
+    case 'PRIVATE_COLLECTION':
+      return privateCollectionPath(id);
+    case 'PRIVATE_COLLECTION_ITEM':
+      return parentId ? privateCollectionPath(parentId) : null;
     default:
       return null;
   }

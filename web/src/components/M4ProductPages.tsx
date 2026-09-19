@@ -87,7 +87,7 @@ function SearchResultCard({
   onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
-  const path = searchResultPath(item.type, item.id);
+  const path = searchResultPath(item.type, item.id, item.parentId);
   const date = formatDate(item.occurredOn);
 
   const inner = (

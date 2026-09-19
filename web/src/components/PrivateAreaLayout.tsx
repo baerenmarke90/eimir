@@ -1,13 +1,17 @@
-import { type ReactNode, useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
+  PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
   PRIVATE_GIFT_IDEAS_PATH,
   PRIVATE_NOTES_PATH,
 } from '../client/privateArea';
 import { appRoutePath } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 export function PrivateAreaFrame({
   children,
@@ -56,6 +60,123 @@ export function PrivateAreaFrame({
       ) : null}
       {children}
     </div>
+  );
+}
+
+export function PrivateAreaBackToHub() {
+  const { t } = useTranslation();
+  return (
+    <Link className="back-link" to={PRIVATE_AREA_ROOT_PATH}>
+      {t('privateArea.backToHub')}
+    </Link>
+  );
+}
+
+export function usePrivateAreaTaskContext(fallbackPath: string) {
+  const location = useLocation();
+  const { resolveOrigin, requestReturn } = useTaskOrigin();
+  const taskOriginKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  const origin = resolveOrigin(taskOriginKey);
+  const navigationState =
+    origin && typeof taskOriginKey === 'string' ? { taskOriginKey } : undefined;
+  const returnToOrigin = useCallback(
+    () => requestReturn(taskOriginKey, fallbackPath),
+    [fallbackPath, requestReturn, taskOriginKey],
+  );
+
+  return { navigationState, origin, returnToOrigin, taskOriginKey };
+}
+
+export function usePrivateTaskEditorLifecycle({
+  fallbackPath,
+  isDirty,
+  isCloseBlocked = false,
+  closeToFallback = false,
+}: {
+  fallbackPath: string;
+  isDirty: boolean;
+  isCloseBlocked?: boolean;
+  closeToFallback?: boolean;
+}) {
+  const navigate = useNavigate();
+  const taskContext = usePrivateAreaTaskContext(fallbackPath);
+  const closeToDetail = useCallback(() => {
+    void navigate(fallbackPath, {
+      replace: true,
+      state: taskContext.navigationState,
+    });
+  }, [fallbackPath, navigate, taskContext.navigationState]);
+  const lifecycle = useTaskEditorLifecycle({
+    isDirty,
+    isCloseBlocked,
+    onClose: closeToFallback ? closeToDetail : taskContext.returnToOrigin,
+  });
+  return { ...taskContext, ...lifecycle };
+}
+
+export function PrivateAreaDetailBack({
+  fallbackPath,
+  fallbackLabel,
+}: {
+  fallbackPath: string;
+  fallbackLabel: string;
+}) {
+  const { t } = useTranslation();
+  const { origin, returnToOrigin } = usePrivateAreaTaskContext(fallbackPath);
+  if (!origin) {
+    return (
+      <Link className="back-link" to={fallbackPath}>
+        {fallbackLabel}
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="back-link tertiary"
+      onClick={returnToOrigin}
+    >
+      {origin.to === '/search'
+        ? t('privateArea.backToSearch')
+        : t('privateArea.backToOrigin')}
+    </button>
+  );
+}
+
+export function PrivateEditorDiscardSheet({
+  open,
+  onKeep,
+  onDiscard,
+}: {
+  open: boolean;
+  onKeep: () => void;
+  onDiscard: () => void;
+}) {
+  const { t } = useTranslation();
+  const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  return (
+    <ShortTaskSheet
+      ref={sheetRef}
+      open={open}
+      role="alertdialog"
+      title={t('taskBoundary.discardTitle')}
+      onClose={onKeep}
+    >
+      <p>{t('taskBoundary.discardBody')}</p>
+      <div className="form-actions">
+        <button type="button" className="secondary" onClick={onKeep}>
+          {t('taskBoundary.keepEditing')}
+        </button>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => sheetRef.current?.closeForNavigation(onDiscard)}
+        >
+          {t('taskBoundary.discard')}
+        </button>
+      </div>
+    </ShortTaskSheet>
   );
 }
 

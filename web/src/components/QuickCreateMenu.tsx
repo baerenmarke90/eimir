@@ -137,7 +137,13 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
 
   function openTarget(target: QuickCreateTarget): void {
     const handoff = () => {
-      const taskOriginKey = ['memory', 'wish', 'plan'].includes(target.id)
+      const taskOriginKey = [
+        'memory',
+        'wish',
+        'plan',
+        'note',
+        'gift-idea',
+      ].includes(target.id)
         ? captureOrigin({
             focusTarget: 'quick-create',
             planningSegment:

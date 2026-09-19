@@ -250,7 +250,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
   - [ ] **#916 — Manual launch-state accessibility:** perform the release-candidate Web acceptance and Android checks only if Android is in launch scope.
   - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
   - [ ] **#525 — Final G5 decision:** re-review the exact release/evidence package and declare PASS only when every required criterion passes or is legitimately NOT_APPLICABLE.
-  - [ ] **#827 — Pre-market Self-Hosted OCI/topology hardening:** required before the first public/commercial Self-Hosted release; it is not evidence that G5 already passed.
+  - [x] **#827 — Pre-market Self-Hosted OCI/topology hardening:** completed in PR #1092; this does not imply that G5 has passed.
   - [ ] **#797 — Cloud encryption at rest:** required before Cloud/Managed go-live if that operating mode is included; a Self-Hosted-only launch must explicitly classify managed-only criteria instead of implying Cloud readiness.
 - [ ] **M7 — Relationship Depth:** post-launch expansion; not a G5 prerequisite
 - [ ] **M8 — Discover & Integrations:** post-launch expansion; not a G5 prerequisite

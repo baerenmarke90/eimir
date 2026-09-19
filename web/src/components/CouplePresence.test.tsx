@@ -57,7 +57,9 @@ describe('CouplePresence', () => {
       />,
     );
 
-    expect(screen.getByText(relationshipComponents.couplePresenceRecent)).toBeDefined();
+    expect(
+      screen.getByText(relationshipComponents.couplePresenceRecent),
+    ).toBeDefined();
     expect(document.querySelector('.couple-presence-dot')).toBeNull();
 
     rerender(
@@ -68,7 +70,9 @@ describe('CouplePresence', () => {
         status="unknown"
       />,
     );
-    expect(screen.queryByText(relationshipComponents.couplePresenceRecent)).toBeNull();
+    expect(
+      screen.queryByText(relationshipComponents.couplePresenceRecent),
+    ).toBeNull();
     expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });
 

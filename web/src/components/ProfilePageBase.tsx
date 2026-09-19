@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
@@ -11,6 +12,7 @@ import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
 import { Configuration } from '../api/generated/runtime';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { settingsCategoryPath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   CATEGORIES,
@@ -387,12 +389,12 @@ export function RelationshipSettingsSection({
           </div>
 
           <div className="relationship-notification-hint-row">
-            <a
-              href="#settings-notifications"
+            <Link
+              to={settingsCategoryPath('notifications')}
               className="relationship-notification-hint-link"
             >
               {t('profiles.relationshipNotificationHint')}
-            </a>
+            </Link>
           </div>
         </form>
       ) : null}

@@ -31,10 +31,7 @@ import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { AddIcon, DestinationIcon } from './DestinationIcon';
 import { ProblemState } from './ProblemState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import { UiState } from './UiState';
 
 const DATE_TYPES = Object.values(ImportantDateType);

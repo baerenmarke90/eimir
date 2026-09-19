@@ -1,6 +1,8 @@
 # Canonical Capacitor Android Foundation (`#1044`)
 
-This document describes the canonical Capacitor Android wrapper foundation established for **eimir.** under Issue `#1044` (as part of parent `#1005` and aligned with Slice A / Slice B boundaries in `#1008`).
+This document describes the canonical Capacitor Android wrapper of **eimir.** in `android/`. It was established under Issue `#1044` (parent `#1005`, ADR 0011), moved into the release pipeline by `#1008` Slice B, and promoted to the repository's only Android project by `#1009`.
+
+`android/` is a platform boundary, not a second application: there is no Kotlin/Compose product UI, no native screen parity program, and no native product state. Product behavior lives in the React/Vite application in `web/`. Native code exists only for bounded platform capabilities (deep links, system bars, and future push/haptics/share slices).
 
 ---
 
@@ -14,7 +16,7 @@ web/ (Vite + TypeScript)
   ├── npm run cap:build:web (vite build)
   │     └── generates production bundle in web/dist/
   └── npm run cap:sync (or cap:copy)
-        └── copies web/dist/ -> capacitor-android/app/src/main/assets/public/
+        └── copies web/dist/ -> android/app/src/main/assets/public/
               └── Gradle compiles assets into app-debug.apk / app-release.apk
 ```
 
@@ -23,7 +25,7 @@ web/ (Vite + TypeScript)
   - `appId`: `'de.sidebyside.app'` (canonical released app ID)
   - `appName`: `'eimir.'`
   - `webDir`: `'dist'`
-  - `android.path`: `'../capacitor-android'`
+  - `android.path`: `'../android'`
   - `server.androidScheme`: `'https'` (`https://localhost` inside WebView)
   - `plugins.CapacitorHttp.enabled`: `true` (native cross-origin HTTP bridge)
 - **API Base Requirement (Fail-Closed)**:
@@ -70,7 +72,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
     ```
     de.sidebyside.app://recent-authentication/oidc?code=...&state=...
     ```
-  - The Android app receives this via an `intent-filter` registered in `capacitor-android/app/src/main/AndroidManifest.xml`.
+  - The Android app receives this via an `intent-filter` registered in `android/app/src/main/AndroidManifest.xml`.
   - The web application captures the incoming deep link using both:
     1. `@capacitor/app` `appUrlOpen` listener (for warm starts / in-background resume).
     2. `App.getLaunchUrl()` (for cold-boot starts when the activity is created by the intent).
@@ -94,10 +96,10 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 ## 5. Application ID & Namespace Configuration
 
 - **Release Application ID**: `de.sidebyside.app` (immutable historical identifier required for existing releases and keystores).
-- **Debug Application ID**: `de.sidebyside.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `capacitor-android/app/build.gradle`).
-- **Android Package / Namespace**: `de.eimir.app` (modern namespace used for generated R classes and `MainActivity.java` at `capacitor-android/app/src/main/java/de/eimir/app/MainActivity.java`).
+- **Debug Application ID**: `de.sidebyside.app.debug` (ensures parallel installation alongside release builds via `applicationIdSuffix = ".debug"` in `android/app/build.gradle`).
+- **Android Package / Namespace**: `de.eimir.app` (modern namespace used for generated R classes and `MainActivity.java` at `android/app/src/main/java/de/eimir/app/MainActivity.java`).
 - **SDK Compatibility**:
-  - `minSdkVersion = 26` (Android 8.0 Oreo, preserved from legacy requirements; not lowered to 24).
+  - `minSdkVersion = 26` (Android 8.0 Oreo, preserved from the retired client's requirement; not lowered to 24).
   - `compileSdkVersion = 36`, `targetSdkVersion = 36`.
 - **Branding Assets**:
   - Adaptive icons (`mipmap-anydpi-v26/ic_launcher.xml` and `ic_launcher_round.xml`) use eimir. brand red background (`#D93D59`) with the canonical double-ring vector (`drawable/ic_launcher_foreground.xml`) and Android 13+ themed monochrome vector (`drawable/ic_launcher_monochrome.xml`).
@@ -125,13 +127,13 @@ npm run cap:check
 # Build web production bundle with explicit API base URL
 VITE_EIMIR_API_BASE_URL="https://api.eimir.example.com" npm run cap:build:web
 
-# Sync web bundle, plugins, and config to capacitor-android
+# Sync web bundle, plugins, and config to android/
 npm run cap:sync
 ```
 
 ### Android Native Wrapper
 ```bash
-cd capacitor-android
+cd android
 
 # Build Debug APK
 ./gradlew assembleDebug
@@ -155,16 +157,33 @@ app/build/outputs/apk/debug/app-debug.apk
 
 ---
 
-## 8. Migration Path & Distinction from `android/` Client
+## 8. Migration History
 
-- **Slice Separation**:
-  - `capacitor-android/`: The new canonical staging wrapper for modern cross-platform delivery under `#1044` / `#1005`.
-  - `android/`: The legacy Kotlin Jetpack Compose mobile client.
-- **Independence**:
-  - As defined in `#1008` and `#1044`, `android/` was left completely untouched during this phase.
-  - Deprecation and cleanup of legacy `android/` code will be executed exclusively under Issue `#1009`.
+- `#1044` / PR `#1046` created the Capacitor wrapper as a staging project next to the legacy Kotlin/Compose client; a real-device smoke test on a Pixel accepted it.
+- `#1008` Slice B / PR `#1056` moved release, signing, SBOM, and publication workflows to the wrapper.
+- `#1009` removed the legacy Kotlin/Jetpack Compose client (screens, ViewModels, native read cache, Kotlin API models, Compose and Robolectric tests) and promoted the wrapper to the canonical `android/` directory. The staging path `capacitor-android/` no longer exists.
+- Git history preserves the retired client; it is not a reference implementation. New product behavior is built once, in `web/`.
+
+### Reading older documents
+
+Dated plans, gate reviews, audits, and evidence records written before `#1009` may describe a native Kotlin/Jetpack Compose client, Kotlin Multiplatform, SwiftUI, Room/Keystore read caches, or "Web/Android parity". They are historical records of what was true or planned at the time and are **not** current guidance; ADR 0011 governs. In particular:
+
+- account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView; the wrapper keeps no separate native user-data store;
+- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents, and stops running once all three removals have succeeded (completion marker). Server data continuity and store-upgrade continuity rest on the backend, `de.sidebyside.app` and the signing key.
+
+### Acceptance rule
+
+Mobile Web is the normative product reference. React product work reaches the Android app automatically through Capacitor packaging, so ordinary product changes need no Android implementation or Android screenshots. Android-specific acceptance (real device or emulator) is required only for changes to the wrapper itself, the Capacitor configuration, the release build, or a native platform capability.
 
 ---
+
+### Native source inventory
+
+| File | Classification | Owner / purpose |
+|---|---|---|
+| `android/app/src/main/java/de/eimir/app/MainActivity.java` | NATIVE_CAPABILITY_REQUIRED | Capacitor `BridgeActivity` host; starts the one-shot cleanup. No product logic. |
+| `android/app/src/main/java/de/eimir/app/LegacyNativeDataCleanup.java` | NATIVE_CAPABILITY_REQUIRED / TEMPORARY_UPGRADE_MIGRATION | Deletes the retired Kotlin client's Room database, Space preference and Keystore key after an in-place update. One-shot: writes a completion marker after all three removals succeed; retries only while one fails. Temporary: remove in a later cleanup once no installation that predates the wrapper can remain (no issue tracks that yet). |
+| `AndroidManifest.xml`, `res/**`, Gradle files | NATIVE_CAPABILITY_REQUIRED | Launcher, OIDC deep link, FileProvider, icons/splash, build and verification metadata. |
 
 ## 9. Reuse-Before-Build Assessment
 
@@ -225,21 +244,19 @@ ac75428097821ff60a6f09c8ab67ec41662c30390e65a54ec449251a5cdcaaa7  app/build/outp
 
 ---
 
-## 11. Post-Foundation Release Migration — #1008 Slice B
+## 11. Release Pipeline — #1008 Slice B, canonical path since #1009
 
-Issue `#1008` (Slice B) migrated all release, signing, SBOM attestation, and publication workflows from the legacy Kotlin/Compose client under `android/` to the Capacitor Android wrapper under `capacitor-android/`:
+Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and publication workflows to the Capacitor Android wrapper. They set `ANDROID_PROJECT_DIR: "android"` since `#1009` (it was `capacitor-android` during the staging period):
 
-- **Workflows Migrated**:
-  - `.github/workflows/release-evidence.yml`: builds unsigned release APK/AAB from `capacitor-android/`, generates SPDX 2.3 SBOMs, and records release evidence.
+- **Workflows**:
+  - `.github/workflows/release-evidence.yml`: builds unsigned release APK/AAB from `android/`, generates SPDX 2.3 SBOMs, and records release evidence.
   - `.github/workflows/release-candidate.yml`: validates release inputs (`android_api_base_url`, `release_version`), forwards them to `release-evidence.yml`, and binds the immutable release candidate manifest.
-  - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `capacitor-android/`, re-attests signed bytes, and binds release publications.
+  - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
   - Pinned Actions: Node.js `22.19.0` via `actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a` (`v4.2.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
   - Pinned Gradle Wrapper: distribution SHA-256 `ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c`; wrapper JAR SHA-256 `7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
-  - Native Wrapper Drift Guard: `git diff --exit-code -- capacitor-android/capacitor.settings.gradle capacitor-android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
-  - Strict Dependency Verification: `capacitor-android/gradle/verification-metadata.xml` generated with sha256 checksums, verified via `--dependency-verification strict`.
-  - Release Signing Configuration: `capacitor-android/app/build.gradle` reads properties and environment variables (`eimirReleaseKeystore`, `eimirReleaseKeystorePassword`, `eimirReleaseKeyAlias`, `eimirReleaseKeyPassword` with temporary backward compatibility fallbacks for `sbs*`).
-  - Identity Extraction: release identity is directly extracted from built APK artifacts via `aapt dump badging` rather than parsing legacy Gradle files.
-  - Legacy Isolation: legacy `android/` code is completely untouched and decoupled from release pipelines; removal will take place in Issue `#1009`.
-
+  - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
+  - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.
+  - Release Signing Configuration: `android/app/build.gradle` reads properties and environment variables (`eimirReleaseKeystore`, `eimirReleaseKeystorePassword`, `eimirReleaseKeyAlias`, `eimirReleaseKeyPassword` with temporary backward compatibility fallbacks for `sbs*`).
+  - Identity Extraction: release identity is directly extracted from built APK artifacts via `aapt dump badging` rather than parsing Gradle files.

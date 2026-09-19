@@ -435,9 +435,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_clients == 'true'
     runs-on: ubuntu-latest
-    # The contract is the single source of truth for the canonical Web client.
-    # Legacy Kotlin model generation remains repository cleanup work under #1009
-    # and is no longer part of the product-quality pipeline.
+    # The contract is the single source of truth for the canonical Web client,
+    # which the Capacitor Android wrapper packages unchanged (ADR 0011).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

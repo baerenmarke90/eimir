@@ -65,7 +65,7 @@ Not all candidates are external data providers. They are considered separately:
 
 | Area | Candidate | Benefit |
 |---|---|---|
-| API clients | OpenAPI Generator | generate Web and Android clients from contract |
+| API clients | OpenAPI Generator | generate the Web (TypeScript) client from contract; Android packages it |
 | Uploads | tus | robust resumable photo/video uploads |
 | Web upload UX | Uppy | upload UI, progress, error handling |
 | Images | imgproxy | thumbnails, sizes, and formats without custom pipeline |
@@ -83,9 +83,9 @@ Not all candidates are external data providers. They are considered separately:
 | Android media selection | Android Photo Picker | no custom gallery/permission logic |
 | Android sharing | Android Sharesheet | receive content from other apps |
 | Android background jobs | WorkManager | reliable uploads and synchronization |
-| Android local cache | Room + Paging | performant Story views |
-| Android images | Coil | image cache and rendering |
-| Android video | Media3 / ExoPlayer | stable video player |
+| Android local cache | Room + Paging | retired with the Compose client (#1009); the Web client owns caching |
+| Android images | Coil | retired with the Compose client (#1009); the Web client renders images |
+| Android video | Media3 / ExoPlayer | retired with the Compose client (#1009); the Web client plays video |
 | Web API state | TanStack Query | cache, retry, server state |
 | QR/barcode | ZXing | invitations and product flows |
 | Date/localization | dateparser + Babel | natural input and localization |

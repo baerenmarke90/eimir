@@ -10,18 +10,24 @@ from engineering_language_audit import _is_excluded_platform_path, check_file
 
 
 class EngineeringLanguageAuditTest(unittest.TestCase):
-    def test_visual_proof_excludes_only_localization_resources(self) -> None:
-        for resource in (
-            "android/app/src/debug/res/values/strings_visual_proof.xml",
+    def test_exclusions_cover_generated_output_but_not_wrapper_sources(self) -> None:
+        for generated in (
+            "android/app/src/main/assets/public/index.html",
+            "android/app/src/main/assets/capacitor.config.json",
+            "android/capacitor-cordova-android-plugins/build.gradle",
             "web/e2e/fixtures/locales/de.ts",
+            "web/src/api/generated/models/index.ts",
         ):
-            self.assertTrue(_is_excluded_platform_path(Path(resource)))
-        for implementation in (
-            "android/app/src/debug/java/de/eimir/app/design/VisualRolesProofActivity.kt",
+            self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
+        for handwritten in (
+            "android/app/build.gradle",
+            "android/app/src/main/AndroidManifest.xml",
+            "android/app/src/main/java/de/eimir/app/MainActivity.java",
+            "android/app/src/main/res/values/strings.xml",
             "web/e2e/fixtures/product-reference-foundations.tsx",
             "web/e2e/tests/product-reference-foundations.spec.ts",
         ):
-            self.assertFalse(_is_excluded_platform_path(Path(implementation)))
+            self.assertFalse(_is_excluded_platform_path(Path(handwritten)), handwritten)
 
     def test_legacy_engineering_marker_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

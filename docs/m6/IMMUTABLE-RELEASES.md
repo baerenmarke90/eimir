@@ -79,9 +79,9 @@ Build metadata (`+...`) is rejected for release publication because the product 
 is also used as an OCI discovery tag. The common release preflight additionally rejects
 a `v<version>` value longer than the OCI 128-character tag limit.
 
-Android release packaging builds from `capacitor-android/` (#1008 Slice B). Android
+Android release packaging builds from `android/` (#1008 Slice B). Android
 `versionName` is parameterized via the release version (`-PeimirVersionName="$RELEASE_VERSION"`,
-defaulting to `0.1.0` in `capacitor-android/app/build.gradle`). Android `versionCode`
+defaulting to `0.1.0` in `android/app/build.gradle`). Android `versionCode`
 is a positive monotonically increasing integer supplied by publication
 (`-PeimirVersionCode="$ANDROID_VERSION_CODE"`, with deprecated `sbs*` fallback).
 The legacy client under `android/` is completely decoupled from all release pipelines
@@ -191,7 +191,7 @@ It verifies:
 After protected environment approval it:
 
 1. builds web assets with `android_api_base_url`, performs `npm run cap:sync` with native
-   drift check, compiles and signs/verifies final Android APK/AAB from `capacitor-android/`
+   drift check, compiles and signs/verifies final Android APK/AAB from `android/`
    using pinned Node 22.19.0, JDK 21, and strict Gradle dependency verification, followed
    by apksigner, jarsigner, aapt badging, and offline web asset security verification;
 2. regenerates signed-byte SBOMs and attestations;

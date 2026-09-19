@@ -52,9 +52,9 @@ The patterns below are platform-appropriate defaults, not a mandatory formula: t
 |---|---|---|---|
 | Compact, up to 599 px | Bottom Navigation with at most 5 destinations | contextual tabs, filters, or task-appropriate navigation | new page |
 | Medium, 600–839 px | Bottom Navigation | task-appropriate local navigation | new page or optional supporting pane |
-| Expanded, from 840 px | Web horizontal header; Android Bottom Navigation | local navigation in content area | full page or justified supporting pane |
+| Expanded, from 840 px | Web horizontal header (also inside the Android wrapper) | local navigation in content area | full page or justified supporting pane |
 
-The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); Android follows [ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
+The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); the Android wrapper renders the same Web shell ([ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md) is historical). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
 
 - Primary destinations are the intentional de-DE product labels **Wir, Momente,
   Planen, Mehr**. Discovery experiences remain product behavior inside `Momente`

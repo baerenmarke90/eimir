@@ -1,12 +1,12 @@
 # ADR 0004 – Android Uses Bottom Navigation at Every Window Size
 
-**Status:** Accepted
+**Status:** Superseded as active product guidance by [ADR 0011](0011-web-first-pwa-capacitor-mobile-delivery.md); historical context for the retired Compose client
 **Date:** August 31, 2026
 **Owning issue:** #352
 **Amends:** `docs/INFORMATION-ARCHITECTURE.md` section 2,
 `docs/SCREEN-TEMPLATES.md` section 1
 
-**Current relationship:** The Android decision remains binding under [Product Reference v1](../product/design/product-reference-v1.md). The dated Web-sidebar description below was subsequently superseded by the accepted [A1 Web shell](../design/eimir/SHELL-RESCUE-A1.md); current navigation is consolidated in [Information Architecture](../INFORMATION-ARCHITECTURE.md).
+**Current relationship:** Android no longer has an independent navigation implementation: the Capacitor wrapper (#1009) packages the Web product, whose mobile navigation is normative under [Product Reference v1](../product/design/product-reference-v1.md). The Android decision below described the retired Compose client. The dated Web-sidebar description below was subsequently superseded by the accepted [A1 Web shell](../design/eimir/SHELL-RESCUE-A1.md); current navigation is consolidated in [Information Architecture](../INFORMATION-ARCHITECTURE.md).
 
 ## Context
 

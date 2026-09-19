@@ -15,7 +15,7 @@ Android runtime behavior.
 
 | Area | M5 / G4 | M6 / G5 | M7-M9 |
 |---|---|---|---|
-| Client completion | Web/Android parity, cache, deep links, accessibility automation, release-candidate client behavior | only final release-state/manual evidence not already proven by G4 | optional product expansion |
+| Client completion | Web (packaged for Android via Capacitor), cache, deep links, accessibility automation, release-candidate client behavior | only final release-state/manual evidence not already proven by G4 | optional product expansion |
 | Operations | prerequisites may exist | supported deployment, recovery, administration, observability, incident response | later scale/operational sophistication |
 | Commercial model | no ad-hoc gating | accepted #262 model becomes centralized Entitlement runtime | later commercial/channel evolution |
 | Product features | Core Release Candidate | no feature expansion merely to enrich launch | Relationship Depth, Discovery/Integrations and Context expansion |

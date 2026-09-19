@@ -120,7 +120,7 @@ for a different signed store artifact.
 
 Both container builds receive exactly `EIMIR_BUILD_REVISION=$GITHUB_SHA`.
 `evidence-index.json` records the same source revision. Android packaging is built
-from `capacitor-android/` (#1008 Slice B); its product identity is verified dynamically
+from `android/` (#1008 Slice B); its product identity is verified dynamically
 via `aapt dump badging` from the built APK (`package: name='de.sidebyside.app'
 versionCode='...' versionName='...'`), and `evidence-index.json` records canonical
 `apiBaseUrl` and `launchableActivity` (`de.eimir.app.MainActivity`). Its monotonic

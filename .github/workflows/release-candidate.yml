@@ -246,4 +246,4 @@ jobs:
           path: release-evidence/
           if-no-files-found: error
           retention-days: 30
-          compression-level: 0
+          compression-level: 6

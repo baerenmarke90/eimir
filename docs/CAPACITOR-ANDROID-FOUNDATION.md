@@ -169,7 +169,7 @@ app/build/outputs/apk/debug/app-debug.apk
 Dated plans, gate reviews, audits, and evidence records written before `#1009` may describe a native Kotlin/Jetpack Compose client, Kotlin Multiplatform, SwiftUI, Room/Keystore read caches, or "Web/Android parity". They are historical records of what was true or planned at the time and are **not** current guidance; ADR 0011 governs. In particular:
 
 - account-deletion, Space-offboarding, and logout rules that name an Android cache are satisfied by the Web client's session and read-cache clearing inside the WebView; the wrapper keeps no separate native user-data store;
-- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Removing it does not affect server data continuity or store-upgrade continuity, which rest on `de.sidebyside.app` and the signing key.
+- the retired native read cache (Room database plus Android Keystore key) held only a non-authoritative copy of server data. Because the stable application ID preserves the old sandbox across an in-place update, `LegacyNativeDataCleanup` deletes that database, its Space preference and its Keystore key on wrapper startup without reading or migrating their contents. Server data continuity and store-upgrade continuity rest on the backend, `de.sidebyside.app` and the signing key.
 
 ### Acceptance rule
 

@@ -30,7 +30,6 @@ import { MemoryPreview } from './MemoryPreview';
 import { AuthorAvatar } from './PersonIdentity';
 import {
   formatTimelineDate,
-  storyAuthorLabel,
   storyItemKey,
   storyItemPresentation,
 } from './storyPresentation';
@@ -215,7 +214,6 @@ export function StoryList({
   loadHeartMomentImage,
   profilesApi,
   spaceId,
-  currentAccountId,
   onOpenItem,
   progressiveReveal = false,
 }: {
@@ -272,10 +270,6 @@ export function StoryList({
           const itemKey = storyItemKey(item);
           const presentation = storyItemPresentation(item, t);
           const author = storyItemAuthor(item);
-          const authorLabel = storyAuthorLabel(author, currentAccountId);
-          const authorAttribution = t('story.byAuthor', {
-            author: authorLabel,
-          });
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
           const heartAttachment =
@@ -361,28 +355,13 @@ export function StoryList({
                       {formatTimelineDate(item.effectiveDate, locale)}
                     </time>
                     <span className="story-card-footer-author">
-                      {author ? (
-                        <span className="momente-author-meta">
-                          <span className="sr-only">{authorAttribution}</span>
-                          <span aria-hidden="true">
-                            <AuthorAvatar
-                              author={author}
-                              profilesApi={profilesApi}
-                              spaceId={spaceId}
-                            />
-                          </span>
-                          <span
-                            className="story-card-author"
-                            aria-hidden="true"
-                          >
-                            {authorAttribution}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="story-card-author">
-                          {presentation.author}
-                        </span>
-                      )}
+                      <span className="momente-author-meta">
+                        <AuthorAvatar
+                          author={author}
+                          profilesApi={profilesApi}
+                          spaceId={spaceId}
+                        />
+                      </span>
                       {presentation.visibility ? (
                         <span
                           className={`story-card-meta-item story-card-visibility story-card-visibility-${presentation.visibility.toLowerCase()}`}

@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
+import storyProducts from '../i18n/locales/storyProducts';
 import { CommentsPanel } from './CommentsPanel';
 
 afterEach(cleanup);
@@ -117,6 +118,27 @@ describe('CommentsPanel', () => {
     ]);
 
     expect(html).toContain('bearbeitet');
+  });
+
+  it('uses first names and marks only the current viewer with the self marker (#1064)', () => {
+    const html = renderPanel([
+      comment({
+        id: 'own',
+        authorId: 'me',
+        author: { id: 'me', displayName: 'Philipp Reis' },
+      }),
+      comment({
+        id: 'partner',
+        authorId: 'them',
+        author: { id: 'them', displayName: 'Alex Winter' },
+      }),
+    ]);
+
+    expect(html).toContain('<strong>Philipp</strong>');
+    expect(html).toContain('<strong>Alex</strong>');
+    expect(html).not.toContain('Philipp Reis');
+    expect(html).not.toContain('Alex Winter');
+    expect(html.split(storyProducts.comments.authorSelf).length - 1).toBe(1);
   });
 
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {

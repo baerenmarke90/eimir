@@ -1,7 +1,7 @@
 /*
  * Discover card metadata shares one visual contract: the date starts the row
- * and the author ends it. Keep the DOM order unchanged so visual and assistive
- * reading order remain date, then author.
+ * and the author avatar ends it. Keep the DOM order unchanged so visual and
+ * assistive reading order remain date, then author.
  */
 .momente-hero-meta,
 .momente-tapestry-meta {
@@ -19,11 +19,4 @@
   min-width: 0;
   margin-inline-start: auto;
   justify-content: flex-end;
-}
-
-.momente-hero-meta > .momente-author-meta > span:last-child,
-.momente-tapestry-meta > .momente-author-meta > span:last-child {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  text-align: end;
 }

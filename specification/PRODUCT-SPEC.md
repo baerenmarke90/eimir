@@ -128,9 +128,9 @@ Deterministic: trigger + conditions + action. Controlled catalog, no freely exec
 
 ## 8. Clients
 
-Web (React/TypeScript) and Android (Kotlin/Compose). A Core function is production-ready when both clients exhibit the same Domain behavior for Create, Read, Update, Delete, Authorization, visibility, validation, and errors. Presentation may differ.
+Web (React/TypeScript) is the single product UI. Android is delivered as a Capacitor wrapper that packages the same Web bundle (ADR 0011); there is no independent Kotlin/Compose client. A Core function is production-ready when the Web client, which every delivery channel runs, exhibits the correct Domain behavior for Create, Read, Update, Delete, Authorization, visibility, validation, and errors.
 
-Android: Offline Read Cache yes, offline writes no. Without connectivity, the client clearly states that nothing was saved.
+Offline Read Cache yes, offline writes no, in the browser and in the Android wrapper. Without connectivity, the client clearly states that nothing was saved.
 
 M5 is intentionally a **Core completion milestone**. New Relationship Depth domains must not be pulled into M5 merely because M5 is active; M5 may provide reusable navigation/settings/client primitives, but it productizes the M0-M4 Core and portability contract first.
 

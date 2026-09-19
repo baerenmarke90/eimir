@@ -35,7 +35,7 @@ body:
     attributes:
       label: User-facing UI / UX impact
       options:
-        - Yes - Web and/or Android product UI changes
+        - Yes - Web product UI changes (Android ships the same UI) or wrapper changes visible to users
         - No - no user-facing UI changes
     validations:
       required: true

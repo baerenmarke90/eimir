@@ -83,7 +83,11 @@ describe('MemoryPreview viewport loading', () => {
     });
 
     await waitFor(() => expect(loadImage).toHaveBeenCalledTimes(1));
-    expect(loadImage).toHaveBeenCalledWith('memory-1', 'attachment-1');
+    expect(loadImage).toHaveBeenCalledWith(
+      'memory-1',
+      'attachment-1',
+      expect.any(AbortSignal),
+    );
     const image = await screen.findByRole('img');
     expect(image.getAttribute('src')).toBe('blob:near-viewport');
     expect(image.getAttribute('loading')).toBe('lazy');

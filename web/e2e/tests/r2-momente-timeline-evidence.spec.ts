@@ -423,9 +423,7 @@ test.describe('R2 Momente/Timeline evidence (#966)', () => {
       await expect(page).toHaveURL(scenario.detailUrl);
 
       await page.getByRole('button', { name: taskBoundary.back }).click();
-      await expect(page).toHaveURL(
-        new RegExp(`type=${scenario.filter}`),
-      );
+      await expect(page).toHaveURL(new RegExp(`type=${scenario.filter}`));
     }
   });
 

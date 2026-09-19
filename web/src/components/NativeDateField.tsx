@@ -46,8 +46,9 @@ export const NativeDateField = forwardRef<
 ) {
   const generatedId = useId();
   const inputId = id ?? `native-date-${generatedId}`;
-  const hasHelp = helpText !== undefined && helpText !== null;
-  const hasError = error !== undefined && error !== null;
+  const hasHelp =
+    helpText !== undefined && helpText !== null && helpText !== false;
+  const hasError = error !== undefined && error !== null && error !== false;
   const helpId = hasHelp ? `${inputId}-help` : undefined;
   const errorId = hasError ? `${inputId}-error` : undefined;
   const describedBy = describedByIds(ariaDescribedBy, helpId, errorId);

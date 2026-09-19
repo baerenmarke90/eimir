@@ -221,7 +221,7 @@ const serverAdmin = {
     passwordLabel: 'Passwort',
     passwordAction: 'Mit Passwort bestätigen',
     passkeyAction: 'Mit Passkey bestätigen',
-    oidcAction: 'Mit {{connection}} bestätigen',
+    oidcAction: 'Mit OIDC bestätigen',
     loading: 'Verfügbare Anmeldeverfahren werden geprüft …',
     pending: 'Identität wird bestätigt …',
     unavailable:

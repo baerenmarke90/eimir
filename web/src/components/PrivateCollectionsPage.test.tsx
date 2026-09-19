@@ -175,7 +175,10 @@ describe('PrivateCollectionsPage', () => {
       ],
     };
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
@@ -206,18 +209,14 @@ describe('PrivateCollectionsPage', () => {
     expect(
       screen.queryByPlaceholderText(privateArea.collections.itemTitleLabel),
     ).toBeNull();
-    expect(
-      screen.queryByLabelText(privateArea.collections.rename),
-    ).toBeNull();
+    expect(screen.queryByLabelText(privateArea.collections.rename)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
 
     expect(
       screen.getByPlaceholderText(privateArea.collections.itemTitleLabel),
     ).toBeDefined();
-    expect(
-      screen.getByLabelText(privateArea.collections.rename),
-    ).toBeDefined();
+    expect(screen.getByLabelText(privateArea.collections.rename)).toBeDefined();
     expect(
       screen.getByRole('button', { name: privateArea.collections.reorderItem }),
     ).toBeDefined();

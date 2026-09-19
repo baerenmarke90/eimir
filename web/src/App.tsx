@@ -284,7 +284,7 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string) =>
+    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
       loadAuthorizedImage(
         apis,
         apiBaseUrl,
@@ -292,12 +292,18 @@ function AuthenticatedApp({
         spaceId,
         memoryId,
         attachmentId,
+        fetch,
+        signal,
       ),
     [apiBaseUrl, apis, spaceId, tokens.accessToken],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string) =>
+    (
+      heartMomentId: string,
+      attachmentId: string,
+      signal?: AbortSignal,
+    ) =>
       loadAuthorizedMedia(
         apis,
         apiBaseUrl,
@@ -306,6 +312,8 @@ function AuthenticatedApp({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
+        fetch,
+        signal,
       ),
     [apiBaseUrl, apis, spaceId, tokens.accessToken],
   );

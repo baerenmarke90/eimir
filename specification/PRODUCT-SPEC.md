@@ -145,14 +145,14 @@ The forward roadmap is deliberately release-first after client completion: optio
 | M2 | MediaStore, Attachments, Memories, HeartMoments, Milestones, Comments, Story |
 | M3 | Wishes, Plans, Places, Relations, Chapters, Collections, Private Area |
 | M4 | Reminders, Activity, Notifications, "Ich denke an dich", Dashboard, Search, Rules |
-| M5 | Export, Import, complete Web client, complete Android client, Read Cache, Deep Links, Accessibility, Performance, parity |
+| M5 | Export, Import, complete canonical Web client, Android delivery through the Capacitor wrapper (packaging and platform integration, not a second UI), Read Cache, Deep Links, Accessibility, Performance. Historical label: "Client Completion & Parity"; the parity wording predates ADR 0011 and no longer implies a separate Android UI |
 | M6 | **Operate & Launch:** Self-Hosted/Cloud deployment, Backup/Restore/Upgrade, administration, observability, Entitlements/Billing adapter boundary, hardening, release engineering and final launch QA |
 | M7 | **Relationship Depth:** Space module readiness, Daily Check-in/Vibe/Energy, partner notes/support gestures, "Unsere Fragen", shared achievements, yearly/monthly recaps |
 | M8 | **Discover & Integrations:** Discovery, Shopping, Recipes, Events/Entertainment, external media and provider adapters |
 | M9 | **Context & Presence:** Maps/location history, opt-in location context, Geofencing, contextual suggestions, Presence |
 | MX | real end-to-end encryption |
 
-M0-M4 are historical milestone boundaries and are not renumbered. M5 remains Client Completion & Parity. G4 follows M5 as the Core Release Candidate gate; G5 follows M6 as the Launch-ready gate. M7-M9 are post-launch expansion milestones and are not prerequisites for the first release.
+M0-M4 are historical milestone boundaries and are not renumbered. M5 is historically named "Client Completion & Parity"; since ADR 0011 (#1005) that name is legacy terminology only and does not require a second product UI. G4 follows M5 as the Core Release Candidate gate; G5 follows M6 as the Launch-ready gate. M7-M9 are post-launch expansion milestones and are not prerequisites for the first release.
 
 This sequence supersedes only the old M6-M9 milestone numbering/order described in section 68 of `CLEAN-ROOM-MASTER-SPEC.md`; all security, privacy, Domain, architecture and implementation requirements from that specification remain binding. The dated roadmap decision under `docs/decisions/` records this narrow supersession.
 
@@ -166,7 +166,7 @@ The architecture must support these extensions; the Core is built cleanly and se
 
 ## 11. Definition of Done per Domain feature
 
-Data model, migration, Domain Service, Authorization, API, OpenAPI, validation, error codes, Unit tests, Integration tests, Cross-Tenant tests, Privacy tests where applicable, Export support for persistent user data, Web UI, Android UI, error handling, documentation.
+Data model, migration, Domain Service, Authorization, API, OpenAPI, validation, error codes, Unit tests, Integration tests, Cross-Tenant tests, Privacy tests where applicable, Export support for persistent user data, canonical Web UI, platform integration in the Android/Capacitor delivery channel where the feature touches a native capability (deep link, push, share, haptics), error handling, documentation. A separate Android UI is not part of the Definition of Done.
 
 A working button alone is not done.
 
@@ -178,7 +178,7 @@ A working button alone is not done.
 4. stable API
 5. tests
 6. portability
-7. Web and Android UX
+7. product UX (canonical Web UX) and relevant platform integration
 8. extensions
 9. monetization
 

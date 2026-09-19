@@ -38,6 +38,7 @@ import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { StoryCreatePageShell } from './StoryFormPageShell';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -270,264 +271,263 @@ export function MemoryCreatePage({
     void save();
   }
   return (
-    <div className="page page-reading create-page memory-task-page">
-      <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
-        <PageHeader
-          before={
-            <button
-              type="button"
-              className="back-link tertiary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('taskBoundary.close')}
-            </button>
-          }
-          eyebrow={t('memory.eyebrow')}
-          title={t('memory.heading')}
-          description={t('memory.intro')}
-          className="create-heading"
-        />
-      </div>
-
-      <section
-        className="immersive-create-card eimir-motion-reveal"
-        aria-labelledby="memory-form-heading"
-      >
-        <h2 id="memory-form-heading" className="sr-only">
-          {t('memory.formAria')}
-        </h2>
-        <form onSubmit={submit} className="immersive-create-form">
-          <fieldset
-            className="memory-task-fields"
-            disabled={pending || Boolean(partial) || uncertain}
-          >
-            <legend className="sr-only">{t('memory.formAria')}</legend>
-
-            <div className="immersive-create-media">
-              <AttachmentDraftPicker
-                id="memory-create-images"
-                attachments={attachments}
-                multiple
-              />
-            </div>
-
-            <div className="field-group immersive-create-narrative">
-              <label htmlFor="body">{t('memory.bodyLabel')}</label>
-              <textarea
-                id="body"
-                name="body"
-                value={body}
-                onChange={(event) => {
-                  setBody(event.target.value);
-                  const field = event.target;
-                  field.style.height = 'auto';
-                  field.style.height = `${field.scrollHeight}px`;
-                }}
-                rows={2}
-                placeholder={t('memory.bodyPlaceholder')}
-              />
-            </div>
-
-            <div className="field-group immersive-create-title-field">
-              <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
-              <input
-                id="title"
-                name="title"
-                maxLength={200}
-                placeholder={t('memory.titlePlaceholder')}
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="immersive-create-title-input"
-              />
-            </div>
-
-            <div className="field-group immersive-create-date-field">
-              <span id="happenedOn-label">{t('memory.dateLabel')}</span>
-              {dateEditorOpen || dateSummaryText === null ? (
-                <input
-                  ref={dateInputRef}
-                  id="happenedOn"
-                  aria-labelledby="happenedOn-label"
-                  aria-invalid={invalidDate || undefined}
-                  aria-describedby={
-                    invalidDate ? 'memory-date-error' : undefined
+    <StoryCreatePageShell
+      header={
+        <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
+                <PageHeader
+                  before={
+                    <button
+                      type="button"
+                      className="back-link tertiary"
+                      onClick={requestClose}
+                      aria-disabled={pending}
+                    >
+                      {t('taskBoundary.close')}
+                    </button>
                   }
-                  name="happenedOn"
-                  type="date"
-                  value={happenedOn}
-                  onChange={(event) => {
-                    setHappenedOn(event.target.value);
-                    setInvalidDate(false);
-                  }}
-                  onBlur={() => setDateEditorOpen(false)}
+                  eyebrow={t('memory.eyebrow')}
+                  title={t('memory.heading')}
+                  description={t('memory.intro')}
+                  className="create-heading"
                 />
-              ) : (
-                <button
-                  type="button"
-                  className="immersive-create-date-summary"
-                  aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
-                  onClick={() => setDateEditorOpen(true)}
+              </div>
+      }
+      pageClassName="memory-task-page"
+      labelledBy="memory-form-heading"
+    >
+              <h2 id="memory-form-heading" className="sr-only">
+                {t('memory.formAria')}
+              </h2>
+              <form onSubmit={submit} className="immersive-create-form">
+                <fieldset
+                  className="memory-task-fields"
+                  disabled={pending || Boolean(partial) || uncertain}
                 >
-                  <span id="happenedOn-summary-value">{dateSummaryText}</span>
-                  <span
-                    id="happenedOn-summary-change"
-                    className="immersive-create-date-change"
+                  <legend className="sr-only">{t('memory.formAria')}</legend>
+      
+                  <div className="immersive-create-media">
+                    <AttachmentDraftPicker
+                      id="memory-create-images"
+                      attachments={attachments}
+                      multiple
+                    />
+                  </div>
+      
+                  <div className="field-group immersive-create-narrative">
+                    <label htmlFor="body">{t('memory.bodyLabel')}</label>
+                    <textarea
+                      id="body"
+                      name="body"
+                      value={body}
+                      onChange={(event) => {
+                        setBody(event.target.value);
+                        const field = event.target;
+                        field.style.height = 'auto';
+                        field.style.height = `${field.scrollHeight}px`;
+                      }}
+                      rows={2}
+                      placeholder={t('memory.bodyPlaceholder')}
+                    />
+                  </div>
+      
+                  <div className="field-group immersive-create-title-field">
+                    <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
+                    <input
+                      id="title"
+                      name="title"
+                      maxLength={200}
+                      placeholder={t('memory.titlePlaceholder')}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      className="immersive-create-title-input"
+                    />
+                  </div>
+      
+                  <div className="field-group immersive-create-date-field">
+                    <span id="happenedOn-label">{t('memory.dateLabel')}</span>
+                    {dateEditorOpen || dateSummaryText === null ? (
+                      <input
+                        ref={dateInputRef}
+                        id="happenedOn"
+                        aria-labelledby="happenedOn-label"
+                        aria-invalid={invalidDate || undefined}
+                        aria-describedby={
+                          invalidDate ? 'memory-date-error' : undefined
+                        }
+                        name="happenedOn"
+                        type="date"
+                        value={happenedOn}
+                        onChange={(event) => {
+                          setHappenedOn(event.target.value);
+                          setInvalidDate(false);
+                        }}
+                        onBlur={() => setDateEditorOpen(false)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className="immersive-create-date-summary"
+                        aria-labelledby="happenedOn-label happenedOn-summary-value happenedOn-summary-change"
+                        onClick={() => setDateEditorOpen(true)}
+                      >
+                        <span id="happenedOn-summary-value">{dateSummaryText}</span>
+                        <span
+                          id="happenedOn-summary-change"
+                          className="immersive-create-date-change"
+                        >
+                          {t('memory.dateChangeAction')}
+                        </span>
+                      </button>
+                    )}
+                    {invalidDate ? (
+                      <p id="memory-date-error" role="alert">
+                        {t('taskBoundary.invalidDate')}
+                      </p>
+                    ) : null}
+                    <p className="field-help">{t('memory.dateHelp')}</p>
+                  </div>
+      
+                  <div
+                    className="sharing-note immersive-sharing-note"
+                    role="note"
+                    aria-label={t('memory.visibilityAria')}
                   >
-                    {t('memory.dateChangeAction')}
-                  </span>
-                </button>
-              )}
-              {invalidDate ? (
-                <p id="memory-date-error" role="alert">
-                  {t('taskBoundary.invalidDate')}
+                    <span className="sharing-icon" aria-hidden="true">
+                      <DestinationIcon icon="people" />
+                    </span>
+                    <div>
+                      <strong>{t('memory.sharedTitle')}</strong>
+                      <p>{t('memory.sharedBody')}</p>
+                    </div>
+                  </div>
+                </fieldset>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={requestClose}
+                    aria-disabled={pending}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      !hasUserContent ||
+                      pending ||
+                      uncertain ||
+                      attachments.hasPending ||
+                      attachments.items.some((item) => item.status === 'failed')
+                    }
+                  >
+                    {pending
+                      ? t('memory.saving')
+                      : partial
+                        ? t('taskBoundary.retryPhotos')
+                        : t('memory.save')}
+                  </button>
+                </div>
+              </form>
+              {pending ? (
+                <p className="status" role="status" aria-live="polite">
+                  {t('taskBoundary.pending')}
                 </p>
               ) : null}
-              <p className="field-help">{t('memory.dateHelp')}</p>
-            </div>
-
-            <div
-              className="sharing-note immersive-sharing-note"
-              role="note"
-              aria-label={t('memory.visibilityAria')}
-            >
-              <span className="sharing-icon" aria-hidden="true">
-                <DestinationIcon icon="people" />
-              </span>
-              <div>
-                <strong>{t('memory.sharedTitle')}</strong>
-                <p>{t('memory.sharedBody')}</p>
-              </div>
-            </div>
-          </fieldset>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={
-                !hasUserContent ||
-                pending ||
-                uncertain ||
-                attachments.hasPending ||
-                attachments.items.some((item) => item.status === 'failed')
-              }
-            >
-              {pending
-                ? t('memory.saving')
-                : partial
-                  ? t('taskBoundary.retryPhotos')
-                  : t('memory.save')}
-            </button>
-          </div>
-        </form>
-        {pending ? (
-          <p className="status" role="status" aria-live="polite">
-            {t('taskBoundary.pending')}
-          </p>
-        ) : null}
-        {attachments.items.some((item) => item.status === 'failed') ? (
-          <p role="alert">{t('taskBoundary.failedPhotos')}</p>
-        ) : null}
-        {offlineAttempt ? (
-          <p role="alert">{t('taskBoundary.offline')}</p>
-        ) : null}
-        {uncertain ? (
-          <section className="inline-message" role="alert">
-            <h2>{t('taskBoundary.uncertainTitle')}</h2>
-            <p>{t('taskBoundary.uncertainBody')}</p>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                requestClose();
-                discardDestinationRef.current = 'timeline';
-              }}
-            >
-              {t('taskBoundary.checkMoments')}
-            </button>
-          </section>
-        ) : partial ? (
-          <section className="inline-message" role="alert">
-            <h2>{t('taskBoundary.partialTitle')}</h2>
-            <p>{t('taskBoundary.partialBody')}</p>
-            {problem?.kind === 'conflict' ? (
-              <p>{t('states.conflict.body')}</p>
-            ) : null}
-            <button
-              type="button"
-              className="secondary"
-              disabled={pending}
-              onClick={() => openResult(partial.memory, true)}
-            >
-              {t('taskBoundary.openSaved')}
-            </button>
-          </section>
-        ) : problem ? (
-          <ProblemState error={problem} />
-        ) : null}
-        <ShortTaskSheet
-          ref={confirmRef}
-          open={showDiscard}
-          role="alertdialog"
-          title={t(
-            partial
-              ? 'taskBoundary.partialDiscardTitle'
-              : uncertain
-                ? 'taskBoundary.uncertainDiscardTitle'
-                : 'taskBoundary.discardTitle',
-          )}
-          onClose={() => {
-            setShowDiscard(false);
-            discardDestinationRef.current = null;
-          }}
-        >
-          <p>
-            {t(
-              partial
-                ? 'taskBoundary.partialDiscardBody'
-                : uncertain
-                  ? 'taskBoundary.uncertainDiscardBody'
-                  : 'taskBoundary.discardBody',
-            )}
-          </p>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                setShowDiscard(false);
-                discardDestinationRef.current = null;
-              }}
-            >
-              {t('taskBoundary.keepEditing')}
-            </button>
-            <button
-              type="button"
-              className="danger"
-              onClick={() => {
-                const checkTimeline =
-                  discardDestinationRef.current === 'timeline';
-                confirmRef.current?.closeForNavigation(() => {
+              {attachments.items.some((item) => item.status === 'failed') ? (
+                <p role="alert">{t('taskBoundary.failedPhotos')}</p>
+              ) : null}
+              {offlineAttempt ? (
+                <p role="alert">{t('taskBoundary.offline')}</p>
+              ) : null}
+              {uncertain ? (
+                <section className="inline-message" role="alert">
+                  <h2>{t('taskBoundary.uncertainTitle')}</h2>
+                  <p>{t('taskBoundary.uncertainBody')}</p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => {
+                      requestClose();
+                      discardDestinationRef.current = 'timeline';
+                    }}
+                  >
+                    {t('taskBoundary.checkMoments')}
+                  </button>
+                </section>
+              ) : partial ? (
+                <section className="inline-message" role="alert">
+                  <h2>{t('taskBoundary.partialTitle')}</h2>
+                  <p>{t('taskBoundary.partialBody')}</p>
+                  {problem?.kind === 'conflict' ? (
+                    <p>{t('states.conflict.body')}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={pending}
+                    onClick={() => openResult(partial.memory, true)}
+                  >
+                    {t('taskBoundary.openSaved')}
+                  </button>
+                </section>
+              ) : problem ? (
+                <ProblemState error={problem} />
+              ) : null}
+              <ShortTaskSheet
+                ref={confirmRef}
+                open={showDiscard}
+                role="alertdialog"
+                title={t(
+                  partial
+                    ? 'taskBoundary.partialDiscardTitle'
+                    : uncertain
+                      ? 'taskBoundary.uncertainDiscardTitle'
+                      : 'taskBoundary.discardTitle',
+                )}
+                onClose={() => {
                   setShowDiscard(false);
-                  if (checkTimeline)
-                    exitAction.current = () =>
-                      navigate('/story?tab=timeline', { replace: true });
-                  closeTask();
-                });
-              }}
-            >
-              {t('taskBoundary.discard')}
-            </button>
-          </div>
-        </ShortTaskSheet>
-      </section>
-    </div>
+                  discardDestinationRef.current = null;
+                }}
+              >
+                <p>
+                  {t(
+                    partial
+                      ? 'taskBoundary.partialDiscardBody'
+                      : uncertain
+                        ? 'taskBoundary.uncertainDiscardBody'
+                        : 'taskBoundary.discardBody',
+                  )}
+                </p>
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => {
+                      setShowDiscard(false);
+                      discardDestinationRef.current = null;
+                    }}
+                  >
+                    {t('taskBoundary.keepEditing')}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => {
+                      const checkTimeline =
+                        discardDestinationRef.current === 'timeline';
+                      confirmRef.current?.closeForNavigation(() => {
+                        setShowDiscard(false);
+                        if (checkTimeline)
+                          exitAction.current = () =>
+                            navigate('/story?tab=timeline', { replace: true });
+                        closeTask();
+                      });
+                    }}
+                  >
+                    {t('taskBoundary.discard')}
+                  </button>
+                </div>
+              </ShortTaskSheet>
+    </StoryCreatePageShell>
   );
 }

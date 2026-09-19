@@ -252,10 +252,13 @@ export async function loadAuthorizedMedia(
   if (descriptor.method === ReadDescriptorMethodEnum.STREAM) {
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
-  const response = await fetchApi(resolveTransportUrl(apiBaseUrl, descriptor.url), {
-    headers,
-    ...(signal ? { signal } : {}),
-  });
+  const response = await fetchApi(
+    resolveTransportUrl(apiBaseUrl, descriptor.url),
+    {
+      headers,
+      ...(signal ? { signal } : {}),
+    },
+  );
   await assertOk(response, i18n.t('flow.imageLoadFailed'));
   return URL.createObjectURL(await response.blob());
 }

@@ -11,7 +11,7 @@ describe('StoryDetailPageShell', () => {
         title="Together"
         pageClassName="memory-product-page"
         containerClassName="memory-detail-container"
-        containerProps={{ 'data-detail-kind': 'memory' }}
+        containerDataAttributes={{ 'data-detail-kind': 'memory' }}
         articleClassName="memory-detail-card"
       >
         <p>Detail body</p>

@@ -108,47 +108,102 @@ async function pointerClickWithoutScroll(
 async function swipeCarousel(
   page: Page,
   direction: 'previous' | 'next',
-): Promise<void> {
-  await page
-    .locator('.media-gallery-carousel-viewport')
-    .evaluate((element, swipeDirection) => {
-      const rect = element.getBoundingClientRect();
-      const startX =
-        swipeDirection === 'next' ? rect.right - 24 : rect.left + 24;
-      const endX = swipeDirection === 'next' ? rect.left + 24 : rect.right - 24;
-      const clientY = rect.top + rect.height / 2;
-      const start = new Touch({
-        identifier: 1,
-        target: element,
-        clientX: startX,
-        clientY,
-      });
-      const end = new Touch({
-        identifier: 1,
-        target: element,
-        clientX: endX,
-        clientY,
-      });
+): Promise<{
+  startScrollLeft: number;
+  midScrollLeft: number;
+  viewportWidth: number;
+  visibleSlides: number;
+}> {
+  const track = page.locator('.media-gallery-carousel-track');
+  const box = await track.boundingBox();
+  if (!box) throw new Error('Carousel track did not render.');
 
-      element.dispatchEvent(
-        new TouchEvent('touchstart', {
-          bubbles: true,
-          cancelable: true,
-          touches: [start],
-          targetTouches: [start],
-          changedTouches: [start],
-        }),
-      );
-      element.dispatchEvent(
-        new TouchEvent('touchend', {
-          bubbles: true,
-          cancelable: true,
-          touches: [],
-          targetTouches: [],
-          changedTouches: [end],
-        }),
-      );
-    }, direction);
+  const startX =
+    direction === 'next' ? box.x + box.width * 0.82 : box.x + box.width * 0.18;
+  const endX =
+    direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
+  const midX = startX + (endX - startX) * 0.58;
+  const clientY = box.y + box.height / 2;
+  const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: midX, y: clientY }],
+    });
+    await nextFrame(page);
+
+    const midState = await track.evaluate((element) => {
+      const viewport = element.getBoundingClientRect();
+      const visibleSlides = Array.from(
+        element.querySelectorAll<HTMLElement>('.media-gallery-carousel-slide'),
+      ).filter((slide) => {
+        const rect = slide.getBoundingClientRect();
+        return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
+      }).length;
+      return {
+        scrollLeft: element.scrollLeft,
+        viewportWidth: element.clientWidth,
+        visibleSlides,
+      };
+    });
+
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: endX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+
+    return {
+      startScrollLeft,
+      midScrollLeft: midState.scrollLeft,
+      viewportWidth: midState.viewportWidth,
+      visibleSlides: midState.visibleSlides,
+    };
+  } finally {
+    await client.detach();
+  }
+}
+
+async function expectCarouselSettled(
+  page: Page,
+  index: number,
+): Promise<void> {
+  await expect
+    .poll(() =>
+      page.locator('.media-gallery-carousel-track').evaluate(
+        (track, expectedIndex) => {
+          const slide = track.querySelector<HTMLElement>(
+            `.media-gallery-carousel-slide:not(.is-clone)[data-carousel-index="${expectedIndex}"]`,
+          );
+          if (!slide) return Number.POSITIVE_INFINITY;
+          return Math.abs(track.scrollLeft - slide.offsetLeft);
+        },
+        index,
+      ),
+    )
+    .toBeLessThanOrEqual(1);
+}
+
+async function carouselInteractionContract(page: Page) {
+  return page.locator('.media-gallery-carousel-track').evaluate((track) => {
+    const style = getComputedStyle(track);
+    return {
+      scrollSnapType: style.scrollSnapType,
+      overscrollBehaviorX: style.overscrollBehaviorX,
+      touchAction: style.touchAction,
+      cloneCount: track.querySelectorAll('.media-gallery-carousel-slide.is-clone')
+        .length,
+    };
+  });
 }
 
 async function installApiMocks(page: Page) {
@@ -382,9 +437,11 @@ async function openMemory(
 ): Promise<void> {
   await page.goto(`/story/memories/${memoryId}`);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  await expect(page.locator('.media-gallery-carousel-content')).toHaveCount(
-    memoryId === MEMORY_ID ? 3 : 1,
-  );
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide:not(.is-clone) .media-gallery-carousel-content',
+    ),
+  ).toHaveCount(memoryId === MEMORY_ID ? 3 : 1);
 }
 
 async function positionGalleryForReading(page: Page): Promise<void> {
@@ -435,30 +492,6 @@ function expectStableGeometry(
   ).toBeLessThanOrEqual(1);
 }
 
-async function motionLayers(page: Page) {
-  return page.evaluate(() => {
-    const active = document.querySelector<HTMLElement>(
-      '.media-gallery-carousel-slide.is-active',
-    );
-    const outgoing = document.querySelector<HTMLElement>(
-      '.media-gallery-carousel-slide.is-outgoing',
-    );
-    if (!active || !outgoing) {
-      throw new Error('Carousel transition layers did not coexist.');
-    }
-    const activeStyle = getComputedStyle(active);
-    const outgoingStyle = getComputedStyle(outgoing);
-    return {
-      activeClass: active.className,
-      outgoingClass: outgoing.className,
-      activeAnimationName: activeStyle.animationName,
-      activeAnimationDuration: activeStyle.animationDuration,
-      outgoingAnimationName: outgoingStyle.animationName,
-      outgoingAnimationDuration: outgoingStyle.animationDuration,
-    };
-  });
-}
-
 test('Memory carousel keeps document and layout position stable across pointer and keyboard navigation', async ({
   page,
 }, testInfo) => {
@@ -497,59 +530,44 @@ test('Memory carousel keeps document and layout position stable across pointer a
     ),
   ).toContain('blur');
 
+  const interaction = await carouselInteractionContract(page);
+  expect(interaction.scrollSnapType).toContain('x');
+  expect(interaction.scrollSnapType).toContain('mandatory');
+  expect(interaction.overscrollBehaviorX).toBe('contain');
+  expect(interaction.touchAction).toContain('pan-x');
+  expect(interaction.touchAction).toContain('pan-y');
+  expect(interaction.cloneCount).toBe(2);
+  await expectCarouselSettled(page, 0);
+
   const pointerSteps = [
-    { control: next, expected: 2, direction: 'next' },
-    { control: next, expected: 3, direction: 'next' },
-    { control: next, expected: 1, direction: 'next' },
-    { control: previous, expected: 3, direction: 'previous' },
-    { control: previous, expected: 2, direction: 'previous' },
+    { control: next, expected: 2 },
+    { control: next, expected: 3 },
+    { control: next, expected: 1 },
+    { control: previous, expected: 3 },
+    { control: previous, expected: 2 },
   ] as const;
 
   for (const step of pointerSteps) {
     const before = await geometry(page);
     await pointerClickWithoutScroll(page, step.control);
-    const transition = await motionLayers(page);
     await expect(counter).toHaveText(counterLabel(step.expected, 3));
-    expect(transition.activeClass).toContain(`is-${step.direction}`);
-    expect(transition.outgoingClass).toContain(`is-${step.direction}`);
-    expect(transition.activeAnimationName).toContain(
-      `media-gallery-carousel-enter-${step.direction}`,
-    );
-    expect(transition.outgoingAnimationName).toContain(
-      `media-gallery-carousel-exit-${step.direction}`,
-    );
-    expect(
-      Number.parseFloat(transition.activeAnimationDuration),
-    ).toBeGreaterThan(0);
-    expect(
-      Number.parseFloat(transition.outgoingAnimationDuration),
-    ).toBeGreaterThan(0);
-    await nextFrame(page);
-    const after = await geometry(page);
-    expectStableGeometry(before, after);
+    await expectCarouselSettled(page, step.expected - 1);
+    await expect(
+      page.locator('.media-gallery-carousel-slide.is-active'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('.media-gallery-carousel-slide.is-outgoing'),
+    ).toHaveCount(0);
+    expectStableGeometry(before, await geometry(page));
   }
-
-  const beforeBurst = await geometry(page);
-  await pointerClickWithoutScroll(page, next);
-  await pointerClickWithoutScroll(page, next);
-  await pointerClickWithoutScroll(page, next);
-  await expect(counter).toHaveText(counterLabel(2, 3));
-  await expect(
-    page.locator('.media-gallery-carousel-slide.is-active'),
-  ).toHaveCount(1);
-  await expect(
-    page.locator('.media-gallery-carousel-slide.is-outgoing'),
-  ).toHaveCount(1);
-  await nextFrame(page);
-  expectStableGeometry(beforeBurst, await geometry(page));
 
   await next.focus();
   await expect(next).toBeFocused();
   const beforeKeyboard = await geometry(page);
   await page.keyboard.press('Enter');
   await expect(counter).toHaveText(counterLabel(3, 3));
+  await expectCarouselSettled(page, 2);
   await expect(next).toBeFocused();
-  await nextFrame(page);
   expectStableGeometry(beforeKeyboard, await geometry(page));
 
   const activeItem = page.getByRole('button', {
@@ -635,6 +653,15 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       const next = page.locator('.media-gallery-carousel-next');
       await expect(next).toBeHidden();
 
+      const interaction = await carouselInteractionContract(page);
+      expect(interaction.scrollSnapType).toContain('x');
+      expect(interaction.scrollSnapType).toContain('mandatory');
+      expect(interaction.overscrollBehaviorX).toBe('contain');
+      expect(interaction.touchAction).toContain('pan-x');
+      expect(interaction.touchAction).toContain('pan-y');
+      expect(interaction.cloneCount).toBe(2);
+      await expectCarouselSettled(page, 0);
+
       const touchSteps = [
         { direction: 'next', expected: 2 },
         { direction: 'previous', expected: 1 },
@@ -644,14 +671,18 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
 
       for (const step of touchSteps) {
         const before = await geometry(page);
-        await swipeCarousel(page, step.direction);
-        const touchTransition = await motionLayers(page);
+        const drag = await swipeCarousel(page, step.direction);
+        expect(
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
+        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
         await expect(
           page.locator('.media-gallery-carousel-counter'),
         ).toHaveText(counterLabel(step.expected, 3));
-        expect(touchTransition.activeClass).toContain(`is-${step.direction}`);
-        expect(touchTransition.outgoingClass).toContain(`is-${step.direction}`);
-        await nextFrame(page);
+        await expectCarouselSettled(page, step.expected - 1);
+        await expect(
+          page.locator('.media-gallery-carousel-slide.is-outgoing'),
+        ).toHaveCount(0);
         expectStableGeometry(before, await geometry(page));
       }
       expect(unexpectedRequests).toEqual([]);
@@ -688,20 +719,14 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   await nextFrame(page);
   expectStableGeometry(before, await geometry(page));
 
+  await expectCarouselSettled(page, 1);
   await expect(
     page.locator('.media-gallery-carousel-slide.is-outgoing'),
   ).toHaveCount(0);
   const reducedMotion = await page
     .locator('.media-gallery-carousel-slide.is-active')
-    .evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        animationName: style.animationName,
-        animationDuration: style.animationDuration,
-      };
-    });
-  expect(reducedMotion.animationName).toBe('none');
-  expect(Number.parseFloat(reducedMotion.animationDuration)).toBe(0);
+    .evaluate((element) => getComputedStyle(element).animationName);
+  expect(reducedMotion).toBe('none');
 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
@@ -745,6 +770,9 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
   ).toHaveCount(1);
   await expect(
     page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-clone'),
   ).toHaveCount(0);
 
   const frameHeight = await page

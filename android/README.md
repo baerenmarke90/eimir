@@ -63,6 +63,19 @@ EIMIR_RELEASE_KEY_PASSWORD="key-password" \
 
 Supply-chain dependencies are strictly verified against `gradle/verification-metadata.xml`.
 
+## Legacy Native Storage Cleanup
+
+The retired Kotlin/Compose client persisted a Room read cache and a remembered
+Space preference inside the same Android application sandbox. Because
+`de.sidebyside.app` is intentionally preserved for store-update continuity,
+Android also preserves that sandbox during an in-place upgrade.
+
+`LegacyNativeDataCleanup` therefore runs from `MainActivity` on every start.
+It only deletes the retired database, its journal/WAL sidecars, the old Space
+preference and the former owner-only cache Keystore entry. It never reads or
+migrates cached product content. Failed cleanup is retried on the next start.
+This bounded migration code is not a product-data store or a second client.
+
 ## Deep Linking & OIDC Callback
 
 The Android manifest registers an intent filter for:

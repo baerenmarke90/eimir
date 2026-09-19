@@ -421,12 +421,12 @@ export function MediaGallery({
         <div className="media-gallery-carousel-viewport">
           <div
             ref={carouselTrack}
-            className="media-gallery-carousel-track"
+            className="eimir-media-snap-track media-gallery-carousel-track"
             onScroll={(event) => handleCarouselScroll(event.currentTarget)}
           >
             {items.length > 1 ? (
               <div
-                className="media-gallery-carousel-slide is-clone"
+                className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
                 data-carousel-index={items.length - 1}
                 data-carousel-clone="start"
                 aria-hidden="true"
@@ -445,7 +445,7 @@ export function MediaGallery({
                   }}
                   key={item.id}
                   type="button"
-                  className={`media-gallery-carousel-slide${
+                  className={`eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide${
                     isActive ? ' is-active' : ''
                   }`}
                   data-carousel-index={index}
@@ -463,7 +463,7 @@ export function MediaGallery({
 
             {items.length > 1 ? (
               <div
-                className="media-gallery-carousel-slide is-clone"
+                className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
                 data-carousel-index={0}
                 data-carousel-clone="end"
                 aria-hidden="true"
@@ -520,13 +520,13 @@ export function MediaGallery({
                   {items.length > 1 ? (
                     <div
                       ref={lightboxTrack}
-                      className="media-lightbox-track"
+                      className="eimir-media-snap-track media-lightbox-track"
                       onScroll={(event) =>
                         handleLightboxScroll(event.currentTarget)
                       }
                     >
                       <div
-                        className="media-lightbox-slide is-clone"
+                        className="eimir-media-snap-item eimir-media-snap-item-center media-lightbox-slide is-clone"
                         data-lightbox-index={items.length - 1}
                         data-lightbox-clone="start"
                         aria-hidden="true"
@@ -543,7 +543,7 @@ export function MediaGallery({
                             lightboxSlides.current[index] = element;
                           }}
                           key={item.id}
-                          className="media-lightbox-slide"
+                          className="eimir-media-snap-item eimir-media-snap-item-center media-lightbox-slide"
                           data-lightbox-index={index}
                           aria-hidden={index !== activeIndex}
                         >
@@ -552,7 +552,7 @@ export function MediaGallery({
                       ))}
 
                       <div
-                        className="media-lightbox-slide is-clone"
+                        className="eimir-media-snap-item eimir-media-snap-item-center media-lightbox-slide is-clone"
                         data-lightbox-index={0}
                         data-lightbox-clone="end"
                         aria-hidden="true"

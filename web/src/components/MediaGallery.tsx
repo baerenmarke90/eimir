@@ -179,8 +179,7 @@ export function MediaGallery({
     if (items.length < 2) return;
 
     const direction = delta < 0 ? -1 : 1;
-    const nextIndex =
-      (carouselIndex + direction + items.length) % items.length;
+    const nextIndex = (carouselIndex + direction + items.length) % items.length;
     const track = carouselTrack.current;
     if (!track) {
       setCarouselIndex(nextIndex);

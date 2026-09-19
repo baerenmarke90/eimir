@@ -1,6 +1,7 @@
 
 # PartnerPresenceView
 
+Privacy-bounded state of the other active partner in this Space.
 
 ## Properties
 

@@ -292,8 +292,8 @@ export function MemoryCreatePage({
           />
         </div>
       }
-        pageClassName="memory-task-page"
-        labelledBy="memory-form-heading"
+      pageClassName="memory-task-page"
+      labelledBy="memory-form-heading"
     >
       <>
         <h2 id="memory-form-heading" className="sr-only">

@@ -16,35 +16,29 @@ on:
     inputs:
       android_version_code:
         description: Monotonic Android versionCode for this evidence build.
-        required: false
-        default: 1
+        required: true
         type: number
       android_api_base_url:
         description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: false
-        default: "https://api.eimir.invalid"
+        required: true
         type: string
       release_version:
         description: SemVer product version without the v prefix; must equal Android versionName.
-        required: false
-        default: "0.1.0"
+        required: true
         type: string
   workflow_call:
     inputs:
       android_version_code:
         description: Monotonic Android versionCode for this evidence build.
-        required: false
-        default: 1
+        required: true
         type: number
       android_api_base_url:
         description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: false
-        default: "https://api.eimir.invalid"
+        required: true
         type: string
       release_version:
         description: SemVer product version without the v prefix; must equal Android versionName.
-        required: false
-        default: "0.1.0"
+        required: true
         type: string
 
 permissions:
@@ -58,9 +52,9 @@ env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
   ANDROID_PROJECT_DIR: "capacitor-android"
-  ANDROID_VERSION_CODE: ${{ inputs.android_version_code || 1 }}
-  ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || 'https://api.eimir.invalid' }}
-  RELEASE_VERSION: ${{ inputs.release_version || '0.1.0' }}
+  ANDROID_VERSION_CODE: ${{ inputs.android_version_code || (github.event_name == 'pull_request' && 1 || '') }}
+  ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || (github.event_name == 'pull_request' && 'https://api.eimir.invalid' || '') }}
+  RELEASE_VERSION: ${{ inputs.release_version || (github.event_name == 'pull_request' && '0.1.0' || '') }}
 
 jobs:
   build-evidence:
@@ -164,10 +158,10 @@ jobs:
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
-      - name: Install Android SDK 37.1
+      - name: Install Android SDK 36
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-37.1" "build-tools;36.0.0"
+            "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build and sync Capacitor web bundle
         working-directory: web
@@ -175,7 +169,7 @@ jobs:
           ANDROID_API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
         run: |
           set -euo pipefail
-          npm ci
+          npm ci --ignore-scripts --no-audit --no-fund
           VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web
           npm run cap:sync
 

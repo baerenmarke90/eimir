@@ -131,6 +131,8 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
         self.assertIn('ANDROID_PROJECT_DIR: "capacitor-android"', self.workflow)
         self.assertIn("working-directory: ${{ env.ANDROID_PROJECT_DIR }}", self.workflow)
+        self.assertIn('"platforms;android-36"', self.workflow)
+        self.assertIn("npm ci --ignore-scripts --no-audit --no-fund", self.workflow)
         self.assertIn("npm run cap:sync", self.workflow)
         self.assertIn('VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web', self.workflow)
         self.assertIn("git diff --exit-code --", self.workflow)

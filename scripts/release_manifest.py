@@ -139,43 +139,6 @@ def cloud_images_from_compose(config: dict[str, Any]) -> tuple[str, str]:
     return backend_reference, web_reference
 
 
-def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
-    require_semver(version)
-    if evidence.get("schemaVersion") != 1:
-        raise ManifestError("Unsupported #193 evidence schema")
-    source = evidence.get("sourceRevision")
-    if not isinstance(source, str) or not SHA40.fullmatch(source):
-        raise ManifestError("Evidence sourceRevision must be one immutable 40-hex commit SHA")
-    if evidence.get("sbomFormat") != "SPDX-2.3 JSON":
-        raise ManifestError("Release evidence must use SPDX-2.3 JSON")
-
-    artifacts = evidence.get("artifacts")
-    if not isinstance(artifacts, list):
-        raise ManifestError("Evidence artifacts must be a list")
-    by_id: dict[str, dict[str, Any]] = {}
-    for artifact in artifacts:
-        if not isinstance(artifact, dict):
-            raise ManifestError("Every evidence artifact must be an object")
-        artifact_id = artifact.get("id")
-        if not isinstance(artifact_id, str) or artifact_id in by_id:
-            raise ManifestError(f"Duplicate or invalid artifact id: {artifact_id!r}")
-        safe_relative_path(str(artifact.get("path", "")))
-        safe_relative_path(str(artifact.get("sbom", "")))
-        if not SHA256.fullmatch(str(artifact.get("sha256", ""))):
-            raise ManifestError(f"Invalid SHA-256 for {artifact_id}")
-        if not SHA256.fullmatch(str(artifact.get("sbomSha256", ""))):
-            raise ManifestError(f"Invalid SBOM SHA-256 for {artifact_id}")
-        by_id[artifact_id] = artifact
-
-    if set(by_id) != REQUIRED_ARTIFACTS:
-        raise ManifestError(
-            "Release evidence must contain exactly backend, Web, APK and AAB artifacts"
-        )
-    if set(by_id["backend-runtime"].get("roles", [])) != BACKEND_ROLES:
-        raise ManifestError("Backend artifact must cover API, worker and migrate together")
-    if set(by_id["web-runtime"].get("roles", [])) != {"web"}:
-        raise ManifestError("Web artifact role is inconsistent")
-
 def validate_android_record(android: dict[str, Any], *, version: str | None = None) -> None:
     if not isinstance(android, dict):
         raise ManifestError("Evidence lacks Android release identity")

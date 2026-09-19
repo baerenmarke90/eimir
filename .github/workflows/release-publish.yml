@@ -355,10 +355,10 @@ jobs:
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
-      - name: Install Android SDK 37.1
+      - name: Install Android SDK 36
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-37.1" "build-tools;36.0.0"
+            "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build and sync Capacitor web bundle
         working-directory: web
@@ -366,7 +366,7 @@ jobs:
           ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
         run: |
           set -euo pipefail
-          npm ci
+          npm ci --ignore-scripts --no-audit --no-fund
           VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web
           npm run cap:sync
 

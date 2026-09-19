@@ -405,8 +405,9 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
 export function GiftIdeaDetailPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const { query } = useGiftIdea(api, accountId, spaceId);
-  const { navigationState } =
-    usePrivateAreaTaskContext(PRIVATE_GIFT_IDEAS_PATH);
+  const { navigationState } = usePrivateAreaTaskContext(
+    PRIVATE_GIFT_IDEAS_PATH,
+  );
 
   if (query.isLoading)
     return <UiState kind="loading" title={t('privateArea.gifts.loading')} />;
@@ -511,9 +512,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
       });
-      closeTask(() =>
-        navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true }),
-      );
+      closeTask(() => navigate(PRIVATE_GIFT_IDEAS_PATH, { replace: true }));
     },
   });
 

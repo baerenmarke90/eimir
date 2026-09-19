@@ -1,4 +1,5 @@
-import { type FormEvent, useMemo } from 'react';
+import { type FormEvent, type MouseEvent, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   useInfiniteQuery,
   useMutation,
@@ -9,6 +10,12 @@ import type { ChapterContentItem } from '../api/generated/models/ChapterContentI
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { normalizeClientError } from '../client/problemDetails';
+import {
+  heartMomentDetailPath,
+  memoryDetailPath,
+  milestoneDetailPath,
+} from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   storyRelationTarget,
   type PlanningRelationKind,
@@ -163,18 +170,33 @@ function formatDate(value: Date): string {
   }).format(value);
 }
 
+function relationTargetPath(target: PlanningRelationTarget): string {
+  switch (target.kind) {
+    case 'MEMORY':
+      return memoryDetailPath(target.id);
+    case 'HEART_MOMENT':
+      return heartMomentDetailPath(target.id);
+    case 'MILESTONE':
+      return milestoneDetailPath(target.id);
+  }
+}
+
 export function PlanningRelationManager({
   apis,
   spaceId,
   ownerKind,
   ownerId,
+  canManage,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   ownerKind: 'place' | 'chapter';
   ownerId: string;
+  canManage: boolean;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const queryClient = useQueryClient();
   const relationKey = [
     'm5-s3',
@@ -192,6 +214,7 @@ export function PlanningRelationManager({
     getNextPageParam: nextRelationTargetCursor,
     staleTime: 60_000,
     retry: false,
+    enabled: canManage,
   });
 
   const relationsQuery = useQuery({
@@ -387,6 +410,24 @@ export function PlanningRelationManager({
     (target) => !linkedKeys.has(targetKey(target.kind, target.id)),
   );
 
+  function openTarget(
+    event: MouseEvent<HTMLAnchorElement>,
+    path: string,
+  ) {
+    if (
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
+    const taskOriginKey = captureOrigin();
+    if (!taskOriginKey) return;
+    event.preventDefault();
+    void navigate(path, { state: { taskOriginKey } });
+  }
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -409,16 +450,22 @@ export function PlanningRelationManager({
       <div className="layout-section-head">
         <div>
           <h2 id={`${ownerKind}-relations-heading`}>
-            {t('m5s3.relations.heading')}
+            {t(
+              ownerKind === 'place'
+                ? 'm5s3.relations.headingPlace'
+                : 'm5s3.relations.headingChapter',
+            )}
           </h2>
           <p>{t('m5s3.relations.intro')}</p>
         </div>
       </div>
 
-      {targetsQuery.isLoading || relationsQuery.isLoading ? (
+      {relationsQuery.isLoading || (canManage && targetsQuery.isLoading) ? (
         <UiState kind="loading" title={t('m5s3.relations.loading')} />
       ) : null}
-      {targetsQuery.error ? <ProblemState error={targetsQuery.error} /> : null}
+      {canManage && targetsQuery.error ? (
+        <ProblemState error={targetsQuery.error} />
+      ) : null}
       {relationsQuery.error ? (
         <ProblemState
           error={relationsQuery.error}
@@ -432,30 +479,44 @@ export function PlanningRelationManager({
             const target = targetMap.get(
               targetKey(relation.targetType, relation.targetId),
             );
+            const path = target ? relationTargetPath(target) : null;
             return (
               <li key={targetKey(relation.targetType, relation.targetId)}>
-                <div>
-                  <strong>
-                    {target?.label || t('m5s3.relations.contentFallback')}
-                  </strong>
-                  <span className="planning-meta">
-                    {t(`m5s3.relations.kind.${relation.targetType}`)}
-                    {target ? ` · ${formatDate(target.effectiveDate)}` : ''}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() =>
-                    unlinkMutation.mutate({
-                      kind: relation.targetType,
-                      targetId: relation.targetId,
-                    })
-                  }
-                  disabled={unlinkMutation.isPending}
-                >
-                  {t('m5s3.relations.unlink')}
-                </button>
+                {target && path ? (
+                  <Link
+                    className="planning-relation-target"
+                    to={path}
+                    onClick={(event) => openTarget(event, path)}
+                  >
+                    <strong>{target.label}</strong>
+                    <span className="planning-meta">
+                      {t(`m5s3.relations.kind.${relation.targetType}`)} ·{' '}
+                      {formatDate(target.effectiveDate)}
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="planning-relation-target-copy">
+                    <strong>{t('m5s3.relations.contentFallback')}</strong>
+                    <span className="planning-meta">
+                      {t(`m5s3.relations.kind.${relation.targetType}`)}
+                    </span>
+                  </div>
+                )}
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="tertiary"
+                    onClick={() =>
+                      unlinkMutation.mutate({
+                        kind: relation.targetType,
+                        targetId: relation.targetId,
+                      })
+                    }
+                    disabled={unlinkMutation.isPending}
+                  >
+                    {t('m5s3.relations.unlink')}
+                  </button>
+                ) : null}
               </li>
             );
           })}
@@ -464,7 +525,7 @@ export function PlanningRelationManager({
         <p className="planning-empty">{t('m5s3.relations.empty')}</p>
       ) : null}
 
-      {availableTargets.length > 0 ? (
+      {canManage && availableTargets.length > 0 ? (
         <form onSubmit={submit} className="planning-relation-form">
           <label htmlFor={`${ownerKind}-relation-target`}>
             {t('m5s3.relations.addLabel')}
@@ -493,11 +554,11 @@ export function PlanningRelationManager({
               : t('m5s3.relations.link')}
           </button>
         </form>
-      ) : targetsQuery.data && !targetsQuery.hasNextPage ? (
+      ) : canManage && targetsQuery.data && !targetsQuery.hasNextPage ? (
         <p className="planning-meta">{t('m5s3.relations.noMoreTargets')}</p>
       ) : null}
 
-      {targetsQuery.hasNextPage ? (
+      {canManage && targetsQuery.hasNextPage ? (
         <button
           type="button"
           className="tertiary compact-action"
@@ -510,8 +571,10 @@ export function PlanningRelationManager({
         </button>
       ) : null}
 
-      {linkMutation.error ? <ProblemState error={linkMutation.error} /> : null}
-      {unlinkMutation.error ? (
+      {canManage && linkMutation.error ? (
+        <ProblemState error={linkMutation.error} />
+      ) : null}
+      {canManage && unlinkMutation.error ? (
         <ProblemState error={unlinkMutation.error} />
       ) : null}
     </section>

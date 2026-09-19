@@ -1,10 +1,10 @@
 {
   "version": 1,
   "baseline": {
-    "main": "5ed0fa8581555b6a6c81a9912d07b2c0609ac12f",
+    "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
     "specFiles": 46,
-    "tests": 316,
-    "prCriticalTests": 152
+    "tests": 318,
+    "prCriticalTests": 154
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -106,7 +106,7 @@
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7
+      "baselineTests": 9
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",

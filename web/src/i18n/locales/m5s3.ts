@@ -209,6 +209,8 @@ const m5s3 = {
     noMap:
       'eimir. verwendet hier keine Karten- oder Geocoding-Dienste. Der gespeicherte Ort bleibt unabhängig davon nutzbar.',
     noAddress: 'Keine Adresse hinterlegt',
+    noDescription: 'Noch keine Beschreibung zu diesem Ort.',
+    technicalDetails: 'Technische Ortsdaten',
     deleteConsequence:
       'Der Ort und seine Verknüpfungen werden gelöscht. Erinnerungen, Herzmomente und Meilensteine selbst bleiben erhalten.',
   },
@@ -226,12 +228,19 @@ const m5s3 = {
     detailEyebrow: 'Gemeinsames Kapitel',
     startOn: 'Beginn',
     endOn: 'Ende',
+    contextHeading: 'Zeitraum und Ort',
+    noPeriod: 'Kein Zeitraum hinterlegt.',
+    placeLabel: 'Ort: {{name}}',
+    placeLoading: 'Der verknüpfte Ort wird geladen …',
+    placeUnavailable: 'Der verknüpfte Ort ist derzeit nicht verfügbar.',
+    noPlace: 'Kein Ort mit diesem Kapitel verknüpft.',
     noDescription: 'Noch keine Beschreibung.',
     deleteConsequence:
       'Nur das Kapitel und seine Verknüpfungen werden gelöscht. Die enthaltenen Erinnerungen, Herzmomente und Meilensteine bleiben unverändert erhalten.',
   },
   relations: {
-    heading: 'Was gehört zu diesem Kapitel?',
+    headingPlace: 'Was verbindet ihr mit diesem Ort?',
+    headingChapter: 'Was gehört zu diesem Kapitel?',
     intro:
       'Auswählbar sind ausschließlich Inhalte aus eurer gemeinsamen Story. Private Herzmomente erscheinen hier nicht.',
     loading: 'Verknüpfungen werden geladen …',

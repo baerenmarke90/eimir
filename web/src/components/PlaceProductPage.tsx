@@ -6,7 +6,7 @@ import {
   type RefObject,
 } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -14,6 +14,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { MORE_PLACES_ROUTE } from '../client/routes';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
@@ -312,6 +313,11 @@ export function PlaceProductPage({
   const { t } = useTranslation();
   const { placeId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (
+    location.state as { taskOriginKey?: unknown } | null
+  )?.taskOriginKey;
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<PlaceDraft | null>(null);
@@ -414,9 +420,17 @@ export function PlaceProductPage({
     <div className="page planning-page">
       <PageHeader
         before={
-          <Link className="back-link" to={MORE_PLACES_ROUTE}>
-            {t('m5s3.common.backToPlaces')}
-          </Link>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={() => requestReturn(originKey, MORE_PLACES_ROUTE)}
+          >
+            {t(
+              resolveOrigin(originKey)
+                ? 'taskBoundary.back'
+                : 'm5s3.common.backToPlaces',
+            )}
+          </button>
         }
         eyebrow={t('m5s3.place.detailEyebrow')}
         title={place.name}
@@ -439,7 +453,7 @@ export function PlaceProductPage({
             />
           ) : undefined
         }
-        description={place.address || t('m5s3.place.noAddress')}
+        description={place.description || t('m5s3.place.noDescription')}
         titleAction={
           place.capabilities.canEdit && !isEditing ? (
             <ListEntryIconButton
@@ -494,17 +508,24 @@ export function PlaceProductPage({
 
         <section className="planning-subsection">
           <h2>{t('m5s3.place.locationHeading')}</h2>
-          {place.latitude != null && place.longitude != null ? (
-            <p>
-              {t('m5s3.place.coordinates', {
-                latitude: place.latitude,
-                longitude: place.longitude,
-              })}
-            </p>
-          ) : (
-            <p className="planning-meta">{t('m5s3.place.nameOnly')}</p>
-          )}
-          <p className="planning-meta">{t('m5s3.place.noMap')}</p>
+          <p>
+            <strong>{t('m5s3.place.address')}:</strong>{' '}
+            {place.address || t('m5s3.place.noAddress')}
+          </p>
+          <details className="planning-technical-details">
+            <summary>{t('m5s3.place.technicalDetails')}</summary>
+            {place.latitude != null && place.longitude != null ? (
+              <p className="planning-meta">
+                {t('m5s3.place.coordinates', {
+                  latitude: place.latitude,
+                  longitude: place.longitude,
+                })}
+              </p>
+            ) : (
+              <p className="planning-meta">{t('m5s3.place.nameOnly')}</p>
+            )}
+            <p className="planning-meta">{t('m5s3.place.noMap')}</p>
+          </details>
         </section>
       </div>
 
@@ -513,6 +534,7 @@ export function PlaceProductPage({
         spaceId={spaceId}
         ownerKind="place"
         ownerId={place.id}
+        canManage={place.capabilities.canEdit}
       />
     </div>
   );

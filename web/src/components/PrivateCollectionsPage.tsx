@@ -295,7 +295,12 @@ function CollectionItems({
   spaceId,
   collection,
   editing,
-}: Props & { collection: PrivateCollectionDetail; editing: boolean }) {
+  onPendingChange,
+}: Props & {
+  collection: PrivateCollectionDetail;
+  editing: boolean;
+  onPendingChange?: (pending: boolean) => void;
+}) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const collectionKey = privateAreaQueryKeys.collection(
@@ -369,6 +374,15 @@ function CollectionItems({
       });
     },
   });
+
+  const pending =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    deleteMutation.isPending ||
+    reorderMutation.isPending;
+  useEffect(() => {
+    onPendingChange?.(pending);
+  }, [onPendingChange, pending]);
 
   const baseItems = [...collection.items].sort(
     (left, right) => left.position - right.position,
@@ -579,6 +593,7 @@ export function PrivateCollectionDetailPage({
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [showTitleSaved, setShowTitleSaved] = useState(false);
+  const [itemOperationPending, setItemOperationPending] = useState(false);
 
   const collection = query.data;
 
@@ -662,7 +677,9 @@ export function PrivateCollectionDetailPage({
     isActive: isEditing && Boolean(collection),
     isDirty: hasTitleChanges,
     isCloseBlocked:
-      updateCollectionMutation.isPending || deleteMutation.isPending,
+      updateCollectionMutation.isPending ||
+      deleteMutation.isPending ||
+      itemOperationPending,
     onClose: () => {
       setIsEditing(false);
       setConfirmDelete(false);
@@ -693,10 +710,25 @@ export function PrivateCollectionDetailPage({
       <PageHeader
         className="page-heading-collection"
         before={
-          <PrivateAreaDetailBack
-            fallbackPath={PRIVATE_COLLECTIONS_PATH}
-            fallbackLabel={t('privateArea.collections.detailBack')}
-          />
+          isEditing ? (
+            <button
+              type="button"
+              className="back-link tertiary"
+              onClick={requestCollectionEditClose}
+              aria-disabled={
+                updateCollectionMutation.isPending ||
+                deleteMutation.isPending ||
+                itemOperationPending
+              }
+            >
+              {t('common.cancel')}
+            </button>
+          ) : (
+            <PrivateAreaDetailBack
+              fallbackPath={PRIVATE_COLLECTIONS_PATH}
+              fallbackLabel={t('privateArea.collections.detailBack')}
+            />
+          )
         }
         eyebrow={t('privateArea.privacyLabel')}
         title={
@@ -797,6 +829,7 @@ export function PrivateCollectionDetailPage({
         spaceId={spaceId}
         collection={collection}
         editing={isEditing}
+        onPendingChange={setItemOperationPending}
       />
 
       {isEditing && collection.capabilities.canDelete ? (

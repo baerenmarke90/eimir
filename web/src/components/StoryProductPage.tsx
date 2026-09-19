@@ -71,7 +71,6 @@ import {
   formatStoryDate,
   groupStoryItems,
   resolveStoryKindLabel,
-  storyAuthorLabel,
   storyItemKey,
   storyItemPresentation,
   tapestryItemRole,
@@ -896,23 +895,11 @@ export function StoryProductPage({
                     </time>
                     {featuredAuthor ? (
                       <span className="momente-author-meta">
-                        <span className="sr-only">
-                          {t('story.byAuthor', {
-                            author: storyAuthorLabel(featuredAuthor, accountId),
-                          })}
-                        </span>
-                        <span aria-hidden="true">
-                          <AuthorAvatar
-                            author={featuredAuthor}
-                            profilesApi={profilesApi}
-                            spaceId={spaceId}
-                          />
-                        </span>
-                        <span aria-hidden="true">
-                          {t('story.byAuthor', {
-                            author: storyAuthorLabel(featuredAuthor, accountId),
-                          })}
-                        </span>
+                        <AuthorAvatar
+                          author={featuredAuthor}
+                          profilesApi={profilesApi}
+                          spaceId={spaceId}
+                        />
                       </span>
                     ) : null}
                   </div>
@@ -1067,29 +1054,11 @@ export function StoryProductPage({
                               <time dateTime={dateTime}>{dateLabel}</time>
                               {entry.author ? (
                                 <span className="momente-author-meta">
-                                  <span className="sr-only">
-                                    {t('story.byAuthor', {
-                                      author: storyAuthorLabel(
-                                        entry.author,
-                                        accountId,
-                                      ),
-                                    })}
-                                  </span>
-                                  <span aria-hidden="true">
-                                    <AuthorAvatar
-                                      author={entry.author}
-                                      profilesApi={profilesApi}
-                                      spaceId={spaceId}
-                                    />
-                                  </span>
-                                  <span aria-hidden="true">
-                                    {t('story.byAuthor', {
-                                      author: storyAuthorLabel(
-                                        entry.author,
-                                        accountId,
-                                      ),
-                                    })}
-                                  </span>
+                                  <AuthorAvatar
+                                    author={entry.author}
+                                    profilesApi={profilesApi}
+                                    spaceId={spaceId}
+                                  />
                                 </span>
                               ) : null}
                             </div>

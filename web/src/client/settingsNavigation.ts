@@ -1,7 +1,4 @@
-import {
-  SETTINGS_CATEGORY_ROUTES,
-  type SettingsCategoryId,
-} from './routes';
+import { SETTINGS_CATEGORY_ROUTES, type SettingsCategoryId } from './routes';
 
 export interface SettingsCategoryDefinition {
   id: SettingsCategoryId;

@@ -437,6 +437,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     fallbackPath: detailFallback,
     isDirty: dirty,
     isCloseBlocked: mutation.isPending || deleteMutation.isPending,
+    closeToFallback: true,
   });
 
   if (query.isLoading)
@@ -530,6 +531,11 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
           />
         </article>
       ) : null}
+      <PrivateEditorDiscardSheet
+        open={showDiscardConfirm}
+        onKeep={keepEditing}
+        onDiscard={() => closeTask()}
+      />
     </>
   );
 }

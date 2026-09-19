@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
@@ -5,42 +6,58 @@ import games from '../i18n/locales/games';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
-  it('renders Games with a Pro badge and the other secondary destinations', () => {
+  it('renders named personal, shared, and utility destinations from More', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['profile-identity', 'space-1', 'account-1'], {
+      accountId: 'account-1',
+      displayName: 'Alex',
+      profileAttachmentId: null,
+      version: 1,
+    });
+
     const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <MoreOverviewPage />
-      </MemoryRouter>,
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <MoreOverviewPage
+            apiBaseUrl="http://api.example.test"
+            accessToken="test-token"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            spaceId="space-1"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
 
-    expect(html).toContain('more-destinations layout-columns');
-    expect(html).toContain('href="/games"');
-    expect(html).toContain('href="/more/people"');
-    expect(html).toContain('href="/more/places"');
-    expect(html).toContain('href="/more/collections"');
-    expect(html).toContain('href="/more/private"');
+    expect(html).toContain('more-groups');
+    expect(html).toContain(de.more.groups.personal);
+    expect(html).toContain(de.more.groups.shared);
+    expect(html).toContain(de.more.groups.utility);
+
+    for (const href of [
+      '/more/profile',
+      '/more/private',
+      '/more/people',
+      '/more/places',
+      '/more/collections',
+      '/games',
+      '/more/notifications',
+      '/today/activity',
+      '/more/settings',
+    ]) {
+      expect(html).toContain(`href="${href}"`);
+    }
+
+    expect(html).toContain('Alex');
     expect(html).not.toContain('href="/more/private/notes"');
 
-    // Destinations duplicated by persistent header actions are removed from More cards
-    expect(html).not.toContain('href="/more/notifications"');
-    expect(html).not.toContain('href="/more/profile"');
-    expect(html).not.toContain('href="/more/settings"');
+    const rowMatches = html.match(/class="more-destination"/g);
+    expect(rowMatches).toHaveLength(9);
 
-    // Exactly 5 cards have matching structure: icon box + copy with title & description
-    const cardMatches = html.match(/class="more-destination"/g);
-    expect(cardMatches).toHaveLength(5);
-
-    const iconMatches = html.match(/class="more-destination-icon"/g);
-    expect(iconMatches).toHaveLength(5);
-
-    const copyMatches = html.match(/class="more-destination-copy"/g);
-    expect(copyMatches).toHaveLength(5);
-
-    // Premium membership is signposted once at the Games entry point.
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(1);
     expect(html).toContain(games.status.premium);
-
-    // Intro describes remaining scope
     expect(html).toContain(de.more.intro);
   });
 });

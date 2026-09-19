@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   PRIVATE_AREA_ROOT_PATH,
   PRIVATE_COLLECTIONS_PATH,
@@ -93,16 +93,25 @@ export function usePrivateTaskEditorLifecycle({
   fallbackPath,
   isDirty,
   isCloseBlocked = false,
+  closeToFallback = false,
 }: {
   fallbackPath: string;
   isDirty: boolean;
   isCloseBlocked?: boolean;
+  closeToFallback?: boolean;
 }) {
+  const navigate = useNavigate();
   const taskContext = usePrivateAreaTaskContext(fallbackPath);
+  const closeToDetail = useCallback(() => {
+    void navigate(fallbackPath, {
+      replace: true,
+      state: taskContext.navigationState,
+    });
+  }, [fallbackPath, navigate, taskContext.navigationState]);
   const lifecycle = useTaskEditorLifecycle({
     isDirty,
     isCloseBlocked,
-    onClose: taskContext.returnToOrigin,
+    onClose: closeToFallback ? closeToDetail : taskContext.returnToOrigin,
   });
   return { ...taskContext, ...lifecycle };
 }

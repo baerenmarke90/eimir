@@ -44,7 +44,7 @@ function snapshotState(
   const loading = new Set<string>();
 
   for (const resourceId of resourceIds) {
-    const entry = entries.get(resourceEntryKey(scopeKey, resourceId));
+    const entry = entries.get(resourceEntryKey(activeScopeKey, resourceId));
     if (!entry) continue;
     if (entry.status === 'ready' && entry.resource) {
       urls[resourceId] = entry.resource.url;
@@ -94,8 +94,10 @@ export function useObjectUrlResources(
     loading: new Set(),
   }));
 
-  const uniqueResourceIds = Array.from(new Set(resourceIds));
-  const identitySignature = JSON.stringify([scopeKey, uniqueResourceIds]);
+  const identitySignature = JSON.stringify([
+    scopeKey,
+    Array.from(new Set(resourceIds)),
+  ]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -109,9 +111,12 @@ export function useObjectUrlResources(
   }, []);
 
   useEffect(() => {
+    const [activeScopeKey, activeResourceIds] = JSON.parse(
+      identitySignature,
+    ) as [string, string[]];
     const desiredKeys = new Set(
-      uniqueResourceIds.map((resourceId) =>
-        resourceEntryKey(scopeKey, resourceId),
+      activeResourceIds.map((resourceId) =>
+        resourceEntryKey(activeScopeKey, resourceId),
       ),
     );
 
@@ -122,8 +127,8 @@ export function useObjectUrlResources(
     }
 
     const addedEntries: Array<{ key: string; entry: ResourceEntry }> = [];
-    for (const resourceId of uniqueResourceIds) {
-      const key = resourceEntryKey(scopeKey, resourceId);
+    for (const resourceId of activeResourceIds) {
+      const key = resourceEntryKey(activeScopeKey, resourceId);
       if (entriesRef.current.has(key)) continue;
 
       const entry: ResourceEntry = {
@@ -137,7 +142,9 @@ export function useObjectUrlResources(
       addedEntries.push({ key, entry });
     }
 
-    setState(snapshotState(entriesRef.current, scopeKey, uniqueResourceIds));
+    setState(
+      snapshotState(entriesRef.current, activeScopeKey, activeResourceIds),
+    );
 
     for (const { key, entry } of addedEntries) {
       void Promise.resolve()
@@ -213,8 +220,6 @@ export function useObjectUrlResource(
   return {
     url: state.urls[resourceId] ?? null,
     loading: state.loading.has(resourceId),
-    error: Object.prototype.hasOwnProperty.call(state.errors, resourceId)
-      ? state.errors[resourceId]
-      : null,
+    error: resourceId in state.errors ? state.errors[resourceId] : null,
   };
 }

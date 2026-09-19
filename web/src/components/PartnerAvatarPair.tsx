@@ -9,11 +9,7 @@ export interface PartnerAvatarPerson {
 }
 
 export type PartnerAvatarSize = 'small' | 'medium' | 'large';
-export type PartnerPresenceStatus =
-  | 'active'
-  | 'recent'
-  | 'waiting'
-  | 'unknown';
+export type PartnerPresenceStatus = 'active' | 'recent' | 'waiting' | 'unknown';
 
 export interface PartnerAvatarPairProps {
   primaryPerson: PartnerAvatarPerson;

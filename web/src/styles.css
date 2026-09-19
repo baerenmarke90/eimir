@@ -68,6 +68,8 @@
   --reading-max: 720px;
   --rail-width: 21rem;
   --topbar-height: 72px;
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -547,8 +549,8 @@ code {
 
 .app-header {
   position: sticky;
-  z-index: 10;
-  top: 0;
+  z-index: 40;
+  top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   width: 100%;
   min-height: 72px;
   display: flex;

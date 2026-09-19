@@ -52,11 +52,39 @@ assert(
   'capacitor.config.ts must enable CapacitorHttp plugin for native container cross-origin transport',
 );
 assert(
+  capConfig.includes('SystemBars') && capConfig.includes("insetsHandling: 'css'"),
+  "capacitor.config.ts must configure SystemBars with insetsHandling: 'css'",
+);
+assert(
   !capConfig.includes('allowNavigation'),
   'capacitor.config.ts must NOT define allowNavigation (API access is strictly through CapacitorHttp, not remote page navigation)',
 );
 
-// 2. Check capacitor-android/app/build.gradle
+// 2. Check CSS safe-area rules for statusbar separation
+const stylesCss = readWeb('src/styles.css');
+assert(
+  stylesCss.includes('top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px))'),
+  '.app-header in styles.css must use var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+);
+assert(
+  !/\.app-header\s*\{[^}]*top:\s*0[;\s]/s.test(stylesCss),
+  '.app-header must NOT stick blind with top: 0 under status bar',
+);
+
+const demoCss = readWeb('src/demo.css');
+assert(
+  demoCss.includes('var(--safe-area-inset-top, env(safe-area-inset-top, 0px))'),
+  '.demo-instance-banner in demo.css must incorporate var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+);
+
+const shellCss = readWeb('src/shell.css');
+assert(
+  shellCss.includes('var(--safe-area-inset-top, env(safe-area-inset-top, 0px))') &&
+    shellCss.includes('product-shell'),
+  '.product-shell in shell.css must include statusbar backdrop for native top inset',
+);
+
+// 3. Check capacitor-android/app/build.gradle
 const buildGradle = readCapacitorAndroid('app/build.gradle');
 assert(
   buildGradle.includes('namespace = "de.eimir.app"') ||

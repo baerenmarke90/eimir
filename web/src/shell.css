@@ -37,6 +37,18 @@
   background: transparent;
 }
 
+.product-shell:not([data-focused-task="true"])::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  background: var(--color-header-surface);
+  z-index: 35;
+  pointer-events: none;
+}
+
 .product-topbar {
   z-index: 40;
   flex-wrap: wrap;

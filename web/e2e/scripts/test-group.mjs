@@ -81,11 +81,7 @@ console.log(
 
 const result = spawnSync(
   executable,
-  [
-    'test',
-    ...selected.map((name) => `tests/${name}`),
-    ...forwarded,
-  ],
+  ['test', ...selected.map((name) => `tests/${name}`), ...forwarded],
   {
     cwd: root,
     env: process.env,

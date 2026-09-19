@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { M4ProductApis } from '../client/m4Product';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import { NotificationsProductPage } from './M4ProductPages';
 
 const SPACE_ID = 'space-1';
@@ -211,7 +212,9 @@ describe('Notifications Product Experience', () => {
               />
               <Route
                 path="/plan/plans/:planId"
-                element={<div data-testid="plan-detail-target">Plan Detail</div>}
+                element={
+                  <div data-testid="plan-detail-target">Plan Detail</div>
+                }
               />
             </Routes>
           </TaskOriginProvider>
@@ -234,9 +237,8 @@ describe('Notifications Product Experience', () => {
     expect(screen.getByTestId('plan-detail-target').textContent).toBe(
       'Plan Detail',
     );
-    const taskOriginKey = (
-      currentState as { taskOriginKey?: unknown } | null
-    )?.taskOriginKey;
+    const taskOriginKey = (currentState as { taskOriginKey?: unknown } | null)
+      ?.taskOriginKey;
     expect(taskOriginKey).toMatch(/^task-/);
     expect(originContract.resolveOrigin(taskOriginKey)?.to).toBe(
       '/more/notifications',
@@ -303,12 +305,12 @@ describe('Notifications Product Experience', () => {
     );
 
     expect(
-      await screen.findByText(
-        'Ungelesene Benachrichtigungen werden geladen …',
-      ),
+      await screen.findByText(i18n.t('m5s5.notifications.unreadLoading')),
     ).toBeTruthy();
     expect(screen.queryByText('0 ungelesen')).toBeNull();
-    expect(screen.getByText('Keine Benachrichtigungen')).toBeTruthy();
+    expect(
+      screen.getByText(i18n.t('m5s5.notifications.emptyTitle')),
+    ).toBeTruthy();
   });
 
   it('keeps an empty notification list distinct when the unread count fails', async () => {
@@ -341,7 +343,9 @@ describe('Notifications Product Experience', () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText('Keine Benachrichtigungen')).toBeTruthy();
+    expect(
+      await screen.findByText(i18n.t('m5s5.notifications.emptyTitle')),
+    ).toBeTruthy();
     await waitFor(() => expect(screen.queryByText('0 ungelesen')).toBeNull());
   });
 

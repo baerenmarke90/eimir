@@ -74,11 +74,12 @@ For a `pull_request` touching `web/**` or the workflow itself:
 4. install the Playwright-pinned Chromium runtime;
 5. validate the test inventory;
 6. run `npm run test:pr`;
-7. upload the established product visual evidence.
+7. if the pull request itself changes any `web/e2e/tests/*.spec.ts` files, run those changed specs explicitly as an additional targeted verification;
+8. upload the established product visual evidence.
 
 For a push to `main` touching the same surfaces, and for manual execution, the workflow runs `npm run test:full` instead.
 
-The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite.
+The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group.
 
 ## Maintenance rule
 

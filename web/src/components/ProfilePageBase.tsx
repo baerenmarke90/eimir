@@ -30,10 +30,7 @@ import { AddIcon, DestinationIcon } from './DestinationIcon';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE

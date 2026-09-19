@@ -2,10 +2,7 @@
 import { cleanup, render, renderHook, waitFor } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 afterEach(() => {
   cleanup();
@@ -44,7 +41,11 @@ describe('useModalLifecycle', () => {
     function Harness({ active }: { active: boolean }) {
       const initialRef = useRef<HTMLButtonElement>(null);
       useModalLifecycle({ active, initialFocusRef: initialRef });
-      return <button ref={initialRef} type="button">inside</button>;
+      return (
+        <button ref={initialRef} type="button">
+          inside
+        </button>
+      );
     }
 
     const view = render(<Harness active={false} />);

@@ -1012,9 +1012,8 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(
       authorMeta.getByRole('img', { name: ME.displayName }),
     ).toHaveCount(1);
-    await expect(page.locator('.story-timeline')).not.toContainText(
-      ME_ATTRIBUTION,
-    );
+    const timelineText = await page.locator('.story-timeline').allTextContents();
+    expect(timelineText.join(' ')).not.toContain(ME_ATTRIBUTION);
 
     await page.goto('/story/memories/mem-canal');
     await expect(page.locator('.memory-provenance-footer')).toContainText(

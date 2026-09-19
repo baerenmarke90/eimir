@@ -1,8 +1,4 @@
-import {
-  type RefObject,
-  useEffect,
-  useRef,
-} from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 
 type KeyboardLikeEvent = {
   key: string;
@@ -141,12 +137,18 @@ export function containModalTabFocus(
   const activeElement = document.activeElement;
   const outside = !container.contains(activeElement);
 
-  if (event.shiftKey && (activeElement === first || (wrapFromOutside && outside))) {
+  if (
+    event.shiftKey &&
+    (activeElement === first || (wrapFromOutside && outside))
+  ) {
     event.preventDefault();
     last.focus();
     return true;
   }
-  if (!event.shiftKey && (activeElement === last || (wrapFromOutside && outside))) {
+  if (
+    !event.shiftKey &&
+    (activeElement === last || (wrapFromOutside && outside))
+  ) {
     event.preventDefault();
     first.focus();
     return true;

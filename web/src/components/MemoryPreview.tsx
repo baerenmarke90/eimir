@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 
 export function MemoryPreview({
@@ -9,14 +10,16 @@ export function MemoryPreview({
 }: {
   memoryId: string;
   attachmentId: string;
-  loadImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   loadingMode?: 'immediate' | 'near-viewport';
 }) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [shouldLoad, setShouldLoad] = useState(loadingMode === 'immediate');
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (loadingMode === 'immediate' || shouldLoad) {
@@ -47,30 +50,13 @@ export function MemoryPreview({
     return () => observer.disconnect();
   }, [loadingMode, shouldLoad]);
 
-  useEffect(() => {
-    if (!shouldLoad) return;
-    let active = true;
-    let objectUrl: string | null = null;
-    setFailed(false);
-
-    void loadImage(memoryId, attachmentId)
-      .then((loadedUrl) => {
-        if (!active) {
-          URL.revokeObjectURL(loadedUrl);
-          return;
-        }
-        objectUrl = loadedUrl;
-        setUrl(loadedUrl);
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      });
-
-    return () => {
-      active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [attachmentId, loadImage, memoryId, shouldLoad]);
+  const mediaResource = useObjectUrlResource(
+    `story-preview:${memoryId}`,
+    shouldLoad ? attachmentId : null,
+    (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
+  );
+  const url = mediaResource.url;
+  const failed = mediaResource.error !== null;
 
   if (failed) {
     return (

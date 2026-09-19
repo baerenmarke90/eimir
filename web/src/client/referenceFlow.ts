@@ -240,6 +240,7 @@ export async function loadAuthorizedMedia(
   parentId: string,
   attachmentId: string,
   fetchApi: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<string> {
   const descriptor = await apis.attachments.createAttachmentReadAccess({
     spaceId,
@@ -253,7 +254,10 @@ export async function loadAuthorizedMedia(
   }
   const response = await fetchApi(
     resolveTransportUrl(apiBaseUrl, descriptor.url),
-    { headers },
+    {
+      headers,
+      ...(signal ? { signal } : {}),
+    },
   );
   await assertOk(response, i18n.t('flow.imageLoadFailed'));
   return URL.createObjectURL(await response.blob());
@@ -267,6 +271,7 @@ export async function loadAuthorizedImage(
   memoryId: string,
   attachmentId: string,
   fetchApi: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<string> {
   return loadAuthorizedMedia(
     apis,
@@ -277,6 +282,7 @@ export async function loadAuthorizedImage(
     memoryId,
     attachmentId,
     fetchApi,
+    signal,
   );
 }
 

@@ -449,7 +449,11 @@ function TodayMomentFeature({
   isKeepsake,
 }: {
   item: DashboardItem;
-  loadMemoryImage?: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   isKeepsake: boolean;
 }) {
   const { t } = useTranslation();
@@ -529,7 +533,11 @@ function TodayLivingModuleCard({
   module: LivingModule;
   partnerName: string;
   partnerAvatarUrl?: string | null;
-  loadMemoryImage?: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }) {
   const { t } = useTranslation();
 
@@ -637,7 +645,11 @@ function TodayMonthlyStrip({
   loadMemoryImage,
 }: {
   items: readonly DashboardItem[];
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }) {
   const { t } = useTranslation();
   const isCarousel = items.length > 1;
@@ -774,7 +786,11 @@ export function TodayPage({
 }: {
   apis: M4ProductApis;
   spaceId: string;
-  loadMemoryImage?: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage?: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   profilesApi?: ProfilesApi;
   account?: AccountView | null;
 }) {

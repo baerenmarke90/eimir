@@ -5,6 +5,10 @@ import { GamesApi } from '../api/generated/apis/GamesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { PartnerView } from '../api/generated/models/PartnerView';
 import { Configuration } from '../api/generated/runtime';
+import {
+  adoptObjectUrl,
+  type OwnedObjectUrl,
+} from '../client/objectUrlResource';
 import { appRoutePath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';
 import {
@@ -27,6 +31,63 @@ import { UiState } from './UiState';
 export interface OurMomentsGameSetup {
   participants: readonly [OurMomentsParticipant, OurMomentsParticipant] | null;
   moments: readonly PreparedOurMoment[];
+}
+
+interface OwnedOurMomentsGameSetup {
+  setup: OurMomentsGameSetup;
+  acquire(): () => void;
+}
+
+function ownedPreparedSetup(
+  setup: OurMomentsGameSetup,
+  resources: readonly OwnedObjectUrl[],
+): OwnedOurMomentsGameSetup {
+  let consumers = 0;
+  let disposed = false;
+  let releaseTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    if (releaseTimer !== null) clearTimeout(releaseTimer);
+    releaseTimer = null;
+    for (const resource of resources) resource.dispose();
+  };
+
+  return {
+    setup,
+    acquire() {
+      consumers += 1;
+      if (releaseTimer !== null) {
+        clearTimeout(releaseTimer);
+        releaseTimer = null;
+      }
+
+      let released = false;
+      return () => {
+        if (released) return;
+        released = true;
+        consumers = Math.max(0, consumers - 1);
+        if (consumers > 0 || releaseTimer !== null) return;
+
+        // Match the shared-avatar StrictMode contract: defer one task so
+        // effect cleanup/replay cannot revoke URLs that the replay still uses.
+        releaseTimer = setTimeout(() => {
+          releaseTimer = null;
+          if (consumers === 0) dispose();
+        }, 0);
+      };
+    },
+  };
+}
+
+function ownPreparedSetup(
+  setup: OurMomentsGameSetup,
+): OwnedOurMomentsGameSetup {
+  const resources = setup.moments
+    .filter((moment) => moment.imageUrl.startsWith('blob:'))
+    .map((moment) => adoptObjectUrl(moment.imageUrl));
+  return ownedPreparedSetup(setup, resources);
 }
 
 function orderParticipants(
@@ -265,12 +326,14 @@ async function loadDefaultSetup({
   accessToken,
   spaceId,
   currentAccountId,
+  signal,
 }: {
   apiBaseUrl: string;
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
-}): Promise<OurMomentsGameSetup> {
+  signal: AbortSignal;
+}): Promise<OwnedOurMomentsGameSetup> {
   const configuration = new Configuration({
     basePath: apiBaseUrl,
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -287,27 +350,51 @@ async function loadDefaultSetup({
   const selected = selectOurMomentsRound(candidateSet.items);
 
   if (!participants || selected.length < 3) {
-    return { participants, moments: [] };
+    return ownPreparedSetup({ participants, moments: [] });
   }
 
-  const moments = await Promise.all(
-    selected.map(async (candidate) => ({
-      memoryId: candidate.memoryId,
-      title: candidate.title,
-      effectiveDate: candidate.effectiveDate,
-      imageAttachmentId: candidate.imageAttachmentId,
-      imageUrl: await loadAuthorizedImage(
+  const resources: OwnedObjectUrl[] = [];
+  const results = await Promise.allSettled(
+    selected.map(async (candidate) => {
+      const imageUrl = await loadAuthorizedImage(
         referenceApis,
         apiBaseUrl,
         accessToken,
         spaceId,
         candidate.memoryId,
         candidate.imageAttachmentId,
-      ),
-    })),
+        fetch,
+        signal,
+      );
+      const resource = adoptObjectUrl(imageUrl);
+      resources.push(resource);
+      return {
+        memoryId: candidate.memoryId,
+        title: candidate.title,
+        effectiveDate: candidate.effectiveDate,
+        imageAttachmentId: candidate.imageAttachmentId,
+        imageUrl: resource.url,
+      };
+    }),
   );
 
-  return { participants, moments };
+  const failed = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (failed || signal.aborted) {
+    for (const resource of resources) resource.dispose();
+    if (failed) throw failed.reason;
+    throw new DOMException('Our Moments media load aborted.', 'AbortError');
+  }
+
+  const moments = results.map((result) => {
+    if (result.status !== 'fulfilled') {
+      throw new Error('Our Moments setup settled inconsistently.');
+    }
+    return result.value;
+  });
+
+  return ownedPreparedSetup({ participants, moments }, resources);
 }
 
 export function OurMomentsGamePage({
@@ -326,17 +413,21 @@ export function OurMomentsGamePage({
   const { t } = useTranslation();
   const setupQuery = useQuery({
     queryKey: ['games', 'our-moments', 'setup', spaceId],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       try {
         return loadSetup
-          ? await loadSetup()
+          ? ownPreparedSetup(await loadSetup())
           : await loadDefaultSetup({
               apiBaseUrl,
               accessToken,
               spaceId,
               currentAccountId,
+              signal,
             });
       } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          throw error;
+        }
         throw await normalizeClientError(error);
       }
     },
@@ -345,15 +436,12 @@ export function OurMomentsGamePage({
   });
 
   useEffect(() => {
-    const urls =
-      setupQuery.data?.moments.map((moment) => moment.imageUrl) ?? [];
-    return () => {
-      if (typeof URL.revokeObjectURL !== 'function') return;
-      for (const url of urls) {
-        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-      }
-    };
+    const ownedSetup = setupQuery.data;
+    if (!ownedSetup) return;
+    return ownedSetup.acquire();
   }, [setupQuery.data]);
+
+  const setup = setupQuery.data?.setup;
 
   return (
     <div className="page our-moments-page">
@@ -380,13 +468,13 @@ export function OurMomentsGamePage({
           error={setupQuery.error}
           onRetry={() => void setupQuery.refetch()}
         />
-      ) : !setupQuery.data.participants ? (
+      ) : !setup?.participants ? (
         <UiState
           kind="empty"
           title={t('games.momentsGame.coupleRequiredTitle')}
           body={t('games.momentsGame.coupleRequiredBody')}
         />
-      ) : setupQuery.data.moments.length < 3 ? (
+      ) : setup.moments.length < 3 ? (
         <section
           className="our-moments-sparse"
           aria-labelledby="our-moments-sparse-title"
@@ -403,8 +491,8 @@ export function OurMomentsGamePage({
       ) : (
         <OurMomentsSessionView
           setup={{
-            participants: setupQuery.data.participants,
-            moments: setupQuery.data.moments,
+            participants: setup.participants,
+            moments: setup.moments,
           }}
         />
       )}

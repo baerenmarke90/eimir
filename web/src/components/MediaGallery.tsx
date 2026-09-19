@@ -10,6 +10,7 @@ import {
   MediaType,
   type MediaType as MediaTypeValue,
 } from '../api/generated/models/MediaType';
+import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 import { useModalLifecycle } from './useModalLifecycle';
 
@@ -21,13 +22,26 @@ export interface GalleryMediaItem {
 export function MediaGallery({
   items,
   loadMedia,
+  resourceScopeKey = 'gallery',
 }: {
   items: GalleryMediaItem[];
-  loadMedia: (attachmentId: string) => Promise<string>;
+  loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
+  resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();
-  const [urls, setUrls] = useState<Record<string, string>>({});
-  const [failed, setFailed] = useState<Set<string>>(() => new Set());
+  const itemIdentity = JSON.stringify(
+    items.map((item) => [item.id, item.mediaType]),
+  );
+  const imageResourceIds = items
+    .filter((item) => item.mediaType !== MediaType.VIDEO)
+    .map((item) => item.id);
+  const mediaResources = useObjectUrlResources(
+    resourceScopeKey,
+    imageResourceIds,
+    (attachmentId, signal) => loadMedia(attachmentId, signal),
+  );
+  const urls = mediaResources.urls;
+  const failed = new Set(Object.keys(mediaResources.errors));
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
@@ -41,36 +55,7 @@ export function MediaGallery({
   const lightboxScrollEndTimer = useRef<number | null>(null);
   const lightboxInitialIndex = useRef(0);
   const activeIndexRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    const loadedUrls: string[] = [];
-    setUrls({});
-    setFailed(new Set());
-    setCarouselIndex(0);
-
-    for (const item of items) {
-      if (item.mediaType === MediaType.VIDEO) continue;
-      void loadMedia(item.id)
-        .then((url) => {
-          if (!active) {
-            URL.revokeObjectURL(url);
-            return;
-          }
-          loadedUrls.push(url);
-          setUrls((current) => ({ ...current, [item.id]: url }));
-        })
-        .catch(() => {
-          if (!active) return;
-          setFailed((current) => new Set(current).add(item.id));
-        });
-    }
-
-    return () => {
-      active = false;
-      for (const url of loadedUrls) URL.revokeObjectURL(url);
-    };
-  }, [items, loadMedia]);
+  const carouselItemsIdentityRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
@@ -78,11 +63,15 @@ export function MediaGallery({
   }, [carouselIndex, items.length]);
 
   useLayoutEffect(() => {
+    if (carouselItemsIdentityRef.current === itemIdentity) return;
+    carouselItemsIdentityRef.current = itemIdentity;
+    setCarouselIndex(0);
+
     const track = carouselTrack.current;
     const firstSlide = carouselSlides.current[0];
     if (!track || !firstSlide || items.length < 2) return;
     track.scrollLeft = firstSlide.offsetLeft;
-  }, [items]);
+  }, [itemIdentity, items.length]);
 
   useEffect(
     () => () => {

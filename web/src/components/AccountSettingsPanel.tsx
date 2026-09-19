@@ -21,10 +21,7 @@ import { clearProductReadCache } from '../client/productReadCache';
 import { clearStoredSession } from '../client/sessionPersistence';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './AccountSettingsPanel.css';
 
 type DeletionStep = 'consequences' | 'reauthenticate' | 'confirm' | null;

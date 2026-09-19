@@ -129,15 +129,15 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertIn('node-version: "22.19.0"', self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
-        self.assertIn('ANDROID_PROJECT_DIR: "capacitor-android"', self.workflow)
+        self.assertIn('ANDROID_PROJECT_DIR: "android"', self.workflow)
         self.assertIn("working-directory: ${{ env.ANDROID_PROJECT_DIR }}", self.workflow)
         self.assertIn('"platforms;android-36"', self.workflow)
         self.assertIn("npm ci --ignore-scripts --no-audit --no-fund", self.workflow)
         self.assertIn("npm run cap:sync", self.workflow)
         self.assertIn('VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web', self.workflow)
         self.assertIn("git diff --exit-code --", self.workflow)
-        self.assertIn("capacitor-android/capacitor.settings.gradle", self.workflow)
-        self.assertIn("capacitor-android/app/capacitor.build.gradle", self.workflow)
+        self.assertIn("android/capacitor.settings.gradle", self.workflow)
+        self.assertIn("android/app/capacitor.build.gradle", self.workflow)
 
     def test_apk_and_aab_packaging_and_badging_verified(self) -> None:
         self.assertIn("dump badging", self.workflow)
@@ -150,7 +150,10 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertIn("server.url", self.workflow)
         self.assertIn("allowNavigation", self.workflow)
 
-    def test_legacy_android_directory_not_referenced(self) -> None:
+    def test_canonical_android_directory_is_the_only_project(self) -> None:
+        # android/ is the Capacitor wrapper (#1009); the former staging path and
+        # the retired Kotlin/Compose build must not be referenced anymore.
+        self.assertNotIn("capacitor-android", self.workflow)
         self.assertNotIn("working-directory: android", self.workflow)
         self.assertNotIn("android/app/build.gradle.kts", self.workflow)
 

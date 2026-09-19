@@ -25,7 +25,7 @@ files bundled directly with each client.
 
 - **Web:** Self-hosted woff2 files located in `web/public/fonts/` loaded via
   standard `@font-face` rules.
-- **Android:** Self-hosted TTF resources located in `android/app/src/main/res/font/`
+- **Android:** Self-hosted TTF resources located in `android/app/src/main/res/font/` (removed in #1009 with the Compose client; the Capacitor wrapper renders the Web bundle's self-hosted fonts from `web/public/fonts/`)
   mapped onto semantic `eimir.DisplayFamily` and `eimir.UiFamily`
   Compose `FontFamily` definitions.
 

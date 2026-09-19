@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="plan_schedule_clear_date">Datum entfernen</string>
-    <string name="plan_schedule_clear_time">Uhrzeit entfernen</string>
-    <string name="plan_schedule_confirm_optional">Termin bestätigen</string>
-    <string name="plan_schedule_time_optional">Uhrzeit (optional)</string>
-</resources>

@@ -16,7 +16,7 @@
     "cap:copy": "cap copy android",
     "cap:check": "node scripts/check-capacitor-foundation.mjs",
     "cap:build:web": "node scripts/build-capacitor-web.mjs",
-    "cap:build:android": "npm run cap:build:web && npm run cap:sync && cd ../capacitor-android && ./gradlew assembleDebug",
+    "cap:build:android": "npm run cap:build:web && npm run cap:sync && cd ../android && ./gradlew assembleDebug",
     "typecheck": "tsc -b --pretty false",
     "lint": "biome lint .",
     "format:check": "biome format .",

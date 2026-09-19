@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'eimir.',
   webDir: 'dist',
   android: {
-    path: '../capacitor-android',
+    path: '../android',
   },
   server: {
     androidScheme: 'https',

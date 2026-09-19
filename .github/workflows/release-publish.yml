@@ -55,7 +55,7 @@ concurrency:
 env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
-  ANDROID_PROJECT_DIR: "capacitor-android"
+  ANDROID_PROJECT_DIR: "android"
 
 jobs:
   contract:
@@ -374,8 +374,8 @@ jobs:
         run: |
           set -euo pipefail
           git diff --exit-code -- \
-            capacitor-android/capacitor.settings.gradle \
-            capacitor-android/app/capacitor.build.gradle
+            android/capacitor.settings.gradle \
+            android/app/capacitor.build.gradle
 
       - name: Build and verify final signed Android artifacts
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}

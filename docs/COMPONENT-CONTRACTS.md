@@ -203,7 +203,7 @@ the concrete APIs, usage, existing consumers and validation scope.
 - Fast feedback, ordinary transitions and contextual reveals use existing
   duration/easing roles. Reduced motion retains status, meaning and actions.
 
-The internal Web fixture and Android debug Activity exercise photo, text,
+The internal Web fixture (the former Android debug Activity was removed in #1009) exercises photo, text,
 utility, loading/error/retry and overlay roles with synthetic data. Their
 detail/return and fixture-completion actions demonstrate the bounded proof;
 they do not implement production capture, persistence or F2 task lifecycle.
@@ -368,7 +368,7 @@ These signature building blocks represent the core relationship-first identity o
 - **Variants:** Standard (text and icon), compact (icon-only for condensed toolbars).
 - **States:** `idle`, `sending` (pulsing animation, disabled interaction), `sent` (optimistic confirmation, transitions back to idle after 2.5s).
 - **Accessibility:** Explicit button role and localized action description. Reduced-motion queries disable heartbeat and spring animations.
-- **Haptics:** Android implementation performs tactile haptic feedback (`LongPress`) on trigger.
+- **Haptics:** Web has no haptic feedback today; tactile feedback on Android is a future native-capability slice (#500, #578), not part of the retired Compose implementation.
 
 ### 11.4 VisibilityBadge
 

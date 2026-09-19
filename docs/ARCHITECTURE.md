@@ -6,9 +6,9 @@ A **modular monolith**. No microservices unless a concrete technical need
 requires them.
 
 ```text
-        Android (Kotlin/Compose)     Web (React/TypeScript)
-                    │                        │
-                    └────────  HTTPS  ───────┘
+        Web / PWA (React/TypeScript) ── same bundle ──▶ Capacitor Android wrapper
+                    │                                          │
+                    └──────────────────  HTTPS  ───────────────┘
                                  │
                            REST API v1
                                  │

@@ -1,5 +1,14 @@
 # M5 Android Delivery Plan
 
+> **Historical — superseded by [ADR 0011](../decisions/0011-web-first-pwa-capacitor-mobile-delivery.md) (#1005).**
+> This plan described a native Kotlin/Jetpack Compose client (Compose screens,
+> generated Kotlin OpenAPI models, Room plus Keystore read cache). That client
+> was never the delivery path that shipped: Android is the Capacitor wrapper
+> around the canonical Web product, and the Compose client was removed in #1009.
+> Do not implement from this document; it is kept as a dated record. For the
+> current Android architecture see
+> [Capacitor Android Foundation](../CAPACITOR-ANDROID-FOUNDATION.md).
+
 - **Parent issue:** #350
 - **Scope:** Android only; Web is delivered separately under #295
 - **Gate:** M5/G4 remains dependent on completed M4 and the full cross-platform

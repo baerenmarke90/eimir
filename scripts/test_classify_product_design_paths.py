@@ -41,7 +41,8 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
         self.assertTrue(is_user_facing_path("web/src/TodayPage.css"))
 
     def test_capacitor_wrapper_is_not_a_parallel_product_ui_surface(self) -> None:
-        self.assertFalse(is_user_facing_path("android/app/src/main/java/de/eimir/app/MainActivity.kt"))
+        self.assertFalse(is_user_facing_path("android/app/src/main/java/de/eimir/app/MainActivity.java"))
+        self.assertFalse(is_user_facing_path("android/app/build.gradle"))
         self.assertFalse(is_user_facing_path("android/app/src/main/AndroidManifest.xml"))
         self.assertFalse(is_user_facing_path("android/app/src/main/res/values/strings.xml"))
 

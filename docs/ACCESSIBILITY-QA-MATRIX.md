@@ -1,10 +1,10 @@
 # eimir. Accessibility and QA Matrix
 
-**Status:** Release gate for Web and Android  
+**Status:** Release gate for Web and the Android wrapper (which packages the Web product)  
 **Version:** 1.0  
 **As of:** August 24, 2026
 
-eimir. treats accessibility, privacy, and adaptive presentation as product quality. The target standard is WCAG 2.2 AA for the WebApp; the same principles are applied to Android in a platform-appropriate way.
+eimir. treats accessibility, privacy, and adaptive presentation as product quality. The target standard is WCAG 2.2 AA for the WebApp; the Android app is the Capacitor wrapper around that WebApp (ADR 0011), so it inherits the same semantics and adds only the platform checks below.
 
 ## 1. Testing principles
 
@@ -40,7 +40,7 @@ The concrete version list is generated per release from browser support and Andr
 
 | Area | Web check | Android check | Release criterion |
 |---|---|---|---|
-| Semantics | native elements, correct roles/names | Compose Semantics, meaningful grouping | name, role, value, and status are understandable |
+| Semantics | native elements, correct roles/names | same DOM semantics exposed through the WebView accessibility tree | name, role, value, and status are understandable |
 | Keyboard/switch | Tab, Shift+Tab, Enter, Space, Escape, arrow keys | Switch Access, external keyboard | every action is reachable without touch/mouse |
 | Focus | visible, logical, returns after overlay | stable TalkBack/keyboard focus | no focus loss or focus trap |
 | Headings | unique H1, logical levels | screen/section title announced | quick orientation is possible |
@@ -142,7 +142,7 @@ For every `OWNER_ONLY` domain, the following are tested separately:
 - relationships and comments,
 - attachments and signed URLs,
 - update and delete,
-- Android read cache,
+- Web read cache inside the Android WebView,
 - Web query/browser cache,
 - logs, analytics, and crash reporting.
 
@@ -177,14 +177,15 @@ Anonymous                          → never access
 - router tests for Deep Link and Back,
 - contract tests against OpenAPI examples.
 
-### Android
+### Android wrapper
 
-- compile/lint and unit tests,
-- Compose Semantics tests for P0 components,
-- navigation/back tests,
-- screenshot tests for central sizes and font scales,
-- Room cache and logout-isolation tests,
-- contract tests against the same API examples.
+Product behavior is covered by the Web automation above; there is no second
+native UI to test. The wrapper adds:
+
+- strict-dependency-verified `assembleDebug` / `assembleRelease` / `bundleRelease`,
+- `npm run cap:check` for the Capacitor configuration, identity and safe-area contract,
+- release evidence checks of package identity and the local Web bundle,
+- a real-device smoke test (install, cold start, Back, safe areas, background/resume) when the wrapper or a native capability changes.
 
 Automation does not replace manual testing with a screen reader/TalkBack and a real keyboard/switch-control setup.
 

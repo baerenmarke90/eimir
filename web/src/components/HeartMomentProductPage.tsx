@@ -41,6 +41,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
 import { StoryDetailPageShell } from './StoryDetailPageShell';
+import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
@@ -591,128 +592,121 @@ export function HeartMomentProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link
-              className="back-link"
-              to={heartMomentDetailPath(heartMoment.id)}
-            >
-              {t('heartMomentProduct.backToHeartMoment')}
-            </Link>
-          }
-          eyebrow={t('heartMomentProduct.editEyebrow')}
-          title={t('heartMomentProduct.editHeading')}
-          description={t('heartMomentProduct.editIntro')}
-        />
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="heart-moment-edit-heading"
-        >
-          <h2 id="heart-moment-edit-heading" className="sr-only">
-            {t('heartMomentProduct.formAria')}
-          </h2>
-          <form className="form-grid" onSubmit={submitEdit}>
-            <HeartMomentFields heartMoment={heartMoment} />
-            {heartMoment.attachment && !removeExistingPhoto ? (
-              <div className="field-group">
-                <span>{t('heartMomentProduct.photoLabel')}</span>
-                <MediaGallery
-                  items={[
-                    {
-                      id: heartMoment.attachment.id,
-                      mediaType: heartMoment.attachment.mediaType,
-                    },
-                  ]}
-                  loadMedia={(attachmentId) =>
-                    loadAttachment(heartMoment.id, attachmentId)
-                  }
-                />
-                <button
-                  type="button"
-                  className="tertiary"
-                  onClick={() => setRemoveExistingPhoto(true)}
-                >
-                  {t('memory.photoRemove')}
-                </button>
-              </div>
-            ) : null}
-            <AttachmentDraftPicker
-              id="heart-moment-edit-photo"
-              attachments={attachments}
-              multiple={false}
-            />
-            <div className="form-actions">
-              <Link
-                className="button-link secondary-link"
-                to={heartMomentDetailPath(heartMoment.id)}
-                onClick={() => setConfirmDelete(false)}
-              >
-                {t('common.cancel')}
-              </Link>
-              <button
-                type="submit"
-                disabled={updateMutation.isPending || attachments.hasPending}
-              >
-                {updateMutation.isPending
-                  ? t('heartMomentProduct.saving')
-                  : t('heartMomentProduct.save')}
-              </button>
-            </div>
-          </form>
-          {updateMutation.error ? (
-            <ProblemState error={updateMutation.error} />
-          ) : null}
-
-          {heartMoment.capabilities.canDelete && !offline ? (
-            <div style={{ marginTop: 'var(--space-8)' }}>
-              {!confirmDelete ? (
-                <button
-                  type="button"
-                  className="button-link danger-link"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  {t('heartMomentProduct.delete')}
-                </button>
-              ) : (
-                <section
-                  className="memory-danger-zone memory-delete-confirmation"
-                  aria-label={t('heartMomentProduct.delete')}
-                  role="alert"
-                >
-                  <div>
-                    <h2>{t('heartMomentProduct.deleteConfirmTitle')}</h2>
-                    <p>{t('heartMomentProduct.deleteConfirmBody')}</p>
-                  </div>
-                  <div className="memory-actions">
-                    <button
-                      type="button"
-                      className="tertiary"
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={heartMomentDetailPath(heartMoment.id)}
+          >
+            {t('heartMomentProduct.backToHeartMoment')}
+          </Link>
+        }
+        eyebrow={t('heartMomentProduct.editEyebrow')}
+        title={t('heartMomentProduct.editHeading')}
+        description={t('heartMomentProduct.editIntro')}
+        sectionLabelledBy="heart-moment-edit-heading"
+        sectionHeading={t('heartMomentProduct.formAria')}
+      >
+      <form className="form-grid" onSubmit={submitEdit}>
+                  <HeartMomentFields heartMoment={heartMoment} />
+                  {heartMoment.attachment && !removeExistingPhoto ? (
+                    <div className="field-group">
+                      <span>{t('heartMomentProduct.photoLabel')}</span>
+                      <MediaGallery
+                        items={[
+                          {
+                            id: heartMoment.attachment.id,
+                            mediaType: heartMoment.attachment.mediaType,
+                          },
+                        ]}
+                        loadMedia={(attachmentId) =>
+                          loadAttachment(heartMoment.id, attachmentId)
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="tertiary"
+                        onClick={() => setRemoveExistingPhoto(true)}
+                      >
+                        {t('memory.photoRemove')}
+                      </button>
+                    </div>
+                  ) : null}
+                  <AttachmentDraftPicker
+                    id="heart-moment-edit-photo"
+                    attachments={attachments}
+                    multiple={false}
+                  />
+                  <div className="form-actions">
+                    <Link
+                      className="button-link secondary-link"
+                      to={heartMomentDetailPath(heartMoment.id)}
                       onClick={() => setConfirmDelete(false)}
-                      disabled={deleteMutation.isPending}
                     >
-                      {t('heartMomentProduct.deleteCancel')}
-                    </button>
+                      {t('common.cancel')}
+                    </Link>
                     <button
-                      type="button"
-                      className="danger"
-                      onClick={() => deleteMutation.mutate(heartMoment)}
-                      disabled={deleteMutation.isPending}
+                      type="submit"
+                      disabled={updateMutation.isPending || attachments.hasPending}
                     >
-                      {deleteMutation.isPending
-                        ? t('heartMomentProduct.deleting')
-                        : t('heartMomentProduct.deleteConfirm')}
+                      {updateMutation.isPending
+                        ? t('heartMomentProduct.saving')
+                        : t('heartMomentProduct.save')}
                     </button>
                   </div>
-                </section>
-              )}
-              {deleteMutation.error ? (
-                <ProblemState error={deleteMutation.error} />
-              ) : null}
-            </div>
-          ) : null}
-        </section>
-      </div>
+                </form>
+                {updateMutation.error ? (
+                  <ProblemState error={updateMutation.error} />
+                ) : null}
+      
+                {heartMoment.capabilities.canDelete && !offline ? (
+                  <div style={{ marginTop: 'var(--space-8)' }}>
+                    {!confirmDelete ? (
+                      <button
+                        type="button"
+                        className="button-link danger-link"
+                        onClick={() => setConfirmDelete(true)}
+                      >
+                        {t('heartMomentProduct.delete')}
+                      </button>
+                    ) : (
+                      <section
+                        className="memory-danger-zone memory-delete-confirmation"
+                        aria-label={t('heartMomentProduct.delete')}
+                        role="alert"
+                      >
+                        <div>
+                          <h2>{t('heartMomentProduct.deleteConfirmTitle')}</h2>
+                          <p>{t('heartMomentProduct.deleteConfirmBody')}</p>
+                        </div>
+                        <div className="memory-actions">
+                          <button
+                            type="button"
+                            className="tertiary"
+                            onClick={() => setConfirmDelete(false)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            {t('heartMomentProduct.deleteCancel')}
+                          </button>
+                          <button
+                            type="button"
+                            className="danger"
+                            onClick={() => deleteMutation.mutate(heartMoment)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            {deleteMutation.isPending
+                              ? t('heartMomentProduct.deleting')
+                              : t('heartMomentProduct.deleteConfirm')}
+                          </button>
+                        </div>
+                      </section>
+                    )}
+                    {deleteMutation.error ? (
+                      <ProblemState error={deleteMutation.error} />
+                    ) : null}
+                  </div>
+                ) : null}
+      </StoryEditorPageShell>
     );
   }
 

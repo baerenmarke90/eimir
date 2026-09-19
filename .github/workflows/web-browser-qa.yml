@@ -64,6 +64,15 @@ jobs:
           --shard=${{ matrix.shard }}/2
           --output=test-results-pr-${{ matrix.shard }}
 
+      - name: Upload PR failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}
+          path: web/e2e/test-results-pr-${{ matrix.shard }}/
+          if-no-files-found: ignore
+          retention-days: 3
+
       - name: Upload PR product visual evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -159,6 +168,15 @@ jobs:
           # Intentional word splitting passes each changed spec as one Playwright argument.
           npm run test:full -- $CHANGED_SPECS --output=test-results-changed-specs
 
+      - name: Upload changed-spec failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-changed-${{ github.sha }}
+          path: web/e2e/test-results-changed-specs/
+          if-no-files-found: ignore
+          retention-days: 3
+
       - name: Upload changed-spec product visual evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -220,6 +238,15 @@ jobs:
           npm run test:full --
           --shard=${{ matrix.shard }}/4
           --output=test-results-full-${{ matrix.shard }}
+
+      - name: Upload full-regression failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}
+          path: web/e2e/test-results-full-${{ matrix.shard }}/
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Upload full-regression product visual evidence
         if: always()

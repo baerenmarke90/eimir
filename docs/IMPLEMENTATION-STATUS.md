@@ -1,8 +1,10 @@
 # Implementation Status
 
-As of: September 3, 2026
+<!-- status-surface: authoritative-living -->
+
+As of: September 19, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
-Current gate status: **G3 passed; M4 complete; M5 complete; G4 passed; M6 is the next milestone, evaluated by G5**
+Current gate status: **M0-M5 are complete for their intended scope and G1-G4 have passed. M6 implementation and integrated G5 evidence are substantially delivered. G5 remains BLOCKED under the 2026-09-12 gate review; #914-#917 and final gate owner #525 remain open.**
 
 > **Architecture note (ADR 0011 / #1005 / #1009):** the Web/Android parity, "complete Android client" and "across Web and Android" wording in the milestone records below is historical M5/G4 terminology. It describes work accepted before the Kotlin/Compose client was retired and does not require a second product UI: the canonical Web UI is the only product UI, and Android ships it through the Capacitor wrapper in `android/`. See [Capacitor Android Foundation](CAPACITOR-ANDROID-FOUNDATION.md).
 
@@ -11,7 +13,8 @@ Current gate status: **G3 passed; M4 complete; M5 complete; G4 passed; M6 is the
 - **Binding source:** [Clean-Room Master Specification](../specification/CLEAN-ROOM-MASTER-SPEC.md)
 - **Compact product overview:** [PRODUCT-SPEC.md](../specification/PRODUCT-SPEC.md)
 - **Current forward roadmap decision:** [ADR 0006](decisions/0006-release-before-optional-expansion.md)
-- **Current gate decision:** [2026-09-03-g4-gate-review.md](reviews/2026-09-03-g4-gate-review.md)
+- **Latest launch gate decision:** [G5 gate review — 2026-09-12](m6/G5-GATE-REVIEW-2026-09-12.md) — **BLOCKED**; #525 remains the final gate owner.
+- **Current G5 evidence index:** [m6/G5-EVIDENCE.md](m6/G5-EVIDENCE.md) — evidence/criterion source, not a substitute for the final gate decision.
 - **Status sources and drift rules:** [STATUS-SOURCES.md](STATUS-SOURCES.md)
 - **Binding development rule:** [REUSE-BEFORE-BUILD.md](REUSE-BEFORE-BUILD.md) and [AGENTS.md](../AGENTS.md)
 - **Architecture/operations decisions:** dated ADRs under [docs/decisions](decisions)
@@ -239,17 +242,34 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 ## Later milestones
 
 - [x] M4 — Search/Dashboard, Activity/Notifications, Reminders/Rules
-- [x] **M5 — Client Completion & Parity:** complete Web/Android Core productization, Export/Import, Read Cache, Deep Links, automated Accessibility semantics, and the Web/Android parity audit -> **G4 passed**
-- [ ] **M6 — Operate & Launch:** Managed/Self-Hosted operation, Backup/Restore/Upgrade, administration, observability, Entitlements/Billing adapters, hardening, release engineering and launch QA -> G5
-  - [x] **#190 — Self-Hosted recovery evidence:** coordinated PostgreSQL and durable LocalMediaStore backup/restore, fresh-target integrity/privacy acceptance, reproducible `0032`-to-head upgrade validation, S3 responsibility boundary, operator runbook, and required CI gate delivered.
-- [ ] **M7 — Relationship Depth:** module readiness, Daily Check-in/Vibe/Energy, partner notes/support gestures, Questions, shared achievements, monthly/yearly recaps
-  - [ ] **#432 — M7-S0:** Space module/capability configuration and disable/re-enable semantics
-  - [ ] **#429/#431:** one coherent Daily Check-in/Privacy foundation for Vibe and Energy before their separate product surfaces
-  - [ ] **#430:** shared achievements/Celebration based on authoritative completion events where possible
-- [ ] **M8 — Discover & Integrations:** Shopping, Recipes, Events/Entertainment, external media and provider adapters
-- [ ] **M9 — Context & Presence:** Maps/location history, explicit opt-in context, Geofencing, Presence and contextual suggestions
-- [ ] MX — real E2EE as a separate later Security milestone
+- [x] **M5 — Client Completion & Parity:** complete Core productization under the historical Web/Android parity model -> **G4 passed**
+- [ ] **M6 — Operate & Launch:** implementation and integrated evidence are substantially delivered; final launch acceptance remains gated by the exact release candidate and G5 review
+  - [x] **#524 — Integrated G5 rehearsal/evidence:** completed; historical results and later deltas are retained in `docs/m6/`.
+  - [ ] **#914 — Release publication/provenance:** freeze and publish the protected launch release and retain exact artifact evidence.
+  - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target.
+  - [ ] **#916 — Manual launch-state accessibility:** perform the release-candidate Web acceptance and Android checks only if Android is in launch scope.
+  - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
+  - [ ] **#525 — Final G5 decision:** re-review the exact release/evidence package and declare PASS only when every required criterion passes or is legitimately NOT_APPLICABLE.
+  - [ ] **#827 — Pre-market Self-Hosted OCI/topology hardening:** required before the first public/commercial Self-Hosted release; it is not evidence that G5 already passed.
+  - [ ] **#797 — Cloud encryption at rest:** required before Cloud/Managed go-live if that operating mode is included; a Self-Hosted-only launch must explicitly classify managed-only criteria instead of implying Cloud readiness.
+- [ ] **M7 — Relationship Depth:** post-launch expansion; not a G5 prerequisite
+- [ ] **M8 — Discover & Integrations:** post-launch expansion; not a G5 prerequisite
+- [ ] **M9 — Context & Presence:** post-launch expansion; not a G5 prerequisite
+- [ ] MX — real E2EE as a separately evaluated Security milestone
 
-## Active milestone
+## Current launch-readiness status
 
-**M6 — Operate & Launch** is the next launch-critical milestone, following G4 directly: Managed/Self-Hosted operation, Backup/Restore/Upgrade, administration, observability, Entitlements/Billing adapters, hardening, release engineering and launch QA. G5 (#525) is evaluated after M6; M7-M9 are post-launch expansion and are not G5 prerequisites.
+M6 is no longer merely the "next milestone": its implementation package, integrated
+rehearsal (#524), and post-rehearsal evidence have reached an explicit G5 review.
+The latest dated review keeps **G5 — Launch-ready: BLOCKED**. A green CI run, a
+closed implementation issue, or completion of an individual Product Design slice
+does not change that gate state.
+
+The release candidate is not yet frozen/published. #914 is the first required
+acceptance step; #915, #916, and #917 consume that exact release identity. #525 then
+owns the final gate decision. Cloud/Managed remains separately conditional on the
+declared launch scope and its unresolved target-specific requirements.
+
+Post-G4 product-design remediation such as #955 may continue in parallel. It does
+not redefine G5, waive launch evidence, or make a moving `main` branch a certified
+release candidate.

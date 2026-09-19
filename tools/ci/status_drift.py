@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check living status documents for objectively detectable drift.
+"""Check status-surface contracts for objectively detectable drift.
 
-Historical reviews are intentionally outside this check. Living-status files must
-not preserve a supposedly "current" main SHA because it becomes stale after the
-next merge. Open GitHub issues are verified live only where a document explicitly
-lists them as open Markdown tasks.
+GitHub is canonical for moving repository facts. Implementation Status is the one
+living project/gate source; secondary overview/roadmap surfaces must not become a
+second Issue database or current-status authority. Historical reviews and evidence
+records are intentionally outside prose drift scanning.
 """
 
 from __future__ import annotations
@@ -19,31 +19,102 @@ import urllib.request
 from pathlib import Path
 from typing import Callable
 
-LIVING_STATUS_FILES = (
-    Path("docs/IMPLEMENTATION-STATUS.md"),
+AUTHORITATIVE_STATUS_FILE = Path("docs/IMPLEMENTATION-STATUS.md")
+M6_PLANNING_FILE = Path("docs/m6/README.md")
+SECONDARY_STATUS_FILES = (
+    Path("README.md"),
     Path("docs/ROADMAP.md"),
+    Path("docs/assets/roadmap/roadmap-overview.svg"),
+)
+GOVERNANCE_STATUS_FILE = Path("docs/STATUS-SOURCES.md")
+
+STATUS_ROLE_MARKERS = {
+    Path("README.md"): "secondary-overview",
+    AUTHORITATIVE_STATUS_FILE: "authoritative-living",
+    Path("docs/ROADMAP.md"): "secondary-roadmap",
+    Path("docs/assets/roadmap/roadmap-overview.svg"): "secondary-roadmap-visual",
+    M6_PLANNING_FILE: "historical-m6-planning",
+    GOVERNANCE_STATUS_FILE: "governance-contract",
+}
+CURRENT_STATUS_FILES = (
+    AUTHORITATIVE_STATUS_FILE,
+    *SECONDARY_STATUS_FILES,
+    GOVERNANCE_STATUS_FILE,
 )
 
-# Keep the legacy German marker while the active documentation migration tracked
-# by #212 is in progress. It is matching input, not engineering prose.
+# Keep the legacy German marker while historical migration regression coverage still
+# protects against reintroducing the old form. It is matching input, not engineering
+# prose.
 STATIC_CURRENT_MAIN_SHA = re.compile(
-    r"(?im)^.*(?:Current\s+`?main`?|Aktueller\s+`?main`?)\s*:\s*`?[0-9a-f]{7,40}`?.*$"
+    r"(?im)^.*(?:Current\s+\x60?main\x60?|Aktueller\s+\x60?main\x60?)"
+    r"\s*:\s*\x60?[0-9a-f]{7,40}\x60?.*$"
 )
 OPEN_ISSUE_TASK = re.compile(r"(?m)^\s*-\s*\[ \].*?#(?P<number>\d+)\b")
+STATUS_ROLE_MARKER = re.compile(
+    r"<!--\s*status-surface:\s*(?P<role>[a-z0-9-]+)\s*-->"
+)
+
+OBSOLETE_PHRASES = {
+    Path("README.md"): (
+        "Current: M4 is complete. M5 — Client Completion & Parity is the active roadmap milestone.",
+        "**Next milestone: M4 — Engage.**",
+        "private repository under the current plan",
+    ),
+    AUTHORITATIVE_STATUS_FILE: (
+        "As of: September 3, 2026",
+        "M6 is the next milestone",
+        "G5 has not yet been evaluated",
+    ),
+    Path("docs/ROADMAP.md"): (
+        "**Current:** M0 through M5",
+        "M6 — Operate & Launch** is the next milestone",
+        "G5 has not yet been evaluated",
+    ),
+    Path("docs/assets/roadmap/roadmap-overview.svg"): (
+        "ACTIVE · M5",
+        "NEXT · M6 / G5",
+        "NEXT → G5",
+    ),
+    M6_PLANNING_FILE: (
+        "#262 remains the authoritative product/architecture decision. Until it is resolved:",
+    ),
+}
 
 IssueStateFetcher = Callable[[int], str]
 
 
-def validate_text(path: Path, text: str, issue_state: IssueStateFetcher | None = None) -> list[str]:
+def validate_role(path: Path, text: str) -> list[str]:
+    expected = STATUS_ROLE_MARKERS.get(path)
+    if expected is None:
+        return []
+
+    roles = [match.group("role") for match in STATUS_ROLE_MARKER.finditer(text)]
+    if roles == [expected]:
+        return []
+
+    return [
+        f"{path}: expected exactly one status-surface role '{expected}', found {roles!r}."
+    ]
+
+
+def validate_text(
+    path: Path,
+    text: str,
+    issue_state: IssueStateFetcher | None = None,
+) -> list[str]:
     errors: list[str] = []
 
-    if STATIC_CURRENT_MAIN_SHA.search(text):
+    if path in CURRENT_STATUS_FILES and STATIC_CURRENT_MAIN_SHA.search(text):
         errors.append(
-            f"{path}: living status must not contain a static 'Current main' SHA. "
+            f"{path}: current-facing status must not contain a static 'Current main' SHA. "
             "GitHub main is the canonical SHA source."
         )
 
-    if issue_state is not None:
+    for phrase in OBSOLETE_PHRASES.get(path, ()):
+        if phrase in text:
+            errors.append(f"{path}: obsolete status phrase is forbidden: {phrase!r}.")
+
+    if issue_state is not None and path == AUTHORITATIVE_STATUS_FILE:
         for match in OPEN_ISSUE_TASK.finditer(text):
             number = int(match.group("number"))
             state = issue_state(number)
@@ -92,14 +163,21 @@ def github_issue_state_fetcher(repository: str, token: str) -> IssueStateFetcher
     return fetch
 
 
-def check_repository(root: Path, issue_state: IssueStateFetcher | None = None) -> list[str]:
+def check_repository(
+    root: Path,
+    issue_state: IssueStateFetcher | None = None,
+) -> list[str]:
     errors: list[str] = []
-    for relative_path in LIVING_STATUS_FILES:
+    for relative_path in STATUS_ROLE_MARKERS:
         path = root / relative_path
         if not path.is_file():
-            errors.append(f"{relative_path}: living-status file is missing.")
+            errors.append(f"{relative_path}: status-contract file is missing.")
             continue
-        errors.extend(validate_text(relative_path, path.read_text(encoding="utf-8"), issue_state))
+
+        text = path.read_text(encoding="utf-8")
+        errors.extend(validate_role(relative_path, text))
+        errors.extend(validate_text(relative_path, text, issue_state))
+
     return errors
 
 
@@ -109,7 +187,7 @@ def main() -> int:
     parser.add_argument(
         "--online",
         action="store_true",
-        help="Verify issues explicitly listed as open against GitHub.",
+        help="Verify Issues explicitly tracked as open in the authoritative status.",
     )
     args = parser.parse_args()
 
@@ -134,7 +212,7 @@ def main() -> int:
             print(f"- {error}", file=sys.stderr)
         return 1
 
-    print("Living status is internally consistent and checkable.")
+    print("Status-surface contract is internally consistent and checkable.")
     return 0
 
 

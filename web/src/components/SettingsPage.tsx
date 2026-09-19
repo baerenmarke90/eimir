@@ -75,7 +75,10 @@ export function SettingsPage(props: SettingsPageProps) {
     return <Navigate replace to={settingsCategoryPath(legacyCategory)} />;
   }
 
-  if (settingsCategory !== undefined && !isSettingsCategoryId(settingsCategory)) {
+  if (
+    settingsCategory !== undefined &&
+    !isSettingsCategoryId(settingsCategory)
+  ) {
     return <Navigate replace to={MORE_SETTINGS_ROUTE} />;
   }
 
@@ -83,9 +86,7 @@ export function SettingsPage(props: SettingsPageProps) {
     settingsCategory && isSettingsCategoryId(settingsCategory)
       ? settingsCategory
       : null;
-  const category = categoryId
-    ? settingsCategoryDefinition(categoryId)
-    : null;
+  const category = categoryId ? settingsCategoryDefinition(categoryId) : null;
 
   const openDataCategory = () => {
     navigate(settingsCategoryPath('data'));

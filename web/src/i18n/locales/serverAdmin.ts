@@ -213,6 +213,21 @@ const serverAdmin = {
     unavailable: 'Nicht verfügbar',
     updateError: 'Die Einstellung konnte nicht gespeichert werden.',
   },
+  stepUp: {
+    eyebrow: 'Sicherheitsprüfung',
+    title: 'Identität erneut bestätigen',
+    intro:
+      'Diese privilegierte Aktion benötigt eine aktuelle Bestätigung deiner Identität. Die Freigabe gilt nur kurz und nur für diese ServerAdmin-Sitzung.',
+    passwordLabel: 'Passwort',
+    passwordAction: 'Mit Passwort bestätigen',
+    passkeyAction: 'Mit Passkey bestätigen',
+    oidcAction: 'Mit {{connection}} bestätigen',
+    loading: 'Verfügbare Anmeldeverfahren werden geprüft …',
+    pending: 'Identität wird bestätigt …',
+    unavailable:
+      'Für diesen ServerAdmin-Account ist aktuell kein geeignetes Verfahren zur erneuten Bestätigung verfügbar.',
+    cancel: 'Abbrechen',
+  },
   accounts: {
     title: 'Benutzerverwaltung',
     body: 'Verwalte Account- und Anmeldestatus, ohne auf private Beziehungsinhalte zuzugreifen.',

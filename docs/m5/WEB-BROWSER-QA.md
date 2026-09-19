@@ -23,13 +23,22 @@ No browser-testing dependency is shipped in the production Web bundle.
 
 Every `web/e2e/tests/*.spec.ts` file must be classified. The inventory runner fails closed when a spec exists without a classification or when the inventory references a removed file.
 
-Current baseline for #1042:
+Current #1042 state:
 
 - 46 spec files
-- 351 browser tests in the full retained regression
-- 150 browser tests in the initial PR-critical group
+- original full-regression baseline: **351** browser tests
+- Phase B retained full regression: **319** browser tests
+- PR-critical group: **150** browser tests
 
-The initial split intentionally does not delete tests. It moves broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression. Explicit `LOWER_LEVEL` candidates also remain in the full regression until replacement coverage is proven.
+Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
+
+Phase B reduces test-case overhead without dropping checked states. Three dense matrix suites now execute their existing widths/themes inside fewer Playwright test cases:
+
+- `product-gutters.spec.ts`: 20 -> 4 tests, while retaining all viewport/container widths, Expanded centering and 400% zoom coverage;
+- `product-reference-foundations.spec.ts`: 19 -> 11 tests, while retaining every 320/360/390/430/1280 Light/Dark assertion, screenshot, contrast measurement and axe scan;
+- `r1-memory-capture-evidence.spec.ts`: 19 -> 11 tests, while retaining all initial-empty Light/Dark viewport evidence plus every focused capture/reflow/motion/save scenario.
+
+The earlier `LOWER_LEVEL` candidates were also re-audited. Product reflow, private-state axe contrast and forced-colors behavior all depend on real browser layout/media/computed-style behavior and therefore remain browser regression coverage rather than being forced into a weaker unit-test substitute.
 
 ### PR-critical group
 
@@ -77,7 +86,7 @@ A new browser spec must be classified when it is added.
 
 Use `PR_CRITICAL` when failure would represent a material regression that should block every Web change. Use `FULL_REGRESSION` for broader acceptance/reference coverage that is valuable after merge but does not need to gate every unrelated pull request.
 
-`LOWER_LEVEL` is a migration state, not permission to weaken coverage. Before deleting such a browser case, commit equivalent lower-level coverage and document the overlap in #1042 or its follow-up.
+`LOWER_LEVEL` is a migration state, not permission to weaken coverage. Before deleting such a browser case, commit equivalent lower-level coverage and document the overlap in #1042 or its follow-up. If an audit shows that the contract depends materially on real layout, media emulation, focus, routing or computed browser styles, classify it back as browser regression coverage instead of manufacturing a lower-level replacement.
 
 The long-term cleanup should prefer:
 

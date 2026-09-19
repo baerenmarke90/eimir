@@ -40,11 +40,10 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
         self.assertTrue(is_user_facing_path("web/src/styles.css"))
         self.assertTrue(is_user_facing_path("web/src/TodayPage.css"))
 
-    def test_android_main_code_and_resources_classified_as_user_facing(self) -> None:
-        self.assertTrue(is_user_facing_path("android/app/src/main/java/de/eimir/app/today/TodayScreen.kt"))
-        self.assertTrue(is_user_facing_path("android/app/src/main/res/drawable/ic_launcher_foreground.xml"))
-        self.assertTrue(is_user_facing_path("android/app/src/main/res/values/strings.xml"))
-        self.assertTrue(is_user_facing_path("android/app/src/main/res/values/colors.xml"))
+    def test_capacitor_wrapper_is_not_a_parallel_product_ui_surface(self) -> None:
+        self.assertFalse(is_user_facing_path("android/app/src/main/java/de/eimir/app/MainActivity.kt"))
+        self.assertFalse(is_user_facing_path("android/app/src/main/AndroidManifest.xml"))
+        self.assertFalse(is_user_facing_path("android/app/src/main/res/values/strings.xml"))
 
     def test_generated_openapi_clients_excluded(self) -> None:
         self.assertFalse(is_user_facing_path("web/src/api/generated/apis/DashboardApi.ts"))
@@ -79,7 +78,6 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
         expected = [
             "design/tokens.json",
             "web/public/favicon.svg",
-            "android/app/src/main/res/values/strings.xml",
         ]
         self.assertEqual(classify_paths(input_paths), expected)
 

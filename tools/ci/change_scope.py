@@ -46,7 +46,6 @@ CANONICAL_COMPOSE_FILE = "compose.yaml"
 # this list exact is intentional: new workflows stay fail-closed until their
 # safety boundary has been reviewed explicitly.
 SELF_VALIDATING_LEAF_WORKFLOW_EXACT = (
-    ".github/workflows/android-s8.yml",
     ".github/workflows/codeql.yml",
     ".github/workflows/g2-e2e.yml",
     ".github/workflows/incident-runbooks.yml",
@@ -142,7 +141,7 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
         known = path in SELF_VALIDATING_LEAF_WORKFLOW_EXACT
 
         # Backend lint, typing, unit tests and the OpenAPI contract only depend
-        # on backend files. Web/Android changes no longer wake this job up.
+        # on backend files. Web/Capacitor changes do not wake this job up.
         if path.startswith("backend/"):
             result["backend"] = True
             known = True
@@ -187,14 +186,13 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["self_hosted"] = True
             known = True
 
-        # Generated Web/Android clients only need regeneration when their
+        # The canonical generated Web client only needs regeneration when its
         # OpenAPI input or generator surfaces change.
         if _matches(
             path,
             prefixes=(
                 "tools/openapi/",
                 "web/src/api/generated/",
-                "android/api/generated/",
             ),
             exact=(
                 "backend/openapi.json",
@@ -266,9 +264,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["recovery"] = True
             known = True
 
-        # Ordinary client source is intentionally known but does not activate
-        # backend/container gates. Client-specific workflows cover these trees.
-        if path.startswith(("web/", "android/")):
+        # Canonical Web source and the Capacitor packaging tree are known but do
+        # not activate backend/container gates. Web has its own product gates;
+        # Android/iOS wrapper integration is handled by mobile packaging work.
+        if path.startswith(("web/", "android/", "ios/")):
             known = True
 
         if _is_explicitly_safe_documentation(path):

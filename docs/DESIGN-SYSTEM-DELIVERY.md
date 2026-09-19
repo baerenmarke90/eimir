@@ -4,7 +4,7 @@
 **Version:** 1.2<br/>
 **As of:** September 15, 2026
 
-This document turns design principles, tokens, and component contracts into an executable design system for React/TypeScript and Kotlin/Jetpack Compose. The goal is semantic parity, not pixel-identical platforms.
+This document contains historical React/TypeScript and Kotlin/Jetpack Compose delivery detail. ADR 0011 supersedes the Kotlin/Compose product-UI architecture: Web/Mobile Web is now the canonical product UI, and #1009 owns removal of the remaining legacy Compose-specific implementation guidance.
 
 [Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
@@ -311,7 +311,7 @@ The original DS0–DS4 phases below describe the system delivery framework; they
 
 Per Issue #675, pull requests affecting presentation, brand identity, or
 design tokens are subject to the mandatory Product Design / UX review gate,
-even when they do not modify components inside `web/src` or Android UI packages.
+even when they do not modify components inside `web/src`.
 
 The authoritative presentation/runtime source graph is evaluated by
 `scripts/classify_product_design_paths.py` and includes:
@@ -319,8 +319,12 @@ The authoritative presentation/runtime source graph is evaluated by
 - `design/tokens.json` and design-system machine-readable assets under `design/**`;
 - Web runtime presentation assets: `web/public/**` (favicons, touch icons, fonts, entry scripts);
 - Web entry point: `web/index.html`;
-- Web client source: `web/src/**` (excluding contract-generated OpenAPI clients in `web/src/api/generated/**`);
-- Android UI source and resources: `android/app/src/main/java/**`, `android/app/src/main/res/**`.
+- Web client source: `web/src/**` (excluding contract-generated OpenAPI clients in `web/src/api/generated/**`).
+
+Capacitor wrapper/configuration and narrowly scoped native capability code are
+not classified as a second product-UI implementation. Their platform-specific
+review belongs to the mobile delivery boundary rather than ordinary Product
+Design parity.
 
 New design-system or runtime presentation sources must be registered in
 `USER_FACING_PATTERNS` in `scripts/classify_product_design_paths.py` and covered

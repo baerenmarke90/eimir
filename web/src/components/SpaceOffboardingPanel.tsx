@@ -11,10 +11,7 @@ import { clearProductReadCache } from '../client/productReadCache';
 import { loadStoredSession, storeSession } from '../client/sessionPersistence';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './SpaceOffboardingPanel.css';
 
 type OffboardingStep = 'consequences' | 'confirm' | null;

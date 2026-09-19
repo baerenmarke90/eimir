@@ -73,10 +73,7 @@ function renderSettingsPageFixture(route = '/more/settings'): string {
       <MemoryRouter initialEntries={[route]}>
         <Routes>
           <Route path="/more/settings" element={element} />
-          <Route
-            path="/more/settings/:settingsCategory"
-            element={element}
-          />
+          <Route path="/more/settings/:settingsCategory" element={element} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

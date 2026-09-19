@@ -36,10 +36,7 @@ import { personInitials } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { RelatedPersonEditorSheet } from './RelatedPersonEditorSheet';
 import { UiState } from './UiState';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './RelatedPeoplePage.css';
 
 function PersonCardAvatar({

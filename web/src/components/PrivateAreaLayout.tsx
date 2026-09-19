@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   PRIVATE_AREA_ROOT_PATH,
@@ -11,7 +11,7 @@ import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
-import { ShortTaskSheet } from './ShortTaskSheet';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
 export function PrivateAreaFrame({
   children,
@@ -155,8 +155,10 @@ export function PrivateEditorDiscardSheet({
   onDiscard: () => void;
 }) {
   const { t } = useTranslation();
+  const sheetRef = useRef<ShortTaskSheetHandle>(null);
   return (
     <ShortTaskSheet
+      ref={sheetRef}
       open={open}
       role="alertdialog"
       title={t('taskBoundary.discardTitle')}
@@ -167,7 +169,11 @@ export function PrivateEditorDiscardSheet({
         <button type="button" className="secondary" onClick={onKeep}>
           {t('taskBoundary.keepEditing')}
         </button>
-        <button type="button" onClick={onDiscard}>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => sheetRef.current?.closeForNavigation(onDiscard)}
+        >
           {t('taskBoundary.discard')}
         </button>
       </div>

@@ -18,6 +18,10 @@ import {
   uploadMemoryDraftAttachment,
   type DraftUploadPhase,
 } from './memoryAttachmentDraft';
+import {
+  createOwnedObjectUrl,
+  type OwnedObjectUrl,
+} from './objectUrlResource';
 import type { ReferenceApis } from './referenceFlow';
 
 /**
@@ -99,7 +103,7 @@ function attachmentDraftStoreReducer(
 
 function abortAndRevoke(
   uploads: Map<string, AbortController>,
-  previewUrls: Map<string, string>,
+  previewUrls: Map<string, OwnedObjectUrl>,
 ): void {
   for (const controller of uploads.values()) {
     try {
@@ -109,12 +113,8 @@ function abortAndRevoke(
     }
   }
   uploads.clear();
-  for (const previewUrl of previewUrls.values()) {
-    try {
-      URL.revokeObjectURL(previewUrl);
-    } catch {
-      // ignore
-    }
+  for (const previewResource of previewUrls.values()) {
+    previewResource.dispose();
   }
   previewUrls.clear();
 }
@@ -133,7 +133,7 @@ export function useAttachmentDrafts({
   const committedContextKey = useRef(contextKey);
   const currentGeneration = useRef(1);
   const nextAttempt = useRef(0);
-  const previewUrls = useRef(new Map<string, string>());
+  const previewUrls = useRef(new Map<string, OwnedObjectUrl>());
   const uploads = useRef(new Map<string, AbortController>());
   const mounted = useRef(true);
   // Bounded automatic-upload orchestration (#701): draftCount tracks
@@ -319,8 +319,9 @@ export function useAttachmentDrafts({
 
       for (const file of accepted) {
         const id = globalThis.crypto.randomUUID();
-        const previewUrl = URL.createObjectURL(file);
-        previewUrls.current.set(id, previewUrl);
+        const previewResource = createOwnedObjectUrl(file);
+        const previewUrl = previewResource.url;
+        previewUrls.current.set(id, previewResource);
         draftCount.current += 1;
         dispatch({
           type: 'draft_action',
@@ -354,14 +355,7 @@ export function useAttachmentDrafts({
     (id: string) => {
       cancel(id);
       draftCount.current = Math.max(0, draftCount.current - 1);
-      const previewUrl = previewUrls.current.get(id);
-      if (previewUrl) {
-        try {
-          URL.revokeObjectURL(previewUrl);
-        } catch {
-          // ignore
-        }
-      }
+      previewUrls.current.get(id)?.dispose();
       previewUrls.current.delete(id);
       dispatch({
         type: 'draft_action',

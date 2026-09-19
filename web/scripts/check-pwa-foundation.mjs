@@ -127,7 +127,8 @@ const serviceWorkerContext = {
     }),
     keys: async () => [],
     delete: async () => true,
-    match: async (key) => (key === '/offline.html' ? offlineResponse : undefined),
+    match: async (key) =>
+      key === '/offline.html' ? offlineResponse : undefined,
   },
   fetch: async () => {
     if (rejectNetwork) {
@@ -147,7 +148,10 @@ assert(
   'Service worker must register a fetch handler.',
 );
 
-function makeRequest(path, { method = 'GET', mode = 'cors', auth = false } = {}) {
+function makeRequest(
+  path,
+  { method = 'GET', mode = 'cors', auth = false } = {},
+) {
   return {
     method,
     mode,

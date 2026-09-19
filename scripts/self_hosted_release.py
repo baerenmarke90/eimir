@@ -36,6 +36,24 @@ DIGEST_REF_RE = re.compile(
 )
 
 
+# Compose arguments (after the shared prefix) that ``deploy`` runs after
+# validation, in this order. Migration runs against the selected backend image
+# *before* any runtime container is replaced: a failed or refused migration (for
+# example a rollback to a release older than the database schema) aborts here and
+# leaves the currently running API/worker/Web untouched instead of tearing them
+# down. ``scripts/self_hosted_upgrade_rehearsal.py`` executes the same sequence.
+DEPLOY_WAIT = ("--wait", "--wait-timeout", "300")
+DEPLOY_SEQUENCE: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Self-Hosted release image pull", ("pull",)),
+    ("Self-Hosted database start", ("up", "-d", *DEPLOY_WAIT, "postgres")),
+    ("Self-Hosted release migration", ("run", "--rm", "--no-deps", "migrate")),
+    (
+        "Self-Hosted release deployment",
+        ("up", "-d", "--force-recreate", *DEPLOY_WAIT),
+    ),
+)
+
+
 class ReleaseOperationError(RuntimeError):
     """The requested released Self-Hosted operation is unsafe or invalid."""
 
@@ -345,24 +363,12 @@ def deploy_release(
         image_identity_only=False,
     )
     environment = compose_environment(backend=backend, web=web)
-    run_checked(
-        [*compose_prefix(env_file), "pull"],
-        action="Self-Hosted release image pull",
-        environment=environment,
-    )
-    run_checked(
-        [
-            *compose_prefix(env_file),
-            "up",
-            "-d",
-            "--force-recreate",
-            "--wait",
-            "--wait-timeout",
-            "300",
-        ],
-        action="Self-Hosted release deployment",
-        environment=environment,
-    )
+    for action, arguments in DEPLOY_SEQUENCE:
+        run_checked(
+            [*compose_prefix(env_file), *arguments],
+            action=action,
+            environment=environment,
+        )
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

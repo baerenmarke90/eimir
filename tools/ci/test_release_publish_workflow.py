@@ -128,6 +128,29 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("docker build", publish_step)
         self.assertNotIn(":latest", publish_step)
 
+    def test_image_labels_are_verified_against_release_identity_before_push(self) -> None:
+        publish_archive = self.workflow.split("publish_archive() {", 1)[1].split(
+            "publish_archive \\", 1
+        )[0]
+        revision_check = (
+            'require_image_label "$source_image" org.opencontainers.image.revision "$SOURCE_REVISION"'
+        )
+        version_check = (
+            'require_image_label "$source_image" org.opencontainers.image.version "$RELEASE_VERSION"'
+        )
+        push = 'push_single_digest "$transport_ref" "$repository"'
+        for check in (revision_check, version_check):
+            self.assertIn(check, publish_archive)
+            self.assertLess(publish_archive.index(check), publish_archive.index(push))
+        self.assertLess(
+            publish_archive.index("docker load --input"),
+            publish_archive.index(revision_check),
+        )
+        helper = self.workflow.split("require_image_label() {", 1)[1].split("publish_archive() {", 1)[0]
+        self.assertIn('if [ "$actual" != "$expected" ]; then', helper)
+        self.assertIn("refusing publication", helper)
+        self.assertIn("exit 1", helper)
+
     def test_registry_identity_lookup_fails_closed_on_uncertainty(self) -> None:
         publish_step = self.workflow.split(
             "Publish exact build-once runtime images to GHCR", 1

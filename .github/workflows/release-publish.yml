@@ -836,6 +836,19 @@ jobs:
             fi
           }
 
+          require_image_label() {
+            local image="$1"
+            local key="$2"
+            local expected="$3"
+            local actual
+
+            actual=$(docker image inspect "$image" --format "{{ index .Config.Labels \"${key}\" }}")
+            if [ "$actual" != "$expected" ]; then
+              echo "Release image ${image} label ${key} does not match the release identity; refusing publication." >&2
+              exit 1
+            fi
+          }
+
           publish_archive() {
             local archive="$1"
             local source_image="$2"
@@ -852,6 +865,11 @@ jobs:
             local digest
             local_id=$(docker image inspect "$source_image" --format '{{.Id}}')
             test -n "$local_id"
+
+            # The image must describe its own identity: the labels were baked in
+            # by the #193 evidence build and are part of the attested digest.
+            require_image_label "$source_image" org.opencontainers.image.revision "$SOURCE_REVISION"
+            require_image_label "$source_image" org.opencontainers.image.version "$RELEASE_VERSION"
 
             transport_ref="${repository}:${transport_tag}"
             docker tag "$source_image" "$transport_ref"

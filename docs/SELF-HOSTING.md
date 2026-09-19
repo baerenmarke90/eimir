@@ -269,8 +269,10 @@ python3 scripts/self_hosted_release.py \
   deploy
 ```
 
-`deploy` validates, pulls the selected release images, runs migrations through the
-canonical dependency graph, force-recreates runtime containers and waits for health.
+`deploy` validates, pulls the selected release images, applies the migrations once, and
+only then force-recreates the runtime containers and waits for health. See
+[Upgrade and rollback semantics](#upgrade-and-rollback-semantics) for the exact sequence
+and what it does and does not guarantee.
 
 ## Runtime topology
 
@@ -280,14 +282,52 @@ Normal Self-Hosted ordering is:
 postgres -> migrate -> api/worker -> web
 ```
 
-- `postgres` remains the upstream PostgreSQL image.
-- `migrate` is an explicit one-shot service to avoid concurrent migration races.
-- `api` and `worker` share one backend image but remain separate runtime processes.
-- `web` remains a separate static/runtime boundary.
-- `demo-init` is profile `demo` only and is not part of normal Self-Hosted startup.
+The topology was reviewed service by service (#827). The goal is not the smallest
+container count: a service is removed or integrated only when a safer and simpler
+mechanism exists. A shared image is not a shared process; `api`, `worker` and `migrate`
+use one backend image but stay separate processes with their own lifecycle.
+
+| Service | Decision | Reason |
+|---|---|---|
+| `postgres` | KEEP | Stateful upstream database with its own volume, health check and restart policy; it is not application code, and Cloud/Managed replaces it with an external database. |
+| `migrate` | KEEP | One-shot schema owner: exactly one migration runs per deploy before any runtime is replaced, so several API instances cannot race, a failed or refused migration blocks startup, and it reuses the backend image. |
+| `demo-init` | DEMO-ONLY | Profile `demo` only and run explicitly as a one-shot; normal startup neither depends on it nor creates it, and outside an enabled Demo deployment it exits without creating data. |
+| `api` | KEEP | Request-serving HTTP process with its own health check, published port and restart behavior; it shares the backend image but is a separate process from the worker. |
+| `worker` | KEEP | Background job runner with an independent failure domain, restart and scaling behavior and no published port; merging it into the API would let a stuck job take down request serving. |
+| `web` | KEEP | Unprivileged static Nginx runtime that owns caching, CSP and security headers; it needs no Python, upgrades and fails independently, and folding it into the backend would weaken that isolation. |
+
+No service is removed or integrated into another one: none passed the "safer and
+simpler" test. The only change to the normal startup chain is that `demo-init` is no
+longer part of it.
+
+- `migrate` is not folded into API startup. With several API instances (or an API
+  restart during a rollout) every instance would race to migrate, a failed migration
+  would crash-loop the API, and a refused rollback could not be stopped before the
+  running release is replaced.
+- `migrate` has `restart: "no"` and receives only the database connection; the
+  restart policy of the long-running services never re-runs migrations.
+- `api` and `worker` restart independently (`unless-stopped`). Only `api` and `web`
+  publish host ports; `worker` has none.
+- `web` waits for API readiness. The `/api/` route of the TLS reverse proxy goes
+  directly to the API, not through the Web Nginx (see below).
 
 All services use the project-specific bridge network. The application reaches PostgreSQL
 through Docker DNS at `postgres:5432`; do not depend on container IDs or fixed Docker IPs.
+
+### Demo initialization
+
+`demo-init` runs only for an intentional Demo deployment and only when requested; it is
+never part of `deploy`. After the normal deployment, run the idempotent one-shot
+explicitly (`self-hosted` provides its `migrate` dependency, `demo` provides the service):
+
+```bash
+docker compose --profile self-hosted --profile demo --env-file .env run --rm demo-init
+```
+
+Do not add `demo` to `COMPOSE_PROFILES` and use `up --wait`: Compose (observed with
+2.26) treats an exited standalone one-shot as a failed wait. API and worker do not wait for `demo-init`, so
+Demo entry answers `404 DEMO_IDENTITY_MISSING` until the command has completed. See
+[`DEMO-SPACE.md`](DEMO-SPACE.md).
 
 ## Production configuration requirements
 
@@ -368,6 +408,51 @@ Before every Production upgrade:
 Application rollback selects a previous published release/image identity. It does not
 imply database rollback. For incompatible schema changes use the tested forward-fix,
 downgrade or coordinated restore path defined by #190/#375 and the recovery runbook.
+
+### Upgrade and rollback semantics
+
+Upgrade and rollback are the same operation: set `EIMIR_RELEASE_VERSION` and the matching
+`self-hosted-image-identity.json` to the wanted published release and run `deploy`. The
+launcher executes, and stops at the first failing step:
+
+1. validate the selected release identity and Production environment;
+2. pull the selected digest-qualified images (never a source build);
+3. start PostgreSQL if it is not running;
+4. run the one-shot `migrate` service once against the selected backend image, **before**
+   any runtime container is touched;
+5. force-recreate the runtime containers and wait for health (the canonical dependency
+   graph runs `migrate` once more; at the head revision it is a no-op).
+
+What this guarantees:
+
+- The exact selected release bytes run; the target host never builds application images.
+- If step 4 fails or refuses, the currently running API, worker and Web keep serving
+  the previous release. Migrations run in one PostgreSQL transaction, so a failing
+  migration rolls back unless that migration explicitly leaves the transaction; if in
+  doubt, restore the recovery point taken before the upgrade.
+- Rolling back to an earlier release **that knows the database's current schema
+  revision** (no migration was added in between) works and changes no data.
+- Rolling back to a release **older than the database schema** is refused: its
+  `migrate` cannot locate the database revision and exits non-zero. Nothing is
+  downgraded, no data is lost, and the newer release keeps running. Re-select the newer
+  release, or fix forward.
+
+What it does **not** guarantee:
+
+- Rollback across a schema migration. The application rollback never downgrades the
+  schema. To return to a release older than the schema, restore the coordinated recovery
+  point taken before the upgrade
+  ([`SELF-HOSTED-RECOVERY.md`](SELF-HOSTED-RECOVERY.md)); that also discards data written
+  after that point.
+- Zero downtime. Runtime containers are force-recreated, so API/worker/Web restart
+  during step 5.
+
+`scripts/self_hosted_upgrade_rehearsal.py` proves the above against the canonical
+`compose.yaml` with local images (fresh install, upgrade with and without schema change,
+compatible rollback, refused rollback, recovery, Demo lifecycle). It runs in the
+*Self-Hosted Deployment Guard* workflow. It cannot prove registry pulls or the digest
+identity of a real release; those are covered by the launcher checks and the protected
+publication workflow.
 
 ## Initial Account registration
 

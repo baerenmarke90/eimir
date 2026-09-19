@@ -202,11 +202,11 @@ export function useObjectUrlResource(
 ): ObjectUrlResourceState {
   const state = useObjectUrlResources(
     scopeKey,
-    resourceId ? [resourceId] : [],
+    resourceId === null || resourceId === undefined ? [] : [resourceId],
     loadResource,
   );
 
-  if (!resourceId) {
+  if (resourceId === null || resourceId === undefined) {
     return { url: null, loading: false, error: null };
   }
 

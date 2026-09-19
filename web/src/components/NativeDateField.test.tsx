@@ -72,11 +72,7 @@ describe('NativeDateField', () => {
   it('opens the native picker once when explicit picker opening is enabled', () => {
     const onClick = vi.fn();
     render(
-      <NativeDateField
-        label="Date"
-        openPickerOnClick
-        onClick={onClick}
-      />,
+      <NativeDateField label="Date" openPickerOnClick onClick={onClick} />,
     );
 
     const input = screen.getByLabelText('Date') as HTMLInputElement;

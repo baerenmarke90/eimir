@@ -228,6 +228,32 @@ export interface RequestSignupApiV1AuthSignupRequestPostRequest {
     emailRequest: EmailRequest;
 }
 
+export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest {
+    client?: RecentAuthenticationClient;
+}
+
+export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest {
+    client?: RecentAuthenticationClient;
+}
+
+export interface ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest {
+    connectionId: string;
+    eimirApiV1RecentAuthenticationOidcCallbackRequest: EimirApiV1RecentAuthenticationOidcCallbackRequest;
+}
+
+export interface ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest {
+    passkeyFinishRequest: PasskeyFinishRequest;
+}
+
+export interface ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest {
+    passwordRequest: PasswordRequest;
+}
+
+export interface ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest {
+    connectionId: string;
+    client?: RecentAuthenticationClient;
+}
+
 export interface SignInApiV1AuthSignInPostRequest {
     signInRequest: SignInRequest;
 }
@@ -1267,6 +1293,323 @@ export class AuthApi extends runtime.BaseAPI {
      */
     async requestSignupApiV1AuthSignupRequestPost(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.requestSignupApiV1AuthSignupRequestPostRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet without sending the request
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequestOpts(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/capabilities`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRaw(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CapabilitiesView>> {
+        const requestOptions = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CapabilitiesView> {
+        const response = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet without sending the request
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequestOpts(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRaw(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CapabilitiesView>> {
+        const requestOptions = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CapabilitiesView> {
+        const response = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost without sending the request
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequestOpts(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        if (requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest'] == null) {
+            throw new runtime.RequiredError(
+                'eimirApiV1RecentAuthenticationOidcCallbackRequest',
+                'Required parameter "eimirApiV1RecentAuthenticationOidcCallbackRequest" was null or undefined when calling serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: EimirApiV1RecentAuthenticationOidcCallbackRequestToJSON(requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Complete Oidc
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRaw(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Complete Oidc
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost without sending the request
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequestOpts(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passkeyFinishRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passkeyFinishRequest',
+                'Required parameter "passkeyFinishRequest" was null or undefined when calling serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/passkeys/finish`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasskeyFinishRequestToJSON(requestParameters['passkeyFinishRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Finish Passkey
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRaw(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Finish Passkey
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost without sending the request
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequestOpts(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passwordRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passwordRequest',
+                'Required parameter "passwordRequest" was null or undefined when calling serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/password`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasswordRequestToJSON(requestParameters['passwordRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Password
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRaw(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Password
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost without sending the request
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequestOpts(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Start Oidc
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRaw(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OidcStartView>> {
+        const requestOptions = await this.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OidcStartViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Start Oidc
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OidcStartView> {
+        const response = await this.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost without sending the request
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/passkeys/start`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Start Passkey
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any | null; }>> {
+        const requestOptions = await this.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Server Admin Start Passkey
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {
+        const response = await this.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRaw(initOverrides);
+        return await response.value();
     }
 
     /**

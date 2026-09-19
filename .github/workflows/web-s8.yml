@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "web/**"
-      - "capacitor-android/**"
+      - "android/**"
       - "design/tokens.json"
       - ".github/workflows/web-s8.yml"
 

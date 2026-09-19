@@ -45,11 +45,7 @@ GUARD_FILES = {
     Path("tools/ci/test_project_identity_scan.py"),
 }
 
-ANDROID_IMMUTABLE_IDENTIFIERS = (
-    "de.sidebyside.app",
-    "sidebyside-read-cache.db",
-    "sidebyside_owner_only_read_cache",
-)
+ANDROID_IMMUTABLE_IDENTIFIERS = ("de.sidebyside.app",)
 WEB_PERSISTENCE_IDENTIFIERS = (
     "sidebyside-session-v1",
     "sidebyside-auth-return-v1",
@@ -149,7 +145,7 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
     if any(identifier in normalized for identifier in ANDROID_IMMUTABLE_IDENTIFIERS):
         return (
             Classification.TEMP_COMPAT,
-            "the released Android application, callback, Room, or Keystore identity cannot change in-place",
+            "the released Android application and OIDC callback identity cannot change in-place",
         )
 
     if any(identifier in normalized for identifier in WEB_PERSISTENCE_IDENTIFIERS):
@@ -195,15 +191,11 @@ def classify(path: Path, line: str, match: str) -> tuple[Classification, str]:
         )
 
     if path in (
-        Path("android/app/build.gradle.kts"),
-        Path("capacitor-android/app/build.gradle"),
-        Path("capacitor-android/README.md"),
-    ) and (
-        "providers.gradleproperty" in normalized
-        or any(
-            legacy_property in normalized
-            for legacy_property in ("sbsapibaseurl", "sbsversioncode", "sbsrelease")
-        )
+        Path("android/app/build.gradle"),
+        Path("android/README.md"),
+    ) and any(
+        legacy_property in normalized
+        for legacy_property in ("sbsapibaseurl", "sbsversioncode", "sbsrelease")
     ):
         return (
             Classification.TEMP_COMPAT,

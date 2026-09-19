@@ -5,7 +5,7 @@ on:
     paths:
       - ".github/workflows/release-evidence.yml"
       - ".github/actions/attest-release-artifact/**"
-      - "capacitor-android/**"
+      - "android/**"
       - "web/capacitor.config.ts"
       - "web/package.json"
       - "web/package-lock.json"
@@ -51,7 +51,7 @@ concurrency:
 env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
-  ANDROID_PROJECT_DIR: "capacitor-android"
+  ANDROID_PROJECT_DIR: "android"
   ANDROID_VERSION_CODE: ${{ inputs.android_version_code || (github.event_name == 'pull_request' && 1 || '') }}
   ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || (github.event_name == 'pull_request' && 'https://api.eimir.invalid' || '') }}
   RELEASE_VERSION: ${{ inputs.release_version || (github.event_name == 'pull_request' && '0.1.0' || '') }}
@@ -177,8 +177,8 @@ jobs:
         run: |
           set -euo pipefail
           git diff --exit-code -- \
-            capacitor-android/capacitor.settings.gradle \
-            capacitor-android/app/capacitor.build.gradle
+            android/capacitor.settings.gradle \
+            android/app/capacitor.build.gradle
 
       - name: Build unsigned Android release artifacts
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}

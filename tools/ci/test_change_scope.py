@@ -66,7 +66,10 @@ class ChangeScopeTest(unittest.TestCase):
         self.assert_scope(["web/src/App.tsx"], enabled=set())
 
     def test_capacitor_wrapper_change_does_not_enable_backend_gates(self) -> None:
-        self.assert_scope(["android/app/src/main/AndroidManifest.xml"], enabled=set())
+        self.assert_scope(
+            ["android/app/build.gradle", "android/app/src/main/AndroidManifest.xml"],
+            enabled=set(),
+        )
         self.assert_scope(["ios/App/App/Info.plist"], enabled=set())
 
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:
@@ -279,12 +282,6 @@ class ChangeScopeTest(unittest.TestCase):
     def test_mixed_pr_cannot_hide_unknown_change_with_docs(self) -> None:
         result = classify_paths(["docs/ROADMAP.md", "future-build-system/config.toml"])
         self.assertTrue(all(result.values()))
-
-    def test_capacitor_android_staging_wrapper_does_not_enable_backend_gates(self) -> None:
-        self.assert_scope(
-            ["capacitor-android/app/build.gradle", "capacitor-android/app/src/main/AndroidManifest.xml"],
-            enabled=set(),
-        )
 
 
 if __name__ == "__main__":

@@ -10,25 +10,11 @@ import {
 import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
+import { useModalLifecycle } from './useModalLifecycle';
 import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {
   closeForNavigation: (navigate: () => void) => void;
-}
-
-let scrollLocks = 0;
-let originalBodyOverflow = '';
-
-function lockBody(): () => void {
-  if (scrollLocks === 0) {
-    originalBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-  }
-  scrollLocks += 1;
-  return () => {
-    scrollLocks -= 1;
-    if (scrollLocks === 0) document.body.style.overflow = originalBodyOverflow;
-  };
 }
 
 /** A bounded choice task: the native modal owns inertness and keyboard focus. */
@@ -89,24 +75,16 @@ export function ShortTaskSheet({
     const dialog = dialogRef.current;
     if (!dialog) return;
     navigatingRef.current = false;
-    const previousFocus = restoreFocusRef?.current ?? document.activeElement;
-    const releaseScroll = lockBody();
     dialog.showModal();
-    (initialFocusRef?.current ?? closeRef.current)?.focus({
-      preventScroll: true,
-    });
-    return () => {
-      dialog.close();
-      releaseScroll();
-      if (!navigatingRef.current && previousFocus instanceof HTMLElement) {
-        // The trigger may have been hidden until the same React commit closed us.
-        queueMicrotask(() => {
-          if (previousFocus.isConnected)
-            previousFocus.focus({ preventScroll: true });
-        });
-      }
-    };
-  }, [open, initialFocusRef, restoreFocusRef]);
+    return () => dialog.close();
+  }, [open]);
+
+  useModalLifecycle({
+    active: open,
+    initialFocusRef: initialFocusRef ?? closeRef,
+    restoreFocusRef,
+    shouldRestoreFocus: () => !navigatingRef.current,
+  });
 
   if (!open || typeof document === 'undefined') return null;
   return createPortal(

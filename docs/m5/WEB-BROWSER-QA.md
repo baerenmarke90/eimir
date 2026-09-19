@@ -30,6 +30,7 @@ Current #1042 state:
 - Phase B Slice 1 retained full regression: **319** browser tests
 - Phase B Slice 2 retained full regression: **314** browser tests
 - PR-critical group: **150** browser tests
+- Phase C topology: **2 PR shards** / **4 full-regression shards**, one Playwright worker per shard
 
 Phase A did not delete browser coverage; it moved broad acceptance/reference matrices out of the per-PR path while retaining them in the full regression.
 
@@ -73,22 +74,35 @@ The full regression includes every retained browser spec, including Product Refe
 
 ## CI topology
 
-`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for both groups.
+`.github/workflows/web-browser-qa.yml` uses the same pinned Node container and Chromium runtime for every browser shard. Each shard still uses Playwright's CI setting of **one worker**; parallelism comes from isolated GitHub Actions runners rather than multiple browsers sharing one runner.
 
 For a `pull_request` touching `web/**` or the workflow itself:
 
-1. install locked Web dependencies;
-2. install and audit locked browser-QA dependencies;
-3. typecheck internal visual proof fixtures;
-4. install the Playwright-pinned Chromium runtime;
-5. validate the test inventory;
-6. run `npm run test:pr`;
-7. if the pull request itself changes any `web/e2e/tests/*.spec.ts` files, run those changed specs explicitly as an additional targeted verification;
-8. upload the established product visual evidence.
+1. a lightweight planning job resolves changed browser-spec files through the GitHub PR Files API;
+2. two PR-critical jobs run `npm run test:pr -- --shard=1/2` and `--shard=2/2` in parallel;
+3. if browser specs changed, one additional isolated job runs those changed specs completely;
+4. each browser job writes to its own Playwright output directory and uploads its own short-lived evidence artifact;
+5. a stable `Playwright + axe` aggregate job fails if any required shard or targeted verification fails.
 
-For a push to `main` touching the same surfaces, and for manual execution, the workflow runs `npm run test:full` instead.
+For a push to `main` touching the same surfaces, and for manual execution, four isolated jobs run the complete retained regression as `--shard=1/4` through `--shard=4/4`. The aggregate `Playwright + axe` result remains the stable workflow-level browser-QA status.
 
-The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite. Test-maintenance pull requests still prove the exact browser specs they modify, even when those specs belong only to the full-regression group. The targeted changed-spec run uses a separate Playwright output directory so it cannot erase PR-gate screenshots before artifact upload.
+Native Playwright sharding is safe here because `fullyParallel: true` is already enabled. Every retained test is assigned to exactly one shard while each shard preserves the existing one-worker execution model.
+
+Successful evidence artifacts are retained for **1 day** and failed-run evidence for **3 days**, preserving the storage-reduction intent of #963. Artifact names are shard-specific because `upload-artifact@v4` does not allow multiple jobs to append to the same artifact.
+
+The full regression therefore remains automatic after merge while ordinary pull requests no longer execute the complete historical acceptance suite serially. Test-maintenance pull requests still prove changed browser specs explicitly, and their targeted run uses a separate Playwright output directory so it cannot erase PR-gate screenshots before artifact upload.
+
+### Local shard reproduction
+
+A CI shard can be reproduced locally without changing package scripts:
+
+```bash
+cd web/e2e
+npm run test:pr -- --shard=1/2
+npm run test:full -- --shard=3/4
+```
+
+Sharding reduces wall-clock latency, not the number of retained product contracts. It can consume slightly more aggregate runner/setup minutes because dependency and Chromium setup occur independently on each runner; that tradeoff is intentional and should be monitored against actual CI duration.
 
 ## Maintenance rule
 

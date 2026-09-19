@@ -299,7 +299,12 @@ def test_server_admin_grant_is_bound_to_the_concrete_device_session(
 ) -> None:  # type: ignore[no-untyped-def]
     admin, first_token, first_session = _admin(session)
     second_token = sign_in(session, admin)
-    target, _ = _target_email(session)
+    target = accounts.create_account(
+        session,
+        display_name="Recovery Target",
+        email="recovery-target@example.test",
+        password_hash=passwords.hash_password("target-password"),
+    )
     _issue(session, admin, first_session)
 
     first = client.post(

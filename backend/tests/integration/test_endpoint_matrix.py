@@ -885,6 +885,13 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
 """Account-scoped but not space-scoped. Anonymous requests receive 401."""
 
 SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
+    ("GET", "/api/v1/auth/recent-authentication/server-admin"),
+    ("GET", "/api/v1/auth/recent-authentication/server-admin/capabilities"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/password"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/start"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/finish"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback"),
     ("GET", "/api/v1/server-admin/overview"),
     ("GET", "/api/v1/server-admin/spaces"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}"),

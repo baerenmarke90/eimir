@@ -8,6 +8,7 @@ import {
 } from '../client/privateArea';
 import { appRoutePath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -86,6 +87,24 @@ export function usePrivateAreaTaskContext(fallbackPath: string) {
   );
 
   return { navigationState, origin, returnToOrigin, taskOriginKey };
+}
+
+export function usePrivateTaskEditorLifecycle({
+  fallbackPath,
+  isDirty,
+  isCloseBlocked = false,
+}: {
+  fallbackPath: string;
+  isDirty: boolean;
+  isCloseBlocked?: boolean;
+}) {
+  const taskContext = usePrivateAreaTaskContext(fallbackPath);
+  const lifecycle = useTaskEditorLifecycle({
+    isDirty,
+    isCloseBlocked,
+    onClose: taskContext.returnToOrigin,
+  });
+  return { ...taskContext, ...lifecycle };
 }
 
 export function PrivateAreaDetailBack({

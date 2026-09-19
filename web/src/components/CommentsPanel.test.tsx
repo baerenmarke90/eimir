@@ -119,6 +119,27 @@ describe('CommentsPanel', () => {
     expect(html).toContain('bearbeitet');
   });
 
+  it('uses first names and marks only the current viewer with "von dir" (#1064)', () => {
+    const html = renderPanel([
+      comment({
+        id: 'own',
+        authorId: 'me',
+        author: { id: 'me', displayName: 'Philipp Reis' },
+      }),
+      comment({
+        id: 'partner',
+        authorId: 'them',
+        author: { id: 'them', displayName: 'Alex Winter' },
+      }),
+    ]);
+
+    expect(html).toContain('<strong>Philipp</strong>');
+    expect(html).toContain('<strong>Alex</strong>');
+    expect(html).not.toContain('Philipp Reis');
+    expect(html).not.toContain('Alex Winter');
+    expect(html.match(/von dir/g)?.length).toBe(1);
+  });
+
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {
     it('shows the heading with the compose trigger directly below it for zero comments', () => {
       const html = renderPanel([]);

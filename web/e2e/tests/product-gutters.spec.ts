@@ -67,23 +67,23 @@ async function expectGutters(page: Page, width: number, gutter: number) {
 }
 
 test.describe('Product shell gutter roles (#957)', () => {
-  for (const { width, gutter } of boundaries) {
-    test(`uses ${gutter}px gutters at a ${width}px viewport`, async ({
-      page,
-    }) => {
+  test('keeps the complete viewport breakpoint matrix', async ({ page }) => {
+    for (const { width, gutter } of boundaries) {
       await page.setViewportSize({ width, height: 900 });
       await installShell(page);
       await expectGutters(page, width, gutter);
-    });
+    }
+  });
 
-    test(`uses ${gutter}px gutters in a ${width}px container inside Expanded`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width: 1280, height: 900 });
+  test('keeps the complete container-query breakpoint matrix inside Expanded', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    for (const { width, gutter } of boundaries) {
       await installShell(page, width);
       await expectGutters(page, width, gutter);
-    });
-  }
+    }
+  });
 
   test('keeps the Expanded content maximum centered', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

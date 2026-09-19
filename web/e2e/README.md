@@ -23,6 +23,15 @@ Use the full regression when reproducing release/main behavior:
 npm run test:full
 ```
 
+CI shards these same commands without changing the suite semantics:
+
+```bash
+npm run test:pr -- --shard=1/2
+npm run test:full -- --shard=3/4
+```
+
+Each CI shard still runs with one Playwright worker; GitHub Actions provides the cross-runner parallelism.
+
 A visible full run is available through:
 
 ```bash

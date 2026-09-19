@@ -25,10 +25,7 @@ export function MediaGallery({
   resourceScopeKey = 'gallery',
 }: {
   items: GalleryMediaItem[];
-  loadMedia: (
-    attachmentId: string,
-    signal?: AbortSignal,
-  ) => Promise<string>;
+  loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
   resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();

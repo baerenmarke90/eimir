@@ -133,7 +133,9 @@ async function assertAccessible(page: Page) {
 }
 
 for (const theme of themes) {
-  test(`foundation composition matrix (${theme})`, async ({ page }, testInfo) => {
+  test(`foundation composition matrix (${theme})`, async ({
+    page,
+  }, testInfo) => {
     await installPhoto(page);
     for (const width of widths) {
       await page.setViewportSize({ width, height: 844 });

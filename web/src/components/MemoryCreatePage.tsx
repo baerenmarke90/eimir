@@ -24,6 +24,12 @@ import {
   MemoryAttachmentBindingError,
 } from '../client/memoryAttachmentDraft';
 import {
+  canStillReconcile,
+  MEMORY_CREATE_RESULT_DELETED,
+  type MemoryCreateAttempt,
+  startMemoryCreateAttempt,
+} from '../client/memoryCreateIdentity';
+import {
   type ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -73,7 +79,15 @@ export function MemoryCreatePage({
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
+  // Outcome unknown: the create may or may not have committed. The attempt
+  // (request identity + exact snapshot) is what makes verification safe.
   const [uncertain, setUncertain] = useState(false);
+  const [verifiable, setVerifiable] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyUnavailable, setVerifyUnavailable] = useState(false);
+  const [deletedAfterSave, setDeletedAfterSave] = useState(false);
+  const attemptRef = useRef<MemoryCreateAttempt | null>(null);
+  const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
     null,
   );
@@ -91,6 +105,14 @@ export function MemoryCreatePage({
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
+  // The submit control is locked once the outcome is unknown, so keyboard and
+  // screen-reader users are moved to the explanation and its next action; on
+  // Compact the message would otherwise sit below the fold.
+  const outcomeNoticeVisible = uncertain || deletedAfterSave;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refocus when the notice changes kind
+  useEffect(() => {
+    if (outcomeNoticeVisible) outcomeHeadingRef.current?.focus();
+  }, [outcomeNoticeVisible, verifiable, deletedAfterSave]);
   useEffect(() => {
     if (!dateEditorOpen) return;
     const field = dateInputRef.current;
@@ -180,6 +202,72 @@ export function MemoryCreatePage({
     closeTask();
   }
 
+  async function run(
+    work: () => Promise<MemoryDetail>,
+    { verification }: { verification: boolean },
+  ) {
+    const session = owner.current;
+    session.pending = true;
+    setPending(true);
+    setVerifying(verification);
+    setProblem(null);
+    setOfflineAttempt(false);
+    setVerifyUnavailable(false);
+    try {
+      const memory = await work();
+      if (!session.active) return;
+      attemptRef.current = null;
+      openResult(memory);
+    } catch (error) {
+      if (!session.active) return;
+      if (error instanceof MemoryAttachmentBindingError) {
+        // The Memory is confirmed (created or reconciled); only photos remain.
+        attemptRef.current = null;
+        setUncertain(false);
+        setPartial(error);
+        setProblem(await normalizeClientError(error.cause));
+        return;
+      }
+      const normalized = await normalizeClientError(error);
+      if (!session.active) return;
+      const outcomeUnknown = ['offline', 'server', 'unknown'].includes(
+        normalized.kind,
+      );
+      if (!verification) {
+        setProblem(normalized);
+        // A transport/server failure after POST does not establish non-creation.
+        if (outcomeUnknown) setUncertain(true);
+        else attemptRef.current = null;
+      } else if (outcomeUnknown) {
+        setVerifyUnavailable(true);
+      } else if (
+        normalized.kind === 'notFound' &&
+        normalized.code === MEMORY_CREATE_RESULT_DELETED
+      ) {
+        // Confirmed saved, then deleted: nothing to recover, nothing recreated.
+        attemptRef.current = null;
+        setUncertain(false);
+        setDeletedAfterSave(true);
+      } else if (
+        normalized.kind === 'validation' ||
+        normalized.kind === 'conflict'
+      ) {
+        // The identity can never confirm this request; do not pretend it can.
+        setVerifiable(false);
+      } else {
+        setProblem(normalized);
+      }
+    } finally {
+      if (!exitAction.current) {
+        session.pending = false;
+        if (session.active) {
+          setPending(false);
+          setVerifying(false);
+        }
+      }
+    }
+  }
+
   async function save() {
     if (
       !hasUserContent ||
@@ -191,6 +279,20 @@ export function MemoryCreatePage({
       return;
     if (!navigator.onLine) {
       setOfflineAttempt(true);
+      return;
+    }
+    if (partial) {
+      await run(
+        () =>
+          completeMemoryAttachmentBinding(
+            apis,
+            spaceId,
+            partial.memory,
+            partial.attachmentIds,
+            true,
+          ),
+        { verification: false },
+      );
       return;
     }
     const date = effectiveDateInputValue(happenedOn);
@@ -205,59 +307,45 @@ export function MemoryCreatePage({
       return;
     }
     setInvalidDate(false);
-    const snapshot = {
-      title: title.trim()
-        ? title
-        : t('memoryProduct.createFallbackTitle', {
-            date: formatDateInputValue(date, resolvedLocale()),
-          }),
-      body,
-      happenedOn: submittedDate,
-    };
-    const attachmentIds = [...attachments.readyIds];
-    const session = owner.current;
-    session.pending = true;
-    setPending(true);
-    setProblem(null);
-    setOfflineAttempt(false);
-    try {
-      const memory = partial
-        ? await completeMemoryAttachmentBinding(
-            apis,
-            spaceId,
-            partial.memory,
-            partial.attachmentIds,
-            true,
-          )
-        : (
-            await createMemoryWithReadyAttachments(
-              apis,
-              spaceId,
-              snapshot,
-              attachmentIds,
-            )
-          ).memory;
-      if (!session.active) return;
-      openResult(memory);
-    } catch (error) {
-      if (!session.active) return;
-      if (error instanceof MemoryAttachmentBindingError) {
-        setPartial(error);
-        setProblem(await normalizeClientError(error.cause));
-      } else {
-        const normalized = await normalizeClientError(error);
-        if (!session.active) return;
-        setProblem(normalized);
-        // A transport/server failure after POST does not establish non-creation.
-        if (['offline', 'server', 'unknown'].includes(normalized.kind))
-          setUncertain(true);
-      }
-    } finally {
-      if (!exitAction.current) {
-        session.pending = false;
-        if (session.active) setPending(false);
-      }
+    setDeletedAfterSave(false);
+    // One identity per user-initiated save; it is reused only to verify an
+    // unknown outcome of this exact snapshot.
+    const attempt = startMemoryCreateAttempt(
+      {
+        title: title.trim()
+          ? title
+          : t('memoryProduct.createFallbackTitle', {
+              date: formatDateInputValue(date, resolvedLocale()),
+            }),
+        body,
+        happenedOn: submittedDate,
+      },
+      [...attachments.readyIds],
+    );
+    attemptRef.current = attempt;
+    await run(() => submitAttempt(attempt, false), { verification: false });
+  }
+  function submitAttempt(attempt: MemoryCreateAttempt, reconcile: boolean) {
+    return createMemoryWithReadyAttachments(
+      apis,
+      spaceId,
+      attempt.snapshot,
+      attempt.attachmentIds,
+      { idempotencyKey: attempt.idempotencyKey, reconcile },
+    ).then((result) => result.memory);
+  }
+  async function verify() {
+    const attempt = attemptRef.current;
+    if (!attempt || owner.current.pending || !uncertain) return;
+    if (!canStillReconcile(attempt)) {
+      setVerifiable(false);
+      return;
     }
+    if (!navigator.onLine) {
+      setVerifyUnavailable(true);
+      return;
+    }
+    await run(() => submitAttempt(attempt, true), { verification: true });
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -424,7 +512,9 @@ export function MemoryCreatePage({
         </form>
         {pending ? (
           <p className="status" role="status" aria-live="polite">
-            {t('taskBoundary.pending')}
+            {verifying
+              ? t('taskBoundary.verifying')
+              : t('taskBoundary.pending')}
           </p>
         ) : null}
         {attachments.items.some((item) => item.status === 'failed') ? (
@@ -435,18 +525,48 @@ export function MemoryCreatePage({
         ) : null}
         {uncertain ? (
           <section className="inline-message" role="alert">
-            <h2>{t('taskBoundary.uncertainTitle')}</h2>
-            <p>{t('taskBoundary.uncertainBody')}</p>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                requestClose();
-                discardDestinationRef.current = 'timeline';
-              }}
-            >
-              {t('taskBoundary.checkMoments')}
-            </button>
+            <h2 ref={outcomeHeadingRef} tabIndex={-1}>
+              {t(
+                verifiable
+                  ? 'taskBoundary.uncertainTitle'
+                  : 'taskBoundary.unverifiableTitle',
+              )}
+            </h2>
+            <p>
+              {t(
+                verifiable
+                  ? 'taskBoundary.uncertainBody'
+                  : 'taskBoundary.unverifiableBody',
+              )}
+            </p>
+            {verifyUnavailable ? (
+              <p role="status">{t('taskBoundary.verifyUnavailable')}</p>
+            ) : null}
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  requestClose();
+                  discardDestinationRef.current = 'timeline';
+                }}
+              >
+                {t('taskBoundary.checkMoments')}
+              </button>
+              {verifiable ? (
+                <button
+                  type="button"
+                  aria-disabled={pending}
+                  onClick={() => void verify()}
+                >
+                  {t('taskBoundary.verify')}
+                </button>
+              ) : null}
+            </div>
+            {problem &&
+            !['offline', 'server', 'unknown'].includes(problem.kind) ? (
+              <ProblemState error={problem} />
+            ) : null}
           </section>
         ) : partial ? (
           <section className="inline-message" role="alert">
@@ -463,6 +583,13 @@ export function MemoryCreatePage({
             >
               {t('taskBoundary.openSaved')}
             </button>
+          </section>
+        ) : deletedAfterSave ? (
+          <section className="inline-message" role="alert">
+            <h2 ref={outcomeHeadingRef} tabIndex={-1}>
+              {t('taskBoundary.deletedTitle')}
+            </h2>
+            <p>{t('taskBoundary.deletedBody')}</p>
           </section>
         ) : problem ? (
           <ProblemState error={problem} />

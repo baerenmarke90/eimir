@@ -13,6 +13,18 @@ export interface GalleryMediaItem {
 
 type CarouselDirection = 'previous' | 'next' | null;
 
+interface CarouselTransitionState {
+  index: number;
+  outgoingIndex: number | null;
+  direction: CarouselDirection;
+}
+
+const INITIAL_CAROUSEL_STATE: CarouselTransitionState = {
+  index: 0,
+  outgoingIndex: null,
+  direction: null,
+};
+
 export function MediaGallery({
   items,
   loadMedia,
@@ -23,21 +35,24 @@ export function MediaGallery({
   const { t } = useTranslation();
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [carouselDirection, setCarouselDirection] =
-    useState<CarouselDirection>(null);
+  const [carousel, setCarousel] = useState<CarouselTransitionState>(
+    INITIAL_CAROUSEL_STATE,
+  );
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
   const carouselTouchStartX = useRef<number | null>(null);
   const lightboxTouchStartX = useRef<number | null>(null);
+
+  const carouselIndex = carousel.index;
+  const carouselDirection = carousel.direction;
+  const carouselOutgoingIndex = carousel.outgoingIndex;
 
   useEffect(() => {
     let active = true;
     const loadedUrls: string[] = [];
     setUrls({});
     setFailed(new Set());
-    setCarouselIndex(0);
-    setCarouselDirection(null);
+    setCarousel(INITIAL_CAROUSEL_STATE);
 
     for (const item of items) {
       if (item.mediaType === MediaType.VIDEO) continue;
@@ -64,7 +79,11 @@ export function MediaGallery({
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
-    setCarouselIndex(Math.max(0, items.length - 1));
+    setCarousel({
+      index: Math.max(0, items.length - 1),
+      outgoingIndex: null,
+      direction: null,
+    });
   }, [carouselIndex, items.length]);
 
   const lightboxOpen = activeIndex !== null;
@@ -106,10 +125,23 @@ export function MediaGallery({
   if (items.length === 0) return null;
 
   function changeCarousel(delta: number) {
-    setCarouselDirection(delta < 0 ? 'previous' : 'next');
-    setCarouselIndex(
-      (current) => (current + delta + items.length) % items.length,
-    );
+    const direction: CarouselDirection = delta < 0 ? 'previous' : 'next';
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setCarousel((current) => {
+      const nextIndex = (current.index + delta + items.length) % items.length;
+      if (nextIndex === current.index) return current;
+      if (reducedMotion) {
+        return { index: nextIndex, outgoingIndex: null, direction: null };
+      }
+      return {
+        index: nextIndex,
+        outgoingIndex: current.index,
+        direction,
+      };
+    });
   }
 
   function changeActive(delta: number) {
@@ -199,27 +231,44 @@ export function MediaGallery({
           }}
         >
           <div className="media-gallery-carousel-track">
-            {items.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`media-gallery-carousel-slide${
-                  index === carouselIndex
-                    ? ` is-active${
-                        carouselDirection ? ` is-${carouselDirection}` : ''
-                      }`
-                    : ''
-                }`}
-                tabIndex={index === carouselIndex ? 0 : -1}
-                onClick={() => setActiveIndex(index)}
-                aria-label={t('gallery.openItem', {
-                  index: index + 1,
-                  count: items.length,
-                })}
-              >
-                {renderCarouselMedia(item)}
-              </button>
-            ))}
+            {items.map((item, index) => {
+              const isActive = index === carouselIndex;
+              const isOutgoing =
+                carouselDirection !== null &&
+                index === carouselOutgoingIndex &&
+                index !== carouselIndex;
+              const directionClass = carouselDirection
+                ? ` is-${carouselDirection}`
+                : '';
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`media-gallery-carousel-slide${
+                    isActive ? ` is-active${directionClass}` : ''
+                  }${isOutgoing ? ` is-outgoing${directionClass}` : ''}`}
+                  tabIndex={isActive ? 0 : -1}
+                  onClick={() => setActiveIndex(index)}
+                  onAnimationEnd={(event) => {
+                    if (!isOutgoing || event.target !== event.currentTarget) {
+                      return;
+                    }
+                    setCarousel((current) =>
+                      current.outgoingIndex === index
+                        ? { ...current, outgoingIndex: null, direction: null }
+                        : current,
+                    );
+                  }}
+                  aria-label={t('gallery.openItem', {
+                    index: index + 1,
+                    count: items.length,
+                  })}
+                >
+                  {renderCarouselMedia(item)}
+                </button>
+              );
+            })}
           </div>
 
           {items.length > 1 ? (

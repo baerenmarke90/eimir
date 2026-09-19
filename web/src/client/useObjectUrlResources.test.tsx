@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { adoptObjectUrl } from './objectUrlResource';
 import {
   useObjectUrlResource,
   useObjectUrlResources,
@@ -37,6 +38,16 @@ describe('Object URL resource ownership', () => {
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
     vi.restoreAllMocks();
+  });
+
+  it('makes direct disposal idempotent', () => {
+    const resource = adoptObjectUrl('blob:direct-owner');
+
+    resource.dispose();
+    resource.dispose();
+
+    expect(revokeObjectUrl).toHaveBeenCalledTimes(1);
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:direct-owner');
   });
 
   it('creates one owned URL and revokes the final active resource on unmount', async () => {

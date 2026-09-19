@@ -4,8 +4,8 @@ Binding product requirement. This file is the implementation source; a predecess
 
 | | |
 |---|---|
-| Version | 1.1 |
-| As of | 2026-09-01 |
+| Version | 1.2 |
+| As of | 2026-09-19 |
 
 ## 1. Product
 

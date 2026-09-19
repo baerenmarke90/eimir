@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import {
   MediaType,
@@ -28,7 +34,12 @@ export function MediaGallery({
   const carouselSlides = useRef<Array<HTMLButtonElement | null>>([]);
   const carouselScrollFrame = useRef<number | null>(null);
   const carouselScrollEndTimer = useRef<number | null>(null);
-  const lightboxTouchStartX = useRef<number | null>(null);
+  const lightboxTrack = useRef<HTMLDivElement | null>(null);
+  const lightboxSlides = useRef<Array<HTMLDivElement | null>>([]);
+  const lightboxScrollFrame = useRef<number | null>(null);
+  const lightboxScrollEndTimer = useRef<number | null>(null);
+  const lightboxInitialIndex = useRef(0);
+  const activeIndexRef = useRef<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -80,11 +91,74 @@ export function MediaGallery({
       if (carouselScrollEndTimer.current !== null) {
         window.clearTimeout(carouselScrollEndTimer.current);
       }
+      if (lightboxScrollFrame.current !== null) {
+        window.cancelAnimationFrame(lightboxScrollFrame.current);
+      }
+      if (lightboxScrollEndTimer.current !== null) {
+        window.clearTimeout(lightboxScrollEndTimer.current);
+      }
     },
     [],
   );
 
   const lightboxOpen = activeIndex !== null;
+
+  useLayoutEffect(() => {
+    if (!lightboxOpen || items.length < 2) return;
+    const track = lightboxTrack.current;
+    const slide = lightboxSlides.current[lightboxInitialIndex.current];
+    if (!track || !slide) return;
+    track.scrollLeft = slide.offsetLeft;
+  }, [lightboxOpen, items.length]);
+
+  const changeActive = useCallback(
+    (delta: number) => {
+      const current = activeIndexRef.current;
+      if (current === null || items.length < 2) return;
+
+      const direction = delta < 0 ? -1 : 1;
+      const nextIndex = (current + direction + items.length) % items.length;
+      const track = lightboxTrack.current;
+      if (!track) {
+        activeIndexRef.current = nextIndex;
+        setActiveIndex(nextIndex);
+        return;
+      }
+
+      const reducedMotion =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      let target: HTMLElement | null =
+        lightboxSlides.current[nextIndex] ?? null;
+      if (!reducedMotion && direction < 0 && current === 0) {
+        target = track.querySelector<HTMLElement>(
+          '[data-lightbox-clone="start"]',
+        );
+      } else if (
+        !reducedMotion &&
+        direction > 0 &&
+        current === items.length - 1
+      ) {
+        target = track.querySelector<HTMLElement>(
+          '[data-lightbox-clone="end"]',
+        );
+      }
+
+      if (!target) return;
+
+      if (reducedMotion) {
+        track.scrollLeft = target.offsetLeft;
+        activeIndexRef.current = nextIndex;
+        setActiveIndex(nextIndex);
+        return;
+      }
+
+      track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+    },
+    [items.length],
+  );
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -104,21 +178,22 @@ export function MediaGallery({
     if (!lightboxOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveIndex(null);
+      if (event.key === 'Escape') {
+        activeIndexRef.current = null;
+        setActiveIndex(null);
+      }
       if (event.key === 'ArrowLeft') {
-        setActiveIndex((current) =>
-          current === null ? null : (current - 1 + items.length) % items.length,
-        );
+        event.preventDefault();
+        changeActive(-1);
       }
       if (event.key === 'ArrowRight') {
-        setActiveIndex((current) =>
-          current === null ? null : (current + 1) % items.length,
-        );
+        event.preventDefault();
+        changeActive(1);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [lightboxOpen, items.length]);
+  }, [changeActive, lightboxOpen]);
 
   if (items.length === 0) return null;
 
@@ -213,11 +288,70 @@ export function MediaGallery({
     track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
   }
 
-  function changeActive(delta: number) {
-    setActiveIndex((current) => {
-      if (current === null) return null;
-      return (current + delta + items.length) % items.length;
-    });
+  function nearestLightboxSlide(track: HTMLDivElement): HTMLElement | null {
+    const slides = Array.from(
+      track.querySelectorAll<HTMLElement>('[data-lightbox-index]'),
+    );
+    if (slides.length === 0) return null;
+
+    return slides.reduce((nearest, slide) =>
+      Math.abs(slide.offsetLeft - track.scrollLeft) <
+      Math.abs(nearest.offsetLeft - track.scrollLeft)
+        ? slide
+        : nearest,
+    );
+  }
+
+  function finishLightboxScroll(track: HTMLDivElement) {
+    const nearest = nearestLightboxSlide(track);
+    if (!nearest) return;
+
+    const index = Number(nearest.dataset.lightboxIndex);
+    if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
+
+    activeIndexRef.current = index;
+    setActiveIndex(index);
+
+    if (nearest.dataset.lightboxClone) {
+      const realSlide = lightboxSlides.current[index];
+      if (realSlide) {
+        track.scrollLeft = realSlide.offsetLeft;
+      }
+    }
+  }
+
+  function handleLightboxScroll(track: HTMLDivElement) {
+    if (lightboxScrollFrame.current === null) {
+      lightboxScrollFrame.current = window.requestAnimationFrame(() => {
+        lightboxScrollFrame.current = null;
+        const nearest = nearestLightboxSlide(track);
+        if (!nearest) return;
+        const index = Number(nearest.dataset.lightboxIndex);
+        if (Number.isInteger(index) && index >= 0 && index < items.length) {
+          activeIndexRef.current = index;
+          setActiveIndex(index);
+        }
+      });
+    }
+
+    if (lightboxScrollEndTimer.current !== null) {
+      window.clearTimeout(lightboxScrollEndTimer.current);
+    }
+    lightboxScrollEndTimer.current = window.setTimeout(() => {
+      lightboxScrollEndTimer.current = null;
+      finishLightboxScroll(track);
+    }, 100);
+  }
+
+  function openLightbox(index: number) {
+    lightboxInitialIndex.current = index;
+    activeIndexRef.current = index;
+    setActiveIndex(index);
+  }
+
+  function closeLightbox() {
+    activeIndexRef.current = null;
+    setActiveIndex(null);
   }
 
   function renderMedia(item: GalleryMediaItem, className: string) {
@@ -316,7 +450,7 @@ export function MediaGallery({
                   }`}
                   data-carousel-index={index}
                   tabIndex={isActive ? 0 : -1}
-                  onClick={() => setActiveIndex(index)}
+                  onClick={() => openLightbox(index)}
                   aria-label={t('gallery.openItem', {
                     index: index + 1,
                     count: items.length,
@@ -380,22 +514,55 @@ export function MediaGallery({
               role="dialog"
               aria-modal="true"
               aria-label={t('gallery.dialogAria')}
-              onTouchStart={(event) => {
-                lightboxTouchStartX.current = event.touches[0]?.clientX ?? null;
-              }}
-              onTouchEnd={(event) => {
-                const start = lightboxTouchStartX.current;
-                lightboxTouchStartX.current = null;
-                const end = event.changedTouches[0]?.clientX;
-                if (start === null || end === undefined) return;
-                const distance = end - start;
-                if (Math.abs(distance) < 48) return;
-                changeActive(distance > 0 ? -1 : 1);
-              }}
             >
               <div className="media-lightbox">
                 <div className="media-lightbox-stage">
-                  {renderMedia(activeItem, 'media-lightbox-content')}
+                  {items.length > 1 ? (
+                    <div
+                      ref={lightboxTrack}
+                      className="media-lightbox-track"
+                      onScroll={(event) =>
+                        handleLightboxScroll(event.currentTarget)
+                      }
+                    >
+                      <div
+                        className="media-lightbox-slide is-clone"
+                        data-lightbox-index={items.length - 1}
+                        data-lightbox-clone="start"
+                        aria-hidden="true"
+                      >
+                        {renderMedia(
+                          items[items.length - 1]!,
+                          'media-lightbox-content',
+                        )}
+                      </div>
+
+                      {items.map((item, index) => (
+                        <div
+                          ref={(element) => {
+                            lightboxSlides.current[index] = element;
+                          }}
+                          key={item.id}
+                          className="media-lightbox-slide"
+                          data-lightbox-index={index}
+                          aria-hidden={index !== activeIndex}
+                        >
+                          {renderMedia(item, 'media-lightbox-content')}
+                        </div>
+                      ))}
+
+                      <div
+                        className="media-lightbox-slide is-clone"
+                        data-lightbox-index={0}
+                        data-lightbox-clone="end"
+                        aria-hidden="true"
+                      >
+                        {renderMedia(items[0]!, 'media-lightbox-content')}
+                      </div>
+                    </div>
+                  ) : (
+                    renderMedia(activeItem, 'media-lightbox-content')
+                  )}
 
                   {items.length > 1 ? (
                     <span className="media-lightbox-counter" aria-live="polite">
@@ -410,7 +577,7 @@ export function MediaGallery({
                     ref={closeButton}
                     type="button"
                     className="media-lightbox-close"
-                    onClick={() => setActiveIndex(null)}
+                    onClick={closeLightbox}
                     aria-label={t('gallery.close')}
                   >
                     <span aria-hidden="true">×</span>

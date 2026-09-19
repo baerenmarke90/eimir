@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
 import {
   BrowserRouter,
@@ -19,7 +25,11 @@ import {
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
 import privateArea from '../i18n/locales/privateArea';
 import taskBoundary from '../i18n/locales/taskBoundary';
-import { PrivateNoteCreatePage, PrivateNoteDetailPage, PrivateNoteEditPage } from './PrivateNotesPage';
+import {
+  PrivateNoteCreatePage,
+  PrivateNoteDetailPage,
+  PrivateNoteEditPage,
+} from './PrivateNotesPage';
 
 const ACCOUNT_ID = 'account-1';
 const SPACE_ID = 'space-1';
@@ -72,9 +82,8 @@ function SearchOrigin() {
   const location = useLocation();
   const { captureOrigin, resolveOrigin, registerOriginMetadata } =
     useTaskOrigin();
-  const returnKey = (
-    location.state as { taskReturnKey?: unknown } | null
-  )?.taskReturnKey;
+  const returnKey = (location.state as { taskReturnKey?: unknown } | null)
+    ?.taskReturnKey;
   const restored = resolveOrigin(returnKey);
 
   useEffect(
@@ -149,7 +158,9 @@ describe('P1 private task continuity', () => {
       </Providers>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open private result' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open private result' }),
+    );
     expect(
       await screen.findByRole('heading', { name: note.title }),
     ).toBeDefined();
@@ -213,9 +224,7 @@ describe('P1 private task continuity', () => {
     fireEvent.click(
       screen.getByRole('button', { name: taskBoundary.keepEditing }),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole('alertdialog')).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
 
     fireEvent.click(
       screen.getByRole('button', { name: privateArea.notes.detailBack }),

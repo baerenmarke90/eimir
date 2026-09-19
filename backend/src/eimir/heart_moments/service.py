@@ -246,7 +246,9 @@ def change_visibility(
     comments still exist.
 
     `PRIVATE -> SHARED` does not restore deleted comments, nor previously
-    removed relations (M3-D09).
+    removed relations (M3-D09). Story-view aggregate state never crosses a
+    privacy boundary in either direction: owner-private views allowed by #1021
+    are purged before sharing so #971 partner affinity always starts fresh.
 
     The row is locked exclusively before anything is checked (M3-D26). Without
     the lock, a concurrent relation create could insert a shared relation in
@@ -266,15 +268,21 @@ def change_visibility(
     if target is PrivacyClass.OWNER_ONLY:
         _delete_dependent_comments(session, heart_moment)
         _drop_shared_relations(session, heart_moment)
-        from eimir.story import view_service
-        from eimir.story.service import StoryKind
 
-        view_service.purge_target(
-            session,
-            space_id=heart_moment.space_id,
-            kind=StoryKind.HEART_MOMENT,
-            item_id=heart_moment.id,
-        )
+    # A visibility boundary must also be a behavioral-data boundary. #1021
+    # permits the owner to record views while a HeartMoment is private, but
+    # those private returns must never become partner-affinity input if the
+    # HeartMoment is later shared. Purging on every real visibility transition
+    # also preserves the existing SHARED -> PRIVATE cleanup contract.
+    from eimir.story import view_service
+    from eimir.story.service import StoryKind
+
+    view_service.purge_target(
+        session,
+        space_id=heart_moment.space_id,
+        kind=StoryKind.HEART_MOMENT,
+        item_id=heart_moment.id,
+    )
 
     heart_moment.privacy_class = target.value
     _flush(session)

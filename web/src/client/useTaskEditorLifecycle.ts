@@ -34,13 +34,7 @@ export function useTaskEditorLifecycle({
       return;
     }
     closeConfirmed();
-  }, [
-    closeConfirmed,
-    isActive,
-    isCloseBlocked,
-    isDirty,
-    requestDiscard,
-  ]);
+  }, [closeConfirmed, isActive, isCloseBlocked, isDirty, requestDiscard]);
 
   useEffect(() => {
     if (!isActive) keepEditing();

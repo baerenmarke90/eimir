@@ -19,17 +19,13 @@ export function usePlanningEditorLifecycle({
   onEscape?: () => boolean;
   onClose: () => void;
 }) {
-  const {
-    showDiscardConfirm,
-    keepEditing,
-    closeConfirmed,
-    requestClose,
-  } = useTaskEditorLifecycle({
-    isActive,
-    isDirty,
-    isCloseBlocked: isPending,
-    onClose,
-  });
+  const { showDiscardConfirm, keepEditing, closeConfirmed, requestClose } =
+    useTaskEditorLifecycle({
+      isActive,
+      isDirty,
+      isCloseBlocked: isPending,
+      onClose,
+    });
 
   useEffect(() => {
     if (!isActive) return;

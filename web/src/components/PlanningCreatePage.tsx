@@ -421,11 +421,7 @@ export function PlanningCreatePage({
       >
         <p>{t('taskBoundary.discardBody')}</p>
         <div className="form-actions">
-          <button
-            type="button"
-            className="secondary"
-            onClick={keepEditing}
-          >
+          <button type="button" className="secondary" onClick={keepEditing}>
             {t('taskBoundary.keepEditing')}
           </button>
           <button

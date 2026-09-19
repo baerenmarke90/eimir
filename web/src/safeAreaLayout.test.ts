@@ -35,12 +35,13 @@ describe('Capacitor safe-area & statusbar insets (#1044)', () => {
     const bannerMatch = demoCss.match(/\.demo-instance-banner\s*\{([^}]+)\}/);
     expect(bannerMatch).toBeTruthy();
     const bannerRules = bannerMatch?.[1] ?? '';
+    const normalizedBannerRules = bannerRules.replace(/\s+/g, ' ');
 
-    expect(bannerRules).toContain(
-      'min-height: calc(40px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));',
+    expect(normalizedBannerRules).toContain(
+      'min-height: calc( 40px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) );',
     );
-    expect(bannerRules).toContain(
-      'padding: calc(var(--space-2) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))) var(--space-4) var(--space-2);',
+    expect(normalizedBannerRules).toContain(
+      'padding: calc( var(--space-2) + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) ) var(--space-4) var(--space-2);',
     );
     expect(bannerRules).toContain('position: relative;');
     expect(bannerRules).toContain('z-index: 50;');

@@ -24,9 +24,10 @@ import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
-import { localDateInputValue, openNativeDatePicker } from '../client/dateInput';
+import { localDateInputValue } from '../client/dateInput';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -259,19 +260,14 @@ export function MilestoneProductPage({
               />
             </div>
 
-            <div className="field-group">
-              <label htmlFor="milestone-date">
-                {t('milestoneProduct.happenedOnLabel')}
-              </label>
-              <input
-                id="milestone-date"
-                name="happenedOn"
-                type="date"
-                required
-                defaultValue={localDateInputValue()}
-                onClick={openNativeDatePicker}
-              />
-            </div>
+            <NativeDateField
+              id="milestone-date"
+              name="happenedOn"
+              label={t('milestoneProduct.happenedOnLabel')}
+              required
+              defaultValue={localDateInputValue()}
+              openPickerOnClick
+            />
 
             <details className="immersive-create-details">
               <summary>{t('milestoneProduct.addMoreDetails')}</summary>
@@ -547,20 +543,15 @@ function MilestoneFields({ milestone }: { milestone?: MilestoneDetail }) {
           placeholder={t('milestoneProduct.bodyPlaceholder')}
         />
       </div>
-      <div className="field-group">
-        <label htmlFor="milestone-date">
-          {t('milestoneProduct.happenedOnLabel')}
-        </label>
-        <input
-          id="milestone-date"
-          name="happenedOn"
-          type="date"
-          required
-          defaultValue={
-            milestone ? dateInputValue(milestone.happenedOn) : undefined
-          }
-        />
-      </div>
+      <NativeDateField
+        id="milestone-date"
+        name="happenedOn"
+        label={t('milestoneProduct.happenedOnLabel')}
+        required
+        defaultValue={
+          milestone ? dateInputValue(milestone.happenedOn) : undefined
+        }
+      />
     </>
   );
 }

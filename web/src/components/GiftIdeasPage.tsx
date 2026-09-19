@@ -17,6 +17,7 @@ import {
   privateGiftIdeaPath,
 } from '../client/privateArea';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import {
@@ -140,17 +141,12 @@ function GiftIdeaFields({
             defaultValue={giftIdea?.occasion ?? ''}
           />
         </div>
-        <div className="field-group">
-          <label htmlFor="gift-target-on">
-            {t('privateArea.gifts.targetOnLabel')}
-          </label>
-          <input
-            id="gift-target-on"
-            name="targetOn"
-            type="date"
-            defaultValue={dateInputValue(giftIdea?.targetOn ?? null)}
-          />
-        </div>
+        <NativeDateField
+          id="gift-target-on"
+          name="targetOn"
+          label={t('privateArea.gifts.targetOnLabel')}
+          defaultValue={dateInputValue(giftIdea?.targetOn ?? null)}
+        />
         <div className="field-group">
           <label htmlFor="gift-price">
             {t('privateArea.gifts.priceLabel')}

@@ -203,9 +203,7 @@ export function ServerAdminRecentAuthModal({
                   })
                 }
               >
-                {t('serverAdmin.stepUp.oidcAction', {
-                  connection: connectionId,
-                })}
+                {t('serverAdmin.stepUp.oidcAction')} · {connectionId}
               </button>
             ))}
           </div>

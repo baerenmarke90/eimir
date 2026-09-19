@@ -764,6 +764,24 @@ test('an unknown create outcome is verified with the same identity and opens the
     });
   }
 
+  // Reflow: the notice and its actions stay usable at 320 px and adapt, not
+  // replace, the composition at Expanded width.
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await expectNoOverflow(page);
+    await expect(verify).toBeVisible();
+    await verify.scrollIntoViewIfNeeded();
+    await expect(verify).toBeInViewport();
+    if (width === 1280) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({
+        path: testInfo.outputPath('f2-verify-unknown-outcome-expanded.png'),
+        fullPage: true,
+      });
+    }
+  }
+
   await verify.click();
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   await expect(

@@ -133,12 +133,10 @@ async function assertAccessible(page: Page) {
 }
 
 for (const theme of themes) {
-  for (const width of widths) {
-    test(`foundation composition ${theme} at ${width}px`, async ({
-      page,
-    }, testInfo) => {
+  test(`foundation composition matrix (${theme})`, async ({ page }, testInfo) => {
+    await installPhoto(page);
+    for (const width of widths) {
       await page.setViewportSize({ width, height: 844 });
-      await installPhoto(page);
       await openProof(page, `theme=${theme}`);
       const photo = page.locator('.proof-photo .story-media-preview');
       await expect(photo).toBeVisible();
@@ -229,8 +227,8 @@ for (const theme of themes) {
         photoBox,
         contrast,
       });
-    });
-  }
+    }
+  });
 }
 
 test('pending media reserves its final geometry and successful loading keeps the same content', async ({

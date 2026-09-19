@@ -395,126 +395,126 @@ export function HeartMomentProductPage({
               </p>
             </div>
           </header>
-
-
         }
         pageClassName="heart-moment-create-page"
         cardClassName="heart-moment-create-card"
         labelledBy="heart-moment-create-heading"
       >
-        <form
-          onSubmit={submitCreate}
-          className="immersive-create-form heart-moment-create-form"
-        >
-          <div className="heart-moment-create-media">
-            <AttachmentDraftPicker
-              id="heart-moment-create-photo"
-              attachments={attachments}
-              multiple={false}
-            />
-          </div>
-
-          <div className="field-group heart-moment-create-field heart-moment-create-note">
-            <label htmlFor="heart-moment-text">
-              {t('heartMomentProduct.textLabel')}
-            </label>
-            <textarea
-              id="heart-moment-text"
-              name="text"
-              required
-              rows={4}
-              maxLength={4000}
-              placeholder={t('heartMomentProduct.textPlaceholder')}
-              className="immersive-create-title-multiline"
-            />
-          </div>
-
-          <div className="heart-moment-create-field-grid">
-            <HeartEmotionPicker
-              legend={t('heartMomentProduct.emotionLabel')}
-              idPrefix="heart-moment-create-emotion"
-              className="heart-moment-create-field heart-moment-create-emotion-picker"
-            />
-
-            <div className="field-group heart-moment-create-field heart-moment-create-date">
-              <label htmlFor="heart-moment-date">
-                {t('heartMomentProduct.happenedOnLabel')}
-              </label>
-              <input
-                id="heart-moment-date"
-                name="happenedOn"
-                type="date"
-                required
-                defaultValue={localDateInputValue()}
-                onClick={openNativeDatePicker}
+        <>
+          <form
+            onSubmit={submitCreate}
+            className="immersive-create-form heart-moment-create-form"
+          >
+            <div className="heart-moment-create-media">
+              <AttachmentDraftPicker
+                id="heart-moment-create-photo"
+                attachments={attachments}
+                multiple={false}
               />
             </div>
-          </div>
 
-          <fieldset className="heart-moment-create-visibility">
-            <legend>{t('heartMomentProduct.visibilityLabel')}</legend>
-            <div className="heart-moment-create-visibility-options">
-              <label
-                className="heart-moment-create-visibility-option"
-                htmlFor="heart-moment-create-visibility-private"
-              >
-                <input
-                  id="heart-moment-create-visibility-private"
-                  name="visibility"
-                  type="radio"
-                  value={ContentVisibility.PRIVATE}
-                  checked={createVisibility === ContentVisibility.PRIVATE}
-                  onChange={() =>
-                    setCreateVisibility(ContentVisibility.PRIVATE)
-                  }
-                />
-                <span>
-                  <strong>{t('heartMomentProduct.visibilityPrivate')}</strong>
-                  <small>{t('heartMomentProduct.privateHelp')}</small>
-                </span>
+            <div className="field-group heart-moment-create-field heart-moment-create-note">
+              <label htmlFor="heart-moment-text">
+                {t('heartMomentProduct.textLabel')}
               </label>
-              <label
-                className="heart-moment-create-visibility-option"
-                htmlFor="heart-moment-create-visibility-shared"
-              >
-                <input
-                  id="heart-moment-create-visibility-shared"
-                  name="visibility"
-                  type="radio"
-                  value={ContentVisibility.SHARED}
-                  checked={createVisibility === ContentVisibility.SHARED}
-                  onChange={() =>
-                    setCreateVisibility(ContentVisibility.SHARED)
-                  }
-                />
-                <span>
-                  <strong>{t('heartMomentProduct.visibilityShared')}</strong>
-                  <small>{t('heartMomentProduct.sharedHelp')}</small>
-                </span>
-              </label>
+              <textarea
+                id="heart-moment-text"
+                name="text"
+                required
+                rows={4}
+                maxLength={4000}
+                placeholder={t('heartMomentProduct.textPlaceholder')}
+                className="immersive-create-title-multiline"
+              />
             </div>
-          </fieldset>
 
-          <div className="form-actions heart-moment-create-actions">
-            <button
-              type="submit"
-              disabled={createMutation.isPending || attachments.hasPending}
-            >
-              {createMutation.isPending
-                ? t('heartMomentProduct.saving')
-                : t('heartMomentProduct.save')}
-            </button>
-            <Link
-              className="button-link secondary-link"
-              to={appRoutePath('story')}
-            >
-              {t('common.cancel')}
-            </Link>
-          </div>
-        </form>
-        {createMutation.error ? (
-          <ProblemState error={createMutation.error} />
-        ) : null}
+            <div className="heart-moment-create-field-grid">
+              <HeartEmotionPicker
+                legend={t('heartMomentProduct.emotionLabel')}
+                idPrefix="heart-moment-create-emotion"
+                className="heart-moment-create-field heart-moment-create-emotion-picker"
+              />
+
+              <div className="field-group heart-moment-create-field heart-moment-create-date">
+                <label htmlFor="heart-moment-date">
+                  {t('heartMomentProduct.happenedOnLabel')}
+                </label>
+                <input
+                  id="heart-moment-date"
+                  name="happenedOn"
+                  type="date"
+                  required
+                  defaultValue={localDateInputValue()}
+                  onClick={openNativeDatePicker}
+                />
+              </div>
+            </div>
+
+            <fieldset className="heart-moment-create-visibility">
+              <legend>{t('heartMomentProduct.visibilityLabel')}</legend>
+              <div className="heart-moment-create-visibility-options">
+                <label
+                  className="heart-moment-create-visibility-option"
+                  htmlFor="heart-moment-create-visibility-private"
+                >
+                  <input
+                    id="heart-moment-create-visibility-private"
+                    name="visibility"
+                    type="radio"
+                    value={ContentVisibility.PRIVATE}
+                    checked={createVisibility === ContentVisibility.PRIVATE}
+                    onChange={() =>
+                      setCreateVisibility(ContentVisibility.PRIVATE)
+                    }
+                  />
+                  <span>
+                    <strong>{t('heartMomentProduct.visibilityPrivate')}</strong>
+                    <small>{t('heartMomentProduct.privateHelp')}</small>
+                  </span>
+                </label>
+                <label
+                  className="heart-moment-create-visibility-option"
+                  htmlFor="heart-moment-create-visibility-shared"
+                >
+                  <input
+                    id="heart-moment-create-visibility-shared"
+                    name="visibility"
+                    type="radio"
+                    value={ContentVisibility.SHARED}
+                    checked={createVisibility === ContentVisibility.SHARED}
+                    onChange={() =>
+                      setCreateVisibility(ContentVisibility.SHARED)
+                    }
+                  />
+                  <span>
+                    <strong>{t('heartMomentProduct.visibilityShared')}</strong>
+                    <small>{t('heartMomentProduct.sharedHelp')}</small>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div className="form-actions heart-moment-create-actions">
+              <button
+                type="submit"
+                disabled={createMutation.isPending || attachments.hasPending}
+              >
+                {createMutation.isPending
+                  ? t('heartMomentProduct.saving')
+                  : t('heartMomentProduct.save')}
+              </button>
+              <Link
+                className="button-link secondary-link"
+                to={appRoutePath('story')}
+              >
+                {t('common.cancel')}
+              </Link>
+            </div>
+          </form>
+          {createMutation.error ? (
+            <ProblemState error={createMutation.error} />
+          ) : null}
+        </>
       </StoryCreatePageShell>
     );
   }
@@ -612,105 +612,107 @@ export function HeartMomentProductPage({
         sectionLabelledBy="heart-moment-edit-heading"
         sectionHeading={t('heartMomentProduct.formAria')}
       >
-        <form className="form-grid" onSubmit={submitEdit}>
-                    <HeartMomentFields heartMoment={heartMoment} />
-                    {heartMoment.attachment && !removeExistingPhoto ? (
-                      <div className="field-group">
-                        <span>{t('heartMomentProduct.photoLabel')}</span>
-                        <MediaGallery
-                          items={[
-                            {
-                              id: heartMoment.attachment.id,
-                              mediaType: heartMoment.attachment.mediaType,
-                            },
-                          ]}
-                          loadMedia={(attachmentId) =>
-                            loadAttachment(heartMoment.id, attachmentId)
-                          }
-                        />
-                        <button
-                          type="button"
-                          className="tertiary"
-                          onClick={() => setRemoveExistingPhoto(true)}
-                        >
-                          {t('memory.photoRemove')}
-                        </button>
-                      </div>
-                    ) : null}
-                    <AttachmentDraftPicker
-                      id="heart-moment-edit-photo"
-                      attachments={attachments}
-                      multiple={false}
-                    />
-                    <div className="form-actions">
-                      <Link
-                        className="button-link secondary-link"
-                        to={heartMomentDetailPath(heartMoment.id)}
-                        onClick={() => setConfirmDelete(false)}
-                      >
-                        {t('common.cancel')}
-                      </Link>
-                      <button
-                        type="submit"
-                        disabled={updateMutation.isPending || attachments.hasPending}
-                      >
-                        {updateMutation.isPending
-                          ? t('heartMomentProduct.saving')
-                          : t('heartMomentProduct.save')}
-                      </button>
-                    </div>
-                  </form>
-                  {updateMutation.error ? (
-                    <ProblemState error={updateMutation.error} />
-                  ) : null}
+        <>
+          <form className="form-grid" onSubmit={submitEdit}>
+            <HeartMomentFields heartMoment={heartMoment} />
+            {heartMoment.attachment && !removeExistingPhoto ? (
+              <div className="field-group">
+                <span>{t('heartMomentProduct.photoLabel')}</span>
+                <MediaGallery
+                  items={[
+                    {
+                      id: heartMoment.attachment.id,
+                      mediaType: heartMoment.attachment.mediaType,
+                    },
+                  ]}
+                  loadMedia={(attachmentId) =>
+                    loadAttachment(heartMoment.id, attachmentId)
+                  }
+                />
+                <button
+                  type="button"
+                  className="tertiary"
+                  onClick={() => setRemoveExistingPhoto(true)}
+                >
+                  {t('memory.photoRemove')}
+                </button>
+              </div>
+            ) : null}
+            <AttachmentDraftPicker
+              id="heart-moment-edit-photo"
+              attachments={attachments}
+              multiple={false}
+            />
+            <div className="form-actions">
+              <Link
+                className="button-link secondary-link"
+                to={heartMomentDetailPath(heartMoment.id)}
+                onClick={() => setConfirmDelete(false)}
+              >
+                {t('common.cancel')}
+              </Link>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending || attachments.hasPending}
+              >
+                {updateMutation.isPending
+                  ? t('heartMomentProduct.saving')
+                  : t('heartMomentProduct.save')}
+              </button>
+            </div>
+          </form>
+          {updateMutation.error ? (
+            <ProblemState error={updateMutation.error} />
+          ) : null}
 
-                  {heartMoment.capabilities.canDelete && !offline ? (
-                    <div style={{ marginTop: 'var(--space-8)' }}>
-                      {!confirmDelete ? (
-                        <button
-                          type="button"
-                          className="button-link danger-link"
-                          onClick={() => setConfirmDelete(true)}
-                        >
-                          {t('heartMomentProduct.delete')}
-                        </button>
-                      ) : (
-                        <section
-                          className="memory-danger-zone memory-delete-confirmation"
-                          aria-label={t('heartMomentProduct.delete')}
-                          role="alert"
-                        >
-                          <div>
-                            <h2>{t('heartMomentProduct.deleteConfirmTitle')}</h2>
-                            <p>{t('heartMomentProduct.deleteConfirmBody')}</p>
-                          </div>
-                          <div className="memory-actions">
-                            <button
-                              type="button"
-                              className="tertiary"
-                              onClick={() => setConfirmDelete(false)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              {t('heartMomentProduct.deleteCancel')}
-                            </button>
-                            <button
-                              type="button"
-                              className="danger"
-                              onClick={() => deleteMutation.mutate(heartMoment)}
-                              disabled={deleteMutation.isPending}
-                            >
-                              {deleteMutation.isPending
-                                ? t('heartMomentProduct.deleting')
-                                : t('heartMomentProduct.deleteConfirm')}
-                            </button>
-                          </div>
-                        </section>
-                      )}
-                      {deleteMutation.error ? (
-                        <ProblemState error={deleteMutation.error} />
-                      ) : null}
-                    </div>
-                  ) : null}
+          {heartMoment.capabilities.canDelete && !offline ? (
+            <div style={{ marginTop: 'var(--space-8)' }}>
+              {!confirmDelete ? (
+                <button
+                  type="button"
+                  className="button-link danger-link"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  {t('heartMomentProduct.delete')}
+                </button>
+              ) : (
+                <section
+                  className="memory-danger-zone memory-delete-confirmation"
+                  aria-label={t('heartMomentProduct.delete')}
+                  role="alert"
+                >
+                  <div>
+                    <h2>{t('heartMomentProduct.deleteConfirmTitle')}</h2>
+                    <p>{t('heartMomentProduct.deleteConfirmBody')}</p>
+                  </div>
+                  <div className="memory-actions">
+                    <button
+                      type="button"
+                      className="tertiary"
+                      onClick={() => setConfirmDelete(false)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {t('heartMomentProduct.deleteCancel')}
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => deleteMutation.mutate(heartMoment)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending
+                        ? t('heartMomentProduct.deleting')
+                        : t('heartMomentProduct.deleteConfirm')}
+                    </button>
+                  </div>
+                </section>
+              )}
+              {deleteMutation.error ? (
+                <ProblemState error={deleteMutation.error} />
+              ) : null}
+            </div>
+          ) : null}
+        </>
       </StoryEditorPageShell>
     );
   }

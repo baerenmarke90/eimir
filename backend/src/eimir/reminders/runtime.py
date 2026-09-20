@@ -727,7 +727,7 @@ def _roundtrips(candidate: datetime, naive: datetime, zone: ZoneInfo) -> bool:
     return candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == naive
 
 
-def _source_is_eligible(session: Session, reminder: Reminder) -> bool:
+def source_is_eligible(session: Session, reminder: Reminder) -> bool:
     if reminder.source != ReminderSource.GENERATED.value:
         return True
     if reminder.source_id is None or reminder.rule_key is None or reminder.source_type is None:
@@ -839,7 +839,7 @@ def handle_occurrence(session: Session, payload: dict[str, Any]) -> None:
     if membership is None or _is_muted(session, reminder.id, account.id):
         occurrence.state = OccurrenceState.CANCELLED.value
         return
-    if not _source_is_eligible(session, reminder):
+    if not source_is_eligible(session, reminder):
         occurrence.state = OccurrenceState.CANCELLED.value
         return
     if reminder.source == ReminderSource.GENERATED.value:

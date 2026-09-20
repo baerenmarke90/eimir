@@ -241,7 +241,7 @@ def create_reminder(
 def _generated_source_is_current(session: Session, reminder: Reminder) -> bool:
     if reminder.source != ReminderSource.GENERATED.value:
         return True
-    return reminder_runtime._source_is_eligible(session, reminder)
+    return reminder_runtime.source_is_eligible(session, reminder)
 
 
 def _require_current_generated_source(session: Session, reminder: Reminder) -> None:

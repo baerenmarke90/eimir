@@ -400,14 +400,14 @@ def test_partner_birthday_delivery_fails_closed_after_source_offboarding(
         for row in _occurrences(session, reminder.id, couple["ben"].id)
         if row.state == OccurrenceState.PENDING.value
     )
-    assert runtime._source_is_eligible(session, reminder)
+    assert runtime.source_is_eligible(session, reminder)
 
     membership = relationship_service.require_membership(
         session, couple["anna"], couple["space"].id
     )
     relationship_service.end_membership(session, membership)
     session.flush()
-    assert not runtime._source_is_eligible(session, reminder)
+    assert not runtime.source_is_eligible(session, reminder)
 
     listed = client.get(
         _reminder_base(couple),

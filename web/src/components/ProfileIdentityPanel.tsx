@@ -222,9 +222,7 @@ export function ProfileIdentityPanel({
     const form = new FormData(event.currentTarget);
     const value = String(form.get('birthday') ?? '');
     resetActionState();
-    birthdayMutation.mutate(
-      value ? new Date(`${value}T00:00:00.000Z`) : null,
-    );
+    birthdayMutation.mutate(value ? new Date(`${value}T00:00:00.000Z`) : null);
   }
 
   const profile = profileQuery.data;

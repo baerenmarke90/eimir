@@ -334,7 +334,10 @@ function auditActionLabel(action: string, t: (key: string) => string): string {
     : action;
 }
 
-function auditCategoryLabel(category: string, t: (key: string) => string): string {
+function auditCategoryLabel(
+  category: string,
+  t: (key: string) => string,
+): string {
   switch (category) {
     case 'settings':
     case 'accounts':
@@ -346,7 +349,10 @@ function auditCategoryLabel(category: string, t: (key: string) => string): strin
   }
 }
 
-function auditEffectLabel(item: ServerAdminPrivilegedAuditItem, t: (key: string) => string): string {
+function auditEffectLabel(
+  item: ServerAdminPrivilegedAuditItem,
+  t: (key: string) => string,
+): string {
   if (item.previousValue !== null && item.newValue !== null) {
     return `${t(item.previousValue ? 'serverAdmin.activity.enabled' : 'serverAdmin.activity.disabled')} → ${t(item.newValue ? 'serverAdmin.activity.enabled' : 'serverAdmin.activity.disabled')}`;
   }
@@ -441,13 +447,13 @@ export function ServerAdminActivityPanel({
               setCategory(event.target.value as AuditCategory);
             }}
           >
-            {(['all', 'settings', 'accounts', 'spaces', 'destructive'] as const).map(
-              (value) => (
-                <option key={value} value={value}>
-                  {t(`serverAdmin.activity.categories.${value}`)}
-                </option>
-              ),
-            )}
+            {(
+              ['all', 'settings', 'accounts', 'spaces', 'destructive'] as const
+            ).map((value) => (
+              <option key={value} value={value}>
+                {t(`serverAdmin.activity.categories.${value}`)}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -504,7 +510,9 @@ export function ServerAdminActivityPanel({
       ) : null}
 
       {query.isPending ? (
-        <p className="server-admin-muted">{t('serverAdmin.activity.loadingBody')}</p>
+        <p className="server-admin-muted">
+          {t('serverAdmin.activity.loadingBody')}
+        </p>
       ) : query.error ? (
         <p className="status status-error" role="alert">
           {t('serverAdmin.activity.errorBody')}

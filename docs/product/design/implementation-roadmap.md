@@ -7,7 +7,7 @@ This roadmap executes [Product Reference v1](product-reference-v1.md), the [five
 
 ## Sequence and scope
 
-**F1 → bounded F2 → R1 → R2 → R3 → R4 → R5 → P1 → P2 → P3 → C1.**
+**F1 → bounded F2 → R1 → R2 → R3 → R4 → R5 → P1 → P2 → C1.**
 
 This is D8's accepted delivery order. Later preparation may proceed when useful, but must not preempt an earlier slice's product decisions. There is no separate native implementation of a reference experience: Android receives every accepted Web reference through the Capacitor wrapper ([ADR 0011](../../decisions/0011-web-first-pwa-capacitor-mobile-delivery.md)), and P3 (native parity) is retired. F2 provides a minimum real-flow proof before R1, and R1 revalidates it in the finished capture composition.
 
@@ -152,8 +152,8 @@ Implementation owners: [F1 #957](https://github.com/baerenmarke90/eimir/issues/9
 
 F1/F2 issues must link the committed reference revision, identify the bounded proof consumers, record current-main and open-PR checks, and include the preflight, reuse, business/freemium and cross-cutting reviews. Their later implementation must refresh those checks; planning is not a permanent reuse approval.
 
-[R1 #964](https://github.com/baerenmarke90/eimir/issues/964)'s finished content-first capture composition, reuse decisions and Web evidence are recorded in [r1-memory-capture.md](r1-memory-capture.md); its implementation is submitted for Product Owner visual/interaction review, with Android native device evidence recorded there as an outstanding follow-up rather than claimed.
+[R1 #964](https://github.com/baerenmarke90/eimir/issues/964) through [R5 #1076](https://github.com/baerenmarke90/eimir/issues/1076) are completed and accepted on Web/Mobile Web. Their exact-build evidence remains linked from the slice documents; any historical Compose evidence records what was verified on those retired builds and is not current acceptance debt.
 
-[R2 #966](https://github.com/baerenmarke90/eimir/issues/966)'s bounded rework-in-place of Momente/Timeline/Discover, its current-implementation inventory, reuse decisions and Web/Android evidence are recorded in [r2-momente-timeline.md](r2-momente-timeline.md); its implementation is submitted for Product Owner visual/interaction review.
+[P1 #1081](https://github.com/baerenmarke90/eimir/issues/1081) and [P2 #1084](https://github.com/baerenmarke90/eimir/issues/1084) are completed. P3 native screen parity is retired by ADR 0011 / #1005 and #1009; Android/iOS receive the canonical React/Vite product through Capacitor, with device acceptance only for wrapper or native-capability changes that actually require it.
 
-#955 owns completion across all eleven slices. A documentation PR establishes the reference and prepares execution; it does not close the master issue or claim any runtime slice complete. Merge and product acceptance remain separate decisions.
+[C1 #1103](https://github.com/baerenmarke90/eimir/issues/1103) is the remaining Product Reference close-out slice. It owns evidence-based retirement of obsolete mechanisms, reconciliation of active normative guidance, and the final current-main v1 consistency pass required before #955 can close.

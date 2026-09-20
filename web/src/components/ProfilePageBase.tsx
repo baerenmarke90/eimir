@@ -404,9 +404,6 @@ export function RelationshipSettingsSection({
   );
 }
 
-/** Backward-compatibility alias for previous imports. */
-export const RelationshipProfileSection = RelationshipSettingsSection;
-
 /** Viewport-safe and accessible modal dialog for creating and editing preferences or private notes. */
 export function PreferenceDialog({
   isOpen,

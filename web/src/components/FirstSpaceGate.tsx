@@ -58,9 +58,7 @@ export function FirstSpaceGate({
         className="setup-card"
         aria-labelledby="create-first-space-heading"
       >
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="setup-content">
           <p className="eyebrow">{t('spaceContext.createFirstSpaceEyebrow')}</p>
           <h1 id="create-first-space-heading">

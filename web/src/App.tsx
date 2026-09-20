@@ -152,9 +152,7 @@ function SpaceContextGate({
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
       <div className="entry-aura entry-aura-end" aria-hidden="true" />
       <section className="setup-card" aria-labelledby="space-context-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="setup-content">
           <p className="eyebrow">{t('spaceContext.eyebrow')}</p>
           {loading ? (
@@ -186,9 +184,7 @@ function SpacePicker({
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
       <div className="entry-aura entry-aura-end" aria-hidden="true" />
       <section className="setup-card" aria-labelledby="space-picker-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="setup-content">
           <p className="eyebrow">{t('spaceContext.eyebrow')}</p>
           <h1 id="space-picker-heading">{t('spaceContext.pickerTitle')}</h1>

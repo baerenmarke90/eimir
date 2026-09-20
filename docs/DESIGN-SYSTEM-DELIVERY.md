@@ -4,7 +4,7 @@
 **Version:** 1.2<br/>
 **As of:** September 15, 2026
 
-This document contains historical React/TypeScript and Kotlin/Jetpack Compose delivery detail. ADR 0011 supersedes the Kotlin/Compose product-UI architecture: Web/Mobile Web is the canonical product UI and Android ships it through Capacitor. The Compose client and its adapters were removed in #1009; the Android/Compose sections below (Android token adapter, Compose components, Compose Semantics, Android proof Activity, Android parity levels) are retained only as history and are not delivery requirements. The active `design/component-manifest.json` therefore tracks the canonical Web product UI only; Android wrapper/native-capability acceptance is owned by the mobile delivery boundary, not by a second component-status column.
+This document contains the active React/TypeScript delivery framework together with historical Kotlin/Jetpack Compose delivery detail. ADR 0011 supersedes the Kotlin/Compose product-UI architecture: Web/Mobile Web is the canonical product UI and Android ships it through Capacitor. The Compose client and its adapters were removed in #1009; the Android/Compose sections below (Android token adapter, Compose components, Compose Semantics, Android proof Activity, Android parity levels) are retained only as history and are not delivery requirements. The active `design/component-manifest.json` therefore tracks the canonical Web product UI only; Android wrapper/native-capability acceptance is owned by the mobile delivery boundary, not by a second component-status column.
 
 [Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
@@ -13,11 +13,11 @@ This document contains historical React/TypeScript and Kotlin/Jetpack Compose de
 ```text
 design/tokens.json
         │
-        ├── Web Token Adapter ─────── React Components ───── Web Catalog
-        │
-        └── Android Token Adapter ─── Compose Components ─── Android Catalog
+        └── Web Token Adapter ─────── React Components ───── Web Catalog
+                                      │
+                                      └── Capacitor ──────── Android / iOS delivery
 docs/COMPONENT-CONTRACTS.md + design/component-manifest.json
-        └────────────────── shared behavioral contract
+        └────────────────── canonical shared-UI behavioral contract
 ```
 
 - `design/tokens.json` is the source for semantic design values.
@@ -53,13 +53,10 @@ web design system/
   icons
   catalog/examples
 
-android design system/
-  generated tokens/theme
-  primitives
-  components
-  patterns
-  icons
-  catalog/examples
+capacitor wrappers/
+  platform configuration
+  safe-area / lifecycle integration
+  bounded native capability adapters
 ```
 
 - Generated files carry a header and are not edited manually.
@@ -254,7 +251,7 @@ For each P0/P1 component, the following are named:
 
 New patterns are documented first as a contract/decision. A local special case in a screen does not automatically become part of the system.
 
-The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P3 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
+The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P2 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
 
 ## 13. Delivery phases
 

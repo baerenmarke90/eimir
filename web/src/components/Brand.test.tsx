@@ -22,15 +22,6 @@ describe('Brand', () => {
     expect(html).not.toContain('Eimir');
   });
 
-  it('does not render the retired product suffix on entry surfaces', () => {
-    const html = renderToStaticMarkup(<Brand suffix={<span>Next</span>} />);
-
-    expect(html).not.toContain('<a');
-    expect(html).toContain('eimir');
-    expect(html).not.toContain('Next');
-    expect(html).not.toContain('brand-inverse');
-  });
-
   it('renders standard high-contrast brand styling by default', () => {
     const html = renderToStaticMarkup(<Brand />);
 

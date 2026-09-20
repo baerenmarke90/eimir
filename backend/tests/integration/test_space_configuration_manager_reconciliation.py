@@ -259,9 +259,10 @@ def test_concurrent_reconciliation_has_exactly_one_winner(
     with maker() as verifier:
         stored_space = verifier.get(Space, space_id)
         assert stored_space is not None
-        assert str(stored_space.configuration_manager_account_id) == winner.json()[
-            "configurationManagerAccountId"
-        ]
+        assert (
+            str(stored_space.configuration_manager_account_id)
+            == winner.json()["configurationManagerAccountId"]
+        )
         audit_count = verifier.execute(
             select(func.count())
             .select_from(InstanceAdministrationActionEvent)

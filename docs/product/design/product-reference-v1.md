@@ -155,7 +155,7 @@ All eight decisions are **accepted by #955**; their implementation remains track
 | D5 | Planning is anticipation first. | Upcoming shared experience leads; preserve useful capability and #952 schedule improvements. |
 | D6 | Profile/settings stay discoverable. | Named More entries and predictable utility navigation; avatar-only discovery is insufficient. |
 | D7 | Approximately 16 px gutters below ~390 px and 20 px from ~390 px upward within Compact. | Deliberate edge-to-edge content is allowed; encode the mapping centrally, with proportional native units and safe-area treatment. Expanded uses the same hierarchy with suitable width. |
-| D8 | Foundations → capture → moments → planning → today → utility → propagation/cleanup. | F1 → F2 → R1 → R2 → R3 → R4 → R5 → P1 → P2 → P3 → C1; follow the roadmap dependency details. |
+| D8 | Foundations → capture → moments → planning → today → utility → propagation/cleanup. | F1 → F2 → R1 → R2 → R3 → R4 → R5 → P1 → P2 → C1. The former P3 native-screen parity slice is retired by ADR 0011; follow the roadmap dependency details. |
 
 ## Five reference experiences, not pixel locks
 
@@ -167,6 +167,6 @@ R1 captures a new moment; R2 browses and rediscovers history; R3 expresses antic
 
 Before UI code, each slice records its Mobile Interaction Contract or Product Design Preflight under the [Partner-App Experience Standard](../../PARTNER-APP-EXPERIENCE-STANDARD.md), references the applicable R1–R5 contract, inventories reusable patterns and records business/freemium and cross-cutting consequences. Existing functional tests do not approve a new design automatically.
 
-For every material journey, review **Open → interact → save/complete → observe result → return**, including failures and interruptions. Capture representative empty, sparse, dense, loading, error/retry, offline and success states where applicable. Validate around 360/390/430 px, 320 CSS px reflow, small height, large text, keyboard/assistive technology, Light/Dark, reduced motion and relevant Expanded layouts. Native acceptance requires actual device/emulator evidence. Record exact commit/build and evidence limits.
+For every material journey, review **Open → interact → save/complete → observe result → return**, including failures and interruptions. Capture representative empty, sparse, dense, loading, error/retry, offline and success states where applicable. Validate around 360/390/430 px, 320 CSS px reflow, small height, large text, keyboard/assistive technology, Light/Dark, reduced motion and relevant Expanded layouts. Ordinary Web product changes require no separate native-screen acceptance because the same React/Vite UI ships through Capacitor. Real-device evidence is required when a change touches the Capacitor wrapper or a native platform capability. Record exact commit/build and evidence limits.
 
 [#946](https://github.com/baerenmarke90/eimir/issues/946), including its intuitive-mobile-interaction addendum, is the final product gate. It must use this v1 direction and the current normative extensions rather than reconstructing superseded references. Screenshots alone and green CI alone cannot establish product acceptance. Documentation adoption does not complete #955 or #946.

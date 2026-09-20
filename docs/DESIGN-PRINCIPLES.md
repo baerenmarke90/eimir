@@ -1,7 +1,7 @@
 # Design Principles for eimir.
 
 **Status:** Mandatory foundation for Web and App<br/>
-**Version:** 2.2<br/>
+**Version:** 2.3<br/>
 **Effective from:** September 15, 2026
 
 This document translates the eimir. product idea into mandatory

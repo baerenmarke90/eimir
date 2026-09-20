@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -132,6 +135,46 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                     "android_version_code: ${{ inputs.android_version_code }}",
                     workflow,
                 )
+
+    def test_release_notes_heredocs_render_their_backticked_values(self) -> None:
+        """An unquoted heredoc executes unescaped backticks as commands.
+
+        The published v0.1.0 notes lost the source revision, the previous release and
+        every file name that way. Render each workflow's notes script for real and
+        require the values and literal backticks to survive.
+        """
+
+        cases = (
+            ("publish", self.workflow, "self-hosted-image-identity.json"),
+            ("candidate", self.candidate_workflow, "SHA256SUMS"),
+        )
+        revision = "8bb0c1eadbeb4864788d277a25a3673c79f5e46f"
+        for name, workflow, expected_name in cases:
+            with self.subTest(workflow=name):
+                start = workflow.index("cat > release-evidence/RELEASE-NOTES.md <<EOF")
+                end = workflow.index("\n          EOF", start) + len("\n          EOF")
+                script = textwrap.dedent(" " * 10 + workflow[start:end].lstrip())
+                with tempfile.TemporaryDirectory() as directory:
+                    (Path(directory) / "release-evidence").mkdir()
+                    subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c", script],
+                        cwd=directory,
+                        check=True,
+                        env={
+                            "PATH": "/usr/bin:/bin",
+                            "RELEASE_VERSION": "0.1.0",
+                            "SOURCE_REVISION": revision,
+                            "previous": "v0.0.9",
+                            "android_note": "android note",
+                            "channel_note": "channel note",
+                        },
+                    )
+                    notes = (Path(directory) / "release-evidence/RELEASE-NOTES.md").read_text(
+                        encoding="utf-8"
+                    )
+                self.assertIn(f"`{revision}`", notes)
+                self.assertIn("`eimir-release-manifest.json`", notes)
+                self.assertIn(f"`{expected_name}`", notes)
 
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (

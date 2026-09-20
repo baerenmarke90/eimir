@@ -253,10 +253,10 @@ jobs:
           cat > release-evidence/RELEASE-NOTES.md <<EOF
           # eimir. v${RELEASE_VERSION} release candidate
 
-          Source revision: `${SOURCE_REVISION}`
+          Source revision: \`${SOURCE_REVISION}\`
 
           This candidate is a build-once immutable artifact set. Its machine-readable
-          identity is `eimir-release-manifest.json`; `SHA256SUMS` and #193
+          identity is \`eimir-release-manifest.json\`; \`SHA256SUMS\` and #193
           attestations provide artifact/SBOM evidence.
 
           ${channel_note}

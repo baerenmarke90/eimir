@@ -398,13 +398,6 @@ code {
   color: var(--color-brand);
 }
 
-.brand-suffix {
-  color: currentColor;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  opacity: 0.72;
-}
 
 .brand-inverse {
   color: var(--color-on-accent);

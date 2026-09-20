@@ -13,6 +13,8 @@
 **2026-09-20 #915 promotion delta, first run on `v0.1.0`:** `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md` (source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`, launcher run with a documented workaround)  
 **2026-09-20 #915 promotion and rollback delta on `v0.1.1`:** `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md` (source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`, published operator bundle without workaround)
 
+**2026-09-20 final #525 gate review:** `docs/m6/G5-GATE-REVIEW-2026-09-20.md` (reviewed release `v0.1.1`, source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`; **G5 BLOCKED** by #1123 publication-approval control)
+
 This matrix is the authoritative M6 index for **G5 — Launch-ready** evidence. It
 separates reusable repository baselines from final release-candidate proof.
 
@@ -307,3 +309,31 @@ final reviewed release candidate. G5 passes only when:
 
 Only after #525 records `PASS` may authoritative roadmap/status documentation mark
 **G5 — Launch-ready** as passed.
+
+## 12. Final review — 2026-09-20
+
+The dated review in `G5-GATE-REVIEW-2026-09-20.md` evaluates published release
+`v0.1.1` at source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`.
+
+The selected first-launch scope is **Web + Self-Hosted**. Android and Cloud/Managed are
+`NOT_APPLICABLE` to that launch; this does not certify either channel. Cloud-specific
+#797 and real managed-target evidence remain required before a later Cloud/Managed
+go-live. The first-launch Entitlement source remains `ADMIN_GRANT` only.
+
+The actual `v0.1.0...v0.1.1` diff contains no backend, Web, Android, Compose,
+deployment-runtime or migration change. Consequently the #916 Web accessibility and
+#917 public-Demo behavior/isolation evidence may be reused for `v0.1.1` without
+rerunning those complete programs. The Demo evidence remains honestly bound to its
+immutable `v0.1.0` deployment identity rather than being relabeled as `v0.1.1`.
+
+Release-specific proof is taken directly from the `v0.1.1` #915 record: immutable
+publication, published checksums/SBOM/attestations, exact OCI digests, standalone
+operator bundle, Development acceptance, Production-mode promotion, authenticated
+smoke, rollback to `v0.1.0` and roll-forward without database rollback.
+
+The final review does **not** pass G5. G5-02 remains `BLOCKED` because
+`docs/m6/IMMUTABLE-RELEASES.md` requires explicit release-owner approval on the
+`production-release` environment, while #914/#915 record that no required-reviewer
+protection was active for the reviewed publications. Focused blocker #1123 owns that
+gap. G5-19 therefore also remains `BLOCKED`; all other required criteria are
+`PASS` or legitimately `NOT_APPLICABLE` in the declared scope.

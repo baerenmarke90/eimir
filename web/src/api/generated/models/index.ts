@@ -198,6 +198,8 @@ export * from './ServerAdminFailedJob';
 export * from './ServerAdminJobItem';
 export * from './ServerAdminJobList';
 export * from './ServerAdminOverview';
+export * from './ServerAdminPrivilegedAuditItem';
+export * from './ServerAdminPrivilegedAuditPage';
 export * from './ServerAdminRecoveryEmailResult';
 export * from './ServerAdminRecoveryProof';
 export * from './ServerAdminSessionRevocationResult';

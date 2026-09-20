@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
 | [**getServerAdminActivityApiV1ServerAdminActivityGet**](ServerAdminApi.md#getserveradminactivityapiv1serveradminactivityget) | **GET** /api/v1/server-admin/activity | Get Server Admin Activity |
+| [**getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet**](ServerAdminApi.md#getserveradminprivilegedactivityapiv1serveradminactivityprivilegedget) | **GET** /api/v1/server-admin/activity/privileged | Get Server Admin Privileged Activity |
 | [**getServerAdminOverviewApiV1ServerAdminOverviewGet**](ServerAdminApi.md#getserveradminoverviewapiv1serveradminoverviewget) | **GET** /api/v1/server-admin/overview | Get Server Admin Overview |
 | [**getServerAdminSettingsApiV1ServerAdminSettingsGet**](ServerAdminApi.md#getserveradminsettingsapiv1serveradminsettingsget) | **GET** /api/v1/server-admin/settings | Get Server Admin Settings |
 | [**getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet**](ServerAdminApi.md#getserveradminspaceapiv1serveradminspacesspaceidget) | **GET** /api/v1/server-admin/spaces/{space_id} | Get Server Admin Space |
@@ -286,6 +287,96 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
+
+
+
+## getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet
+
+> ServerAdminPrivilegedAuditPage getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(category, action, actorId, targetId, createdFrom, createdTo, limit, offset)
+
+Get Server Admin Privileged Activity
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // 'all' | 'settings' | 'accounts' | 'spaces' | 'destructive' (optional)
+    category: category_example,
+    // string (optional)
+    action: action_example,
+    // string (optional)
+    actorId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // string (optional)
+    targetId: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
+    // Date (optional)
+    createdFrom: 2013-10-20T19:20:30+01:00,
+    // Date (optional)
+    createdTo: 2013-10-20T19:20:30+01:00,
+    // number (optional)
+    limit: 56,
+    // number (optional)
+    offset: 56,
+  } satisfies GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest;
+
+  try {
+    const data = await api.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **category** | `all`, `settings`, `accounts`, `spaces`, `destructive` |  | [Optional] [Defaults to `&#39;all&#39;`] [Enum: all, settings, accounts, spaces, destructive] |
+| **action** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **actorId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **targetId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **createdFrom** | `Date` |  | [Optional] [Defaults to `undefined`] |
+| **createdTo** | `Date` |  | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` |  | [Optional] [Defaults to `25`] |
+| **offset** | `number` |  | [Optional] [Defaults to `0`] |
+
+### Return type
+
+[**ServerAdminPrivilegedAuditPage**](ServerAdminPrivilegedAuditPage.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 ## getServerAdminOverviewApiV1ServerAdminOverviewGet
 

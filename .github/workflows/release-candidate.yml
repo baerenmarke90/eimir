@@ -118,7 +118,9 @@ jobs:
     uses: ./.github/workflows/release-evidence.yml
     with:
       include_android: ${{ inputs.include_android }}
-      android_version_code: ${{ inputs.android_version_code }}
+      # A number-typed call input rejects an empty value, which a dispatch without an
+      # Android channel passes; 0 is treated as unset by the evidence workflow.
+      android_version_code: ${{ inputs.include_android && inputs.android_version_code || 0 }}
       android_api_base_url: ${{ inputs.android_api_base_url }}
       release_version: ${{ inputs.release_version }}
 

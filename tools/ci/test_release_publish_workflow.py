@@ -109,6 +109,30 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
                 evidence_call = before_use.rsplit("\n  evidence:\n", 1)[1]
                 self.assertNotIn("\n    permissions:", evidence_call)
 
+    def test_reusable_evidence_call_never_passes_an_empty_number_input(self) -> None:
+        """A number-typed workflow_call input rejects an empty value at call setup.
+
+        An Android-excluded dispatch leaves ``android_version_code`` empty, so the
+        call must fall back to a number instead of forwarding the bare input.
+        """
+
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                evidence_call = workflow.split("\n  evidence:\n", 1)[1].split(
+                    "\n\n", 1
+                )[0]
+                self.assertIn(
+                    "android_version_code: ${{ inputs.include_android "
+                    "&& inputs.android_version_code || 0 }}",
+                    evidence_call,
+                )
+                self.assertNotIn(
+                    "android_version_code: ${{ inputs.android_version_code }}",
+                    workflow,
+                )
+
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (
             "Set up Node.js 24.21.0",

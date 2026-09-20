@@ -77,6 +77,22 @@ def require_membership(session: Session, account: Account, space_id: UUID) -> Me
     return membership
 
 
+def can_manage_space_configuration(space: Space, membership: Membership) -> bool:
+    """Return the authoritative Space-configuration management capability.
+
+    Callers consume this capability instead of reconstructing founder authority
+    from Membership order, join timestamps, invitation history, or client state.
+    A former member cannot keep configuration authority after offboarding.
+    """
+
+    return (
+        membership.is_active
+        and membership.space_id == space.id
+        and space.configuration_manager_account_id is not None
+        and membership.account_id == space.configuration_manager_account_id
+    )
+
+
 def _ensure_partner_profile(session: Session, space_id: UUID, account_id: UUID) -> None:
     """Couple profile lifecycle to membership lifecycle.
 
@@ -90,7 +106,7 @@ def _ensure_partner_profile(session: Session, space_id: UUID, account_id: UUID) 
 
 def create_space(session: Session, founder: Account) -> Space:
     """Create a Space and add the founder as a partner."""
-    space = Space()
+    space = Space(configuration_manager_account_id=founder.id)
     session.add(space)
     session.flush()
 

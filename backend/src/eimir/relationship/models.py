@@ -54,6 +54,15 @@ class DurationDisplayMode(StrEnum):
 class Space(IdMixin, TimestampMixin, Base):
     __tablename__ = "spaces"
 
+    # M7-S0 configuration authority is explicit Space state. New Spaces persist
+    # the founder here; legacy Spaces that cannot be backfilled without guessing
+    # remain unassigned and therefore fail closed for configuration writes.
+    configuration_manager_account_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     # This is a frozen product/privacy promise, not a derived deployment setting.
     # It is written once when the last active Membership ends so future policy
     # versions cannot silently extend or shorten an already-promised deadline.

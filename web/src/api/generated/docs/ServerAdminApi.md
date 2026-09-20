@@ -288,8 +288,6 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-
-
 ## getServerAdminOverviewApiV1ServerAdminOverviewGet
 
 > ServerAdminOverview getServerAdminOverviewApiV1ServerAdminOverviewGet()

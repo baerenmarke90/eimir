@@ -3,7 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
 import type { ServerAdminActionActivityItem } from '../api/generated/models/ServerAdminActionActivityItem';
+import { normalizeClientError } from '../client/problemDetails';
+import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
+import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 
 const PAGE_SIZE = 25;
 
@@ -44,6 +48,8 @@ function actionLabel(action: string, t: (key: string) => string): string {
       return t('serverAdmin.accounts.audit.recoveryEmail');
     case 'account_recovery_issued':
       return t('serverAdmin.accounts.audit.operatorRecovery');
+    case 'account_deletion_requested':
+      return t('serverAdmin.accounts.audit.deletionRequested');
     default:
       return t('serverAdmin.accounts.audit.unknown');
   }
@@ -100,13 +106,21 @@ function ActionAudit({ items }: { items: ServerAdminActionActivityItem[] }) {
   );
 }
 
+type PendingPrivilegedAction =
+  | { kind: 'verify-email'; emailId: string; email: string }
+  | { kind: 'operator-recovery' };
+
 function AccountDetail({
   account,
   api,
+  apiBaseUrl,
+  accessToken,
   onChanged,
 }: {
   account: ServerAdminAccountDetail;
   api: ServerAdminApi;
+  apiBaseUrl: string;
+  accessToken: string;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -114,6 +128,9 @@ function AccountDetail({
   const [verificationText, setVerificationText] = useState('');
   const [recoveryUrl, setRecoveryUrl] = useState<string | null>(null);
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
+  const [pendingPrivilegedAction, setPendingPrivilegedAction] =
+    useState<PendingPrivilegedAction | null>(null);
+  const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({
@@ -149,17 +166,33 @@ function AccountDetail({
     onSuccess: invalidate,
   });
   const verificationMutation = useMutation({
-    mutationFn: ({ emailId, email }: { emailId: string; email: string }) =>
-      api.verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost(
-        {
-          accountId: account.id,
-          accountEmailId: emailId,
-          serverAdminEmailVerificationRequest: { confirmationEmail: email },
-        },
-      ),
+    mutationFn: async ({
+      emailId,
+      email,
+    }: {
+      emailId: string;
+      email: string;
+    }) => {
+      try {
+        return await api.verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost(
+          {
+            accountId: account.id,
+            accountEmailId: emailId,
+            serverAdminEmailVerificationRequest: { confirmationEmail: email },
+          },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
     onSuccess: () => {
       setVerificationText('');
       invalidate();
+    },
+    onError: (error, variables) => {
+      if (isRecentAuthRequired(error)) {
+        setPendingPrivilegedAction({ kind: 'verify-email', ...variables });
+      }
     },
   });
   const recoveryEmailMutation = useMutation({
@@ -170,23 +203,39 @@ function AccountDetail({
     onSuccess: invalidate,
   });
   const operatorRecoveryMutation = useMutation({
-    mutationFn: () =>
-      api.issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost(
-        { accountId: account.id },
-      ),
+    mutationFn: async () => {
+      try {
+        return await api.issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost(
+          { accountId: account.id },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
     onSuccess: (proof) => {
       setRecoveryUrl(proof.recoveryUrl);
       setRecoveryExpiry(proof.expiresAt);
       invalidate();
+    },
+    onError: (error) => {
+      if (isRecentAuthRequired(error)) {
+        setPendingPrivilegedAction({ kind: 'operator-recovery' });
+      }
     },
   });
 
   const actionError =
     suspensionMutation.error ??
     revokeSessionsMutation.error ??
-    verificationMutation.error ??
+    (verificationMutation.error &&
+    !isRecentAuthRequired(verificationMutation.error)
+      ? verificationMutation.error
+      : null) ??
     recoveryEmailMutation.error ??
-    operatorRecoveryMutation.error;
+    (operatorRecoveryMutation.error &&
+    !isRecentAuthRequired(operatorRecoveryMutation.error)
+      ? operatorRecoveryMutation.error
+      : null);
   const pending =
     suspensionMutation.isPending ||
     revokeSessionsMutation.isPending ||
@@ -220,6 +269,22 @@ function AccountDetail({
     }
   }
 
+  function retryPrivilegedAction() {
+    const action = pendingPrivilegedAction;
+    setPendingPrivilegedAction(null);
+    if (!action) return;
+    if (action.kind === 'verify-email') {
+      verificationMutation.reset();
+      verificationMutation.mutate({
+        emailId: action.emailId,
+        email: action.email,
+      });
+      return;
+    }
+    operatorRecoveryMutation.reset();
+    operatorRecoveryMutation.mutate();
+  }
+
   return (
     <div className="server-admin-account-detail">
       <div className="server-admin-account-detail-heading">
@@ -231,13 +296,24 @@ function AccountDetail({
           </p>
         </div>
         <span
-          className={`server-admin-badge ${account.disabledAt ? 'is-warning' : 'is-ok'}`}
+          className={`server-admin-badge ${
+            account.deletionStatus === 'PENDING' ||
+            account.deletionStatus === 'COMPLETED'
+              ? 'is-danger'
+              : account.disabledAt
+                ? 'is-warning'
+                : 'is-ok'
+          }`}
         >
-          {t(
-            account.disabledAt
-              ? 'serverAdmin.accounts.status.suspended'
-              : 'serverAdmin.accounts.status.active',
-          )}
+          {account.deletionStatus === 'PENDING'
+            ? t('serverAdmin.accounts.status.pendingDeletion')
+            : account.deletionStatus === 'COMPLETED'
+              ? t('serverAdmin.accounts.status.deleted')
+              : t(
+                  account.disabledAt
+                    ? 'serverAdmin.accounts.status.suspended'
+                    : 'serverAdmin.accounts.status.active',
+                )}
         </span>
       </div>
 
@@ -403,22 +479,63 @@ function AccountDetail({
 
       <div className="server-admin-danger-zone">
         <strong>{t('serverAdmin.accounts.detail.deletionTitle')}</strong>
-        <p className="server-admin-muted">
-          {t('serverAdmin.accounts.detail.deletionDeferred')}
-        </p>
-        <button type="button" disabled>
-          {t('serverAdmin.accounts.detail.deleteAccount')}
-        </button>
+        {account.deletionStatus === 'PENDING' ||
+        account.deletionStatus === 'COMPLETED' ? (
+          <p className="status status-warning" role="status">
+            {t('serverAdmin.accounts.detail.deletionNotice')}
+          </p>
+        ) : (
+          <>
+            <p className="server-admin-muted">
+              {t('serverAdmin.accounts.detail.deletionWarning')}
+            </p>
+            <button
+              type="button"
+              className="danger-button"
+              disabled={pending}
+              onClick={() => setDeletionDialogOpen(true)}
+            >
+              {t('serverAdmin.accounts.detail.deleteAccount')}
+            </button>
+          </>
+        )}
       </div>
+
+      {deletionDialogOpen ? (
+        <ServerAdminAccountDeletionDialog
+          api={api}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          account={account}
+          onClose={() => setDeletionDialogOpen(false)}
+          onSuccess={() => {
+            setDeletionDialogOpen(false);
+            invalidate();
+          }}
+        />
+      ) : null}
+
+      {pendingPrivilegedAction ? (
+        <ServerAdminRecentAuthModal
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          onCancel={() => setPendingPrivilegedAction(null)}
+          onSuccess={retryPrivilegedAction}
+        />
+      ) : null}
     </div>
   );
 }
 
 export function ServerAdminAccountsPanel({
   api,
+  apiBaseUrl,
+  accessToken,
   onOverviewChanged,
 }: {
   api: ServerAdminApi;
+  apiBaseUrl: string;
+  accessToken: string;
   onOverviewChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -596,11 +713,15 @@ export function ServerAdminAccountsPanel({
                       </td>
                       <td>{account.primaryEmail ?? '–'}</td>
                       <td>
-                        {t(
-                          account.disabledAt
-                            ? 'serverAdmin.accounts.status.suspended'
-                            : 'serverAdmin.accounts.status.active',
-                        )}
+                        {account.deletionStatus === 'PENDING'
+                          ? t('serverAdmin.accounts.status.pendingDeletion')
+                          : account.deletionStatus === 'COMPLETED'
+                            ? t('serverAdmin.accounts.status.deleted')
+                            : t(
+                                account.disabledAt
+                                  ? 'serverAdmin.accounts.status.suspended'
+                                  : 'serverAdmin.accounts.status.active',
+                              )}
                       </td>
                       <td>
                         {t(
@@ -676,6 +797,8 @@ export function ServerAdminAccountsPanel({
               <AccountDetail
                 account={detailQuery.data}
                 api={api}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
                 onChanged={() => {
                   void detailQuery.refetch();
                   onOverviewChanged();

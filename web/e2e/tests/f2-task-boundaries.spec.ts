@@ -282,6 +282,9 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     ) {
       return json({ items: [], hasMore: false, nextCursor: null });
     }
+    if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/presence`) {
+      return json({ state: null });
+    }
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
   });

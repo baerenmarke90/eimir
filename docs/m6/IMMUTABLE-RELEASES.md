@@ -55,6 +55,14 @@ serialized as defense in depth, but serialization is not the trust primitive.
 runtime archive that was promoted. The tag component is descriptive; the digest after
 `@sha256:` is authoritative.
 
+Each runtime image also describes its own identity. The #193 evidence build bakes
+`org.opencontainers.image.revision` (source SHA), `org.opencontainers.image.version`
+(release version), `org.opencontainers.image.source` (repository) and
+`org.opencontainers.image.title` into the build-once image, so the labels are covered by
+the attested archive digest. A running or pulled image can therefore be traced to
+release version and source revision with `docker image inspect`, and to its exact bytes by
+digest, without a second identity model.
+
 Official Self-Hosted images are public distribution artifacts. Before a GitHub Release
 can be published, the protected workflow performs a **full anonymous pull** of both
 backend and Web digest-qualified images through a fresh isolated Docker daemon with its
@@ -196,7 +204,9 @@ After protected environment approval it:
    by apksigner, jarsigner, aapt badging, and offline web asset security verification;
 2. regenerates signed-byte SBOMs and attestations;
 3. builds/verifies the final signed release manifest;
-4. loads exact #193 backend/Web archives with `docker load`;
+4. loads exact #193 backend/Web archives with `docker load` and refuses publication unless
+   each image's `org.opencontainers.image.revision` and `org.opencontainers.image.version`
+   labels equal the release source revision and version;
 5. pushes each image under a run-unique transport alias and captures the digest reported
    by the actual push;
 6. validates the exact digest-qualified image as a supported single-image manifest and
@@ -268,7 +278,9 @@ python3 scripts/self_hosted_release.py --env-file .env <operation>
 The launcher is part of the release bundle and provides `validate`, `pull`,
 `bootstrap-deletion-authority`, and `deploy` operations. Before pull/bootstrap/start it
 renders canonical Compose and validates the selected release identity. `deploy` also
-requires the complete Production runtime-environment contract.
+requires the complete Production runtime-environment contract, and applies the one-shot
+`migrate` service before any running service is replaced (see
+[Upgrade and rollback semantics](../SELF-HOSTING.md#upgrade-and-rollback-semantics)).
 
 Raw Compose is not the supported Production pull/bootstrap/start path. It is acceptable
 for post-deploy diagnostics only. A registry outage, version mismatch or invalid image
@@ -292,7 +304,9 @@ These are Development/CI evidence paths, never released Production fallbacks.
 ## Demo initialization
 
 `demo-init` uses profile `demo`, not `self-hosted`. Normal Self-Hosted startup does not
-execute Demo seeding. Public Demo operators intentionally run that one-shot lifecycle.
+execute Demo seeding. Public Demo operators intentionally run that one-shot explicitly
+(`docker compose --profile self-hosted --profile demo run --rm demo-init`, see
+[`DEMO-SPACE.md`](../DEMO-SPACE.md)).
 
 ## GitHub and GHCR setup before first publication
 

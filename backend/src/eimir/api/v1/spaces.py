@@ -9,7 +9,7 @@ the active tenant context has already disappeared.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Response, status
@@ -26,6 +26,7 @@ from eimir.db.mixins import INITIAL_VERSION
 from eimir.identity.models import Account
 from eimir.relationship import duration as duration_calc
 from eimir.relationship import offboarding
+from eimir.relationship import presence as presence_service
 from eimir.relationship import profile as profile_service
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
@@ -109,6 +110,12 @@ class SpaceMembershipExitView(ApiModel):
     space_id: UUID
     status: MembershipStatus
     ended_at: datetime | None
+
+
+class PartnerPresenceView(ApiModel):
+    """Privacy-bounded state of the other active partner in this Space."""
+
+    state: Literal["ACTIVE", "RECENT"] | None
 
 
 def _add_duration(
@@ -236,6 +243,49 @@ def get_space(tenant: Tenant, session: DbSession) -> SpaceView:
 
     _add_duration(view, profile, _today_for(tenant))
     return view
+
+
+@router.get(
+    "/spaces/{spaceId}/presence",
+    response_model=PartnerPresenceView,
+    operation_id="getPartnerPresence",
+    responses=problem_responses(401, 404),
+)
+def get_partner_presence(tenant: Tenant, session: DbSession) -> PartnerPresenceView:
+    """Return only the bounded semantic state of the other active partner.
+
+    No timestamp is exposed. Missing, stale, or absent partner presence is
+    represented as null so this cannot become a last-seen surface.
+    """
+    return PartnerPresenceView(
+        state=presence_service.partner_state(
+            session,
+            space_id=tenant.space_id,
+            viewer_account_id=tenant.account.id,
+        )
+    )
+
+
+@router.post(
+    "/spaces/{spaceId}/presence",
+    response_model=PartnerPresenceView,
+    operation_id="touchPresence",
+    responses=problem_responses(401, 404),
+)
+def touch_presence(tenant: Tenant, session: DbSession) -> PartnerPresenceView:
+    """Renew caller presence and return the partner's bounded state."""
+    presence_service.touch(
+        session,
+        space_id=tenant.space_id,
+        account_id=tenant.account.id,
+    )
+    return PartnerPresenceView(
+        state=presence_service.partner_state(
+            session,
+            space_id=tenant.space_id,
+            viewer_account_id=tenant.account.id,
+        )
+    )
 
 
 @router.post(

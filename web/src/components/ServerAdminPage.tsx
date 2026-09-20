@@ -912,6 +912,8 @@ export function ServerAdminPage({
             {section === 'accounts' ? (
               <ServerAdminAccountsPanel
                 api={apis.serverAdmin}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
                 onOverviewChanged={() =>
                   void queryClient.invalidateQueries({
                     queryKey: ['server-admin', 'overview'],

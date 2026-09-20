@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
+import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
@@ -371,7 +372,7 @@ test('compact Dashboard settings persist the personal horizon and update Today w
   await page.setViewportSize({ width: 320, height: 844 });
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings');
+  await page.goto(settingsCategoryPath('today'));
 
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,
@@ -415,7 +416,7 @@ test('expanded Dashboard settings remain clear in light mode and at 200 percent 
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto('/today');
   await signIn(page);
-  await page.goto('/more/settings');
+  await page.goto(settingsCategoryPath('today'));
 
   const group = page.getByRole('group', {
     name: profileIdentity.dashboardUpcomingTitle,

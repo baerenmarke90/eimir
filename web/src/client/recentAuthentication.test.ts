@@ -3,9 +3,13 @@ import { App } from '@capacitor/app';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import { RecentAuthenticationClient } from '../api/generated/models/RecentAuthenticationClient';
 import { isCapacitorNative } from '../pwa';
+import { ClientProblemError } from './problemDetails';
 import {
   authenticateRecentPasskey,
+  authenticateServerAdminRecentPassword,
+  isRecentAuthRequired,
   loadRecentAuthenticationCapabilities,
+  loadServerAdminRecentAuthenticationCapabilities,
   parseOidcCallbackUrl,
   waitForCapacitorOidcCallback,
 } from './recentAuthentication';
@@ -210,5 +214,87 @@ describe('Recent authentication capabilities and native passkey gating', () => {
     ).rejects.toThrow(
       'Direct passkey authentication is not supported in the native Android container.',
     );
+  });
+});
+
+describe('ServerAdmin recent authentication routing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isCapacitorNative).mockReturnValue(false);
+  });
+
+  it('loads capabilities from the ServerAdmin recent-auth endpoint', async () => {
+    const apiSpy = vi
+      .spyOn(
+        AuthApi.prototype,
+        'serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet',
+      )
+      .mockResolvedValueOnce({
+        expiresInSeconds: 300,
+        localPassword: true,
+        passkey: false,
+        oidcConnections: ['admin-oidc'],
+      });
+
+    const result = await loadServerAdminRecentAuthenticationCapabilities(
+      'https://api.example.com',
+      'admin-token',
+    );
+
+    expect(apiSpy).toHaveBeenCalledWith({ client: undefined });
+    expect(result.oidcConnections).toEqual(['admin-oidc']);
+  });
+
+  it('routes password step-up to the ServerAdmin purpose endpoint', async () => {
+    const response = {
+      achievedAt: new Date('2026-09-19T18:00:00Z'),
+      expiresAt: new Date('2026-09-19T18:05:00Z'),
+      method: 'LOCAL_PASSWORD',
+      purpose: 'SERVER_ADMIN_ACTION',
+    };
+    const apiSpy = vi
+      .spyOn(
+        AuthApi.prototype,
+        'serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost',
+      )
+      .mockResolvedValueOnce(response);
+
+    await expect(
+      authenticateServerAdminRecentPassword(
+        'https://api.example.com',
+        'admin-token',
+        'current-password',
+      ),
+    ).resolves.toEqual(response);
+
+    expect(apiSpy).toHaveBeenCalledWith({
+      passwordRequest: { password: 'current-password' },
+    });
+  });
+
+  it('recognizes only the structured recent-auth challenge', () => {
+    expect(
+      isRecentAuthRequired(
+        new ClientProblemError(
+          'permission',
+          403,
+          'RECENT_AUTHENTICATION_REQUIRED',
+        ),
+      ),
+    ).toBe(true);
+    expect(
+      isRecentAuthRequired(
+        new ClientProblemError('permission', 403, 'FORBIDDEN'),
+      ),
+    ).toBe(false);
+    expect(
+      isRecentAuthRequired(
+        new ClientProblemError(
+          'unauthorized',
+          401,
+          'RECENT_AUTHENTICATION_REQUIRED',
+        ),
+      ),
+    ).toBe(false);
   });
 });

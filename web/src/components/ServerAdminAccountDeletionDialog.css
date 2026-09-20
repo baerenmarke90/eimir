@@ -1,0 +1,119 @@
+.server-admin-deletion-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 45%);
+  backdrop-filter: blur(4px);
+}
+
+.server-admin-deletion-dialog {
+  width: min(38rem, 100%);
+  max-height: min(90vh, 46rem);
+  overflow: auto;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.server-admin-deletion-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.server-admin-deletion-head h2,
+.server-admin-deletion-head p,
+.server-admin-deletion-dialog > p {
+  margin: 0;
+}
+
+.server-admin-deletion-target {
+  padding: var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.server-admin-deletion-consequences {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
+.server-admin-deletion-consequences li {
+  line-height: 1.5;
+}
+
+.server-admin-deletion-consequences li strong {
+  color: var(--color-error);
+}
+
+.server-admin-deletion-expected {
+  display: block;
+  user-select: all;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.server-admin-deletion-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.server-admin-deletion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}
+
+.server-admin-deletion-danger-btn {
+  background-color: var(--color-error);
+  color: #ffffff;
+  border-color: var(--color-error);
+}
+
+.server-admin-deletion-danger-btn:hover:not(:disabled) {
+  background-color: var(--color-error-hover, #b91c1c);
+  border-color: var(--color-error-hover, #b91c1c);
+}
+
+.server-admin-deletion-danger-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .server-admin-deletion-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .server-admin-deletion-dialog {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  }
+
+  .server-admin-deletion-actions {
+    flex-direction: column-reverse;
+  }
+
+  .server-admin-deletion-actions > button {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -119,6 +119,28 @@ class Membership(IdMixin, TimestampMixin, Base):
         return self.status == MembershipStatus.ACTIVE.value
 
 
+class SpacePresence(Base):
+    """Ephemeral current-presence identity for one Account in one Space.
+
+    This table deliberately stores exactly one current timestamp per Account+Space.
+    It is not an activity log and has no created/updated history columns.
+    """
+
+    __tablename__ = "space_presence"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SpaceProfile(IdMixin, TimestampMixin, VersionMixin, Base):
     """Relationship-related attributes of a Space."""
 

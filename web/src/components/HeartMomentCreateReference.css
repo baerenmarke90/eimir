@@ -331,7 +331,6 @@
   gap: var(--space-2);
   margin-top: var(--space-2);
   padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .heart-moment-create-actions > button[type="submit"] {

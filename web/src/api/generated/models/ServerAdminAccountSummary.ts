@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AccountDeletionStatus } from './AccountDeletionStatus';
+import {
+    AccountDeletionStatusFromJSON,
+    AccountDeletionStatusFromJSONTyped,
+    AccountDeletionStatusToJSON,
+    AccountDeletionStatusToJSONTyped,
+} from './AccountDeletionStatus';
+
 /**
  * 
  * @export
@@ -45,6 +53,12 @@ export interface ServerAdminAccountSummary {
     createdAt: Date;
     /**
      * 
+     * @type {AccountDeletionStatus}
+     * @memberof ServerAdminAccountSummary
+     */
+    deletionStatus?: AccountDeletionStatus | null;
+    /**
+     * 
      * @type {Date}
      * @memberof ServerAdminAccountSummary
      */
@@ -74,6 +88,8 @@ export interface ServerAdminAccountSummary {
      */
     primaryEmail: string | null;
 }
+
+
 
 /**
  * Check if a given object implements the ServerAdminAccountSummary interface.
@@ -105,6 +121,7 @@ export function ServerAdminAccountSummaryFromJSONTyped(json: any, ignoreDiscrimi
         'activeSessionCount': json['activeSessionCount'],
         'authMethods': json['authMethods'],
         'createdAt': (new Date(json['createdAt'])),
+        'deletionStatus': json['deletionStatus'] === undefined ? undefined : json['deletionStatus'] === null ? null : AccountDeletionStatusFromJSON(json['deletionStatus']),
         'disabledAt': (json['disabledAt'] == null ? null : new Date(json['disabledAt'])),
         'displayName': json['displayName'],
         'emailVerified': json['emailVerified'],
@@ -128,6 +145,7 @@ export function ServerAdminAccountSummaryToJSONTyped(value?: ServerAdminAccountS
         'activeSessionCount': value['activeSessionCount'],
         'authMethods': value['authMethods'],
         'createdAt': value['createdAt'].toISOString(),
+        'deletionStatus': AccountDeletionStatusToJSON(value['deletionStatus']),
         'disabledAt': value['disabledAt'] == null ? value['disabledAt'] : value['disabledAt'].toISOString(),
         'displayName': value['displayName'],
         'emailVerified': value['emailVerified'],

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AccountDeletionStatus } from './AccountDeletionStatus';
+import {
+    AccountDeletionStatusFromJSON,
+    AccountDeletionStatusFromJSONTyped,
+    AccountDeletionStatusToJSON,
+    AccountDeletionStatusToJSONTyped,
+} from './AccountDeletionStatus';
 import type { ServerAdminAccountEmail } from './ServerAdminAccountEmail';
 import {
     ServerAdminAccountEmailFromJSON,
@@ -51,6 +58,18 @@ export interface ServerAdminAccountDetail {
      * @memberof ServerAdminAccountDetail
      */
     createdAt: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ServerAdminAccountDetail
+     */
+    deletionAcceptedAt?: Date | null;
+    /**
+     * 
+     * @type {AccountDeletionStatus}
+     * @memberof ServerAdminAccountDetail
+     */
+    deletionStatus?: AccountDeletionStatus | null;
     /**
      * 
      * @type {Date}
@@ -119,6 +138,8 @@ export interface ServerAdminAccountDetail {
     primaryEmail: string | null;
 }
 
+
+
 /**
  * Check if a given object implements the ServerAdminAccountDetail interface.
  */
@@ -155,6 +176,8 @@ export function ServerAdminAccountDetailFromJSONTyped(json: any, ignoreDiscrimin
         'activeSessionCount': json['activeSessionCount'],
         'authMethods': json['authMethods'],
         'createdAt': (new Date(json['createdAt'])),
+        'deletionAcceptedAt': json['deletionAcceptedAt'] === undefined ? undefined : json['deletionAcceptedAt'] === null ? null : (new Date(json['deletionAcceptedAt'])),
+        'deletionStatus': json['deletionStatus'] === undefined ? undefined : json['deletionStatus'] === null ? null : AccountDeletionStatusFromJSON(json['deletionStatus']),
         'disabledAt': (json['disabledAt'] == null ? null : new Date(json['disabledAt'])),
         'displayName': json['displayName'],
         'emailVerified': json['emailVerified'],
@@ -184,6 +207,8 @@ export function ServerAdminAccountDetailToJSONTyped(value?: ServerAdminAccountDe
         'activeSessionCount': value['activeSessionCount'],
         'authMethods': value['authMethods'],
         'createdAt': value['createdAt'].toISOString(),
+        'deletionAcceptedAt': value['deletionAcceptedAt'] == null ? value['deletionAcceptedAt'] : value['deletionAcceptedAt'].toISOString(),
+        'deletionStatus': AccountDeletionStatusToJSON(value['deletionStatus']),
         'disabledAt': value['disabledAt'] == null ? value['disabledAt'] : value['disabledAt'].toISOString(),
         'displayName': value['displayName'],
         'emailVerified': value['emailVerified'],

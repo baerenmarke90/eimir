@@ -42,6 +42,7 @@ class AdministrationAction(StrEnum):
     ACCOUNT_RECOVERY_ISSUED = "account_recovery_issued"
     SPACE_ENTITLEMENT_GRANTED = "space_entitlement_granted"
     SPACE_ENTITLEMENT_REVOKED = "space_entitlement_revoked"
+    ACCOUNT_DELETION_REQUESTED = "account_deletion_requested"
 
 
 class InstanceAdministrationSettings(TimestampMixin, VersionMixin, Base):
@@ -128,7 +129,8 @@ class InstanceAdministrationActionEvent(IdMixin, Base):
             "'account_recovery_email_requested', "
             "'account_recovery_issued', "
             "'space_entitlement_granted', "
-            "'space_entitlement_revoked'"
+            "'space_entitlement_revoked', "
+            "'account_deletion_requested'"
             ")",
             name="action_valid",
         ),

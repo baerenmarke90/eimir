@@ -4,6 +4,7 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost**](ServerAdminApi.md#deleteserveradminaccountapiv1serveradminaccountsaccountiddeletionpost) | **POST** /api/v1/server-admin/accounts/{accountId}/deletion | Delete Server Admin Account |
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
 | [**getServerAdminActivityApiV1ServerAdminActivityGet**](ServerAdminApi.md#getserveradminactivityapiv1serveradminactivityget) | **GET** /api/v1/server-admin/activity | Get Server Admin Activity |
@@ -25,6 +26,79 @@ All URIs are relative to *http://localhost*
 | [**updateServerAdminAccountSuspensionApiV1ServerAdminAccountsAccountIdSuspensionPut**](ServerAdminApi.md#updateserveradminaccountsuspensionapiv1serveradminaccountsaccountidsuspensionput) | **PUT** /api/v1/server-admin/accounts/{accountId}/suspension | Update Server Admin Account Suspension |
 | [**verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost**](ServerAdminApi.md#verifyserveradminaccountemailapiv1serveradminaccountsaccountidemailsaccountemailidverifypost) | **POST** /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify | Verify Server Admin Account Email |
 
+
+
+## deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost
+
+> ServerAdminAccountDeletionResult deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost(accountId, serverAdminAccountDeletionRequest)
+
+Delete Server Admin Account
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    accountId: accountId_example,
+    // ServerAdminAccountDeletionRequest
+    serverAdminAccountDeletionRequest: ...,
+  } satisfies DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest;
+
+  try {
+    const data = await api.deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **accountId** | `string` |  | [Defaults to `undefined`] |
+| **serverAdminAccountDeletionRequest** | [ServerAdminAccountDeletionRequest](ServerAdminAccountDeletionRequest.md) |  | |
+
+### Return type
+
+[**ServerAdminAccountDeletionResult**](ServerAdminAccountDeletionResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet

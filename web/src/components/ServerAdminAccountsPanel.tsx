@@ -6,6 +6,7 @@ import type { ServerAdminActionActivityItem } from '../api/generated/models/Serv
 import { normalizeClientError } from '../client/problemDetails';
 import { isRecentAuthRequired } from '../client/recentAuthentication';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
 import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 
 const PAGE_SIZE = 25;
@@ -47,6 +48,8 @@ function actionLabel(action: string, t: (key: string) => string): string {
       return t('serverAdmin.accounts.audit.recoveryEmail');
     case 'account_recovery_issued':
       return t('serverAdmin.accounts.audit.operatorRecovery');
+    case 'account_deletion_requested':
+      return t('serverAdmin.accounts.audit.deletionRequested');
     default:
       return t('serverAdmin.accounts.audit.unknown');
   }
@@ -127,6 +130,7 @@ function AccountDetail({
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
   const [pendingPrivilegedAction, setPendingPrivilegedAction] =
     useState<PendingPrivilegedAction | null>(null);
+  const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({
@@ -292,13 +296,24 @@ function AccountDetail({
           </p>
         </div>
         <span
-          className={`server-admin-badge ${account.disabledAt ? 'is-warning' : 'is-ok'}`}
+          className={`server-admin-badge ${
+            account.deletionStatus === 'PENDING' ||
+            account.deletionStatus === 'COMPLETED'
+              ? 'is-danger'
+              : account.disabledAt
+                ? 'is-warning'
+                : 'is-ok'
+          }`}
         >
-          {t(
-            account.disabledAt
-              ? 'serverAdmin.accounts.status.suspended'
-              : 'serverAdmin.accounts.status.active',
-          )}
+          {account.deletionStatus === 'PENDING'
+            ? t('serverAdmin.accounts.status.pendingDeletion')
+            : account.deletionStatus === 'COMPLETED'
+              ? t('serverAdmin.accounts.status.deleted')
+              : t(
+                  account.disabledAt
+                    ? 'serverAdmin.accounts.status.suspended'
+                    : 'serverAdmin.accounts.status.active',
+                )}
         </span>
       </div>
 
@@ -464,13 +479,41 @@ function AccountDetail({
 
       <div className="server-admin-danger-zone">
         <strong>{t('serverAdmin.accounts.detail.deletionTitle')}</strong>
-        <p className="server-admin-muted">
-          {t('serverAdmin.accounts.detail.deletionDeferred')}
-        </p>
-        <button type="button" disabled>
-          {t('serverAdmin.accounts.detail.deleteAccount')}
-        </button>
+        {account.deletionStatus === 'PENDING' ||
+        account.deletionStatus === 'COMPLETED' ? (
+          <p className="status status-warning" role="status">
+            {t('serverAdmin.accounts.detail.deletionNotice')}
+          </p>
+        ) : (
+          <>
+            <p className="server-admin-muted">
+              {t('serverAdmin.accounts.detail.deletionWarning')}
+            </p>
+            <button
+              type="button"
+              className="danger-button"
+              disabled={pending}
+              onClick={() => setDeletionDialogOpen(true)}
+            >
+              {t('serverAdmin.accounts.detail.deleteAccount')}
+            </button>
+          </>
+        )}
       </div>
+
+      {deletionDialogOpen ? (
+        <ServerAdminAccountDeletionDialog
+          api={api}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          account={account}
+          onClose={() => setDeletionDialogOpen(false)}
+          onSuccess={() => {
+            setDeletionDialogOpen(false);
+            invalidate();
+          }}
+        />
+      ) : null}
 
       {pendingPrivilegedAction ? (
         <ServerAdminRecentAuthModal
@@ -670,11 +713,15 @@ export function ServerAdminAccountsPanel({
                       </td>
                       <td>{account.primaryEmail ?? '–'}</td>
                       <td>
-                        {t(
-                          account.disabledAt
-                            ? 'serverAdmin.accounts.status.suspended'
-                            : 'serverAdmin.accounts.status.active',
-                        )}
+                        {account.deletionStatus === 'PENDING'
+                          ? t('serverAdmin.accounts.status.pendingDeletion')
+                          : account.deletionStatus === 'COMPLETED'
+                            ? t('serverAdmin.accounts.status.deleted')
+                            : t(
+                                account.disabledAt
+                                  ? 'serverAdmin.accounts.status.suspended'
+                                  : 'serverAdmin.accounts.status.active',
+                              )}
                       </td>
                       <td>
                         {t(

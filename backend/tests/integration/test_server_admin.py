@@ -13,6 +13,7 @@ from eimir.administration.models import (
     InstanceAdministrationActionEvent,
     InstanceAdministrationEvent,
 )
+from eimir.api.v1 import server_admin as server_admin_api
 from eimir.auth import passwords, recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
@@ -23,6 +24,7 @@ from eimir.identity.deletion_journal import DeletionJournal
 from eimir.identity.deletion_models import AccountDeletion
 from eimir.identity.models import Account, AccountEmail, DeviceSession
 from eimir.jobs.models import Job, JobStatus
+from eimir.mail import MailMessage, MailSender
 from eimir.relationship import service as relationship
 from eimir.relationship.models import Space
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -30,6 +32,14 @@ from tests.conftest import auth, make_account, make_space, requires_database, si
 pytestmark = [pytest.mark.integration, requires_database]
 
 ADMIN_EMAIL = "operator@example.test"
+
+
+class RecordingMailbox(MailSender):
+    def __init__(self) -> None:
+        self.messages: list[MailMessage] = []
+
+    def send(self, message: MailMessage) -> None:
+        self.messages.append(message)
 
 
 @pytest.fixture
@@ -449,6 +459,98 @@ def test_server_admin_can_revoke_all_account_sessions(
 
     assert response.status_code == 200
     assert response.json() == {"revokedSessions": 2}
+
+
+def test_server_admin_resends_normal_primary_email_verification(
+    client,
+    session,
+    server_admin_allowlist,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    email = _add_email(session, target, email="target@example.test", verified=False)
+    mailbox = RecordingMailbox()
+    monkeypatch.setattr(server_admin_api, "mail_sender", lambda: mailbox)
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 202
+    assert response.content == b""
+    assert len(mailbox.messages) == 1
+    assert mailbox.messages[0].to == email.email
+    session.refresh(email)
+    assert email.verified_at is None
+
+    verification_url = next(
+        line for line in mailbox.messages[0].body.splitlines() if line.startswith("http")
+    )
+    token = parse_qs(urlsplit(verification_url).query)["token"][0]
+    confirmed = client.post(
+        "/api/v1/auth/email/verification/confirm",
+        json={"token": token},
+    )
+    assert confirmed.status_code == 204
+    session.refresh(email)
+    assert email.verified_at is not None
+
+    # A verified target is an idempotent no-op and must not resolve mail again.
+    monkeypatch.setattr(
+        server_admin_api,
+        "mail_sender",
+        lambda: pytest.fail("mail sender resolved for an already verified address"),
+    )
+    replay = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+    assert replay.status_code == 202
+    assert len(mailbox.messages) == 1
+
+
+def test_server_admin_verification_resend_reports_mail_unavailable(
+    client,
+    session,
+    server_admin_allowlist,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    _add_email(session, target, email="target@example.test", verified=False)
+    monkeypatch.setenv("EIMIR_MAIL_TRANSPORT", "none")
+    get_settings.cache_clear()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "MAIL_TRANSPORT_UNAVAILABLE"
+    get_settings.cache_clear()
+
+
+def test_server_admin_verification_resend_rejects_suspended_account(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    _add_email(session, target, email="target@example.test", verified=False)
+    target.disabled_at = now()
+    session.flush()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "SERVER_ADMIN_ACCOUNT_DISABLED"
 
 
 def test_operator_email_verification_requires_exact_typed_confirmation(

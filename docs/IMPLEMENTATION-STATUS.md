@@ -4,7 +4,7 @@
 
 As of: September 20, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
-Current gate status: **M0-M5 are complete for their intended scope and G1-G4 have passed. M6 implementation and integrated G5 evidence are substantially delivered. G5 remains BLOCKED under the 2026-09-12 gate review; #914-#917 and final gate owner #525 remain open.**
+Current gate status: **M0-M5 are complete for their intended scope and G1-G4 have passed. M6 implementation and integrated G5 evidence are substantially delivered. G5 remains BLOCKED pending the remaining launch-evidence/final-gate work; #914, #916 and #917 are complete, while #915 and final gate owner #525 remain open.**
 
 > **Architecture note (ADR 0011 / #1005 / #1009):** the Web/Android parity, "complete Android client" and "across Web and Android" wording in the milestone records below is historical M5/G4 terminology. It describes work accepted before the Kotlin/Compose client was retired and does not require a second product UI: the canonical Web UI is the only product UI, and Android ships it through the Capacitor wrapper in `android/`. See [Capacitor Android Foundation](CAPACITOR-ANDROID-FOUNDATION.md).
 
@@ -248,7 +248,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
   - [x] **#914 — Release publication/provenance:** release `v0.1.0` published as an immutable GitHub Release from source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; evidence in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This does not imply that G5 has passed.
   - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target.
   - [x] **#916 — Manual launch-state accessibility:** manual Web acceptance on release `v0.1.0` completed with zero critical/serious Axe WCAG violations; Android classified as NOT_APPLICABLE for the Web-/Self-Hosted-first launch scope; evidence in `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md`. This does not imply that G5 has passed.
-  - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
+  - [x] **#917 — Public Demo rehearsal:** live HTTPS Demo isolation rehearsal completed against immutable `v0.1.0`, including exact release identity, isolated Demo resources, canonical live reset and post-reset public verification; evidence in `docs/m6/G5-EVIDENCE-DELTA-917-2026-09-20.md`. This closes G5-17 evidence for #525 without declaring the overall G5 gate.
   - [ ] **#525 — Final G5 decision:** re-review the exact release/evidence package and declare PASS only when every required criterion passes or is legitimately NOT_APPLICABLE.
   - [x] **#827 — Pre-market Self-Hosted OCI/topology hardening:** completed in PR #1092; this does not imply that G5 has passed.
   - [ ] **#797 — Cloud encryption at rest:** required before Cloud/Managed go-live if that operating mode is included; a Self-Hosted-only launch must explicitly classify managed-only criteria instead of implying Cloud readiness.
@@ -265,9 +265,9 @@ The latest dated review keeps **G5 — Launch-ready: BLOCKED**. A green CI run, 
 closed implementation issue, or completion of an individual Product Design slice
 does not change that gate state.
 
-The launch release `v0.1.0` has been frozen and published (#914). #915, #916, and #917
-consume that exact release identity. #525 then
-owns the final gate decision. Cloud/Managed remains separately conditional on the
+The launch release `v0.1.0` has been frozen and published (#914). #916 and #917 are complete
+against that exact release identity; #915 remains the outstanding promotion/rollback evidence.
+#525 then owns the final gate decision. Cloud/Managed remains separately conditional on the
 declared launch scope and its unresolved target-specific requirements.
 
 Post-G4 product-design remediation such as #955 may continue in parallel. It does

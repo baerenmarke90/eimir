@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session
 if TYPE_CHECKING:
     from sqlalchemy import CursorResult
 
+from eimir.administration import service as administration
+from eimir.administration.models import AdministrationAction
 from eimir.auth import sessions
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.core.clock import now
@@ -343,5 +345,10 @@ def mark_deletion_failed(
     deletion.completed_at = None
     deletion.failed_at = now()
     deletion.last_failure_code = normalized
+    administration.record_account_deletion_outcome(
+        session,
+        target_account_id=account_id,
+        action=AdministrationAction.ACCOUNT_DELETION_FAILED,
+    )
     session.flush()
     return deletion

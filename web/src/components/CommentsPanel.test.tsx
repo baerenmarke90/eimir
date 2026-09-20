@@ -272,10 +272,13 @@ describe('CommentsPanel', () => {
 
       await waitFor(() => expect(textarea.value).toBe('Kommentar B'));
       expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
-      expect(
-        screen.getByRole<HTMLButtonElement>('button', { name: 'Kommentieren' })
-          .disabled,
-      ).toBe(false);
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
       expect(createMemoryComment).toHaveBeenCalledTimes(1);
     });
 

@@ -109,16 +109,13 @@ def reconcile_configuration_manager(
     verification. This function never infers a founder and never transfers an
     already assigned authority.
 
-    The Space row is the serialization boundary shared with Membership
-    offboarding. A concurrent exit or second reconciliation cannot race past
-    the active-membership check into a last-writer-wins assignment.
+    Lock order deliberately matches ordinary tenant/offboarding flows:
+    Membership first, then Space. The Membership share lock prevents the
+    selected partner from becoming inactive between validation and assignment;
+    the Space lock then serializes competing reconciliation attempts.
     """
-    space = lock_space(session, space_id)
-    if space.configuration_manager_account_id is not None:
-        raise ConflictError(
-            "This Space already has a configuration manager.",
-            SpaceErrorCode.CONFIGURATION_MANAGER_ALREADY_ASSIGNED,
-        )
+    if session.get(Space, space_id) is None:
+        raise NotFoundError("Space not found.", SpaceErrorCode.NOT_FOUND)
 
     membership = session.execute(
         select(Membership)
@@ -133,6 +130,13 @@ def reconcile_configuration_manager(
         raise ValidationError(
             "The configuration manager must be an active member of this Space.",
             SpaceErrorCode.CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE,
+        )
+
+    space = lock_space(session, space_id)
+    if space.configuration_manager_account_id is not None:
+        raise ConflictError(
+            "This Space already has a configuration manager.",
+            SpaceErrorCode.CONFIGURATION_MANAGER_ALREADY_ASSIGNED,
         )
 
     space.configuration_manager_account_id = account_id

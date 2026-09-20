@@ -209,8 +209,9 @@ V1 recovery is an explicit one-time ServerAdmin operation:
 - the Space must still have no configuration manager;
 - the operator selects one Account that currently has an `ACTIVE` Membership
   in that same Space after out-of-band verification/consent;
-- the existing Space lifecycle row lock serializes reconciliation with partner
-  offboarding and concurrent reconciliation attempts;
+- reconciliation locks the selected active Membership first and the Space row
+  second, matching the existing tenant/offboarding lock order; the Membership
+  lock closes the exit race and the Space lock serializes competing assignments;
 - an already assigned manager is never replaced by this operation;
 - the privileged action is recorded in the existing content-free ServerAdmin
   audit with actor, target Account and target Space identifiers;

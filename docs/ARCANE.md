@@ -131,10 +131,13 @@ application `build:` fallbacks in the manifest and no source-build path.
 
 1. Verify the release: `gh release verify "vX.Y.Z" --repo baerenmarke90/eimir`.
 2. Create an Arcane project (for example `eimir-production`, separate from Development
-   and Demo) from the extracted release bundle `eimir-self-hosted-vX.Y.Z.tar.gz`: its
-   `compose.yaml` and the `self-hosted-image-identity.json` beside it are the project
-   files. Do not edit either. Compose refuses to create the guard when the identity file
-   is missing.
+   and Demo) from the release bundle `eimir-self-hosted-vX.Y.Z.tar.gz`. This does not
+   require a shell on the Docker host: extract/download the bundle on the operator
+   workstation, paste `compose.yaml` into Arcane's **Create Project** Compose editor,
+   open **Workspace** before the first deploy, and upload
+   `self-hosted-image-identity.json` beside it. Arcane stores both as project files.
+   Do not edit either release file. Compose refuses to create the guard when the identity
+   file is missing.
 3. Start the project environment from `deploy/self-hosted-release.env.example` and set
    the instance values (database password, public origin, allowed hosts, cursor signing
    key, mail, storage).
@@ -200,11 +203,13 @@ When the running release must keep serving while a refused migration or release 
 rejected, use the launcher `deploy` (see below): it validates and runs `migrate` before
 it replaces anything.
 
-To move to a newer immutable release, replace the bundle's `compose.yaml` and
-`self-hosted-image-identity.json` with those of the new release, change the three release
-values and **Redeploy**. Any mismatch between the version, the two references and the
-identity file is refused. Rollback is the same operation with an older release; a release
-older than the database schema is refused by `migrate` (see `SELF-HOSTING.md`).
+To move to a newer immutable release, replace the project's `compose.yaml` with the new
+release's copy in Arcane's Compose editor and replace
+`self-hosted-image-identity.json` through **Workspace → Upload File**. Then change the
+three release values and **Redeploy**. No Docker-host shell is required. Any mismatch
+between the version, the two references and the identity file is refused. Rollback is the
+same operation with an older release; a release older than the database schema is refused
+by `migrate` (see `SELF-HOSTING.md`).
 
 | Situation | Result |
 |---|---|

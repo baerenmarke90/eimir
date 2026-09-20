@@ -95,7 +95,9 @@ describe('ServerAdmin controls', () => {
 
     renderActivity(getActivity);
 
-    await screen.findByText('00000000-0000-4000-8000-000000000099');
+    expect(
+      await screen.findAllByText('00000000-0000-4000-8000-000000000099'),
+    ).toHaveLength(25);
     expect(getActivity).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: 'all', limit: 25, offset: 0 }),
     );

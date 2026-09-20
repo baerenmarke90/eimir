@@ -118,8 +118,8 @@ jobs:
       - name: Validate candidate inputs
         env:
           INCLUDE_ANDROID: ${{ inputs.include_android }}
-          API_BASE_URL: ${{ inputs.android_api_base_url }}
-          ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
+          API_BASE_URL: ${{ inputs.include_android && inputs.android_api_base_url || '' }}
+          ANDROID_VERSION_CODE: ${{ inputs.include_android && inputs.android_version_code || '' }}
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           set -euo pipefail

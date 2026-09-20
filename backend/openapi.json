@@ -11861,16 +11861,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Request parameters or domain inputs are invalid."
           }
         },
         "summary": "Get Server Admin Privileged Activity",

@@ -9,6 +9,7 @@ on:
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/check_runtime_environment.py"
+      - "scripts/_identity_environment.py"
       - "scripts/release_manifest.py"
       - "scripts/verify_release_asset_set.py"
       - "tools/ci/test_release_manifest.py"
@@ -1083,6 +1084,10 @@ jobs:
             "$bundle_root/scripts/self_hosted_release.py"
           cp -- scripts/check_runtime_environment.py \
             "$bundle_root/scripts/check_runtime_environment.py"
+          # Both scripts above import this module as a sibling; without it the shipped
+          # launcher and runtime checker fail at import time on the target host.
+          cp -- scripts/_identity_environment.py \
+            "$bundle_root/scripts/_identity_environment.py"
           # The published identity is the trust root of the in-manifest release guard
           # and of the launcher; it replaces the source-checkout placeholder.
           cp -- release-evidence/self-hosted-image-identity.json \
@@ -1094,6 +1099,7 @@ jobs:
           ${bundle_name}/deploy/
           ${bundle_name}/deploy/self-hosted-release.env.example
           ${bundle_name}/scripts/
+          ${bundle_name}/scripts/_identity_environment.py
           ${bundle_name}/scripts/check_runtime_environment.py
           ${bundle_name}/scripts/self_hosted_release.py
           ${bundle_name}/self-hosted-image-identity.json

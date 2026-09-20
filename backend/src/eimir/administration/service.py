@@ -189,6 +189,7 @@ def recent_action_events(
         .all()
     )
 
+
 def privileged_audit_events(
     session: Session,
     *,
@@ -261,7 +262,9 @@ def privileged_audit_events(
         elif category == "spaces":
             action_conditions.append(InstanceAdministrationActionEvent.target_space_id.is_not(None))
         elif category == "destructive":
-            action_conditions.append(InstanceAdministrationActionEvent.action.in_(DESTRUCTIVE_ACTIONS))
+            action_conditions.append(
+                InstanceAdministrationActionEvent.action.in_(DESTRUCTIVE_ACTIONS)
+            )
 
         action_category = case(
             (
@@ -293,11 +296,7 @@ def privileged_audit_events(
     if not branches:
         return PrivilegedAuditResult(items=(), total=0)
 
-    combined = (
-        branches[0].subquery()
-        if len(branches) == 1
-        else union_all(*branches).subquery()
-    )
+    combined = branches[0].subquery() if len(branches) == 1 else union_all(*branches).subquery()
     total = session.execute(select(func.count()).select_from(combined)).scalar_one()
     rows = session.execute(
         select(combined)

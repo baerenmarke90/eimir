@@ -53,9 +53,7 @@ export function DemoEntry() {
   return (
     <main className="login-shell">
       <section className="login-intro" aria-labelledby="demo-welcome-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="login-intro-content">
           <h1 id="demo-welcome-heading">{t('demo.introHeading')}</h1>
           <p>{t('demo.introBody')}</p>

@@ -121,6 +121,18 @@ function AccountDetail({
       }
     },
   });
+  const verificationRequestMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        await api.requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost(
+          { accountId: account.id },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onSuccess: invalidate,
+  });
   const recoveryEmailMutation = useMutation({
     mutationFn: () =>
       api.requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost(
@@ -157,6 +169,7 @@ function AccountDetail({
     !isRecentAuthRequired(verificationMutation.error)
       ? verificationMutation.error
       : null) ??
+    verificationRequestMutation.error ??
     recoveryEmailMutation.error ??
     (operatorRecoveryMutation.error &&
     !isRecentAuthRequired(operatorRecoveryMutation.error)
@@ -166,6 +179,7 @@ function AccountDetail({
     suspensionMutation.isPending ||
     revokeSessionsMutation.isPending ||
     verificationMutation.isPending ||
+    verificationRequestMutation.isPending ||
     recoveryEmailMutation.isPending ||
     operatorRecoveryMutation.isPending;
 
@@ -293,6 +307,16 @@ function AccountDetail({
             </div>
             {email.verifiedAt === null ? (
               <div className="server-admin-inline-confirmation">
+                {email.isPrimary ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={pending || account.disabledAt !== null}
+                    onClick={() => verificationRequestMutation.mutate()}
+                  >
+                    {t('serverAdmin.accounts.detail.resendVerification')}
+                  </button>
+                ) : null}
                 <label htmlFor={`verify-${email.id}`}>
                   {t('serverAdmin.accounts.detail.typeEmailToVerify')}
                 </label>
@@ -325,6 +349,12 @@ function AccountDetail({
           </div>
         ))}
       </div>
+
+      {verificationRequestMutation.isSuccess ? (
+        <p className="status status-success" role="status">
+          {t('serverAdmin.accounts.detail.verificationRequested')}
+        </p>
+      ) : null}
 
       <h4>{t('serverAdmin.accounts.detail.actionsTitle')}</h4>
       <div className="server-admin-account-actions">
@@ -399,7 +429,10 @@ function AccountDetail({
 
       {actionError ? (
         <p className="status status-error" role="alert">
-          {t('serverAdmin.accounts.detail.actionError')}
+          {(actionError as { code?: string }).code ===
+          'MAIL_TRANSPORT_UNAVAILABLE'
+            ? t('serverAdmin.accounts.detail.mailUnavailable')
+            : t('serverAdmin.accounts.detail.actionError')}
         </p>
       ) : null}
 

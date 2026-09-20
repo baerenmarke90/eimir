@@ -13,6 +13,15 @@ remain separate concerns.
 eimir. uses **build-once release artifacts** while preserving the exact Git
 commit SHA as source identity.
 
+Here, **build once** is scoped to the artifact set selected by one final publication
+run. `release-publish.yml` invokes the #193 evidence build for the frozen source and
+then loads, verifies and publishes those exact archives without a second application
+rebuild inside that publication. `release-candidate.yml` is an independent,
+unprivileged pre-publication build of the same source; its archive bytes are not
+required to equal a later publication build. Acceptance that must bind to shipped bytes
+therefore uses the final published archive hashes, attestations and OCI digests rather
+than assuming candidate/publication byte equality.
+
 The release artifact set is channel-aware. Every release contains:
 
 - one backend runtime archive shared by API, worker and migrate;

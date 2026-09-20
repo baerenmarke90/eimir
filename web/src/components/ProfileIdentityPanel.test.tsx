@@ -16,6 +16,7 @@ const SPACE_ID = 'space-1';
 function profile(displayName = 'Saved name', version = 1): PartnerProfileView {
   return {
     accountId: ACCOUNT_ID,
+    birthday: null,
     createdAt: new Date('2026-09-01T10:00:00Z'),
     displayName,
     id: 'profile-1',
@@ -162,5 +163,92 @@ describe('ProfileIdentityPanel display-name editing', () => {
         screen.queryByLabelText(profileIdentity.displayNameLabel),
       ).toBeNull(),
     );
+  });
+});
+
+
+describe('ProfileIdentityPanel birthday editing', () => {
+  it('sets and clears the optional birthday through the profile identity contract', async () => {
+    const update = vi
+      .spyOn(ProfilesApi.prototype, 'updateProfileIdentity')
+      .mockResolvedValueOnce({
+        ...profile('Saved name', 2),
+        birthday: new Date('1992-05-14T00:00:00Z'),
+      })
+      .mockResolvedValueOnce(profile('Saved name', 3));
+    vi.spyOn(
+      ProfilesApi.prototype,
+      'getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet',
+    ).mockResolvedValue(profile('Saved name', 3));
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      authorSummaryQueryKeys.profileIdentity(SPACE_ID, ACCOUNT_ID),
+      profile(),
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ProfileIdentityPanel
+            apiBaseUrl="https://api.example.test"
+            accessToken="token"
+            account={{ id: ACCOUNT_ID, displayName: 'Account name' }}
+            spaceId={SPACE_ID}
+            onDisplayNameChanged={vi.fn()}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: profileIdentity.editProfile }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: profileIdentity.editBirthday }),
+    );
+    const input = screen.getByLabelText(
+      profileIdentity.birthdayLabel,
+    ) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '1992-05-14' } });
+    fireEvent.submit(input.closest('form') as HTMLFormElement);
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(
+      update.mock.calls[0][0].profileIdentityUpdate.birthday
+        ?.toISOString()
+        .slice(0, 10),
+    ).toBe('1992-05-14');
+
+    await waitFor(() =>
+      expect(screen.queryByLabelText(profileIdentity.birthdayLabel)).toBeNull(),
+    );
+
+    queryClient.setQueryData(
+      authorSummaryQueryKeys.profileIdentity(SPACE_ID, ACCOUNT_ID),
+      {
+        ...profile('Saved name', 2),
+        birthday: new Date('1992-05-14T00:00:00Z'),
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: profileIdentity.editProfile }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: profileIdentity.editBirthday }),
+    );
+    const clearInput = screen.getByLabelText(
+      profileIdentity.birthdayLabel,
+    ) as HTMLInputElement;
+    fireEvent.change(clearInput, { target: { value: '' } });
+    fireEvent.submit(clearInput.closest('form') as HTMLFormElement);
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(update.mock.calls[1][0].profileIdentityUpdate.birthday).toBeNull();
   });
 });

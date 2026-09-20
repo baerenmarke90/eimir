@@ -109,7 +109,6 @@ const de = {
     dark: 'Dunkel',
   },
   brand: {
-    suffix: '',
     homeAria: 'eimir. – zum gemeinsamen Ort',
   },
   spaceContext: {

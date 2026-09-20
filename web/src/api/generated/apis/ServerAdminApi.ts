@@ -371,75 +371,6 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet without sending the request
-     */
-    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}): Promise<runtime.RequestOpts> {
-        const queryParameters: any = {};
-
-        if (requestParameters['category'] != null) {
-            queryParameters['category'] = requestParameters['category'];
-        }
-
-        if (requestParameters['action'] != null) {
-            queryParameters['action'] = requestParameters['action'];
-        }
-
-        if (requestParameters['actorId'] != null) {
-            queryParameters['actorId'] = requestParameters['actorId'];
-        }
-
-        if (requestParameters['targetId'] != null) {
-            queryParameters['targetId'] = requestParameters['targetId'];
-        }
-
-        if (requestParameters['createdFrom'] != null) {
-            queryParameters['createdFrom'] = (requestParameters['createdFrom'] as any).toISOString();
-        }
-
-        if (requestParameters['createdTo'] != null) {
-            queryParameters['createdTo'] = (requestParameters['createdTo'] as any).toISOString();
-        }
-
-        if (requestParameters['limit'] != null) {
-            queryParameters['limit'] = requestParameters['limit'];
-        }
-
-        if (requestParameters['offset'] != null) {
-            queryParameters['offset'] = requestParameters['offset'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/api/v1/server-admin/activity/privileged`;
-
-        return {
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        };
-    }
-
-    /**
-     * Get Server Admin Privileged Activity
-     */
-    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminPrivilegedAuditPage>> {
-        const requestOptions = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters);
-        const response = await this.request(requestOptions, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminPrivilegedAuditPageFromJSON(jsonValue));
-    }
-
-    /**
-     * Get Server Admin Privileged Activity
-     */
-    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminPrivilegedAuditPage> {
-        const response = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Creates request options for getServerAdminActivityApiV1ServerAdminActivityGet without sending the request
      */
     async getServerAdminActivityApiV1ServerAdminActivityGetRequestOpts(): Promise<runtime.RequestOpts> {
@@ -512,6 +443,75 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminOverviewApiV1ServerAdminOverviewGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminOverview> {
         const response = await this.getServerAdminOverviewApiV1ServerAdminOverviewGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet without sending the request
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['category'] != null) {
+            queryParameters['category'] = requestParameters['category'];
+        }
+
+        if (requestParameters['action'] != null) {
+            queryParameters['action'] = requestParameters['action'];
+        }
+
+        if (requestParameters['actorId'] != null) {
+            queryParameters['actorId'] = requestParameters['actorId'];
+        }
+
+        if (requestParameters['targetId'] != null) {
+            queryParameters['targetId'] = requestParameters['targetId'];
+        }
+
+        if (requestParameters['createdFrom'] != null) {
+            queryParameters['createdFrom'] = (requestParameters['createdFrom'] as any).toISOString();
+        }
+
+        if (requestParameters['createdTo'] != null) {
+            queryParameters['createdTo'] = (requestParameters['createdTo'] as any).toISOString();
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/activity/privileged`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminPrivilegedAuditPage>> {
+        const requestOptions = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminPrivilegedAuditPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminPrivilegedAuditPage> {
+        const response = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -100,6 +100,39 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
+describe('ChapterProductPage read presentation', () => {
+  it('shows the existing period and linked Place as canonical read context', async () => {
+    const chapterWithPlace: ChapterDetail = {
+      ...CHAPTER,
+      endOn: new Date('2026-08-31T00:00:00Z'),
+      placeId: 'place-lake',
+    };
+    const apis = createApis({
+      getChapter: vi.fn().mockResolvedValue(chapterWithPlace),
+    });
+
+    renderChapter(apis, false, (queryClient) => {
+      queryClient.setQueryData(
+        authorSummaryQueryKeys.chapterDetail('space-1', CHAPTER.id),
+        chapterWithPlace,
+      );
+      queryClient.setQueryData(authorSummaryQueryKeys.placeOptions('space-1'), [
+        { id: 'place-lake', name: 'Lake' },
+      ]);
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        name: i18n.t('m5s3.chapter.contextHeading'),
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText(/01\.06\.2026/)).toBeTruthy();
+    expect(screen.getByText(/31\.08\.2026/)).toBeTruthy();
+    const placeLink = screen.getByRole('link', { name: /Lake/ });
+    expect(placeLink.getAttribute('href')).toBe('/plan/places/place-lake');
+  });
+});
+
 describe('ChapterProductPage editor lifecycle', () => {
   it('reads Chapter places from the canonical selector cache', async () => {
     const user = userEvent.setup();

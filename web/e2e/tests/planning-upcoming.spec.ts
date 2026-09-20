@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -13,12 +14,19 @@ const IDEA_PLAN_ID = '66666666-6666-4666-8666-666666666666';
 const COMPLETED_PLAN_ID = '77777777-7777-4777-8777-777777777777';
 const WISH_ID = '88888888-8888-4888-8888-888888888888';
 const CONVERTED_PLAN_ID = '99999999-9999-4999-8999-999999999999';
+const PLACE_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const CHAPTER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 const EARLY_TITLE = 'Autumn hike';
 const LATE_TITLE = 'Concert in October';
 const IDEA_TITLE = 'Try a new recipe';
 const COMPLETED_TITLE = 'Day trip we already took';
 const CONVERTED_PLAN_TITLE = 'Authoritative converted autumn Plan';
+const PLACE_NAME = 'Riverside cabin';
+const PLACE_DESCRIPTION = 'Where we spent a quiet weekend together.';
+const PLACE_ADDRESS = '12 River Lane';
+const CHAPTER_TITLE = 'Summer by the lake';
+const CHAPTER_DESCRIPTION = 'A season we still talk about.';
 
 function localFutureIso(days: number): string {
   const value = new Date();
@@ -30,6 +38,38 @@ function localFutureIso(days: number): string {
 const EARLY_DATE = localFutureIso(10);
 const LATE_DATE = localFutureIso(17);
 const TEST_NOW = new Date().toISOString();
+
+const secondaryPlace = {
+  address: PLACE_ADDRESS,
+  capabilities: { canComment: true, canDelete: false, canEdit: false },
+  createdAt: TEST_NOW,
+  createdBy: ACCOUNT_ID,
+  creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+  description: PLACE_DESCRIPTION,
+  id: PLACE_ID,
+  latitude: 49.1234,
+  longitude: 7.5678,
+  name: PLACE_NAME,
+  spaceId: SPACE_ID,
+  updatedAt: TEST_NOW,
+  version: 1,
+};
+
+const secondaryChapter = {
+  capabilities: { canComment: true, canDelete: false, canEdit: false },
+  createdAt: TEST_NOW,
+  createdBy: ACCOUNT_ID,
+  creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+  description: CHAPTER_DESCRIPTION,
+  endOn: '2026-08-31',
+  id: CHAPTER_ID,
+  placeId: PLACE_ID,
+  spaceId: SPACE_ID,
+  startOn: '2026-06-01',
+  title: CHAPTER_TITLE,
+  updatedAt: TEST_NOW,
+  version: 1,
+};
 
 function planDetail({
   id,
@@ -107,7 +147,7 @@ type PlanningMockCalls = {
 
 async function installPlanningMocks(
   page: Page,
-  options: { empty?: boolean } = {},
+  options: { empty?: boolean; secondaryDomains?: boolean } = {},
 ): Promise<PlanningMockCalls> {
   const calls: PlanningMockCalls = {
     conversionBody: null,
@@ -379,7 +419,51 @@ async function installPlanningMocks(
     }
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/places`) {
-      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      await fulfillJson({
+        hasMore: false,
+        items: options.secondaryDomains ? [secondaryPlace] : [],
+        nextCursor: null,
+      });
+      return;
+    }
+
+    if (
+      options.secondaryDomains &&
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/places/${PLACE_ID}`
+    ) {
+      await fulfillJson(secondaryPlace);
+      return;
+    }
+
+    if (
+      options.secondaryDomains &&
+      method === 'GET' &&
+      [
+        `/api/v1/spaces/${SPACE_ID}/places/${PLACE_ID}/memories`,
+        `/api/v1/spaces/${SPACE_ID}/places/${PLACE_ID}/heart-moments`,
+        `/api/v1/spaces/${SPACE_ID}/places/${PLACE_ID}/milestones`,
+      ].includes(pathname)
+    ) {
+      await fulfillJson({ items: [] });
+      return;
+    }
+
+    if (
+      options.secondaryDomains &&
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/chapters/${CHAPTER_ID}`
+    ) {
+      await fulfillJson(secondaryChapter);
+      return;
+    }
+
+    if (
+      options.secondaryDomains &&
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/chapters/${CHAPTER_ID}/content`
+    ) {
+      await fulfillJson({ items: [] });
       return;
     }
 
@@ -563,6 +647,86 @@ for (const scenario of [
     await captureR3Evidence(page, testInfo, `r3-overview-${scenario.name}.png`);
   });
 }
+
+test('P2 Chapter to Place reads as relationship content and preserves return context', async ({
+  page,
+}, testInfo) => {
+  await page.addInitScript(() =>
+    window.localStorage.setItem('eimir.theme', 'system'),
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installPlanningMocks(page, { secondaryDomains: true });
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto(`/plan/chapters/${CHAPTER_ID}`);
+
+  await expect(
+    page.getByRole('heading', { name: CHAPTER_TITLE, level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText(CHAPTER_DESCRIPTION)).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: m5s3.chapter.contextHeading }),
+  ).toBeVisible();
+  const placeLink = page.getByRole('link', { name: new RegExp(PLACE_NAME) });
+  await expect(placeLink).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze())
+      .violations,
+  ).toEqual([]);
+  await captureR3Evidence(page, testInfo, 'planning-p2-chapter-390-light.png');
+
+  await placeLink.click();
+  await expect(page).toHaveURL(new RegExp(`/plan/places/${PLACE_ID}$`));
+  await expect(
+    page.getByRole('heading', { name: PLACE_NAME, level: 1 }),
+  ).toBeVisible();
+  await expect(page.getByText(PLACE_DESCRIPTION)).toBeVisible();
+  await expect(page.getByText(PLACE_ADDRESS)).toBeVisible();
+  await expect(
+    page.locator('details.planning-technical-details'),
+  ).not.toHaveAttribute('open', '');
+  await captureR3Evidence(page, testInfo, 'planning-p2-place-390-light.png');
+
+  await page.getByRole('button', { name: taskBoundary.back }).click();
+  await expect(page).toHaveURL(new RegExp(`/plan/chapters/${CHAPTER_ID}$`));
+
+  await page.setViewportSize({ width: 430, height: 860 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await expect(
+    page.getByRole('heading', { name: CHAPTER_TITLE, level: 1 }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBeLessThanOrEqual(1);
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-p2-chapter-430-dark-reduced.png',
+  );
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    ),
+  ).toBeLessThanOrEqual(1);
+  await captureR3Evidence(
+    page,
+    testInfo,
+    'planning-p2-chapter-1280-expanded.png',
+  );
+});
 
 test('Wishes panel requests and shows only OPEN Wishes; PLANNED/COMPLETED are excluded (#892)', async ({
   page,

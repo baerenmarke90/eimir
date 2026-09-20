@@ -1,6 +1,6 @@
 import { authorFirstName } from '../client/authorPresentation';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -77,6 +77,9 @@ export function CommentsPanel({
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
+  const commentDraftRef = useRef('');
+  const commentDraftRevisionRef = useRef(0);
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
@@ -102,7 +105,13 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({
+      body,
+    }: {
+      body: string;
+      draftSnapshot: string;
+      draftRevision: number;
+    }) => {
       try {
         return await createComment(
           commentsApi,
@@ -115,11 +124,19 @@ export function CommentsPanel({
         throw await normalizeClientError(error);
       }
     },
-    onSuccess: async () => {
+    onSuccess: async (_comment, submission) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: presenceKey }),
       ]);
+      if (
+        commentDraftRevisionRef.current === submission.draftRevision &&
+        commentDraftRef.current === submission.draftSnapshot
+      ) {
+        commentDraftRef.current = '';
+        setCommentDraft('');
+        setComposerOpen(false);
+      }
     },
   });
 
@@ -181,16 +198,11 @@ export function CommentsPanel({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const body = String(data.get('comment') || '').trim();
+    const draftSnapshot = commentDraftRef.current;
+    const draftRevision = commentDraftRevisionRef.current;
+    const body = draftSnapshot.trim();
     if (!body) return;
-    createMutation.mutate(body, {
-      onSuccess: () => {
-        form.reset();
-        setComposerOpen(false);
-      },
-    });
+    createMutation.mutate({ body, draftSnapshot, draftRevision });
   }
 
   const comments =
@@ -401,6 +413,12 @@ export function CommentsPanel({
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}
+            value={commentDraft}
+            onChange={(event) => {
+              commentDraftRevisionRef.current += 1;
+              commentDraftRef.current = event.currentTarget.value;
+              setCommentDraft(event.currentTarget.value);
+            }}
           />
           <div className="comment-compose-actions">
             <button type="submit" disabled={createMutation.isPending}>
@@ -413,6 +431,8 @@ export function CommentsPanel({
               className="tertiary"
               onClick={() => {
                 createMutation.reset();
+                commentDraftRef.current = '';
+                setCommentDraft('');
                 setComposerOpen(false);
               }}
               disabled={createMutation.isPending}

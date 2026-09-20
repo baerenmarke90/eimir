@@ -3,8 +3,8 @@
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
     "specFiles": 46,
-    "tests": 318,
-    "prCriticalTests": 154
+    "tests": 319,
+    "prCriticalTests": 155
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -98,7 +98,7 @@
     },
     "planning-upcoming.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 7
+      "baselineTests": 8
     },
     "planning-wish-completion-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",

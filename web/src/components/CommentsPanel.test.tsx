@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -238,6 +238,112 @@ describe('CommentsPanel', () => {
         memoryId: 'memory-1',
         commentCreate: { body: 'A brand new comment' },
       });
+    });
+
+    it('keeps newer text when an older submitted draft succeeds late', async () => {
+      const user = userEvent.setup();
+      let resolveCreate!: (value: CommentDetail) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      const listMemoryComments = vi.fn().mockResolvedValue({
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+      renderInteractivePanel([], { createMemoryComment, listMemoryComments });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Kommentar A');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      await user.clear(textarea);
+      await user.type(textarea, 'Kommentar B');
+      resolveCreate(comment({ id: 'new-a', body: 'Kommentar A' }));
+
+      await waitFor(() => expect(textarea.value).toBe('Kommentar B'));
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+      expect(createMemoryComment).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a newer draft even when its text matches the submitted value', async () => {
+      const user = userEvent.setup();
+      let resolveCreate!: (value: CommentDetail) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      renderInteractivePanel([], { createMemoryComment });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Same words');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      await user.clear(textarea);
+      await user.type(textarea, 'Same words');
+      resolveCreate(comment({ id: 'new-a', body: 'Same words' }));
+
+      await waitFor(() => expect(textarea.value).toBe('Same words'));
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+      expect(createMemoryComment).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains the current draft when comment creation fails', async () => {
+      const user = userEvent.setup();
+      let rejectCreate!: (reason?: unknown) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((_resolve, reject) => {
+            rejectCreate = reject;
+          }),
+      );
+      renderInteractivePanel([], { createMemoryComment });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Keep this draft');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      rejectCreate(new Error('network failure'));
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+      expect(textarea.value).toBe('Keep this draft');
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
     });
   });
 

@@ -246,7 +246,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 - [ ] **M6 — Operate & Launch:** implementation and integrated evidence are substantially delivered; final launch acceptance remains gated by the exact release candidate and G5 review
   - [x] **#524 — Integrated G5 rehearsal/evidence:** completed; historical results and later deltas are retained in `docs/m6/`.
   - [x] **#914 — Release publication/provenance:** release `v0.1.0` published as an immutable GitHub Release from source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; evidence in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This does not imply that G5 has passed.
-  - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target.
+  - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target. Evidence recorded in `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md`; the issue stays open pending the two conditions listed there (published bundle launcher defect, fix PR #1121; single-host staging-equivalent boundary).
   - [ ] **#916 — Manual launch-state accessibility:** perform the release-candidate Web acceptance and Android checks only if Android is in launch scope.
   - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
   - [ ] **#525 — Final G5 decision:** re-review the exact release/evidence package and declare PASS only when every required criterion passes or is legitimately NOT_APPLICABLE.

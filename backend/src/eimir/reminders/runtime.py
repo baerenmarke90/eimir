@@ -756,6 +756,21 @@ def _source_is_eligible(session: Session, reminder: Reminder) -> bool:
             ).scalar_one_or_none()
             is not None
         )
+    if reminder.rule_key == PARTNER_BIRTHDAY_RULE:
+        return (
+            session.execute(
+                select(Account.id)
+                .join(Membership, Membership.account_id == Account.id)
+                .where(
+                    Account.id == reminder.source_id,
+                    Account.disabled_at.is_(None),
+                    Account.birthday.is_not(None),
+                    Membership.space_id == reminder.space_id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
+                )
+            ).scalar_one_or_none()
+            is not None
+        )
     if reminder.rule_key == RELATIONSHIP_ANNIVERSARY_RULE:
         return (
             session.execute(

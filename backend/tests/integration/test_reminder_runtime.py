@@ -376,6 +376,59 @@ def test_partner_birthday_reconciles_without_self_delivery(
     )
 
 
+def test_partner_birthday_delivery_fails_closed_after_source_offboarding(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(runtime.clock, "now", lambda: NOW)
+    profile_url = f"/api/v1/spaces/{couple['space'].id}/profiles/{couple['anna'].id}"
+    initial = client.get(profile_url, headers=auth(couple["anna_token"]))
+    birthday_set = client.patch(
+        profile_url,
+        json={"birthday": "1992-09-30"},
+        headers={**auth(couple["anna_token"]), "If-Match": initial.headers["etag"]},
+    )
+    assert birthday_set.status_code == 200, birthday_set.text
+
+    reminder = session.execute(
+        select(Reminder).where(
+            Reminder.space_id == couple["space"].id,
+            Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+        )
+    ).scalar_one()
+    occurrence = next(
+        row
+        for row in _occurrences(session, reminder.id, couple["ben"].id)
+        if row.state == OccurrenceState.PENDING.value
+    )
+    assert runtime._source_is_eligible(session, reminder)
+
+    membership = relationship_service.require_membership(
+        session, couple["anna"], couple["space"].id
+    )
+    relationship_service.end_membership(session, membership)
+    session.flush()
+    assert not runtime._source_is_eligible(session, reminder)
+
+    monkeypatch.setattr(runtime.clock, "now", lambda: occurrence.due_at)
+    runtime.handle_occurrence(
+        session,
+        {"occurrenceId": str(occurrence.id), "generation": occurrence.generation},
+    )
+    session.flush()
+    assert occurrence.state == OccurrenceState.CANCELLED.value
+    assert (
+        session.execute(
+            select(func.count())
+            .select_from(OutboxEvent)
+            .where(
+                OutboxEvent.event_type == EventType.REMINDER_DUE.value,
+                OutboxEvent.subject_id == reminder.id,
+            )
+        ).scalar_one()
+        == 0
+    )
+
+
 def test_plan_and_relationship_source_changes_reconcile_immediately(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]

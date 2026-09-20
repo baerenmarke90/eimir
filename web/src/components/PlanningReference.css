@@ -369,7 +369,6 @@
 
 .planen-operations {
   display: block;
-  border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-3);
 }
 
@@ -588,7 +587,6 @@
 
 .planen-history {
   margin-top: var(--space-5);
-  border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-3);
 }
 

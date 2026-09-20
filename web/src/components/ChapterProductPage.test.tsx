@@ -126,8 +126,8 @@ describe('ChapterProductPage read presentation', () => {
         name: i18n.t('m5s3.chapter.contextHeading'),
       }),
     ).toBeTruthy();
-    expect(screen.getByText(/1\. Juni 2026/)).toBeTruthy();
-    expect(screen.getByText(/31\. August 2026/)).toBeTruthy();
+    expect(screen.getByText(/01\.06\.2026/)).toBeTruthy();
+    expect(screen.getByText(/31\.08\.2026/)).toBeTruthy();
     const placeLink = screen.getByRole('link', { name: /Lake/ });
     expect(placeLink.getAttribute('href')).toBe('/plan/places/place-lake');
   });

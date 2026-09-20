@@ -107,6 +107,7 @@ The resulting installation directory contains:
 - `deploy/self-hosted-release.env.example`;
 - `scripts/self_hosted_release.py`;
 - `scripts/check_runtime_environment.py`;
+- `scripts/_identity_environment.py`, the shared helper both scripts import;
 - `self-hosted-image-identity.json`, the digest-qualified identity of that immutable
   release, read-only trust root of the launcher and of the in-manifest `release-guard`.
 

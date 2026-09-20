@@ -247,7 +247,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
   - [x] **#524 — Integrated G5 rehearsal/evidence:** completed; historical results and later deltas are retained in `docs/m6/`.
   - [x] **#914 — Release publication/provenance:** release `v0.1.0` published as an immutable GitHub Release from source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; evidence in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This does not imply that G5 has passed.
   - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target.
-  - [ ] **#916 — Manual launch-state accessibility:** perform the release-candidate Web acceptance and Android checks only if Android is in launch scope.
+  - [x] **#916 — Manual launch-state accessibility:** manual Web acceptance on release `v0.1.0` completed with zero critical/serious Axe WCAG violations; Android classified as NOT_APPLICABLE for the Web-/Self-Hosted-first launch scope; evidence in `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md`. This does not imply that G5 has passed.
   - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
   - [ ] **#525 — Final G5 decision:** re-review the exact release/evidence package and declare PASS only when every required criterion passes or is legitimately NOT_APPLICABLE.
   - [x] **#827 — Pre-market Self-Hosted OCI/topology hardening:** completed in PR #1092; this does not imply that G5 has passed.

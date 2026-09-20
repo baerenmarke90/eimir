@@ -38,6 +38,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: immutable-release-${{ github.workflow }}-${{ github.ref }}
@@ -113,10 +115,6 @@ jobs:
     name: Build and attest one source revision
     if: github.event_name != 'pull_request'
     needs: [contract, preflight]
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
       include_android: ${{ inputs.include_android }}

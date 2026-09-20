@@ -84,6 +84,11 @@ import {
     ServerAdminOverviewToJSON,
 } from '../models/ServerAdminOverview';
 import {
+    type ServerAdminPrivilegedAuditPage,
+    ServerAdminPrivilegedAuditPageFromJSON,
+    ServerAdminPrivilegedAuditPageToJSON,
+} from '../models/ServerAdminPrivilegedAuditPage';
+import {
     type ServerAdminRecoveryEmailResult,
     ServerAdminRecoveryEmailResultFromJSON,
     ServerAdminRecoveryEmailResultToJSON,
@@ -136,6 +141,17 @@ export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeleti
 
 export interface GetServerAdminAccountApiV1ServerAdminAccountsAccountIdGetRequest {
     accountId: string;
+}
+
+export interface GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest {
+    category?: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum;
+    action?: string | null;
+    actorId?: string | null;
+    targetId?: string | null;
+    createdFrom?: Date | null;
+    createdTo?: Date | null;
+    limit?: number;
+    offset?: number;
 }
 
 export interface GetServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGetRequest {
@@ -351,6 +367,75 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminActionActivityApiV1ServerAdminActivityActionsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ServerAdminActionActivityItem>> {
         const response = await this.getServerAdminActionActivityApiV1ServerAdminActivityActionsGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet without sending the request
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['category'] != null) {
+            queryParameters['category'] = requestParameters['category'];
+        }
+
+        if (requestParameters['action'] != null) {
+            queryParameters['action'] = requestParameters['action'];
+        }
+
+        if (requestParameters['actorId'] != null) {
+            queryParameters['actorId'] = requestParameters['actorId'];
+        }
+
+        if (requestParameters['targetId'] != null) {
+            queryParameters['targetId'] = requestParameters['targetId'];
+        }
+
+        if (requestParameters['createdFrom'] != null) {
+            queryParameters['createdFrom'] = (requestParameters['createdFrom'] as any).toISOString();
+        }
+
+        if (requestParameters['createdTo'] != null) {
+            queryParameters['createdTo'] = (requestParameters['createdTo'] as any).toISOString();
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/activity/privileged`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminPrivilegedAuditPage>> {
+        const requestOptions = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminPrivilegedAuditPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminPrivilegedAuditPage> {
+        const response = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1248,6 +1333,17 @@ export class ServerAdminApi extends runtime.BaseAPI {
 
 }
 
+/**
+ * @export
+ */
+export const GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum = {
+    all: 'all',
+    settings: 'settings',
+    accounts: 'accounts',
+    spaces: 'spaces',
+    destructive: 'destructive'
+} as const;
+export type GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum = typeof GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum[keyof typeof GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum];
 /**
  * @export
  */

@@ -26,6 +26,7 @@ from eimir.relationship.models import (
     MembershipRole,
     MembershipStatus,
     Space,
+    SpaceConfiguration,
     SpaceProfile,
 )
 
@@ -111,6 +112,7 @@ def create_space(session: Session, founder: Account) -> Space:
     session.flush()
 
     session.add(SpaceProfile(space_id=space.id))
+    session.add(SpaceConfiguration(space_id=space.id))
     session.add(
         Membership(
             space_id=space.id,

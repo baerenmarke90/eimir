@@ -1,4 +1,4 @@
-"""Real Alembic upgrade coverage for revision 0062 Space configuration authority."""
+"""Real Alembic upgrade coverage for the 0061 -> 0062 -> 0063 configuration chain."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def _configuration_manager(connection: Connection, space_id: UUID) -> UUID | Non
 
 @pytest.mark.integration
 @requires_database
-def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
+def test_0061_to_0063_upgrade_preserves_safe_authority_and_backfills_configuration(
     engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     test_db_url = os.environ.get("EIMIR_TEST_DATABASE_URL")
@@ -68,7 +68,8 @@ def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
 
     # Exercise the real installed-schema path rather than create_all metadata.
     # This remains valid when later migrations exist: return to 0061, prove the
-    # 0062 transition, and restore the repository's current head in finally.
+    # real 0062 authority transition followed by 0063 configuration backfill,
+    # then restore the repository's current head in finally.
     alembic.command.upgrade(config, "head")
     alembic.command.downgrade(config, "0061")
 
@@ -182,6 +183,56 @@ def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
                 ).scalars()
             )
             assert retained_statuses == {"ACTIVE", "LEFT"}
+
+        # Exercise the actual chained upgrade rather than testing 0063 on an
+        # already-modern schema. Authority assigned (or deliberately left NULL)
+        # by 0062 must survive while 0063 creates exactly one deterministic V1
+        # configuration for every existing Space.
+        alembic.command.upgrade(config, "0063")
+
+        with engine.connect() as connection:
+            assert _current_revision(connection) == "0063"
+            assert _configuration_manager(connection, single_active_space) == single_active_account
+            assert _configuration_manager(connection, two_active_space) is None
+            assert _configuration_manager(connection, single_ended_space) == single_ended_account
+            assert _configuration_manager(connection, retained_history_space) is None
+
+            for space_id in space_ids:
+                configuration = (
+                    connection.execute(
+                        sa.text(
+                            """
+                        SELECT
+                            vibe_check_enabled,
+                            energy_check_in_enabled,
+                            love_notes_enabled,
+                            support_gestures_enabled,
+                            shared_achievements_enabled,
+                            daily_questions_enabled,
+                            daily_context_timezone,
+                            vibe_visibility_mode,
+                            energy_visibility_mode,
+                            version
+                        FROM space_configurations
+                        WHERE space_id = :space_id
+                        """
+                        ),
+                        {"space_id": space_id},
+                    )
+                    .mappings()
+                    .one()
+                )
+
+                assert configuration["vibe_check_enabled"] is False
+                assert configuration["energy_check_in_enabled"] is False
+                assert configuration["love_notes_enabled"] is False
+                assert configuration["support_gestures_enabled"] is True
+                assert configuration["shared_achievements_enabled"] is False
+                assert configuration["daily_questions_enabled"] is False
+                assert configuration["daily_context_timezone"] is None
+                assert configuration["vibe_visibility_mode"] == "IMMEDIATE"
+                assert configuration["energy_visibility_mode"] == "IMMEDIATE"
+                assert configuration["version"] == 1
 
         # The database contract must never block Account lifecycle cleanup or
         # transfer authority implicitly. Hard deletion is not the application

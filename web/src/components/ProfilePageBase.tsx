@@ -404,7 +404,6 @@ export function RelationshipSettingsSection({
   );
 }
 
-
 /** Viewport-safe and accessible modal dialog for creating and editing preferences or private notes. */
 export function PreferenceDialog({
   isOpen,

@@ -1336,6 +1336,7 @@ def get_server_admin_action_activity(
         for event in administration.recent_action_events(session)
     ]
 
+
 @router.get(
     "/activity/privileged",
     response_model=ServerAdminPrivilegedAuditPage,

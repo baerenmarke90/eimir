@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import select
 
-from eimir.administration.models import InstanceAdministrationActionEvent
+from eimir.administration.models import (
+    InstanceAdministrationActionEvent,
+    InstanceAdministrationEvent,
+)
 from eimir.auth import passwords, recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
@@ -894,3 +898,109 @@ def test_server_admin_cannot_delete_demo_account(
     assert response.status_code == 403
     assert response.json()["code"] == "ACCOUNT_DELETION_DEMO_FORBIDDEN"
     get_settings.cache_clear()
+
+
+def test_unified_privileged_audit_filters_sorts_and_paginates(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    target = make_account(session, "Audit target")
+    space = make_space(session)
+    current = now()
+
+    session.add(
+        InstanceAdministrationEvent(
+            actor_id=admin.id,
+            setting="maintenance_mode",
+            previous_value=False,
+            new_value=True,
+            created_at=current - timedelta(minutes=4),
+        )
+    )
+    session.add_all(
+        [
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_suspended",
+                effect_count=2,
+                created_at=current - timedelta(minutes=3),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_space_id=space.id,
+                action="space_entitlement_granted",
+                created_at=current - timedelta(minutes=2),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_requested",
+                created_at=current - timedelta(minutes=1),
+            ),
+        ]
+    )
+    session.flush()
+
+    first_page = client.get(
+        "/api/v1/server-admin/activity/privileged?limit=2",
+        headers=auth(admin_token),
+    )
+    assert first_page.status_code == 200
+    payload = first_page.json()
+    assert payload["total"] == 4
+    assert payload["limit"] == 2
+    assert payload["offset"] == 0
+    assert [item["category"] for item in payload["items"]] == [
+        "destructive",
+        "spaces",
+    ]
+
+    second_page = client.get(
+        "/api/v1/server-admin/activity/privileged?limit=2&offset=2",
+        headers=auth(admin_token),
+    )
+    assert second_page.status_code == 200
+    assert [item["category"] for item in second_page.json()["items"]] == [
+        "accounts",
+        "settings",
+    ]
+
+    spaces = client.get(
+        "/api/v1/server-admin/activity/privileged?category=spaces",
+        headers=auth(admin_token),
+    )
+    assert spaces.status_code == 200
+    assert spaces.json()["total"] == 1
+    assert spaces.json()["items"][0]["targetSpaceId"] == str(space.id)
+
+    accounts = client.get(
+        "/api/v1/server-admin/activity/privileged?category=accounts",
+        headers=auth(admin_token),
+    )
+    assert accounts.status_code == 200
+    assert accounts.json()["total"] == 1
+    assert accounts.json()["items"][0]["action"] == "account_suspended"
+
+    destructive = client.get(
+        f"/api/v1/server-admin/activity/privileged?category=destructive&targetId={target.id}",
+        headers=auth(admin_token),
+    )
+    assert destructive.status_code == 200
+    assert destructive.json()["total"] == 1
+    item = destructive.json()["items"][0]
+    assert item["action"] == "account_deletion_requested"
+    assert set(item) == {
+        "id",
+        "category",
+        "action",
+        "actorId",
+        "targetAccountId",
+        "targetSpaceId",
+        "previousValue",
+        "newValue",
+        "effectCount",
+        "createdAt",
+    }

@@ -1111,6 +1111,7 @@ jobs:
       - name: Write human-readable release notes
         shell: bash
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           RELEASE_VERSION: ${{ inputs.release_version }}
           SOURCE_REVISION: ${{ github.sha }}
           INITIAL_RELEASE: ${{ inputs.initial_release }}
@@ -1122,29 +1123,32 @@ jobs:
           else
             previous="v${PREVIOUS_VERSION}"
           fi
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            android_note="Android is included in this release channel. Final APK/AAB bytes are signed, carry fresh SPDX SBOMs and attestations, and are bound to the same source revision."
+          else
+            android_note="Android is explicitly not part of this release channel. No APK/AAB, Android signing material, fixed Android API origin, or Android attestations are published."
+          fi
           cat > release-evidence/RELEASE-NOTES.md <<EOF
           # eimir. v${RELEASE_VERSION}
 
-          Source revision: \`${SOURCE_REVISION}\`
-          Previous known-good application release: \`${previous}\`
+          Source revision: `${SOURCE_REVISION}`
+          Previous known-good application release: `${previous}`
 
           This is one immutable build-once release set. Backend API, worker and migrate
-          share one runtime artifact; Web and final signed Android artifacts are bound
-          to the same source revision by \`eimir-release-manifest.json\`.
+          share one runtime artifact and Web is bound to the same source revision by
+          `eimir-release-manifest.json`.
+
+          ${android_note}
 
           The exact backend and Web archives were loaded without rebuild and published
           as versioned GHCR images. GHCR version/source tags are discovery aliases only;
-          \`self-hosted-image-identity.json\` records the authoritative digest-qualified
+          `self-hosted-image-identity.json` records the authoritative digest-qualified
           references and binds them back to the #519 archive hashes.
 
-          \`eimir-self-hosted-v${RELEASE_VERSION}.tar.gz\` is the deterministic
+          `eimir-self-hosted-v${RELEASE_VERSION}.tar.gz` is the deterministic
           source-free operator bundle for released Self-Hosted installation. It contains
           canonical Compose, the release env template, mandatory Production launcher and
           runtime identity checker; application source is not included or built on target.
-
-          Android publication uses Google Play App Signing with a distinct upload key.
-          The upload key is supplied only by the protected \`production-release\`
-          environment. Final signed Android bytes have fresh SPDX SBOMs and attestations.
 
           Application rollback selects the previous immutable release only. It does not
           imply database rollback; schema compatibility, forward-fix and restore remain

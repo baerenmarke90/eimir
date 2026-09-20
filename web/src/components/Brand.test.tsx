@@ -22,7 +22,6 @@ describe('Brand', () => {
     expect(html).not.toContain('Eimir');
   });
 
-
   it('renders standard high-contrast brand styling by default', () => {
     const html = renderToStaticMarkup(<Brand />);
 

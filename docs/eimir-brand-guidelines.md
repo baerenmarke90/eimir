@@ -30,9 +30,9 @@
   terminal dot, including `eimir.*` on the backend and `de.eimir.app.*` on
   Android. Only public, user-facing touchpoints use `eimir.`. Narrow legacy
   identifiers retained for upgrade continuity are documented in
-  [Project Identity Migration](PROJECT-IDENTITY-MIGRATION.md). Trademark
-  protection, Nice classification, legal clearance, and evaluated alternatives
-  (`Lomu`) are documented in [Brand & Legal Checks](BRAND-AND-LEGAL-CHECKS.md).
+  [Project Identity Migration](PROJECT-IDENTITY-MIGRATION.md). Trademark-class
+  candidates, evaluated alternatives (`Lomu`), and the external clearance /
+  launch checklist are documented in [Brand & Launch Verification](BRAND-AND-LEGAL-CHECKS.md).
 
 ### Wordmark Usage
 - In headers and navigation, the wordmark uses `Instrument Sans` with bold weight and tight letter spacing (`-0.035em`).

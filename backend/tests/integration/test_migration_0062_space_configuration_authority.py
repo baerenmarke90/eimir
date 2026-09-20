@@ -198,9 +198,10 @@ def test_0061_to_0063_upgrade_preserves_safe_authority_and_backfills_configurati
             assert _configuration_manager(connection, retained_history_space) is None
 
             for space_id in space_ids:
-                configuration = connection.execute(
-                    sa.text(
-                        """
+                configuration = (
+                    connection.execute(
+                        sa.text(
+                            """
                         SELECT
                             vibe_check_enabled,
                             energy_check_in_enabled,
@@ -215,9 +216,12 @@ def test_0061_to_0063_upgrade_preserves_safe_authority_and_backfills_configurati
                         FROM space_configurations
                         WHERE space_id = :space_id
                         """
-                    ),
-                    {"space_id": space_id},
-                ).mappings().one()
+                        ),
+                        {"space_id": space_id},
+                    )
+                    .mappings()
+                    .one()
+                )
 
                 assert configuration["vibe_check_enabled"] is False
                 assert configuration["energy_check_in_enabled"] is False

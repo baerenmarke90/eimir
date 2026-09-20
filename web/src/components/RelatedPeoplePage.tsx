@@ -10,10 +10,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AttachmentsApi } from '../api/generated/apis/AttachmentsApi';
 import type { PeopleApi } from '../api/generated/apis/PeopleApi';
+import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import { SpacesApi } from '../api/generated/apis/SpacesApi';
+import { Configuration } from '../api/generated/runtime';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { RelatedPersonDeletePolicy } from '../api/generated/models/RelatedPersonDeletePolicy';
 import type { RelatedPersonFields } from '../api/generated/models/RelatedPersonFields';
 import type { RelatedPersonView } from '../api/generated/models/RelatedPersonView';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import {
   deleteFocusTarget,
@@ -258,12 +262,14 @@ export function RelatedPeoplePage({
   apiBaseUrl,
   accessToken,
   attachmentsApi,
+  currentAccountId,
 }: {
   peopleApi: PeopleApi;
   spaceId: string;
   apiBaseUrl?: string;
   accessToken?: string;
   attachmentsApi?: AttachmentsApi;
+  currentAccountId?: string;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -279,6 +285,70 @@ export function RelatedPeoplePage({
     useState<DeleteFocusTarget | null>(null);
   const createActionRef = useRef<HTMLButtonElement>(null);
   const personCardRefs = useRef(new Map<string, HTMLButtonElement>());
+
+  const profileConfiguration = useMemo(
+    () =>
+      apiBaseUrl && accessToken
+        ? new Configuration({
+            basePath: apiBaseUrl,
+            headers: { Authorization: `Bearer ${accessToken}` },
+          })
+        : null,
+    [accessToken, apiBaseUrl],
+  );
+  const spacesApi = useMemo(
+    () => (profileConfiguration ? new SpacesApi(profileConfiguration) : null),
+    [profileConfiguration],
+  );
+  const profilesApi = useMemo(
+    () => (profileConfiguration ? new ProfilesApi(profileConfiguration) : null),
+    [profileConfiguration],
+  );
+  const spaceQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.space(spaceId),
+    queryFn: async () => {
+      if (!spacesApi) throw new Error('Space API unavailable');
+      try {
+        return await spacesApi.getSpaceApiV1SpacesSpaceIdGet({ spaceId });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(spacesApi && currentAccountId),
+    retry: false,
+  });
+  const activePartner =
+    spaceQuery.data?.partners.find(
+      (candidate) => candidate.id !== currentAccountId,
+    ) ?? null;
+  const activePartnerId = activePartner?.id ?? '';
+  const partnerProfileQuery = useQuery({
+    queryKey: authorSummaryQueryKeys.partnerProfile(spaceId, activePartnerId),
+    queryFn: async () => {
+      if (!profilesApi) throw new Error('Profiles API unavailable');
+      try {
+        return await profilesApi.getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet(
+          {
+            accountId: activePartnerId,
+            spaceId,
+          },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    enabled: Boolean(profilesApi && activePartnerId),
+    retry: false,
+  });
+  const partnerBirthday =
+    activePartner && partnerProfileQuery.data?.birthday
+      ? {
+          accountId: activePartner.id,
+          birthday: partnerProfileQuery.data.birthday,
+          displayName:
+            partnerProfileQuery.data.displayName || activePartner.displayName,
+        }
+      : null;
 
   const birthdayFormatter = useMemo(
     () =>
@@ -521,6 +591,7 @@ export function RelatedPeoplePage({
         peopleApi={peopleApi}
         spaceId={spaceId}
         people={peopleQuery.data ?? []}
+        partnerBirthday={partnerBirthday}
       />
 
       {isCreating || editingPerson ? (

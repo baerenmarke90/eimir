@@ -8,7 +8,8 @@
 **2026-09-12 post-rehearsal delta:** `docs/m6/G5-EVIDENCE-DELTA-2026-09-12.md` (baseline `735e37c26000991e0365ff360a6b8af69e691199`)  
 **2026-09-12 G5-07 bootstrap delta:** `docs/m6/G5-EVIDENCE-DELTA-G5-07-2026-09-12.md` (product baseline `298af42a5a8ed162b49afbbc045e89781628eb2a`)  
 **2026-09-20 #914 release publication delta:** `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)  
-**2026-09-20 #916 manual launch accessibility delta:** `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)
+**2026-09-20 #916 manual launch accessibility delta:** `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)  
+**2026-09-20 #917 public Demo delta:** `docs/m6/G5-EVIDENCE-DELTA-917-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; post-promotion and post-reset live rehearsal `PASS`)
 
 This matrix is the authoritative M6 index for **G5 — Launch-ready** evidence. It
 separates reusable repository baselines from final release-candidate proof.
@@ -19,7 +20,10 @@ passed the integrated gate.
 The 2026-09-05 rehearsal status column is a dated historical record. For #668 and
 #670, #525 must also consume the general 2026-09-12 post-rehearsal delta. For the
 specific #676/G5-07 bootstrap failure, #525 must also consume the focused G5-07
-delta. Later evidence may close a current requirement without rewriting what was or
+delta. For G5-17, #525 must also consume the focused #917 live-Demo delta. The initial
+2026-09-20 run correctly captured stale deployment drift, followed by promotion to immutable
+`v0.1.0`, an authorized live Demo reset and a successful post-reset public verification. The
+focused delta closes the current G5-17 requirement as `PASS` without rewriting what was or
 was not exercised during the historical rehearsal.
 
 ## 1. Status vocabulary

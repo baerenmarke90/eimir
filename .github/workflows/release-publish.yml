@@ -19,16 +19,21 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: SemVer product version without the v prefix; must equal Android versionName.
+        description: SemVer product version without the v prefix.
         required: true
         type: string
-      android_version_code:
-        description: Monotonically increasing Google Play versionCode.
+      include_android:
+        description: Include and sign Android APK/AAB in this release channel.
         required: true
+        default: true
+        type: boolean
+      android_version_code:
+        description: Monotonically increasing Google Play versionCode; required only when Android is included.
+        required: false
         type: number
       android_api_base_url:
-        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: true
+        description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
         type: string
       initial_release:
         description: Select only for the first product release with no previous known-good release.
@@ -40,7 +45,7 @@ on:
         required: false
         type: string
       confirm_publish:
-        description: Confirm creation of the immutable Git tag and GitHub Release after protected signing.
+        description: Confirm creation of the immutable Git tag and GitHub Release after protected publication checks.
         required: true
         default: false
         type: boolean
@@ -82,6 +87,7 @@ jobs:
       attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
+      include_android: ${{ inputs.include_android }}
       android_version_code: ${{ inputs.android_version_code }}
       android_api_base_url: ${{ inputs.android_api_base_url }}
       release_version: ${{ inputs.release_version }}
@@ -111,7 +117,9 @@ jobs:
 
       - name: Validate candidate inputs
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           API_BASE_URL: ${{ inputs.android_api_base_url }}
+          ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           set -euo pipefail
@@ -120,25 +128,36 @@ jobs:
           import re
           import urllib.parse
 
+          include_android = os.environ.get("INCLUDE_ANDROID", "").lower() == "true"
           url = os.environ.get("API_BASE_URL", "").strip()
+          version_code = os.environ.get("ANDROID_VERSION_CODE", "").strip()
           version = os.environ.get("RELEASE_VERSION", "").strip()
 
           if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", version):
               raise SystemExit(f"Invalid release_version format: {version}")
 
-          if not url or url.endswith(".invalid") or ".invalid" in url:
-              raise SystemExit("Release publication requires an explicit, non-test android_api_base_url.")
-          if re.search(r"\s", url):
-              raise SystemExit("android_api_base_url must not contain whitespace")
-          parsed = urllib.parse.urlsplit(url)
-          if parsed.scheme != "https":
-              raise SystemExit("android_api_base_url must use https scheme")
-          if not parsed.netloc:
-              raise SystemExit("android_api_base_url must include host")
-          if parsed.username or parsed.password:
-              raise SystemExit("android_api_base_url must not contain userinfo")
-          if parsed.query or parsed.fragment:
-              raise SystemExit("android_api_base_url must not contain query or fragment")
+          if include_android:
+              try:
+                  parsed_version_code = int(version_code)
+              except ValueError as exc:
+                  raise SystemExit("Android-inclusive publication requires android_version_code") from exc
+              if parsed_version_code <= 0:
+                  raise SystemExit("android_version_code must be a positive integer")
+              if not url or url.endswith(".invalid") or ".invalid" in url:
+                  raise SystemExit("Android-inclusive publication requires an explicit, non-test android_api_base_url.")
+              if re.search(r"\s", url):
+                  raise SystemExit("android_api_base_url must not contain whitespace")
+              parsed = urllib.parse.urlsplit(url)
+              if parsed.scheme != "https":
+                  raise SystemExit("android_api_base_url must use https scheme")
+              if not parsed.netloc:
+                  raise SystemExit("android_api_base_url must include host")
+              if parsed.username or parsed.password:
+                  raise SystemExit("android_api_base_url must not contain userinfo")
+              if parsed.query or parsed.fragment:
+                  raise SystemExit("android_api_base_url must not contain query or fragment")
+          elif url or version_code:
+              raise SystemExit("Android-excluded publication must not provide Android URL/version inputs")
           PY
 
       - name: Require explicit publish confirmation
@@ -257,6 +276,7 @@ jobs:
       - name: Validate release identity before protected signing
         shell: bash
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           RELEASE_VERSION: ${{ inputs.release_version }}
           EXPECTED_API_BASE_URL: ${{ inputs.android_api_base_url }}
           PREVIOUS_ARGUMENT: ${{ steps.previous.outputs.argument }}
@@ -276,12 +296,19 @@ jobs:
           from pathlib import Path
 
           manifest = json.loads(Path("release-preflight/preflight-manifest.json").read_text(encoding="utf-8"))
-          expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+          expected_included = os.environ["INCLUDE_ANDROID"].lower() == "true"
           android = manifest.get("android", {})
-          if android.get("apiBaseUrl") != expected_api:
-              raise SystemExit(f"preflight-manifest apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
-          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
-              raise SystemExit("preflight-manifest launchableActivity mismatch")
+          if android.get("included", True) is not expected_included:
+              raise SystemExit("preflight-manifest Android channel mismatch")
+          if not expected_included:
+              if android != {"included": False, "signing": "not-applicable"}:
+                  raise SystemExit("Android-excluded preflight must carry only explicit not-applicable metadata")
+          else:
+              expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+              if android.get("apiBaseUrl") != expected_api:
+                  raise SystemExit(f"preflight-manifest apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
+              if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+                  raise SystemExit("preflight-manifest launchableActivity mismatch")
           PY
 
       - name: Upload verified preflight state
@@ -333,20 +360,24 @@ jobs:
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
       - name: Set up Node.js 24.21.0
+        if: inputs.include_android
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: "24.21.0"
 
       - name: Set up JDK 21
+        if: inputs.include_android
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
+        if: inputs.include_android
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Verify pinned Gradle wrapper JAR
+        if: inputs.include_android
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         run: |
@@ -356,11 +387,13 @@ jobs:
             | sha256sum --check --strict -
 
       - name: Install Android SDK 36
+        if: inputs.include_android
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build and sync Capacitor web bundle
+        if: inputs.include_android
         working-directory: web
         env:
           ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
@@ -371,6 +404,7 @@ jobs:
           npm run cap:sync
 
       - name: Verify generated native wrapper files have not drifted
+        if: inputs.include_android
         run: |
           set -euo pipefail
           git diff --exit-code -- \
@@ -378,6 +412,7 @@ jobs:
             android/app/capacitor.build.gradle
 
       - name: Build and verify final signed Android artifacts
+        if: inputs.include_android
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         env:
@@ -474,6 +509,7 @@ jobs:
             ../release-evidence/android/eimir-release-unsigned.aab
 
       - name: Install verified Syft release
+        if: inputs.include_android
         shell: bash
         run: |
           set -euo pipefail
@@ -490,6 +526,7 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
 
       - name: Regenerate Android SPDX SBOMs for signed bytes
+        if: inputs.include_android
         env:
           SYFT_CHECK_FOR_APP_UPDATE: "false"
         run: |
@@ -500,6 +537,7 @@ jobs:
             -o "spdx-json=release-evidence/sbom/android-aab.spdx.json"
 
       - name: Rebind evidence index to final signed Android bytes
+        if: inputs.include_android
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
@@ -576,6 +614,7 @@ jobs:
           PY
 
       - name: Remove unsigned Android attestation bundles
+        if: inputs.include_android
         run: |
           rm -f \
             release-evidence/attestations/android-apk-provenance.json \
@@ -584,6 +623,7 @@ jobs:
             release-evidence/attestations/android-aab-sbom.json
 
       - name: Attest final signed Android APK
+        if: inputs.include_android
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release.apk
@@ -592,6 +632,7 @@ jobs:
           bundle-prefix: android-apk-signed
 
       - name: Attest final signed Android AAB
+        if: inputs.include_android
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release.aab
@@ -603,6 +644,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
         run: |
           set -euo pipefail
           gh attestation trusted-root > release-evidence/attestations/trusted_root.jsonl
@@ -628,10 +670,12 @@ jobs:
 
           verify_subject release-evidence/backend-runtime.image.tar backend-runtime "$evidence_signer"
           verify_subject release-evidence/web-runtime.image.tar web-runtime "$evidence_signer"
-          verify_subject release-evidence/android/eimir-release.apk android-apk-signed "$publish_signer"
-          verify_subject release-evidence/android/eimir-release.aab android-aab-signed "$publish_signer"
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            verify_subject release-evidence/android/eimir-release.apk android-apk-signed "$publish_signer"
+            verify_subject release-evidence/android/eimir-release.aab android-aab-signed "$publish_signer"
+          fi
 
-      - name: Build final signed release manifest
+      - name: Build final release manifest
         shell: bash
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}

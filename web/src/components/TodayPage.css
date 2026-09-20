@@ -15,16 +15,6 @@
   padding-top: 0;
 }
 
-/*
- * Today is composed as one continuous relationship canvas. The shell and
- * hero keep their spacing, but visible separator rules are intentionally
- * suppressed here so the individual modules are separated by rhythm and
- * their own surfaces rather than horizontal lines.
- */
-.product-shell:has(.today-page) .product-topbar {
-  border-bottom-color: transparent;
-}
-
 .today-hero.couple-presence-card {
   position: relative;
   display: flex;

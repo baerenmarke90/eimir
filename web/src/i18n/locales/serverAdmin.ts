@@ -422,8 +422,7 @@ const serverAdmin = {
   },
   activity: {
     title: 'Privilegiertes Aktivitätsprotokoll',
-    body:
-      'ServerAdmin-Änderungen an Einstellungen, Accounts und Spaces. Das Protokoll enthält ausschließlich technische Metadaten und keine privaten Beziehungsinhalte.',
+    body: 'ServerAdmin-Änderungen an Einstellungen, Accounts und Spaces. Das Protokoll enthält ausschließlich technische Metadaten und keine privaten Beziehungsinhalte.',
     loadingTitle: 'Aktivitätsprotokoll wird geladen',
     loadingBody: 'Privilegierte Aktionen werden abgefragt …',
     errorTitle: 'Aktivitätsprotokoll nicht verfügbar',

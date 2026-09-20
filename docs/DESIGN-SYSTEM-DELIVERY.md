@@ -13,11 +13,11 @@ This document contains historical React/TypeScript and Kotlin/Jetpack Compose de
 ```text
 design/tokens.json
         │
-        ├── Web Token Adapter ─────── React Components ───── Web Catalog
-        │
-        └── Android Token Adapter ─── Compose Components ─── Android Catalog
+        └── Web Token Adapter ─────── React Components ───── Web Catalog
+                                      │
+                                      └── Capacitor ──────── Android / iOS delivery
 docs/COMPONENT-CONTRACTS.md + design/component-manifest.json
-        └────────────────── shared behavioral contract
+        └────────────────── canonical shared-UI behavioral contract
 ```
 
 - `design/tokens.json` is the source for semantic design values.
@@ -53,13 +53,10 @@ web design system/
   icons
   catalog/examples
 
-android design system/
-  generated tokens/theme
-  primitives
-  components
-  patterns
-  icons
-  catalog/examples
+capacitor wrappers/
+  platform configuration
+  safe-area / lifecycle integration
+  bounded native capability adapters
 ```
 
 - Generated files carry a header and are not edited manually.
@@ -254,7 +251,7 @@ For each P0/P1 component, the following are named:
 
 New patterns are documented first as a contract/decision. A local special case in a screen does not automatically become part of the system.
 
-The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P3 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
+The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P2 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
 
 ## 13. Delivery phases
 

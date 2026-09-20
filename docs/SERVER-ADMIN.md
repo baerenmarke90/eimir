@@ -219,15 +219,20 @@ allowlist changes.
 
 ## Account deletion boundary
 
-ServerAdmin account deletion is intentionally **not** implemented as a direct
-row/table deletion. Issue #520 owns the authoritative Account deletion and
-retention lifecycle, including credentials, sessions, OWNER_ONLY data, shared
-history, media references, jobs, backups, and restore reconciliation.
+ServerAdmin account deletion is intentionally **not** a direct row/table
+deletion. Issue #520 owns the authoritative Account deletion and retention
+lifecycle, including credentials, sessions, OWNER_ONLY data, shared history,
+media references, jobs, backups, and restore reconciliation.
 
-Until that lifecycle exists, the Web ServerAdmin danger zone exposes deletion
-as unavailable rather than providing a hidden SQL/delete shortcut. When the
-operation is implemented later, it must invoke the #520 workflow and add the
-specified double-confirmation/re-authentication protections.
+The ServerAdmin danger zone invokes that same lifecycle behind recent
+authentication, impact confirmation and exact typed target confirmation. The
+privileged audit records the operator request and projects the authoritative
+lifecycle outcomes as `account_deletion_completed` or
+`account_deletion_failed`. These outcome entries are an immutable operational
+projection only: `AccountDeletion` remains the source of truth, retries cannot
+create duplicate logical outcomes, and self-service deletions do not become
+ServerAdmin audit events. Failure entries retain no exception prose or private
+payload.
 
 ## Privileged action audit
 

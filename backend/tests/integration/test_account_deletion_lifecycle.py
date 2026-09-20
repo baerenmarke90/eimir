@@ -5,8 +5,13 @@ from __future__ import annotations
 from uuid import UUID
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from eimir.administration.models import (
+    AdministrationAction,
+    InstanceAdministrationActionEvent,
+)
 from eimir.core.clock import now
 from eimir.identity import deletion_lifecycle
 from eimir.identity.deletion import mark_deletion_failed
@@ -25,16 +30,41 @@ from tests.conftest import make_account, make_space, requires_database
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def _setup_account(maker) -> UUID:  # type: ignore[no-untyped-def]
+def _setup_admin_deletion(maker) -> tuple[UUID, UUID]:  # type: ignore[no-untyped-def]
     with maker() as setup, setup.begin():
+        actor = make_account(setup, "Operator")
         account = make_account(setup, "Anna")
         make_space(setup, account)
-        return account.id
+        setup.add(
+            InstanceAdministrationActionEvent(
+                actor_id=actor.id,
+                target_account_id=account.id,
+                action=AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+            )
+        )
+        setup.flush()
+        return account.id, actor.id
+
+
+def _deletion_audit_events(
+    session: Session,
+    account_id: UUID,
+) -> list[InstanceAdministrationActionEvent]:
+    return list(
+        session.execute(
+            select(InstanceAdministrationActionEvent)
+            .where(InstanceAdministrationActionEvent.target_account_id == account_id)
+            .order_by(
+                InstanceAdministrationActionEvent.created_at,
+                InstanceAdministrationActionEvent.id,
+            )
+        ).scalars()
+    )
 
 
 def test_full_deletion_convergence_marks_completed_once(production_client) -> None:  # type: ignore[no-untyped-def]
     _, maker = production_client
-    account_id = _setup_account(maker)
+    account_id, actor_id = _setup_admin_deletion(maker)
     accepted_at = now()
 
     converge_accepted_deletion(account_id, accepted_at=accepted_at)
@@ -49,6 +79,12 @@ def test_full_deletion_convergence_marks_completed_once(production_client) -> No
         assert deletion.failed_at is None
         assert deletion.last_failure_code is None
         first_completed_at = deletion.completed_at
+        events = _deletion_audit_events(verify, account_id)
+        assert [event.action for event in events] == [
+            AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+            AdministrationAction.ACCOUNT_DELETION_COMPLETED.value,
+        ]
+        assert all(event.actor_id == actor_id for event in events)
 
     converge_accepted_deletion(account_id, accepted_at=accepted_at)
 
@@ -57,6 +93,10 @@ def test_full_deletion_convergence_marks_completed_once(production_client) -> No
         assert deletion is not None
         assert deletion.status == AccountDeletionStatus.COMPLETED.value
         assert deletion.completed_at == first_completed_at
+        events = _deletion_audit_events(verify, account_id)
+        assert [event.action for event in events].count(
+            AdministrationAction.ACCOUNT_DELETION_COMPLETED.value
+        ) == 1
 
 
 def test_failed_phase_cannot_complete_and_retry_converges(
@@ -64,11 +104,14 @@ def test_failed_phase_cannot_complete_and_retry_converges(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:  # type: ignore[no-untyped-def]
     _, maker = production_client
-    account_id = _setup_account(maker)
+    account_id, actor_id = _setup_admin_deletion(maker)
     accepted_at = now()
     attempts = 0
 
-    def fail_media_once(session: Session, target_id) -> AccountMediaCleanupResult:  # type: ignore[no-untyped-def]
+    def fail_media_once(
+        session: Session,
+        target_id: UUID,
+    ) -> AccountMediaCleanupResult:
         nonlocal attempts
         attempts += 1
         if attempts == 1:
@@ -97,6 +140,27 @@ def test_failed_phase_cannot_complete_and_retry_converges(
         assert deletion.status == AccountDeletionStatus.FAILED.value
         assert deletion.completed_at is None
         assert deletion.last_failure_code == MEDIA_CLEANUP_FAILURE_CODE
+        events = _deletion_audit_events(verify, account_id)
+        assert [event.action for event in events] == [
+            AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+            AdministrationAction.ACCOUNT_DELETION_FAILED.value,
+        ]
+        assert all(event.actor_id == actor_id for event in events)
+
+    # Re-reporting the same observable failure must not duplicate the logical
+    # ServerAdmin outcome event.
+    with maker() as replay, replay.begin():
+        mark_deletion_failed(
+            replay,
+            account_id,
+            failure_code=MEDIA_CLEANUP_FAILURE_CODE,
+        )
+
+    with maker() as verify:
+        events = _deletion_audit_events(verify, account_id)
+        assert [event.action for event in events].count(
+            AdministrationAction.ACCOUNT_DELETION_FAILED.value
+        ) == 1
 
     converge_accepted_deletion(account_id, accepted_at=accepted_at)
 
@@ -107,3 +171,10 @@ def test_failed_phase_cannot_complete_and_retry_converges(
         assert deletion.completed_at is not None
         assert deletion.failed_at is None
         assert deletion.last_failure_code is None
+        events = _deletion_audit_events(verify, account_id)
+        assert [event.action for event in events] == [
+            AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+            AdministrationAction.ACCOUNT_DELETION_FAILED.value,
+            AdministrationAction.ACCOUNT_DELETION_COMPLETED.value,
+        ]
+        assert all(event.actor_id == actor_id for event in events)

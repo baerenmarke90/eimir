@@ -42,7 +42,20 @@ class PrivilegedAuditResult:
     total: int
 
 
-DESTRUCTIVE_ACTIONS = frozenset({AdministrationAction.ACCOUNT_DELETION_REQUESTED.value})
+_ACCOUNT_DELETION_OUTCOME_ACTIONS = frozenset(
+    {
+        AdministrationAction.ACCOUNT_DELETION_COMPLETED,
+        AdministrationAction.ACCOUNT_DELETION_FAILED,
+    }
+)
+
+DESTRUCTIVE_ACTIONS = frozenset(
+    {
+        AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+        AdministrationAction.ACCOUNT_DELETION_COMPLETED.value,
+        AdministrationAction.ACCOUNT_DELETION_FAILED.value,
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +175,56 @@ def record_action(
     session.add(event)
     session.flush()
     return event
+
+
+def record_account_deletion_outcome(
+    session: Session,
+    *,
+    target_account_id: UUID,
+    action: AdministrationAction,
+) -> InstanceAdministrationActionEvent | None:
+    """Project one authoritative deletion outcome into the privileged audit.
+
+    Self-service deletions have no privileged request event and therefore do
+    not become ServerAdmin audit entries. Outcome actions are idempotent for
+    one Account deletion lifecycle: retries may revisit FAILED/PENDING state,
+    but the audit records only the first observable failure and the single
+    terminal completion. The actor is inherited from the latest privileged
+    deletion request so asynchronous convergence retains operator traceability.
+    """
+    if action not in _ACCOUNT_DELETION_OUTCOME_ACTIONS:
+        raise ValueError("Deletion outcome projection requires a completion or failure action.")
+
+    request_event = session.execute(
+        select(InstanceAdministrationActionEvent)
+        .where(
+            InstanceAdministrationActionEvent.target_account_id == target_account_id,
+            InstanceAdministrationActionEvent.action
+            == AdministrationAction.ACCOUNT_DELETION_REQUESTED.value,
+        )
+        .order_by(InstanceAdministrationActionEvent.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if request_event is None:
+        return None
+
+    existing = session.execute(
+        select(InstanceAdministrationActionEvent)
+        .where(
+            InstanceAdministrationActionEvent.target_account_id == target_account_id,
+            InstanceAdministrationActionEvent.action == action.value,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if existing is not None:
+        return existing
+
+    return record_action(
+        session,
+        actor_id=request_event.actor_id,
+        target_account_id=target_account_id,
+        action=action,
+    )
 
 
 def recent_events(session: Session, *, limit: int = 20) -> list[InstanceAdministrationEvent]:

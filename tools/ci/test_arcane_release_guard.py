@@ -183,7 +183,14 @@ class RenderedReleaseGateTest(GuardTestCase):
             self.assertTrue(mount["read_only"])
             self.assertEqual(mount["target"], "/run/eimir/self-hosted-image-identity.json")
             self.assertEqual(mount["source"], str(PLACEHOLDER_IDENTITY))
-            self.assertIs(mount["bind"]["create_host_path"], False)
+            # Compose versions differ in whether an explicit false is rendered; what
+            # matters is that it is never true and that the manifest declares false. A
+            # created directory would still be refused by the guard (unreadable identity).
+            self.assertIsNot(mount.get("bind", {}).get("create_host_path"), True)
+            self.assertIn(
+                "create_host_path: false",
+                (ROOT / "compose.yaml").read_text(encoding="utf-8"),
+            )
 
     def test_guard_receives_only_release_identity_and_no_secrets(self) -> None:
         self.assertEqual(set(self.services["release-guard"]["environment"]), GUARD_ENVIRONMENT_KEYS)

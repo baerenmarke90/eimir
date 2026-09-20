@@ -306,13 +306,16 @@ def test_partner_birthday_reconciles_without_self_delivery(
     assert reminder.annual_month == 9
     assert reminder.annual_day == 30
     assert _occurrences(session, reminder.id, couple["anna"].id) == []
-    assert len(
-        [
-            row
-            for row in _occurrences(session, reminder.id, couple["ben"].id)
-            if row.state == OccurrenceState.PENDING.value
-        ]
-    ) == 3
+    assert (
+        len(
+            [
+                row
+                for row in _occurrences(session, reminder.id, couple["ben"].id)
+                if row.state == OccurrenceState.PENDING.value
+            ]
+        )
+        == 3
+    )
 
     disabled = client.put(
         f"{_rule_base(couple)}/{rules.PARTNER_BIRTHDAY_RULE}/preference",

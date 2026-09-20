@@ -8,8 +8,8 @@ All URIs are relative to *http://localhost*
 | [**getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet**](ServerAdminApi.md#getserveradminaccountapiv1serveradminaccountsaccountidget) | **GET** /api/v1/server-admin/accounts/{accountId} | Get Server Admin Account |
 | [**getServerAdminActionActivityApiV1ServerAdminActivityActionsGet**](ServerAdminApi.md#getserveradminactionactivityapiv1serveradminactivityactionsget) | **GET** /api/v1/server-admin/activity/actions | Get Server Admin Action Activity |
 | [**getServerAdminActivityApiV1ServerAdminActivityGet**](ServerAdminApi.md#getserveradminactivityapiv1serveradminactivityget) | **GET** /api/v1/server-admin/activity | Get Server Admin Activity |
-| [**getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet**](ServerAdminApi.md#getserveradminprivilegedactivityapiv1serveradminactivityprivilegedget) | **GET** /api/v1/server-admin/activity/privileged | Get Server Admin Privileged Activity |
 | [**getServerAdminOverviewApiV1ServerAdminOverviewGet**](ServerAdminApi.md#getserveradminoverviewapiv1serveradminoverviewget) | **GET** /api/v1/server-admin/overview | Get Server Admin Overview |
+| [**getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet**](ServerAdminApi.md#getserveradminprivilegedactivityapiv1serveradminactivityprivilegedget) | **GET** /api/v1/server-admin/activity/privileged | Get Server Admin Privileged Activity |
 | [**getServerAdminSettingsApiV1ServerAdminSettingsGet**](ServerAdminApi.md#getserveradminsettingsapiv1serveradminsettingsget) | **GET** /api/v1/server-admin/settings | Get Server Admin Settings |
 | [**getServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGet**](ServerAdminApi.md#getserveradminspaceapiv1serveradminspacesspaceidget) | **GET** /api/v1/server-admin/spaces/{space_id} | Get Server Admin Space |
 | [**getServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGet**](ServerAdminApi.md#getserveradminspaceentitlementapiv1serveradminspacesspaceidentitlementget) | **GET** /api/v1/server-admin/spaces/{space_id}/entitlement | Get Server Admin Space Entitlement |
@@ -290,6 +290,67 @@ No authorization required
 
 
 
+## getServerAdminOverviewApiV1ServerAdminOverviewGet
+
+> ServerAdminOverview getServerAdminOverviewApiV1ServerAdminOverviewGet()
+
+Get Server Admin Overview
+
+Return safe operational state for an authorized ServerAdmin.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { GetServerAdminOverviewApiV1ServerAdminOverviewGetRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  try {
+    const data = await api.getServerAdminOverviewApiV1ServerAdminOverviewGet();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**ServerAdminOverview**](ServerAdminOverview.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet
 
 > ServerAdminPrivilegedAuditPage getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(category, action, actorId, targetId, createdFrom, createdTo, limit, offset)
@@ -375,66 +436,6 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-## getServerAdminOverviewApiV1ServerAdminOverviewGet
-
-> ServerAdminOverview getServerAdminOverviewApiV1ServerAdminOverviewGet()
-
-Get Server Admin Overview
-
-Return safe operational state for an authorized ServerAdmin.
-
-### Example
-
-```ts
-import {
-  Configuration,
-  ServerAdminApi,
-} from '';
-import type { GetServerAdminOverviewApiV1ServerAdminOverviewGetRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const api = new ServerAdminApi();
-
-  try {
-    const data = await api.getServerAdminOverviewApiV1ServerAdminOverviewGet();
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-[**ServerAdminOverview**](ServerAdminOverview.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Successful Response |  -  |
-| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
-| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

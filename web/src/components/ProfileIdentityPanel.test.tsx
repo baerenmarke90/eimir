@@ -166,7 +166,6 @@ describe('ProfileIdentityPanel display-name editing', () => {
   });
 });
 
-
 describe('ProfileIdentityPanel birthday editing', () => {
   it('sets and clears the optional birthday through the profile identity contract', async () => {
     const update = vi

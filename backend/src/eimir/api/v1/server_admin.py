@@ -67,6 +67,7 @@ AccountStatusFilter = Literal["all", "active", "suspended"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
+AuditCategoryFilter = Literal["all", "settings", "accounts", "spaces", "destructive"]
 
 
 class ServerAdminFailedJob(ApiModel):
@@ -150,6 +151,26 @@ class ServerAdminActionActivityItem(ApiModel):
     action: str
     effect_count: int | None
     created_at: datetime
+
+
+class ServerAdminPrivilegedAuditItem(ApiModel):
+    id: UUID
+    category: str
+    action: str
+    actor_id: UUID | None
+    target_account_id: UUID | None
+    target_space_id: UUID | None
+    previous_value: bool | None
+    new_value: bool | None
+    effect_count: int | None
+    created_at: datetime
+
+
+class ServerAdminPrivilegedAuditPage(ApiModel):
+    items: list[ServerAdminPrivilegedAuditItem]
+    total: int
+    limit: int
+    offset: int
 
 
 class ServerAdminAccountEmail(ApiModel):
@@ -1314,3 +1335,52 @@ def get_server_admin_action_activity(
         )
         for event in administration.recent_action_events(session)
     ]
+
+@router.get(
+    "/activity/privileged",
+    response_model=ServerAdminPrivilegedAuditPage,
+    responses=problem_responses(401, 403),
+)
+def get_server_admin_privileged_activity(
+    _: CurrentServerAdmin,
+    session: DbSession,
+    category: Annotated[AuditCategoryFilter, Query()] = "all",
+    action: Annotated[str | None, Query(max_length=64)] = None,
+    actor_id: Annotated[UUID | None, Query(alias="actorId")] = None,
+    target_id: Annotated[UUID | None, Query(alias="targetId")] = None,
+    created_from: Annotated[datetime | None, Query(alias="createdFrom")] = None,
+    created_to: Annotated[datetime | None, Query(alias="createdTo")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> ServerAdminPrivilegedAuditPage:
+    result = administration.privileged_audit_events(
+        session,
+        category=category,
+        action=action,
+        actor_id=actor_id,
+        target_id=target_id,
+        created_from=created_from,
+        created_to=created_to,
+        limit=limit,
+        offset=offset,
+    )
+    return ServerAdminPrivilegedAuditPage(
+        items=[
+            ServerAdminPrivilegedAuditItem(
+                id=item.id,
+                category=item.category,
+                action=item.action,
+                actor_id=item.actor_id,
+                target_account_id=item.target_account_id,
+                target_space_id=item.target_space_id,
+                previous_value=item.previous_value,
+                new_value=item.new_value,
+                effect_count=item.effect_count,
+                created_at=item.created_at,
+            )
+            for item in result.items
+        ],
+        total=result.total,
+        limit=limit,
+        offset=offset,
+    )

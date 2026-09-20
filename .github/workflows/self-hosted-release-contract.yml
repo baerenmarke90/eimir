@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "compose.yaml"
+      - "self-hosted-image-identity.json"
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/test_self_hosted_release.py"
@@ -27,6 +28,7 @@ on:
   pull_request:
     paths:
       - "compose.yaml"
+      - "self-hosted-image-identity.json"
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/test_self_hosted_release.py"

@@ -80,9 +80,8 @@ server-side immutable tags. The authoritative image identity is the digest after
 `@sha256:` in `self-hosted-image-identity.json`; Production never relies on re-resolving a
 tag to decide which bytes to run.
 
-Download both assets from the same immutable release, extract the operator bundle, and
-place the identity file at the extracted bundle root before running any release
-operation:
+Download the operator bundle (and, optionally, the standalone identity asset for
+comparison) from the same immutable release and extract it:
 
 ```bash
 RELEASE_VERSION=0.1.0
@@ -91,18 +90,16 @@ gh release verify "v${RELEASE_VERSION}" --repo baerenmarke90/eimir
 
 gh release download "v${RELEASE_VERSION}" \
   --repo baerenmarke90/eimir \
-  --pattern "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz" \
-  --pattern "self-hosted-image-identity.json"
+  --pattern "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
 
 tar -xzf "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
-cp -- self-hosted-image-identity.json \
-  "eimir-self-hosted-v${RELEASE_VERSION}/self-hosted-image-identity.json"
 cd "eimir-self-hosted-v${RELEASE_VERSION}"
 test -s self-hosted-image-identity.json
 ```
 
-The same layout may be created with an equivalent authenticated/manual GitHub Release
-download, but mixing assets from different releases is invalid.
+Mixing files from different releases is invalid. The bundle already contains the
+matching `self-hosted-image-identity.json`; a source checkout only contains an unreleased
+placeholder of the same name that the launcher and the release guard refuse.
 
 The resulting installation directory contains:
 
@@ -110,7 +107,8 @@ The resulting installation directory contains:
 - `deploy/self-hosted-release.env.example`;
 - `scripts/self_hosted_release.py`;
 - `scripts/check_runtime_environment.py`;
-- `self-hosted-image-identity.json` from the matching immutable GitHub Release.
+- `self-hosted-image-identity.json`, the digest-qualified identity of that immutable
+  release, read-only trust root of the launcher and of the in-manifest `release-guard`.
 
 The protected release workflow publishes these operator artifacts together. The target
 host does **not** need backend/Web source and never builds application images.
@@ -175,21 +173,22 @@ reports any cleanup failure explicitly, and fails closed regardless.
 Production can be operated from Arcane alone: **configure -> bootstrap once -> deploy /
 update**. The release checks are part of the canonical `compose.yaml` (`release-guard`),
 so Arcane's plain Deploy/Redeploy is supported and refuses a Production release whose
-backend/Web images are not the digest-qualified references of `EIMIR_RELEASE_VERSION`, whose
-pull policy is not `always`, or that has no Account-deletion instance ID. The new-installation
+backend/Web images are not exactly the references recorded in the release's
+`self-hosted-image-identity.json`, whose pull policy is not `always`, that has no
+Account-deletion instance ID, or whose `EIMIR_ENVIRONMENT` is unset or unknown. The new-installation
 authority is created once through the `bootstrap` profile. The full operator flow,
 including upgrades and failure behavior, is in [`ARCANE.md`](ARCANE.md).
 
-The guard judges the rendered image references. The launcher below additionally
-cross-checks them against `self-hosted-image-identity.json`, so a shell operator should
-prefer it, and it is the only path that runs `migrate` before it replaces the running
-release.
+The guard and the launcher read the same published identity file and apply the same
+checks. The launcher fills in the references itself and is the only path that validates
+before pulling and runs `migrate` before it replaces the running release; a refused plain
+Compose/Arcane Redeploy may already have stopped the previous containers.
 
 ## Mandatory released launcher
 
 Without Arcane, operate released Production with the launcher rather than a raw
-`docker compose pull/up` sequence (raw `up` is gated by `release-guard`, but has no
-identity-file cross-check). The launcher explicitly binds the env file and the matching
+`docker compose pull/up` sequence (raw `up` is gated by `release-guard`, but validates only
+after Compose has pulled and replaced containers). The launcher explicitly binds the env file and the matching
 published image identity:
 
 ```bash
@@ -309,7 +308,7 @@ use one backend image but stay separate processes with their own lifecycle.
 | Service | Decision | Reason |
 |---|---|---|
 | `postgres` | KEEP | Stateful upstream database with its own volume, health check and restart policy; it is not application code, and Cloud/Managed replaces it with an external database. |
-| `release-guard` | KEEP | Compose-resident Production release gate that `migrate` waits for, so plain Compose and Arcane Deploy/Redeploy cannot start an unpinned, mismatched or unbootstrapped release; it needs no network or volume and does nothing outside Production. |
+| `release-guard` | KEEP | Compose-resident Production release gate that `migrate` waits for, so plain Compose and Arcane Deploy/Redeploy cannot start a release that differs from the published identity or lacks a deletion authority; it needs no network or data volume, reads only the identity file, and refuses an unset environment. |
 | `migrate` | KEEP | One-shot schema owner: exactly one migration runs per deploy before any runtime is replaced, so several API instances cannot race, a failed or refused migration blocks startup, and it reuses the backend image. |
 | `demo-init` | DEMO-ONLY | Profile `demo` only and run explicitly as a one-shot; normal startup neither depends on it nor creates it, and outside an enabled Demo deployment it exits without creating data. |
 | `deletion-authority-bootstrap` | BOOTSTRAP-ONLY | Profile `bootstrap` only and run explicitly once per new installation to create the Account-deletion journal and print its stable instance ID; it refuses whenever an instance ID or journal already exists, so it can never replace an authority. |

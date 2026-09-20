@@ -66,8 +66,10 @@ Normal Self-Hosted ordering is:
 postgres -> release-guard -> migrate -> api/worker -> web
 ```
 
-`release-guard` is a no-op outside `EIMIR_ENVIRONMENT=production`, so Development and
-Demo stay separate operator identities. `demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup; it is run
+`release-guard` applies every check for `EIMIR_ENVIRONMENT=production`, does nothing for an
+explicit `development`, `test` or `demo`, and refuses an unset or unknown value. Development
+and Demo are therefore separate operator identities that must declare themselves, as
+`.env.example` and `deploy/persistent-development.env.example` do. `demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup; it is run
 explicitly for a Demo deployment. `migrate` must succeed before API/worker, and Web waits
 for API readiness. The released launcher runs `migrate` before it replaces any running
 service, so a refused or failed migration leaves the current release serving; a plain

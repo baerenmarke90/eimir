@@ -13,9 +13,11 @@
 # tracked Compose topology exists.
 #
 # Production is gated inside this manifest: every runtime service transitively waits
-# for the release-guard one-shot, so a plain Compose/Arcane deploy cannot bypass the
-# release identity checks that scripts/self_hosted_release.py performs up front.
-# The bootstrap profile provisions the Account-deletion authority exactly once.
+# for the release-guard one-shot, so a plain Compose/Arcane deploy cannot start a
+# Production release that fails the identity checks scripts/self_hosted_release.py
+# performs up front. The guard reads the published self-hosted-image-identity.json
+# (read-only) as its trust root. The bootstrap profile provisions the
+# Account-deletion authority exactly once.
 
 x-account-deletion-journal-path: &account-deletion-journal-path /var/lib/eimir/deletion-journal/account-deletions.journal
 
@@ -95,12 +97,28 @@ x-self-hosted-web-image: &self-hosted-web-image
 # release-guard/bootstrap one-shots by aliasing the same scalars, so the guard
 # judges what the runtime services will actually run and nothing else.
 x-release-guard-environment: &release-guard-environment
-  EIMIR_ENVIRONMENT: "${EIMIR_ENVIRONMENT:-${SBS_ENVIRONMENT:-development}}"
+  # No default: an unset environment must reach the guard as unset and be refused
+  # instead of silently becoming Development.
+  EIMIR_ENVIRONMENT: "${EIMIR_ENVIRONMENT:-${SBS_ENVIRONMENT:-}}"
+  EIMIR_COMPOSE_PROFILES: "${COMPOSE_PROFILES:-}"
   EIMIR_RELEASE_VERSION: "${EIMIR_RELEASE_VERSION:-${SBS_RELEASE_VERSION:-}}"
   EIMIR_GUARD_BACKEND_IMAGE: *self-hosted-backend-image-reference
   EIMIR_GUARD_WEB_IMAGE: *self-hosted-web-image-reference
   EIMIR_GUARD_PULL_POLICY: *self-hosted-pull-policy
   EIMIR_ACCOUNT_DELETION_INSTANCE_ID: "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:-${SBS_ACCOUNT_DELETION_INSTANCE_ID:-}}"
+
+# The published identity of the selected immutable release: shipped in the Self-Hosted
+# operator bundle next to this file, read-only, and never created by Compose. A source
+# checkout carries an unreleased placeholder that the guard refuses in Production. The
+# launcher points EIMIR_RELEASE_IDENTITY_FILE at the file it validated so both consume
+# the same bytes.
+x-release-identity-mount: &release-identity-mount
+  type: bind
+  source: "${EIMIR_RELEASE_IDENTITY_FILE:-./self-hosted-image-identity.json}"
+  target: /run/eimir/self-hosted-image-identity.json
+  read_only: true
+  bind:
+    create_host_path: false
 
 # Cloud/Managed intentionally has image-only process services. The sentinel
 # defaults keep inactive profiles renderable; the Cloud env contract and CI
@@ -143,9 +161,10 @@ services:
       retries: 10
 
   # Production release gate. It needs no network and no data volume: it only judges
-  # the rendered release identity, so a refusal happens before any migration and before
-  # any container of the refused release starts. It is a no-op outside
-  # EIMIR_ENVIRONMENT=production.
+  # the rendered release identity against the read-only published identity file, so a
+  # refusal happens before any migration and before any container of the refused
+  # release starts. It is not applicable for an explicit development/test/demo
+  # environment and refuses an unset or unknown one.
   release-guard:
     profiles: ["self-hosted"]
     <<: *self-hosted-backend-image
@@ -153,6 +172,8 @@ services:
     command: ["python", "-m", "eimir.deployment.release_guard", "verify"]
     environment:
       <<: *release-guard-environment
+    volumes:
+      - *release-identity-mount
     network_mode: none
 
   # One-time Production provisioning of the Account-deletion authority for an
@@ -169,6 +190,7 @@ services:
       <<: *release-guard-environment
       EIMIR_ACCOUNT_DELETION_JOURNAL_PATH: *account-deletion-journal-path
     volumes:
+      - *release-identity-mount
       - deletion_journal_data:/var/lib/eimir/deletion-journal
     network_mode: none
 

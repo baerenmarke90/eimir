@@ -37,6 +37,7 @@ from eimir.reminders.rules import (
     CATALOG,
     IMPORTANT_DATE_RULE,
     PLAN_START_RULE,
+    PARTNER_BIRTHDAY_RULE,
     RELATED_PERSON_BIRTHDAY_RULE,
     RELATIONSHIP_ANNIVERSARY_RULE,
     RuleDefinition,
@@ -260,6 +261,28 @@ def _reconcile_generated_reminders(session: Session, space_id: UUID) -> None:
             "local_time": time(9, 0),
         }
 
+    birthday_accounts = session.execute(
+        select(Account)
+        .join(Membership, Membership.account_id == Account.id)
+        .where(
+            Membership.space_id == space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Account.disabled_at.is_(None),
+            Account.birthday.is_not(None),
+        )
+        .order_by(Account.id)
+    ).scalars()
+    for birthday_account in birthday_accounts:
+        if birthday_account.birthday is None:
+            continue
+        desired[("ACCOUNT", birthday_account.id, PARTNER_BIRTHDAY_RULE)] = {
+            "owner_id": birthday_account.id,
+            "schedule_type": ReminderScheduleType.ANNUAL,
+            "annual_month": birthday_account.birthday.month,
+            "annual_day": birthday_account.birthday.day,
+            "local_time": time(9, 0),
+        }
+
     profile = session.execute(
         select(SpaceProfile).where(
             SpaceProfile.space_id == space_id,
@@ -475,6 +498,15 @@ def _plan_for_recipient(
         if current_account is None:
             return
         account = current_account
+
+    if (
+        reminder.source == ReminderSource.GENERATED.value
+        and reminder.rule_key == PARTNER_BIRTHDAY_RULE
+        and reminder.source_type == "ACCOUNT"
+        and reminder.source_id == account.id
+    ):
+        _supersede_pending(session, reminder.id, account.id, set())
+        return
 
     if _is_muted(session, reminder.id, account.id):
         _supersede_pending(session, reminder.id, account.id, set())

@@ -127,7 +127,7 @@ describe('ServerAdmin controls', () => {
 
     const failing = vi.fn().mockRejectedValue(new Error('offline'));
     renderActivity(failing);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect((await screen.findByRole('alert')).textContent).toContain(
       serverAdmin.activity.errorBody,
     );
   });

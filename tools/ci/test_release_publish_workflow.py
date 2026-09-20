@@ -89,6 +89,26 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             self.candidate_workflow,
         )
 
+    def test_reusable_evidence_call_permissions_are_workflow_scoped(self) -> None:
+        required_permissions = (
+            "contents: read",
+            "id-token: write",
+            "attestations: write",
+        )
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                workflow_permissions = workflow.split("\njobs:\n", 1)[0]
+                for permission in required_permissions:
+                    self.assertIn(permission, workflow_permissions)
+
+                before_use = workflow.split(
+                    "uses: ./.github/workflows/release-evidence.yml", 1
+                )[0]
+                evidence_call = before_use.rsplit("\n  evidence:\n", 1)[1]
+                self.assertNotIn("\n    permissions:", evidence_call)
+
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (
             "Set up Node.js 24.21.0",

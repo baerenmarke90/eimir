@@ -1106,3 +1106,56 @@ def test_unified_privileged_audit_filters_sorts_and_paginates(
         "effectCount",
         "createdAt",
     }
+
+
+def test_unified_privileged_audit_filters_deletion_outcomes(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    target = make_account(session, "Deletion audit target")
+    current = now()
+    session.add_all(
+        [
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_requested",
+                created_at=current - timedelta(minutes=2),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_failed",
+                created_at=current - timedelta(minutes=1),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_completed",
+                created_at=current,
+            ),
+        ]
+    )
+    session.flush()
+
+    destructive = client.get(
+        f"/api/v1/server-admin/activity/privileged?category=destructive&targetId={target.id}",
+        headers=auth(admin_token),
+    )
+    assert destructive.status_code == 200
+    assert destructive.json()["total"] == 3
+    assert [item["action"] for item in destructive.json()["items"]] == [
+        "account_deletion_completed",
+        "account_deletion_failed",
+        "account_deletion_requested",
+    ]
+
+    failed = client.get(
+        "/api/v1/server-admin/activity/privileged?action=account_deletion_failed",
+        headers=auth(admin_token),
+    )
+    assert failed.status_code == 200
+    assert failed.json()["total"] == 1
+    assert failed.json()["items"][0]["targetAccountId"] == str(target.id)

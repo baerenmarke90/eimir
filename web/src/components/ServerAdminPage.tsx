@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { ServerAdminActivityItem } from '../api/generated/models/ServerAdminActivityItem';
+import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
+import type { ServerAdminPrivilegedAuditItem } from '../api/generated/models/ServerAdminPrivilegedAuditItem';
 import type { ServerAdminOverview } from '../api/generated/models/ServerAdminOverview';
 import type { ServerAdminSettings } from '../api/generated/models/ServerAdminSettings';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
@@ -310,70 +311,284 @@ export function ServerAdminSettingsPanel({
   );
 }
 
-function activitySettingLabel(
-  setting: string,
-  t: (key: string) => string,
-): string {
-  switch (setting) {
-    case 'registration_enabled':
-      return t('serverAdmin.activity.registration');
-    case 'maintenance_mode':
-      return t('serverAdmin.activity.maintenance');
+const AUDIT_ACTIONS = [
+  'registration_enabled',
+  'maintenance_mode',
+  'account_suspended',
+  'account_unsuspended',
+  'account_sessions_revoked',
+  'account_email_verified',
+  'account_recovery_email_requested',
+  'account_recovery_issued',
+  'account_deletion_requested',
+  'space_entitlement_granted',
+  'space_entitlement_revoked',
+] as const;
+
+type AuditCategory = 'all' | 'settings' | 'accounts' | 'spaces' | 'destructive';
+
+function auditActionLabel(action: string, t: (key: string) => string): string {
+  const key = `serverAdmin.activity.actions.${action}`;
+  return AUDIT_ACTIONS.includes(action as (typeof AUDIT_ACTIONS)[number])
+    ? t(key)
+    : action;
+}
+
+function auditCategoryLabel(category: string, t: (key: string) => string): string {
+  switch (category) {
+    case 'settings':
+    case 'accounts':
+    case 'spaces':
+    case 'destructive':
+      return t(`serverAdmin.activity.categories.${category}`);
     default:
-      return t('serverAdmin.activity.unknown');
+      return category;
   }
 }
 
-function booleanStateLabel(value: boolean, t: (key: string) => string): string {
-  return t(
-    value ? 'serverAdmin.activity.enabled' : 'serverAdmin.activity.disabled',
+function auditEffectLabel(item: ServerAdminPrivilegedAuditItem, t: (key: string) => string): string {
+  if (item.previousValue !== null && item.newValue !== null) {
+    return `${t(item.previousValue ? 'serverAdmin.activity.enabled' : 'serverAdmin.activity.disabled')} → ${t(item.newValue ? 'serverAdmin.activity.enabled' : 'serverAdmin.activity.disabled')}`;
+  }
+  if (item.effectCount !== null) {
+    return `${item.effectCount} ${t('serverAdmin.activity.effectCount')}`;
+  }
+  return '–';
+}
+
+function validOptionalUuid(value: string): boolean {
+  return (
+    value.trim() === '' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value.trim(),
+    )
   );
 }
 
 export function ServerAdminActivityPanel({
-  activity,
+  api,
+  initialCategory = 'all',
 }: {
-  activity: ServerAdminActivityItem[];
+  api: ServerAdminApi;
+  initialCategory?: AuditCategory;
 }) {
   const { t } = useTranslation();
+  const [category, setCategory] = useState<AuditCategory>(initialCategory);
+  const [action, setAction] = useState('all');
+  const [actorDraft, setActorDraft] = useState('');
+  const [targetDraft, setTargetDraft] = useState('');
+  const [actorId, setActorId] = useState<string | undefined>();
+  const [targetId, setTargetId] = useState<string | undefined>();
+  const [limit, setLimit] = useState(25);
+  const [offset, setOffset] = useState(0);
+
+  const request = useMemo(
+    () => ({
+      category,
+      action: action === 'all' ? undefined : action,
+      actorId,
+      targetId,
+      limit,
+      offset,
+    }),
+    [action, actorId, category, limit, offset, targetId],
+  );
+  const query = useQuery({
+    queryKey: ['server-admin', 'privileged-activity', request],
+    queryFn: () =>
+      api.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(
+        request,
+      ),
+    retry: false,
+  });
+  const data = query.data;
+  const filterIdsValid =
+    validOptionalUuid(actorDraft) && validOptionalUuid(targetDraft);
+  const canGoBack = offset > 0;
+  const canGoForward = data ? offset + data.items.length < data.total : false;
+
+  function applyIdFilters() {
+    if (!filterIdsValid) return;
+    setOffset(0);
+    setActorId(actorDraft.trim() || undefined);
+    setTargetId(targetDraft.trim() || undefined);
+  }
+
   return (
     <section
       className="server-admin-panel server-admin-panel-wide"
       aria-labelledby="server-activity-title"
     >
-      <h2 id="server-activity-title">{t('serverAdmin.activity.title')}</h2>
-      <p className="server-admin-muted">{t('serverAdmin.activity.body')}</p>
-      {activity.length === 0 ? (
-        <p className="server-admin-muted">{t('serverAdmin.activity.empty')}</p>
-      ) : (
-        <div className="server-admin-table-scroll">
-          <table className="server-admin-table">
-            <thead>
-              <tr>
-                <th scope="col">{t('serverAdmin.activity.setting')}</th>
-                <th scope="col">{t('serverAdmin.activity.change')}</th>
-                <th scope="col">{t('serverAdmin.activity.actor')}</th>
-                <th scope="col">{t('serverAdmin.activity.changedAt')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activity.map((item) => (
-                <tr key={item.id}>
-                  <td>{activitySettingLabel(item.setting, t)}</td>
-                  <td>
-                    {booleanStateLabel(item.previousValue, t)} →{' '}
-                    {booleanStateLabel(item.newValue, t)}
-                  </td>
-                  <td className="server-admin-actor-id">
-                    {item.actorId ?? t('serverAdmin.activity.systemActor')}
-                  </td>
-                  <td>{formatDate(item.createdAt) ?? '–'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="server-admin-section-heading">
+        <div>
+          <h2 id="server-activity-title">{t('serverAdmin.activity.title')}</h2>
+          <p className="server-admin-muted">{t('serverAdmin.activity.body')}</p>
         </div>
-      )}
+        {data ? (
+          <span className="server-admin-count">
+            {data.total} {t('serverAdmin.activity.totalSuffix')}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="server-admin-audit-filters">
+        <label>
+          <span>{t('serverAdmin.activity.category')}</span>
+          <select
+            value={category}
+            onChange={(event) => {
+              setOffset(0);
+              setCategory(event.target.value as AuditCategory);
+            }}
+          >
+            {(['all', 'settings', 'accounts', 'spaces', 'destructive'] as const).map(
+              (value) => (
+                <option key={value} value={value}>
+                  {t(`serverAdmin.activity.categories.${value}`)}
+                </option>
+              ),
+            )}
+          </select>
+        </label>
+        <label>
+          <span>{t('serverAdmin.activity.action')}</span>
+          <select
+            value={action}
+            onChange={(event) => {
+              setOffset(0);
+              setAction(event.target.value);
+            }}
+          >
+            <option value="all">{t('serverAdmin.activity.allActions')}</option>
+            {AUDIT_ACTIONS.map((value) => (
+              <option key={value} value={value}>
+                {auditActionLabel(value, t)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{t('serverAdmin.activity.actor')}</span>
+          <input
+            type="search"
+            value={actorDraft}
+            onChange={(event) => setActorDraft(event.target.value)}
+            placeholder={t('serverAdmin.activity.actorPlaceholder')}
+            aria-invalid={!validOptionalUuid(actorDraft) || undefined}
+          />
+        </label>
+        <label>
+          <span>{t('serverAdmin.activity.target')}</span>
+          <input
+            type="search"
+            value={targetDraft}
+            onChange={(event) => setTargetDraft(event.target.value)}
+            placeholder={t('serverAdmin.activity.targetPlaceholder')}
+            aria-invalid={!validOptionalUuid(targetDraft) || undefined}
+          />
+        </label>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={!filterIdsValid}
+          onClick={applyIdFilters}
+        >
+          {t('serverAdmin.activity.applyFilters')}
+        </button>
+      </div>
+
+      {!filterIdsValid ? (
+        <p className="status status-error" role="alert">
+          {t('serverAdmin.activity.invalidId')}
+        </p>
+      ) : null}
+
+      {query.isPending ? (
+        <p className="server-admin-muted">{t('serverAdmin.activity.loadingBody')}</p>
+      ) : query.error ? (
+        <p className="status status-error" role="alert">
+          {t('serverAdmin.activity.errorBody')}
+        </p>
+      ) : data && data.items.length === 0 ? (
+        <p className="server-admin-muted">{t('serverAdmin.activity.empty')}</p>
+      ) : data ? (
+        <>
+          <div className="server-admin-table-scroll">
+            <table className="server-admin-table">
+              <thead>
+                <tr>
+                  <th scope="col">{t('serverAdmin.activity.changedAt')}</th>
+                  <th scope="col">{t('serverAdmin.activity.action')}</th>
+                  <th scope="col">{t('serverAdmin.activity.actor')}</th>
+                  <th scope="col">{t('serverAdmin.activity.target')}</th>
+                  <th scope="col">{t('serverAdmin.activity.effect')}</th>
+                  <th scope="col">{t('serverAdmin.activity.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>{formatDate(item.createdAt) ?? '–'}</td>
+                    <td>
+                      <span className="server-admin-badge">
+                        {auditActionLabel(item.action, t)}
+                      </span>
+                      <span className="server-admin-row-meta">
+                        {auditCategoryLabel(item.category, t)}
+                      </span>
+                    </td>
+                    <td className="server-admin-actor-id">
+                      {item.actorId ?? t('serverAdmin.activity.systemActor')}
+                    </td>
+                    <td className="server-admin-actor-id">
+                      {item.targetAccountId ?? item.targetSpaceId ?? '–'}
+                    </td>
+                    <td>{auditEffectLabel(item, t)}</td>
+                    <td>{t('serverAdmin.activity.completed')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="server-admin-pagination">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!canGoBack}
+              onClick={() => setOffset(Math.max(0, offset - limit))}
+            >
+              {t('serverAdmin.activity.previous')}
+            </button>
+            <label className="server-admin-page-size">
+              <span>{t('serverAdmin.activity.pageSize')}</span>
+              <select
+                value={limit}
+                onChange={(event) => {
+                  setOffset(0);
+                  setLimit(Number(event.target.value));
+                }}
+              >
+                {[25, 50, 100].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span>
+              {offset + 1}–{offset + data.items.length} / {data.total}
+            </span>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!canGoForward}
+              onClick={() => setOffset(offset + limit)}
+            >
+              {t('serverAdmin.activity.next')}
+            </button>
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -672,13 +887,6 @@ export function ServerAdminPage({
     retry: false,
     enabled: section === 'settings',
   });
-  const activityQuery = useQuery({
-    queryKey: ['server-admin', 'activity'],
-    queryFn: () =>
-      apis.serverAdmin.getServerAdminActivityApiV1ServerAdminActivityGet(),
-    retry: false,
-    enabled: section === 'activity',
-  });
   // Both toggles write the same server-serialized settings row. A response
   // snapshot can arrive out of order, so never paint it; refetch the
   // authoritative row instead (invalidation cancels older in-flight reads).
@@ -719,8 +927,7 @@ export function ServerAdminPage({
   });
   const refreshing =
     (overviewSection && overviewQuery.isFetching) ||
-    (section === 'settings' && settingsQuery.isFetching) ||
-    (section === 'activity' && activityQuery.isFetching);
+    (section === 'settings' && settingsQuery.isFetching);
   const mutationError = registrationMutation.error ?? maintenanceMutation.error;
 
   function refreshCurrentSection() {
@@ -746,7 +953,9 @@ export function ServerAdminPage({
       return;
     }
     if (section === 'activity') {
-      void activityQuery.refetch();
+      void queryClient.invalidateQueries({
+        queryKey: ['server-admin', 'privileged-activity'],
+      });
       return;
     }
     if (section === 'accounts') {
@@ -927,33 +1136,20 @@ export function ServerAdminPage({
             ) : null}
 
             {section === 'activity' ? (
-              activityQuery.isPending ? (
-                <section className="server-admin-panel server-admin-panel-wide">
-                  <UiState
-                    kind="loading"
-                    title={t('serverAdmin.activity.loadingTitle')}
-                    body={t('serverAdmin.activity.loadingBody')}
-                  />
-                </section>
-              ) : activityQuery.error ? (
-                <section className="server-admin-panel server-admin-panel-wide">
-                  <UiState
-                    kind="error"
-                    title={t('serverAdmin.activity.errorTitle')}
-                    body={t('serverAdmin.activity.errorBody')}
-                    action={
-                      <button
-                        type="button"
-                        onClick={() => void activityQuery.refetch()}
-                      >
-                        {t('serverAdmin.refresh')}
-                      </button>
-                    }
-                  />
-                </section>
-              ) : activityQuery.data ? (
-                <ServerAdminActivityPanel activity={activityQuery.data} />
-              ) : null
+              <ServerAdminActivityPanel
+                api={apis.serverAdmin}
+                initialCategory={
+                  searchParams.get('category') === 'accounts'
+                    ? 'accounts'
+                    : searchParams.get('category') === 'settings'
+                      ? 'settings'
+                      : searchParams.get('category') === 'spaces'
+                        ? 'spaces'
+                        : searchParams.get('category') === 'destructive'
+                          ? 'destructive'
+                          : 'all'
+                }
+              />
             ) : null}
           </div>
         </div>

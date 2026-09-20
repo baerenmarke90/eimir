@@ -12,7 +12,12 @@ import {
 
 function renderActivity(
   getActivity: ReturnType<typeof vi.fn>,
-  initialCategory: 'all' | 'settings' | 'accounts' | 'spaces' | 'destructive' = 'all',
+  initialCategory:
+    | 'all'
+    | 'settings'
+    | 'accounts'
+    | 'spaces'
+    | 'destructive' = 'all',
 ) {
   const api = {
     getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet:

@@ -176,7 +176,6 @@
   flex: 0 0 auto;
   margin-top: var(--space-6);
   padding-top: var(--space-4);
-  border-top: 1px dashed var(--color-border-subtle);
 }
 
 .planning-create summary {
@@ -374,7 +373,6 @@
 
 .planning-action-form {
   margin-top: var(--space-5);
-  border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-5);
 }
 

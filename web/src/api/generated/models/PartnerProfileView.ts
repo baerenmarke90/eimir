@@ -133,7 +133,7 @@ export function PartnerProfileViewToJSONTyped(value?: PartnerProfileView | null,
     return {
         
         'accountId': value['accountId'],
-        'birthday': value['birthday'] == null ? null : value['birthday'].toISOString().substring(0,10),
+        'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'createdAt': value['createdAt'].toISOString(),
         'displayName': value['displayName'],
         'id': value['id'],

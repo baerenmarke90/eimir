@@ -19,6 +19,16 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type ServerAdminAccountDeletionRequest,
+    ServerAdminAccountDeletionRequestFromJSON,
+    ServerAdminAccountDeletionRequestToJSON,
+} from '../models/ServerAdminAccountDeletionRequest';
+import {
+    type ServerAdminAccountDeletionResult,
+    ServerAdminAccountDeletionResultFromJSON,
+    ServerAdminAccountDeletionResultToJSON,
+} from '../models/ServerAdminAccountDeletionResult';
+import {
     type ServerAdminAccountDetail,
     ServerAdminAccountDetailFromJSON,
     ServerAdminAccountDetailToJSON,
@@ -119,6 +129,11 @@ import {
     ServerAdminStorageOverviewToJSON,
 } from '../models/ServerAdminStorageOverview';
 
+export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest {
+    accountId: string;
+    serverAdminAccountDeletionRequest: ServerAdminAccountDeletionRequest;
+}
+
 export interface GetServerAdminAccountApiV1ServerAdminAccountsAccountIdGetRequest {
     accountId: string;
 }
@@ -201,6 +216,61 @@ export interface VerifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdE
  * 
  */
 export class ServerAdminApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost without sending the request
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequestOpts(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['accountId'] == null) {
+            throw new runtime.RequiredError(
+                'accountId',
+                'Required parameter "accountId" was null or undefined when calling deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost().'
+            );
+        }
+
+        if (requestParameters['serverAdminAccountDeletionRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminAccountDeletionRequest',
+                'Required parameter "serverAdminAccountDeletionRequest" was null or undefined when calling deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/accounts/{accountId}/deletion`;
+        urlPath = urlPath.replace('{accountId}', encodeURIComponent(String(requestParameters['accountId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminAccountDeletionRequestToJSON(requestParameters['serverAdminAccountDeletionRequest']),
+        };
+    }
+
+    /**
+     * Delete Server Admin Account
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRaw(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminAccountDeletionResult>> {
+        const requestOptions = await this.deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminAccountDeletionResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Delete Server Admin Account
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminAccountDeletionResult> {
+        const response = await this.deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet without sending the request

@@ -912,6 +912,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/email"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/operator"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify"),
+    ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 

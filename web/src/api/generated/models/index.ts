@@ -180,6 +180,8 @@ export * from './SearchKind';
 export * from './SearchPage';
 export * from './SearchResult';
 export * from './SearchScope';
+export * from './ServerAdminAccountDeletionRequest';
+export * from './ServerAdminAccountDeletionResult';
 export * from './ServerAdminAccountDetail';
 export * from './ServerAdminAccountEmail';
 export * from './ServerAdminAccountList';

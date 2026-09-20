@@ -249,6 +249,8 @@ const serverAdmin = {
       all: 'Alle',
       active: 'Aktiv',
       suspended: 'Gesperrt',
+      pendingDeletion: 'Löschung ausstehend',
+      deleted: 'Gelöscht',
     },
     verification: {
       label: 'E-Mail-Verifikation',
@@ -297,9 +299,50 @@ const serverAdmin = {
       confirmOperatorRecovery:
         'Einen einmaligen Betreiber-Recovery-Link erzeugen? Bereits offene Recovery-Links dieses Accounts werden ungültig.',
       deletionTitle: 'Account löschen',
-      deletionDeferred:
-        'Die Löschaktion wird erst freigeschaltet, sobald der autoritative Account-Lösch- und Retention-Lifecycle aus #520 implementiert ist. Die Serververwaltung führt bewusst keinen direkten Datenbank-Delete aus.',
+      deletionWarning:
+        'Die Löschung entfernt das Konto unwiderruflich und bereinigt private Daten gemäß dem autoritativen #520-Lifecycle.',
+      deletionNotice:
+        'Für diesen Account wurde eine unwiderrufliche Kontolöschung gestartet (#520).',
       deleteAccount: 'Account löschen',
+    },
+    deletionDialog: {
+      title: 'Account unwiderruflich löschen',
+      stage1Eyebrow: 'Schritt 1 von 3 · Auswirkungen',
+      stage1Title: 'Auswirkungen der Kontolöschung prüfen',
+      stage1Intro:
+        'Die Kontolöschung verwendet den autoritativen #520-Lifecycle. Bitte prüfe die folgenden Auswirkungen vor dem Fortfahren:',
+      consequenceAccess:
+        'Der Zugriff auf dieses Konto wird sofort und dauerhaft beendet.',
+      consequenceSessions:
+        'Alle aktiven Sitzungen, Passkeys und Anmeldedaten werden unwiderruflich widerrufen.',
+      consequenceOwnerData:
+        'Private Inhalte (OWNER_ONLY) werden endgültig aus Datenbank und Medienspeicher gelöscht.',
+      consequenceSharedHistory:
+        'Gemeinsame Inhalte in Spaces folgen den bestehenden Aufbewahrungs- und Shared-History-Regeln.',
+      consequenceAsync:
+        'Die asynchrone Bereinigung und Konvergenz läuft im Hintergrund weiter.',
+      consequenceIrreversible:
+        'Diese Löschung ist endgültig und kann nicht rückgängig gemacht werden.',
+      proceedToAuth: 'Weiter zur Authentifizierung',
+      stage2Eyebrow: 'Schritt 2 von 3 · Sicherheitsprüfung',
+      stage3Eyebrow: 'Schritt 3 von 3 · Bestätigung',
+      stage3Title: 'Löschung durch Texteingabe bestätigen',
+      stage3Instruction: 'Gib zur Bestätigung den folgenden Text exakt ein:',
+      stage3InputLabel: 'Bestätigungstext',
+      stage3Placeholder: 'Bestätigungstext eingeben',
+      stage3Submit: 'Account endgültig löschen',
+      cancel: 'Abbrechen',
+      back: 'Zurück',
+      pending: 'Löschung wird verarbeitet …',
+      lockoutSelf:
+        'Du kannst deinen eigenen ServerAdmin-Account nicht löschen.',
+      lockoutLastAdmin:
+        'Der letzte aktive verifizierte ServerAdmin kann nicht gelöscht werden.',
+      demoForbidden:
+        'Demo-Accounts können in der Serververwaltung nicht gelöscht werden.',
+      mismatchError:
+        'Der Bestätigungstext stimmt nicht mit dem geforderten Zielwert überein.',
+      genericError: 'Die Kontolöschung konnte nicht durchgeführt werden.',
     },
     audit: {
       title: 'Privilegierte Account-Aktionen',
@@ -319,6 +362,7 @@ const serverAdmin = {
       emailVerified: 'E-Mail vom Betreiber verifiziert',
       recoveryEmail: 'Recovery-E-Mail angefordert',
       operatorRecovery: 'Betreiber-Recovery erzeugt',
+      deletionRequested: 'Kontolöschung angefordert',
       unknown: 'Unbekannte Aktion',
     },
   },

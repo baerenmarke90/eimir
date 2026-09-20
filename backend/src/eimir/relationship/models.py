@@ -51,6 +51,13 @@ class DurationDisplayMode(StrEnum):
     DAYS = "DAYS"
 
 
+class DailyCheckInVisibilityMode(StrEnum):
+    """How one DailyCheckIn dimension becomes visible to the partner."""
+
+    IMMEDIATE = "IMMEDIATE"
+    MUTUAL_REVEAL = "MUTUAL_REVEAL"
+
+
 class Space(IdMixin, TimestampMixin, Base):
     __tablename__ = "spaces"
 
@@ -76,6 +83,9 @@ class Space(IdMixin, TimestampMixin, Base):
         back_populates="space", cascade="all, delete-orphan"
     )
     profile: Mapped[SpaceProfile | None] = relationship(
+        back_populates="space", cascade="all, delete-orphan", uselist=False
+    )
+    configuration: Mapped[SpaceConfiguration | None] = relationship(
         back_populates="space", cascade="all, delete-orphan", uselist=False
     )
 
@@ -176,6 +186,53 @@ class SpaceProfile(IdMixin, TimestampMixin, VersionMixin, Base):
         CheckConstraint(
             "duration_display_mode IN ('YEARS_MONTHS', 'DAYS')",
             name="duration_display_mode_is_known",
+        ),
+    )
+
+
+class SpaceConfiguration(IdMixin, TimestampMixin, VersionMixin, Base):
+    """Typed, shared product configuration for one relationship Space."""
+
+    __tablename__ = "space_configurations"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    vibe_check_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    energy_check_in_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    love_notes_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    support_gestures_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    shared_achievements_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    daily_questions_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    daily_context_timezone: Mapped[str | None] = mapped_column(String(64))
+    vibe_visibility_mode: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        default=DailyCheckInVisibilityMode.IMMEDIATE.value,
+    )
+    energy_visibility_mode: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        default=DailyCheckInVisibilityMode.IMMEDIATE.value,
+    )
+
+    space: Mapped[Space] = relationship(back_populates="configuration")
+
+    __table_args__ = (
+        UniqueConstraint("space_id", name="uq_space_configurations_space_id"),
+        CheckConstraint(
+            "vibe_visibility_mode IN ('IMMEDIATE', 'MUTUAL_REVEAL')",
+            name="vibe_visibility_mode_is_known",
+        ),
+        CheckConstraint(
+            "energy_visibility_mode IN ('IMMEDIATE', 'MUTUAL_REVEAL')",
+            name="energy_visibility_mode_is_known",
         ),
     )
 

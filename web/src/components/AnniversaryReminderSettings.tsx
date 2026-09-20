@@ -10,21 +10,67 @@ export interface AnniversaryReminderSettingsProps {
   spaceId: string;
 }
 
-const RULE_KEY = 'relationship_anniversary_reminder';
+export type PartnerBirthdayReminderSettingsProps =
+  AnniversaryReminderSettingsProps;
 
-const DAY_PRESETS = [
-  { days: 30, labelKey: 'profileIdentity.anniversaryReminderDay30' as const },
-  { days: 7, labelKey: 'profileIdentity.anniversaryReminderDay7' as const },
-  { days: 1, labelKey: 'profileIdentity.anniversaryReminderDay1' as const },
+interface DayPreset {
+  days: number;
+  labelKey: string;
+}
+
+interface RuleReminderSettingsProps {
+  rulesApi: RulesApi;
+  spaceId: string;
+  ruleKey: string;
+  idPrefix: string;
+  defaultDaysBefore: number[];
+  dayPresets: DayPreset[];
+  toggleLabelKey: string;
+  toggleHelpKey: string;
+  daysHeadingKey: string;
+  timeLabelKey: string;
+  loadingKey: string;
+}
+
+const ANNIVERSARY_RULE_KEY = 'relationship_anniversary_reminder';
+const PARTNER_BIRTHDAY_RULE_KEY = 'partner_birthday_reminder';
+const ANNIVERSARY_DEFAULT_DAYS = [30, 7, 1];
+const PARTNER_BIRTHDAY_DEFAULT_DAYS = [14, 7, 1];
+
+const ANNIVERSARY_DAY_PRESETS: DayPreset[] = [
+  { days: 30, labelKey: 'profileIdentity.anniversaryReminderDay30' },
+  { days: 7, labelKey: 'profileIdentity.anniversaryReminderDay7' },
+  { days: 1, labelKey: 'profileIdentity.anniversaryReminderDay1' },
 ];
 
-export function AnniversaryReminderSettings({
+const PARTNER_BIRTHDAY_DAY_PRESETS: DayPreset[] = [
+  { days: 14, labelKey: 'profileIdentity.partnerBirthdayReminderDay14' },
+  { days: 7, labelKey: 'profileIdentity.partnerBirthdayReminderDay7' },
+  { days: 1, labelKey: 'profileIdentity.partnerBirthdayReminderDay1' },
+];
+
+function sameDays(left: number[], right: number[]): boolean {
+  return (
+    left.length === right.length && left.every((day) => right.includes(day))
+  );
+}
+
+function RuleReminderSettings({
   rulesApi,
   spaceId,
-}: AnniversaryReminderSettingsProps) {
+  ruleKey,
+  idPrefix,
+  defaultDaysBefore,
+  dayPresets,
+  toggleLabelKey,
+  toggleHelpKey,
+  daysHeadingKey,
+  timeLabelKey,
+  loadingKey,
+}: RuleReminderSettingsProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const queryKey = ['rules', spaceId, RULE_KEY, 'preference'];
+  const queryKey = ['rules', spaceId, ruleKey, 'preference'];
 
   const {
     data: preference,
@@ -33,27 +79,26 @@ export function AnniversaryReminderSettings({
     refetch,
   } = useQuery({
     queryKey,
-    queryFn: () => rulesApi.getRulePreference({ spaceId, ruleKey: RULE_KEY }),
+    queryFn: () => rulesApi.getRulePreference({ spaceId, ruleKey }),
   });
 
   const [enabled, setEnabled] = useState(true);
-  const [daysBefore, setDaysBefore] = useState<number[]>([30, 7, 1]);
+  const [daysBefore, setDaysBefore] = useState<number[]>(defaultDaysBefore);
   const [localTime, setLocalTime] = useState('09:00');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (preference) {
-      setEnabled(preference.enabled);
-      setDaysBefore(preference.parameters.daysBefore ?? [30, 7, 1]);
-      setLocalTime(preference.parameters.localTime?.slice(0, 5) ?? '09:00');
-    }
-  }, [preference]);
+    if (!preference) return;
+    setEnabled(preference.enabled);
+    setDaysBefore(preference.parameters.daysBefore ?? defaultDaysBefore);
+    setLocalTime(preference.parameters.localTime?.slice(0, 5) ?? '09:00');
+  }, [defaultDaysBefore, preference]);
 
   const mutation = useMutation({
     mutationFn: (update: RulePreferenceUpdate) =>
       rulesApi.setRulePreference({
         spaceId,
-        ruleKey: RULE_KEY,
+        ruleKey,
         rulePreferenceUpdate: update,
       }),
     onSuccess: (updated) => {
@@ -63,11 +108,7 @@ export function AnniversaryReminderSettings({
   });
 
   if (isLoading) {
-    return (
-      <p className="form-hint">
-        {t('profileIdentity.anniversaryReminderLoading')}
-      </p>
-    );
+    return <p className="form-hint">{t(loadingKey)}</p>;
   }
 
   if (error) {
@@ -75,23 +116,21 @@ export function AnniversaryReminderSettings({
   }
 
   const initialEnabled = preference?.enabled ?? true;
-  const initialDaysBefore = preference?.parameters.daysBefore ?? [30, 7, 1];
+  const initialDaysBefore =
+    preference?.parameters.daysBefore ?? defaultDaysBefore;
   const initialLocalTime =
     preference?.parameters.localTime?.slice(0, 5) ?? '09:00';
-
-  const isDaysDirty =
-    daysBefore.length !== initialDaysBefore.length ||
-    daysBefore.some((d) => !initialDaysBefore.includes(d));
   const isDirty =
-    enabled !== initialEnabled || localTime !== initialLocalTime || isDaysDirty;
+    enabled !== initialEnabled ||
+    localTime !== initialLocalTime ||
+    !sameDays(daysBefore, initialDaysBefore);
 
   function toggleDay(day: number) {
-    setDaysBefore((current) => {
-      if (current.includes(day)) {
-        return current.filter((d) => d !== day);
-      }
-      return [...current, day].sort((a, b) => b - a);
-    });
+    setDaysBefore((current) =>
+      current.includes(day)
+        ? current.filter((value) => value !== day)
+        : [...current, day].sort((a, b) => b - a),
+    );
     setSaved(false);
   }
 
@@ -107,65 +146,61 @@ export function AnniversaryReminderSettings({
     });
   }
 
+  const enabledId = `${idPrefix}-enabled`;
+  const timeId = `${idPrefix}-time`;
+
   return (
-    <form className="anniversary-reminder-form" onSubmit={handleSubmit}>
-      <label
-        htmlFor="anniversary-reminder-enabled"
-        className="form-checkbox-label"
-      >
+    <form
+      className="anniversary-reminder-form rule-reminder-form"
+      onSubmit={handleSubmit}
+    >
+      <label htmlFor={enabledId} className="form-checkbox-label">
         <input
-          id="anniversary-reminder-enabled"
-          name="anniversaryReminderEnabled"
+          id={enabledId}
+          name={`${idPrefix}Enabled`}
           type="checkbox"
           checked={enabled}
-          onChange={(e) => {
-            setEnabled(e.target.checked);
+          onChange={(event) => {
+            setEnabled(event.target.checked);
             setSaved(false);
           }}
         />
         <span>
-          <strong>{t('profileIdentity.anniversaryReminderToggle')}</strong>
-          <small>{t('profileIdentity.anniversaryReminderToggleHelp')}</small>
+          <strong>{t(toggleLabelKey)}</strong>
+          <small>{t(toggleHelpKey)}</small>
         </span>
       </label>
 
       {enabled ? (
-        <div className="anniversary-reminder-config">
+        <div className="anniversary-reminder-config rule-reminder-config">
           <fieldset className="field-group">
-            <legend>
-              {t('profileIdentity.anniversaryReminderDaysHeading')}
-            </legend>
+            <legend>{t(daysHeadingKey)}</legend>
             <div className="anniversary-reminder-days">
-              {DAY_PRESETS.map((preset) => {
-                const isChecked = daysBefore.includes(preset.days);
-                return (
-                  <label
-                    key={preset.days}
-                    className="anniversary-reminder-day-option"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => toggleDay(preset.days)}
-                    />
-                    <span>{t(preset.labelKey)}</span>
-                  </label>
-                );
-              })}
+              {dayPresets.map((preset) => (
+                <label
+                  key={preset.days}
+                  className="anniversary-reminder-day-option"
+                >
+                  <input
+                    type="checkbox"
+                    checked={daysBefore.includes(preset.days)}
+                    onChange={() => toggleDay(preset.days)}
+                  />
+                  <span>{t(preset.labelKey)}</span>
+                </label>
+              ))}
             </div>
           </fieldset>
 
           <div className="field-group">
-            <label htmlFor="anniversary-reminder-time">
-              {t('profileIdentity.anniversaryReminderTimeLabel')}
-            </label>
+            <label htmlFor={timeId}>{t(timeLabelKey)}</label>
             <input
-              id="anniversary-reminder-time"
-              name="anniversaryReminderTime"
+              id={timeId}
+              name={`${idPrefix}Time`}
               type="time"
               value={localTime}
-              onChange={(e) => {
-                setLocalTime(e.target.value);
+              onChange={(event) => {
+                setLocalTime(event.target.value);
                 setSaved(false);
               }}
             />
@@ -188,5 +223,47 @@ export function AnniversaryReminderSettings({
 
       {mutation.error ? <ProblemState error={mutation.error} /> : null}
     </form>
+  );
+}
+
+export function AnniversaryReminderSettings({
+  rulesApi,
+  spaceId,
+}: AnniversaryReminderSettingsProps) {
+  return (
+    <RuleReminderSettings
+      rulesApi={rulesApi}
+      spaceId={spaceId}
+      ruleKey={ANNIVERSARY_RULE_KEY}
+      idPrefix="anniversary-reminder"
+      defaultDaysBefore={ANNIVERSARY_DEFAULT_DAYS}
+      dayPresets={ANNIVERSARY_DAY_PRESETS}
+      toggleLabelKey="profileIdentity.anniversaryReminderToggle"
+      toggleHelpKey="profileIdentity.anniversaryReminderToggleHelp"
+      daysHeadingKey="profileIdentity.anniversaryReminderDaysHeading"
+      timeLabelKey="profileIdentity.anniversaryReminderTimeLabel"
+      loadingKey="profileIdentity.anniversaryReminderLoading"
+    />
+  );
+}
+
+export function PartnerBirthdayReminderSettings({
+  rulesApi,
+  spaceId,
+}: PartnerBirthdayReminderSettingsProps) {
+  return (
+    <RuleReminderSettings
+      rulesApi={rulesApi}
+      spaceId={spaceId}
+      ruleKey={PARTNER_BIRTHDAY_RULE_KEY}
+      idPrefix="partner-birthday-reminder"
+      defaultDaysBefore={PARTNER_BIRTHDAY_DEFAULT_DAYS}
+      dayPresets={PARTNER_BIRTHDAY_DAY_PRESETS}
+      toggleLabelKey="profileIdentity.partnerBirthdayReminderToggle"
+      toggleHelpKey="profileIdentity.partnerBirthdayReminderToggleHelp"
+      daysHeadingKey="profileIdentity.partnerBirthdayReminderDaysHeading"
+      timeLabelKey="profileIdentity.partnerBirthdayReminderTimeLabel"
+      loadingKey="profileIdentity.partnerBirthdayReminderLoading"
+    />
   );
 }

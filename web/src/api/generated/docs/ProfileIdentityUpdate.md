@@ -1,12 +1,13 @@
 
 # ProfileIdentityUpdate
 
-Partial update of the authenticated account\'s presentation identity.  Omission means unchanged. An explicit null ``profileAttachmentId`` removes the current avatar. ``displayName`` deliberately has no competing request- layer normalization; the identity domain remains the single authority.
+Partial update of the authenticated account\'s presentation identity.  Omission means unchanged. An explicit null ``profileAttachmentId`` removes the current avatar; an explicit null ``birthday`` clears the optional birthday. ``displayName`` deliberately has no competing request-layer normalization; the identity domain remains the single authority.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
+`birthday` | Date
 `displayName` | string
 `profileAttachmentId` | string
 
@@ -17,6 +18,7 @@ import type { ProfileIdentityUpdate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "birthday": null,
   "displayName": null,
   "profileAttachmentId": null,
 } satisfies ProfileIdentityUpdate

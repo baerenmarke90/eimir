@@ -7,6 +7,7 @@ therefore excluded in SQL rather than only after loading.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import select
@@ -40,6 +41,7 @@ from eimir.profiles.models import (
     privacy_for,
 )
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir.reminders import runtime as reminder_runtime
 
 
 class ProfileErrorCode:
@@ -238,6 +240,7 @@ def update_profile_identity(
     changed_fields: frozenset[str],
     display_name: str | None,
     profile_attachment_id: UUID | None,
+    birthday: date | None,
 ) -> Account:
     """Update Account-global presentation identity under one version boundary.
 
@@ -261,6 +264,7 @@ def update_profile_identity(
         )
 
     avatar_changed = False
+    birthday_changed = False
     if "profile_attachment_id" in changed_fields:
         _attachment, avatar_changed = _set_profile_attachment_for_account(
             session,
@@ -282,6 +286,10 @@ def update_profile_identity(
             canonical.ensure_account_identity_mutable(session, account)
         account.display_name = requested_name
 
+    if "birthday" in changed_fields and birthday != account.birthday:
+        account.birthday = birthday
+        birthday_changed = True
+
     # The avatar relation is a separate table. Mark the Account aggregate
     # dirty so an avatar-only mutation advances the same global version.
     if avatar_changed:
@@ -294,6 +302,21 @@ def update_profile_identity(
             "The profile identity was changed by another request.",
             ErrorCode.VERSION_CONFLICT,
         ) from stale
+
+    if birthday_changed:
+        active_space_ids = list(
+            session.execute(
+                select(Membership.space_id)
+                .where(
+                    Membership.account_id == account.id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
+                )
+                .order_by(Membership.space_id)
+            ).scalars()
+        )
+        for space_id in active_space_ids:
+            reminder_runtime.reconcile_space(session, space_id)
+
     return account
 
 

@@ -153,6 +153,16 @@
   transform: translateX(2px);
 }
 
+.important-date-card-derived {
+  grid-template-columns: 4.1rem minmax(0, 1fr);
+  cursor: default;
+}
+
+.important-date-card-derived:hover {
+  background: transparent;
+  transform: none;
+}
+
 .important-date-card:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;

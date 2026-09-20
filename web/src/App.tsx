@@ -560,6 +560,7 @@ function AuthenticatedApp({
                 apiBaseUrl={apiBaseUrl}
                 accessToken={tokens.accessToken}
                 attachmentsApi={apis.attachments}
+                currentAccountId={account.id}
               />
             }
           />

@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `accountId` | string
+`birthday` | Date
 `createdAt` | Date
 `displayName` | string
 `id` | string
@@ -23,6 +24,7 @@ import type { PartnerProfileView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "accountId": null,
+  "birthday": null,
   "createdAt": null,
   "displayName": null,
   "id": null,

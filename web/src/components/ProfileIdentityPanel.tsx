@@ -16,11 +16,16 @@ import { normalizeClientError } from '../client/problemDetails';
 import { createReferenceApis } from '../client/referenceFlow';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { useTranslation } from '../i18n';
+import { NativeDateField } from './NativeDateField';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { VisibilityBadge } from './VisibilityBadge';
 import './ProfileIdentityPanel.css';
+
+function dateInputValue(value: Date | null | undefined): string {
+  return value ? value.toISOString().slice(0, 10) : '';
+}
 
 function uploadStatusKey(phase: DraftUploadPhase | null): string | null {
   if (phase === 'uploading') return 'profileIdentity.uploadUploading';
@@ -41,13 +46,15 @@ export function ProfileIdentityPanel({
   spaceId: string;
   onDisplayNameChanged: (displayName: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
+  const birthdayInputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState(false);
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const [editingBirthday, setEditingBirthday] = useState(false);
   const [uploadPhase, setUploadPhase] = useState<DraftUploadPhase | null>(null);
 
   const configuration = useMemo(
@@ -65,6 +72,15 @@ export function ProfileIdentityPanel({
   const referenceApis = useMemo(
     () => createReferenceApis(apiBaseUrl, accessToken),
     [accessToken, apiBaseUrl],
+  );
+
+  const birthdayFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(i18n.language, {
+        dateStyle: 'long',
+        timeZone: 'UTC',
+      }),
+    [i18n.language],
   );
 
   const profileQuery = useQuery({
@@ -123,6 +139,16 @@ export function ProfileIdentityPanel({
     onError: () => displayNameInputRef.current?.focus(),
   });
 
+  const birthdayMutation = useMutation({
+    mutationFn: async (birthday: Date | null) => updateIdentity({ birthday }),
+    onSuccess: async (profile) => {
+      await acceptUpdatedProfile(profile);
+      setEditingBirthday(false);
+      setEditingIdentity(false);
+    },
+    onError: () => birthdayInputRef.current?.focus(),
+  });
+
   const avatarMutation = useMutation({
     mutationFn: async (file: File) => {
       let readyAttachmentId: string | null = null;
@@ -177,6 +203,7 @@ export function ProfileIdentityPanel({
   function resetActionState() {
     setSaved(false);
     displayNameMutation.reset();
+    birthdayMutation.reset();
     avatarMutation.reset();
     removeAvatarMutation.reset();
   }
@@ -189,10 +216,20 @@ export function ProfileIdentityPanel({
     displayNameMutation.mutate(String(form.get('displayName') ?? ''));
   }
 
+  function submitBirthday(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (birthdayMutation.isPending) return;
+    const form = new FormData(event.currentTarget);
+    const value = String(form.get('birthday') ?? '');
+    resetActionState();
+    birthdayMutation.mutate(value ? new Date(`${value}T00:00:00.000Z`) : null);
+  }
+
   const profile = profileQuery.data;
   const visibleName = profile?.displayName ?? account.displayName;
   const pending =
     displayNameMutation.isPending ||
+    birthdayMutation.isPending ||
     avatarMutation.isPending ||
     removeAvatarMutation.isPending;
   const phaseKey = uploadStatusKey(uploadPhase);
@@ -243,6 +280,14 @@ export function ProfileIdentityPanel({
               />
             </div>
 
+            {profile.birthday ? (
+              <p className="profile-identity-birthday">
+                {t('profileIdentity.birthdayValue', {
+                  date: birthdayFormatter.format(profile.birthday),
+                })}
+              </p>
+            ) : null}
+
             <div className="profile-identity-edit-entry">
               <button
                 type="button"
@@ -250,7 +295,9 @@ export function ProfileIdentityPanel({
                 onClick={() => {
                   if (editingIdentity) {
                     setEditingName(false);
+                    setEditingBirthday(false);
                     displayNameMutation.reset();
+                    birthdayMutation.reset();
                   } else {
                     setSaved(false);
                   }
@@ -280,6 +327,21 @@ export function ProfileIdentityPanel({
                   {editingName
                     ? t('common.cancel')
                     : t('profileIdentity.editName')}
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary compact-action"
+                  onClick={() => {
+                    birthdayMutation.reset();
+                    setSaved(false);
+                    setEditingBirthday((previous) => !previous);
+                  }}
+                  disabled={pending}
+                >
+                  {editingBirthday
+                    ? t('common.cancel')
+                    : t('profileIdentity.editBirthday')}
                 </button>
 
                 <button
@@ -386,6 +448,40 @@ export function ProfileIdentityPanel({
                 <ProblemState error={displayNameMutation.error} />
               </div>
             ) : null}
+          </div>
+        </form>
+      ) : null}
+
+      {editingIdentity && editingBirthday && profile ? (
+        <form
+          key={`birthday-${dateInputValue(profile.birthday) || 'none'}`}
+          className="profile-birthday-inline-form form-grid eimir-motion-reveal"
+          onSubmit={submitBirthday}
+        >
+          <NativeDateField
+            ref={birthdayInputRef}
+            id="profile-birthday"
+            name="birthday"
+            label={t('profileIdentity.birthdayLabel')}
+            helpText={t('profileIdentity.birthdayHelp')}
+            defaultValue={dateInputValue(profile.birthday)}
+            disabled={pending}
+            error={
+              birthdayMutation.error
+                ? t('profileIdentity.birthdaySaveError')
+                : undefined
+            }
+            onChange={() => {
+              if (birthdayMutation.error) birthdayMutation.reset();
+              setSaved(false);
+            }}
+          />
+          <div className="form-actions">
+            <button type="submit" disabled={pending}>
+              {birthdayMutation.isPending
+                ? t('profileIdentity.savingBirthday')
+                : t('profileIdentity.saveBirthday')}
+            </button>
           </div>
         </form>
       ) : null}

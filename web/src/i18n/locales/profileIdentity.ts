@@ -9,6 +9,14 @@ const profileIdentity = {
   editProfile: 'Profil bearbeiten',
   closeProfileEdit: 'Bearbeitung schließen',
   editName: 'Name ändern',
+  birthdayLabel: 'Geburtstag',
+  birthdayValue: 'Geburtstag: {{date}}',
+  birthdayHelp:
+    'Optional. Dein Geburtstag ist für deinen aktiven Partner sichtbar und wird automatisch unter euren besonderen Tagen berücksichtigt. Leer lassen entfernt ihn.',
+  editBirthday: 'Geburtstag ändern',
+  saveBirthday: 'Geburtstag speichern',
+  savingBirthday: 'Wird gespeichert …',
+  birthdaySaveError: 'Der Geburtstag konnte nicht gespeichert werden.',
   saveName: 'Anzeigenamen speichern',
   savingName: 'Wird gespeichert …',
   saved: 'Profil wurde gespeichert.',
@@ -75,6 +83,16 @@ const profileIdentity = {
   anniversaryReminderSaving: 'Wird gespeichert …',
   anniversaryReminderSaved: '✓ Gespeichert',
   anniversaryReminderLoading: 'Einstellungen werden geladen …',
+  partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
+  partnerBirthdayReminderToggleHelp:
+    'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
+  partnerBirthdayReminderDaysHeading:
+    'Erinnerungszeitpunkte vor dem Geburtstag',
+  partnerBirthdayReminderDay14: '14 Tage vorher',
+  partnerBirthdayReminderDay7: '7 Tage vorher',
+  partnerBirthdayReminderDay1: '1 Tag vorher',
+  partnerBirthdayReminderTimeLabel: 'Uhrzeit der Geburtstagserinnerung',
+  partnerBirthdayReminderLoading: 'Geburtstagserinnerung wird geladen …',
   settingsPrivacy: 'Privater Bereich',
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:

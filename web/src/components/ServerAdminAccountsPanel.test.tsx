@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
@@ -89,11 +90,8 @@ function renderPanel({
     total: 1,
   });
   const loadAccount = vi.fn().mockResolvedValue(detail);
-  const loadActivity = vi.fn().mockResolvedValue([]);
   const api = {
     getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet: loadAccount,
-    getServerAdminActionActivityApiV1ServerAdminActivityActionsGet:
-      loadActivity,
     issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost:
       operatorRecovery,
     listServerAdminAccountsApiV1ServerAdminAccountsGet: listAccounts,
@@ -110,14 +108,16 @@ function renderPanel({
   });
 
   render(
-    <QueryClientProvider client={queryClient}>
-      <ServerAdminAccountsPanel
-        api={api}
-        apiBaseUrl="https://api.example.test"
-        accessToken="admin-token"
-        onOverviewChanged={vi.fn()}
-      />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ServerAdminAccountsPanel
+          api={api}
+          apiBaseUrl="https://api.example.test"
+          accessToken="admin-token"
+          onOverviewChanged={vi.fn()}
+        />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 
   return {

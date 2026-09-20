@@ -113,6 +113,7 @@ describe('module boundary rhythm', () => {
   it('uses spacing and surfaces instead of standalone module divider hairlines', () => {
     const cases: Array<[string, string, string]> = [
       ['./styles.css', '.app-header', 'border-bottom'],
+      ['./theme.css', '.app-header', 'border-bottom'],
       ['./layout.css', '.page-heading', 'border-bottom'],
       [
         './components/SharedStorySummary.css',
@@ -164,6 +165,14 @@ describe('module boundary rhythm', () => {
         `${property}:`,
       );
     }
+
+    const compactOverrides = readSource('./product-reflow.css');
+    expect(compactOverrides).not.toMatch(
+      /settings-sensitive-grid\s*>\s*\.account-settings-panel[\s\S]*?border-top:/,
+    );
+    expect(compactOverrides).not.toMatch(
+      /transfer-columns\s*>\s*section\s*\+\s*section[\s\S]*?border-top:/,
+    );
   });
 });
 

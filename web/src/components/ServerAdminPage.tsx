@@ -321,6 +321,8 @@ const AUDIT_ACTIONS = [
   'account_recovery_email_requested',
   'account_recovery_issued',
   'account_deletion_requested',
+  'account_deletion_completed',
+  'account_deletion_failed',
   'space_entitlement_granted',
   'space_entitlement_revoked',
 ] as const;

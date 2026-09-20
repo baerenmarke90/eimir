@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.core.clock import now
-from eimir.core.errors import ConflictError, NotFoundError
+from eimir.core.errors import ConflictError, NotFoundError, ValidationError
 from eimir.db.locks import lock_subject
 from eimir.identity.models import Account
 from eimir.relationship import policy
@@ -44,6 +44,8 @@ class SpaceErrorCode:
     ALREADY_MEMBER = "ACCOUNT_ALREADY_MEMBER"
     RELATIONSHIP_ENDED = "SPACE_RELATIONSHIP_ENDED"
     ACTIVE_SPACE_EXISTS = "ACCOUNT_HAS_ACTIVE_SPACE"
+    CONFIGURATION_MANAGER_ALREADY_ASSIGNED = "SPACE_CONFIGURATION_MANAGER_ALREADY_ASSIGNED"
+    CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE = "SPACE_CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE"
 
 
 def require_membership(session: Session, account: Account, space_id: UUID) -> Membership:
@@ -92,6 +94,50 @@ def can_manage_space_configuration(space: Space, membership: Membership) -> bool
         and space.configuration_manager_account_id is not None
         and membership.account_id == space.configuration_manager_account_id
     )
+
+
+def reconcile_configuration_manager(
+    session: Session,
+    space_id: UUID,
+    account_id: UUID,
+) -> Space:
+    """Assign missing legacy configuration authority exactly once.
+
+    Migration 0062 deliberately leaves ambiguous multi-member legacy Spaces
+    unassigned. Reconciliation is therefore explicit: an authorized operator
+    chooses one currently active Membership Account after out-of-band
+    verification. This function never infers a founder and never transfers an
+    already assigned authority.
+
+    The Space row is the serialization boundary shared with Membership
+    offboarding. A concurrent exit or second reconciliation cannot race past
+    the active-membership check into a last-writer-wins assignment.
+    """
+    space = lock_space(session, space_id)
+    if space.configuration_manager_account_id is not None:
+        raise ConflictError(
+            "This Space already has a configuration manager.",
+            SpaceErrorCode.CONFIGURATION_MANAGER_ALREADY_ASSIGNED,
+        )
+
+    membership = session.execute(
+        select(Membership)
+        .where(
+            Membership.space_id == space_id,
+            Membership.account_id == account_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+        )
+        .with_for_update(read=True)
+    ).scalar_one_or_none()
+    if membership is None:
+        raise ValidationError(
+            "The configuration manager must be an active member of this Space.",
+            SpaceErrorCode.CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE,
+        )
+
+    space.configuration_manager_account_id = account_id
+    session.flush()
+    return space
 
 
 def _ensure_partner_profile(session: Session, space_id: UUID, account_id: UUID) -> None:

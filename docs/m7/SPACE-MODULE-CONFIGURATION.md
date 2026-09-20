@@ -196,6 +196,31 @@ A config write must validate the complete resulting state atomically. Examples:
 - an unauthorized partner receives no write capability even if they construct the request manually;
 - deployment/Entitlement state is not written into this resource.
 
+### 8.1 Legacy configuration-manager reconciliation
+
+Migration 0062 deliberately fails closed for a pre-M7 Space whose retained
+Membership history does not prove one unique founder: its
+`configurationManagerAccountId` remains unassigned. The application must not
+repair that state from Membership order, `joinedAt`, invitation history,
+Account creation time, or client ordering.
+
+V1 recovery is an explicit one-time ServerAdmin operation:
+
+- the Space must still have no configuration manager;
+- the operator selects one Account that currently has an `ACTIVE` Membership
+  in that same Space after out-of-band verification/consent;
+- the existing Space lifecycle row lock serializes reconciliation with partner
+  offboarding and concurrent reconciliation attempts;
+- an already assigned manager is never replaced by this operation;
+- the privileged action is recorded in the existing content-free ServerAdmin
+  audit with actor, target Account and target Space identifiers;
+- ordinary partner reads remain safe while authority is missing, but
+  configuration writes continue to fail closed until reconciliation succeeds.
+
+This is legacy-state recovery, **not** a general configuration-manager transfer
+feature. Any future transfer/consent UX requires its own product decision and
+contract.
+
 ## 9. Demo contract
 
 The canonical Demo Space receives explicit deterministic configuration rather than environment-dependent defaults.

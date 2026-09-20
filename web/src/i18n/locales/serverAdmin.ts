@@ -471,6 +471,8 @@ const serverAdmin = {
       account_recovery_email_requested: 'Recovery-E-Mail angefordert',
       account_recovery_issued: 'Betreiber-Recovery erzeugt',
       account_deletion_requested: 'Kontolöschung angefordert',
+      account_deletion_completed: 'Kontolöschung abgeschlossen',
+      account_deletion_failed: 'Kontolöschung fehlgeschlagen',
       space_entitlement_granted: 'Space-Berechtigung vergeben',
       space_entitlement_revoked: 'Space-Berechtigung widerrufen',
     },

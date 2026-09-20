@@ -182,17 +182,23 @@ def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
                 ).scalars()
             )
             assert retained_statuses == {"ACTIVE", "LEFT"}
+
+        # The database contract must never block Account lifecycle cleanup or
+        # transfer authority implicitly. Hard deletion is not the application
+        # lifecycle today; this direct delete deliberately exercises only the
+        # migration's ON DELETE SET NULL foreign-key behavior.
+        with engine.begin() as connection:
+            connection.execute(
+                sa.text("DELETE FROM accounts WHERE id = :id"), {"id": single_ended_account}
+            )
+            assert _configuration_manager(connection, single_ended_space) is None
+
     finally:
-        try:
-            with engine.begin() as connection:
-                for space_id in space_ids:
-                    connection.execute(
-                        sa.text("DELETE FROM spaces WHERE id = :id"), {"id": space_id}
-                    )
-                for account_id in account_ids:
-                    connection.execute(
-                        sa.text("DELETE FROM accounts WHERE id = :id"), {"id": account_id}
-                    )
-        except Exception:
-            pass
+        with engine.begin() as connection:
+            for space_id in space_ids:
+                connection.execute(sa.text("DELETE FROM spaces WHERE id = :id"), {"id": space_id})
+            for account_id in account_ids:
+                connection.execute(
+                    sa.text("DELETE FROM accounts WHERE id = :id"), {"id": account_id}
+                )
         alembic.command.upgrade(config, "head")

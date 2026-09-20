@@ -317,6 +317,12 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("deploy/self-hosted-release.env.example", bundle_step)
         self.assertIn("scripts/self_hosted_release.py", bundle_step)
         self.assertIn("scripts/check_runtime_environment.py", bundle_step)
+        self.assertIn(
+            'cp -- release-evidence/self-hosted-image-identity.json \\\n'
+            '            "$bundle_root/self-hosted-image-identity.json"',
+            bundle_step,
+        )
+        self.assertIn("${bundle_name}/self-hosted-image-identity.json", bundle_step)
         self.assertIn("--sort=name", bundle_step)
         self.assertIn("--mtime='UTC 1970-01-01'", bundle_step)
         self.assertIn("--owner=0 --group=0 --numeric-owner", bundle_step)

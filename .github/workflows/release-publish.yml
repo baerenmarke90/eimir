@@ -1081,6 +1081,10 @@ jobs:
             "$bundle_root/scripts/self_hosted_release.py"
           cp -- scripts/check_runtime_environment.py \
             "$bundle_root/scripts/check_runtime_environment.py"
+          # The published identity is the trust root of the in-manifest release guard
+          # and of the launcher; it replaces the source-checkout placeholder.
+          cp -- release-evidence/self-hosted-image-identity.json \
+            "$bundle_root/self-hosted-image-identity.json"
 
           cat > "$RUNNER_TEMP/expected-self-hosted-bundle.txt" <<EOF
           ${bundle_name}/
@@ -1090,6 +1094,7 @@ jobs:
           ${bundle_name}/scripts/
           ${bundle_name}/scripts/check_runtime_environment.py
           ${bundle_name}/scripts/self_hosted_release.py
+          ${bundle_name}/self-hosted-image-identity.json
           EOF
 
           tar --sort=name \
@@ -1145,8 +1150,10 @@ jobs:
 
           `eimir-self-hosted-v${RELEASE_VERSION}.tar.gz` is the deterministic
           source-free operator bundle for released Self-Hosted installation. It contains
-          canonical Compose, the release env template, mandatory Production launcher and
-          runtime identity checker; application source is not included or built on target.
+          canonical Compose, the release env template, mandatory Production launcher,
+          runtime identity checker and the published image identity that the in-manifest
+          release guard and the launcher both trust; application source is not included
+          or built on target.
 
           Application rollback selects the previous immutable release only. It does not
           imply database rollback; schema compatibility, forward-fix and restore remain

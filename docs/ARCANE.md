@@ -19,19 +19,22 @@ topology:
 
 - Development may build local images from Git with
   `scripts/build_self_hosted_source.py` and use local tags with pull disabled;
-- released Production consumes published versioned/digest-qualified GHCR images and is
-  validated/operated through `scripts/self_hosted_release.py`;
+- released Production consumes published digest-qualified GHCR images and is gated by
+  the `release-guard` service inside that same manifest (Arcane Deploy/Redeploy), with
+  `scripts/self_hosted_release.py` as the equivalent shell entry point;
 - services, volumes, networks, health checks and startup dependencies remain one
   canonical contract.
 
 Normal Self-Hosted ordering is:
 
 ```text
-postgres -> migrate -> api/worker -> web
+postgres -> release-guard -> migrate -> api/worker -> web
 ```
 
-`demo-init` is an explicit Demo-only lifecycle service and is not part of normal
-Self-Hosted startup. Run it on demand with
+`release-guard` and `deletion-authority-bootstrap` are described under
+[Released Production in Arcane](#released-production-in-arcane). `demo-init` is an
+explicit Demo-only lifecycle service and is not part of normal Self-Hosted startup. Run
+it on demand with
 `docker compose --profile self-hosted --profile demo run --rm demo-init`; do not add
 `demo` to the project's default profiles (see [`DEMO-SPACE.md`](DEMO-SPACE.md)).
 
@@ -77,85 +80,164 @@ import the Production environment wholesale.
 
 ## Released Production in Arcane
 
+Released Production is managed from Arcane without a host shell. The operator path is:
+
+```text
+configure -> bootstrap once -> deploy / update
+```
+
 Released Production must **not** use remote Git build contexts as its deployment
-identity and must not build backend/Web source on the Docker host.
+identity and must not build backend/Web source on the Docker host. It uses the
+canonical `compose.yaml` from the selected immutable GitHub Release and published GHCR
+images only. Arcane's plain **Deploy** and **Redeploy** are supported: the release
+checks live inside that `compose.yaml`, so they run on every deployment path.
 
-Use the Self-Hosted operator bundle attached to the selected GitHub Release. It contains:
+### How the release gate works
 
-- `compose.yaml`;
-- `deploy/self-hosted-release.env.example`;
-- `scripts/self_hosted_release.py`;
-- `scripts/check_runtime_environment.py`.
+`compose.yaml` contains a `release-guard` one-shot that runs from the selected backend
+image and that `migrate` waits for. `api`, `worker` and `web` transitively wait for
+`migrate`, so no application container of a refused release starts and no migration runs
+unless the guard passes.
 
-Copy the release env template to `.env` and select the published product version:
+**Trust root.** The guard mounts the release's published `self-hosted-image-identity.json`
+read-only (`./self-hosted-image-identity.json` next to `compose.yaml`; the operator bundle
+ships it, a source checkout only ships an unreleased placeholder that is refused). It is
+the same file, with the same checks, that the launcher reads. The expected images are read
+from that record, never from the values being checked. With `EIMIR_ENVIRONMENT=production`
+the guard refuses:
 
-```dotenv
-COMPOSE_PROFILES=self-hosted
-EIMIR_ENVIRONMENT=production
-EIMIR_RELEASE_VERSION=X.Y.Z
-```
+- a missing or non-SemVer `EIMIR_RELEASE_VERSION`, or one that differs from the identity's
+  product version;
+- an identity that is missing, unreadable, malformed, not a published Self-Hosted
+  identity, or internally inconsistent (tag/version, digest/reference, roles);
+- a backend or Web image reference that is not **exactly** the reference recorded in the
+  identity: a tag-only, `latest`, local or source tag, another namespace, a swapped role
+  and a well-formed, digest-pinned reference with a different digest are all refused;
+- a `pull_policy` other than `always`;
+- a missing or malformed `EIMIR_ACCOUNT_DELETION_INSTANCE_ID`;
+- an active `bootstrap` profile next to the runtime (see the bootstrap section).
 
-The canonical manifest resolves the matching versioned images. For exact transport
-locking, use the digest-qualified references from the same release asset
-`self-hosted-image-identity.json`:
+**Explicit environment.** The guard only accepts an explicit `EIMIR_ENVIRONMENT`.
+`production` runs every check. `development`, `test` and `demo` are separate operator
+identities and are not gated. An **unset or unknown** value (including `Production`) is
+refused, so a Production project that lost its `EIMIR_ENVIRONMENT` cannot degrade to
+Development. Development projects therefore set `EIMIR_ENVIRONMENT=development`
+explicitly, as `.env.example` and `deploy/persistent-development.env.example` do.
 
-```dotenv
-EIMIR_SELF_HOSTED_BACKEND_IMAGE=ghcr.io/baerenmarke90/eimir-backend:vX.Y.Z@sha256:<digest>
-EIMIR_SELF_HOSTED_WEB_IMAGE=ghcr.io/baerenmarke90/eimir-web:vX.Y.Z@sha256:<digest>
-```
+The refusal is a failed `release-guard` container: read its log in Arcane. There are no
+application `build:` fallbacks in the manifest and no source-build path.
 
-Both overrides must still match `EIMIR_RELEASE_VERSION`. Production keeps pull enabled. A
-missing registry image is a deployment failure, not permission to compile local source.
+### 1. Configure
 
-### Production entry point
+1. Verify the release: `gh release verify "vX.Y.Z" --repo baerenmarke90/eimir`.
+2. Create an Arcane project (for example `eimir-production`, separate from Development
+   and Demo) from the release bundle `eimir-self-hosted-vX.Y.Z.tar.gz`. This does not
+   require a shell on the Docker host: extract/download the bundle on the operator
+   workstation, paste `compose.yaml` into Arcane's **Create Project** Compose editor,
+   open **Workspace** before the first deploy, and upload
+   `self-hosted-image-identity.json` beside it. Arcane stores both as project files.
+   Do not edit either release file. Compose refuses to create the guard when the identity
+   file is missing.
+3. Start the project environment from `deploy/self-hosted-release.env.example` and set
+   the instance values (database password, public origin, allowed hosts, cursor signing
+   key, mail, storage).
+4. Select the release with three values. Copy both references verbatim from the
+   `self-hosted-image-identity.json` of the same release (the guard compares them with
+   it):
 
-Do not configure Arcane to replace the release validation with a raw Compose startup.
-The supported Production sequence is executed from the extracted release bundle:
+   ```dotenv
+   EIMIR_RELEASE_VERSION=X.Y.Z
+   EIMIR_SELF_HOSTED_BACKEND_IMAGE=ghcr.io/baerenmarke90/eimir-backend:vX.Y.Z@sha256:<digest>
+   EIMIR_SELF_HOSTED_WEB_IMAGE=ghcr.io/baerenmarke90/eimir-web:vX.Y.Z@sha256:<digest>
+   ```
+
+   Keep `EIMIR_ENVIRONMENT=production`; leave `EIMIR_SELF_HOSTED_PULL_POLICY` unset.
+
+### 2. Bootstrap once (new installation only)
+
+Only for a project that has **never had an Account-deletion authority**:
+
+1. Leave `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` empty and set `COMPOSE_PROFILES=bootstrap`
+   (**only** `bootstrap`).
+2. **Deploy** the project. This starts the single one-shot
+   `deletion-authority-bootstrap` from the release backend image: it applies the same
+   release checks as the guard, creates the forward journal in `deletion_journal_data`,
+   and prints `EIMIR_ACCOUNT_DELETION_INSTANCE_ID=<uuid>` in its log.
+3. Store exactly that value in the Arcane project environment and in the protected
+   operator configuration backup. Never generate the UUID yourself.
+4. Set `COMPOSE_PROFILES=self-hosted` and continue with **Deploy**.
+
+Behavior, all fail-closed and covered by tests:
+
+| State | Result |
+|---|---|
+| Normal `self-hosted` Deploy/Redeploy | The bootstrap service is not part of the project and nothing depends on it; it never runs |
+| `bootstrap` alone, no instance ID, no journal | Journal and ID are created once |
+| `bootstrap` with an instance ID set | Refused: an established authority is never replaced |
+| `bootstrap` with a journal present (also when the ID was lost) | Refused; recovery, not bootstrap: follow `ACCOUNT-DELETION-SELF-HOSTED.md` |
+| `bootstrap` together with `self-hosted` in `COMPOSE_PROFILES` | Both halves refuse (the bootstrap must run alone; the guard refuses the runtime) |
+| `self-hosted` without an instance ID | `release-guard` refuses and points to the bootstrap |
+| Instance ID set but journal missing/corrupt | The API refuses to serve; restore the protected journal |
+
+The mixed-profile refusal reads `COMPOSE_PROFILES`, which is how Arcane selects profiles.
+Compose `--profile` command-line flags are not visible inside a container, so a shell
+operator who combines both flags is not caught by that check; the bootstrap still refuses
+whenever an instance ID or journal exists, so no second authority can be created.
+
+### 3. Deploy and update
+
+**Deploy** the project with `COMPOSE_PROFILES=self-hosted`. Arcane pulls the pinned
+digests; the guard runs; then the sequence is
+`postgres -> release-guard -> migrate -> api/worker -> web`.
+
+What is guaranteed: no unsafe **new** application release starts successfully, migrations
+run only after the guard passed, and data volumes are never removed by an ordinary
+deploy/update.
+
+What is not guaranteed: plain Compose replaces changed containers **before** it
+evaluates their dependency gates. A refused or failed **Redeploy** can therefore leave
+the previous release's `api`/`worker`/`web` stopped or replaced by a container that never
+started, so availability is lost until the configuration is corrected (data untouched).
+Correct the values, or restore the previous release's three values, and Redeploy again.
+When the running release must keep serving while a refused migration or release is
+rejected, use the launcher `deploy` (see below): it validates and runs `migrate` before
+it replaces anything.
+
+To move to a newer immutable release, replace the project's `compose.yaml` with the new
+release's copy in Arcane's Compose editor and replace
+`self-hosted-image-identity.json` through **Workspace → Upload File**. Then change the
+three release values and **Redeploy**. No Docker-host shell is required. Any mismatch
+between the version, the two references and the identity file is refused. Rollback is the
+same operation with an older release; a release older than the database schema is refused
+by `migrate` (see `SELF-HOSTING.md`).
+
+| Situation | Result |
+|---|---|
+| Release image or digest missing, private or not pullable | Arcane's pull fails; there is no source-build fallback |
+| Identity file missing | Compose refuses to create `release-guard`; nothing of the release starts |
+| Tag-only, `latest`, local, different-digest or mismatched image reference | `release-guard` fails, `migrate` never starts |
+| Version, references and identity file disagree | `release-guard` fails |
+| `EIMIR_ENVIRONMENT` unset or unknown | `release-guard` fails |
+
+### Shell-based alternative
+
+The extracted bundle also contains the direct launcher, which stays supported for
+operators who prefer a shell. It reads the same `self-hosted-image-identity.json`, fills
+in the two references itself, validates before it pulls, and is the only path that runs
+`migrate` before replacing running containers:
 
 ```bash
 python3 scripts/self_hosted_release.py --env-file .env validate
 python3 scripts/self_hosted_release.py --env-file .env deploy
+python3 scripts/self_hosted_release.py --env-file .env bootstrap-deletion-authority
 ```
 
-For a brand-new installation, the deletion authority must first be created through the
-same launcher; see the next section.
-
-Arcane may use its task/command facility to run the launcher on the Docker host before
-or as the deployment action, but that facility must preserve the exact `.env`, project
-name, Docker context and release-bundle files. The launcher's image/version guard is a
-required part of Production promotion, not an optional diagnostic.
+It uses the same `compose.yaml`, mounts the identity file it validated into the same
+in-manifest guard, and so both paths judge one set of bytes. Do not point Arcane at a
+Compose file that has the `release-guard` service removed or edited.
 
 After deployment, run `scripts/deployment_smoke.py` against the public origin with the
 exact source SHA from the published release manifest.
-
-## Account-deletion authority bootstrap
-
-For an Arcane Production project that has **never had an Account-deletion authority**,
-leave `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` unset and run:
-
-```bash
-python3 scripts/self_hosted_release.py --env-file .env pull
-python3 scripts/self_hosted_release.py \
-  --env-file .env \
-  bootstrap-deletion-authority
-```
-
-The launcher first validates the selected release-image identity and pulls the released
-API image. The bootstrap command then creates the forward journal and prints the stable
-`EIMIR_ACCOUNT_DELETION_INSTANCE_ID`.
-
-Store exactly that emitted value in the Arcane project environment and protected
-operator configuration backup. Never generate the UUID independently. After updating
-`.env`, run:
-
-```bash
-python3 scripts/self_hosted_release.py --env-file .env deploy
-```
-
-If the project already had an authority and its journal is missing/corrupt, this is a
-recovery failure, not a bootstrap opportunity. Do not clear the instance ID or initialize
-a replacement journal; follow `ACCOUNT-DELETION-SELF-HOSTED.md` and recover the newest
-protected journal.
 
 ## Runtime environment and container recreation
 
@@ -163,8 +245,11 @@ Compose interpolation precedence matters: an explicitly defined process variable
 including an empty value, overrides `.env`. Arcane project variables must therefore not
 contain stale/blank duplicates of non-empty runtime settings.
 
-The released launcher refuses a process `EIMIR_ENVIRONMENT` that drifts away from the
-Production dotenv and validates application image identity before pull/start.
+Because Arcane project variables reach Compose as process-level values, a stale
+`EIMIR_ENVIRONMENT` or image variable there wins over the project `.env`. The in-manifest
+guard judges exactly the values Compose renders, so such drift is refused rather than
+silently deployed. The launcher additionally refuses a process `EIMIR_ENVIRONMENT` that
+drifts away from the Production dotenv.
 
 The shared runtime guard can additionally inspect rendered/running configuration from a
 checkout or extracted release bundle:
@@ -184,9 +269,9 @@ For Production it rejects unsafe application image identity such as `latest`,
 branch/local source tags, missing/mismatched `EIMIR_RELEASE_VERSION`, backend-role
 divergence, application `build:` fallback or disabled pulling.
 
-After changing runtime settings, use the released launcher `deploy`; it force-recreates
-affected runtime containers without deleting named volumes. Do not use an Arcane option
-that removes `deletion_journal_data`, `postgres_data`, or `media_data` during an ordinary
+After changing runtime settings, use Arcane **Redeploy** (or the launcher `deploy`); both
+recreate affected runtime containers without deleting named volumes. Do not use an Arcane
+option that removes `deletion_journal_data`, `postgres_data`, or `media_data` during an ordinary
 configuration/application update.
 
 After recreation, runtime inspection remains available:

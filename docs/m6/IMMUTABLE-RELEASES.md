@@ -235,6 +235,8 @@ After protected environment approval it:
     - `deploy/self-hosted-release.env.example`;
     - `scripts/self_hosted_release.py`;
     - `scripts/check_runtime_environment.py`;
+    - `self-hosted-image-identity.json`, the published identity written in step 8, which
+      the in-manifest release guard and the launcher both read as their trust root;
 11. writes/verifies final checksums and release notes.
 
 The bundle contains no backend/Web application source and no credentials. It is the

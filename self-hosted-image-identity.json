@@ -1,0 +1,5 @@
+{
+  "kind": "eimir-self-hosted-image-identity",
+  "schemaVersion": 1,
+  "unreleased": "Source checkout placeholder, refused by the Production release guard and the launcher. The Self-Hosted operator bundle of an immutable release ships the published identity in its place."
+}

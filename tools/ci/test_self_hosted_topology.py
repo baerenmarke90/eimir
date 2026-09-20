@@ -9,8 +9,10 @@ assert behavior of the *rendered* topology rather than strings in the YAML:
 * API, worker and migrate share exactly one backend image but remain separate
   processes with their own lifecycle;
 * normal startup order is ``postgres -> migrate -> api/worker -> web`` and never
-  depends on ``demo-init``;
-* Demo initialization exists only behind the additive ``demo`` profile;
+  depends on ``demo-init``; the one-shot ``release-guard`` gates ``migrate`` and
+  therefore every runtime service (see ``test_arcane_release_guard.py``);
+* Demo initialization exists only behind the additive ``demo`` profile and the
+  one-time deletion-authority bootstrap only behind the additive ``bootstrap`` one;
 * every service has one explicit keep/demo-only decision that the Self-Hosting
   runbook documents.
 """
@@ -36,13 +38,15 @@ SELF_HOSTING_DOC = ROOT / "docs/SELF-HOSTING.md"
 # carry the same table; ``DocumentedDecisionTest`` keeps both in sync.
 TOPOLOGY_DECISIONS = {
     "postgres": "KEEP",
+    "release-guard": "KEEP",
     "migrate": "KEEP",
     "demo-init": "DEMO-ONLY",
+    "deletion-authority-bootstrap": "BOOTSTRAP-ONLY",
     "api": "KEEP",
     "worker": "KEEP",
     "web": "KEEP",
 }
-RELEASE_SERVICES = {"postgres", "migrate", "api", "worker", "web"}
+RELEASE_SERVICES = {"postgres", "release-guard", "migrate", "api", "worker", "web"}
 BACKEND_ROLES = ("api", "worker", "migrate")
 DEPLOYMENT_ENVIRONMENT_PREFIXES = ("EIMIR_", "SBS_", "COMPOSE_", "POSTGRES_", "API_", "WEB_")
 
@@ -223,13 +227,15 @@ class RuntimeLifecycleContractTest(unittest.TestCase):
     def test_startup_order_is_database_migration_runtime_web(self) -> None:
         self.assertEqual(
             _startup_order(self.services),
-            [{"postgres"}, {"migrate"}, {"api", "worker"}, {"web"}],
+            [{"postgres", "release-guard"}, {"migrate"}, {"api", "worker"}, {"web"}],
         )
 
     def test_dependency_conditions_are_strict(self) -> None:
         self.assertEqual(_depends_on(self.services["postgres"]), {})
+        self.assertEqual(_depends_on(self.services["release-guard"]), {})
         self.assertEqual(
-            _depends_on(self.services["migrate"]), {"postgres": "service_healthy"}
+            _depends_on(self.services["migrate"]),
+            {"postgres": "service_healthy", "release-guard": "service_completed_successfully"},
         )
         for role in ("api", "worker"):
             self.assertEqual(
@@ -254,6 +260,11 @@ class RuntimeLifecycleContractTest(unittest.TestCase):
         self.assertEqual(
             set(self.services["migrate"]["environment"]), {"EIMIR_DATABASE_URL"}
         )
+
+    def test_one_shots_never_restart_themselves(self) -> None:
+        for name in ("release-guard", "migrate"):
+            with self.subTest(service=name):
+                self.assertEqual(self.services[name]["restart"], "no")
 
     def test_long_running_services_restart_and_migration_does_not(self) -> None:
         for name in ("postgres", "api", "worker", "web"):
@@ -331,7 +342,7 @@ class DocumentedDecisionTest(unittest.TestCase):
         rows = dict(
             (match.group(1), (match.group(2), match.group(3).strip()))
             for match in re.finditer(
-                r"(?m)^\| `([a-z-]+)` \| (KEEP|REMOVE|DEMO-ONLY|INTEGRATE) \| (.+?) \|\s*$",
+                r"(?m)^\| `([a-z-]+)` \| (KEEP|REMOVE|DEMO-ONLY|BOOTSTRAP-ONLY|INTEGRATE) \| (.+?) \|\s*$",
                 text,
             )
         )
@@ -343,7 +354,9 @@ class DocumentedDecisionTest(unittest.TestCase):
         text = COMPOSE.read_text(encoding="utf-8")
         declared = set()
         for name, decision in TOPOLOGY_DECISIONS.items():
-            profile = "demo" if decision == "DEMO-ONLY" else "self-hosted"
+            profile = {"DEMO-ONLY": "demo", "BOOTSTRAP-ONLY": "bootstrap"}.get(
+                decision, "self-hosted"
+            )
             block = re.search(
                 rf"(?ms)^  {re.escape(name)}:\n(.*?)(?=^  [A-Za-z0-9_-]+:\n|^networks:)", text
             )
@@ -353,7 +366,7 @@ class DocumentedDecisionTest(unittest.TestCase):
         every_self_hosted = {
             match.group(1)
             for match in re.finditer(
-                r'(?ms)^  ([a-z-]+):\n    profiles: \["(?:self-hosted|demo)"\]', text
+                r'(?ms)^  ([a-z-]+):\n    profiles: \["(?:self-hosted|demo|bootstrap)"\]', text
             )
         }
         self.assertEqual(every_self_hosted, declared)

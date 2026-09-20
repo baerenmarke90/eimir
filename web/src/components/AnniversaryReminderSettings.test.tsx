@@ -206,9 +206,9 @@ describe('PartnerBirthdayReminderSettings', () => {
       </QueryClientProvider>,
     );
 
-    const toggle = await screen.findByLabelText(
-      profileIdentity.partnerBirthdayReminderToggle,
-    );
+    const toggle = await screen.findByRole('checkbox', {
+      name: new RegExp(profileIdentity.partnerBirthdayReminderToggle),
+    });
     expect(
       screen.getByText(profileIdentity.partnerBirthdayReminderDay14),
     ).toBeDefined();

@@ -409,6 +409,28 @@ def test_partner_birthday_delivery_fails_closed_after_source_offboarding(
     session.flush()
     assert not runtime._source_is_eligible(session, reminder)
 
+    listed = client.get(
+        _reminder_base(couple),
+        headers=auth(couple["ben_token"]),
+    )
+    assert listed.status_code == 200
+    assert all(item["id"] != str(reminder.id) for item in listed.json()["items"])
+
+    direct = client.get(
+        f"{_reminder_base(couple)}/{reminder.id}",
+        headers=auth(couple["ben_token"]),
+    )
+    assert direct.status_code == 404
+    assert direct.json()["code"] == "REMINDER_NOT_FOUND"
+
+    preference = client.put(
+        f"{_reminder_base(couple)}/{reminder.id}/preference",
+        json={"muted": True},
+        headers=auth(couple["ben_token"]),
+    )
+    assert preference.status_code == 404
+    assert preference.json()["code"] == "REMINDER_NOT_FOUND"
+
     monkeypatch.setattr(runtime.clock, "now", lambda: occurrence.due_at)
     runtime.handle_occurrence(
         session,

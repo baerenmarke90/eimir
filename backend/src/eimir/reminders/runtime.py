@@ -36,8 +36,8 @@ from eimir.reminders.models import (
 from eimir.reminders.rules import (
     CATALOG,
     IMPORTANT_DATE_RULE,
-    PLAN_START_RULE,
     PARTNER_BIRTHDAY_RULE,
+    PLAN_START_RULE,
     RELATED_PERSON_BIRTHDAY_RULE,
     RELATIONSHIP_ANNIVERSARY_RULE,
     RuleDefinition,

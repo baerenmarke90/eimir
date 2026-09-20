@@ -905,6 +905,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("PUT", "/api/v1/server-admin/settings/maintenance"),
     ("GET", "/api/v1/server-admin/activity"),
     ("GET", "/api/v1/server-admin/activity/actions"),
+    ("GET", "/api/v1/server-admin/activity/privileged"),
     ("GET", "/api/v1/server-admin/jobs"),
     ("GET", "/api/v1/server-admin/storage"),
     ("GET", "/api/v1/server-admin/accounts"),

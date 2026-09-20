@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, literal, or_, select, union_all
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,31 @@ from eimir.administration.models import (
     InstanceAdministrationSettings,
 )
 from eimir.core.errors import ErrorCode, ForbiddenError, ServiceUnavailableError
+
+
+@dataclass(frozen=True, slots=True)
+class PrivilegedAuditRecord:
+    """One content-free privileged administration event."""
+
+    id: UUID
+    category: str
+    action: str
+    actor_id: UUID | None
+    target_account_id: UUID | None
+    target_space_id: UUID | None
+    previous_value: bool | None
+    new_value: bool | None
+    effect_count: int | None
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class PrivilegedAuditResult:
+    items: tuple[PrivilegedAuditRecord, ...]
+    total: int
+
+
+DESTRUCTIVE_ACTIONS = frozenset({AdministrationAction.ACCOUNT_DELETION_REQUESTED.value})
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,4 +187,139 @@ def recent_action_events(
         )
         .scalars()
         .all()
+    )
+
+
+def privileged_audit_events(
+    session: Session,
+    *,
+    category: str = "all",
+    action: str | None = None,
+    actor_id: UUID | None = None,
+    target_id: UUID | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    limit: int = 25,
+    offset: int = 0,
+) -> PrivilegedAuditResult:
+    """Return one privacy-safe, paginated projection across both audit stores."""
+
+    branches = []
+
+    include_settings = category in {"all", "settings"} and target_id is None
+    if include_settings:
+        settings_conditions = []
+        if action is not None:
+            settings_conditions.append(InstanceAdministrationEvent.setting == action)
+        if actor_id is not None:
+            settings_conditions.append(InstanceAdministrationEvent.actor_id == actor_id)
+        if created_from is not None:
+            settings_conditions.append(InstanceAdministrationEvent.created_at >= created_from)
+        if created_to is not None:
+            settings_conditions.append(InstanceAdministrationEvent.created_at <= created_to)
+
+        settings_query = select(
+            InstanceAdministrationEvent.id.label("id"),
+            literal("settings").label("category"),
+            InstanceAdministrationEvent.setting.label("action"),
+            InstanceAdministrationEvent.actor_id.label("actor_id"),
+            literal(None).label("target_account_id"),
+            literal(None).label("target_space_id"),
+            InstanceAdministrationEvent.previous_value.label("previous_value"),
+            InstanceAdministrationEvent.new_value.label("new_value"),
+            literal(None).label("effect_count"),
+            InstanceAdministrationEvent.created_at.label("created_at"),
+        )
+        if settings_conditions:
+            settings_query = settings_query.where(*settings_conditions)
+        branches.append(settings_query)
+
+    if category in {"all", "accounts", "spaces", "destructive"}:
+        action_conditions = []
+        if action is not None:
+            action_conditions.append(InstanceAdministrationActionEvent.action == action)
+        if actor_id is not None:
+            action_conditions.append(InstanceAdministrationActionEvent.actor_id == actor_id)
+        if target_id is not None:
+            action_conditions.append(
+                or_(
+                    InstanceAdministrationActionEvent.target_account_id == target_id,
+                    InstanceAdministrationActionEvent.target_space_id == target_id,
+                )
+            )
+        if created_from is not None:
+            action_conditions.append(InstanceAdministrationActionEvent.created_at >= created_from)
+        if created_to is not None:
+            action_conditions.append(InstanceAdministrationActionEvent.created_at <= created_to)
+
+        if category == "accounts":
+            action_conditions.extend(
+                (
+                    InstanceAdministrationActionEvent.target_account_id.is_not(None),
+                    InstanceAdministrationActionEvent.action.not_in(DESTRUCTIVE_ACTIONS),
+                )
+            )
+        elif category == "spaces":
+            action_conditions.append(InstanceAdministrationActionEvent.target_space_id.is_not(None))
+        elif category == "destructive":
+            action_conditions.append(
+                InstanceAdministrationActionEvent.action.in_(DESTRUCTIVE_ACTIONS)
+            )
+
+        action_category = case(
+            (
+                InstanceAdministrationActionEvent.action.in_(DESTRUCTIVE_ACTIONS),
+                literal("destructive"),
+            ),
+            (
+                InstanceAdministrationActionEvent.target_space_id.is_not(None),
+                literal("spaces"),
+            ),
+            else_=literal("accounts"),
+        ).label("category")
+        actions_query = select(
+            InstanceAdministrationActionEvent.id.label("id"),
+            action_category,
+            InstanceAdministrationActionEvent.action.label("action"),
+            InstanceAdministrationActionEvent.actor_id.label("actor_id"),
+            InstanceAdministrationActionEvent.target_account_id.label("target_account_id"),
+            InstanceAdministrationActionEvent.target_space_id.label("target_space_id"),
+            literal(None).label("previous_value"),
+            literal(None).label("new_value"),
+            InstanceAdministrationActionEvent.effect_count.label("effect_count"),
+            InstanceAdministrationActionEvent.created_at.label("created_at"),
+        )
+        if action_conditions:
+            actions_query = actions_query.where(*action_conditions)
+        branches.append(actions_query)
+
+    if not branches:
+        return PrivilegedAuditResult(items=(), total=0)
+
+    combined = branches[0].subquery() if len(branches) == 1 else union_all(*branches).subquery()
+    total = session.execute(select(func.count()).select_from(combined)).scalar_one()
+    rows = session.execute(
+        select(combined)
+        .order_by(combined.c.created_at.desc(), combined.c.id.desc())
+        .limit(limit)
+        .offset(offset)
+    ).mappings()
+
+    return PrivilegedAuditResult(
+        items=tuple(
+            PrivilegedAuditRecord(
+                id=row["id"],
+                category=row["category"],
+                action=row["action"],
+                actor_id=row["actor_id"],
+                target_account_id=row["target_account_id"],
+                target_space_id=row["target_space_id"],
+                previous_value=row["previous_value"],
+                new_value=row["new_value"],
+                effect_count=row["effect_count"],
+                created_at=row["created_at"],
+            )
+            for row in rows
+        ),
+        total=total,
     )

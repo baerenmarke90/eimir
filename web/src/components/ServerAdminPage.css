@@ -316,6 +316,24 @@
   gap: var(--space-2);
 }
 
+.server-admin-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(10rem, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+  align-items: end;
+}
+
+.server-admin-audit-filters label,
+.server-admin-page-size {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-audit-filters button {
+  justify-self: start;
+}
+
 .server-admin-account-filters label > span,
 .server-admin-inline-confirmation label {
   color: var(--color-text-secondary);
@@ -497,5 +515,15 @@
 
   .server-admin-pagination {
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 48rem) {
+  .server-admin-audit-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .server-admin-pagination {
+    flex-wrap: wrap;
   }
 }

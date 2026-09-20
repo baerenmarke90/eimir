@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
-import type { ServerAdminActionActivityItem } from '../api/generated/models/ServerAdminActionActivityItem';
 import { normalizeClientError } from '../client/problemDetails';
 import { isRecentAuthRequired } from '../client/recentAuthentication';
+import { SERVER_ADMIN_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
 import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
@@ -32,78 +33,6 @@ function authMethodLabel(method: string): string {
     default:
       return method;
   }
-}
-
-function actionLabel(action: string, t: (key: string) => string): string {
-  switch (action) {
-    case 'account_suspended':
-      return t('serverAdmin.accounts.audit.suspended');
-    case 'account_unsuspended':
-      return t('serverAdmin.accounts.audit.unsuspended');
-    case 'account_sessions_revoked':
-      return t('serverAdmin.accounts.audit.sessionsRevoked');
-    case 'account_email_verified':
-      return t('serverAdmin.accounts.audit.emailVerified');
-    case 'account_recovery_email_requested':
-      return t('serverAdmin.accounts.audit.recoveryEmail');
-    case 'account_recovery_issued':
-      return t('serverAdmin.accounts.audit.operatorRecovery');
-    case 'account_deletion_requested':
-      return t('serverAdmin.accounts.audit.deletionRequested');
-    default:
-      return t('serverAdmin.accounts.audit.unknown');
-  }
-}
-
-function ActionAudit({ items }: { items: ServerAdminActionActivityItem[] }) {
-  const { t } = useTranslation();
-  return (
-    <section
-      className="server-admin-panel server-admin-panel-wide"
-      aria-labelledby="server-account-audit-title"
-    >
-      <h2 id="server-account-audit-title">
-        {t('serverAdmin.accounts.audit.title')}
-      </h2>
-      <p className="server-admin-muted">
-        {t('serverAdmin.accounts.audit.body')}
-      </p>
-      {items.length === 0 ? (
-        <p className="server-admin-muted">
-          {t('serverAdmin.accounts.audit.empty')}
-        </p>
-      ) : (
-        <div className="server-admin-table-scroll">
-          <table className="server-admin-table">
-            <thead>
-              <tr>
-                <th scope="col">{t('serverAdmin.accounts.audit.action')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.target')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.actor')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.effect')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.time')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>{actionLabel(item.action, t)}</td>
-                  <td className="server-admin-actor-id">
-                    {item.targetAccountId ?? '–'}
-                  </td>
-                  <td className="server-admin-actor-id">
-                    {item.actorId ?? t('serverAdmin.activity.systemActor')}
-                  </td>
-                  <td>{item.effectCount ?? '–'}</td>
-                  <td>{formatDate(item.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
 }
 
 type PendingPrivilegedAction =
@@ -141,9 +70,6 @@ function AccountDetail({
     });
     void queryClient.invalidateQueries({
       queryKey: ['server-admin', 'overview'],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['server-admin', 'action-activity'],
     });
     onChanged();
   };
@@ -574,12 +500,6 @@ export function ServerAdminAccountsPanel({
     enabled: selectedAccountId !== null,
     retry: false,
   });
-  const actionActivityQuery = useQuery({
-    queryKey: ['server-admin', 'action-activity'],
-    queryFn: () =>
-      api.getServerAdminActionActivityApiV1ServerAdminActivityActionsGet(),
-    retry: false,
-  });
 
   function changeFilter(setter: (value: never) => void, value: string): void {
     setOffset(0);
@@ -809,21 +729,18 @@ export function ServerAdminAccountsPanel({
         ) : null}
       </section>
 
-      {actionActivityQuery.isPending ? (
-        <section className="server-admin-panel server-admin-panel-wide">
-          <p className="server-admin-muted">
-            {t('serverAdmin.accounts.audit.loading')}
-          </p>
-        </section>
-      ) : actionActivityQuery.error ? (
-        <section className="server-admin-panel server-admin-panel-wide">
-          <p className="status status-error" role="alert">
-            {t('serverAdmin.accounts.audit.error')}
-          </p>
-        </section>
-      ) : actionActivityQuery.data ? (
-        <ActionAudit items={actionActivityQuery.data} />
-      ) : null}
+      <section className="server-admin-panel server-admin-panel-wide">
+        <h2>{t('serverAdmin.accounts.audit.title')}</h2>
+        <p className="server-admin-muted">
+          {t('serverAdmin.accounts.audit.body')}
+        </p>
+        <Link
+          className="secondary-link"
+          to={`${SERVER_ADMIN_ROUTE}?section=activity&category=accounts`}
+        >
+          {t('serverAdmin.accounts.audit.openUnified')}
+        </Link>
+      </section>
     </>
   );
 }

@@ -104,6 +104,51 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertIn("docker image save", self.workflow)
         self.assertIn("docker-archive:", self.workflow)
 
+    def test_release_evidence_declares_android_channel_explicitly(self) -> None:
+        self.assertIn("include_android:", self.workflow)
+        self.assertIn("INCLUDE_ANDROID:", self.workflow)
+        self.assertIn('"included": True', self.workflow)
+        self.assertIn('"included": False', self.workflow)
+        self.assertIn('"signing": "not-applicable"', self.workflow)
+        self.assertIn(
+            "Android-excluded evidence must not provide Android URL/version inputs",
+            self.workflow,
+        )
+
+    def test_android_build_and_attestation_are_conditional(self) -> None:
+        android_steps = (
+            "Set up Node.js 24.21.0",
+            "Set up JDK 21",
+            "Set up Gradle cache and validate wrapper",
+            "Verify pinned Gradle wrapper JAR",
+            "Install Android SDK 36",
+            "Build and sync Capacitor web bundle",
+            "Build unsigned Android release artifacts",
+            "Verify APK and AAB packaging and runtime configuration",
+            "Verify APK badging",
+        )
+        for step_name in android_steps:
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: env.INCLUDE_ANDROID == 'true'", step)
+        for step_name in ("Attest Android APK", "Attest Android AAB"):
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: inputs.include_android || github.event_name == 'pull_request'", step)
+
+    def test_core_evidence_remains_unconditional(self) -> None:
+        for step_name in ("Build backend runtime image archive", "Build Web runtime image archive"):
+            step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+            self.assertNotIn("INCLUDE_ANDROID", step)
+        self.assertIn(
+            'verify_subject release-evidence/backend-runtime.image.tar backend-runtime',
+            self.workflow,
+        )
+        self.assertIn(
+            'verify_subject release-evidence/web-runtime.image.tar web-runtime',
+            self.workflow,
+        )
+
     def test_runtime_images_carry_oci_identity_labels(self) -> None:
         """Each runtime image names its own source revision and release version (#827).
 

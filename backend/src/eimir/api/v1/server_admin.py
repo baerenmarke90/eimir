@@ -1103,6 +1103,36 @@ def revoke_server_admin_account_sessions(
 
 
 @router.post(
+    "/accounts/{accountId}/email-verification/request",
+    status_code=202,
+    response_class=Response,
+    responses=problem_responses(401, 403, 404, 422, 429, 503),
+)
+def request_server_admin_account_email_verification(
+    _: CurrentServerAdmin,
+    session: DbSession,
+    account_id: Annotated[str, Path(alias="accountId")],
+) -> Response:
+    target = account_operations.require_account(session, _parse_account_id(account_id))
+    if not target.is_active:
+        raise ValidationError(
+            "A suspended Account must be unsuspended before email verification.",
+            account_operations.ServerAdminAccountErrorCode.ACCOUNT_DISABLED,
+        )
+    primary = account_operations.primary_email(session, target.id)
+    if primary is None:
+        raise ValidationError(
+            "This Account has no primary email address.",
+            account_operations.ServerAdminAccountErrorCode.EMAIL_NOT_FOUND,
+        )
+    if primary.verified_at is not None:
+        return Response(status_code=202)
+
+    cloud.request_email_verification(session, target, mail=mail_sender())
+    return Response(status_code=202)
+
+
+@router.post(
     "/accounts/{accountId}/emails/{accountEmailId}/verify",
     response_model=ServerAdminAccountEmail,
     responses=problem_responses(401, 403, 404, 422),

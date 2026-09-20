@@ -4,7 +4,7 @@
 
 As of: September 20, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
-Current gate status: **M0-M5 are complete for their intended scope and G1-G4 have passed. M6 implementation and integrated G5 evidence are substantially delivered. The 2026-09-20 #525 review evaluates release `v0.1.1` for Web + Self-Hosted and keeps G5 BLOCKED solely on the required protected-publication approval control tracked by #1123.**
+Current gate status: **M0-M6 are complete for their intended scope and G1-G5 have passed. The final 2026-09-20 #525 closure certifies immutable release `v0.1.2` for Web + Self-Hosted after the required `production-release` approval boundary was exercised and verified.**
 
 > **Architecture note (ADR 0011 / #1005 / #1009):** the Web/Android parity, "complete Android client" and "across Web and Android" wording in the milestone records below is historical M5/G4 terminology. It describes work accepted before the Kotlin/Compose client was retired and does not require a second product UI: the canonical Web UI is the only product UI, and Android ships it through the Capacitor wrapper in `android/`. See [Capacitor Android Foundation](CAPACITOR-ANDROID-FOUNDATION.md).
 
@@ -13,7 +13,7 @@ Current gate status: **M0-M5 are complete for their intended scope and G1-G4 hav
 - **Binding source:** [Clean-Room Master Specification](../specification/CLEAN-ROOM-MASTER-SPEC.md)
 - **Compact product overview:** [PRODUCT-SPEC.md](../specification/PRODUCT-SPEC.md)
 - **Current forward roadmap decision:** [ADR 0006](decisions/0006-release-before-optional-expansion.md)
-- **Latest launch gate decision:** [G5 gate review — 2026-09-20](m6/G5-GATE-REVIEW-2026-09-20.md) — **BLOCKED** by #1123; #525 remains open until that focused release-governance blocker is resolved.
+- **Latest launch gate decision:** [G5 final closure — v0.1.2 — 2026-09-20](m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md) — **PASS** for Web + Self-Hosted. The earlier blocked `v0.1.1` review remains retained as historical evidence.
 - **Current G5 evidence index:** [m6/G5-EVIDENCE.md](m6/G5-EVIDENCE.md) — evidence/criterion source, not a substitute for the final gate decision.
 - **Status sources and drift rules:** [STATUS-SOURCES.md](STATUS-SOURCES.md)
 - **Binding development rule:** [REUSE-BEFORE-BUILD.md](REUSE-BEFORE-BUILD.md) and [AGENTS.md](../AGENTS.md)
@@ -243,14 +243,14 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 
 - [x] M4 — Search/Dashboard, Activity/Notifications, Reminders/Rules
 - [x] **M5 — Client Completion & Parity:** complete Core productization under the historical Web/Android parity model -> **G4 passed**
-- [ ] **M6 — Operate & Launch:** implementation and integrated evidence are substantially delivered; final launch acceptance remains gated by the exact release candidate and G5 review
+- [x] **M6 — Operate & Launch:** complete for the declared Web + Self-Hosted launch scope -> **G5 passed** on immutable `v0.1.2`
   - [x] **#524 — Integrated G5 rehearsal/evidence:** completed; historical results and later deltas are retained in `docs/m6/`.
   - [x] **#914 — Release publication/provenance:** release `v0.1.0` published as an immutable GitHub Release from source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; evidence in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This does not imply that G5 has passed.
   - [x] **#915 — Promotion/rollback evidence:** published `v0.1.1` (source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`) promoted from Development to an isolated Production-mode launch target with the published operator bundle and no workaround; application rollback to `v0.1.0` and roll-forward exercised without database rollback; evidence in `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md` (first run on `v0.1.0`: `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md`). This does not imply that G5 has passed.
   - [x] **#916 — Manual launch-state accessibility:** manual Web acceptance on release `v0.1.0` completed with zero critical/serious Axe WCAG violations; Android classified as NOT_APPLICABLE for the Web-/Self-Hosted-first launch scope; evidence in `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md`. This does not imply that G5 has passed.
   - [x] **#917 — Public Demo rehearsal:** live HTTPS Demo isolation rehearsal completed against immutable `v0.1.0`, including exact release identity, isolated Demo resources, canonical live reset and post-reset public verification; evidence in `docs/m6/G5-EVIDENCE-DELTA-917-2026-09-20.md`. This closes G5-17 evidence for #525 without declaring the overall G5 gate.
-  - [ ] **#525 — Final G5 decision:** dated review completed on 2026-09-20 against `v0.1.1`; decision remains BLOCKED because G5-02 lacks the contractually required protected-publication release-owner approval. See `docs/m6/G5-GATE-REVIEW-2026-09-20.md`.
-  - [ ] **#1123 — Protected publication approval:** focused G5 blocker; configure/verify explicit release-owner approval on `production-release` and produce evidence consumable by #525 without rewriting #914/#915 history.
+  - [x] **#525 — Final G5 decision:** focused closure on immutable `v0.1.2` records **PASS** for Web + Self-Hosted; final matrix 18 PASS / 1 NOT_APPLICABLE / 0 FAIL / 0 BLOCKED. See `docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md`.
+  - [x] **#1123 — Protected publication approval:** closed by `v0.1.2` publish run `35521890433`; GitHub records `baerenmarke90` approving `production-release`, after which the protected publish completed successfully. Evidence: `docs/m6/G5-EVIDENCE-DELTA-1123-2026-09-20.md`.
   - [x] **#827 — Pre-market Self-Hosted OCI/topology hardening:** completed in PR #1092; this does not imply that G5 has passed.
   - [ ] **#797 — Cloud encryption at rest:** required before Cloud/Managed go-live. Cloud/Managed is explicitly `NOT_APPLICABLE` to the 2026-09-20 Web + Self-Hosted launch review, so #797 is not a blocker for that selected scope.
 - [ ] **M7 — Relationship Depth:** post-launch expansion; not a G5 prerequisite
@@ -260,26 +260,30 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 
 ## Current launch-readiness status
 
-M6 is no longer merely the "next milestone": its implementation package, integrated
-rehearsal (#524), and post-rehearsal evidence have reached the final #525 review.
-The latest dated review keeps **G5 — Launch-ready: BLOCKED**. A green CI run, a
-closed implementation issue, or completion of an individual Product Design slice
-does not change that gate state.
+M6 implementation, integrated rehearsal evidence and final launch review are complete
+for the declared first-launch scope. The authoritative decision is now
+**G5 — Launch-ready: PASS**.
 
-The reviewed launch release is `v0.1.1` from
-`33939ad42f94ea81256ef858a0f7ccbe5fe0966f`. The selected first-launch scope is
-**Web + Self-Hosted**; Android and Cloud/Managed are explicitly `NOT_APPLICABLE`
-for this review and are not certified as launch-ready. The actual `v0.1.0...v0.1.1`
-diff contains no backend, Web, Compose, deployment-runtime or migration change, so the
-#916 accessibility and #917 public-Demo behavior/isolation evidence carries forward;
-the Demo evidence remains explicitly bound to immutable `v0.1.0`.
+The certified launch release is `v0.1.2` from
+`9beb47317928be3b968e6f56775f7c4b9ce1b5c0`:
 
-#915 provides direct `v0.1.1` publication, standalone-bundle, Development,
-Production-mode promotion, authenticated-smoke, rollback and roll-forward evidence.
-The remaining launch blocker is #1123: `production-release` lacked the explicit
-release-owner approval required by the repository release contract when `v0.1.1`
-was published. #525 stays open until that focused release-governance gap is resolved.
+- candidate run `35521880601`: success;
+- protected publish run `35521890433`, attempt 2: success;
+- GitHub approval history records `baerenmarke90` approving
+  `production-release` before the protected publish job executed;
+- backend:
+  `ghcr.io/baerenmarke90/eimir-backend:v0.1.2@sha256:42db20c2c045b7f956c3b105df547fa29de83c6ebf983826c1f8ddd5303149b4`;
+- Web:
+  `ghcr.io/baerenmarke90/eimir-web:v0.1.2@sha256:962afb65746ca3f44252bca77910426fb060b08de62013420ba265f05cf07e04`;
+- immutable GitHub Release and anonymous digest-qualified GHCR consumption: verified.
 
-Post-G4 product-design remediation such as #955 may continue in parallel. It does
-not redefine G5, waive launch evidence, or make a moving `main` branch a certified
-release candidate.
+The launch certification is **Web + Self-Hosted**. Android store/package launch and
+Cloud/Managed remain outside this certification. #797 and target-relevant managed
+deployment/recovery evidence remain required before Cloud/Managed go-live.
+
+The `v0.1.1...v0.1.2` delta is documentation/evidence-only, so the accepted #915,
+#916, #917 and #524 runtime evidence remains valid. The public Demo evidence remains
+truthfully bound to its immutable `v0.1.0` live deployment identity.
+
+Post-launch M7-M9 work may proceed independently and does not retroactively change the
+G5 decision unless a future release introduces a new launch-critical regression.

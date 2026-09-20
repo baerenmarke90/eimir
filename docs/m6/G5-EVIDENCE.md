@@ -13,7 +13,9 @@
 **2026-09-20 #915 promotion delta, first run on `v0.1.0`:** `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md` (source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`, launcher run with a documented workaround)  
 **2026-09-20 #915 promotion and rollback delta on `v0.1.1`:** `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md` (source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`, published operator bundle without workaround)
 
-**2026-09-20 final #525 gate review:** `docs/m6/G5-GATE-REVIEW-2026-09-20.md` (reviewed release `v0.1.1`, source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`; **G5 BLOCKED** by #1123 publication-approval control)
+**2026-09-20 initial #525 gate review:** `docs/m6/G5-GATE-REVIEW-2026-09-20.md` (reviewed release `v0.1.1`; historical **G5 BLOCKED** decision that identified #1123)
+**2026-09-20 #1123 protected-publication delta:** `docs/m6/G5-EVIDENCE-DELTA-1123-2026-09-20.md` (release `v0.1.2`, source `9beb47317928be3b968e6f56775f7c4b9ce1b5c0`; required `production-release` approval exercised)
+**2026-09-20 final #525 closure:** `docs/m6/G5-GATE-REVIEW-2026-09-20-V0.1.2.md` (reviewed immutable release `v0.1.2`; **G5 PASS** for Web + Self-Hosted)
 
 This matrix is the authoritative M6 index for **G5 — Launch-ready** evidence. It
 separates reusable repository baselines from final release-candidate proof.
@@ -337,3 +339,38 @@ The final review does **not** pass G5. G5-02 remains `BLOCKED` because
 protection was active for the reviewed publications. Focused blocker #1123 owns that
 gap. G5-19 therefore also remains `BLOCKED`; all other required criteria are
 `PASS` or legitimately `NOT_APPLICABLE` in the declared scope.
+
+
+## 13. Focused final closure — v0.1.2 — 2026-09-20
+
+The historical review above correctly recorded `BLOCKED` on `v0.1.1` because the
+required protected-publication reviewer boundary had not been exercised. It is retained
+unchanged as evidence of that state.
+
+Focused blocker #1123 is now closed by
+`G5-EVIDENCE-DELTA-1123-2026-09-20.md`:
+
+- candidate run `35521880601`: **SUCCESS**;
+- publish run `35521890433`, attempt 2: **SUCCESS**;
+- source: `9beb47317928be3b968e6f56775f7c4b9ce1b5c0`;
+- GitHub workflow approval history: reviewer `baerenmarke90`, state `approved`,
+  environment `production-release`;
+- immutable GitHub Release `v0.1.2`;
+- backend digest
+  `sha256:42db20c2c045b7f956c3b105df547fa29de83c6ebf983826c1f8ddd5303149b4`;
+- Web digest
+  `sha256:962afb65746ca3f44252bca77910426fb060b08de62013420ba265f05cf07e04`;
+- anonymous digest-qualified GHCR pulls: **PASS**.
+
+The `v0.1.1...v0.1.2` delta contains no application/runtime/migration change, so the
+prior accepted runtime evidence remains valid. The launch scope is unchanged:
+**Web + Self-Hosted**, with Android store/package launch and Cloud/Managed outside this
+certification.
+
+The focused final review in
+`G5-GATE-REVIEW-2026-09-20-V0.1.2.md` therefore records:
+
+- G5-02: **PASS**;
+- G5-19: **PASS**;
+- final matrix: **18 PASS, 1 NOT_APPLICABLE, 0 FAIL, 0 BLOCKED**;
+- **G5 — Launch-ready: PASS** for the declared Web + Self-Hosted launch scope.

@@ -121,6 +121,27 @@ describe('ServerAdmin controls', () => {
     );
   });
 
+  it('offers deletion lifecycle outcomes as audit filters', async () => {
+    const getActivity = vi.fn().mockResolvedValue({
+      items: [],
+      limit: 25,
+      offset: 0,
+      total: 0,
+    });
+    renderActivity(getActivity, 'destructive');
+
+    expect(
+      await screen.findByRole('option', {
+        name: serverAdmin.activity.actions.account_deletion_completed,
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('option', {
+        name: serverAdmin.activity.actions.account_deletion_failed,
+      }),
+    ).toBeTruthy();
+  });
+
   it('keeps empty and error states distinct', async () => {
     const empty = vi.fn().mockResolvedValue({
       items: [],

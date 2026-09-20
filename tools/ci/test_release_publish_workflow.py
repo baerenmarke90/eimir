@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -384,6 +386,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("deploy/self-hosted-release.env.example", bundle_step)
         self.assertIn("scripts/self_hosted_release.py", bundle_step)
         self.assertIn("scripts/check_runtime_environment.py", bundle_step)
+        self.assertIn("scripts/_identity_environment.py", bundle_step)
         self.assertIn(
             'cp -- release-evidence/self-hosted-image-identity.json \\\n'
             '            "$bundle_root/self-hosted-image-identity.json"',
@@ -400,12 +403,52 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("web/", bundle_step)
         self.assertIn("verify_release_asset_set.py", self.workflow)
 
+    def test_shipped_operator_scripts_start_from_the_bundle_alone(self) -> None:
+        """The target host has only the bundle, not the source checkout (#915).
+
+        #954 made the launcher and the runtime checker import a sibling helper; the
+        bundle step did not ship it, so the published v0.1.0 launcher failed at import
+        time on a host. Assemble the bundle exactly as the workflow copies it and start
+        every shipped script in isolation.
+        """
+        bundle_step = self.workflow.split(
+            "Build deterministic Self-Hosted operator bundle", 1
+        )[1].split("Write human-readable release notes", 1)[0]
+        copies = re.findall(r'cp -- (\S+) \\\n?\s*"\$bundle_root/([^"]+)"', bundle_step)
+        copies += re.findall(r'cp -- (\S+) "\$bundle_root/([^"]+)"', bundle_step)
+        # release-evidence/ only exists in the publish job, not in the checkout.
+        repository_copies = [
+            (source, target) for source, target in copies if not source.startswith("release-evidence/")
+        ]
+        shipped_scripts = [t for _, t in repository_copies if t.startswith("scripts/")]
+        self.assertIn("scripts/self_hosted_release.py", shipped_scripts)
+        self.assertIn("scripts/check_runtime_environment.py", shipped_scripts)
+
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory)
+            for source, target in repository_copies:
+                destination = bundle / target
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((ROOT / source).read_bytes())
+            for target in shipped_scripts:
+                with self.subTest(script=target):
+                    result = subprocess.run(
+                        [sys.executable, target, "--help"],
+                        cwd=bundle,
+                        env={"PATH": os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"},
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_release_workflow_tracks_operator_bundle_inputs(self) -> None:
         for path in (
             '"compose.yaml"',
             '"deploy/self-hosted-release.env.example"',
             '"scripts/self_hosted_release.py"',
             '"scripts/check_runtime_environment.py"',
+            '"scripts/_identity_environment.py"',
             '"scripts/verify_release_asset_set.py"',
             '"tools/ci/test_verify_release_asset_set.py"',
             '"docs/SELF-HOSTING.md"',

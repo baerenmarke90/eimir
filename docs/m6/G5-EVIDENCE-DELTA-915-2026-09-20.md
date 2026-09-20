@@ -7,6 +7,11 @@
 `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This document is additive. It does not decide
 G5; #525 does.
 
+> **Update:** condition C1 below was closed by the successor release `v0.1.1`, whose
+> published operator bundle carries the helper and was exercised without workaround; see
+> `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md`. The text below records the first run on
+> `v0.1.0` as executed.
+
 ## 1. Result
 
 The exact published `v0.1.0` images were accepted on a Development target, promoted to a

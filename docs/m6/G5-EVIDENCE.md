@@ -8,7 +8,10 @@
 **2026-09-12 post-rehearsal delta:** `docs/m6/G5-EVIDENCE-DELTA-2026-09-12.md` (baseline `735e37c26000991e0365ff360a6b8af69e691199`)  
 **2026-09-12 G5-07 bootstrap delta:** `docs/m6/G5-EVIDENCE-DELTA-G5-07-2026-09-12.md` (product baseline `298af42a5a8ed162b49afbbc045e89781628eb2a`)  
 **2026-09-20 #914 release publication delta:** `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)  
-**2026-09-20 #915 promotion and rollback identity delta:** `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)
+**2026-09-20 #916 manual launch accessibility delta:** `docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`)  
+**2026-09-20 #917 public Demo delta:** `docs/m6/G5-EVIDENCE-DELTA-917-2026-09-20.md` (release `v0.1.0`, source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; post-promotion and post-reset live rehearsal `PASS`)  
+**2026-09-20 #915 promotion delta, first run on `v0.1.0`:** `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md` (source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`, launcher run with a documented workaround)  
+**2026-09-20 #915 promotion and rollback delta on `v0.1.1`:** `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md` (source `33939ad42f94ea81256ef858a0f7ccbe5fe0966f`, published operator bundle without workaround)
 
 This matrix is the authoritative M6 index for **G5 — Launch-ready** evidence. It
 separates reusable repository baselines from final release-candidate proof.
@@ -19,7 +22,10 @@ passed the integrated gate.
 The 2026-09-05 rehearsal status column is a dated historical record. For #668 and
 #670, #525 must also consume the general 2026-09-12 post-rehearsal delta. For the
 specific #676/G5-07 bootstrap failure, #525 must also consume the focused G5-07
-delta. Later evidence may close a current requirement without rewriting what was or
+delta. For G5-17, #525 must also consume the focused #917 live-Demo delta. The initial
+2026-09-20 run correctly captured stale deployment drift, followed by promotion to immutable
+`v0.1.0`, an authorized live Demo reset and a successful post-reset public verification. The
+focused delta closes the current G5-17 requirement as `PASS` without rewriting what was or
 was not exercised during the historical rehearsal.
 
 ## 1. Status vocabulary
@@ -92,6 +98,21 @@ verification delivery/consumption and verified ServerAdmin access. This removes 
 as the current G5-07 blocker without rewriting the historical `FAIL`; #525 still owns
 the final criterion decision.
 
+Post-rehearsal #916 evidence exercises the final release-state Web accessibility
+acceptance on published release `v0.1.0` (source
+`8bb0c1eadbeb4864788d277a25a3673c79f5e46f`, Web digest
+`sha256:edd2f5f88bafe8fde5a2dd6223507b3fb71d14474d0c5f7162d2696324be12f1`, Backend
+digest
+`sha256:f3b5f7ea23aad99844ed558dd4a148d4196cb1b52c6ceed3a0d8636a9715ddd1`). Manual
+and spot acceptance verified release identity, Demo Entry, Standard Entry, Authenticated
+Shell & Skip Link, Quick Create overlay, Games Entitlement shelf, ServerAdmin
+unauthorized access gate & authorized settings/maintenance toggle, maintenance mode
+presentation, and 320px responsive touch targets with zero critical or serious Axe WCAG
+violations. Android is documented as `NOT_APPLICABLE` for the Web-/Self-Hosted-first
+launch scope of `v0.1.0` (consistent with #914). See
+`docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md`. This provides the missing evidence to
+close G5-15 for #525.
+
 ## 4. G5 criteria
 
 | ID | Criterion | Required evidence / owner | S0 status | 2026-09-05 rehearsal status |
@@ -100,7 +121,7 @@ the final criterion decision.
 | G5-02 | Coherent immutable release identity and controlled Android signing/versioning | #194 baseline, #519 release manifest/artifacts; #668 exact OCI deployment binding when Cloud/Managed is in scope; #524 plus later delta/release verification | `BLOCKED` | `BLOCKED` — no release published yet; needs real signing secrets + operator-approved `release-publish.yml` run (report §1) |
 | G5-03 | SBOM, attestations and provenance | #193 bound to exact #519 artifact/release identity; #524 verification | `BLOCKED` | `BLOCKED` — same as G5-02; mechanism contract-tested and green, nothing published to verify yet (report §2) |
 | G5-04 | Self-Hosted backup/restore/upgrade/recovery | #190 baseline plus #524 real restore/upgrade/recovery evidence | `BLOCKED` — repository baseline available | `PASS` — real backup→fresh-target restore→migrate→smoke cycle executed, data/history integrity verified (report §4) |
-| G5-05 | Development-to-Production promotion, migration and rollback/forward-fix | #375 baseline, #519 release identity, #668 exact Cloud runtime/previous-known-good identity where managed launch is in scope; #524 plus later delta candidate evidence | `BLOCKED` — repository baseline available | `BLOCKED` — mechanics (migration-before-traffic, revision consistency, smoke) proven live and in CI; genuine two-host promotion needs real infrastructure (report §3) *Post-rehearsal delta (#915): exact `v0.1.0` digests accepted on Development, promoted through the released launcher, API/Web revision `8bb0c1ea…`, no rebuild; two conditions (published bundle launcher defect, single-host boundary) left to #525 — see `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md`.* |
+| G5-05 | Development-to-Production promotion, migration and rollback/forward-fix | #375 baseline, #519 release identity, #668 exact Cloud runtime/previous-known-good identity where managed launch is in scope; #524 plus later delta candidate evidence | `BLOCKED` — repository baseline available | `BLOCKED` — mechanics (migration-before-traffic, revision consistency, smoke) proven live and in CI; genuine two-host promotion needs real infrastructure (report §3) *Post-rehearsal delta (#915): exact `v0.1.0` digests accepted on Development, promoted through the released launcher, API/Web revision `8bb0c1ea…`, no rebuild; the published `v0.1.0` bundle launcher needed a documented workaround (see `docs/m6/G5-EVIDENCE-DELTA-915-2026-09-20.md`). Rerun on the successor release `v0.1.1` with the published bundle, no workaround, Production-mode promotion and application rollback/roll-forward to `v0.1.0`: PASS on an isolated single-host boundary — see `docs/m6/G5-EVIDENCE-DELTA-915-V0.1.1-2026-09-20.md`.* |
 | G5-06 | Supported Cloud/Managed production topology | #521 deployment contract, #668 digest-pinned runtime/rollback identity, recovery/capacity evidence and #524 plus 2026-09-12 delta when managed launch is in scope | `BLOCKED` | `BLOCKED` — #521 topology/recipe frozen and contract-tested; no real managed cloud account available to exercise a real restore (report §11) |
 | G5-07 | Registration, maintenance and ServerAdmin lockout safety | #334, #335, #524 privileged-flow and negative-access evidence; #676/#912 focused post-rehearsal log-mail bootstrap evidence | `BLOCKED` | `FAIL` — maintenance/lockout mechanics confirmed live; documented log-mail bootstrap path is broken by over-redaction, filed as #676 (report §5) |
 | G5-08 | Structured observability and redaction | #189 logs/correlation/metrics plus #524 redaction/diagnostic evidence | `BLOCKED` | `PASS` — live incident drill produced sanitized logs/correlation IDs throughout, no secret/ProtectedPayload leakage (report §6) |
@@ -110,7 +131,7 @@ the final criterion decision.
 | G5-12 | Accepted versioned commercial/Entitlement product model | #262 final capability matrix, ownership, lifecycle, downgrade and launch-channel decisions | `BLOCKED` | `PASS` — ADR-0006 + Feature Matrix v1.1 authoritative; launch channel declared (`ENTITLEMENT-BOUNDARY.md` §7.1) |
 | G5-13 | Central Entitlement enforcement and launch source adapters | #523 plus one focused adapter per source selected by #262; #524 lifecycle/outage/restore evidence | `BLOCKED` | `PASS` for `ADMIN_GRANT` (grant/downgrade/audit exercised live end to end); `NOT_APPLICABLE` for `GOOGLE_PLAY`/`CLOUD_STRIPE`/`SELF_HOSTED_KEY` (report §7) |
 | G5-14 | Final Security/Privacy/Tenant Isolation | G4 baseline plus #524 synthetic cross-Space, `OWNER_ONLY`, admin/ops and data-lifecycle negative tests | `BLOCKED` | `PASS` — live cross-tenant probe (404) and ServerAdmin content-boundary check both confirmed (report §8) |
-| G5-15 | Final release-state Accessibility acceptance | G4/#192 automation reused; #524 manual keyboard/focus/TalkBack/large-text launch-state gaps only | `BLOCKED` | `BLOCKED` — automation green in CI; manual keyboard/TalkBack spot-check of maintenance/entitlement states not performed this session (report §9) |
+| G5-15 | Final release-state Accessibility acceptance | G4/#192 automation reused; #524 manual keyboard/focus/TalkBack/large-text launch-state gaps only; #916 manual launch acceptance delta (`docs/m6/G5-EVIDENCE-DELTA-916-2026-09-20.md`) | `BLOCKED` | `BLOCKED` — automation green in CI; manual keyboard/TalkBack spot-check of maintenance/entitlement states not performed this session (report §9). *Post-rehearsal delta: PASS for Web / NOT_APPLICABLE for Android on v0.1.0.* |
 | G5-16 | Launch-topology performance/capacity | #521 assumptions and #524 bounded synthetic API/worker/database/media evidence | `BLOCKED` | `PASS` — bounded single-host synthetic check recorded, explicitly not an SLA claim (report §10) |
 | G5-17 | Public Demo exposure/isolation boundary | #304 baseline plus #524 release regression for DB/media/secrets/reset/auth/Entitlement isolation | `BLOCKED` — repository baseline available | `BLOCKED` — config-layer hardening (signing key, HTTPS) confirmed fail-closed live; full live rehearsal needs a real TLS/domain (report §11) |
 | G5-18 | Integrated launch rehearsal evidence complete | #524 dated report with every criterion linked to an artifact/test/drill/decision or blocker; later focused delta records remain additive | `BLOCKED` | `PASS` — this report and table constitute that package |

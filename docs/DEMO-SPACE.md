@@ -389,10 +389,18 @@ exceptions.
 
 ## Freemium / entitlement behavior
 
-The demo does not unlock, hide, or special-case product capabilities. Free/Core behavior remains the
-same as for ordinary users. Curated media, richer seed content, and reset behavior add no entitlement,
-paywall, storage-tier, billing, or Premium capability change. Future Premium scenarios must use the real
-capability/entitlement model rather than a demo-only bypass.
+The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
+continues to use the same entitlement model as for ordinary users.
+
+The canonical dataset currently records one normalized `TEST_FIXTURE` grant through the ordinary
+entitlement service so the Demo can exercise Couple Games. That grant is limited to the
+`games.couple` capability and is evaluated through the same tenant-scoped entitlement endpoint and
+server-side capability checks as any other grant. Production forbids creating `TEST_FIXTURE` grants
+and excludes restored fixture grants from effective Production entitlement evaluation.
+
+Curated media, richer seed content, and reset behavior do not themselves change paywall,
+storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use
+the authoritative capability/entitlement model rather than a client-side or Demo-only bypass.
 
 ## Practical QA loop
 

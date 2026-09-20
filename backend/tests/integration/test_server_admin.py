@@ -907,7 +907,7 @@ def test_unified_privileged_audit_filters_sorts_and_paginates(
 ) -> None:  # type: ignore[no-untyped-def]
     admin, admin_token = _admin(session)
     target = make_account(session, "Audit target")
-    space = make_space(session)
+    space = make_space(session, admin)
     current = now()
 
     session.add(

@@ -348,7 +348,6 @@ button.secondary,
 }
 
 .app-header {
-  border-bottom-color: var(--color-header-border);
   background: var(--color-header-surface);
 }
 

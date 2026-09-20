@@ -83,6 +83,16 @@ const profileIdentity = {
   anniversaryReminderSaving: 'Wird gespeichert …',
   anniversaryReminderSaved: '✓ Gespeichert',
   anniversaryReminderLoading: 'Einstellungen werden geladen …',
+  partnerBirthdayReminderToggle: 'An den Geburtstag meines Partners erinnern',
+  partnerBirthdayReminderToggleHelp:
+    'Diese persönliche Einstellung betrifft nur deine Erinnerungen. Der Geburtstag selbst bleibt für euch sichtbar.',
+  partnerBirthdayReminderDaysHeading:
+    'Erinnerungszeitpunkte vor dem Geburtstag',
+  partnerBirthdayReminderDay14: '14 Tage vorher',
+  partnerBirthdayReminderDay7: '7 Tage vorher',
+  partnerBirthdayReminderDay1: '1 Tag vorher',
+  partnerBirthdayReminderTimeLabel: 'Uhrzeit der Geburtstagserinnerung',
+  partnerBirthdayReminderLoading: 'Geburtstagserinnerung wird geladen …',
   settingsPrivacy: 'Privater Bereich',
   settingsData: 'Daten und Portabilität',
   settingsDataIntro:

@@ -2,7 +2,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AnniversaryReminderSettings } from './AnniversaryReminderSettings';
+import {
+  AnniversaryReminderSettings,
+  PartnerBirthdayReminderSettings,
+} from './AnniversaryReminderSettings';
 import type { RulesApi } from '../api/generated/apis/RulesApi';
 import type { RulePreferenceView } from '../api/generated/models/RulePreferenceView';
 import profileIdentity from '../i18n/locales/profileIdentity';
@@ -163,5 +166,73 @@ describe('AnniversaryReminderSettings', () => {
         }),
       );
     });
+  });
+});
+
+
+describe('PartnerBirthdayReminderSettings', () => {
+  it('uses the recipient-scoped partner birthday rule', async () => {
+    const getRulePreference = vi.fn().mockResolvedValue({
+      ruleKey: 'partner_birthday_reminder',
+      enabled: true,
+      parameters: {
+        daysBefore: [14, 7, 1],
+        localTime: '09:00:00',
+      },
+    });
+    const setRulePreference = vi.fn().mockImplementation(
+      async ({ rulePreferenceUpdate }) => ({
+        ruleKey: 'partner_birthday_reminder',
+        enabled: rulePreferenceUpdate.enabled,
+        parameters: rulePreferenceUpdate.parameters,
+      }),
+    );
+    const rulesApi = {
+      getRulePreference,
+      setRulePreference,
+    } as unknown as RulesApi;
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PartnerBirthdayReminderSettings
+          rulesApi={rulesApi}
+          spaceId={SPACE_ID}
+        />
+      </QueryClientProvider>,
+    );
+
+    const toggle = await screen.findByLabelText(
+      profileIdentity.partnerBirthdayReminderToggle,
+    );
+    expect(
+      screen.getByText(profileIdentity.partnerBirthdayReminderDay14),
+    ).toBeDefined();
+    expect(getRulePreference).toHaveBeenCalledWith({
+      spaceId: SPACE_ID,
+      ruleKey: 'partner_birthday_reminder',
+    });
+
+    fireEvent.click(toggle);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: profileIdentity.anniversaryReminderSave,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(setRulePreference).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spaceId: SPACE_ID,
+          ruleKey: 'partner_birthday_reminder',
+          rulePreferenceUpdate: expect.objectContaining({ enabled: false }),
+        }),
+      ),
+    );
   });
 });

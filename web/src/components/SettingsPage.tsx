@@ -24,7 +24,10 @@ import {
 import { settingsCategoryDefinition } from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
-import { AnniversaryReminderSettings } from './AnniversaryReminderSettings';
+import {
+  AnniversaryReminderSettings,
+  PartnerBirthdayReminderSettings,
+} from './AnniversaryReminderSettings';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
@@ -114,6 +117,10 @@ export function SettingsPage(props: SettingsPageProps) {
         aria-label={t('profileIdentity.settingsNotifications')}
       >
         <AnniversaryReminderSettings
+          rulesApi={rulesApi}
+          spaceId={props.spaceId}
+        />
+        <PartnerBirthdayReminderSettings
           rulesApi={rulesApi}
           spaceId={props.spaceId}
         />

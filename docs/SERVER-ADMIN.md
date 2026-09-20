@@ -117,6 +117,7 @@ The corresponding ServerAdmin API supports:
 - `GET /api/v1/server-admin/accounts/{accountId}`;
 - `PUT /api/v1/server-admin/accounts/{accountId}/suspension`;
 - `POST /api/v1/server-admin/accounts/{accountId}/sessions/revoke`;
+- `POST /api/v1/server-admin/accounts/{accountId}/email-verification/request`;
 - `POST /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify`;
 - `POST /api/v1/server-admin/accounts/{accountId}/recovery/email`;
 - `POST /api/v1/server-admin/accounts/{accountId}/recovery/operator`;
@@ -141,6 +142,20 @@ recreate deleted credentials or sessions.
 
 The explicit revoke-sessions action invalidates all current session families
 without suspending the Account.
+
+### Normal email verification resend
+
+For an active Account whose primary email is still unverified, ServerAdmin may
+request the ordinary verification message. This calls the same
+`EmailVerificationToken` issuance, supersession, rate-limit, expiry and mail
+delivery path used by authenticated self-service. The operator never receives
+the token or verification URL.
+
+If the primary address is already verified, the request is an idempotent no-op.
+If mail is not configured, the endpoint reports the existing
+`MAIL_TRANSPORT_UNAVAILABLE` capability error. This normal resend is deliberately
+separate from operator-assisted verification below: sending a proof to the
+mailbox does not assert that the operator has verified the person's identity.
 
 ### Operator-assisted email verification
 

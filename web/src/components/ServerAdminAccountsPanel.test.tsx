@@ -72,12 +72,14 @@ function stepUpRequired() {
 
 function renderPanel({
   verifyEmail = vi.fn(),
+  verificationRequest = vi.fn(),
   operatorRecovery = vi.fn(),
   deleteAccount = vi.fn(),
   summary = accountSummary,
   detail = accountDetail,
 }: {
   verifyEmail?: ReturnType<typeof vi.fn>;
+  verificationRequest?: ReturnType<typeof vi.fn>;
   operatorRecovery?: ReturnType<typeof vi.fn>;
   deleteAccount?: ReturnType<typeof vi.fn>;
   summary?: ServerAdminAccountSummary;
@@ -94,6 +96,8 @@ function renderPanel({
     getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet: loadAccount,
     issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost:
       operatorRecovery,
+    requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost:
+      verificationRequest,
     listServerAdminAccountsApiV1ServerAdminAccountsGet: listAccounts,
     verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost:
       verifyEmail,
@@ -124,6 +128,7 @@ function renderPanel({
     listAccounts,
     loadAccount,
     verifyEmail,
+    verificationRequest,
     operatorRecovery,
     deleteAccount,
   };
@@ -148,6 +153,47 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('ServerAdminAccountsPanel recent-auth integration', () => {
+  it('requests normal verification for the unverified primary email', async () => {
+    const verificationRequest = vi.fn().mockResolvedValue(undefined);
+    renderPanel({ verificationRequest });
+    await openAccountDetail();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: serverAdmin.accounts.detail.resendVerification,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(verificationRequest).toHaveBeenCalledWith({ accountId }),
+    );
+    expect(
+      await screen.findByText(
+        serverAdmin.accounts.detail.verificationRequested,
+      ),
+    ).toBeTruthy();
+  });
+
+  it('shows an explicit mail-unavailable error for verification resend', async () => {
+    const verificationRequest = vi
+      .fn()
+      .mockRejectedValue(
+        new ClientProblemError('server', 503, 'MAIL_TRANSPORT_UNAVAILABLE'),
+      );
+    renderPanel({ verificationRequest });
+    await openAccountDetail();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: serverAdmin.accounts.detail.resendVerification,
+      }),
+    );
+
+    expect(
+      await screen.findByText(serverAdmin.accounts.detail.mailUnavailable),
+    ).toBeTruthy();
+  });
+
   it('retries the exact email verification after successful step-up', async () => {
     const verifyEmail = vi
       .fn()

@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1693,7 +1693,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -2835,7 +2835,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Position",
             "type": "integer"
           }
@@ -11242,6 +11242,91 @@
           }
         },
         "summary": "Delete Server Admin Account",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/accounts/{accountId}/email-verification/request": {
+      "post": {
+        "operationId": "request_server_admin_account_email_verification_api_v1_server_admin_accounts__accountId__email_verification_request_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "title": "Accountid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Request Server Admin Account Email Verification",
         "tags": [
           "server-admin"
         ]

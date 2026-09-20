@@ -112,7 +112,7 @@ describe('ServerAdmin controls', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: serverAdmin.activity.next }),
+      await screen.findByRole('button', { name: serverAdmin.activity.next }),
     );
     await waitFor(() =>
       expect(getActivity).toHaveBeenLastCalledWith(

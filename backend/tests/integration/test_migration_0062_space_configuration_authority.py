@@ -21,9 +21,7 @@ def _current_revision(connection: Connection) -> str:
 
 def _configuration_manager(connection: Connection, space_id: UUID) -> UUID | None:
     return connection.execute(
-        sa.text(
-            "SELECT configuration_manager_account_id FROM spaces WHERE id = :space_id"
-        ),
+        sa.text("SELECT configuration_manager_account_id FROM spaces WHERE id = :space_id"),
         {"space_id": space_id},
     ).scalar_one()
 
@@ -172,22 +170,14 @@ def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
 
         with engine.connect() as connection:
             assert _current_revision(connection) == "0062"
-            assert (
-                _configuration_manager(connection, single_active_space)
-                == single_active_account
-            )
+            assert _configuration_manager(connection, single_active_space) == single_active_account
             assert _configuration_manager(connection, two_active_space) is None
-            assert (
-                _configuration_manager(connection, single_ended_space)
-                == single_ended_account
-            )
+            assert _configuration_manager(connection, single_ended_space) == single_ended_account
             assert _configuration_manager(connection, retained_history_space) is None
 
             retained_statuses = set(
                 connection.execute(
-                    sa.text(
-                        "SELECT status FROM memberships WHERE space_id = :space_id"
-                    ),
+                    sa.text("SELECT status FROM memberships WHERE space_id = :space_id"),
                     {"space_id": retained_history_space},
                 ).scalars()
             )

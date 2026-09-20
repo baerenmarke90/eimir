@@ -95,13 +95,20 @@
   min-height: 44px;
 }
 
+.profile-identity-birthday {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
 .profile-identity-status {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
-.profile-name-inline-form {
+.profile-name-inline-form,
+.profile-birthday-inline-form {
   margin-top: var(--space-6);
   padding-top: var(--space-5);
   border-top: 1px solid var(--color-border-subtle);

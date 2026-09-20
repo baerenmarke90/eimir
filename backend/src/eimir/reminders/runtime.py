@@ -36,6 +36,7 @@ from eimir.reminders.models import (
 from eimir.reminders.rules import (
     CATALOG,
     IMPORTANT_DATE_RULE,
+    PARTNER_BIRTHDAY_RULE,
     PLAN_START_RULE,
     RELATED_PERSON_BIRTHDAY_RULE,
     RELATIONSHIP_ANNIVERSARY_RULE,
@@ -260,6 +261,28 @@ def _reconcile_generated_reminders(session: Session, space_id: UUID) -> None:
             "local_time": time(9, 0),
         }
 
+    birthday_accounts = session.execute(
+        select(Account)
+        .join(Membership, Membership.account_id == Account.id)
+        .where(
+            Membership.space_id == space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Account.disabled_at.is_(None),
+            Account.birthday.is_not(None),
+        )
+        .order_by(Account.id)
+    ).scalars()
+    for birthday_account in birthday_accounts:
+        if birthday_account.birthday is None:
+            continue
+        desired[("ACCOUNT", birthday_account.id, PARTNER_BIRTHDAY_RULE)] = {
+            "owner_id": birthday_account.id,
+            "schedule_type": ReminderScheduleType.ANNUAL,
+            "annual_month": birthday_account.birthday.month,
+            "annual_day": birthday_account.birthday.day,
+            "local_time": time(9, 0),
+        }
+
     profile = session.execute(
         select(SpaceProfile).where(
             SpaceProfile.space_id == space_id,
@@ -475,6 +498,15 @@ def _plan_for_recipient(
         if current_account is None:
             return
         account = current_account
+
+    if (
+        reminder.source == ReminderSource.GENERATED.value
+        and reminder.rule_key == PARTNER_BIRTHDAY_RULE
+        and reminder.source_type == "ACCOUNT"
+        and reminder.source_id == account.id
+    ):
+        _supersede_pending(session, reminder.id, account.id, set())
+        return
 
     if _is_muted(session, reminder.id, account.id):
         _supersede_pending(session, reminder.id, account.id, set())
@@ -695,7 +727,7 @@ def _roundtrips(candidate: datetime, naive: datetime, zone: ZoneInfo) -> bool:
     return candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == naive
 
 
-def _source_is_eligible(session: Session, reminder: Reminder) -> bool:
+def source_is_eligible(session: Session, reminder: Reminder) -> bool:
     if reminder.source != ReminderSource.GENERATED.value:
         return True
     if reminder.source_id is None or reminder.rule_key is None or reminder.source_type is None:
@@ -720,6 +752,21 @@ def _source_is_eligible(session: Session, reminder: Reminder) -> bool:
                     RelatedPerson.space_id == reminder.space_id,
                     RelatedPerson.privacy_class == PrivacyClass.SPACE_SHARED.value,
                     RelatedPerson.birthday.is_not(None),
+                )
+            ).scalar_one_or_none()
+            is not None
+        )
+    if reminder.rule_key == PARTNER_BIRTHDAY_RULE:
+        return (
+            session.execute(
+                select(Account.id)
+                .join(Membership, Membership.account_id == Account.id)
+                .where(
+                    Account.id == reminder.source_id,
+                    Account.disabled_at.is_(None),
+                    Account.birthday.is_not(None),
+                    Membership.space_id == reminder.space_id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
                 )
             ).scalar_one_or_none()
             is not None
@@ -792,7 +839,7 @@ def handle_occurrence(session: Session, payload: dict[str, Any]) -> None:
     if membership is None or _is_muted(session, reminder.id, account.id):
         occurrence.state = OccurrenceState.CANCELLED.value
         return
-    if not _source_is_eligible(session, reminder):
+    if not source_is_eligible(session, reminder):
         occurrence.state = OccurrenceState.CANCELLED.value
         return
     if reminder.source == ReminderSource.GENERATED.value:

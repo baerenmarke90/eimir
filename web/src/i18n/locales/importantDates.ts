@@ -36,6 +36,8 @@ const importantDates = {
     'Haltet hier Tage fest, an die ihr euch erinnern oder die ihr gemeinsam im Blick behalten möchtet.',
   dateValue: '{{date}}',
   linkedPerson: 'Für {{name}}',
+  partnerBirthdayLabel: 'Geburtstag von {{name}}',
+  partnerBirthdayProfileSource: 'Aus dem Profil von {{name}}',
   edit: 'Bearbeiten',
   delete: 'Löschen',
   deleteQuestion: 'Diesen besonderen Tag wirklich löschen?',

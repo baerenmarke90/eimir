@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Self
 from uuid import UUID
 
@@ -65,16 +65,20 @@ class ProfileIdentityUpdate(ApiModel):
     """Partial update of the authenticated account's presentation identity.
 
     Omission means unchanged. An explicit null ``profileAttachmentId`` removes
-    the current avatar. ``displayName`` deliberately has no competing request-
-    layer normalization; the identity domain remains the single authority.
+    the current avatar; an explicit null ``birthday`` clears the optional birthday.
+    ``displayName`` deliberately has no competing request-layer normalization;
+    the identity domain remains the single authority.
     """
 
     display_name: str | None = None
     profile_attachment_id: UUID | None = None
+    birthday: date | None = None
 
     @model_validator(mode="after")
     def _contains_change(self) -> Self:
-        if not self.model_fields_set.intersection({"display_name", "profile_attachment_id"}):
+        if not self.model_fields_set.intersection(
+            {"display_name", "profile_attachment_id", "birthday"}
+        ):
             raise ValueError("at least one profile identity field is required")
         return self
 
@@ -96,6 +100,7 @@ class PartnerProfileView(ApiModel):
     id: UUID
     account_id: UUID
     display_name: str
+    birthday: date | None
     profile_attachment_id: UUID | None
     version: int
     created_at: datetime
@@ -122,6 +127,7 @@ def _profile_view(
     profile: PartnerProfile,
     *,
     display_name: str,
+    birthday: date | None,
     profile_attachment_id: UUID | None,
     version: int,
     preferences: list[ProfilePreferenceView],
@@ -130,6 +136,7 @@ def _profile_view(
         id=profile.id,
         account_id=profile.owner_id,
         display_name=display_name,
+        birthday=birthday,
         profile_attachment_id=profile_attachment_id,
         version=version,
         created_at=profile.created_at,
@@ -158,6 +165,7 @@ def get_partner_profile(
     return _profile_view(
         profile,
         display_name=subject.display_name,
+        birthday=subject.birthday,
         profile_attachment_id=attachment.id if attachment is not None else None,
         version=subject.version,
         preferences=[_preference_view(preference) for preference in preferences],
@@ -190,6 +198,7 @@ def update_profile_identity(
         changed_fields=frozenset(body.model_fields_set),
         display_name=body.display_name,
         profile_attachment_id=body.profile_attachment_id,
+        birthday=body.birthday,
     )
     profile, subject, preferences = service.profile_preferences(session, authorization, subject.id)
     attachment = service.profile_attachment(session, subject.id)
@@ -197,6 +206,7 @@ def update_profile_identity(
     return _profile_view(
         profile,
         display_name=subject.display_name,
+        birthday=subject.birthday,
         profile_attachment_id=attachment.id if attachment is not None else None,
         version=subject.version,
         preferences=[_preference_view(preference) for preference in preferences],

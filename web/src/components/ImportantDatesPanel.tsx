@@ -495,14 +495,22 @@ function ImportantDateEditorSheet({
   );
 }
 
+export interface PartnerBirthdayProjection {
+  accountId: string;
+  birthday: Date;
+  displayName: string;
+}
+
 export function ImportantDatesPanel({
   peopleApi,
   spaceId,
   people,
+  partnerBirthday = null,
 }: {
   peopleApi: PeopleApi;
   spaceId: string;
   people: RelatedPersonView[];
+  partnerBirthday?: PartnerBirthdayProjection | null;
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -705,16 +713,82 @@ export function ImportantDatesPanel({
             onRetry={() => void datesQuery.refetch()}
           />
         ) : null}
-        {datesQuery.data?.length === 0 ? (
+        {datesQuery.data?.length === 0 && !partnerBirthday ? (
           <UiState
             kind="empty"
             title={t('importantDates.emptyTitle')}
             body={t('importantDates.emptyBody')}
           />
         ) : null}
-        {datesQuery.data?.length ? (
+        {datesQuery.data?.length || partnerBirthday ? (
           <ul className="important-dates-list">
-            {datesQuery.data.map((date) => {
+            {partnerBirthday
+              ? (() => {
+                  const markerParts = dateMarkerFormatter.formatToParts(
+                    partnerBirthday.birthday,
+                  );
+                  const markerDay =
+                    markerParts.find((part) => part.type === 'day')?.value ??
+                    '';
+                  const markerMonth =
+                    markerParts.find((part) => part.type === 'month')?.value ??
+                    '';
+                  const label = t('importantDates.partnerBirthdayLabel', {
+                    name: partnerBirthday.displayName,
+                  });
+                  return (
+                    <li
+                      key={`partner-birthday-${partnerBirthday.accountId}`}
+                      className="important-date-item"
+                    >
+                      <article
+                        className="important-date-card important-date-card-derived"
+                        aria-label={[
+                          label,
+                          t('importantDates.repeats.ANNUALLY'),
+                          t('importantDates.visibility.SHARED'),
+                        ].join(' – ')}
+                      >
+                        <time
+                          className="important-date-marker"
+                          dateTime={dateInputValue(partnerBirthday.birthday)}
+                        >
+                          <span className="important-date-marker-day">
+                            {markerDay}
+                          </span>
+                          <span className="important-date-marker-month">
+                            {markerMonth}
+                          </span>
+                        </time>
+                        <span className="important-date-timeline-body">
+                          <span className="important-date-title">{label}</span>
+                          <span className="important-date-person">
+                            {t('importantDates.partnerBirthdayProfileSource', {
+                              name: partnerBirthday.displayName,
+                            })}
+                          </span>
+                          <span className="important-date-meta">
+                            <span>{t('importantDates.type.BIRTHDAY')}</span>
+                            <span aria-hidden="true">·</span>
+                            <span>{t('importantDates.repeats.ANNUALLY')}</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="important-date-visibility important-date-visibility-shared">
+                              <span
+                                className="important-date-visibility-icon"
+                                aria-hidden="true"
+                              >
+                                <DestinationIcon icon="people" />
+                              </span>
+                              {t('importantDates.visibility.SHARED')}
+                            </span>
+                          </span>
+                        </span>
+                      </article>
+                    </li>
+                  );
+                })()
+              : null}
+            {datesQuery.data?.map((date) => {
               const linkedPersonName = date.relatedPersonId
                 ? personNames.get(date.relatedPersonId)
                 : undefined;

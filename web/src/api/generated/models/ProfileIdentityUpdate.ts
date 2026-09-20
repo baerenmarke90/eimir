@@ -17,12 +17,19 @@ import { mapValues } from '../runtime';
  * Partial update of the authenticated account's presentation identity.
  * 
  * Omission means unchanged. An explicit null ``profileAttachmentId`` removes
- * the current avatar. ``displayName`` deliberately has no competing request-
- * layer normalization; the identity domain remains the single authority.
+ * the current avatar; an explicit null ``birthday`` clears the optional birthday.
+ * ``displayName`` deliberately has no competing request-layer normalization;
+ * the identity domain remains the single authority.
  * @export
  * @interface ProfileIdentityUpdate
  */
 export interface ProfileIdentityUpdate {
+    /**
+     * 
+     * @type {Date}
+     * @memberof ProfileIdentityUpdate
+     */
+    birthday?: Date | null;
     /**
      * 
      * @type {string}
@@ -54,6 +61,7 @@ export function ProfileIdentityUpdateFromJSONTyped(json: any, ignoreDiscriminato
     }
     return {
         
+        'birthday': json['birthday'] === undefined ? undefined : json['birthday'] === null ? null : (new Date(json['birthday'])),
         'displayName': json['displayName'] === undefined ? undefined : json['displayName'] === null ? null : json['displayName'],
         'profileAttachmentId': json['profileAttachmentId'] === undefined ? undefined : json['profileAttachmentId'] === null ? null : json['profileAttachmentId'],
     };
@@ -70,6 +78,7 @@ export function ProfileIdentityUpdateToJSONTyped(value?: ProfileIdentityUpdate |
 
     return {
         
+        'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'displayName': value['displayName'],
         'profileAttachmentId': value['profileAttachmentId'],
     };

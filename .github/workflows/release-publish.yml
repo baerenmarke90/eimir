@@ -52,6 +52,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}
@@ -81,10 +83,6 @@ jobs:
     name: Build and attest one source revision
     if: github.event_name == 'workflow_dispatch'
     needs: contract
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
       include_android: ${{ inputs.include_android }}

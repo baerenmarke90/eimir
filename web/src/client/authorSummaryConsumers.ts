@@ -103,9 +103,9 @@ export async function invalidateStoryProjections(
 /**
  * Centrally invalidates all TanStack Query caches that consume AuthorSummary projections.
  *
- * When an account's displayName or profileAttachmentId changes, this helper ensures
- * that all timelines, activity logs, dashboards, comments, and collaborative items
- * in the space immediately refetch the fresh author identity.
+ * When an account's presentation identity changes, this helper ensures that all
+ * timelines, profile/date projections, activity logs, dashboards, comments, and
+ * collaborative items in the space immediately refetch the fresh identity.
  */
 export async function invalidateAuthorSummaryConsumers(
   queryClient: QueryClient,

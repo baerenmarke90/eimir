@@ -65,8 +65,9 @@ class ProfileIdentityUpdate(ApiModel):
     """Partial update of the authenticated account's presentation identity.
 
     Omission means unchanged. An explicit null ``profileAttachmentId`` removes
-    the current avatar. ``displayName`` deliberately has no competing request-
-    layer normalization; the identity domain remains the single authority.
+    the current avatar; an explicit null ``birthday`` clears the optional birthday.
+    ``displayName`` deliberately has no competing request-layer normalization;
+    the identity domain remains the single authority.
     """
 
     display_name: str | None = None

@@ -13,7 +13,7 @@ remain separate concerns.
 eimir. uses **build-once release artifacts** while preserving the exact Git
 commit SHA as source identity.
 
-The launch artifact set is:
+The release artifact set is channel-aware. Every release contains:
 
 - one backend runtime archive shared by API, worker and migrate;
 - one Web runtime archive;
@@ -21,11 +21,16 @@ The launch artifact set is:
 - one Self-Hosted image-identity record containing authoritative digest-qualified registry references;
 - one small Self-Hosted operator bundle containing canonical Compose, release env
   template, mandatory Production launcher and runtime checker;
-- final signed Android APK/AAB;
-- SPDX 2.3 JSON SBOMs and GitHub Artifact Attestations from #193;
+- SPDX 2.3 JSON SBOMs and GitHub Artifact Attestations for every published artifact;
 - one machine-readable release manifest plus checksums;
 - one Git tag `v<product-version>` pointing to the exact release commit;
-- one **immutable** GitHub Release containing the complete artifact/evidence set.
+- one **immutable** GitHub Release containing the complete selected artifact/evidence set.
+
+Android APK/AAB are included only when the frozen release-channel set explicitly selects
+Android. An Android-excluded release records `android.included=false` and
+`signing=not-applicable` in the manifest and contains no Android package, Android SBOM,
+Android attestation or Android signing prerequisite. This is not an unsigned Android
+release; Android is outside that release channel.
 
 The protected publication workflow promotes the already-built #193 runtime archives to
 GHCR. For operator discovery it may create aliases such as:
@@ -79,26 +84,25 @@ managed deployment evidence are related but distinct.
 
 Launch versions use SemVer:
 
-- product version / Android `versionName`: `MAJOR.MINOR.PATCH`, optionally with an
-  intentional prerelease suffix;
-- Git tag: `v<product-version>`.
+- product version: `MAJOR.MINOR.PATCH`, optionally with an intentional prerelease suffix;
+- Git tag: `v<product-version>`;
+- when Android is included, Android `versionName` equals the product version.
 
 Build metadata (`+...`) is rejected for release publication because the product version
 is also used as an OCI discovery tag. The common release preflight additionally rejects
 a `v<version>` value longer than the OCI 128-character tag limit.
 
-Android release packaging builds from `android/` (#1008 Slice B). Android
-`versionName` is parameterized via the release version (`-PeimirVersionName="$RELEASE_VERSION"`,
-defaulting to `0.1.0` in `android/app/build.gradle`). Android `versionCode`
-is a positive monotonically increasing integer supplied by publication
-(`-PeimirVersionCode="$ANDROID_VERSION_CODE"`, with deprecated `sbs*` fallback).
-The legacy client under `android/` is completely decoupled from all release pipelines
-and will be retired in #1009.
+When Android is selected, release packaging builds the canonical Capacitor wrapper from
+`android/`. Android `versionName` is parameterized via the release version
+(`-PeimirVersionName="$RELEASE_VERSION"`); `versionCode` is a positive monotonically
+increasing integer supplied by publication (`-PeimirVersionCode="$ANDROID_VERSION_CODE"`,
+with deprecated `sbs*` fallback).
 
-Release builds require `android_api_base_url` to build the embedded web bundle
-(`VITE_EIMIR_API_BASE_URL`), synchronize native assets via `npm run cap:sync`, and build
-artifacts with pinned Node 24.21.0, JDK 21, and strict Gradle dependency verification
-(`gradle/verification-metadata.xml`).
+Only Android-inclusive releases require `android_api_base_url` to build the embedded Web
+bundle (`VITE_EIMIR_API_BASE_URL`), synchronize native assets via `npm run cap:sync`,
+and build packages with pinned Node 24.21.0, JDK 21, and strict Gradle dependency
+verification. A Self-Hosted/Web-only release deliberately has no fixed Android API origin:
+each Self-Hosted installation owns its own public origin.
 
 For Self-Hosted Production, `EIMIR_RELEASE_VERSION` is mandatory. Versioned or
 digest-qualified image references must still carry exactly that same release version.
@@ -107,8 +111,11 @@ The Production launcher validates this before pull/bootstrap/start.
 ## Release manifest and image identity
 
 `scripts/release_manifest.py` consumes the exact #193 `evidence-index.json` and creates
-one schema-v1 release manifest. It rejects invalid product/source/artifact/Android
-identity and final publication when Android is not `signed-release`.
+one schema-v1 release manifest. It rejects invalid product/source/artifact identity and
+requires the artifact set to match the declared Android channel exactly. When Android is
+included, final publication still requires `signed-release`; when Android is excluded,
+the manifest requires explicit `included=false` / `signing=not-applicable` metadata and
+forbids Android artifact identity.
 
 The release manifest contains no credentials, signing key, `.env` values, user content,
 tokens, receipts, provider payloads or storage secrets.
@@ -139,11 +146,13 @@ coordinated recovery point. Do not start an old image merely because it remains 
 ## Candidate workflow
 
 `.github/workflows/release-candidate.yml` remains the unprivileged candidate workflow.
-It builds backend/Web and unsigned Android candidates from one exact SHA, produces
-SBOMs/attestations, binds identity into a candidate manifest and uploads an immutable
+It builds backend/Web from one exact SHA and includes unsigned Android candidate packages
+only when `include_android=true`. It produces SBOMs/attestations for the selected artifact
+set, binds that channel choice into the candidate manifest and uploads an immutable
 candidate bundle. It has no package-write permission and does not publish OCI packages.
 
-An unsigned Android candidate is never a launch/store artifact.
+An unsigned Android candidate is never a launch/store artifact. An Android-excluded
+candidate is a complete candidate for a channel set that does not ship Android.
 
 ## Android signing custody
 
@@ -155,21 +164,23 @@ environment:
 production-release
 ```
 
-Required environment secrets are:
+For an Android-inclusive release the required environment secrets are:
 
 - `EIMIR_RELEASE_KEYSTORE_BASE64`;
 - `EIMIR_RELEASE_KEYSTORE_PASSWORD`;
 - `EIMIR_RELEASE_KEY_ALIAS`;
 - `EIMIR_RELEASE_KEY_PASSWORD`.
 
+Android-excluded publication does not read or require these secrets.
+
 The workflow materializes the keystore only under `$RUNNER_TEMP`, removes it after use,
 and never copies signing material into evidence/logs/SBOMs/manifests/registry metadata.
 GHCR authentication uses the ephemeral Actions token; only the protected publication job
 has `packages: write`.
 
-Before the first real publication, #914 must verify the protected environment, approval
-policy and signing-secret presence. The release owner separately keeps one encrypted
-offline recovery copy of the upload key.
+Before the first real publication, #914 must verify the protected environment and
+approval policy. Android signing-secret presence and encrypted offline upload-key recovery
+are required only when the frozen release channel includes Android.
 
 ## Protected final publication workflow
 
@@ -189,21 +200,24 @@ It verifies:
 - exact source SHA reachable from `main`;
 - pre-existing CI/security checks completed green;
 - requested tag/Release unused;
-- valid `android_api_base_url` (must be `https://`, no credentials/query/fragment/whitespace, `.invalid` rejected);
+- an explicit Android channel selection;
+- when Android is included, valid `android_version_code` and `android_api_base_url`
+  (`https://`, no credentials/query/fragment/whitespace, `.invalid` rejected);
+- when Android is excluded, absence of Android URL/version inputs;
 - requested version matches release preflight rules;
 - valid initial/previous-known-good choice;
 - #193 transport checksums intact.
 
-### 2. Protected signing and OCI promotion
+### 2. Protected channel publication and OCI promotion
 
 After protected environment approval it:
 
-1. builds web assets with `android_api_base_url`, performs `npm run cap:sync` with native
-   drift check, compiles and signs/verifies final Android APK/AAB from `android/`
-   using pinned Node 24.21.0, JDK 21, and strict Gradle dependency verification, followed
-   by apksigner, jarsigner, aapt badging, and offline web asset security verification;
-2. regenerates signed-byte SBOMs and attestations;
-3. builds/verifies the final signed release manifest;
+1. if Android is selected, builds Web assets with `android_api_base_url`, performs
+   `npm run cap:sync` with native drift check, compiles and signs/verifies final Android
+   APK/AAB from `android/`, then regenerates SBOMs and attestations for the signed bytes;
+2. if Android is excluded, skips all Android toolchain, signing-secret and Android artifact
+   work and preserves the explicit not-applicable channel metadata from #193 evidence;
+3. builds/verifies the final channel-aware release manifest;
 4. loads exact #193 backend/Web archives with `docker load` and refuses publication unless
    each image's `org.opencontainers.image.revision` and `org.opencontainers.image.version`
    labels equal the release source revision and version;
@@ -313,14 +327,15 @@ execute Demo seeding. Public Demo operators intentionally run that one-shot expl
 Before the first Production publication, the release owner must:
 
 1. protect `production-release` with explicit release-owner approval;
-2. configure the four Android upload-key secrets;
-3. retain encrypted offline upload-key recovery independently;
-4. enable Google Play App Signing/register the upload certificate;
-5. enable **Settings -> Releases -> Enable release immutability** for the repository;
-6. allow repository Actions package publication;
-7. ensure `eimir-backend` and `eimir-web` are Public GHCR packages before a final release
+2. enable **Settings -> Releases -> Enable release immutability** for the repository;
+3. allow repository Actions package publication;
+4. ensure `eimir-backend` and `eimir-web` are Public GHCR packages before a final release
    can pass the anonymous-consumption gate;
-8. execute final publication only after launch gates are green.
+5. execute final publication only after launch gates are green.
+
+For any Android-inclusive release, additionally configure the four Android upload-key
+secrets, retain encrypted offline upload-key recovery independently, and enable Google
+Play App Signing/register the upload certificate before publication.
 
 On the very first GHCR publication the packages may be created as Private. In that case
 the workflow intentionally stops **before GitHub Release publication** after pushing the

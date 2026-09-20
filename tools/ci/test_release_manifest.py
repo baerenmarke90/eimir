@@ -51,6 +51,7 @@ class ReleaseManifestTest(unittest.TestCase):
             "sbomFormat": "SPDX-2.3 JSON",
             "artifacts": evidence_artifacts,
             "android": {
+                "included": True,
                 "applicationId": "de.sidebyside.app",
                 "versionName": "0.1.0",
                 "versionCode": 7,
@@ -350,6 +351,74 @@ class ReleaseManifestTest(unittest.TestCase):
         self.evidence["android"]["launchableActivity"] = "de.sidebyside.app.MainActivity"
         with self.assertRaisesRegex(release_manifest.ManifestError, "launchableActivity"):
             release_manifest.validate_evidence(self.evidence, "0.1.0")
+
+
+    def test_android_excluded_evidence_is_explicit_and_core_only(self) -> None:
+        self.evidence["artifacts"] = [
+            artifact
+            for artifact in self.evidence["artifacts"]
+            if artifact["id"] in {"backend-runtime", "web-runtime"}
+        ]
+        self.evidence["android"] = {
+            "included": False,
+            "signing": "not-applicable",
+        }
+
+        source, artifacts, android = release_manifest.validate_evidence(
+            self.evidence, "0.1.0"
+        )
+
+        self.assertEqual(source, "a" * 40)
+        self.assertEqual(
+            {artifact["id"] for artifact in artifacts},
+            {"backend-runtime", "web-runtime"},
+        )
+        self.assertFalse(android["included"])
+
+    def test_android_excluded_final_manifest_needs_no_signing_artifacts(self) -> None:
+        manifest = self._release_manifest()
+        manifest["artifacts"] = [
+            artifact
+            for artifact in manifest["artifacts"]
+            if artifact["id"] in {"backend-runtime", "web-runtime"}
+        ]
+        manifest["android"] = {
+            "included": False,
+            "signing": "not-applicable",
+        }
+
+        release_manifest.validate_manifest_shape(
+            manifest,
+            require_signed_android=True,
+        )
+
+    def test_android_excluded_manifest_rejects_android_identity_or_artifacts(self) -> None:
+        manifest = self._release_manifest()
+        manifest["android"] = {
+            "included": False,
+            "signing": "not-applicable",
+            "apiBaseUrl": "https://api.example.test",
+        }
+        with self.assertRaisesRegex(
+            release_manifest.ManifestError, "must not carry Android artifact identity"
+        ):
+            release_manifest.validate_manifest_shape(
+                manifest,
+                require_signed_android=True,
+            )
+
+        manifest = self._release_manifest()
+        manifest["android"] = {
+            "included": False,
+            "signing": "not-applicable",
+        }
+        with self.assertRaisesRegex(
+            release_manifest.ManifestError, "does not match the declared Android channel"
+        ):
+            release_manifest.validate_manifest_shape(
+                manifest,
+                require_signed_android=True,
+            )
 
 
 if __name__ == "__main__":

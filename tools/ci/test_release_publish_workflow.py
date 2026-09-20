@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
+CANDIDATE_WORKFLOW = ROOT / ".github/workflows/release-candidate.yml"
 WORKFLOW_DIR = ROOT / ".github/workflows"
 
 EXTERNAL_ACTION_PINS = {
@@ -32,6 +33,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.candidate_workflow = CANDIDATE_WORKFLOW.read_text(encoding="utf-8")
 
     def test_no_privileged_pull_request_target_trigger(self) -> None:
         self.assertNotIn("pull_request_target", self.workflow)
@@ -65,6 +67,57 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn('if [ "$CONFIRM_PUBLISH" != "true" ]', self.workflow)
         self.assertIn('git merge-base --is-ancestor "$GITHUB_SHA" origin/main', self.workflow)
         self.assertIn("Require existing repository checks to be green", self.workflow)
+
+
+    def test_release_channel_selection_is_explicit_in_publish_and_candidate(self) -> None:
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(workflow="publish" if workflow is self.workflow else "candidate"):
+                self.assertIn("include_android:", workflow)
+                self.assertIn("required: true", workflow)
+                self.assertIn("default: true", workflow)
+                self.assertIn("include_android: ${{ inputs.include_android }}", workflow)
+        self.assertIn(
+            "Android-excluded publication must not provide Android URL/version inputs",
+            self.workflow,
+        )
+        self.assertIn(
+            "Android-excluded candidate must not provide Android URL/version inputs",
+            self.candidate_workflow,
+        )
+        self.assertIn(
+            "Android-excluded evidence must carry only explicit not-applicable metadata",
+            self.candidate_workflow,
+        )
+
+    def test_android_publication_steps_are_conditional(self) -> None:
+        android_steps = (
+            "Set up Node.js 24.21.0",
+            "Set up JDK 21",
+            "Set up Gradle cache and validate wrapper",
+            "Verify pinned Gradle wrapper JAR",
+            "Install Android SDK 36",
+            "Build and sync Capacitor web bundle",
+            "Verify generated native wrapper files have not drifted",
+            "Build and verify final signed Android artifacts",
+            "Install verified Syft release",
+            "Regenerate Android SPDX SBOMs for signed bytes",
+            "Rebind evidence index to final signed Android bytes",
+            "Remove unsigned Android attestation bundles",
+            "Attest final signed Android APK",
+            "Attest final signed Android AAB",
+        )
+        for step_name in android_steps:
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: inputs.include_android", step)
+
+    def test_android_exclusion_is_recorded_in_final_release_notes(self) -> None:
+        notes = self.workflow.split("Write human-readable release notes", 1)[1].split(
+            "Write and verify final release checksums", 1
+        )[0]
+        self.assertIn("INCLUDE_ANDROID:", notes)
+        self.assertIn("Android is explicitly not part of this release channel", notes)
+        self.assertIn("No APK/AAB", notes)
 
     def test_release_identity_is_immutable_and_not_overwritten(self) -> None:
         self.assertGreaterEqual(self.workflow.count("git ls-remote --exit-code --tags"), 2)
@@ -365,9 +418,16 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
 
     def test_android_api_base_url_input_and_preflight_validation(self) -> None:
         self.assertIn("android_api_base_url:", self.workflow)
-        self.assertIn("Release publication requires an explicit, non-test android_api_base_url.", self.workflow)
+        self.assertIn(
+            "Android-inclusive publication requires an explicit, non-test android_api_base_url.",
+            self.workflow,
+        )
         self.assertIn("Android apiBaseUrl does not match publication input", self.workflow)
         self.assertIn("preflight-manifest apiBaseUrl mismatch", self.workflow)
+        self.assertIn(
+            "Android-excluded publication must not provide Android URL/version inputs",
+            self.workflow,
+        )
 
     def test_canonical_android_directory_is_the_only_project(self) -> None:
         # android/ is the Capacitor wrapper (#1009); the former staging path and

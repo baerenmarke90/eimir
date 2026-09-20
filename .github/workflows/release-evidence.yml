@@ -14,30 +14,40 @@ on:
       - "docs/m6/SBOM-ATTESTATIONS.md"
   workflow_dispatch:
     inputs:
-      android_version_code:
-        description: Monotonic Android versionCode for this evidence build.
+      include_android:
+        description: Build Android APK/AAB evidence for this release channel.
         required: true
+        default: true
+        type: boolean
+      android_version_code:
+        description: Monotonic Android versionCode; required only when Android is included.
+        required: false
         type: number
       android_api_base_url:
-        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: true
+        description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
         type: string
       release_version:
-        description: SemVer product version without the v prefix; must equal Android versionName.
+        description: SemVer product version without the v prefix.
         required: true
         type: string
   workflow_call:
     inputs:
+      include_android:
+        description: Build Android APK/AAB evidence for this release channel.
+        required: false
+        default: true
+        type: boolean
       android_version_code:
-        description: Monotonic Android versionCode for this evidence build.
-        required: true
+        description: Monotonic Android versionCode; required only when Android is included.
+        required: false
         type: number
       android_api_base_url:
-        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: true
+        description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
         type: string
       release_version:
-        description: SemVer product version without the v prefix; must equal Android versionName.
+        description: SemVer product version without the v prefix.
         required: true
         type: string
 
@@ -52,6 +62,7 @@ env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
   ANDROID_PROJECT_DIR: "android"
+  INCLUDE_ANDROID: ${{ github.event_name == 'pull_request' || inputs.include_android }}
   ANDROID_VERSION_CODE: ${{ inputs.android_version_code || (github.event_name == 'pull_request' && 1 || '') }}
   ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url || (github.event_name == 'pull_request' && 'https://api.eimir.invalid' || '') }}
   RELEASE_VERSION: ${{ inputs.release_version || (github.event_name == 'pull_request' && '0.1.0' || '') }}
@@ -73,7 +84,9 @@ jobs:
       - name: Validate release inputs
         env:
           EVENT_NAME: ${{ github.event_name }}
+          INCLUDE_ANDROID: ${{ env.INCLUDE_ANDROID }}
           API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
+          VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           VERSION_NAME: ${{ env.RELEASE_VERSION }}
         run: |
           set -euo pipefail
@@ -83,29 +96,43 @@ jobs:
           import urllib.parse
 
           event_name = os.environ.get("EVENT_NAME", "")
+          include_android = os.environ.get("INCLUDE_ANDROID", "").lower() == "true"
           raw_url = os.environ.get("API_BASE_URL", "").strip()
+          raw_version_code = os.environ.get("VERSION_CODE", "").strip()
           raw_version = os.environ.get("VERSION_NAME", "").strip()
 
           if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", raw_version):
               raise SystemExit(f"Invalid release_version format: {raw_version}")
 
-          if re.search(r"\s", raw_url):
-              raise SystemExit("android_api_base_url must not contain whitespace")
-          parsed = urllib.parse.urlsplit(raw_url)
-          if parsed.scheme != "https":
-              raise SystemExit("android_api_base_url must use https scheme")
-          if not parsed.netloc:
-              raise SystemExit("android_api_base_url must include host")
-          if parsed.username or parsed.password:
-              raise SystemExit("android_api_base_url must not contain userinfo")
-          if parsed.query or parsed.fragment:
-              raise SystemExit("android_api_base_url must not contain query or fragment")
+          if include_android:
+              try:
+                  version_code = int(raw_version_code)
+              except ValueError as exc:
+                  raise SystemExit("Android-inclusive evidence requires android_version_code") from exc
+              if version_code <= 0:
+                  raise SystemExit("android_version_code must be a positive integer")
 
-          canonical_url = raw_url.rstrip("/")
-          if event_name != "pull_request":
-              if canonical_url == "https://api.eimir.invalid" or ".invalid" in parsed.netloc:
-                  raise SystemExit("Non-pull_request release runs must provide an explicit, non-test android_api_base_url")
-          print(f"Validated release inputs: version={raw_version}, api_base_url={canonical_url}")
+              if re.search(r"\s", raw_url):
+                  raise SystemExit("android_api_base_url must not contain whitespace")
+              parsed = urllib.parse.urlsplit(raw_url)
+              if parsed.scheme != "https":
+                  raise SystemExit("android_api_base_url must use https scheme")
+              if not parsed.netloc:
+                  raise SystemExit("android_api_base_url must include host")
+              if parsed.username or parsed.password:
+                  raise SystemExit("android_api_base_url must not contain userinfo")
+              if parsed.query or parsed.fragment:
+                  raise SystemExit("android_api_base_url must not contain query or fragment")
+
+              canonical_url = raw_url.rstrip("/")
+              if event_name != "pull_request":
+                  if canonical_url == "https://api.eimir.invalid" or ".invalid" in parsed.netloc:
+                      raise SystemExit("Android-inclusive release runs require an explicit, non-test android_api_base_url")
+              print(f"Validated Android-inclusive evidence: version={raw_version}, api_base_url={canonical_url}")
+          else:
+              if raw_url or raw_version_code:
+                  raise SystemExit("Android-excluded evidence must not provide Android URL/version inputs")
+              print(f"Validated Android-excluded evidence: version={raw_version}")
           PY
 
       - name: Create evidence directories
@@ -144,20 +171,24 @@ jobs:
           docker image save --output release-evidence/web-runtime.image.tar "$image"
 
       - name: Set up Node.js 24.21.0
+        if: env.INCLUDE_ANDROID == 'true'
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: "24.21.0"
 
       - name: Set up JDK 21
+        if: env.INCLUDE_ANDROID == 'true'
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
+        if: env.INCLUDE_ANDROID == 'true'
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Verify pinned Gradle wrapper JAR
+        if: env.INCLUDE_ANDROID == 'true'
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         run: |
@@ -167,11 +198,13 @@ jobs:
             | sha256sum --check --strict -
 
       - name: Install Android SDK 36
+        if: env.INCLUDE_ANDROID == 'true'
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build and sync Capacitor web bundle
+        if: env.INCLUDE_ANDROID == 'true'
         working-directory: web
         env:
           ANDROID_API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
@@ -182,6 +215,7 @@ jobs:
           npm run cap:sync
 
       - name: Verify generated native wrapper files have not drifted
+        if: env.INCLUDE_ANDROID == 'true'
         run: |
           set -euo pipefail
           git diff --exit-code -- \
@@ -189,6 +223,7 @@ jobs:
             android/app/capacitor.build.gradle
 
       - name: Build unsigned Android release artifacts
+        if: env.INCLUDE_ANDROID == 'true'
         working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         run: |
           set -euo pipefail
@@ -207,6 +242,7 @@ jobs:
           cp -- "$aab" ../release-evidence/android/eimir-release-unsigned.aab
 
       - name: Verify APK and AAB packaging and runtime configuration
+        if: env.INCLUDE_ANDROID == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -243,6 +279,7 @@ jobs:
           PY
 
       - name: Verify APK badging
+        if: env.INCLUDE_ANDROID == 'true'
         shell: bash
         env:
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
@@ -282,14 +319,17 @@ jobs:
             -o "spdx-json=release-evidence/sbom/backend-runtime.spdx.json"
           syft scan "docker-archive:release-evidence/web-runtime.image.tar" \
             -o "spdx-json=release-evidence/sbom/web-runtime.spdx.json"
-          syft scan "file:release-evidence/android/eimir-release-unsigned.apk" \
-            -o "spdx-json=release-evidence/sbom/android-apk.spdx.json"
-          syft scan "file:release-evidence/android/eimir-release-unsigned.aab" \
-            -o "spdx-json=release-evidence/sbom/android-aab.spdx.json"
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            syft scan "file:release-evidence/android/eimir-release-unsigned.apk" \
+              -o "spdx-json=release-evidence/sbom/android-apk.spdx.json"
+            syft scan "file:release-evidence/android/eimir-release-unsigned.aab" \
+              -o "spdx-json=release-evidence/sbom/android-aab.spdx.json"
+          fi
 
       - name: Validate and index release evidence
         env:
           SOURCE_REVISION: ${{ github.sha }}
+          INCLUDE_ANDROID: ${{ env.INCLUDE_ANDROID }}
           ANDROID_VERSION_CODE: ${{ env.ANDROID_VERSION_CODE }}
           RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
           ANDROID_API_BASE_URL: ${{ env.ANDROID_API_BASE_URL }}
@@ -303,12 +343,16 @@ jobs:
           import subprocess
 
           root = Path("release-evidence")
+          include_android = os.environ["INCLUDE_ANDROID"].lower() == "true"
           subjects = [
               ("backend-runtime", root / "backend-runtime.image.tar", root / "sbom/backend-runtime.spdx.json", ["api", "worker", "migrate"]),
               ("web-runtime", root / "web-runtime.image.tar", root / "sbom/web-runtime.spdx.json", ["web"]),
-              ("android-apk", root / "android/eimir-release-unsigned.apk", root / "sbom/android-apk.spdx.json", ["android-apk"]),
-              ("android-aab", root / "android/eimir-release-unsigned.aab", root / "sbom/android-aab.spdx.json", ["android-aab"]),
           ]
+          if include_android:
+              subjects.extend([
+                  ("android-apk", root / "android/eimir-release-unsigned.apk", root / "sbom/android-apk.spdx.json", ["android-apk"]),
+                  ("android-aab", root / "android/eimir-release-unsigned.aab", root / "sbom/android-aab.spdx.json", ["android-aab"]),
+              ])
 
           def sha256(path: Path) -> str:
               digest = hashlib.sha256()
@@ -341,34 +385,32 @@ jobs:
                   }
               )
 
-          aapt_bin = Path(os.environ["ANDROID_HOME"]) / "build-tools/36.0.0/aapt"
-          if not aapt_bin.is_file():
-              raise SystemExit(f"aapt binary not found at {aapt_bin}")
-          apk_path = root / "android/eimir-release-unsigned.apk"
-          badging = subprocess.check_output([str(aapt_bin), "dump", "badging", str(apk_path)], text=True)
-          pkg_match = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
-          act_match = re.search(r"launchable-activity: name='([^']+)'", badging)
-          if not pkg_match or not act_match:
-              raise SystemExit("Could not resolve Android release identity from aapt badging")
-          app_id, version_code_str, version_name = pkg_match.group(1), pkg_match.group(2), pkg_match.group(3)
-          launchable_activity = act_match.group(1)
+          android = {"included": False, "signing": "not-applicable"}
+          if include_android:
+              aapt_bin = Path(os.environ["ANDROID_HOME"]) / "build-tools/36.0.0/aapt"
+              if not aapt_bin.is_file():
+                  raise SystemExit(f"aapt binary not found at {aapt_bin}")
+              apk_path = root / "android/eimir-release-unsigned.apk"
+              badging = subprocess.check_output([str(aapt_bin), "dump", "badging", str(apk_path)], text=True)
+              pkg_match = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", badging)
+              act_match = re.search(r"launchable-activity: name='([^']+)'", badging)
+              if not pkg_match or not act_match:
+                  raise SystemExit("Could not resolve Android release identity from aapt badging")
+              app_id, version_code_str, version_name = pkg_match.group(1), pkg_match.group(2), pkg_match.group(3)
+              launchable_activity = act_match.group(1)
 
-          if app_id != "de.sidebyside.app":
-              raise SystemExit(f"Unexpected Android applicationId: {app_id}")
-          if version_code_str != str(os.environ["ANDROID_VERSION_CODE"]):
-              raise SystemExit(f"Android versionCode mismatch: {version_code_str} != {os.environ['ANDROID_VERSION_CODE']}")
-          if version_name != os.environ["RELEASE_VERSION"]:
-              raise SystemExit(f"Android versionName mismatch: {version_name} != {os.environ['RELEASE_VERSION']}")
-          if launchable_activity != "de.eimir.app.MainActivity":
-              raise SystemExit(f"Unexpected Android launchableActivity: {launchable_activity}")
+              if app_id != "de.sidebyside.app":
+                  raise SystemExit(f"Unexpected Android applicationId: {app_id}")
+              if version_code_str != str(os.environ["ANDROID_VERSION_CODE"]):
+                  raise SystemExit(f"Android versionCode mismatch: {version_code_str} != {os.environ['ANDROID_VERSION_CODE']}")
+              if version_name != os.environ["RELEASE_VERSION"]:
+                  raise SystemExit(f"Android versionName mismatch: {version_name} != {os.environ['RELEASE_VERSION']}")
+              if launchable_activity != "de.eimir.app.MainActivity":
+                  raise SystemExit(f"Unexpected Android launchableActivity: {launchable_activity}")
 
-          raw_api_url = os.environ["ANDROID_API_BASE_URL"].strip().rstrip("/")
-          index = {
-              "schemaVersion": 1,
-              "sourceRevision": os.environ["SOURCE_REVISION"],
-              "sbomFormat": "SPDX-2.3 JSON",
-              "artifacts": artifacts,
-              "android": {
+              raw_api_url = os.environ["ANDROID_API_BASE_URL"].strip().rstrip("/")
+              android = {
+                  "included": True,
                   "applicationId": app_id,
                   "versionName": version_name,
                   "versionCode": int(version_code_str),
@@ -376,7 +418,14 @@ jobs:
                   "apiBaseUrl": raw_api_url,
                   "signing": "unsigned-evidence-only",
                   "finalSignedArtifactRequiresFreshAttestation": True,
-              },
+              }
+
+          index = {
+              "schemaVersion": 1,
+              "sourceRevision": os.environ["SOURCE_REVISION"],
+              "sbomFormat": "SPDX-2.3 JSON",
+              "artifacts": artifacts,
+              "android": android,
           }
           (root / "evidence-index.json").write_text(
               json.dumps(index, indent=2, sort_keys=True) + "\n",
@@ -386,17 +435,22 @@ jobs:
 
           (
             cd release-evidence
-            sha256sum \
-              backend-runtime.image.tar \
-              web-runtime.image.tar \
-              android/eimir-release-unsigned.apk \
-              android/eimir-release-unsigned.aab \
-              sbom/backend-runtime.spdx.json \
-              sbom/web-runtime.spdx.json \
-              sbom/android-apk.spdx.json \
-              sbom/android-aab.spdx.json \
-              evidence-index.json \
-              > SHA256SUMS
+            files=(
+              backend-runtime.image.tar
+              web-runtime.image.tar
+              sbom/backend-runtime.spdx.json
+              sbom/web-runtime.spdx.json
+              evidence-index.json
+            )
+            if [ "$INCLUDE_ANDROID" = "true" ]; then
+              files+=(
+                android/eimir-release-unsigned.apk
+                android/eimir-release-unsigned.aab
+                sbom/android-apk.spdx.json
+                sbom/android-aab.spdx.json
+              )
+            fi
+            sha256sum "${files[@]}" > SHA256SUMS
             sha256sum --check --strict SHA256SUMS
           )
 
@@ -449,6 +503,7 @@ jobs:
           bundle-prefix: web-runtime
 
       - name: Attest Android APK
+        if: inputs.include_android || github.event_name == 'pull_request'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.apk
@@ -457,6 +512,7 @@ jobs:
           bundle-prefix: android-apk
 
       - name: Attest Android AAB
+        if: inputs.include_android || github.event_name == 'pull_request'
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release-unsigned.aab
@@ -491,8 +547,10 @@ jobs:
 
           verify_subject release-evidence/backend-runtime.image.tar backend-runtime
           verify_subject release-evidence/web-runtime.image.tar web-runtime
-          verify_subject release-evidence/android/eimir-release-unsigned.apk android-apk
-          verify_subject release-evidence/android/eimir-release-unsigned.aab android-aab
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            verify_subject release-evidence/android/eimir-release-unsigned.apk android-apk
+            verify_subject release-evidence/android/eimir-release-unsigned.aab android-aab
+          fi
 
       - name: Upload offline-verification bundles
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

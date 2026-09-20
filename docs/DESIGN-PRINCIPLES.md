@@ -1,7 +1,7 @@
 # Design Principles for eimir.
 
 **Status:** Mandatory foundation for Web and App<br/>
-**Version:** 2.2<br/>
+**Version:** 2.3<br/>
 **Effective from:** September 15, 2026
 
 This document translates the eimir. product idea into mandatory
@@ -211,6 +211,7 @@ The base unit is a 4-unit grid.
 - Maximum content width: 1200 px; reading text is limited to 720 px.
 - Standard spacing inside a card: 20–24 px.
 - Related elements are closer together than separate sections.
+- Page modules and major sections use spacing, composition, surface contrast, or elevation for separation. Standalone horizontal or vertical hairlines MUST NOT be added merely to mark a module boundary. Hairlines remain appropriate inside lists, fields/controls, overlay chrome, provenance, and explicit semantic or safety boundaries.
 - Web layouts switch to one column below 768 px.
 
 ### 3.4 Shape and depth
@@ -218,7 +219,7 @@ The base unit is a 4-unit grid.
 - Standard card radius: 20 px/dp.
 - Large hero surfaces and modal surfaces: 24–32 px/dp.
 - Buttons: 14–16 px/dp; pills are reserved for filters and compact status values.
-- Shadows remain soft and shallow; surface and line differences are preferred for boundaries.
+- Shadows remain soft and shallow; surface/depth differences are preferred for page-module boundaries, while purposeful lines remain available for internal or semantic boundaries.
 - Avoid more than two visible depth levels per view.
 
 ### 3.5 Imagery and illustration

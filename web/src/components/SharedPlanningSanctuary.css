@@ -192,7 +192,6 @@
 :where(.planning-page:has(> .planning-facts)) {
   & > .planning-facts {
     border: 0;
-    border-bottom: 1px solid var(--color-border-subtle);
     border-radius: 0;
     padding: 0 0 var(--space-5);
     background: transparent;

@@ -109,6 +109,98 @@ describe('web layout primitives', () => {
   });
 });
 
+describe('module boundary rhythm', () => {
+  it('uses spacing and surfaces instead of standalone module divider hairlines', () => {
+    const cases: Array<[string, string, string]> = [
+      ['./styles.css', '.app-header', 'border-bottom'],
+      ['./theme.css', '.app-header', 'border-bottom'],
+      ['./layout.css', '.page-heading', 'border-bottom'],
+      [
+        './components/SharedStorySummary.css',
+        '.shared-story-summary',
+        'border-top',
+      ],
+      ['./components/CommentsPanel.css', '.comments-panel', 'border-top'],
+      [
+        './components/ProfileIdentityPanel.css',
+        '.profile-identity-hero-card',
+        'border-bottom',
+      ],
+      [
+        './components/ProfileIdentityPanel.css',
+        '.profile-name-inline-form,\n.profile-birthday-inline-form',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-bottom',
+      ],
+      [
+        './components/HeartMomentCreateReference.css',
+        '.heart-moment-create-actions.form-actions',
+        'border-top',
+      ],
+      [
+        './components/StoryProductPages.css',
+        '.story-active-chips',
+        'border-top',
+      ],
+      [
+        './components/RelatedPeoplePage.css',
+        '.important-dates-section',
+        'border-top',
+      ],
+      [
+        './components/SettingsPage.css',
+        '.settings-sensitive-grid',
+        'border-top',
+      ],
+      ['./components/TransferPanel.css', '.transfer-columns', 'border-top'],
+      [
+        './components/PlanningReference.css',
+        '.planen-operations',
+        'border-top',
+      ],
+      ['./components/PlanningReference.css', '.planen-history', 'border-top'],
+      [
+        './components/PrivateAreaProductPage.css',
+        '.private-checklist-completed-section',
+        'border-top',
+      ],
+      [
+        './components/OurMomentsGamePage.css',
+        '.our-moments-turn',
+        'border-bottom',
+      ],
+      [
+        './components/WishDetectiveGamePage.css',
+        '.wish-detective-meta',
+        'border-bottom',
+      ],
+    ];
+
+    for (const [relativePath, selector, property] of cases) {
+      expect(ruleBlock(readSource(relativePath), selector)).not.toContain(
+        `${property}:`,
+      );
+    }
+
+    const compactOverrides = readSource('./product-reflow.css');
+    expect(compactOverrides).not.toMatch(
+      /settings-sensitive-grid\s*>\s*\.account-settings-panel[\s\S]*?border-top:/,
+    );
+    expect(compactOverrides).not.toMatch(
+      /transfer-columns\s*>\s*section\s*\+\s*section[\s\S]*?border-top:/,
+    );
+  });
+});
+
 describe('web layout tokens', () => {
   it('defines the layout scale used by the primitives', () => {
     expect(stylesCss).toContain('--rail-width:');

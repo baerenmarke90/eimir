@@ -1,7 +1,6 @@
 .comments-panel {
   display: grid;
   gap: var(--space-4);
-  border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-6);
 }
 

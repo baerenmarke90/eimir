@@ -557,7 +557,6 @@ code {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--color-header-border);
   padding: 0.75rem max(1.25rem, calc((100vw - var(--content-max)) / 2));
   background: var(--color-header-surface);
 }

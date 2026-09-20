@@ -728,9 +728,11 @@ export function ImportantDatesPanel({
                     partnerBirthday.birthday,
                   );
                   const markerDay =
-                    markerParts.find((part) => part.type === 'day')?.value ?? '';
+                    markerParts.find((part) => part.type === 'day')?.value ??
+                    '';
                   const markerMonth =
-                    markerParts.find((part) => part.type === 'month')?.value ?? '';
+                    markerParts.find((part) => part.type === 'month')?.value ??
+                    '';
                   const label = t('importantDates.partnerBirthdayLabel', {
                     name: partnerBirthday.displayName,
                   });

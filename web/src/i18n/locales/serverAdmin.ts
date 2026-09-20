@@ -275,6 +275,11 @@ const serverAdmin = {
       additionalEmail: 'Zusätzlich',
       typeEmailToVerify: 'Zur Bestätigung die E-Mail-Adresse exakt eingeben',
       verifyEmail: 'Als geprüft markieren',
+      resendVerification: 'Verifikationsmail erneut senden',
+      verificationRequested:
+        'Die normale E-Mail-Verifikation wurde angefordert.',
+      mailUnavailable:
+        'Für diese Installation ist kein Mailversand konfiguriert.',
       actionsTitle: 'Account-Aktionen',
       suspend: 'Account sperren',
       unsuspend: 'Account entsperren',

@@ -2,7 +2,7 @@
 
 <!-- status-surface: authoritative-living -->
 
-As of: September 19, 2026
+As of: September 20, 2026
 Current repository state: GitHub `main` is the canonical SHA source; this living status document deliberately stores no static current SHA.  
 Current gate status: **M0-M5 are complete for their intended scope and G1-G4 have passed. M6 implementation and integrated G5 evidence are substantially delivered. G5 remains BLOCKED under the 2026-09-12 gate review; #914-#917 and final gate owner #525 remain open.**
 
@@ -245,7 +245,7 @@ No current open issue documents an actual G4-blocking Critical/High Security/Pri
 - [x] **M5 — Client Completion & Parity:** complete Core productization under the historical Web/Android parity model -> **G4 passed**
 - [ ] **M6 — Operate & Launch:** implementation and integrated evidence are substantially delivered; final launch acceptance remains gated by the exact release candidate and G5 review
   - [x] **#524 — Integrated G5 rehearsal/evidence:** completed; historical results and later deltas are retained in `docs/m6/`.
-  - [ ] **#914 — Release publication/provenance:** freeze and publish the protected launch release and retain exact artifact evidence.
+  - [x] **#914 — Release publication/provenance:** release `v0.1.0` published as an immutable GitHub Release from source `8bb0c1eadbeb4864788d277a25a3673c79f5e46f`; evidence in `docs/m6/G5-EVIDENCE-DELTA-914-2026-09-20.md`. This does not imply that G5 has passed.
   - [ ] **#915 — Promotion/rollback evidence:** exercise the exact #914 candidate through the selected launch target.
   - [ ] **#916 — Manual launch-state accessibility:** perform the release-candidate Web acceptance and Android checks only if Android is in launch scope.
   - [ ] **#917 — Public Demo rehearsal:** exercise the real HTTPS Demo boundary against the reviewed release identity.
@@ -265,8 +265,8 @@ The latest dated review keeps **G5 — Launch-ready: BLOCKED**. A green CI run, 
 closed implementation issue, or completion of an individual Product Design slice
 does not change that gate state.
 
-The release candidate is not yet frozen/published. #914 is the first required
-acceptance step; #915, #916, and #917 consume that exact release identity. #525 then
+The launch release `v0.1.0` has been frozen and published (#914). #915, #916, and #917
+consume that exact release identity. #525 then
 owns the final gate decision. Cloud/Managed remains separately conditional on the
 declared launch scope and its unresolved target-specific requirements.
 

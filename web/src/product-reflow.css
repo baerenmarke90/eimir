@@ -261,8 +261,6 @@
   .settings-sensitive-grid > .account-settings-panel,
   .transfer-columns > section + section {
     padding-top: var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-    border-left: 0;
   }
 
   /* Private area: mirror the established <=760px stacked form/card layout. */

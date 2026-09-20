@@ -18,7 +18,7 @@ from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.identity.models import AccountEmail, DeviceSession
 from eimir.relationship import service as relationship
-from eimir.relationship.models import Membership, MembershipStatus, Space
+from eimir.relationship.models import Membership, Space
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

@@ -344,6 +344,29 @@ Before the first Production publication, the release owner must:
    can pass the anonymous-consumption gate;
 5. execute final publication only after launch gates are green.
 
+### Production release approval policy
+
+The GitHub Environment `production-release` must have at least one **Required reviewer**.
+For the current single-maintainer launch setup, the designated release owner is GitHub
+user `baerenmarke90`. The environment approval is a distinct, explicit second step
+after workflow dispatch; `confirm_publish=true` alone is not approval.
+
+While `baerenmarke90` is the only designated release owner, GitHub's
+**Prevent self-review** option remains disabled so that the same authenticated release
+owner can dispatch and then explicitly approve the protected deployment. If a second
+release owner or release-maintainer team is designated, enable **Prevent self-review**
+and require approval from another authorized reviewer.
+
+Approval does not grant broader repository credentials. The protected publication job
+retains the existing least-privilege boundary: only that job receives the write
+permissions required for GitHub Release/GHCR publication, and Android signing secrets
+remain scoped to the same protected environment only when Android is in the selected
+release channel.
+
+The release evidence must retain the workflow run and protected-environment approval
+event without copying credentials, environment secrets or signing material into logs,
+manifests or release assets.
+
 For any Android-inclusive release, additionally configure the four Android upload-key
 secrets, retain encrypted offline upload-key recovery independently, and enable Google
 Play App Signing/register the upload certificate before publication.

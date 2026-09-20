@@ -169,7 +169,6 @@ describe('AnniversaryReminderSettings', () => {
   });
 });
 
-
 describe('PartnerBirthdayReminderSettings', () => {
   it('uses the recipient-scoped partner birthday rule', async () => {
     const getRulePreference = vi.fn().mockResolvedValue({
@@ -180,13 +179,13 @@ describe('PartnerBirthdayReminderSettings', () => {
         localTime: '09:00:00',
       },
     });
-    const setRulePreference = vi.fn().mockImplementation(
-      async ({ rulePreferenceUpdate }) => ({
+    const setRulePreference = vi
+      .fn()
+      .mockImplementation(async ({ rulePreferenceUpdate }) => ({
         ruleKey: 'partner_birthday_reminder',
         enabled: rulePreferenceUpdate.enabled,
         parameters: rulePreferenceUpdate.parameters,
-      }),
-    );
+      }));
     const rulesApi = {
       getRulePreference,
       setRulePreference,

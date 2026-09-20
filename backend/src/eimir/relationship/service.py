@@ -226,7 +226,10 @@ def active_memberships(session: Session, space_id: UUID) -> Sequence[Membership]
 def lock_space(session: Session, space_id: UUID) -> Space:
     """Lock the shared relationship lifecycle row or return privacy-safe 404."""
     space = session.execute(
-        select(Space).where(Space.id == space_id).with_for_update()
+        select(Space)
+        .where(Space.id == space_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     ).scalar_one_or_none()
     if space is None:
         raise NotFoundError("Space not found.", SpaceErrorCode.NOT_FOUND)

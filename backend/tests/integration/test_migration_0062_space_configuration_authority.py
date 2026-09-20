@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import alembic.command
@@ -65,7 +65,7 @@ def test_0062_upgrade_backfills_only_unambiguous_retained_membership_authority(
         retained_history_space,
     )
 
-    joined_first = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    joined_first = datetime(2025, 1, 1, tzinfo=UTC)
     joined_second = joined_first + timedelta(days=30)
 
     # Exercise the real installed-schema path rather than create_all metadata.

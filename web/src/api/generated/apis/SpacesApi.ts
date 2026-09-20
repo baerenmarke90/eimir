@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type PartnerPresenceView,
+    PartnerPresenceViewFromJSON,
+    PartnerPresenceViewToJSON,
+} from '../models/PartnerPresenceView';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -39,6 +44,10 @@ import {
     SpaceViewToJSON,
 } from '../models/SpaceView';
 
+export interface GetPartnerPresenceRequest {
+    spaceId: string;
+}
+
 export interface GetSpaceApiV1SpacesSpaceIdGetRequest {
     spaceId: string;
 }
@@ -48,6 +57,10 @@ export interface GetSpaceProfileApiV1SpacesSpaceIdProfileGetRequest {
 }
 
 export interface LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest {
+    spaceId: string;
+}
+
+export interface TouchPresenceRequest {
     spaceId: string;
 }
 
@@ -98,6 +111,53 @@ export class SpacesApi extends runtime.BaseAPI {
      */
     async createSpaceApiV1SpacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceView> {
         const response = await this.createSpaceApiV1SpacesPostRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPartnerPresence without sending the request
+     */
+    async getPartnerPresenceRequestOpts(requestParameters: GetPartnerPresenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPartnerPresence().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/presence`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Get Partner Presence
+     */
+    async getPartnerPresenceRaw(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
+        const requestOptions = await this.getPartnerPresenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerPresenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Get Partner Presence
+     */
+    async getPartnerPresence(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {
+        const response = await this.getPartnerPresenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -235,6 +295,53 @@ export class SpacesApi extends runtime.BaseAPI {
      */
     async leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost(requestParameters: LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceMembershipExitView> {
         const response = await this.leaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for touchPresence without sending the request
+     */
+    async touchPresenceRequestOpts(requestParameters: TouchPresenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling touchPresence().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/presence`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Renew caller presence and return the partner\'s bounded state.
+     * Touch Presence
+     */
+    async touchPresenceRaw(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
+        const requestOptions = await this.touchPresenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerPresenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Renew caller presence and return the partner\'s bounded state.
+     * Touch Presence
+     */
+    async touchPresence(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {
+        const response = await this.touchPresenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -16,7 +16,7 @@ describe('PartnerAvatarPair', () => {
         primaryPerson={{ displayName: 'Philipp Meier' }}
         secondaryPerson={{ displayName: 'Lea Schmidt' }}
         size="medium"
-        status="connected"
+        status="active"
       />,
     );
 
@@ -27,7 +27,7 @@ describe('PartnerAvatarPair', () => {
     expect(group).toBeDefined();
     expect(screen.getByText('PM')).toBeDefined();
     expect(screen.getByText('LS')).toBeDefined();
-    expect(group.className).toContain('status-connected');
+    expect(group.className).toContain('status-active');
     expect(group.className).toContain('partner-avatar-pair-medium');
   });
 
@@ -47,6 +47,26 @@ describe('PartnerAvatarPair', () => {
     expect(images).toHaveLength(2);
     expect(images[0].getAttribute('src')).toBe('/photos/philipp.jpg');
     expect(images[1].getAttribute('src')).toBe('/photos/lea.jpg');
+  });
+
+  it('shows the online pip only for active presence', () => {
+    const { rerender } = render(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="active"
+      />,
+    );
+    expect(document.querySelector('.partner-presence-pip')).not.toBeNull();
+
+    rerender(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="recent"
+      />,
+    );
+    expect(document.querySelector('.partner-presence-pip')).toBeNull();
   });
 
   it('renders waiting state with invite button when secondaryPerson is null', () => {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
@@ -284,11 +285,52 @@ type Scenario = {
   activity: unknown[];
 };
 
+type SharedPresenceClock = {
+  nowMs: number;
+  lastActiveByAccount: Map<string, number>;
+};
+
+type PresenceSession = {
+  accountId: string;
+  displayName: string;
+  partnerId: string;
+  partnerName: string;
+  shared: SharedPresenceClock;
+};
+
+function semanticPresenceState(
+  session: PresenceSession,
+): 'ACTIVE' | 'RECENT' | null {
+  const lastActive = session.shared.lastActiveByAccount.get(session.partnerId);
+  if (lastActive === undefined) return null;
+
+  const elapsed = Math.max(0, session.shared.nowMs - lastActive);
+  if (elapsed < 2 * 60_000) return 'ACTIVE';
+  if (elapsed <= 10 * 60_000) return 'RECENT';
+  return null;
+}
+
 async function installMocks(
   page: Page,
   scenario: Scenario,
   itemLimit: 1 | 2 | 3 = 1,
+  presenceState: 'ACTIVE' | 'RECENT' | null | 'ERROR' = null,
+  withPartner = true,
+  presenceSession?: PresenceSession,
 ): Promise<void> {
+  const viewer = presenceSession
+    ? {
+        id: presenceSession.accountId,
+        displayName: presenceSession.displayName,
+      }
+    : { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
+  const partner = presenceSession
+    ? {
+        id: presenceSession.partnerId,
+        displayName: presenceSession.partnerName,
+      }
+    : { id: PARTNER_ID, displayName: 'Alex Berger' };
+
   await page.route('**/media/**', async (route) => {
     const id = new URL(route.request().url()).pathname
       .split('/')
@@ -333,7 +375,7 @@ async function installMocks(
     }
     if (method === 'POST' && pathname === '/api/v1/auth/sign-in') {
       await fulfillJson({
-        account: { displayName: 'Lea Sommer', id: ACCOUNT_ID },
+        account: viewer,
         tokens: {
           accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
           accessToken: 'today-850-access-token',
@@ -344,7 +386,7 @@ async function installMocks(
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/me') {
-      await fulfillJson({ displayName: 'Lea Sommer', id: ACCOUNT_ID });
+      await fulfillJson(viewer);
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
@@ -361,10 +403,7 @@ async function installMocks(
       await fulfillJson({
         id: SPACE_ID,
         createdAt: '2023-07-01T00:00:00Z',
-        partners: [
-          { id: ACCOUNT_ID, displayName: 'Lea Sommer' },
-          { id: PARTNER_ID, displayName: 'Alex Berger' },
-        ],
+        partners: withPartner ? [viewer, partner] : [viewer],
       });
       return;
     }
@@ -382,17 +421,46 @@ async function installMocks(
       method === 'GET' &&
       /^\/api\/v1\/spaces\/[^/]+\/profiles\/[^/]+$/.test(pathname)
     ) {
-      const isPartner = pathname.endsWith(PARTNER_ID);
+      const isPartner = pathname.endsWith(partner.id);
       await fulfillJson({
-        accountId: isPartner ? PARTNER_ID : ACCOUNT_ID,
+        accountId: isPartner ? partner.id : viewer.id,
         createdAt: '2023-07-01T00:00:00Z',
-        displayName: isPartner ? 'Alex Berger' : 'Lea Sommer',
+        displayName: isPartner ? partner.displayName : viewer.displayName,
         id: isPartner ? PARTNER_PROFILE_ID : PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
         updatedAt: '2023-07-01T00:00:00Z',
         version: 1,
       });
+      return;
+    }
+    if (
+      (method === 'GET' || method === 'POST') &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      if (presenceSession) {
+        if (method === 'POST') {
+          presenceSession.shared.lastActiveByAccount.set(
+            presenceSession.accountId,
+            presenceSession.shared.nowMs,
+          );
+        }
+        await fulfillJson({ state: semanticPresenceState(presenceSession) });
+        return;
+      }
+      if (presenceState === 'ERROR') {
+        await fulfillJson(
+          {
+            code: 'PRESENCE_UNAVAILABLE',
+            detail: 'Presence is temporarily unavailable.',
+            status: 503,
+            title: 'Presence unavailable',
+          },
+          503,
+        );
+      } else {
+        await fulfillJson({ state: presenceState });
+      }
       return;
     }
     if (
@@ -427,7 +495,7 @@ async function installMocks(
       await fulfillJson({
         space: {
           spaceId: SPACE_ID,
-          partner: { id: PARTNER_ID, displayName: 'Alex Berger' },
+          partner: withPartner ? partner : null,
         },
         relationshipDuration: {
           daysTogether: 1164,
@@ -494,6 +562,165 @@ async function capture(
 }
 
 test.describe('Today R4: the living home of a relationship', () => {
+  test('two isolated partner sessions converge from active to recent to no Presence claim', async ({
+    browser,
+  }) => {
+    test.setTimeout(120_000);
+    const shared: SharedPresenceClock = {
+      nowMs: Date.parse('2026-09-19T18:00:00Z'),
+      lastActiveByAccount: new Map(),
+    };
+    const leaContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    });
+    const alexContext = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    });
+    const leaPage = await leaContext.newPage();
+    const alexPage = await alexContext.newPage();
+    let alexClosed = false;
+
+    try {
+      await installMocks(leaPage, RICH_SPACE, 1, null, true, {
+        accountId: ACCOUNT_ID,
+        displayName: 'Lea Sommer',
+        partnerId: PARTNER_ID,
+        partnerName: 'Alex Berger',
+        shared,
+      });
+      await installMocks(alexPage, RICH_SPACE, 1, null, true, {
+        accountId: PARTNER_ID,
+        displayName: 'Alex Berger',
+        partnerId: ACCOUNT_ID,
+        partnerName: 'Lea Sommer',
+        shared,
+      });
+
+      await leaPage.bringToFront();
+      await signInAndOpenToday(leaPage);
+      await expect
+        .poll(() => shared.lastActiveByAccount.has(ACCOUNT_ID))
+        .toBe(true);
+      await alexPage.bringToFront();
+      await signInAndOpenToday(alexPage);
+      await expect
+        .poll(() => shared.lastActiveByAccount.has(PARTNER_ID))
+        .toBe(true);
+
+      await leaPage.reload();
+      await alexPage.reload();
+      await expect(
+        leaPage.getByText(relationshipComponents.couplePresenceActive),
+      ).toBeVisible();
+      await expect(
+        alexPage.getByText(relationshipComponents.couplePresenceActive),
+      ).toBeVisible();
+      await expect(leaPage.locator('.partner-presence-pip')).toHaveCount(1);
+      await expect(alexPage.locator('.partner-presence-pip')).toHaveCount(1);
+
+      await alexContext.close();
+      alexClosed = true;
+      shared.nowMs += 2 * 60_000;
+      await leaPage.bringToFront();
+      await leaPage.reload();
+      await expect(
+        leaPage.getByText(relationshipComponents.couplePresenceRecent),
+      ).toBeVisible();
+      await expect(leaPage.locator('.partner-presence-pip')).toHaveCount(0);
+
+      shared.nowMs += 8 * 60_000 + 1;
+      await leaPage.reload();
+      await expect(
+        leaPage.getByText(relationshipComponents.couplePresenceRecent),
+      ).toHaveCount(0);
+      await expect(
+        leaPage.getByText(relationshipComponents.couplePresenceActive),
+      ).toHaveCount(0);
+      await expect(leaPage.locator('.couple-presence-indicator')).toHaveCount(
+        0,
+      );
+      await expectNoWcagViolations(leaPage);
+    } finally {
+      await leaContext.close();
+      if (!alexClosed) await alexContext.close();
+    }
+  });
+
+  test('renders bounded partner Presence states and fails closed without disturbing Today', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await installMocks(page, RICH_SPACE, 1, 'ACTIVE');
+    await signInAndOpenToday(page);
+
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceActive),
+    ).toBeVisible();
+    await expect(page.locator('.partner-presence-pip')).toHaveCount(1);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-active-390-light');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await settleMotion(page);
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceActive),
+    ).toBeVisible();
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-active-390-dark');
+
+    for (const width of [320, 360, 430, 1440]) {
+      await page.setViewportSize({ width, height: width >= 1000 ? 1000 : 844 });
+      await settleMotion(page);
+      await expect(
+        page.getByText(relationshipComponents.couplePresenceActive),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await installMocks(page, RICH_SPACE, 1, 'RECENT');
+    await page.reload();
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceRecent),
+    ).toBeVisible();
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceActive),
+    ).toHaveCount(0);
+    await expect(page.locator('.partner-presence-pip')).toHaveCount(0);
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await installMocks(page, RICH_SPACE, 1, null);
+    await page.reload();
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceActive),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceRecent),
+    ).toHaveCount(0);
+    await expect(page.locator('.couple-presence-indicator')).toHaveCount(0);
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await installMocks(page, RICH_SPACE, 1, 'ERROR');
+    await page.reload();
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(page.locator('.couple-presence-indicator')).toHaveCount(0);
+    await expectNoWcagViolations(page);
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await installMocks(page, RICH_SPACE, 1, null, false);
+    await page.reload();
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceWaiting),
+    ).toBeVisible();
+    await expect(page.locator('.partner-presence-pip')).toHaveCount(0);
+  });
+
   test('composes the full eligible hierarchy on a 390-class phone, in Light and Dark', async ({
     page,
   }, testInfo) => {

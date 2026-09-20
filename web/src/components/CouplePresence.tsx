@@ -29,7 +29,7 @@ export function CouplePresence({
   spaceTitle,
   primaryPerson,
   secondaryPerson = null,
-  status = 'connected',
+  status = 'unknown',
   statusText,
   relationshipDuration,
   durationLinkTo,
@@ -45,11 +45,14 @@ export function CouplePresence({
   const titleId = `couple-presence-title-${generatedId}`;
 
   const defaultStatusText =
-    status === 'connected'
-      ? t('couplePresenceConnected')
-      : status === 'waiting'
-        ? t('couplePresenceWaiting')
-        : t('couplePresenceOffline');
+    status === 'active'
+      ? t('couplePresenceActive')
+      : status === 'recent'
+        ? t('couplePresenceRecent')
+        : status === 'waiting'
+          ? t('couplePresenceWaiting')
+          : null;
+  const resolvedStatusText = statusText ?? defaultStatusText;
 
   const primaryFirstName = firstNameFromDisplayName(
     primaryPerson.displayName,
@@ -97,18 +100,27 @@ export function CouplePresence({
           </HeadingTag>
 
           <div className="couple-presence-meta">
-            <span className={`couple-presence-indicator status-${status}`}>
-              <span className="couple-presence-dot" aria-hidden="true" />
-              <span className="couple-presence-status-text">
-                {statusText || defaultStatusText}
+            {resolvedStatusText ? (
+              <span className={`couple-presence-indicator status-${status}`}>
+                {(status === 'active' || status === 'waiting') && (
+                  <span className="couple-presence-dot" aria-hidden="true" />
+                )}
+                <span className="couple-presence-status-text">
+                  {resolvedStatusText}
+                </span>
               </span>
-            </span>
+            ) : null}
 
             {relationshipDuration && (
               <>
-                <span className="couple-presence-separator" aria-hidden="true">
-                  ·
-                </span>
+                {resolvedStatusText ? (
+                  <span
+                    className="couple-presence-separator"
+                    aria-hidden="true"
+                  >
+                    ·
+                  </span>
+                ) : null}
                 {durationLinkTo ? (
                   <Link
                     to={durationLinkTo}

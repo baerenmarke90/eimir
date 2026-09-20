@@ -39,6 +39,7 @@ import {
 } from '../client/todayComposition';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
+import { usePartnerPresence } from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { MemoryPreview } from './MemoryPreview';
@@ -819,6 +820,20 @@ export function TodayPage({
   const partner = dashboardQuery.data?.space.partner;
   const partnerName =
     partner?.displayName ?? t('m5s5.today.relationshipSignal.partnerFallback');
+  const presenceQuery = usePartnerPresence({
+    accountId: account?.id ?? '',
+    spaceId,
+    enabled: Boolean(account?.id && partner),
+  });
+  const partnerPresenceStatus = !partner
+    ? 'waiting'
+    : presenceQuery.error
+      ? 'unknown'
+      : presenceQuery.data?.state === 'ACTIVE'
+        ? 'active'
+        : presenceQuery.data?.state === 'RECENT'
+          ? 'recent'
+          : 'unknown';
 
   const userProfileQuery = useQuery({
     queryKey: ['profile-identity', spaceId, account?.id],
@@ -1058,7 +1073,7 @@ export function TodayPage({
                     }
                   : null
               }
-              status={partner ? 'connected' : 'waiting'}
+              status={partnerPresenceStatus}
               relationshipDuration={
                 dashboardQuery.data.relationshipDuration
                   ? formatRelationshipDuration(

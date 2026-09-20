@@ -354,6 +354,14 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      (method === 'GET' || method === 'POST') &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {

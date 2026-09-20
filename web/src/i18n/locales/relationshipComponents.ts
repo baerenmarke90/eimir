@@ -3,9 +3,9 @@ const relationshipComponents = {
   partnerAvatarWaiting: '{{user}} (Wartet auf Partner)',
   partnerAvatarInvite: 'Partner einladen',
 
-  couplePresenceConnected: 'Zusammen verbunden',
+  couplePresenceActive: 'Gerade hier',
+  couplePresenceRecent: 'Vor Kurzem hier',
   couplePresenceWaiting: 'Wartet auf Partner',
-  couplePresenceOffline: 'Offline',
   couplePresenceDurationAction: 'Beziehungsdetails ansehen',
   couplePresenceYouFallback: 'Du',
   couplePresencePartnerFallback: 'Dein Partner',

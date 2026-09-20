@@ -739,9 +739,8 @@ export function ImportantDatesPanel({
                       key={`partner-birthday-${partnerBirthday.accountId}`}
                       className="important-date-item"
                     >
-                      <div
+                      <fieldset
                         className="important-date-card important-date-card-derived"
-                        role="group"
                         aria-label={[
                           label,
                           t('importantDates.repeats.ANNUALLY'),
@@ -782,7 +781,7 @@ export function ImportantDatesPanel({
                             </span>
                           </span>
                         </span>
-                      </div>
+                      </fieldset>
                     </li>
                   );
                 })()

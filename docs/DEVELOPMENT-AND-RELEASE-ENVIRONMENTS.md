@@ -52,7 +52,8 @@ repository-root `compose.yaml`.
 - Verified source acceptance uses `scripts/compose_checked.py`, which exports exact
   committed source, builds local images and runs that exported canonical manifest.
 - Released Self-Hosted Production uses published versioned/digest-qualified OCI images
-  and is operated through `scripts/self_hosted_release.py`.
+  and is gated by the in-manifest `release-guard` (Arcane Deploy/Redeploy) or operated
+  through `scripts/self_hosted_release.py`.
 - Development database only uses profile `dev-db`.
 - Cloud/Managed uses profile `cloud` with immutable digest-qualified release images.
 
@@ -62,13 +63,15 @@ build path for a released Self-Hosted installation.
 Normal Self-Hosted ordering is:
 
 ```text
-postgres -> migrate -> api/worker -> web
+postgres -> release-guard -> migrate -> api/worker -> web
 ```
 
-`demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup; it is run
+`release-guard` is a no-op outside `EIMIR_ENVIRONMENT=production`, so Development and
+Demo stay separate operator identities. `demo-init` is profile `demo` and is not part of ordinary Self-Hosted startup; it is run
 explicitly for a Demo deployment. `migrate` must succeed before API/worker, and Web waits
 for API readiness. The released launcher runs `migrate` before it replaces any running
-service, so a refused or failed migration leaves the current release serving. Production
+service, so a refused or failed migration leaves the current release serving; a plain
+Compose/Arcane Redeploy may already have stopped the old containers when the gate refuses. Production
 is never the first persistent environment to execute a new migration. The per-service
 keep/demo-only decisions and the upgrade/rollback guarantees are recorded in
 [`SELF-HOSTING.md`](SELF-HOSTING.md#runtime-topology).
@@ -198,8 +201,9 @@ Production promotion is allowed only when all relevant conditions are true:
 14. a fresh coordinated Production recovery point exists before migration;
 15. the candidate is frozen/published through the protected release workflow;
 16. Production deploys the **same published artifact identity**, not a rebuild;
-17. Production is operated through the released launcher so image/version checks cannot
-    be skipped by the documented startup path.
+17. Production is operated through Arcane (`release-guard`, see
+    [`ARCANE.md`](ARCANE.md#released-production-in-arcane)) or the released launcher, so
+    image/version checks cannot be skipped by the documented startup path.
 
 A failing Development deployment or release publication blocks Production promotion.
 
@@ -264,6 +268,10 @@ runtime checker.
 
 ### 10.2 First Self-Hosted Production installation
 
+Arcane-first operators follow `configure -> bootstrap once -> deploy / update` in
+[`ARCANE.md`](ARCANE.md#released-production-in-arcane) and need no host shell. The
+shell-based equivalent using the launcher follows.
+
 Extract the Self-Hosted operator bundle from the selected GitHub Release, copy the env
 template, configure instance-specific values and select the product release:
 
@@ -298,7 +306,8 @@ python3 scripts/self_hosted_release.py --env-file .env deploy
 ```
 
 Production must not invoke `scripts/build_self_hosted_source.py` or
-`scripts/compose_checked.py` and must not replace the launcher with raw Compose startup.
+`scripts/compose_checked.py`. Raw Compose startup of the canonical manifest is gated by
+`release-guard`; it must not use a manifest with that service removed.
 
 After deployment, confirm migration, readiness, Web health, and both source revision
 identities against the published release manifest.
@@ -315,8 +324,8 @@ Before every Production promotion record:
 - whether application rollback is schema-compatible.
 
 If the candidate fails before an incompatible migration is committed, select the
-previous-known-good **published** application/image identity, update `.env`, run the
-released launcher again and repeat smoke verification.
+previous-known-good **published** application/image identity, update `.env` (or the Arcane project
+environment), Redeploy/run the released launcher again and repeat smoke verification.
 
 If an incompatible schema change is already applied, do not blindly start the old image.
 Choose a tested forward fix, downgrade migration, or coordinated restore per #190/#375.

@@ -170,11 +170,27 @@ If that setting is missing, the workflow publishes through a draft, detects that
 final Release is not immutable, attempts cleanup of the just-created mutable Release/tag,
 reports any cleanup failure explicitly, and fails closed regardless.
 
+## Arcane-first Production
+
+Production can be operated from Arcane alone: **configure -> bootstrap once -> deploy /
+update**. The release checks are part of the canonical `compose.yaml` (`release-guard`),
+so Arcane's plain Deploy/Redeploy is supported and refuses a Production release whose
+backend/Web images are not the digest-qualified references of `EIMIR_RELEASE_VERSION`, whose
+pull policy is not `always`, or that has no Account-deletion instance ID. The new-installation
+authority is created once through the `bootstrap` profile. The full operator flow,
+including upgrades and failure behavior, is in [`ARCANE.md`](ARCANE.md).
+
+The guard judges the rendered image references. The launcher below additionally
+cross-checks them against `self-hosted-image-identity.json`, so a shell operator should
+prefer it, and it is the only path that runs `migrate` before it replaces the running
+release.
+
 ## Mandatory released launcher
 
-Do not start released Production with a raw `docker compose pull/up` sequence. The
-supported entry point explicitly binds the env file and the matching published image
-identity:
+Without Arcane, operate released Production with the launcher rather than a raw
+`docker compose pull/up` sequence (raw `up` is gated by `release-guard`, but has no
+identity-file cross-check). The launcher explicitly binds the env file and the matching
+published image identity:
 
 ```bash
 python3 scripts/self_hosted_release.py \
@@ -279,8 +295,11 @@ and what it does and does not guarantee.
 Normal Self-Hosted ordering is:
 
 ```text
-postgres -> migrate -> api/worker -> web
+postgres -> release-guard -> migrate -> api/worker -> web
 ```
+
+`release-guard` is a one-shot that `migrate` waits for; it is described under
+[Arcane-first Production](#arcane-first-production).
 
 The topology was reviewed service by service (#827). The goal is not the smallest
 container count: a service is removed or integrated only when a safer and simpler
@@ -290,15 +309,17 @@ use one backend image but stay separate processes with their own lifecycle.
 | Service | Decision | Reason |
 |---|---|---|
 | `postgres` | KEEP | Stateful upstream database with its own volume, health check and restart policy; it is not application code, and Cloud/Managed replaces it with an external database. |
+| `release-guard` | KEEP | Compose-resident Production release gate that `migrate` waits for, so plain Compose and Arcane Deploy/Redeploy cannot start an unpinned, mismatched or unbootstrapped release; it needs no network or volume and does nothing outside Production. |
 | `migrate` | KEEP | One-shot schema owner: exactly one migration runs per deploy before any runtime is replaced, so several API instances cannot race, a failed or refused migration blocks startup, and it reuses the backend image. |
 | `demo-init` | DEMO-ONLY | Profile `demo` only and run explicitly as a one-shot; normal startup neither depends on it nor creates it, and outside an enabled Demo deployment it exits without creating data. |
+| `deletion-authority-bootstrap` | BOOTSTRAP-ONLY | Profile `bootstrap` only and run explicitly once per new installation to create the Account-deletion journal and print its stable instance ID; it refuses whenever an instance ID or journal already exists, so it can never replace an authority. |
 | `api` | KEEP | Request-serving HTTP process with its own health check, published port and restart behavior; it shares the backend image but is a separate process from the worker. |
 | `worker` | KEEP | Background job runner with an independent failure domain, restart and scaling behavior and no published port; merging it into the API would let a stuck job take down request serving. |
 | `web` | KEEP | Unprivileged static Nginx runtime that owns caching, CSP and security headers; it needs no Python, upgrades and fails independently, and folding it into the backend would weaken that isolation. |
 
 No service is removed or integrated into another one: none passed the "safer and
-simpler" test. The only change to the normal startup chain is that `demo-init` is no
-longer part of it.
+simpler" test. `demo-init` is not part of the normal startup chain, and `release-guard`
+is the only addition to it: it moves the release checks into the manifest.
 
 - `migrate` is not folded into API startup. With several API instances (or an API
   restart during a rollout) every instance would race to migrate, a failed migration

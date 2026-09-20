@@ -11,6 +11,9 @@ on:
       - "scripts/self_hosted_upgrade_rehearsal.py"
       - "scripts/test_self_hosted_upgrade_rehearsal.py"
       - "tools/ci/test_self_hosted_topology.py"
+      - "tools/ci/test_arcane_release_guard.py"
+      - "backend/src/eimir/deployment/**"
+      - "backend/tests/unit/test_release_guard.py"
       - "scripts/check_runtime_environment.py"
       - "scripts/test_check_runtime_environment.py"
       - "scripts/build_self_hosted_source.py"
@@ -30,6 +33,9 @@ on:
       - "scripts/self_hosted_upgrade_rehearsal.py"
       - "scripts/test_self_hosted_upgrade_rehearsal.py"
       - "tools/ci/test_self_hosted_topology.py"
+      - "tools/ci/test_arcane_release_guard.py"
+      - "backend/src/eimir/deployment/**"
+      - "backend/tests/unit/test_release_guard.py"
       - "scripts/check_runtime_environment.py"
       - "scripts/test_check_runtime_environment.py"
       - "scripts/build_self_hosted_source.py"
@@ -79,6 +85,14 @@ jobs:
 
       - name: Released topology contract (#827)
         run: python3 tools/ci/test_self_hosted_topology.py -v
+
+      - name: Arcane-first release gate contract (#1108)
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            backend/src/eimir/deployment/release_guard.py \
+            tools/ci/test_arcane_release_guard.py
+          python3 tools/ci/test_arcane_release_guard.py -v
 
       - name: Create release-contract identity fixture
         run: |

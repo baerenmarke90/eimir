@@ -127,6 +127,31 @@ describe('module boundary rhythm', () => {
         'border-bottom',
       ],
       [
+        './components/ProfileIdentityPanel.css',
+        '.profile-name-inline-form,\\n.profile-birthday-inline-form',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-bottom',
+      ],
+      [
+        './components/HeartMomentCreateReference.css',
+        '.heart-moment-create-actions.form-actions',
+        'border-top',
+      ],
+      [
+        './components/StoryProductPages.css',
+        '.story-active-chips',
+        'border-top',
+      ],
+      [
         './components/RelatedPeoplePage.css',
         '.important-dates-section',
         'border-top',

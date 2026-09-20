@@ -10,16 +10,21 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: SemVer product version without the v prefix; must equal Android versionName.
+        description: SemVer product version without the v prefix.
         required: true
         type: string
-      android_version_code:
-        description: Monotonically increasing Play versionCode.
+      include_android:
+        description: Include unsigned Android candidate artifacts in this release channel.
         required: true
+        default: true
+        type: boolean
+      android_version_code:
+        description: Monotonically increasing Play versionCode; required only when Android is included.
+        required: false
         type: number
       android_api_base_url:
-        description: Backend API base URL baked into the Capacitor Android release assets (must start with https://).
-        required: true
+        description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
         type: string
       initial_release:
         description: Select only for the first product release with no previous known-good release.
@@ -61,7 +66,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate candidate inputs
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           API_BASE_URL: ${{ inputs.android_api_base_url }}
+          ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           set -euo pipefail
@@ -70,25 +77,36 @@ jobs:
           import re
           import urllib.parse
 
+          include_android = os.environ.get("INCLUDE_ANDROID", "").lower() == "true"
           url = os.environ.get("API_BASE_URL", "").strip()
+          version_code = os.environ.get("ANDROID_VERSION_CODE", "").strip()
           version = os.environ.get("RELEASE_VERSION", "").strip()
 
           if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", version):
               raise SystemExit(f"Invalid release_version format: {version}")
 
-          if not url or url.endswith(".invalid") or ".invalid" in url:
-              raise SystemExit("Release candidate requires an explicit, non-test android_api_base_url.")
-          if re.search(r"\s", url):
-              raise SystemExit("android_api_base_url must not contain whitespace")
-          parsed = urllib.parse.urlsplit(url)
-          if parsed.scheme != "https":
-              raise SystemExit("android_api_base_url must use https scheme")
-          if not parsed.netloc:
-              raise SystemExit("android_api_base_url must include host")
-          if parsed.username or parsed.password:
-              raise SystemExit("android_api_base_url must not contain userinfo")
-          if parsed.query or parsed.fragment:
-              raise SystemExit("android_api_base_url must not contain query or fragment")
+          if include_android:
+              try:
+                  parsed_version_code = int(version_code)
+              except ValueError as exc:
+                  raise SystemExit("Android-inclusive candidate requires android_version_code") from exc
+              if parsed_version_code <= 0:
+                  raise SystemExit("android_version_code must be a positive integer")
+              if not url or url.endswith(".invalid") or ".invalid" in url:
+                  raise SystemExit("Android-inclusive candidate requires an explicit, non-test android_api_base_url.")
+              if re.search(r"\s", url):
+                  raise SystemExit("android_api_base_url must not contain whitespace")
+              parsed = urllib.parse.urlsplit(url)
+              if parsed.scheme != "https":
+                  raise SystemExit("android_api_base_url must use https scheme")
+              if not parsed.netloc:
+                  raise SystemExit("android_api_base_url must include host")
+              if parsed.username or parsed.password:
+                  raise SystemExit("android_api_base_url must not contain userinfo")
+              if parsed.query or parsed.fragment:
+                  raise SystemExit("android_api_base_url must not contain query or fragment")
+          elif url or version_code:
+              raise SystemExit("Android-excluded candidate must not provide Android URL/version inputs")
           PY
 
   evidence:
@@ -101,6 +119,7 @@ jobs:
       attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
+      include_android: ${{ inputs.include_android }}
       android_version_code: ${{ inputs.android_version_code }}
       android_api_base_url: ${{ inputs.android_api_base_url }}
       release_version: ${{ inputs.release_version }}
@@ -126,8 +145,9 @@ jobs:
       - name: Verify #193 transport checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
-      - name: Verify evidence index contains expected Android metadata
+      - name: Verify evidence index matches selected release channels
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           EXPECTED_API_BASE_URL: ${{ inputs.android_api_base_url }}
           EXPECTED_VERSION: ${{ inputs.release_version }}
           EXPECTED_VERSION_CODE: ${{ inputs.android_version_code }}
@@ -140,15 +160,22 @@ jobs:
 
           index = json.loads(Path("release-evidence/evidence-index.json").read_text(encoding="utf-8"))
           android = index.get("android", {})
-          expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
-          if android.get("apiBaseUrl") != expected_api:
-              raise SystemExit(f"evidence-index apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
-          if android.get("versionName") != os.environ["EXPECTED_VERSION"]:
-              raise SystemExit("evidence-index versionName mismatch")
-          if android.get("versionCode") != int(os.environ["EXPECTED_VERSION_CODE"]):
-              raise SystemExit("evidence-index versionCode mismatch")
-          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
-              raise SystemExit("evidence-index launchableActivity mismatch")
+          expected_included = os.environ["INCLUDE_ANDROID"].lower() == "true"
+          if android.get("included", True) is not expected_included:
+              raise SystemExit("evidence-index Android channel mismatch")
+          if not expected_included:
+              if android != {"included": False, "signing": "not-applicable"}:
+                  raise SystemExit("Android-excluded evidence must carry only explicit not-applicable metadata")
+          else:
+              expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+              if android.get("apiBaseUrl") != expected_api:
+                  raise SystemExit(f"evidence-index apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
+              if android.get("versionName") != os.environ["EXPECTED_VERSION"]:
+                  raise SystemExit("evidence-index versionName mismatch")
+              if android.get("versionCode") != int(os.environ["EXPECTED_VERSION_CODE"]):
+                  raise SystemExit("evidence-index versionCode mismatch")
+              if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+                  raise SystemExit("evidence-index launchableActivity mismatch")
           PY
 
       - name: Resolve previous-known-good manifest
@@ -214,21 +241,25 @@ jobs:
       - name: Write candidate release notes
         shell: bash
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           RELEASE_VERSION: ${{ inputs.release_version }}
           SOURCE_REVISION: ${{ github.sha }}
         run: |
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            channel_note="Android candidate artifacts are included but remain unsigned and are not store artifacts."
+          else
+            channel_note="Android is explicitly excluded from this candidate channel set."
+          fi
           cat > release-evidence/RELEASE-NOTES.md <<EOF
           # eimir. v${RELEASE_VERSION} release candidate
 
-          Source revision: \`${SOURCE_REVISION}\`
+          Source revision: `${SOURCE_REVISION}`
 
           This candidate is a build-once immutable artifact set. Its machine-readable
-          identity is \`eimir-release-manifest.json\`; \`SHA256SUMS\` and #193
+          identity is `eimir-release-manifest.json`; `SHA256SUMS` and #193
           attestations provide artifact/SBOM evidence.
 
-          This workflow does not publish a store release. Final Android publication is
-          blocked until the Play App Signing/upload-key custody decision in #519 is
-          explicitly recorded and the protected publishing environment is configured.
+          ${channel_note}
           EOF
 
       - name: Extend candidate checksums

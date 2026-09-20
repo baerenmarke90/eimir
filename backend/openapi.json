@@ -3646,6 +3646,18 @@
             "title": "Accountid",
             "type": "string"
           },
+          "birthday": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
+          },
           "createdAt": {
             "format": "date-time",
             "title": "Createdat",
@@ -3693,6 +3705,7 @@
           "id",
           "accountId",
           "displayName",
+          "birthday",
           "profileAttachmentId",
           "version",
           "createdAt",
@@ -4795,8 +4808,20 @@
         "type": "object"
       },
       "ProfileIdentityUpdate": {
-        "description": "Partial update of the authenticated account's presentation identity.\n\nOmission means unchanged. An explicit null ``profileAttachmentId`` removes\nthe current avatar. ``displayName`` deliberately has no competing request-\nlayer normalization; the identity domain remains the single authority.",
+        "description": "Partial update of the authenticated account's presentation identity.\n\nOmission means unchanged. An explicit null ``profileAttachmentId`` removes\nthe current avatar; an explicit null ``birthday`` clears the optional birthday.\n``displayName`` deliberately has no competing request-layer normalization;\nthe identity domain remains the single authority.",
         "properties": {
+          "birthday": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
+          },
           "displayName": {
             "anyOf": [
               {

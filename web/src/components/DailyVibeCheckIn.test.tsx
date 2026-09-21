@@ -352,53 +352,17 @@ describe('DailyVibeCheckIn', () => {
     expect(document.body.textContent).not.toContain('NEEDS_CONNECTION');
   });
 
-  it('keeps a disabled module absent unless an existing own Vibe still needs a clear path', async () => {
-    const apiAbsent = {
-      getDailyCheckInTodayRaw: vi
-        .fn()
-        .mockResolvedValue(
-          rawResponse(
-            projection({ ownVibe: null, vibeEnabled: false }),
-            '"today:1"',
-          ),
-        ),
+  it('does not query or render when Vibe is disabled by configuration', () => {
+    const getDailyCheckInTodayRaw = vi.fn();
+    const api = {
+      getDailyCheckInTodayRaw,
     } as unknown as DailyCheckInsApi;
-    const first = renderVibe(apiAbsent, { configuredEnabled: false });
-    await waitFor(() =>
-      expect(screen.queryByTestId('daily-vibe-checkin')).toBeNull(),
-    );
-    first.unmount();
 
-    const update = vi
-      .fn()
-      .mockResolvedValue(
-        rawResponse(
-          projection({ ownVibe: null, vibeEnabled: false }),
-          '"today:2"',
-        ),
-      );
-    const apiClear = {
-      getDailyCheckInTodayRaw: vi
-        .fn()
-        .mockResolvedValue(
-          rawResponse(
-            projection({ ownVibe: 'GOOD', vibeEnabled: false }),
-            '"today:1"',
-          ),
-        ),
-      updateDailyCheckInTodayRaw: update,
-    } as unknown as DailyCheckInsApi;
-    renderVibe(apiClear, { configuredEnabled: false });
-    fireEvent.click(
-      await screen.findByRole('button', { name: dailyVibe.disabledRemove }),
-    );
-    await waitFor(() =>
-      expect(update).toHaveBeenCalledWith({
-        spaceId: 'space-1',
-        ifMatch: '"today:1"',
-        dailyCheckInUpdate: { vibe: null },
-      }),
-    );
+    renderVibe(api, { configuredEnabled: false });
+
+    expect(screen.queryByTestId('daily-vibe-checkin')).toBeNull();
+    expect(screen.queryByTestId('daily-vibe-disabled-clear')).toBeNull();
+    expect(getDailyCheckInTodayRaw).not.toHaveBeenCalled();
   });
 
   it('drops the partner projection while offline instead of replaying it as today', async () => {

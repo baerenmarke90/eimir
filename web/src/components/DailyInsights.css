@@ -29,6 +29,12 @@
   --insight-energy-high: #e78a78;
   --insight-energy-very-high: #d4614f;
   --insight-sun: #f4c98a;
+  /* Quiet copy on tinted surfaces must still clear WCAG AA in both themes. */
+  --insight-quiet-text: color-mix(
+    in srgb,
+    var(--color-text-secondary) 65%,
+    var(--color-text)
+  );
   --insight-plot-pad: 0.75rem;
   --insight-card-surface: color-mix(
     in srgb,
@@ -108,7 +114,7 @@
 
 .insight-subtitle {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 1.02rem;
   line-height: 1.4;
 }
@@ -133,7 +139,7 @@
 }
 
 .insight-handwriting {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-family: var(--font-display);
   font-size: 0.95rem;
   font-style: italic;
@@ -160,7 +166,7 @@
   place-items: center;
   padding: 0 var(--space-2);
   border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.9rem;
   font-weight: 650;
   text-align: center;
@@ -273,7 +279,7 @@
 .insight-card-heading p,
 .insight-card > p {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.88rem;
   line-height: 1.4;
 }
@@ -288,7 +294,7 @@
 
 .insight-note {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.8rem;
   line-height: 1.45;
 }
@@ -298,7 +304,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-large);
   background: color-mix(in srgb, var(--color-brand) 8%, var(--color-surface));
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.8rem;
   line-height: 1.35;
 }
@@ -403,7 +409,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.7rem;
   line-height: 1.1;
 }
@@ -605,7 +611,7 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   padding-top: var(--space-1);
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.72rem;
   text-align: center;
 }
@@ -616,7 +622,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-large);
   background: color-mix(in srgb, var(--color-surface-subtle) 55%, transparent);
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.82rem;
   line-height: 1.4;
   overflow-wrap: break-word;
@@ -695,7 +701,7 @@
 }
 
 .insight-statement-copy span {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.82rem;
   line-height: 1.4;
   overflow-wrap: break-word;
@@ -778,7 +784,7 @@
 
 .insight-closing-copy p {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.9rem;
   line-height: 1.45;
 }
@@ -798,7 +804,7 @@
 
 .insight-eyebrow {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -857,7 +863,7 @@
 }
 
 .insight-matrix-head {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.68rem;
   text-align: center;
 }
@@ -873,7 +879,7 @@
 }
 
 .insight-matrix-week-label {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.66rem;
 }
 
@@ -888,7 +894,7 @@
   border: 0;
   border-radius: var(--radius-small);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font: inherit;
   cursor: pointer;
 }
@@ -956,7 +962,7 @@
   gap: var(--space-1) var(--space-3);
   margin: 0;
   padding: 0;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.72rem;
   list-style: none;
 }
@@ -1000,7 +1006,7 @@
 }
 
 .insight-strip-count {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.72rem;
   font-weight: 500;
 }
@@ -1028,7 +1034,7 @@
   display: flex;
   justify-content: space-between;
   gap: var(--space-2);
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.72rem;
 }
 
@@ -1057,7 +1063,7 @@
 }
 
 .insight-highlight time {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.78rem;
 }
 
@@ -1068,7 +1074,7 @@
 }
 
 .insight-highlight > span:last-child {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
 }
 
 .insight-highlight-moods {
@@ -1158,7 +1164,7 @@
 }
 
 .insight-entry-copy span {
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 0.8rem;
   line-height: 1.3;
   overflow-wrap: break-word;
@@ -1167,7 +1173,7 @@
 
 .insight-entry-chevron {
   margin-inline-start: auto;
-  color: var(--color-text-secondary);
+  color: var(--insight-quiet-text);
   font-size: 1.4rem;
 }
 
@@ -1210,13 +1216,13 @@
   }
 }
 
+/* Transform only: animating opacity would make contrast measurements (and
+ * low-vision users) see intermediate colors. */
 @keyframes insight-fade {
   from {
-    opacity: 0;
     transform: translateY(6px);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }

@@ -288,7 +288,15 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+/**
+ * Only elements of the insights surface and the Today entry are asserted.
+ * `wholeDocument: false` skips the document-level scroll width, which on Today
+ * also reflects unrelated, still-settling modules after a text-size change.
+ */
+async function expectNoHorizontalOverflow(
+  page: Page,
+  { wholeDocument = true }: { wholeDocument?: boolean } = {},
+): Promise<void> {
   const result = await page.evaluate(() => {
     const root = document.documentElement;
     const overflowing = Array.from(
@@ -322,7 +330,9 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     result.overflowing,
     `Elements outside viewport: ${JSON.stringify(result.overflowing, null, 2)}`,
   ).toEqual([]);
-  expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
+  if (wholeDocument) {
+    expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
+  }
 }
 
 async function openInsightsFromToday(page: Page) {
@@ -411,7 +421,7 @@ test('Pro insights reflow at 320px with large text, Dark and Reduced Motion', as
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
-  await expectNoHorizontalOverflow(page);
+  await expectNoHorizontalOverflow(page, { wholeDocument: false });
   await visitViews(page, testInfo, '320-dark-200pct');
 });
 

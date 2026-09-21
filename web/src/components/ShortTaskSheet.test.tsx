@@ -262,6 +262,8 @@ describe('ShortTaskSheet history ownership', () => {
     });
     fireEvent.pointerMove(dragZone, { pointerId: 3, clientY: 260 });
     fireEvent.pointerUp(dragZone, { pointerId: 3, clientY: 260 });
+    expect(dialog.getAttribute('data-dismissing')).toBe('true');
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

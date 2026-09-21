@@ -5,6 +5,7 @@ import {
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
   limitUpcomingItems,
+  selectedDashboardCollectionId,
 } from './dashboardPreferences';
 
 function preferences(itemLimit: number): DashboardModulePreferenceList {
@@ -71,6 +72,31 @@ describe('dashboardPreferences', () => {
     ],
   ])('never fabricates unavailable items', (items, expected) => {
     expect(limitUpcomingItems(items, preferences(3))).toEqual(expected);
+  });
+
+  describe('selectedDashboardCollectionId', () => {
+    it('returns the selected resource only for the requested module', () => {
+      const value = {
+        items: [
+          {
+            moduleKey: 'pinned_collection',
+            visible: true,
+            selectedCollectionId: 'collection-1',
+          },
+        ],
+      } as DashboardModulePreferenceList;
+
+      expect(
+        selectedDashboardCollectionId(value, 'pinned_collection'),
+      ).toBe('collection-1');
+      expect(selectedDashboardCollectionId(value, 'keepsake')).toBeNull();
+    });
+
+    it('returns null when no resource is selected', () => {
+      expect(
+        selectedDashboardCollectionId({ items: [] }, 'pinned_collection'),
+      ).toBeNull();
+    });
   });
 
   describe('isDashboardModuleVisible', () => {

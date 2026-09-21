@@ -413,7 +413,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
     });
     await page.screenshot({
-      path: testInfo.outputPath('quick-create-sheet-390-light.png'),
+      path: testInfo.outputPath('shell-quick-create-sheet-390-light.png'),
     });
 
     await page.evaluate(() => {
@@ -430,7 +430,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
     });
     await page.screenshot({
-      path: testInfo.outputPath('quick-create-sheet-390-dark.png'),
+      path: testInfo.outputPath('shell-quick-create-sheet-390-dark.png'),
     });
 
     await page.evaluate(() => {

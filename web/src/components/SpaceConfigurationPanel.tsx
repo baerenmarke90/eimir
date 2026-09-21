@@ -138,14 +138,7 @@ export function SpaceConfigurationPanel({
               </span>
             </button>
           ) : (
-            <span
-              className="space-module-readonly-state"
-              aria-label={t('profileIdentity.supportGesturesCurrentState', {
-                state: configuration.supportGesturesEnabled
-                  ? t('profileIdentity.spaceModuleOn')
-                  : t('profileIdentity.spaceModuleOff'),
-              })}
-            >
+            <span className="space-module-readonly-state">
               {configuration.supportGesturesEnabled
                 ? t('profileIdentity.spaceModuleOn')
                 : t('profileIdentity.spaceModuleOff')}

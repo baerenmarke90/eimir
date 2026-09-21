@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `energyLevel` | number
 `version` | number
+`vibe` | [DailyVibe](DailyVibe.md)
 
 ## Example
 
@@ -19,6 +20,7 @@ import type { DailyCheckInOwnView } from ''
 const example = {
   "energyLevel": null,
   "version": null,
+  "vibe": null,
 } satisfies DailyCheckInOwnView
 
 console.log(example)

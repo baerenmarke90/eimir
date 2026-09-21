@@ -13,11 +13,16 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DailyVibe } from './DailyVibe';
+import {
+    DailyVibeFromJSON,
+    DailyVibeFromJSONTyped,
+    DailyVibeToJSON,
+    DailyVibeToJSONTyped,
+} from './DailyVibe';
+
 /**
- * Partial owner mutation for dimensions whose product values are decided.
- * 
- * Vibe is intentionally absent: #429 has not yet frozen the product enum, so
- * accepting a string here would turn an implementation guess into API state.
+ * Partial owner mutation for the shared current-day dimensions.
  * @export
  * @interface DailyCheckInUpdate
  */
@@ -28,6 +33,12 @@ export interface DailyCheckInUpdate {
      * @memberof DailyCheckInUpdate
      */
     energyLevel?: DailyCheckInUpdateEnergyLevelEnum | null;
+    /**
+     * 
+     * @type {DailyVibe}
+     * @memberof DailyCheckInUpdate
+     */
+    vibe?: DailyVibe | null;
 }
 
 
@@ -67,6 +78,7 @@ export function DailyCheckInUpdateFromJSONTyped(json: any, ignoreDiscriminator: 
     return {
         
         'energyLevel': json['energyLevel'] === undefined ? undefined : json['energyLevel'] === null ? null : json['energyLevel'],
+        'vibe': json['vibe'] === undefined ? undefined : json['vibe'] === null ? null : DailyVibeFromJSON(json['vibe']),
     };
 }
 
@@ -82,6 +94,7 @@ export function DailyCheckInUpdateToJSONTyped(value?: DailyCheckInUpdate | null,
     return {
         
         'energyLevel': value['energyLevel'],
+        'vibe': DailyVibeToJSON(value['vibe']),
     };
 }
 

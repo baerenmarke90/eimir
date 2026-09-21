@@ -145,7 +145,7 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag - Opaque owner-state concurrency token. Send it unchanged in the next Daily Check-in write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
-| **403** | &#x60;SPACE_MODULE_DISABLED&#x60;: new Energy participation is disabled. |  -  |
+| **403** | &#x60;SPACE_MODULE_DISABLED&#x60;: new Vibe/Energy participation is disabled. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | &#x60;RESOURCE_VERSION_CONFLICT&#x60;: the owner state changed, or &#x60;DAILY_CHECK_IN_CONTEXT_UNAVAILABLE&#x60;: the shared day cannot be resolved. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |

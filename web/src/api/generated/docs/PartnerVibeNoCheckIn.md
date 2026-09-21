@@ -1,30 +1,22 @@
 
-# DailyCheckInTodayView
+# PartnerVibeNoCheckIn
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`checkedOn` | Date
-`dailyContextTimezone` | string
-`energy` | [DailyCheckInEnergyView](DailyCheckInEnergyView.md)
-`own` | [DailyCheckInOwnView](DailyCheckInOwnView.md)
-`vibe` | [DailyCheckInVibeView](DailyCheckInVibeView.md)
+`state` | string
 
 ## Example
 
 ```typescript
-import type { DailyCheckInTodayView } from ''
+import type { PartnerVibeNoCheckIn } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "checkedOn": null,
-  "dailyContextTimezone": null,
-  "energy": null,
-  "own": null,
-  "vibe": null,
-} satisfies DailyCheckInTodayView
+  "state": null,
+} satisfies PartnerVibeNoCheckIn
 
 console.log(example)
 
@@ -33,7 +25,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as DailyCheckInTodayView
+const exampleParsed = JSON.parse(exampleJSON) as PartnerVibeNoCheckIn
 console.log(exampleParsed)
 ```
 

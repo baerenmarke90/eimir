@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DailyVibe } from './DailyVibe';
+import {
+    DailyVibeFromJSON,
+    DailyVibeFromJSONTyped,
+    DailyVibeToJSON,
+    DailyVibeToJSONTyped,
+} from './DailyVibe';
+
 /**
  * Only the caller's current-day state; partner row metadata is never exposed.
  * @export
@@ -31,6 +39,14 @@ export interface DailyCheckInOwnView {
      * @memberof DailyCheckInOwnView
      */
     version: number;
+    /**
+     * 
+     * @type {DailyVibe}
+     * @memberof DailyCheckInOwnView
+     */
+    vibe: DailyVibe | null;
+
+
 }
 
 /**
@@ -39,6 +55,7 @@ export interface DailyCheckInOwnView {
 export function instanceOfDailyCheckInOwnView(value: object): value is DailyCheckInOwnView {
     if (!('energyLevel' in value) || value['energyLevel'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
+    if (!('vibe' in value) || value['vibe'] === undefined) return false;
     return true;
 }
 
@@ -54,6 +71,7 @@ export function DailyCheckInOwnViewFromJSONTyped(json: any, ignoreDiscriminator:
         
         'energyLevel': json['energyLevel'],
         'version': json['version'],
+        'vibe': DailyVibeFromJSON(json['vibe']),
     };
 }
 
@@ -70,6 +88,7 @@ export function DailyCheckInOwnViewToJSONTyped(value?: DailyCheckInOwnView | nul
         
         'energyLevel': value['energyLevel'],
         'version': value['version'],
+        'vibe': DailyVibeToJSON(value['vibe']),
     };
 }
 

@@ -1,13 +1,14 @@
 
 # DailyCheckInUpdate
 
-Partial owner mutation for dimensions whose product values are decided.  Vibe is intentionally absent: #429 has not yet frozen the product enum, so accepting a string here would turn an implementation guess into API state.
+Partial owner mutation for the shared current-day dimensions.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `energyLevel` | number
+`vibe` | [DailyVibe](DailyVibe.md)
 
 ## Example
 
@@ -17,6 +18,7 @@ import type { DailyCheckInUpdate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "energyLevel": null,
+  "vibe": null,
 } satisfies DailyCheckInUpdate
 
 console.log(example)

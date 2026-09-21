@@ -1,30 +1,25 @@
 
-# DailyCheckInTodayView
+# PartnerVibeProjection
 
+Named discriminated partner Vibe state without hidden optional fields.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`checkedOn` | Date
-`dailyContextTimezone` | string
-`energy` | [DailyCheckInEnergyView](DailyCheckInEnergyView.md)
-`own` | [DailyCheckInOwnView](DailyCheckInOwnView.md)
-`vibe` | [DailyCheckInVibeView](DailyCheckInVibeView.md)
+`state` | string
+`value` | [DailyVibe](DailyVibe.md)
 
 ## Example
 
 ```typescript
-import type { DailyCheckInTodayView } from ''
+import type { PartnerVibeProjection } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "checkedOn": null,
-  "dailyContextTimezone": null,
-  "energy": null,
-  "own": null,
-  "vibe": null,
-} satisfies DailyCheckInTodayView
+  "state": null,
+  "value": null,
+} satisfies PartnerVibeProjection
 
 console.log(example)
 
@@ -33,7 +28,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as DailyCheckInTodayView
+const exampleParsed = JSON.parse(exampleJSON) as PartnerVibeProjection
 console.log(exampleParsed)
 ```
 

@@ -4,14 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
-import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
-import {
-  loadSpaceConfiguration,
-  spaceConfigurationQueryKey,
-} from '../client/spaceConfiguration';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
@@ -51,13 +47,9 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 export function PlanProductPage({
   apis,
   spaceId,
-  spacesApi,
-  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
-  spacesApi?: SpacesApi;
-  accountId?: string;
 }) {
   const { t } = useTranslation();
   const { planId } = useParams();
@@ -157,41 +149,32 @@ export function PlanProductPage({
     onSuccess: commitPlan,
   });
   const completeMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       plan,
       experiencedOn,
     }: {
       plan: PlanDetail;
       experiencedOn: Date;
-    }) =>
-      apiCall(() =>
-        apis.plans.completePlan({
+    }) => {
+      try {
+        const response = await apis.plans.completePlanRaw({
           spaceId,
           planId: plan.id,
           ifMatch: planningIfMatch(plan),
           planComplete: { experiencedOn },
-        }),
-      ),
-    onSuccess: async (completedPlan) => {
-      setCelebratedPlanKey(null);
-      let celebrationEnabled = false;
-
-      if (spacesApi && accountId) {
-        try {
-          const snapshot = await loadSpaceConfiguration(spacesApi, spaceId);
-          queryClient.setQueryData(
-            spaceConfigurationQueryKey(accountId, spaceId),
-            snapshot,
-          );
-          celebrationEnabled = snapshot.configuration.sharedAchievementsEnabled;
-        } catch {
-          // The Plan completion is already authoritative. Optional celebration
-          // presentation fails closed when the current Space switch is unknown.
-        }
+        });
+        return {
+          completedPlan: await response.value(),
+          achievement: sharedAchievementKind(response.raw),
+        };
+      } catch (error) {
+        throw await normalizeClientError(error);
       }
-
+    },
+    onSuccess: async ({ completedPlan, achievement }) => {
+      setCelebratedPlanKey(null);
       await commitPlan(completedPlan);
-      if (celebrationEnabled) {
+      if (achievement === 'plan-completed') {
         setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
       }
     },

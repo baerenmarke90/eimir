@@ -359,8 +359,32 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     const dialog = page.getByRole('dialog', {
       name: navigation.quickCreateTitle,
     });
+    const settleDialogMotion = async () => {
+      await dialog.evaluate(async (element) => {
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        const finite = element.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return timing?.iterations !== Number.POSITIVE_INFINITY;
+        });
+        await Promise.all(
+          finite.map((animation) => animation.finished.catch(() => undefined)),
+        );
+      });
+    };
+    const sheetTranslateY = async () =>
+      dialog.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        if (transform === 'none') return 0;
+        return new DOMMatrixReadOnly(transform).m42;
+      });
+
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
+    await settleDialogMotion();
 
     // F2 uses the native top layer; stacking is independent of CSS z-index.
     expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
@@ -494,20 +518,55 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await trigger.click();
     await expect(dialog).toBeVisible();
+    await settleDialogMotion();
     const dragBox = await dragZone.boundingBox();
     expect(dragBox).not.toBeNull();
     if (!dragBox) throw new Error('Missing drag handle bounds');
 
-    await page.mouse.move(
-      dragBox.x + dragBox.width / 2,
-      dragBox.y + dragBox.height / 2,
-    );
+    const dragCenterX = dragBox.x + dragBox.width / 2;
+    const dragCenterY = dragBox.y + dragBox.height / 2;
+    await page.mouse.move(dragCenterX, dragCenterY);
     await page.mouse.down();
-    await page.mouse.move(
-      dragBox.x + dragBox.width / 2,
-      dragBox.y + dragBox.height / 2 + 96,
-      { steps: 4 },
-    );
+
+    // The global button active state must not replace the grip's centering.
+    const pressedDragBox = await dragZone.boundingBox();
+    expect(pressedDragBox).not.toBeNull();
+    if (!pressedDragBox) throw new Error('Missing pressed drag handle bounds');
+    expect(
+      Math.abs(
+        pressedDragBox.x +
+          pressedDragBox.width / 2 -
+          (dragBox.x + dragBox.width / 2),
+      ),
+    ).toBeLessThan(1);
+
+    // The old 72px threshold closed on this short pull. It now settles back.
+    await page.mouse.move(dragCenterX, dragCenterY + 96, { steps: 4 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    expect(
+      await dialog.evaluate((element) =>
+        element.style.getPropertyValue('--short-task-sheet-drag-offset'),
+      ),
+    ).toBe('0px');
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
+    // A deliberate upward reversal means "keep this open", even when the
+    // release point is still well below the old fixed dismissal threshold.
+    await page.mouse.move(dragCenterX, dragCenterY);
+    await page.mouse.down();
+    await page.mouse.move(dragCenterX, dragCenterY + 200, { steps: 5 });
+    await page.mouse.move(dragCenterX, dragCenterY + 140, { steps: 3 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
+    // A fresh, steadily downward pull still dismisses the Compact sheet.
+    await page.mouse.move(dragCenterX, dragCenterY);
+    await page.mouse.down();
+    await page.mouse.move(dragCenterX, dragCenterY + 220, { steps: 6 });
     await page.mouse.up();
 
     await expect(dialog).toHaveCount(0);

@@ -18,7 +18,11 @@ export interface ShortTaskSheetHandle {
   closeForNavigation: (navigate: () => void) => void;
 }
 
-const COMPACT_DRAG_DISMISS_THRESHOLD_PX = 72;
+const COMPACT_DRAG_DISMISS_MIN_PX = 120;
+const COMPACT_DRAG_DISMISS_MAX_PX = 180;
+const COMPACT_DRAG_DISMISS_RATIO = 0.22;
+const COMPACT_DRAG_REVERSAL_CANCEL_PX = 24;
+const COMPACT_DRAG_SLOP_PX = 4;
 
 /** A bounded choice task: the native modal owns inertness and keyboard focus. */
 export function ShortTaskSheet({
@@ -51,9 +55,11 @@ export function ShortTaskSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const navigatingRef = useRef(false);
+  const dismissingRef = useRef(false);
   const dragPointerRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
   const dragMaxDistanceRef = useRef(0);
+  const dragPeakOffsetRef = useRef(0);
   const suppressNextClickRef = useRef(false);
   const closeSheet = useEditorHistoryEntry({
     isActive: open,
@@ -70,6 +76,35 @@ export function ShortTaskSheet({
     );
   }
 
+  function compactDragDismissThreshold(): number {
+    const height = dialogRef.current?.getBoundingClientRect().height ?? 0;
+    return Math.min(
+      COMPACT_DRAG_DISMISS_MAX_PX,
+      Math.max(
+        COMPACT_DRAG_DISMISS_MIN_PX,
+        height * COMPACT_DRAG_DISMISS_RATIO,
+      ),
+    );
+  }
+
+  function commitDragDismiss(): void {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      closeSheet();
+      return;
+    }
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      closeSheet();
+      return;
+    }
+    dismissingRef.current = true;
+    dialog.setAttribute('data-dismissing', 'true');
+    updateDragOffset(window.innerHeight);
+  }
+
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
     const expanded =
       typeof window !== 'undefined' &&
@@ -80,7 +115,9 @@ export function ShortTaskSheet({
     dragPointerRef.current = event.pointerId;
     dragStartYRef.current = event.clientY;
     dragMaxDistanceRef.current = 0;
+    dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
+    dialogRef.current?.setAttribute('data-interacted', 'true');
     dialogRef.current?.setAttribute('data-dragging', 'true');
     updateDragOffset(0);
     if (typeof event.currentTarget.setPointerCapture === 'function') {
@@ -92,10 +129,12 @@ export function ShortTaskSheet({
     if (dragPointerRef.current !== event.pointerId) return;
     event.preventDefault();
     const delta = event.clientY - dragStartYRef.current;
+    const offset = Math.max(0, delta);
     dragMaxDistanceRef.current = Math.max(
       dragMaxDistanceRef.current,
       Math.abs(delta),
     );
+    dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
     updateDragOffset(delta);
   }
 
@@ -110,7 +149,10 @@ export function ShortTaskSheet({
       dragMaxDistanceRef.current,
       Math.abs(delta),
     );
-    const wasDrag = dragMaxDistanceRef.current > 4;
+    dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
+    const wasDrag = dragMaxDistanceRef.current > COMPACT_DRAG_SLOP_PX;
+    const reversedUpward =
+      dragPeakOffsetRef.current - offset >= COMPACT_DRAG_REVERSAL_CANCEL_PX;
     dragPointerRef.current = null;
 
     if (
@@ -121,14 +163,13 @@ export function ShortTaskSheet({
     }
 
     dialogRef.current?.removeAttribute('data-dragging');
-    if (wasDrag) {
-      suppressNextClickRef.current = true;
-      window.setTimeout(() => {
-        suppressNextClickRef.current = false;
-      }, 0);
-    }
-    if (allowDismiss && offset >= COMPACT_DRAG_DISMISS_THRESHOLD_PX) {
-      closeSheet();
+    if (wasDrag) suppressNextClickRef.current = true;
+    if (
+      allowDismiss &&
+      !reversedUpward &&
+      offset >= compactDragDismissThreshold()
+    ) {
+      commitDragDismiss();
       return;
     }
     updateDragOffset(0);
@@ -154,15 +195,22 @@ export function ShortTaskSheet({
     const dialog = dialogRef.current;
     if (!dialog) return;
     navigatingRef.current = false;
+    dismissingRef.current = false;
     dragPointerRef.current = null;
     dragMaxDistanceRef.current = 0;
+    dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
+    dialog.removeAttribute('data-interacted');
     dialog.removeAttribute('data-dragging');
+    dialog.removeAttribute('data-dismissing');
     dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');
     dialog.showModal();
     return () => {
+      dismissingRef.current = false;
       dragPointerRef.current = null;
+      dialog.removeAttribute('data-interacted');
       dialog.removeAttribute('data-dragging');
+      dialog.removeAttribute('data-dismissing');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
       dialog.close();
     };
@@ -194,6 +242,16 @@ export function ShortTaskSheet({
         event.preventDefault();
         closeSheet();
       }}
+      onTransitionEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          event.propertyName !== 'transform' ||
+          !dismissingRef.current
+        )
+          return;
+        dismissingRef.current = false;
+        closeSheet();
+      }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;
         const bounds = event.currentTarget.getBoundingClientRect();
@@ -217,11 +275,12 @@ export function ShortTaskSheet({
           onPointerMove={moveDrag}
           onPointerUp={(event) => finishDrag(event, true)}
           onPointerCancel={(event) => finishDrag(event, false)}
-          onClick={() => {
-            if (suppressNextClickRef.current) {
+          onClick={(event) => {
+            if (event.detail > 0 && suppressNextClickRef.current) {
               suppressNextClickRef.current = false;
               return;
             }
+            suppressNextClickRef.current = false;
             closeSheet();
           }}
         >

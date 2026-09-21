@@ -205,7 +205,7 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
-  it('uses the Compact grip as the primary touch dismissal gesture', async () => {
+  it('requires a deliberate downward drag and lets reversal cancel dismissal', async () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     const trigger = screen.getByText('Task choices');
     trigger.focus();
@@ -218,33 +218,52 @@ describe('ShortTaskSheet history ownership', () => {
     expect(dragZone).not.toBeNull();
     if (!dragZone) throw new Error('Missing short sheet drag zone');
 
+    // The previous fixed 72px threshold was too eager. A 100px pull now
+    // settles back and must not fall through into the button's synthetic click.
     fireEvent.pointerDown(dragZone, {
       pointerId: 1,
       button: 0,
       clientY: 100,
     });
-    fireEvent.pointerMove(dragZone, { pointerId: 1, clientY: 140 });
+    fireEvent.pointerMove(dragZone, { pointerId: 1, clientY: 200 });
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
-    ).toBe('40px');
-    fireEvent.pointerUp(dragZone, { pointerId: 1, clientY: 140 });
+    ).toBe('100px');
+    fireEvent.pointerUp(dragZone, { pointerId: 1, clientY: 200 });
     expect(screen.getByRole('dialog')).toBeDefined();
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('0px');
-
-    // A release after a real but sub-threshold drag must not turn into the
-    // button's synthetic click and accidentally dismiss the sheet.
-    fireEvent.click(dragZone);
+    fireEvent.click(dragZone, { detail: 1 });
     expect(screen.getByRole('dialog')).toBeDefined();
 
+    // Crossing the commit distance is still cancellable when the user
+    // deliberately reverses upward before release.
     fireEvent.pointerDown(dragZone, {
       pointerId: 2,
       button: 0,
       clientY: 100,
     });
-    fireEvent.pointerMove(dragZone, { pointerId: 2, clientY: 180 });
-    fireEvent.pointerUp(dragZone, { pointerId: 2, clientY: 180 });
+    fireEvent.pointerMove(dragZone, { pointerId: 2, clientY: 290 });
+    fireEvent.pointerMove(dragZone, { pointerId: 2, clientY: 240 });
+    fireEvent.pointerUp(dragZone, { pointerId: 2, clientY: 240 });
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+    fireEvent.click(dragZone, { detail: 1 });
+    expect(screen.getByRole('dialog')).toBeDefined();
+
+    // A fresh, steadily downward gesture beyond the bounded threshold closes.
+    fireEvent.pointerDown(dragZone, {
+      pointerId: 3,
+      button: 0,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(dragZone, { pointerId: 3, clientY: 260 });
+    fireEvent.pointerUp(dragZone, { pointerId: 3, clientY: 260 });
+    expect(dialog.getAttribute('data-dismissing')).toBe('true');
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

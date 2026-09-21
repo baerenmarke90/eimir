@@ -322,9 +322,9 @@ test('Daily Energy keeps an unset own affordance, reveals partner Energy, and al
   });
   const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
   await expect(ownBattery).toBeVisible();
-  await expect(
-    ownBattery.locator('.daily-energy-battery-question'),
-  ).toHaveText('?');
+  await expect(ownBattery.locator('.daily-energy-battery-question')).toHaveText(
+    '?',
+  );
   await expect(partnerBattery).toHaveCount(0);
 
   const ownTargetBox = await ownBattery.boundingBox();
@@ -464,9 +464,9 @@ test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent
   });
   const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
   await expect(ownBattery).toBeVisible();
-  await expect(
-    ownBattery.locator('.daily-energy-battery-question'),
-  ).toHaveText('?');
+  await expect(ownBattery.locator('.daily-energy-battery-question')).toHaveText(
+    '?',
+  );
   await expect(partnerBattery).toHaveCount(0);
   await ownBattery.click();
 

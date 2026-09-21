@@ -295,7 +295,7 @@ export function SharedPlanningOverviewPage({
 
   return (
     <div className="page planning-page planning-sanctuary planen-overview">
-      <PageHeader title={t('m5s3.overview.title')} />
+      <PageHeader title={t('m5s3.overview.title')} variant="primary" />
       <PlanenSegmentedControl
         active={activeSegment}
         onChange={setActiveSegment}

@@ -7,8 +7,14 @@ import {
 } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import {
+  dashboardPreferencesQueryKey,
+  PINNED_COLLECTION_MODULE_KEY,
+  selectedDashboardCollectionId,
+} from '../client/dashboardPreferences';
 import { normalizeClientError } from '../client/problemDetails';
 import {
   planningIfMatch,
@@ -151,9 +157,13 @@ function CollectionItemRow({
 export function CollectionProductPage({
   apis,
   spaceId,
+  dashboardApi,
+  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  dashboardApi?: DashboardApi;
+  accountId?: string;
 }) {
   const { t } = useTranslation();
   const { collectionId } = useParams();
@@ -182,6 +192,44 @@ export function CollectionProductPage({
     retry: false,
   });
 
+  const dashboardPreferencesQuery = useQuery({
+    queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
+    queryFn: () => {
+      if (!dashboardApi) throw new Error('Dashboard API is not available.');
+      return apiCall(() =>
+        dashboardApi.listDashboardModulePreferences({ spaceId }),
+      );
+    },
+    enabled: Boolean(dashboardApi && accountId && spaceId),
+    retry: false,
+  });
+
+  const pinnedCollectionId = selectedDashboardCollectionId(
+    dashboardPreferencesQuery.data,
+    PINNED_COLLECTION_MODULE_KEY,
+  );
+
+  const pinCollection = useMutation({
+    mutationFn: (selectedCollectionId: string | null) => {
+      if (!dashboardApi) throw new Error('Dashboard API is not available.');
+      return apiCall(() =>
+        dashboardApi.updateDashboardModulePreference({
+          moduleKey: PINNED_COLLECTION_MODULE_KEY,
+          spaceId,
+          dashboardModulePreferenceUpdate: {
+            selectedCollectionId,
+            visible: selectedCollectionId ? true : undefined,
+          },
+        }),
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
+      });
+    },
+  });
+
   useEffect(() => {
     if (collectionQuery.data?.title) {
       setTitleDraft(collectionQuery.data.title);
@@ -199,6 +247,9 @@ export function CollectionProductPage({
         queryKey: ['m5-s3', 'collections', spaceId],
       }),
       queryClient.invalidateQueries({ queryKey: key }),
+      queryClient.invalidateQueries({
+        queryKey: ['today-pinned-collection', accountId ?? '', spaceId],
+      }),
     ]);
   };
 
@@ -338,9 +389,14 @@ export function CollectionProductPage({
     }),
     onSuccess: async (_result, _collection, context) => {
       queryClient.removeQueries({ queryKey: key });
-      await queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'collections', spaceId],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['m5-s3', 'collections', spaceId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
+        }),
+      ]);
       navigate(MORE_COLLECTIONS_ROUTE, {
         replace: true,
         state: {
@@ -555,6 +611,33 @@ export function CollectionProductPage({
         }
         description={t('m5s3.collection.itemCount', { count: items.length })}
       />
+
+      {dashboardApi && accountId ? (
+        <div className="planning-collection-dashboard-action">
+          <button
+            type="button"
+            className="button-link secondary-link"
+            disabled={
+              dashboardPreferencesQuery.isPending || pinCollection.isPending
+            }
+            onClick={() =>
+              pinCollection.mutate(
+                pinnedCollectionId === collection.id ? null : collection.id,
+              )
+            }
+          >
+            {pinnedCollectionId === collection.id
+              ? t('m5s3.collection.unpinFromToday')
+              : t('m5s3.collection.pinToToday')}
+          </button>
+          {pinCollection.error ? (
+            <ProblemState
+              error={pinCollection.error}
+              onRetry={() => void dashboardPreferencesQuery.refetch()}
+            />
+          ) : null}
+        </div>
+      ) : null}
 
       <section
         className="planning-subsection"

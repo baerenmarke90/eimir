@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s3 from '../../src/i18n/locales/m5s3';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -502,7 +503,7 @@ test.describe('Global header document flow and persistent bottom navigation', ()
         path: '/story?tab=timeline',
         title: de.story.timelineTitle,
       },
-      { slug: 'planen', path: '/plan', title: de.m5s3.overview.title },
+      { slug: 'planen', path: '/plan', title: m5s3.overview.title },
       { slug: 'mehr', path: '/more', title: de.more.title },
     ] as const;
     const viewports = [

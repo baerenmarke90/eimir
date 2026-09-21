@@ -25,6 +25,7 @@
 export type DashboardModuleKey =
   | 'relationship_presence'
   | 'upcoming'
+  | 'pinned_collection'
   | 'keepsake'
   | 'relationship_signal'
   | 'monthly_highlights'
@@ -48,6 +49,10 @@ export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [
     { key: 'relationship_presence', labelKey: 'm5s5.today.roles.hero' },
     { key: 'upcoming', labelKey: 'm5s5.dashboard.upcomingTitle' },
+    {
+      key: 'pinned_collection',
+      labelKey: 'm5s5.dashboard.pinnedCollectionSettingsTitle',
+    },
     { key: 'keepsake', labelKey: 'm5s5.today.keepsake.kicker' },
     { key: 'relationship_signal', labelKey: 'm5s5.today.living.kicker' },
     { key: 'monthly_highlights', labelKey: 'm5s5.today.monthly.title' },

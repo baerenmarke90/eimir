@@ -32,7 +32,7 @@
 ) {
   gap: clamp(var(--space-8), 5vw, var(--space-12));
 
-  & .page-heading {
+  & .page-heading:not(.page-heading-root) {
     margin-bottom: 0;
     border-bottom: 0;
     padding-bottom: 0;

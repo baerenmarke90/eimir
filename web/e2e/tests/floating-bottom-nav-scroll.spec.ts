@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import m5s3 from '../../src/i18n/locales/m5s3';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -485,6 +486,89 @@ test.describe('Global header document flow and persistent bottom navigation', ()
           path: path.join(EVIDENCE_DIR, '01-today-header-at-top.png'),
           contentType: 'image/png',
         });
+      }
+    }
+  });
+
+  test('Momente, Planen and Mehr share one root heading rhythm on Compact and Expanded', async ({
+    page,
+  }, testInfo) => {
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+
+    const destinations = [
+      {
+        slug: 'momente',
+        path: '/story?tab=timeline',
+        title: de.story.timelineTitle,
+      },
+      { slug: 'planen', path: '/plan', title: m5s3.overview.title },
+      { slug: 'mehr', path: '/more', title: de.more.title },
+    ] as const;
+    const viewports = [
+      { label: 'compact', width: 390, height: 844 },
+      { label: 'expanded', width: 1280, height: 900 },
+    ] as const;
+
+    for (const viewport of viewports) {
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+
+      const metrics: Array<{
+        fontFamily: string;
+        fontSize: string;
+        fontWeight: string;
+        headerMarginBottom: string;
+        lineHeight: string;
+      }> = [];
+
+      for (const destination of destinations) {
+        await page.goto(destination.path);
+        await page.evaluate(() => window.scrollTo(0, 0));
+
+        const rootHeader = page.locator('.page-heading-root');
+        const heading = rootHeader.getByRole('heading', {
+          level: 1,
+          name: destination.title,
+        });
+        await expect(rootHeader).toBeVisible();
+        await expect(heading).toBeVisible();
+
+        const metric = await heading.evaluate((element) => {
+          const headingStyle = getComputedStyle(element);
+          const header = element.closest<HTMLElement>('.page-heading-root');
+          if (!header) throw new Error('Root page header missing.');
+          const headerStyle = getComputedStyle(header);
+          return {
+            fontFamily: headingStyle.fontFamily,
+            fontSize: headingStyle.fontSize,
+            fontWeight: headingStyle.fontWeight,
+            headerMarginBottom: headerStyle.marginBottom,
+            lineHeight: headingStyle.lineHeight,
+          };
+        });
+        metrics.push(metric);
+
+        expect(metric.fontFamily).toContain('Literata');
+        expect(metric.fontSize).toBe('36px');
+        expect(metric.fontWeight).toBe('700');
+        expect(metric.headerMarginBottom).toBe('32px');
+
+        await expectNoHorizontalOverflow(page);
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `shell-root-header-${destination.slug}-${viewport.label}.png`,
+          ),
+          fullPage: false,
+        });
+      }
+
+      const [baseline, ...peers] = metrics;
+      for (const peer of peers) {
+        expect(peer).toEqual(baseline);
       }
     }
   });

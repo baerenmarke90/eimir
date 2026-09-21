@@ -58,6 +58,7 @@ function typography(name, source, familyName = 'ui', weight) {
   declare(`tracking-${name}`, type.letterSpacing);
 }
 
+typography('page-heading', 'heading1', 'display');
 typography(
   'personal-heading',
   'heading2',

@@ -140,6 +140,16 @@ export function SpaceConfigurationPanel({
       },
     },
     {
+      id: 'shared-achievements',
+      title: t('profileIdentity.sharedAchievementsTitle'),
+      intro: t('profileIdentity.sharedAchievementsIntro'),
+      toggleLabel: t('profileIdentity.sharedAchievementsToggle'),
+      enabled: configuration.sharedAchievementsEnabled,
+      update: {
+        sharedAchievementsEnabled: !configuration.sharedAchievementsEnabled,
+      },
+    },
+    {
       id: 'vibe-check',
       title: t('profileIdentity.vibeCheckTitle'),
       intro: t('profileIdentity.vibeCheckIntro'),

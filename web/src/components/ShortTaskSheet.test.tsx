@@ -234,7 +234,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('0px');
-    fireEvent.click(dragZone);
+    fireEvent.click(dragZone, { detail: 1 });
     expect(screen.getByRole('dialog')).toBeDefined();
 
     // Crossing the commit distance is still cancellable when the user
@@ -251,7 +251,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('0px');
-    fireEvent.click(dragZone);
+    fireEvent.click(dragZone, { detail: 1 });
     expect(screen.getByRole('dialog')).toBeDefined();
 
     // A fresh, steadily downward gesture beyond the bounded threshold closes.

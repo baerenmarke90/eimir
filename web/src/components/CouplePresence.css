@@ -25,6 +25,24 @@
   gap: var(--space-4);
 }
 
+.couple-presence-avatar-anchor {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.couple-presence-avatar-anchor.has-adornment {
+  margin-top: var(--space-4);
+}
+
+.couple-presence-avatar-adornment {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - var(--space-2));
+  z-index: 6;
+  transform: translateX(-50%);
+}
+
 .couple-presence-details {
   display: flex;
   flex-direction: column;

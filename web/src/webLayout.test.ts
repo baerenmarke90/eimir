@@ -111,8 +111,15 @@ describe('web layout primitives', () => {
     expect(rootHeader).toContain('padding-bottom: 0');
 
     const rootTitle = ruleBlock(layoutCss, '.page-heading-root h1');
+    expect(rootTitle).toContain('min-inline-size: 0');
+    expect(rootTitle).toContain('max-width: 100%');
     expect(rootTitle).toContain('font: var(--font-page-heading)');
     expect(rootTitle).toContain('letter-spacing: var(--tracking-page-heading)');
+    expect(rootTitle).toContain('overflow-wrap: anywhere');
+
+    expect(sharedPlanningSanctuaryCss).toContain(
+      '& .page-heading:not(.page-heading-root) {',
+    );
 
     expect(productRolesCss).toContain(
       '--font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif',

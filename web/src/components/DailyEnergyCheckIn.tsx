@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import {
+  type CSSProperties,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { PartnerEnergyProjection } from '../api/generated/models/PartnerEnergyProjection';
 import {
@@ -36,6 +43,31 @@ function onlineSnapshot(): boolean {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
+function BatteryIcon({ value }: { value: number | null }) {
+  const fillWidth = value === null ? 0 : Math.max(1.5, (15 * value) / 100);
+  return (
+    <svg
+      className="daily-energy-battery-icon"
+      viewBox="0 0 24 14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect className="daily-energy-battery-shell" x="1" y="2" width="19" height="10" rx="2" />
+      <rect className="daily-energy-battery-tip" x="21" y="5" width="2" height="4" rx="1" />
+      {value !== null ? (
+        <rect
+          className="daily-energy-battery-fill"
+          x="3"
+          y="4"
+          width={fillWidth}
+          height="6"
+          rx="1"
+        />
+      ) : null}
+    </svg>
+  );
+}
+
 function PartnerEnergyState({
   projection,
   partnerName,
@@ -44,6 +76,10 @@ function PartnerEnergyState({
   partnerName?: string;
 }) {
   const { t } = useTranslation();
+
+  const label = partnerName
+    ? t('dailyEnergy.partnerLabel', { name: partnerName })
+    : t('dailyEnergy.partnerFallback');
 
   switch (projection.state) {
     case 'VISIBLE':
@@ -54,14 +90,8 @@ function PartnerEnergyState({
           aria-label={t('dailyEnergy.partnerStateAria')}
           data-testid="daily-energy-partner"
         >
-          <span className="daily-energy-partner-label">
-            {partnerName
-              ? t('dailyEnergy.partnerLabel', { name: partnerName })
-              : t('dailyEnergy.partnerFallback')}
-          </span>
-          <strong className="daily-energy-partner-value">
-            {t('dailyEnergy.percentage', { value: projection.value })}
-          </strong>
+          <span>{label}</span>
+          <strong>{t('dailyEnergy.percentage', { value: projection.value })}</strong>
         </div>
       );
     case 'NO_CHECK_IN':
@@ -72,14 +102,8 @@ function PartnerEnergyState({
           aria-label={t('dailyEnergy.partnerStateAria')}
           data-testid="daily-energy-partner"
         >
-          <span className="daily-energy-partner-label">
-            {partnerName
-              ? t('dailyEnergy.partnerLabel', { name: partnerName })
-              : t('dailyEnergy.partnerFallback')}
-          </span>
-          <span className="daily-energy-partner-neutral">
-            {t('dailyEnergy.noCheckIn')}
-          </span>
+          <span>{label}</span>
+          <span>{t('dailyEnergy.noCheckIn')}</span>
         </div>
       );
     case 'HIDDEN_UNTIL_SELF_CHECK_IN':
@@ -95,30 +119,6 @@ function PartnerEnergyState({
         </div>
       );
   }
-}
-
-function EnergyUnavailable({
-  offline,
-  onRetry,
-}: {
-  offline: boolean;
-  onRetry: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div className="daily-energy-unavailable" role="status">
-      <span>
-        {offline
-          ? t('dailyEnergy.unavailableOffline')
-          : t('dailyEnergy.unavailable')}
-      </span>
-      {!offline ? (
-        <button type="button" className="tertiary" onClick={onRetry}>
-          {t('common.retry')}
-        </button>
-      ) : null}
-    </div>
-  );
 }
 
 export function DailyEnergyCheckIn({
@@ -144,17 +144,23 @@ export function DailyEnergyCheckIn({
   const dailyQuery = useQuery(
     dailyCheckInTodayQueryOptions(api, accountId, spaceId),
   );
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [draftEnergy, setDraftEnergy] = useState<DailyEnergyLevel>(50);
+  const [draftTouched, setDraftTouched] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLButtonElement>(null);
+  const submittedEnergyRef = useRef<DailyEnergyLevel | null | undefined>(
+    undefined,
+  );
+  const dialogTitleId = useId();
+
   const serverReportsModuleDisabled =
     dailyQuery.data?.projection.energy === null;
+  const ownEnergy = dailyQuery.data?.projection.own.energyLevel ?? null;
 
   useEffect(() => {
     if (!serverReportsModuleDisabled) return;
-    // A DailyCheckIn response with no Energy projection is itself
-    // authoritative proof that the module is no longer available. Fail
-    // closed immediately and converge the presentation configuration without
-    // ever reconstructing a local participation state.
     void queryClient.invalidateQueries({
       queryKey: spaceConfigurationQueryKey(accountId, spaceId),
       exact: true,
@@ -176,7 +182,7 @@ export function DailyEnergyCheckIn({
     },
     onSuccess: (snapshot) => {
       queryClient.setQueryData<DailyCheckInSnapshot>(queryKey, snapshot);
-      setEditing(false);
+      setDraftTouched(false);
     },
     onError: async (error) => {
       const problem =
@@ -185,9 +191,8 @@ export function DailyEnergyCheckIn({
           : new ClientProblemError(clientProblemKind(error));
 
       if (problem.code === 'SPACE_MODULE_DISABLED') {
-        // The server is the enforcement boundary. Hide this stale participation
-        // surface immediately, then converge the active configuration query.
         setModuleDisabled(true);
+        setOpen(false);
         postSnackbar('snackbar.dailyEnergyModuleDisabled');
         await Promise.all([
           queryClient.refetchQueries({
@@ -205,8 +210,6 @@ export function DailyEnergyCheckIn({
       }
 
       if (problem.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE') {
-        // Never fall back to browser/device time. A refetch either produces a
-        // new authoritative Space-day or leaves the query unavailable.
         await queryClient.refetchQueries({
           queryKey,
           exact: true,
@@ -216,8 +219,6 @@ export function DailyEnergyCheckIn({
       }
 
       if (problem.kind === 'conflict') {
-        // No retry with the stale validator: first converge to the authoritative
-        // snapshot and let the user decide whether to make another change.
         await queryClient.refetchQueries({
           queryKey,
           exact: true,
@@ -226,39 +227,98 @@ export function DailyEnergyCheckIn({
         postSnackbar('snackbar.dailyEnergyConflict');
       }
     },
+    onSettled: () => {
+      submittedEnergyRef.current = undefined;
+    },
   });
+
+  useEffect(() => {
+    if (mutation.isPending) return;
+    if (ownEnergy !== null) {
+      setDraftEnergy(ownEnergy as DailyEnergyLevel);
+      return;
+    }
+    if (!open) {
+      setDraftEnergy(50);
+      setDraftTouched(false);
+    }
+  }, [mutation.isPending, open, ownEnergy]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(event: PointerEvent) {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      badgeRef.current?.focus();
+    }
+
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   if (moduleDisabled || serverReportsModuleDisabled) return null;
 
-  if (dailyQuery.isPending && !dailyQuery.data) {
-    return (
-      <div className="daily-energy-loading" role="status">
-        {t('dailyEnergy.loading')}
-      </div>
-    );
-  }
-
+  const loading = dailyQuery.isPending && !dailyQuery.data;
   const authoritative =
     online &&
     Boolean(dailyQuery.data) &&
     !dailyQuery.isError &&
     dailyQuery.fetchStatus === 'idle';
 
-  if (!authoritative || !dailyQuery.data) {
+  if (loading) {
     return (
-      <EnergyUnavailable
-        offline={!online || dailyQuery.fetchStatus === 'paused'}
-        onRetry={() => void dailyQuery.refetch()}
-      />
+      <div className="daily-energy-checkin">
+        <button
+          type="button"
+          className="daily-energy-badge daily-energy-badge-loading"
+          disabled
+          aria-label={t('dailyEnergy.loading')}
+        >
+          <BatteryIcon value={null} />
+          <span aria-hidden="true">…</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (!authoritative || !dailyQuery.data) {
+    const offline = !online || dailyQuery.fetchStatus === 'paused';
+    return (
+      <div className="daily-energy-checkin">
+        <button
+          type="button"
+          className="daily-energy-badge daily-energy-badge-unavailable"
+          disabled={offline}
+          onClick={offline ? undefined : () => void dailyQuery.refetch()}
+          aria-label={
+            offline
+              ? t('dailyEnergy.unavailableOffline')
+              : t('dailyEnergy.unavailable')
+          }
+        >
+          <BatteryIcon value={null} />
+          <span>{t('dailyEnergy.badgePrompt')}</span>
+        </button>
+      </div>
     );
   }
 
   const snapshot = dailyQuery.data;
-  const ownEnergy = snapshot.projection.own.energyLevel;
-  const pendingEnergy = mutation.isPending ? mutation.variables : undefined;
-  const displayedEnergy =
-    pendingEnergy !== undefined ? pendingEnergy : ownEnergy;
-  const showPicker = ownEnergy === null || editing;
   const mutationProblem =
     mutation.error instanceof ClientProblemError ? mutation.error : null;
   const contextUnavailable =
@@ -269,116 +329,144 @@ export function DailyEnergyCheckIn({
     mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
     !contextUnavailable;
 
+  const displayedBadge = ownEnergy === null
+    ? t('dailyEnergy.badgePrompt')
+    : t('dailyEnergy.percentage', { value: ownEnergy });
+  const badgeAria = ownEnergy === null
+    ? t('dailyEnergy.badgeAriaEmpty')
+    : t('dailyEnergy.badgeAriaValue', { value: ownEnergy });
+  const progress = ((draftEnergy - 10) / 90) * 100;
+  const sliderStyle = {
+    '--daily-energy-progress': `${progress}%`,
+  } as CSSProperties;
+
+  function submitEnergy(value: DailyEnergyLevel | null): void {
+    if (mutation.isPending) return;
+    if (submittedEnergyRef.current === value) return;
+    if (value === ownEnergy) return;
+    submittedEnergyRef.current = value;
+    mutation.mutate(value);
+  }
+
+  function updateDraft(value: number): void {
+    setDraftEnergy(value as DailyEnergyLevel);
+    setDraftTouched(true);
+  }
+
   return (
-    <div className="daily-energy-checkin">
-      {showPicker ? (
-        <div className="daily-energy-picker-wrap">
-          <p className="daily-energy-voluntary">{t('dailyEnergy.voluntary')}</p>
-          <fieldset
-            className="daily-energy-picker"
-            disabled={mutation.isPending}
-            aria-describedby="daily-energy-save-status"
-          >
-            <legend className="sr-only">
-              {ownEnergy === null
-                ? t('dailyEnergy.selectLegend')
-                : t('dailyEnergy.changeLegend')}
-            </legend>
-            <div className="daily-energy-grid">
-              {DAILY_ENERGY_LEVELS.map((level) => {
-                const id = `daily-energy-${spaceId}-${level}`;
-                return (
-                  <label
-                    key={level}
-                    className="daily-energy-choice"
-                    htmlFor={id}
-                  >
-                    <input
-                      id={id}
-                      className="daily-energy-choice-input"
-                      type="radio"
-                      name={`daily-energy-${spaceId}`}
-                      value={level}
-                      checked={displayedEnergy === level}
-                      onChange={() => {
-                        if (level === ownEnergy) {
-                          setEditing(false);
-                          return;
-                        }
-                        mutation.mutate(level);
-                      }}
-                      aria-label={t('dailyEnergy.optionAria', { value: level })}
-                    />
-                    <span className="daily-energy-choice-visual">
-                      {t('dailyEnergy.percentage', { value: level })}
-                    </span>
-                  </label>
-                );
-              })}
+    <div className="daily-energy-checkin" ref={rootRef}>
+      <button
+        ref={badgeRef}
+        type="button"
+        className="daily-energy-badge"
+        aria-expanded={open}
+        aria-controls={open ? dialogTitleId : undefined}
+        aria-label={badgeAria}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <BatteryIcon value={ownEnergy} />
+        <span>{displayedBadge}</span>
+      </button>
+
+      {open ? (
+        <div
+          className="daily-energy-popover"
+          role="dialog"
+          aria-labelledby={dialogTitleId}
+          data-testid="daily-energy-popover"
+        >
+          <div className="daily-energy-popover-heading">
+            <div>
+              <strong id={dialogTitleId}>{t('dailyEnergy.popoverTitle')}</strong>
+              <span>{t('dailyEnergy.question')}</span>
             </div>
-          </fieldset>
-          {editing && ownEnergy !== null ? (
-            <button
-              type="button"
-              className="tertiary daily-energy-cancel"
-              disabled={mutation.isPending}
-              onClick={() => setEditing(false)}
+            <strong className="daily-energy-current-value">
+              {ownEnergy === null && !draftTouched
+                ? t('dailyEnergy.notSet')
+                : t('dailyEnergy.percentage', { value: draftEnergy })}
+            </strong>
+          </div>
+
+          <label className="sr-only" htmlFor={`daily-energy-slider-${spaceId}`}>
+            {ownEnergy === null
+              ? t('dailyEnergy.selectLegend')
+              : t('dailyEnergy.changeLegend')}
+          </label>
+          <input
+            id={`daily-energy-slider-${spaceId}`}
+            className="daily-energy-slider"
+            type="range"
+            min={10}
+            max={100}
+            step={10}
+            value={draftEnergy}
+            disabled={mutation.isPending}
+            style={sliderStyle}
+            aria-valuetext={t('dailyEnergy.optionAria', { value: draftEnergy })}
+            onChange={(event) => updateDraft(Number(event.currentTarget.value))}
+            onPointerUp={() => submitEnergy(draftEnergy)}
+            onKeyUp={(event) => {
+              if (
+                [
+                  'ArrowLeft',
+                  'ArrowRight',
+                  'ArrowUp',
+                  'ArrowDown',
+                  'Home',
+                  'End',
+                  'PageUp',
+                  'PageDown',
+                ].includes(event.key)
+              ) {
+                submitEnergy(draftEnergy);
+              }
+            }}
+            onBlur={() => submitEnergy(draftEnergy)}
+          />
+
+          <div className="daily-energy-scale" aria-hidden="true">
+            <span>10 %</span>
+            <span>100 %</span>
+          </div>
+
+          <div className="daily-energy-popover-actions">
+            <span
+              id="daily-energy-save-status"
+              className="daily-energy-save-status"
+              role="status"
+              aria-live="polite"
             >
-              {t('common.cancel')}
-            </button>
+              {mutation.isPending ? t('dailyEnergy.saving') : ''}
+            </span>
+            {ownEnergy !== null ? (
+              <button
+                type="button"
+                className="tertiary daily-energy-remove"
+                disabled={mutation.isPending}
+                onClick={() => submitEnergy(null)}
+              >
+                {t('dailyEnergy.remove')}
+              </button>
+            ) : null}
+          </div>
+
+          {contextUnavailable ? (
+            <div className="daily-energy-inline-error" role="status">
+              {t('dailyEnergy.contextUnavailable')}
+            </div>
+          ) : showGenericMutationError ? (
+            <div className="daily-energy-inline-error" role="status">
+              {t('dailyEnergy.saveError')}
+            </div>
+          ) : null}
+
+          {snapshot.projection.energy ? (
+            <PartnerEnergyState
+              projection={snapshot.projection.energy.partner}
+              partnerName={partnerName}
+            />
           ) : null}
         </div>
-      ) : (
-        <div className="daily-energy-own-set">
-          <div className="daily-energy-own-copy">
-            <span>{t('dailyEnergy.ownLabel')}</span>
-            <strong>{t('dailyEnergy.percentage', { value: ownEnergy })}</strong>
-          </div>
-          <div className="daily-energy-own-actions">
-            <button
-              type="button"
-              className="tertiary"
-              disabled={mutation.isPending}
-              onClick={() => setEditing(true)}
-            >
-              {t('dailyEnergy.change')}
-            </button>
-            <button
-              type="button"
-              className="tertiary daily-energy-remove"
-              disabled={mutation.isPending}
-              onClick={() => mutation.mutate(null)}
-            >
-              {t('dailyEnergy.remove')}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <span
-        id="daily-energy-save-status"
-        className="daily-energy-save-status"
-        role="status"
-        aria-live="polite"
-      >
-        {mutation.isPending ? t('dailyEnergy.saving') : ''}
-      </span>
-
-      {contextUnavailable ? (
-        <div className="daily-energy-inline-error" role="status">
-          {t('dailyEnergy.contextUnavailable')}
-        </div>
-      ) : showGenericMutationError ? (
-        <div className="daily-energy-inline-error" role="status">
-          {t('dailyEnergy.saveError')}
-        </div>
-      ) : null}
-
-      {snapshot.projection.energy ? (
-        <PartnerEnergyState
-          projection={snapshot.projection.energy.partner}
-          partnerName={partnerName}
-        />
       ) : null}
     </div>
   );

@@ -176,9 +176,24 @@ describe('DailyEnergyCheckIn', () => {
     expect(screen.getByTestId('daily-energy-popover')).not.toBeNull();
     expect(screen.getByRole('slider')).not.toBeNull();
 
-    resolveRefetch?.(initial);
+    resolveRefetch?.(
+      rawResponse(
+        projection({
+          own: 60,
+          partner: { state: 'VISIBLE', value: 80 },
+        }),
+        '"today:1"',
+      ),
+    );
     await waitFor(() => expect(queryClient.isFetching()).toBe(0));
     expect(screen.getByTestId('daily-energy-popover')).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        screen
+          .getByTestId('daily-energy-partner-battery')
+          .getAttribute('data-energy'),
+      ).toBe('80'),
+    );
   });
 
   it('does not save the neutral slider position if the user only opens and leaves', async () => {

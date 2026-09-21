@@ -388,10 +388,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(partnerCard).toHaveClass(/is-revealed/);
   await expect(
     page.getByRole('button', {
-      name: dailyVibe.changeAria.replace(
-        '{{value}}',
-        dailyVibe.values.GOOD,
-      ),
+      name: dailyVibe.changeAria.replace('{{value}}', dailyVibe.values.GOOD),
     }),
   ).toHaveClass(/is-startup-reveal/);
 

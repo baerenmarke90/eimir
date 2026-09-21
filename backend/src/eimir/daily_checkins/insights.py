@@ -147,21 +147,37 @@ def get_daily_insights(
         if has_own:
             own_checkin_days += 1
 
-        partner_row = indexed.get((curr, partner_id)) if partner_id is not None else None
+        vibe_hidden_until_self = (
+            vibe_enabled
+            and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
+            and own_vibe is None
+        )
+        energy_hidden_until_self = (
+            energy_enabled
+            and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
+            and own_energy is None
+        )
+
+        # Do not inspect partner participation when every enabled dimension is still
+        # behind Mutual Reveal for the caller. This keeps "partner checked in" and
+        # "partner did not check in" observationally identical until self check-in.
+        partner_row = None
+        if partner_id is not None and (
+            (vibe_enabled and not vibe_hidden_until_self)
+            or (energy_enabled and not energy_hidden_until_self)
+        ):
+            partner_row = indexed.get((curr, partner_id))
 
         partner_vibe_proj: PartnerDimensionProjection | None = None
         if vibe_enabled:
-            if partner_id is None or partner_row is None or partner_row.vibe is None:
-                partner_vibe_proj = PartnerDimensionProjection(
-                    state=PartnerRevealState.NO_CHECK_IN,
-                    value=None,
-                )
-            elif (
-                configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
-                and own_vibe is None
-            ):
+            if vibe_hidden_until_self:
                 partner_vibe_proj = PartnerDimensionProjection(
                     state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN,
+                    value=None,
+                )
+            elif partner_row is None or partner_row.vibe is None:
+                partner_vibe_proj = PartnerDimensionProjection(
+                    state=PartnerRevealState.NO_CHECK_IN,
                     value=None,
                 )
             else:
@@ -172,17 +188,14 @@ def get_daily_insights(
 
         partner_energy_proj: PartnerDimensionProjection | None = None
         if energy_enabled:
-            if partner_id is None or partner_row is None or partner_row.energy_level is None:
-                partner_energy_proj = PartnerDimensionProjection(
-                    state=PartnerRevealState.NO_CHECK_IN,
-                    value=None,
-                )
-            elif (
-                configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL
-                and own_energy is None
-            ):
+            if energy_hidden_until_self:
                 partner_energy_proj = PartnerDimensionProjection(
                     state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN,
+                    value=None,
+                )
+            elif partner_row is None or partner_row.energy_level is None:
+                partner_energy_proj = PartnerDimensionProjection(
+                    state=PartnerRevealState.NO_CHECK_IN,
                     value=None,
                 )
             else:

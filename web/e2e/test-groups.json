@@ -224,6 +224,10 @@
       "disposition": "PR_CRITICAL",
       "baselineTests": 2
     },
+    "today-daily-vibe.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 1

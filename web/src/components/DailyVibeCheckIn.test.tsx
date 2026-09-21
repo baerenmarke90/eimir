@@ -117,7 +117,7 @@ function renderVibe(
   return { ...view, queryClient };
 }
 
-async function openVibeSheet(name = dailyVibe.chooseAria) {
+async function openVibeSheet(name: string = dailyVibe.chooseAria) {
   fireEvent.click(await screen.findByRole('button', { name }));
   return screen.getByRole('dialog', { name: dailyVibe.sheetTitle });
 }

@@ -2,23 +2,19 @@
   display: grid;
   gap: var(--space-4);
   margin: 0 0 var(--space-7);
-  padding: var(--space-5) var(--space-4);
-  border: 1px solid
-    color-mix(in srgb, var(--color-border-subtle) 72%, transparent);
-  border-radius: var(--radius-card);
-  background: linear-gradient(
-    145deg,
-    color-mix(in srgb, var(--color-surface) 96%, transparent),
-    color-mix(in srgb, var(--color-brand-surface) 58%, var(--color-surface))
-  );
-  box-shadow: var(--shadow-raised);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--color-text);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .daily-vibe-heading {
   display: grid;
   gap: var(--space-1);
+  padding-inline: var(--space-1);
 }
 
 .daily-vibe-heading h2,
@@ -355,7 +351,6 @@ button.daily-vibe-person:focus-visible {
 }
 
 @media (forced-colors: active) {
-  .daily-vibe-checkin,
   .daily-vibe-person,
   .daily-vibe-option,
   .daily-vibe-disabled-clear {

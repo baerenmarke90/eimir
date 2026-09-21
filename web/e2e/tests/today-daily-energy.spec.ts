@@ -424,7 +424,7 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
 
   await page.keyboard.press('Escape');
   await expect(popover).toHaveCount(0);
-  await expect(ownBattery).toBeFocused();
+  await expect(hero.getByTestId('daily-energy-own-battery')).toBeFocused();
 });
 
 test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent text', async ({

@@ -62,6 +62,10 @@ UNIQUE(spaceId, accountId, checkedOn)
 Rules:
 
 - `vibe` is a typed product enum owned by #429, never free-form diagnostic text;
+- the #429 V1 Vibe catalog is `GOOD`, `OKAY`, `STRESSED`, `SAD`,
+  `NEEDS_CONNECTION`, and `NEEDS_SPACE`; these are stable domain values for
+  today's state, while localized labels remain UI copy. They deliberately do
+  not reuse `HeartEmotion`, whose values describe a remembered HeartMoment;
 - `energyLevel` is 10 through 100 in steps of 10 as owned by #431;
 - at least one dimension must be present;
 - clearing the final populated dimension removes the current-day record rather

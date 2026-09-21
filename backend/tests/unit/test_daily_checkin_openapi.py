@@ -15,18 +15,31 @@ def test_daily_check_in_contract_has_only_reveal_aware_today_route() -> None:
     assert if_match["required"] is True
 
 
-def test_hidden_partner_schema_has_no_value_or_partner_metadata() -> None:
+def test_hidden_partner_schemas_have_no_value_or_partner_metadata() -> None:
     schema = create_app().openapi()
-    hidden = schema["components"]["schemas"]["PartnerEnergyHidden"]
-    properties = set(hidden["properties"])
-    assert properties == {"state"}
-    assert properties.isdisjoint(
-        {"value", "partnerId", "accountId", "version", "createdAt", "updatedAt"}
-    )
+    for name in ("PartnerEnergyHidden", "PartnerVibeHidden"):
+        hidden = schema["components"]["schemas"][name]
+        properties = set(hidden["properties"])
+        assert properties == {"state"}
+        assert properties.isdisjoint(
+            {"value", "partnerId", "accountId", "version", "createdAt", "updatedAt"}
+        )
 
 
-def test_update_contract_does_not_invent_vibe_values() -> None:
+def test_update_contract_exposes_only_the_typed_daily_dimensions() -> None:
     schema = create_app().openapi()
     update = schema["components"]["schemas"]["DailyCheckInUpdate"]
-    assert set(update["properties"]) == {"energyLevel"}
-    assert "vibe" not in update["properties"]
+    assert set(update["properties"]) == {"energyLevel", "vibe"}
+
+    vibe = schema["components"]["schemas"]["DailyVibe"]
+    assert vibe["enum"] == [
+        "GOOD",
+        "OKAY",
+        "STRESSED",
+        "SAD",
+        "NEEDS_CONNECTION",
+        "NEEDS_SPACE",
+    ]
+
+    own = schema["components"]["schemas"]["DailyCheckInOwnView"]
+    assert set(own["properties"]) == {"version", "energyLevel", "vibe"}

@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DailyCheckInVibeView } from './DailyCheckInVibeView';
+import {
+    DailyCheckInVibeViewFromJSON,
+    DailyCheckInVibeViewFromJSONTyped,
+    DailyCheckInVibeViewToJSON,
+    DailyCheckInVibeViewToJSONTyped,
+} from './DailyCheckInVibeView';
 import type { DailyCheckInEnergyView } from './DailyCheckInEnergyView';
 import {
     DailyCheckInEnergyViewFromJSON,
@@ -58,6 +65,12 @@ export interface DailyCheckInTodayView {
      * @memberof DailyCheckInTodayView
      */
     own: DailyCheckInOwnView;
+    /**
+     * 
+     * @type {DailyCheckInVibeView}
+     * @memberof DailyCheckInTodayView
+     */
+    vibe: DailyCheckInVibeView | null;
 }
 
 /**
@@ -68,6 +81,7 @@ export function instanceOfDailyCheckInTodayView(value: object): value is DailyCh
     if (!('dailyContextTimezone' in value) || value['dailyContextTimezone'] === undefined) return false;
     if (!('energy' in value) || value['energy'] === undefined) return false;
     if (!('own' in value) || value['own'] === undefined) return false;
+    if (!('vibe' in value) || value['vibe'] === undefined) return false;
     return true;
 }
 
@@ -85,6 +99,7 @@ export function DailyCheckInTodayViewFromJSONTyped(json: any, ignoreDiscriminato
         'dailyContextTimezone': json['dailyContextTimezone'],
         'energy': DailyCheckInEnergyViewFromJSON(json['energy']),
         'own': DailyCheckInOwnViewFromJSON(json['own']),
+        'vibe': DailyCheckInVibeViewFromJSON(json['vibe']),
     };
 }
 
@@ -103,6 +118,7 @@ export function DailyCheckInTodayViewToJSONTyped(value?: DailyCheckInTodayView |
         'dailyContextTimezone': value['dailyContextTimezone'],
         'energy': DailyCheckInEnergyViewToJSON(value['energy']),
         'own': DailyCheckInOwnViewToJSON(value['own']),
+        'vibe': DailyCheckInVibeViewToJSON(value['vibe']),
     };
 }
 

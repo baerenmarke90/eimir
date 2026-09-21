@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from eimir.core import clock
 from eimir.engagement.models import (
     Notification,
+    NotificationKind,
     PushDelivery,
     PushDeliveryStatus,
     PushEndpoint,
@@ -23,6 +24,7 @@ from eimir.identity import effects as account_effects
 from eimir.jobs import queue
 from eimir.jobs.errors import RetryableJobError
 from eimir.jobs.worker import registry
+from eimir.relationship import configuration as space_configuration
 
 JOB_KIND = "push-delivery"
 GENERIC_PRESENTATION_KEY = "notification.generic"
@@ -33,6 +35,9 @@ _TERMINAL_DELIVERY_STATUSES = {
     PushDeliveryStatus.SUCCEEDED.value,
     PushDeliveryStatus.FAILED.value,
     PushDeliveryStatus.UNAVAILABLE.value,
+}
+_NOTIFICATION_SPACE_MODULES = {
+    NotificationKind.THINKING_OF_YOU.value: space_configuration.SpaceModule.SUPPORT_GESTURES,
 }
 
 
@@ -242,6 +247,23 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         for account_id in account_ids
     ):
         _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
+        return
+
+    module = _NOTIFICATION_SPACE_MODULES.get(notification.kind)
+    if module is not None and not space_configuration.is_module_enabled(
+        session,
+        notification.space_id,
+        module,
+        lock_space=True,
+    ):
+        # Projection and provider delivery are separate asynchronous boundaries.
+        # Re-check the authoritative module immediately before the external side
+        # effect. Marking the delivery terminal prevents a stale queued gesture
+        # from resurfacing if the Space is enabled again later.
+        _finish_unavailable(
+            delivery,
+            space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED,
+        )
         return
 
     provider = providers.get(delivery.provider_key)

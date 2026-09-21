@@ -456,8 +456,7 @@ def test_disable_after_projection_prevents_pending_push_and_reenable_does_not_re
     assert session.get(ThinkingOfYouRequest, request.id) is not None
     assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
     assert (
-        delivery.last_error_code
-        == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
+        delivery.last_error_code == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     )
     assert provider.calls == []
 

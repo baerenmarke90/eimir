@@ -94,7 +94,7 @@
   margin-left: -0.85rem;
 }
 
-/* Presence pip */
+/* Presence fallback for consumers that only provide a semantic status. */
 .partner-presence-pip {
   position: absolute;
   bottom: 1px;
@@ -112,6 +112,56 @@
   height: 14px;
   bottom: 2px;
   right: 2px;
+}
+
+/*
+ * When a consumer has human-readable presence copy, attach it directly to the
+ * partner avatar instead of rendering another metadata row beside the couple.
+ * Right anchoring means long translated labels grow inward over the avatar pair
+ * rather than widening the document.
+ */
+.partner-presence-badge {
+  position: absolute;
+  top: -0.4rem;
+  right: 0;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  box-shadow: 0 2px 8px var(--color-shadow-card);
+  font-family: var(--font-ui);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.partner-avatar-pair-medium .partner-presence-badge {
+  top: -0.35rem;
+  font-size: 0.58rem;
+}
+
+.partner-avatar-pair-small .partner-presence-badge {
+  top: -0.3rem;
+  font-size: 0.55rem;
+}
+
+.partner-presence-badge.status-recent {
+  color: var(--color-text-muted);
+}
+
+.partner-presence-badge-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--color-shared);
 }
 
 /* Touch target for WCAG 2.1 44x44 rule without breaking visual layout */

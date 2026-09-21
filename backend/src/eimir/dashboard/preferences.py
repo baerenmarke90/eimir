@@ -32,6 +32,8 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
+from eimir.collections import service as collection_service
 from eimir.core.errors import NotFoundError, ValidationError
 from eimir.core.ids import new_id
 from eimir.dashboard.models import DashboardModulePreference
@@ -42,6 +44,7 @@ class DashboardModuleKey(StrEnum):
 
     RELATIONSHIP_PRESENCE = "relationship_presence"
     UPCOMING = "upcoming"
+    PINNED_COLLECTION = "pinned_collection"
     KEEPSAKE = "keepsake"
     RELATIONSHIP_SIGNAL = "relationship_signal"
     MONTHLY_HIGHLIGHTS = "monthly_highlights"
@@ -70,6 +73,7 @@ class DashboardModuleDefinition:
     key: DashboardModuleKey
     default_visible: bool
     item_limit: ItemLimitCapability | None = None
+    selects_collection: bool = False
 
 
 @dataclass(frozen=True)
@@ -77,12 +81,13 @@ class DashboardModuleState:
     key: DashboardModuleKey
     visible: bool
     item_limit: DashboardItemLimit | None
+    selected_collection_id: UUID | None
 
 
 # Deterministic Settings/Today order, matching the accepted #850 Today
 # composition (`web/src/components/TodayPage.tsx`): relationship_presence
-# (the Couple Presence hero), then upcoming, keepsake, relationship_signal,
-# monthly_highlights, recent_shared. #848 established `UPCOMING` with an
+# (the Couple Presence hero), then upcoming, pinned_collection, keepsake,
+# relationship_signal, monthly_highlights, recent_shared. #848 established `UPCOMING` with an
 # item-limit facet; #817 adds mandatory visibility to every module,
 # including `UPCOMING` itself.
 #
@@ -95,6 +100,11 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         key=DashboardModuleKey.UPCOMING,
         default_visible=True,
         item_limit=ItemLimitCapability(default=1, allowed=frozenset({1, 2, 3})),
+    ),
+    DashboardModuleDefinition(
+        key=DashboardModuleKey.PINNED_COLLECTION,
+        default_visible=True,
+        selects_collection=True,
     ),
     DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
@@ -161,7 +171,17 @@ def _effective_state(
             if candidate in definition.item_limit.allowed
             else definition.item_limit.default
         )
-    return DashboardModuleState(key=definition.key, visible=visible, item_limit=item_limit)
+    selected_collection_id = (
+        override.selected_collection_id
+        if definition.selects_collection and override is not None
+        else None
+    )
+    return DashboardModuleState(
+        key=definition.key,
+        visible=visible,
+        item_limit=item_limit,
+        selected_collection_id=selected_collection_id,
+    )
 
 
 def set_module_preference(
@@ -172,19 +192,21 @@ def set_module_preference(
     module_key: str,
     visible: bool | None,
     item_limit: int | None,
+    selected_collection_id: UUID | None,
+    selected_collection_id_changed: bool,
 ) -> DashboardModuleState:
     """Persist one private Account+Space override with a PostgreSQL-safe upsert.
 
     Only the facets a module actually supports may be set; requesting an
     unsupported facet (for example an item limit on a visibility-only module)
     fails closed rather than silently persisting inert state. Setting one
-    facet never disturbs the other's already-persisted value.
+    facet never disturbs another already-persisted value.
     """
     definition = module_definition(module_key)
 
-    if visible is None and item_limit is None:
+    if visible is None and item_limit is None and not selected_collection_id_changed:
         raise ValidationError(
-            "At least one of visible or itemLimit must be supplied.",
+            "At least one of visible, itemLimit or selectedCollectionId must be supplied.",
             DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
         )
     if item_limit is not None and definition.item_limit is None:
@@ -202,6 +224,18 @@ def set_module_preference(
             DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
         )
 
+    if selected_collection_id_changed and not definition.selects_collection:
+        raise ValidationError(
+            f"The '{definition.key.value}' Dashboard module does not support collection selection.",
+            DashboardPreferenceErrorCode.FACET_NOT_SUPPORTED,
+        )
+    if selected_collection_id_changed and selected_collection_id is not None:
+        collection_service.get_collection(
+            session,
+            AuthorizationContext(account_id=account_id, space_id=space_id),
+            selected_collection_id,
+        )
+
     values: dict[str, object] = {
         "id": new_id(),
         "account_id": account_id,
@@ -215,6 +249,9 @@ def set_module_preference(
     if item_limit is not None:
         values["item_limit"] = item_limit
         changes["item_limit"] = item_limit
+    if selected_collection_id_changed:
+        values["selected_collection_id"] = selected_collection_id
+        changes["selected_collection_id"] = selected_collection_id
 
     statement = (
         insert(DashboardModulePreference)
@@ -226,9 +263,12 @@ def set_module_preference(
         .returning(
             DashboardModulePreference.visible,
             DashboardModulePreference.item_limit,
+            DashboardModulePreference.selected_collection_id,
         )
     )
-    persisted_visible, persisted_item_limit = session.execute(statement).one()
+    persisted_visible, persisted_item_limit, persisted_selected_collection_id = session.execute(
+        statement
+    ).one()
     session.flush()
 
     effective_visible = (
@@ -245,4 +285,7 @@ def set_module_preference(
         key=definition.key,
         visible=effective_visible,
         item_limit=effective_item_limit,
+        selected_collection_id=(
+            persisted_selected_collection_id if definition.selects_collection else None
+        ),
     )

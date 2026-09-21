@@ -3,6 +3,8 @@ import type { DashboardModuleKey } from './dashboardModules';
 
 export const DEFAULT_UPCOMING_ITEM_LIMIT = 1;
 export const UPCOMING_MODULE_KEY: DashboardModuleKey = 'upcoming';
+export const PINNED_COLLECTION_MODULE_KEY: DashboardModuleKey =
+  'pinned_collection';
 export const UPCOMING_ITEM_LIMITS = [1, 2, 3] as const;
 
 /** Absence of an explicit override resolves to visible, the product default. */
@@ -55,4 +57,14 @@ export function isDashboardModuleVisible(
     (item) => item.moduleKey === moduleKey,
   )?.visible;
   return value ?? DEFAULT_MODULE_VISIBLE;
+}
+
+export function selectedDashboardCollectionId(
+  preferences: DashboardModulePreferenceList | undefined,
+  moduleKey: DashboardModuleKey,
+): string | null {
+  return (
+    preferences?.items.find((item) => item.moduleKey === moduleKey)
+      ?.selectedCollectionId ?? null
+  );
 }

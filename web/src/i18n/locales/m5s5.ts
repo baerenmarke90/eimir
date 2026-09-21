@@ -30,6 +30,7 @@ const m5s5 = {
       'Hier erscheint eine gemeinsame Erinnerung, sobald es etwas Passendes gibt.',
     upcomingTitle: 'Demnächst',
     upcomingEmpty: 'Gerade steht nichts Gemeinsames bevor.',
+    pinnedCollectionSettingsTitle: 'Angeheftete Liste',
     recentKicker: 'Aktivitäten',
     recentTitle: 'Zuletzt bei euch',
     allActivityAction: 'Alle Aktivitäten ansehen →',
@@ -75,6 +76,17 @@ const m5s5 = {
     upcoming: {
       allAction: 'Alle anzeigen',
       allAriaLabel: 'Alle gemeinsamen Termine ansehen',
+    },
+    pinnedCollection: {
+      kicker: 'Gemeinsame Liste',
+      openAction: 'Liste öffnen',
+      openAriaLabel: '„{{title}}“ öffnen',
+      addPlaceholder: 'Eintrag hinzufügen',
+      addAction: 'Eintrag hinzufügen',
+      empty: 'Noch nichts auf dieser Liste.',
+      more_one: 'Noch {{count}} weiterer Eintrag',
+      more_other: 'Noch {{count}} weitere Einträge',
+      loadError: 'Die angeheftete Liste konnte gerade nicht geladen werden.',
     },
     living: {
       kicker: 'Gerade bei euch',

@@ -236,6 +236,13 @@
   margin-bottom: var(--space-6);
 }
 
+/* A pinned checklist is intentionally a focused Today utility, not a
+   desktop-width form. Reuse the page's established quiet content measure so
+   Compact still fills the available width while Expanded stays glanceable. */
+.today-section-pinned-collection {
+  max-width: 45rem;
+}
+
 /*
  * `Euer Moment` is the page's dominant surface, so it gets the one deliberate
  * pause in the rhythm - before it, to set it apart, and after it, so the
@@ -1164,5 +1171,103 @@
   .today-monthly-tile:hover,
   .today-living-action:hover {
     transform: none;
+  }
+}
+
+.today-pinned-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-items {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-pinned-list-items li {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  gap: var(--space-2);
+}
+
+.today-pinned-list-check {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  padding: 0;
+  background: var(--color-surface);
+  color: transparent;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.today-pinned-list-check[aria-pressed="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: var(--color-surface);
+}
+
+.today-pinned-list-check:focus-visible,
+.today-pinned-list-add-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.today-pinned-list-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.today-pinned-list-items .is-completed .today-pinned-list-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.today-pinned-list-empty,
+.today-pinned-list-more {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.today-pinned-list-more {
+  font-size: 0.88rem;
+}
+
+.today-pinned-list-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.today-pinned-list-add input {
+  min-width: 0;
+  min-height: 44px;
+}
+
+.today-pinned-list-add-button {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-pinned-list-check,
+  .today-pinned-list-add-button {
+    transition: none;
   }
 }

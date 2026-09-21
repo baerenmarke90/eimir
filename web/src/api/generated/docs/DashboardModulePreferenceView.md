@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `itemLimit` | number
 `moduleKey` | string
+`selectedCollectionId` | string
 `visible` | boolean
 
 ## Example
@@ -19,6 +20,7 @@ import type { DashboardModulePreferenceView } from ''
 const example = {
   "itemLimit": null,
   "moduleKey": null,
+  "selectedCollectionId": null,
   "visible": null,
 } satisfies DashboardModulePreferenceView
 

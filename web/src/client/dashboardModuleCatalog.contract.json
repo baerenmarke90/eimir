@@ -3,6 +3,7 @@
   "moduleKeys": [
     "relationship_presence",
     "upcoming",
+    "pinned_collection",
     "keepsake",
     "relationship_signal",
     "monthly_highlights",

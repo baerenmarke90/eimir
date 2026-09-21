@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { EDITOR_HISTORY_STATE_KEY } from '../client/useEditorHistoryEntry';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -390,6 +391,145 @@ describe('CollectionProductPage', () => {
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
+  });
+
+  it('pins the current shared list to Wir through the personal Dashboard preference', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      ['m5-s3', 'collection', 'space-1', 'collection-1'],
+      sampleCollection,
+    );
+    const updateDashboardModulePreference = vi.fn().mockResolvedValue({
+      moduleKey: 'pinned_collection',
+      visible: true,
+      selectedCollectionId: 'collection-1',
+    });
+    const dashboardApi = {
+      listDashboardModulePreferences: vi.fn().mockResolvedValue({ items: [] }),
+      updateDashboardModulePreference,
+    } as unknown as DashboardApi;
+    const apis = {
+      collections: {
+        getCollection: vi.fn().mockResolvedValue(sampleCollection),
+      },
+    } as unknown as SharedPlanningApis;
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan/collections/collection-1']}>
+          <Routes>
+            <Route
+              path="/plan/collections/:collectionId"
+              element={
+                <CollectionProductPage
+                  apis={apis}
+                  spaceId="space-1"
+                  dashboardApi={dashboardApi}
+                  accountId="account-1"
+                />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const pin = await screen.findByRole('button', {
+      name: i18n.t('m5s3.collection.pinToToday'),
+    });
+    await userEvent.setup().click(pin);
+
+    await waitFor(() =>
+      expect(updateDashboardModulePreference).toHaveBeenCalledWith({
+        moduleKey: 'pinned_collection',
+        spaceId: 'space-1',
+        dashboardModulePreferenceUpdate: {
+          selectedCollectionId: 'collection-1',
+          visible: true,
+        },
+      }),
+    );
+  });
+
+  it('retries the failed Wir pin mutation instead of only refetching preferences', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      ['m5-s3', 'collection', 'space-1', 'collection-1'],
+      sampleCollection,
+    );
+    const updateDashboardModulePreference = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValue({
+        moduleKey: 'pinned_collection',
+        visible: true,
+        selectedCollectionId: 'collection-1',
+      });
+    const dashboardApi = {
+      listDashboardModulePreferences: vi.fn().mockResolvedValue({ items: [] }),
+      updateDashboardModulePreference,
+    } as unknown as DashboardApi;
+    const apis = {
+      collections: {
+        getCollection: vi.fn().mockResolvedValue(sampleCollection),
+      },
+    } as unknown as SharedPlanningApis;
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/plan/collections/collection-1']}>
+          <Routes>
+            <Route
+              path="/plan/collections/:collectionId"
+              element={
+                <CollectionProductPage
+                  apis={apis}
+                  spaceId="space-1"
+                  dashboardApi={dashboardApi}
+                  accountId="account-1"
+                />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole('button', {
+        name: i18n.t('m5s3.collection.pinToToday'),
+      }),
+    );
+
+    const retry = await screen.findByRole('button', {
+      name: i18n.t('common.retry'),
+    });
+    expect(updateDashboardModulePreference).toHaveBeenCalledTimes(1);
+
+    await user.click(retry);
+
+    await waitFor(() =>
+      expect(updateDashboardModulePreference).toHaveBeenCalledTimes(2),
+    );
+    expect(updateDashboardModulePreference).toHaveBeenLastCalledWith({
+      moduleKey: 'pinned_collection',
+      spaceId: 'space-1',
+      dashboardModulePreferenceUpdate: {
+        selectedCollectionId: 'collection-1',
+        visible: true,
+      },
+    });
   });
 
   it('focuses the successor after a successful Collection delete', async () => {

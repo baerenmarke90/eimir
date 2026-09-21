@@ -496,7 +496,13 @@ function AuthenticatedApp({
           />
           <Route
             path={COLLECTION_DETAIL_ROUTE_PATTERN}
-            element={<CollectionProductPage {...planningProductProps} />}
+            element={
+              <CollectionProductPage
+                {...planningProductProps}
+                dashboardApi={m4Apis.dashboard}
+                accountId={account.id}
+              />
+            }
           />
           <Route
             path={appRoutePath('today')}
@@ -506,6 +512,7 @@ function AuthenticatedApp({
                 spaceId={spaceId}
                 spacesApi={spacesApi}
                 dailyCheckInsApi={dailyCheckInsApi}
+                collectionsApi={planningApis.collections}
                 loadMemoryImage={loadMemoryImage}
                 profilesApi={profilesApi}
                 account={account}

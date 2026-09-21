@@ -638,3 +638,10 @@
     scroll-behavior: auto;
   }
 }
+
+.planning-collection-dashboard-action {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+}

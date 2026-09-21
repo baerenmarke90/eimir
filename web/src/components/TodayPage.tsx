@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
@@ -15,6 +16,7 @@ import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
   limitUpcomingItems,
+  selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import {
   formatRecency,
@@ -30,7 +32,11 @@ import {
   ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
-import { ACTIVITY_ROUTE, appRoutePath } from '../client/routes';
+import {
+  ACTIVITY_ROUTE,
+  appRoutePath,
+  collectionDetailPath,
+} from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
 import {
   refreshSpaceConfiguration,
@@ -55,6 +61,7 @@ import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedStorySummary } from './SharedStorySummary';
 import { ThinkingOfYouButton } from './ThinkingOfYouButton';
+import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
 import './TodayPage.css';
 
@@ -821,12 +828,14 @@ export function TodayPage({
   profilesApi,
   spacesApi,
   dailyCheckInsApi,
+  collectionsApi,
   account,
 }: {
   apis: M4ProductApis;
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
+  collectionsApi?: CollectionsApi;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -859,6 +868,41 @@ export function TodayPage({
     queryFn: () =>
       apiCall(() => apis.dashboard.listDashboardModulePreferences({ spaceId })),
     enabled: Boolean(account?.id && spaceId),
+    retry: false,
+  });
+
+  const pinnedCollectionId = selectedDashboardCollectionId(
+    dashboardPreferencesQuery.data,
+    'pinned_collection',
+  );
+  const pinnedCollectionVisible = isDashboardModuleVisible(
+    dashboardPreferencesQuery.data,
+    'pinned_collection',
+  );
+  const pinnedCollectionQuery = useQuery({
+    queryKey: [
+      'today-pinned-collection',
+      account?.id ?? '',
+      spaceId,
+      pinnedCollectionId ?? '',
+    ],
+    queryFn: () => {
+      if (!collectionsApi || !pinnedCollectionId) {
+        throw new Error('Pinned Collection is not available.');
+      }
+      return apiCall(() =>
+        collectionsApi.getCollection({
+          spaceId,
+          collectionId: pinnedCollectionId,
+        }),
+      );
+    },
+    enabled: Boolean(
+      collectionsApi &&
+        pinnedCollectionId &&
+        pinnedCollectionVisible &&
+        account?.id,
+    ),
     retry: false,
   });
 
@@ -1065,7 +1109,8 @@ export function TodayPage({
       recentShared.length === 0 &&
       !retrospective &&
       !livingModule &&
-      !serverKeepsake,
+      !serverKeepsake &&
+      !(pinnedCollectionVisible && pinnedCollectionId),
   );
 
   const showMomentSection = Boolean(!isSparse && focalItem);
@@ -1233,6 +1278,53 @@ export function TodayPage({
                     ))}
                   </div>
                 </TodayModuleSection>
+              ) : null}
+
+              {pinnedCollectionVisible &&
+              pinnedCollectionId &&
+              pinnedCollectionQuery.data ? (
+                <TodayModuleSection
+                  className="today-section-pinned-collection"
+                  title={pinnedCollectionQuery.data.title}
+                  kicker={t('m5s5.today.pinnedCollection.kicker')}
+                  animationDelay="60ms"
+                  headerAction={
+                    <TodayDestinationLink
+                      to={collectionDetailPath(pinnedCollectionId)}
+                      className="today-section-link"
+                      ariaLabel={t(
+                        'm5s5.today.pinnedCollection.openAriaLabel',
+                        { title: pinnedCollectionQuery.data.title },
+                      )}
+                    >
+                      {t('m5s5.today.pinnedCollection.openAction')} →
+                    </TodayDestinationLink>
+                  }
+                >
+                  {collectionsApi ? (
+                    <TodayPinnedCollection
+                      api={collectionsApi}
+                      spaceId={spaceId}
+                      collection={pinnedCollectionQuery.data}
+                      onRefresh={() => pinnedCollectionQuery.refetch()}
+                    />
+                  ) : null}
+                </TodayModuleSection>
+              ) : null}
+
+              {pinnedCollectionVisible &&
+              pinnedCollectionId &&
+              pinnedCollectionQuery.error ? (
+                <div className="today-partial-error" role="status">
+                  <span>{t('m5s5.today.pinnedCollection.loadError')}</span>
+                  <button
+                    type="button"
+                    className="today-partial-error-action"
+                    onClick={() => void pinnedCollectionQuery.refetch()}
+                  >
+                    {t('common.retry')}
+                  </button>
+                </div>
               ) : null}
 
               {/* 3. One real shared focal item — photo or deliberate text. */}

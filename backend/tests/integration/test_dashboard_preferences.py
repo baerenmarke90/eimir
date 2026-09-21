@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
+from eimir.collections.models import Collection, CollectionPayload
 from eimir.dashboard.models import DashboardModulePreference
 from eimir.dashboard.preferences import CATALOG, DashboardModuleKey
 from eimir.plans.models import Plan, PlanPayload, PlanStatus
@@ -88,6 +89,7 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     assert keys == [
         "relationship_presence",
         "upcoming",
+        "pinned_collection",
         "keepsake",
         "relationship_signal",
         "monthly_highlights",
@@ -109,6 +111,13 @@ def test_every_module_defaults_visible() -> None:
     assert all(definition.default_visible for definition in CATALOG)
 
 
+def test_only_pinned_collection_supports_collection_selection() -> None:
+    for definition in CATALOG:
+        assert definition.selects_collection is (
+            definition.key is DashboardModuleKey.PINNED_COLLECTION
+        )
+
+
 # --- B) Inventory completeness -----------------------------------------------
 
 
@@ -125,6 +134,7 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
+            {"moduleKey": "pinned_collection", "visible": True},
             {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "relationship_signal", "visible": True},
             {"moduleKey": "monthly_highlights", "visible": True},
@@ -157,6 +167,7 @@ def test_unknown_module_is_rejected_and_fails_closed(
     "module_key",
     [
         "relationship_presence",
+        "pinned_collection",
         "keepsake",
         "relationship_signal",
         "monthly_highlights",
@@ -175,6 +186,155 @@ def test_item_limit_is_rejected_on_modules_that_do_not_support_it(
     assert response.status_code == 422
     assert response.json()["code"] == "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
     assert session.scalar(select(func.count()).select_from(DashboardModulePreference)) == 0
+
+
+def _make_collection(session: Session, *, space, owner, title: str) -> Collection:  # type: ignore[no-untyped-def]
+    collection = Collection(
+        space_id=space.id,
+        owner_id=owner.id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=CollectionPayload(title=title),
+    )
+    session.add(collection)
+    session.flush()
+    return collection
+
+
+def test_pinned_collection_selection_persists_per_account_and_can_be_cleared(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+
+    pinned = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": str(collection.id)},
+    )
+    assert pinned.status_code == 200, pinned.text
+    assert pinned.json() == {
+        "moduleKey": "pinned_collection",
+        "visible": True,
+        "selectedCollectionId": str(collection.id),
+    }
+
+    # The choice is personal even though the Collection itself is shared.
+    ben = _preferences(client, couple["space"].id, couple["token_b"])
+    assert "selectedCollectionId" not in _item(ben.json(), "pinned_collection")
+
+    cleared = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": None},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert "selectedCollectionId" not in cleared.json()
+
+
+def test_pinned_collection_rejects_foreign_resource_without_changing_selection(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    own_collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    foreign_collection = _make_collection(
+        session,
+        space=couple["foreign_space"],
+        owner=couple["outsider"],
+        title="Foreign",
+    )
+    assert (
+        _patch(
+            client,
+            couple["space"].id,
+            couple["token_a"],
+            DashboardModuleKey.PINNED_COLLECTION.value,
+            {"selectedCollectionId": str(own_collection.id)},
+        ).status_code
+        == 200
+    )
+
+    denied = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.PINNED_COLLECTION.value,
+        {"selectedCollectionId": str(foreign_collection.id)},
+    )
+    assert denied.status_code == 404
+    assert denied.json()["code"] == "COLLECTION_NOT_FOUND"
+
+    reloaded = _preferences(client, couple["space"].id, couple["token_a"])
+    assert _item(reloaded.json(), "pinned_collection")["selectedCollectionId"] == str(
+        own_collection.id
+    )
+
+
+def test_selected_resource_facet_is_rejected_on_other_modules(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    response = _patch(
+        client,
+        couple["space"].id,
+        couple["token_a"],
+        DashboardModuleKey.KEEPSAKE.value,
+        {"selectedCollectionId": str(collection.id)},
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
+
+
+def test_deleting_selected_collection_clears_the_personal_pin(
+    client,
+    session: Session,
+    couple,
+) -> None:  # type: ignore[no-untyped-def]
+    collection = _make_collection(
+        session,
+        space=couple["space"],
+        owner=couple["anna"],
+        title="Einkauf",
+    )
+    assert (
+        _patch(
+            client,
+            couple["space"].id,
+            couple["token_a"],
+            DashboardModuleKey.PINNED_COLLECTION.value,
+            {"selectedCollectionId": str(collection.id)},
+        ).status_code
+        == 200
+    )
+
+    session.delete(collection)
+    session.flush()
+    session.expire_all()
+
+    reloaded = _preferences(client, couple["space"].id, couple["token_a"])
+    assert "selectedCollectionId" not in _item(reloaded.json(), "pinned_collection")
 
 
 def test_empty_update_body_is_rejected(

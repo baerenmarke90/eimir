@@ -18,6 +18,11 @@ dependencies = [
     # ID-Token-Pruefung. Signaturverfahren selbst zu schreiben waere im
     # Auth-Pfad genau der falsche Ort fuer Eigenbau.
     "pyjwt[crypto]>=2.10",
+    # Application-controlled encryption at rest (#797): AES-256-GCM only. No
+    # cryptographic primitive is implemented in this repository. Already
+    # present transitively through pyjwt[crypto]; declared because the
+    # application now imports it directly.
+    "cryptography>=46.0",
     # WebAuthn: CBOR, COSE und Attestation von Hand zu lesen waere
     # Eigenbau an der empfindlichsten Stelle.
     "webauthn>=2.5",

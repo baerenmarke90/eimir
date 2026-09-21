@@ -218,6 +218,13 @@ V1 recovery is an explicit one-time ServerAdmin operation:
 - ordinary partner reads remain safe while authority is missing, but
   configuration writes continue to fail closed until reconciliation succeeds.
 
+The same unassigned state is produced when the current configuration manager leaves the
+Space: the exit clears the authority in the offboarding transaction, under the existing
+Space lock. It is never transferred to the remaining partner by inference. The Space stays
+readable and fails closed for configuration writes until the explicit reconciliation above
+assigns an active member (account deletion already produces the same state through the
+`SET NULL` foreign key).
+
 This is legacy-state recovery, **not** a general configuration-manager transfer
 feature. Any future transfer/consent UX requires its own product decision and
 contract.

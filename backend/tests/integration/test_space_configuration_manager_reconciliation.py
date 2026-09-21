@@ -305,3 +305,97 @@ def test_concurrent_reconciliation_has_exactly_one_winner(
             )
         ).scalar_one()
         assert audit_count == 1
+
+
+def _leave(client, token, space_id):  # type: ignore[no-untyped-def]
+    return client.post(
+        f"/api/v1/spaces/{space_id}/membership/leave",
+        headers=auth(token),
+    )
+
+
+def _new_space_with_partner(session: Session):  # type: ignore[no-untyped-def]
+    founder = make_account(session, "Founder")
+    partner = make_account(session, "Partner")
+    space = make_space(session, founder)
+    relationship.add_member(session, space.id, partner)
+    session.flush()
+    assert space.configuration_manager_account_id == founder.id
+    return space, founder, partner
+
+
+def test_manager_exit_clears_authority_and_does_not_transfer_it(
+    client,
+    session: Session,
+) -> None:
+    space, founder, partner = _new_space_with_partner(session)
+    founder_token = sign_in(session, founder)
+    partner_token = sign_in(session, partner)
+
+    assert _leave(client, founder_token, space.id).status_code == 200
+
+    session.refresh(space)
+    assert space.configuration_manager_account_id is None
+
+    # The remaining partner can still read the shared state but is not
+    # promoted by inference: no capability and no write.
+    read = client.get(
+        f"/api/v1/spaces/{space.id}/configuration",
+        headers=auth(partner_token),
+    )
+    assert read.status_code == 200
+    assert read.json()["canManageSpaceConfiguration"] is False
+    write = client.patch(
+        f"/api/v1/spaces/{space.id}/configuration",
+        json={"supportGesturesEnabled": False},
+        headers={**auth(partner_token), "If-Match": read.headers["etag"]},
+    )
+    assert write.status_code == 403
+    assert write.json()["code"] == "SPACE_CONFIGURATION_MANAGEMENT_REQUIRED"
+
+
+def test_space_is_reconcilable_onto_the_remaining_partner_after_manager_exit(
+    client,
+    session: Session,
+    server_admin_allowlist,
+) -> None:
+    admin, admin_token = _admin(session)
+    _grant_recent_admin_action(session, admin)
+    space, founder, partner = _new_space_with_partner(session)
+    founder_token = sign_in(session, founder)
+    partner_token = sign_in(session, partner)
+    assert _leave(client, founder_token, space.id).status_code == 200
+
+    reconciled = client.post(
+        _path(space.id),
+        json={"accountId": str(partner.id)},
+        headers=auth(admin_token),
+    )
+    assert reconciled.status_code == 200
+    assert reconciled.json()["configurationManagerAccountId"] == str(partner.id)
+
+    read = client.get(
+        f"/api/v1/spaces/{space.id}/configuration",
+        headers=auth(partner_token),
+    )
+    assert read.json()["canManageSpaceConfiguration"] is True
+    write = client.patch(
+        f"/api/v1/spaces/{space.id}/configuration",
+        json={"supportGesturesEnabled": False},
+        headers={**auth(partner_token), "If-Match": read.headers["etag"]},
+    )
+    assert write.status_code == 200
+    assert write.json()["supportGesturesEnabled"] is False
+
+
+def test_non_manager_exit_keeps_the_configuration_manager(
+    client,
+    session: Session,
+) -> None:
+    space, founder, partner = _new_space_with_partner(session)
+    partner_token = sign_in(session, partner)
+
+    assert _leave(client, partner_token, space.id).status_code == 200
+
+    session.refresh(space)
+    assert space.configuration_manager_account_id == founder.id

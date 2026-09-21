@@ -222,6 +222,11 @@ def leave_space(session: Session, account: Account, space_id: UUID) -> LeaveSpac
     creating another lifecycle. A caller that never belonged to the Space
     receives the same privacy-safe 404 used by normal tenant access.
 
+    If the caller is the Space's configuration manager, that authority is
+    cleared in the same transaction. It is never transferred automatically;
+    the Space stays readable and fails closed for configuration writes until
+    the existing explicit ServerAdmin reconciliation assigns an active member.
+
     Space-scoped OWNER_ONLY database rows are removed in the acceptance
     transaction. Private/unbound owner media is made immediately unreadable via
     the existing DELETING lifecycle, physical purge is delegated to the existing
@@ -248,7 +253,14 @@ def leave_space(session: Session, account: Account, space_id: UUID) -> LeaveSpac
             owner_only_cleanup=OwnerOnlyCleanupResult(total=0, by_table={}),
         )
 
-    service.lock_space(session, space_id)
+    space = service.lock_space(session, space_id)
+    if space.configuration_manager_account_id == account.id:
+        # A former member must not keep Space-configuration authority, and the
+        # remaining partner must not inherit it by inference. Clearing it
+        # returns the Space to the explicit "unassigned" state that ServerAdmin
+        # reconciliation can resolve; the account-deletion FK (SET NULL) already
+        # produces the same state.
+        space.configuration_manager_account_id = None
     revoked = _revoke_open_invitations(session, space_id)
     cleanup = hard_delete_owner_only_in_space(session, account.id, space_id)
     session.flush()

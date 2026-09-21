@@ -161,7 +161,6 @@ jobs:
       - name: OpenAPI contract
         run: uv run --frozen python scripts/openapi_contract.py check
 
-
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
 

@@ -197,12 +197,12 @@
     background var(--motion-duration-short);
 }
 
-.space-module-switch[aria-checked='true'] .space-module-switch-track {
+.space-module-switch[aria-checked="true"] .space-module-switch-track {
   border-color: var(--color-brand-strong);
   background: var(--color-brand-surface);
 }
 
-.space-module-switch[aria-checked='true'] .space-module-switch-thumb {
+.space-module-switch[aria-checked="true"] .space-module-switch-thumb {
   transform: translateX(18px);
   background: var(--color-brand-strong);
 }

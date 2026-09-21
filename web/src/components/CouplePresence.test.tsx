@@ -24,10 +24,14 @@ describe('CouplePresence', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Philipp & Lea' }),
     ).toBeDefined();
-    expect(
-      screen.getByText(relationshipComponents.couplePresenceActive),
-    ).toBeDefined();
+    const activeStatus = screen.getByText(
+      relationshipComponents.couplePresenceActive,
+    );
+    expect(activeStatus.closest('.partner-presence-badge')).not.toBeNull();
     expect(screen.getByText('3y')).toBeDefined();
+    expect(document.querySelector('.couple-presence-meta')?.textContent).toBe(
+      '3y',
+    );
   });
 
   it('shows only first names throughout a connected couple hero', () => {
@@ -57,9 +61,13 @@ describe('CouplePresence', () => {
       />,
     );
 
+    const recentStatus = screen.getByText(
+      relationshipComponents.couplePresenceRecent,
+    );
+    expect(recentStatus.closest('.partner-presence-badge')).not.toBeNull();
     expect(
-      screen.getByText(relationshipComponents.couplePresenceRecent),
-    ).toBeDefined();
+      document.querySelector('.partner-presence-badge.status-recent'),
+    ).not.toBeNull();
     expect(document.querySelector('.couple-presence-dot')).toBeNull();
 
     rerender(
@@ -73,6 +81,7 @@ describe('CouplePresence', () => {
     expect(
       screen.queryByText(relationshipComponents.couplePresenceRecent),
     ).toBeNull();
+    expect(document.querySelector('.partner-presence-badge')).toBeNull();
     expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });
 
@@ -146,6 +155,8 @@ describe('CouplePresence', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Action' })).toBeDefined();
+    const action = screen.getByRole('button', { name: 'Action' });
+    expect(action).toBeDefined();
+    expect(action.closest('.couple-presence-details')).not.toBeNull();
   });
 });

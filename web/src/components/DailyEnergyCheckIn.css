@@ -104,7 +104,8 @@
 }
 
 .daily-energy-partner-battery[data-state="empty"] .daily-energy-avatar-chip,
-.daily-energy-partner-battery[data-state="unavailable"] .daily-energy-avatar-chip {
+.daily-energy-partner-battery[data-state="unavailable"]
+  .daily-energy-avatar-chip {
   opacity: 0.58;
 }
 

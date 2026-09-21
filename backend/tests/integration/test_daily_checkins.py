@@ -259,7 +259,7 @@ class TestPersistenceAndEnergy:
         )
         assert cleared.status_code == 200
         assert cleared.headers["etag"] == initial_etag
-        assert cleared.json()["own"] == {"version": 0, "energyLevel": None}
+        assert cleared.json()["own"] == {"version": 0, "vibe": None, "energyLevel": None}
         assert (
             session.execute(
                 select(func.count())

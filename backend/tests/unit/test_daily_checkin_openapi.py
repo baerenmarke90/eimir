@@ -10,9 +10,7 @@ def test_daily_check_in_contract_has_only_reveal_aware_today_route() -> None:
     route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/today"]
     assert set(route) == {"get", "patch"}
     if_match = next(
-        parameter
-        for parameter in route["patch"]["parameters"]
-        if parameter["name"] == "If-Match"
+        parameter for parameter in route["patch"]["parameters"] if parameter["name"] == "If-Match"
     )
     assert if_match["required"] is True
 

@@ -61,6 +61,10 @@ const profileIdentity = {
     'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
   supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
   supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
+  vibeCheckTitle: 'Vibe-Check',
+  vibeCheckIntro:
+    'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',
+  vibeCheckToggle: 'Vibe-Check aktivieren oder deaktivieren',
   spaceModuleOn: 'Aktiv',
   spaceModuleOff: 'Aus',
   settingsNotifications: 'Benachrichtigungen',

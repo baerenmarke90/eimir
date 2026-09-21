@@ -340,6 +340,8 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     );
   });
   expect(order).toBe(true);
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.partnerHidden)).toHaveCount(0);
 
   await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
@@ -399,8 +401,9 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     })
     .click();
   await page.getByRole('button', { name: dailyVibe.remove }).click();
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
   await expect(
-    page.getByTestId('daily-vibe-partner').getByText(dailyVibe.partnerHidden),
+    page.getByRole('button', { name: dailyVibe.chooseAria }),
   ).toBeVisible();
   expect(state.lastPatch()).toEqual({ vibe: null });
 });

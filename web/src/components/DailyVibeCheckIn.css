@@ -37,7 +37,7 @@
 
 .daily-vibe-people {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(10.5rem, 100%), 1fr));
   gap: var(--space-2);
 }
 
@@ -114,26 +114,21 @@ button.daily-vibe-person:focus-visible {
   overflow-wrap: anywhere;
 }
 
-.daily-vibe-partner.is-hidden {
-  background: color-mix(in srgb, var(--color-surface-subtle) 90%, transparent);
-  box-shadow: none;
+.daily-vibe-person.is-startup-reveal {
+  animation: daily-vibe-startup 560ms var(--easing-enter) both;
 }
 
-.daily-vibe-partner.is-hidden .daily-vibe-glyph {
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-}
-
-.daily-vibe-partner.is-empty {
-  box-shadow: none;
-}
-
-.daily-vibe-partner.is-empty .daily-vibe-glyph {
-  opacity: 0.68;
+.daily-vibe-person.is-startup-reveal + .daily-vibe-person.is-startup-reveal {
+  animation-delay: 70ms;
 }
 
 .daily-vibe-partner.is-revealed {
   animation: daily-vibe-reveal var(--duration-context) var(--easing-enter);
+}
+
+.daily-vibe-share {
+  min-height: 44px;
+  justify-self: start;
 }
 
 .daily-vibe-loading,
@@ -269,6 +264,21 @@ button.daily-vibe-person:focus-visible {
   line-height: 1.4;
 }
 
+@keyframes daily-vibe-startup {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes daily-vibe-reveal {
   from {
     opacity: 0.55;
@@ -331,6 +341,7 @@ button.daily-vibe-person:focus-visible {
     transform: none;
   }
 
+  .daily-vibe-person.is-startup-reveal,
   .daily-vibe-partner.is-revealed {
     animation: none;
   }

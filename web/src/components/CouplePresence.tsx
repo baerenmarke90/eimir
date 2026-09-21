@@ -79,6 +79,7 @@ export function CouplePresence({
         displayName: secondaryFirstName || t('couplePresencePartnerFallback'),
       }
     : null;
+  const showStatusInMeta = Boolean(resolvedStatusText && !secondaryPerson);
 
   const HeadingTag = headingLevel;
 
@@ -95,6 +96,9 @@ export function CouplePresence({
             primaryPerson={heroPrimaryPerson}
             secondaryPerson={heroSecondaryPerson}
             status={status}
+            statusLabel={
+              secondaryPerson ? (resolvedStatusText ?? undefined) : undefined
+            }
             size="large"
             onInviteClick={onInviteClick}
           />
@@ -111,7 +115,7 @@ export function CouplePresence({
           </HeadingTag>
 
           <div className="couple-presence-meta">
-            {resolvedStatusText ? (
+            {showStatusInMeta ? (
               <span className={`couple-presence-indicator status-${status}`}>
                 {(status === 'active' || status === 'waiting') && (
                   <span className="couple-presence-dot" aria-hidden="true" />
@@ -124,7 +128,7 @@ export function CouplePresence({
 
             {relationshipDuration && (
               <>
-                {resolvedStatusText ? (
+                {showStatusInMeta ? (
                   <span
                     className="couple-presence-separator"
                     aria-hidden="true"
@@ -168,10 +172,12 @@ export function CouplePresence({
               </>
             )}
           </div>
+
+          {actions ? (
+            <div className="couple-presence-actions">{actions}</div>
+          ) : null}
         </div>
       </div>
-
-      {actions && <div className="couple-presence-actions">{actions}</div>}
     </section>
   );
 }

@@ -69,6 +69,42 @@ describe('PartnerAvatarPair', () => {
     expect(document.querySelector('.partner-presence-pip')).toBeNull();
   });
 
+  it('attaches readable presence copy to the secondary partner avatar', () => {
+    const { rerender } = render(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="active"
+        statusLabel={relationshipComponents.couplePresenceActive}
+      />,
+    );
+
+    const activeLabel = screen.getByText(
+      relationshipComponents.couplePresenceActive,
+    );
+    expect(activeLabel.closest('.partner-presence-badge')).not.toBeNull();
+    expect(
+      document.querySelector('.partner-presence-badge-dot'),
+    ).not.toBeNull();
+    expect(document.querySelectorAll('.partner-presence-pip')).toHaveLength(1);
+
+    rerender(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="recent"
+        statusLabel={relationshipComponents.couplePresenceRecent}
+      />,
+    );
+
+    const recentLabel = screen.getByText(
+      relationshipComponents.couplePresenceRecent,
+    );
+    expect(recentLabel.closest('.partner-presence-badge')).not.toBeNull();
+    expect(document.querySelector('.partner-presence-badge-dot')).toBeNull();
+    expect(document.querySelector('.partner-presence-pip')).toBeNull();
+  });
+
   it('renders waiting state with invite button when secondaryPerson is null', () => {
     const handleInvite = vi.fn();
     render(

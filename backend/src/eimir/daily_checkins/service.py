@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy import select
@@ -20,7 +21,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
 from eimir.daily_checkins.context import DailyCheckInErrorCode, resolve_space_day
-from eimir.daily_checkins.models import DailyCheckIn
+from eimir.daily_checkins.models import DailyCheckIn, DailyVibe
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship.models import (
     DailyCheckInVisibilityMode,
@@ -33,6 +34,14 @@ from eimir.relationship.models import (
 ABSENT_CONCURRENCY_TOKEN = "absent"
 ENERGY_LEVELS = frozenset(range(10, 101, 10))
 
+DimensionValue = int | str
+DimensionUpdateValue = TypeVar("DimensionUpdateValue")
+
+
+class DailyCheckInDimension(StrEnum):
+    VIBE = "VIBE"
+    ENERGY = "ENERGY"
+
 
 class PartnerRevealState(StrEnum):
     HIDDEN_UNTIL_SELF_CHECK_IN = "HIDDEN_UNTIL_SELF_CHECK_IN"
@@ -41,9 +50,17 @@ class PartnerRevealState(StrEnum):
 
 
 @dataclass(frozen=True)
+class DimensionUpdate(Generic[DimensionUpdateValue]):
+    """One PATCH dimension, preserving omitted versus explicit null."""
+
+    supplied: bool
+    value: DimensionUpdateValue | None = None
+
+
+@dataclass(frozen=True)
 class PartnerDimensionProjection:
     state: PartnerRevealState
-    value: int | None = None
+    value: DimensionValue | None = None
 
 
 @dataclass(frozen=True)
@@ -51,6 +68,9 @@ class TodayProjection:
     checked_on: date
     daily_context_timezone: str
     own: DailyCheckIn | None
+    vibe_enabled: bool
+    vibe_visibility_mode: DailyCheckInVisibilityMode
+    partner_vibe: PartnerDimensionProjection | None
     energy_enabled: bool
     energy_visibility_mode: DailyCheckInVisibilityMode
     partner_energy: PartnerDimensionProjection | None
@@ -60,8 +80,8 @@ def concurrency_token(check_in: DailyCheckIn | None, checked_on: date) -> str:
     """Return an ABA- and day-safe strong-ETag payload for current owner state.
 
     The authoritative day is part of the token even when no row exists. Without
-    it, yesterday's ``"absent"`` validator would still match after midnight
-    and an offline/stale mutation could accidentally create today's state.
+    it, yesterday's absent validator would still match after midnight and an
+    offline/stale mutation could accidentally create today's state.
     """
     state = ABSENT_CONCURRENCY_TOKEN
     if check_in is not None:
@@ -126,16 +146,28 @@ def _active_partner_account_id(
     return membership.account_id if membership is not None else None
 
 
-def _partner_energy(
+def _dimension_value(
+    check_in: DailyCheckIn | None,
+    dimension: DailyCheckInDimension,
+) -> DimensionValue | None:
+    if check_in is None:
+        return None
+    if dimension is DailyCheckInDimension.VIBE:
+        return check_in.vibe
+    return check_in.energy_level
+
+
+def _partner_dimension(
     session: Session,
     authorization: AuthorizationContext,
     *,
     checked_on: date,
     own: DailyCheckIn | None,
+    dimension: DailyCheckInDimension,
     visibility_mode: DailyCheckInVisibilityMode,
 ) -> PartnerDimensionProjection:
-    own_energy = own.energy_level if own is not None else None
-    if visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL and own_energy is None:
+    own_value = _dimension_value(own, dimension)
+    if visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL and own_value is None:
         # Privacy invariant: do not even query partner participation while the
         # caller has not satisfied this dimension's reveal condition.
         return PartnerDimensionProjection(state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN)
@@ -144,18 +176,25 @@ def _partner_energy(
     if partner_account_id is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
 
-    partner_energy = session.execute(
-        select(DailyCheckIn.energy_level).where(
-            DailyCheckIn.space_id == authorization.space_id,
-            DailyCheckIn.account_id == partner_account_id,
-            DailyCheckIn.checked_on == checked_on,
-        )
-    ).scalar_one_or_none()
-    if partner_energy is None:
+    filters = (
+        DailyCheckIn.space_id == authorization.space_id,
+        DailyCheckIn.account_id == partner_account_id,
+        DailyCheckIn.checked_on == checked_on,
+    )
+    if dimension is DailyCheckInDimension.VIBE:
+        partner_value: DimensionValue | None = session.execute(
+            select(DailyCheckIn.vibe).where(*filters)
+        ).scalar_one_or_none()
+    else:
+        partner_value = session.execute(
+            select(DailyCheckIn.energy_level).where(*filters)
+        ).scalar_one_or_none()
+
+    if partner_value is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
     return PartnerDimensionProjection(
         state=PartnerRevealState.VISIBLE,
-        value=partner_energy,
+        value=partner_value,
     )
 
 
@@ -170,17 +209,36 @@ def _project(
     timezone_name = configuration.daily_context_timezone
     assert timezone_name is not None  # resolve_space_day already proved this state.
 
+    vibe_enabled = configuration_service.module_enabled(
+        configuration,
+        configuration_service.SpaceModule.VIBE_CHECK,
+    )
+    vibe_mode = DailyCheckInVisibilityMode(configuration.vibe_visibility_mode)
+    partner_vibe = (
+        _partner_dimension(
+            session,
+            authorization,
+            checked_on=checked_on,
+            own=own,
+            dimension=DailyCheckInDimension.VIBE,
+            visibility_mode=vibe_mode,
+        )
+        if vibe_enabled
+        else None
+    )
+
     energy_enabled = configuration_service.module_enabled(
         configuration,
         configuration_service.SpaceModule.ENERGY_CHECK_IN,
     )
     energy_mode = DailyCheckInVisibilityMode(configuration.energy_visibility_mode)
     partner_energy = (
-        _partner_energy(
+        _partner_dimension(
             session,
             authorization,
             checked_on=checked_on,
             own=own,
+            dimension=DailyCheckInDimension.ENERGY,
             visibility_mode=energy_mode,
         )
         if energy_enabled
@@ -190,6 +248,9 @@ def _project(
         checked_on=checked_on,
         daily_context_timezone=timezone_name,
         own=own,
+        vibe_enabled=vibe_enabled,
+        vibe_visibility_mode=vibe_mode,
+        partner_vibe=partner_vibe,
         energy_enabled=energy_enabled,
         energy_visibility_mode=energy_mode,
         partner_energy=partner_energy,
@@ -238,6 +299,17 @@ def _validate_energy(value: int) -> int:
     return value
 
 
+def _require_dimension_enabled(
+    configuration: SpaceConfiguration,
+    module: configuration_service.SpaceModule,
+) -> None:
+    if not configuration_service.module_enabled(configuration, module):
+        raise ForbiddenError(
+            "This optional Space module is disabled.",
+            configuration_service.SpaceConfigurationErrorCode.MODULE_DISABLED,
+        )
+
+
 def _flush(session: Session) -> None:
     try:
         session.flush()
@@ -248,21 +320,22 @@ def _flush(session: Session) -> None:
         ) from stale
 
 
-def set_energy(
+def update_today(
     session: Session,
     authorization: AuthorizationContext,
     *,
     expected_token: str,
-    energy_level: int | None,
+    energy: DimensionUpdate[int],
+    vibe: DimensionUpdate[DailyVibe],
     at: datetime | None = None,
 ) -> TodayProjection:
-    """Set or clear Energy on the one shared current-day record.
+    """Apply a partial owner mutation to the shared current-day record.
 
-    Clearing is owner-controlled and remains available while the Space module is
-    disabled. Setting a value is participation and therefore requires the
-    module to be enabled. The exclusive Space row lock provides one lock order
-    shared with configuration/timezone changes and serializes concurrent first
-    writes before the unique constraint is reached.
+    Omitted dimensions remain unchanged while explicit null clears only the
+    supplied dimension. Clearing stays available while its module is disabled;
+    supplying a value is participation and requires that dimension's module.
+    The exclusive Space row lock preserves the existing lock/race contract with
+    configuration and time-zone writes.
     """
     # Take the partner Membership share lock before the Space write lock.
     # Offboarding uses Membership -> Space as well; preserving that order
@@ -275,26 +348,33 @@ def set_energy(
     own = _own_for_day(session, authorization, checked_on, for_update=True)
     _require_expected_token(own, checked_on, expected_token)
 
-    if energy_level is not None:
-        normalized_energy = _validate_energy(energy_level)
-        if not configuration_service.module_enabled(
+    if energy.supplied and energy.value is not None:
+        _validate_energy(energy.value)
+        _require_dimension_enabled(
             configuration,
             configuration_service.SpaceModule.ENERGY_CHECK_IN,
-        ):
-            raise ForbiddenError(
-                "This optional Space module is disabled.",
-                configuration_service.SpaceConfigurationErrorCode.MODULE_DISABLED,
-            )
-    else:
-        normalized_energy = None
+        )
+    if vibe.supplied and vibe.value is not None:
+        _require_dimension_enabled(
+            configuration,
+            configuration_service.SpaceModule.VIBE_CHECK,
+        )
+
+    next_energy = own.energy_level if own is not None else None
+    next_vibe = own.vibe if own is not None else None
+    if energy.supplied:
+        next_energy = energy.value
+    if vibe.supplied:
+        next_vibe = vibe.value.value if vibe.value is not None else None
 
     if own is None:
-        if normalized_energy is not None:
+        if next_energy is not None or next_vibe is not None:
             own = DailyCheckIn(
                 space_id=authorization.space_id,
                 account_id=authorization.account_id,
                 checked_on=checked_on,
-                energy_level=normalized_energy,
+                energy_level=next_energy,
+                vibe=next_vibe,
             )
             try:
                 with session.begin_nested():
@@ -305,14 +385,14 @@ def set_energy(
                     "A Daily Check-in was created concurrently.",
                     ErrorCode.RESOURCE_VERSION_CONFLICT,
                 ) from duplicate
+    elif next_energy is None and next_vibe is None:
+        session.delete(own)
+        _flush(session)
+        own = None
     else:
-        if normalized_energy is None and own.vibe is None:
-            session.delete(own)
-            _flush(session)
-            own = None
-        else:
-            own.energy_level = normalized_energy
-            _flush(session)
+        own.energy_level = next_energy
+        own.vibe = next_vibe
+        _flush(session)
 
     return _project(
         session,

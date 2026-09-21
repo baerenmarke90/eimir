@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from eimir.daily_checkins import context as daily_context
 from eimir.daily_checkins import retention
-from eimir.daily_checkins.models import DailyCheckIn
+from eimir.daily_checkins.models import DailyCheckIn, DailyVibe
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
@@ -57,8 +57,10 @@ def configure_daily(
     *,
     space_id: UUID,
     manager_id: UUID,
+    vibe: bool | None = None,
     energy: bool = True,
     timezone: str | None = "Europe/Berlin",
+    vibe_mode: DailyCheckInVisibilityMode | None = None,
     energy_mode: DailyCheckInVisibilityMode = DailyCheckInVisibilityMode.IMMEDIATE,
 ) -> SpaceConfiguration:
     current = _configuration(session, space_id)
@@ -67,14 +69,18 @@ def configure_daily(
         space_id,
         _membership(session, space_id, manager_id),
         expected_version=current.version,
-        vibe_check_enabled=current.vibe_check_enabled,
+        vibe_check_enabled=current.vibe_check_enabled if vibe is None else vibe,
         energy_check_in_enabled=energy,
         love_notes_enabled=current.love_notes_enabled,
         support_gestures_enabled=current.support_gestures_enabled,
         shared_achievements_enabled=current.shared_achievements_enabled,
         daily_questions_enabled=current.daily_questions_enabled,
         daily_context_timezone=timezone,
-        vibe_visibility_mode=DailyCheckInVisibilityMode(current.vibe_visibility_mode),
+        vibe_visibility_mode=(
+            DailyCheckInVisibilityMode(current.vibe_visibility_mode)
+            if vibe_mode is None
+            else vibe_mode
+        ),
         energy_visibility_mode=energy_mode,
     )
 
@@ -215,7 +221,7 @@ class TestPersistenceAndEnergy:
         initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         initial_etag = initial.headers["etag"]
         assert initial_etag.endswith(':absent"')
-        assert initial.json()["own"] == {"version": 0, "energyLevel": None}
+        assert initial.json()["own"] == {"version": 0, "vibe": None, "energyLevel": None}
 
         created = client.patch(
             path(couple["space"].id),
@@ -223,7 +229,7 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
         )
         assert created.status_code == 200
-        assert created.json()["own"] == {"version": 1, "energyLevel": 20}
+        assert created.json()["own"] == {"version": 1, "vibe": None, "energyLevel": 20}
         created_etag = created.headers["etag"]
         assert created_etag != initial_etag
 
@@ -233,7 +239,7 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(created_etag)},
         )
         assert updated.status_code == 200
-        assert updated.json()["own"] == {"version": 2, "energyLevel": 60}
+        assert updated.json()["own"] == {"version": 2, "vibe": None, "energyLevel": 60}
         assert (
             session.execute(
                 select(func.count())
@@ -349,6 +355,336 @@ class TestPersistenceAndEnergy:
         )
         assert cleared.status_code == 200
         assert cleared.headers["etag"].endswith(':absent"')
+
+
+class TestVibeContract:
+    @pytest.mark.parametrize("vibe", list(DailyVibe))
+    def test_all_typed_vibes_are_accepted(
+        self,
+        client,
+        session: Session,
+        couple,
+        vibe: DailyVibe,
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+
+        saved = client.patch(
+            path(couple["space"].id),
+            json={"vibe": vibe.value},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+
+        assert saved.status_code == 200
+        assert saved.json()["own"] == {
+            "version": 1,
+            "vibe": vibe.value,
+            "energyLevel": None,
+        }
+        row = session.execute(
+            select(DailyCheckIn).where(
+                DailyCheckIn.space_id == couple["space"].id,
+                DailyCheckIn.account_id == couple["manager"].id,
+            )
+        ).scalar_one()
+        assert row.vibe == vibe.value
+
+    def test_unknown_vibe_is_rejected_by_api_and_database(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        invalid = client.patch(
+            path(couple["space"].id),
+            json={"vibe": "INVENTED_MOOD"},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert invalid.status_code == 422
+        assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
+
+        with pytest.raises(IntegrityError), session.begin_nested():
+            session.add(
+                DailyCheckIn(
+                    space_id=couple["space"].id,
+                    account_id=couple["manager"].id,
+                    checked_on=date(2026, 9, 20),
+                    vibe="INVENTED_MOOD",
+                )
+            )
+            session.flush()
+
+    def test_partial_updates_preserve_the_other_dimension_and_final_clear_removes_row(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=True,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        combined = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 40, "vibe": DailyVibe.GOOD.value},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert combined.status_code == 200
+        assert combined.json()["own"]["energyLevel"] == 40
+        assert combined.json()["own"]["vibe"] == DailyVibe.GOOD.value
+
+        vibe_only = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.STRESSED.value},
+            headers={**auth(couple["manager_token"]), **if_match(combined.headers["etag"])},
+        )
+        assert vibe_only.status_code == 200
+        assert vibe_only.json()["own"]["energyLevel"] == 40
+        assert vibe_only.json()["own"]["vibe"] == DailyVibe.STRESSED.value
+
+        clear_vibe = client.patch(
+            path(couple["space"].id),
+            json={"vibe": None},
+            headers={**auth(couple["manager_token"]), **if_match(vibe_only.headers["etag"])},
+        )
+        assert clear_vibe.status_code == 200
+        assert clear_vibe.json()["own"]["energyLevel"] == 40
+        assert clear_vibe.json()["own"]["vibe"] is None
+        assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 1
+
+        restore_vibe = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.NEEDS_SPACE.value},
+            headers={**auth(couple["manager_token"]), **if_match(clear_vibe.headers["etag"])},
+        )
+        clear_energy = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": None},
+            headers={**auth(couple["manager_token"]), **if_match(restore_vibe.headers["etag"])},
+        )
+        assert clear_energy.status_code == 200
+        assert clear_energy.json()["own"]["energyLevel"] is None
+        assert clear_energy.json()["own"]["vibe"] == DailyVibe.NEEDS_SPACE.value
+
+        final_clear = client.patch(
+            path(couple["space"].id),
+            json={"vibe": None},
+            headers={**auth(couple["manager_token"]), **if_match(clear_energy.headers["etag"])},
+        )
+        assert final_clear.status_code == 200
+        assert final_clear.headers["etag"].endswith(':absent"')
+        assert final_clear.json()["own"] == {
+            "version": 0,
+            "vibe": None,
+            "energyLevel": None,
+        }
+        assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
+
+    def test_etag_covers_the_complete_owner_state_across_dimensions(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=True,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        energy = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 30},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert energy.status_code == 200
+
+        stale = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.GOOD.value},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+        current = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert current.json()["own"]["energyLevel"] == 30
+        assert current.json()["own"]["vibe"] is None
+
+    def test_disabled_vibe_blocks_set_but_allows_clear_and_energy_remains_independent(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=True,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        saved = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.GOOD.value, "energyLevel": 50},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert saved.status_code == 200
+
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=False,
+            energy=True,
+        )
+        disabled = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert disabled.json()["vibe"] is None
+        assert disabled.json()["energy"] is not None
+        assert disabled.json()["own"]["vibe"] == DailyVibe.GOOD.value
+        assert disabled.json()["own"]["energyLevel"] == 50
+
+        rejected = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.STRESSED.value},
+            headers={**auth(couple["manager_token"]), **if_match(disabled.headers["etag"])},
+        )
+        assert rejected.status_code == 403
+        assert rejected.json()["code"] == "SPACE_MODULE_DISABLED"
+
+        energy_updated = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 60},
+            headers={**auth(couple["manager_token"]), **if_match(disabled.headers["etag"])},
+        )
+        assert energy_updated.status_code == 200
+        assert energy_updated.json()["own"]["vibe"] == DailyVibe.GOOD.value
+        assert energy_updated.json()["own"]["energyLevel"] == 60
+
+        cleared = client.patch(
+            path(couple["space"].id),
+            json={"vibe": None},
+            headers={**auth(couple["manager_token"]), **if_match(energy_updated.headers["etag"])},
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["own"]["vibe"] is None
+        assert cleared.json()["own"]["energyLevel"] == 60
+        assert cleared.json()["energy"] is not None
+
+    def test_vibe_mutual_reveal_is_dimension_scoped_and_structurally_hidden(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=True,
+            vibe_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+            energy_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        )
+        partner_initial = client.get(
+            path(couple["space"].id), headers=auth(couple["partner_token"])
+        )
+        partner_saved = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.SAD.value, "energyLevel": 70},
+            headers={**auth(couple["partner_token"]), **if_match(partner_initial.headers["etag"])},
+        )
+        assert partner_saved.status_code == 200
+
+        hidden = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert hidden.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert hidden.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        hidden_json = hidden.text
+        assert str(couple["partner"].id) not in hidden_json
+        assert '"value"' not in hidden_json
+        assert "hasPartnerCheckedIn" not in hidden_json
+        assert "updatedAt" not in hidden_json
+
+        energy_only = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 40},
+            headers={**auth(couple["manager_token"]), **if_match(hidden.headers["etag"])},
+        )
+        assert energy_only.status_code == 200
+        assert energy_only.json()["energy"]["partner"] == {"state": "VISIBLE", "value": 70}
+        assert energy_only.json()["vibe"]["partner"] == {
+            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
+        }
+
+        vibe_added = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.GOOD.value},
+            headers={**auth(couple["manager_token"]), **if_match(energy_only.headers["etag"])},
+        )
+        assert vibe_added.status_code == 200
+        assert vibe_added.json()["vibe"]["partner"] == {
+            "state": "VISIBLE",
+            "value": DailyVibe.SAD.value,
+        }
+        assert vibe_added.json()["energy"]["partner"] == {"state": "VISIBLE", "value": 70}
+
+        energy_cleared = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": None},
+            headers={**auth(couple["manager_token"]), **if_match(vibe_added.headers["etag"])},
+        )
+        assert energy_cleared.status_code == 200
+        assert energy_cleared.json()["energy"]["partner"] == {
+            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
+        }
+        assert energy_cleared.json()["vibe"]["partner"] == {
+            "state": "VISIBLE",
+            "value": DailyVibe.SAD.value,
+        }
+
+    def test_vibe_immediate_exposes_only_eligible_partner_state_and_keeps_owner_isolated(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+            vibe_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+        )
+        manager_initial = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        assert manager_initial.json()["vibe"]["partner"] == {"state": "NO_CHECK_IN"}
+
+        partner_initial = client.get(
+            path(couple["space"].id), headers=auth(couple["partner_token"])
+        )
+        partner_saved = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.NEEDS_CONNECTION.value},
+            headers={**auth(couple["partner_token"]), **if_match(partner_initial.headers["etag"])},
+        )
+        assert partner_saved.status_code == 200
+
+        visible = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert visible.json()["own"]["vibe"] is None
+        assert visible.json()["vibe"]["partner"] == {
+            "state": "VISIBLE",
+            "value": DailyVibe.NEEDS_CONNECTION.value,
+        }
+
+        foreign = client.get(
+            path(couple["space"].id),
+            headers=auth(couple["outsider_token"]),
+        )
+        assert foreign.status_code == 404
 
 
 class TestMutualReveal:

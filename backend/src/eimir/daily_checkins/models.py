@@ -1,15 +1,14 @@
 """Persistence for the shared current-day Daily Check-in.
 
 A DailyCheckIn is ephemeral relationship context. Vibe and Energy are optional
-fields of the same record; the final empty dimension is never persisted. The
-Vibe product value catalog is intentionally still undecided, so this foundation
-reserves the column while a database constraint keeps it null until #429 owns
-the explicit typed values.
+fields of the same record; the final empty dimension is never persisted. Vibe
+uses the explicit #429 V1 product catalog; Energy uses the #431 ten-point scale.
 """
 
 from __future__ import annotations
 
 from datetime import date
+from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, String, UniqueConstraint
@@ -18,6 +17,22 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
+
+
+class DailyVibe(StrEnum):
+    """Stable V1 daily-state values owned by #429.
+
+    These values describe today's relationship-facing state. They are not
+    diagnoses, scores, or HeartMoment emotions; localized UI copy remains a
+    presentation concern.
+    """
+
+    GOOD = "GOOD"
+    OKAY = "OKAY"
+    STRESSED = "STRESSED"
+    SAD = "SAD"
+    NEEDS_CONNECTION = "NEEDS_CONNECTION"
+    NEEDS_SPACE = "NEEDS_SPACE"
 
 
 class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -37,8 +52,6 @@ class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
     )
     checked_on: Mapped[date] = mapped_column(Date, nullable=False)
 
-    # #429 deliberately has no accepted V1 product enum yet. Keep this column
-    # reserved for the shared record shape without accepting arbitrary strings.
     vibe: Mapped[str | None] = mapped_column(String(32))
     energy_level: Mapped[int | None] = mapped_column(Integer)
 
@@ -54,8 +67,9 @@ class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
             name="has_dimension",
         ),
         CheckConstraint(
-            "vibe IS NULL",
-            name="vibe_contract_pending",
+            "vibe IS NULL OR vibe IN "
+            "('GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')",
+            name="vibe_is_known",
         ),
         CheckConstraint(
             "energy_level IS NULL OR "

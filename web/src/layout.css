@@ -234,12 +234,17 @@
 }
 
 .page-heading-root .page-heading-title-container {
+  min-inline-size: 0;
+  max-width: 100%;
   margin-bottom: 0;
 }
 
 .page-heading-root h1 {
+  min-inline-size: 0;
+  max-width: 100%;
   font: var(--font-page-heading);
   letter-spacing: var(--tracking-page-heading);
+  overflow-wrap: anywhere;
 }
 
 .page-heading-root > div > p:last-child {

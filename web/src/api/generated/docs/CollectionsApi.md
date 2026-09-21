@@ -687,7 +687,7 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  * X-Eimir-Collection-Completion-Transition - True only when this successful Item update caused the shared Collection to transition from incomplete to complete; false otherwise. <br>  |
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  * X-Eimir-Collection-Completion-Transition - True only when this successful Item update caused the shared Collection to transition from incomplete to complete; false otherwise. <br>  * X-Eimir-Shared-Achievement - Present only when the server confirms an enabled Shared Achievement for the successful domain completion. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |

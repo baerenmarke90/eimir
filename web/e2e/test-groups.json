@@ -240,6 +240,10 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 24
     },
+    "today-pro-insights.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
     "today-recent-trace.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 5

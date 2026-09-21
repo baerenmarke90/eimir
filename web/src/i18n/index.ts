@@ -6,6 +6,7 @@ import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import demo from './locales/demo';
 import dailyEnergy from './locales/dailyEnergy';
+import dailyInsights from './locales/dailyInsights';
 import dailyVibe from './locales/dailyVibe';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
@@ -48,6 +49,7 @@ if (!i18n.isInitialized) {
           navigation: { ...de.navigation, ...navigation },
           demo,
           dailyEnergy,
+          dailyInsights,
           dailyVibe,
           games,
           importantDates,

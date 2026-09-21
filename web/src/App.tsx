@@ -13,6 +13,7 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
+import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
 import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
@@ -65,6 +66,9 @@ import {
   MILESTONE_CREATE_ROUTE,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
+  MORE_INSIGHTS_PATTERNS_ROUTE,
+  MORE_INSIGHTS_RECAP_ROUTE,
+  MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
@@ -98,6 +102,7 @@ import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
+import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
@@ -278,6 +283,17 @@ function AuthenticatedApp({
   const dailyCheckInsApi = useMemo(
     () =>
       new DailyCheckInsApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+
+  const entitlementApi = useMemo(
+    () =>
+      new EntitlementsApi(
         new Configuration({
           basePath: apiBaseUrl,
           headers: { Authorization: `Bearer ${tokens.accessToken}` },
@@ -567,6 +583,30 @@ function AuthenticatedApp({
               />
             }
           />
+          {(
+            [
+              [MORE_INSIGHTS_ROUTE, 'week'],
+              [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
+              [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
+            ] as const
+          ).map(([path, insightView]) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <DailyInsightsPage
+                  key={`${account.id}:${spaceId}`}
+                  view={insightView}
+                  spaceId={spaceId}
+                  account={account}
+                  dailyCheckInsApi={dailyCheckInsApi}
+                  entitlementApi={entitlementApi}
+                  dashboardApi={m4Apis.dashboard}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+          ))}
           <Route
             path={MORE_NOTIFICATIONS_ROUTE}
             element={

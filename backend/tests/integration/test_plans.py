@@ -23,6 +23,7 @@ from eimir.core.clock import today_in
 from eimir.outbox.models import OutboxEvent
 from eimir.plans.models import Plan, PlanStatus
 from eimir.relationship import service as relationship_service
+from eimir.relationship.models import SpaceConfiguration
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -499,6 +500,75 @@ class TestUnschedule:
 
 
 class TestComplete:
+    def test_shared_achievement_projection_is_server_gated(
+        self,
+        client,
+        couple,
+        session: Session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        disabled_plan = create_plan(client, couple).json()
+        disabled = perform_action(
+            client,
+            couple,
+            disabled_plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
+        assert disabled.status_code == 200
+        assert "X-Eimir-Shared-Achievement" not in disabled.headers
+
+        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        assert configuration is not None
+        configuration.shared_achievements_enabled = True
+        session.flush()
+
+        enabled_plan = create_plan(client, couple).json()
+        enabled = perform_action(
+            client,
+            couple,
+            enabled_plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
+        assert enabled.status_code == 200
+        assert enabled.headers["X-Eimir-Shared-Achievement"] == "plan-completed"
+
+    def test_completed_retry_does_not_replay_shared_achievement(
+        self,
+        client,
+        couple,
+        session: Session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        assert configuration is not None
+        configuration.shared_achievements_enabled = True
+        session.flush()
+
+        plan = create_plan(client, couple).json()
+        first = perform_action(
+            client,
+            couple,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
+        retry = perform_action(
+            client,
+            couple,
+            plan["id"],
+            "complete",
+            2,
+            {"experiencedOn": yesterday()},
+        )
+
+        assert first.status_code == 200
+        assert first.headers["X-Eimir-Shared-Achievement"] == "plan-completed"
+        assert retry.status_code == 409
+        assert "X-Eimir-Shared-Achievement" not in retry.headers
+
     def test_completion_from_idea_is_allowed(  # type: ignore[no-untyped-def]
         self,
         client,
@@ -580,6 +650,7 @@ class TestComplete:
         )
         assert response.status_code == 422
         assert response.json()["code"] == "PLAN_EXPERIENCED_ON_IN_FUTURE"
+        assert "X-Eimir-Shared-Achievement" not in response.headers
 
     def test_without_day_cannot_be_completed(  # type: ignore[no-untyped-def]
         self,
@@ -815,6 +886,7 @@ class TestTenant:
             headers=if_match(couple["token_b"], 1),
         )
         assert response.status_code == 404
+        assert "X-Eimir-Shared-Achievement" not in response.headers
 
         session.expire_all()
         assert session.get(Plan, UUID(p["id"])).status == PlanStatus.IDEA.value

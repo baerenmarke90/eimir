@@ -125,15 +125,10 @@ def _partner_energy(
     visibility_mode: DailyCheckInVisibilityMode,
 ) -> PartnerDimensionProjection:
     own_energy = own.energy_level if own is not None else None
-    if (
-        visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL
-        and own_energy is None
-    ):
+    if visibility_mode is DailyCheckInVisibilityMode.MUTUAL_REVEAL and own_energy is None:
         # Privacy invariant: do not even query partner participation while the
         # caller has not satisfied this dimension's reveal condition.
-        return PartnerDimensionProjection(
-            state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN
-        )
+        return PartnerDimensionProjection(state=PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN)
 
     partner_account_id = _active_partner_account_id(session, authorization)
     if partner_account_id is None:

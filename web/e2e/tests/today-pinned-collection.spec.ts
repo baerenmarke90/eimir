@@ -442,7 +442,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   );
 });
 
-test('keeps the pinned Collection full-width on Expanded Web without introducing a dashboard grid', async ({
+test('keeps the pinned Collection compact on Expanded Web without introducing a dashboard grid', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -457,19 +457,10 @@ test('keeps the pinned Collection full-width on Expanded Web without introducing
   await expect(pinnedSection.getByText('Milch')).toBeVisible();
   await expect(pinnedSection.getByText('Äpfel')).toBeVisible();
 
-  const { sectionWidth, contentWidth } = await pinnedSection.evaluate(
-    (element) => {
-      const content = element.closest('.today-content');
-      if (!(content instanceof HTMLElement)) {
-        throw new Error('Pinned Collection must stay inside Today content.');
-      }
-      return {
-        sectionWidth: element.getBoundingClientRect().width,
-        contentWidth: content.getBoundingClientRect().width,
-      };
-    },
+  const sectionWidth = await pinnedSection.evaluate(
+    (element) => element.getBoundingClientRect().width,
   );
-  expect(Math.abs(sectionWidth - contentWidth)).toBeLessThan(2);
+  expect(sectionWidth).toBeLessThan(900);
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

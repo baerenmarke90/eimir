@@ -306,12 +306,14 @@ describe('DailyEnergyCheckIn', () => {
 
   it('never offers participation when the authoritative projection says Energy is disabled', async () => {
     const api = {
-      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
-        rawResponse(
-          projection({ own: 60, energyEnabled: false }),
-          '"2026-09-21:check-in-1:3"',
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(
+            projection({ own: 60, energyEnabled: false }),
+            '"2026-09-21:check-in-1:3"',
+          ),
         ),
-      ),
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);

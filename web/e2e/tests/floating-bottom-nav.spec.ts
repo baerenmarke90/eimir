@@ -346,7 +346,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
   test('Quick Create mobile floating panel opens with fully rounded corners, clear nav separation and accessibility', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installApiMocks(page);
     await page.goto('/login');
@@ -412,6 +412,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
     });
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-390-light.png'),
+    });
 
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -426,6 +429,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
     });
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-390-dark.png'),
+    });
 
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'light');
@@ -436,6 +442,17 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       name: navigation.closeMenu,
     });
     await expect(closeButton).toBeFocused();
+    await expect(closeButton).toHaveAttribute('title', navigation.closeMenu);
+    await expect(closeButton).toHaveText('');
+
+    const closeBox = await closeButton.boundingBox();
+    expect(closeBox).not.toBeNull();
+    if (!closeBox) throw new Error('Missing close button bounds');
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
+
+    const dragZone = dialog.locator('.short-task-sheet-drag-zone');
+    await expect(dragZone).toBeVisible();
 
     await page.keyboard.press('Shift+Tab');
     const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');
@@ -459,6 +476,27 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await expect(closeButton).toBeFocused();
 
     await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    const dragBox = await dragZone.boundingBox();
+    expect(dragBox).not.toBeNull();
+    if (!dragBox) throw new Error('Missing drag handle bounds');
+
+    await page.mouse.move(
+      dragBox.x + dragBox.width / 2,
+      dragBox.y + dragBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      dragBox.x + dragBox.width / 2,
+      dragBox.y + dragBox.height / 2 + 96,
+      { steps: 4 },
+    );
+    await page.mouse.up();
+
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
   });

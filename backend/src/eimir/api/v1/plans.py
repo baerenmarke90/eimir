@@ -23,9 +23,15 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.shared_achievements import (
+    PLAN_COMPLETED_ACHIEVEMENT,
+    SHARED_ACHIEVEMENT_HEADER,
+    SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+)
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.plans import service
 from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
 
@@ -431,7 +437,15 @@ def unschedule_plan(
     "/spaces/{spaceId}/plans/{planId}/complete",
     response_model=PlanDetail,
     operation_id="completePlan",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+    responses={
+        200: {
+            "headers": {
+                **ETAG_HEADERS,
+                SHARED_ACHIEVEMENT_HEADER: SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+            }
+        },
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def complete_plan(
     authorization: Authorization,
@@ -441,6 +455,12 @@ def complete_plan(
     expected_version: IfMatchVersion,
     plan_id: Annotated[str, Path(alias="planId")],
 ) -> PlanDetail:
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
     plan, _wish = service.complete_plan(
         session,
         authorization,
@@ -449,6 +469,8 @@ def complete_plan(
         experienced_on=body.experienced_on,
     )
     response.headers["ETag"] = etag_for(plan.version)
+    if shared_achievement_enabled:
+        response.headers[SHARED_ACHIEVEMENT_HEADER] = PLAN_COMPLETED_ACHIEVEMENT
     return _plan_detail(session, authorization, plan)
 
 

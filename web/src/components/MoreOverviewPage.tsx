@@ -24,7 +24,6 @@ interface MoreDestination {
   path: string;
   icon: AppRouteIcon;
   titleKey: string;
-  descriptionKey: string;
   badgeKey?: string;
 }
 
@@ -33,7 +32,6 @@ const PERSONAL_DESTINATIONS: readonly MoreDestination[] = [
     path: PRIVATE_AREA_ROOT_PATH,
     icon: 'private',
     titleKey: 'more.private.title',
-    descriptionKey: 'more.private.description',
   },
 ];
 
@@ -42,25 +40,21 @@ const SHARED_DESTINATIONS: readonly MoreDestination[] = [
     path: MORE_PEOPLE_ROUTE,
     icon: 'people',
     titleKey: 'more.people.title',
-    descriptionKey: 'more.people.description',
   },
   {
     path: MORE_PLACES_ROUTE,
     icon: 'places',
     titleKey: 'more.places.title',
-    descriptionKey: 'more.places.description',
   },
   {
     path: MORE_COLLECTIONS_ROUTE,
     icon: 'collections',
     titleKey: 'more.collections.title',
-    descriptionKey: 'more.collections.description',
   },
   {
     path: appRoutePath('games'),
     icon: 'games',
     titleKey: 'navigation.games',
-    descriptionKey: 'games.intro',
     badgeKey: 'games.status.premium',
   },
 ];
@@ -70,30 +64,25 @@ const UTILITY_DESTINATIONS: readonly MoreDestination[] = [
     path: MORE_NOTIFICATIONS_ROUTE,
     icon: 'notifications',
     titleKey: 'navigation.notifications',
-    descriptionKey: 'more.notifications.description',
   },
   {
     path: ACTIVITY_ROUTE,
     icon: 'activity',
     titleKey: 'navigation.activity',
-    descriptionKey: 'more.activity.description',
   },
   {
     path: MORE_SETTINGS_ROUTE,
     icon: 'settings',
     titleKey: 'navigation.settings',
-    descriptionKey: 'more.settings.description',
   },
 ];
 
 function MoreDestinationRow({
   destination,
   leading,
-  description,
 }: {
   destination: MoreDestination;
   leading?: ReactNode;
-  description?: ReactNode;
 }) {
   const { t } = useTranslation();
 
@@ -114,9 +103,6 @@ function MoreDestinationRow({
                 {t(destination.badgeKey)}
               </span>
             ) : null}
-          </span>
-          <span className="more-destination-description">
-            {description ?? t(destination.descriptionKey)}
           </span>
         </span>
         <span className="more-destination-chevron" aria-hidden="true">
@@ -165,22 +151,16 @@ export function MoreOverviewPage({
     path: MORE_PROFILE_ROUTE,
     icon: 'profile',
     titleKey: 'navigation.profile',
-    descriptionKey: 'more.profile.description',
   };
 
   return (
     <div className="page more-page">
-      <PageHeader
-        eyebrow={t('more.eyebrow')}
-        title={t('more.title')}
-        description={t('more.intro')}
-      />
+      <PageHeader eyebrow={t('more.eyebrow')} title={t('more.title')} />
 
       <div className="more-groups">
         <MoreDestinationGroup title={t('more.groups.personal')}>
           <MoreDestinationRow
             destination={profileDestination}
-            description={displayName}
             leading={
               <PersonIdentity
                 displayName={displayName}

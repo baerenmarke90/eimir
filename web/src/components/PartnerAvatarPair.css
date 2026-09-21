@@ -164,6 +164,15 @@
   background: var(--color-shared);
 }
 
+/* Keep the existing active-presence hook, but make the pip part of the badge. */
+.partner-presence-badge .partner-presence-pip {
+  position: static;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  box-shadow: none;
+}
+
 /* Touch target for WCAG 2.1 44x44 rule without breaking visual layout */
 .partner-avatar-waiting::after {
   content: "";

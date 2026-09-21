@@ -24,9 +24,18 @@
   animation: short-task-sheet-enter var(--duration-context) var(--easing-enter);
 }
 
-.short-task-sheet[open][data-dragging="true"] {
+.short-task-sheet[open][data-interacted="true"] {
   animation: none;
+}
+
+.short-task-sheet[open][data-dragging="true"] {
   transition: none;
+}
+
+.short-task-sheet[open][data-dismissing="true"] {
+  animation: none;
+  pointer-events: none;
+  transition-timing-function: var(--easing-exit);
 }
 
 .short-task-sheet::backdrop {

@@ -158,7 +158,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
         body: JSON.stringify({
           checkedOn: '2026-09-01',
           dailyContextTimezone: 'UTC',
-          own: null,
+          own: { energyLevel: null, vibe: null, version: 1 },
           energy: null,
           vibe: null,
         }),

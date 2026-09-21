@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from eimir.collections.models import CollectionItem
 from eimir.outbox.models import OutboxEvent
+from eimir.relationship import configuration as relationship_configuration
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import SpaceConfiguration
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -307,7 +307,7 @@ class TestCollectionItems:
         couple,
         session: Session,
     ) -> None:  # type: ignore[no-untyped-def]
-        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        configuration = relationship_configuration.load(session, couple["space"].id)
         assert configuration is not None
         configuration.shared_achievements_enabled = True
         session.flush()

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { SpaceConfigurationView } from '../api/generated/models/SpaceConfigurationView';
@@ -63,15 +69,17 @@ function renderPanel(
 
 describe('SpaceConfigurationPanel', () => {
   it('lets the manager update Support Gestures with the exact ETag', async () => {
+    const updatedConfiguration = configuration({
+      supportGesturesEnabled: false,
+      version: 8,
+    });
     const getSpaceConfigurationRaw = vi
       .fn()
-      .mockResolvedValue(rawResponse(configuration(), '"7"'));
-    const updateSpaceConfigurationRaw = vi.fn().mockResolvedValue(
-      rawResponse(
-        configuration({ supportGesturesEnabled: false, version: 8 }),
-        '"8"',
-      ),
-    );
+      .mockResolvedValueOnce(rawResponse(configuration(), '"7"'))
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const updateSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
     const spacesApi = {
       getSpaceConfigurationRaw,
       updateSpaceConfigurationRaw,
@@ -96,6 +104,7 @@ describe('SpaceConfigurationPanel', () => {
     await waitFor(() => {
       expect(toggle.getAttribute('aria-checked')).toBe('false');
     });
+    expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
   });
 
   it('shows a partner the shared state without any write affordance', async () => {

@@ -70,11 +70,14 @@ class DashboardModulePreferenceUpdate(ApiModel):
 
     visible: bool | SkipJsonSchema[None] = None
     item_limit: preferences.DashboardItemLimit | SkipJsonSchema[None] = None
+    selected_collection_id: UUID | None = None
 
     @model_validator(mode="after")
     def _require_at_least_one_facet(self) -> Self:
         if not self.model_fields_set:
-            raise ValueError("at least one of visible or itemLimit must be supplied")
+            raise ValueError(
+                "at least one of visible, itemLimit or selectedCollectionId must be supplied"
+            )
         return self
 
 
@@ -82,6 +85,10 @@ class DashboardModulePreferenceView(ApiModel):
     module_key: str
     visible: bool
     item_limit: preferences.DashboardItemLimit | SkipJsonSchema[None] = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+    )
+    selected_collection_id: UUID | SkipJsonSchema[None] = Field(
         default=None,
         exclude_if=lambda value: value is None,
     )
@@ -161,6 +168,7 @@ def list_dashboard_module_preferences(
                 module_key=state.key.value,
                 visible=state.visible,
                 item_limit=state.item_limit,
+                selected_collection_id=state.selected_collection_id,
             )
             for state in states
         ]
@@ -180,7 +188,7 @@ def update_dashboard_module_preference(
     body: DashboardModulePreferenceUpdate,
     module_key: Annotated[str, Path(alias="moduleKey")],
 ) -> DashboardModulePreferenceView:
-    """Set one private per-account Dashboard preference (#817 visibility, #848 item limit)."""
+    """Set one private per-account Dashboard presentation preference."""
     state = preferences.set_module_preference(
         session,
         account_id=authorization.account_id,
@@ -188,12 +196,15 @@ def update_dashboard_module_preference(
         module_key=module_key,
         visible=body.visible,
         item_limit=body.item_limit,
+        selected_collection_id=body.selected_collection_id,
+        selected_collection_id_changed="selected_collection_id" in body.model_fields_set,
     )
     response.headers["Cache-Control"] = "private, no-store"
     return DashboardModulePreferenceView(
         module_key=state.key.value,
         visible=state.visible,
         item_limit=state.item_limit,
+        selected_collection_id=state.selected_collection_id,
     )
 
 

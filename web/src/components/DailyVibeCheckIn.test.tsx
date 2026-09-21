@@ -190,11 +190,26 @@ describe('DailyVibeCheckIn', () => {
       screen.getByRole('dialog', { name: dailyVibe.sheetTitle }),
     ).not.toBeNull();
 
-    resolveRefetch?.(initial);
+    resolveRefetch?.(
+      rawResponse(
+        projection({
+          ownVibe: 'GOOD',
+          partner: { state: 'VISIBLE', value: 'GOOD' },
+        }),
+        '"today:1"',
+      ),
+    );
     await waitFor(() => expect(queryClient.isFetching()).toBe(0));
     expect(
       screen.getByRole('dialog', { name: dailyVibe.sheetTitle }),
     ).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('daily-vibe-partner')).getByText(
+          dailyVibe.values.GOOD,
+        ),
+      ).not.toBeNull(),
+    );
   });
 
   it('sets Vibe with the shared full-owner ETag and never patches Energy', async () => {

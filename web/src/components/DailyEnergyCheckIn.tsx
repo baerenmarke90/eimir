@@ -3,11 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { PartnerEnergyProjection } from '../api/generated/models/PartnerEnergyProjection';
 import {
@@ -154,11 +150,6 @@ export function DailyEnergyCheckIn({
   );
   const [editing, setEditing] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
-
-  useEffect(() => {
-    setEditing(false);
-    setModuleDisabled(false);
-  }, [accountId, spaceId]);
 
   const mutation = useMutation({
     mutationFn: async (energyLevel: DailyEnergyLevel | null) => {

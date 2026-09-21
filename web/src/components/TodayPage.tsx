@@ -1129,6 +1129,7 @@ export function TodayPage({
               animationDelay="20ms"
             >
               <DailyEnergyCheckIn
+                key={`${account.id}:${spaceId}`}
                 api={dailyCheckInsApi}
                 accountId={account.id}
                 spaceId={spaceId}

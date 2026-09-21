@@ -51,6 +51,7 @@ def load(session: Session, space_id: UUID) -> SpaceConfiguration | None:
         select(SpaceConfiguration).where(SpaceConfiguration.space_id == space_id)
     ).scalar_one_or_none()
 
+
 class SpaceModule(StrEnum):
     """Closed V1 catalog for shared Space module availability."""
 

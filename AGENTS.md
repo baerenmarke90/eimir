@@ -121,6 +121,26 @@ For every new or materially changed user-facing Web feature or native capability
 
 A new feature must use the shared product language in its first mergeable implementation. `Functionality first, design later` is not an acceptable UI delivery strategy.
 
+### Generated visual product reference is mandatory before implementation
+
+For every new or materially changed user-facing feature, the owning issue MUST contain at least one generated visual reference image before UI implementation starts.
+
+The visual-reference preflight is repository-aware, not a free-form concept exercise:
+
+- inspect current `main` and the actual destination screen/route before generating the image;
+- account for the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
+- preserve existing visible capabilities that remain in scope and represent them as they currently exist instead of silently replacing or omitting them;
+- integrate the new feature into the whole composition so placement, hierarchy, density, interaction entry points, and coexistence with neighboring features can be reviewed;
+- use Compact/smartphone as the primary generated composition; add an Expanded/Web visual only when its adaptation is materially different;
+- do not satisfy this gate with an isolated feature card, a blank replacement screen, generic SaaS/admin artwork, or a mockup detached from the current eimir. product;
+- attach/link the generated reference in the issue and record the baseline `main` SHA plus the existing screen/functions that were reviewed;
+- if the affected screen changes materially before implementation starts, regenerate or update the image against the new baseline;
+- for an existing feature issue that lacks this artifact, perform this visual preflight before writing or continuing UI implementation.
+
+The requirement to generate the image is binding. The generated image guides composition and Product Acceptance but is not automatically a pixel-perfect lock; normative Product Reference rules, accessibility, privacy, security, business/domain contracts, and later explicit Product Owner decisions still govern. If an issue needs particular visual decisions to be exact, it must say so explicitly.
+
+[#1151](https://github.com/baerenmarke90/eimir/issues/1151) may be consulted as a **non-binding example of the workflow only**. It does not establish a reusable layout, style template, or precedence for unrelated features.
+
 ### Couple-facing anti-patterns
 
 Unless an explicit product decision justifies them, do not use these as the primary presentation of relationship content:

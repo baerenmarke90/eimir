@@ -147,6 +147,45 @@ describe('SpaceConfigurationPanel', () => {
     expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
   });
 
+  it('lets the manager disable the battery check-in through the same configuration contract', async () => {
+    const updatedConfiguration = configuration({
+      energyCheckInEnabled: false,
+      version: 8,
+    });
+    const getSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValueOnce(rawResponse(configuration(), '"7"'))
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const updateSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const spacesApi = {
+      getSpaceConfigurationRaw,
+      updateSpaceConfigurationRaw,
+    } as unknown as SpacesApi;
+
+    renderPanel(spacesApi);
+
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.energyCheckInToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(updateSpaceConfigurationRaw).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        ifMatch: '"7"',
+        spaceConfigurationUpdate: { energyCheckInEnabled: false },
+      });
+    });
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+    });
+    expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
+  });
+
   it('shows a partner the shared state without any write affordance', async () => {
     const spacesApi = {
       getSpaceConfigurationRaw: vi
@@ -163,7 +202,7 @@ describe('SpaceConfigurationPanel', () => {
 
     expect(
       await screen.findAllByText(profileIdentity.spaceModuleOn),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });

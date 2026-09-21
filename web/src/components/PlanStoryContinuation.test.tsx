@@ -57,7 +57,10 @@ describe('PlanStoryContinuation', () => {
         name: i18n.t('m5s3.plan.sharedAchievementTitle'),
       }),
     ).toHaveLength(1);
-    expect(screen.getByRole('status').textContent).toContain(
+    expect(
+      view.container.querySelector('.shared-achievement-confirmation')
+        ?.textContent,
+    ).toContain(
       i18n.t('m5s3.plan.sharedAchievementBody', { title: plan.title }),
     );
     expect(

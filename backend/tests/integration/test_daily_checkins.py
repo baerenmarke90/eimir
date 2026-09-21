@@ -278,28 +278,26 @@ class TestPersistenceAndEnergy:
         self, session: Session, couple
     ) -> None:  # type: ignore[no-untyped-def]
         day = date(2026, 9, 21)
-        with pytest.raises(IntegrityError):
-            with session.begin_nested():
-                session.add(
-                    DailyCheckIn(
-                        space_id=couple["space"].id,
-                        account_id=couple["manager"].id,
-                        checked_on=day,
-                    )
+        with pytest.raises(IntegrityError), session.begin_nested():
+            session.add(
+                DailyCheckIn(
+                    space_id=couple["space"].id,
+                    account_id=couple["manager"].id,
+                    checked_on=day,
                 )
-                session.flush()
+            )
+            session.flush()
 
-        with pytest.raises(IntegrityError):
-            with session.begin_nested():
-                session.add(
-                    DailyCheckIn(
-                        space_id=couple["space"].id,
-                        account_id=couple["manager"].id,
-                        checked_on=day,
-                        vibe="INVENTED_MOOD",
-                    )
+        with pytest.raises(IntegrityError), session.begin_nested():
+            session.add(
+                DailyCheckIn(
+                    space_id=couple["space"].id,
+                    account_id=couple["manager"].id,
+                    checked_on=day,
+                    vibe="INVENTED_MOOD",
                 )
-                session.flush()
+            )
+            session.flush()
 
     def test_disabled_energy_hides_partner_projection_but_owner_can_clear(
         self, client, session: Session, couple

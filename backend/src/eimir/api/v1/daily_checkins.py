@@ -133,7 +133,7 @@ def _view(projection: service.TodayProjection) -> DailyCheckInTodayView:
 
 
 def _headers(response: Response, projection: service.TodayProjection) -> None:
-    response.headers["ETag"] = etag_for_token(service.concurrency_token(projection.own))
+    response.headers["ETag"] = etag_for_token(\n        service.concurrency_token(projection.own, projection.checked_on)\n    )
     response.headers["Cache-Control"] = "private, no-store"
 
 

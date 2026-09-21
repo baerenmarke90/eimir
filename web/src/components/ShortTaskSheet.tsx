@@ -75,7 +75,8 @@ export function ShortTaskSheet({
       typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(min-width: 840px)').matches;
-    if (expanded || event.button !== 0 || dragPointerRef.current !== null) return;
+    if (expanded || event.button !== 0 || dragPointerRef.current !== null)
+      return;
     dragPointerRef.current = event.pointerId;
     dragStartYRef.current = event.clientY;
     dragMaxDistanceRef.current = 0;

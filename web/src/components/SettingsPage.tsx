@@ -34,6 +34,7 @@ import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { SettingsIndex } from './SettingsIndex';
+import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
 import './SettingsPage.css';
@@ -104,6 +105,11 @@ export function SettingsPage(props: SettingsPageProps) {
       >
         <RelationshipSettingsSection
           spacesApi={spacesApi}
+          spaceId={props.spaceId}
+        />
+        <SpaceConfigurationPanel
+          spacesApi={spacesApi}
+          accountId={props.account.id}
           spaceId={props.spaceId}
         />
         <PartnerConnectionPanel {...props} />

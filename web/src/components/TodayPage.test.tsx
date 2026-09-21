@@ -8,6 +8,7 @@ import {
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
@@ -26,7 +27,12 @@ import { formatRelationshipDuration, TodayPage } from './TodayPage';
 function renderTodayPage(
   dashboardData: unknown,
   itemLimit?: 1 | 2 | 3,
-  options?: { preferences?: unknown; preferencesPending?: boolean },
+  options?: {
+    preferences?: unknown;
+    preferencesPending?: boolean;
+    supportGesturesEnabled?: boolean;
+    configurationPending?: boolean;
+  },
 ): string {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -39,6 +45,17 @@ function renderTodayPage(
         (itemLimit !== undefined
           ? { items: [{ moduleKey: 'upcoming', itemLimit }] }
           : { items: [] }),
+    );
+  }
+  if (!options?.configurationPending) {
+    queryClient.setQueryData(
+      spaceConfigurationQueryKey('account-1', 'space-1'),
+      {
+        configuration: {
+          supportGesturesEnabled: options?.supportGesturesEnabled ?? true,
+        },
+        etag: '"1"',
+      },
     );
   }
 
@@ -118,6 +135,26 @@ describe('TodayPage', () => {
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('today-living-retrospective');
     expect(html).toContain('today-recent-tile');
+  });
+
+  it('does not expose the Support Gesture affordance while the Space module is disabled', () => {
+    const html = renderTodayPage(
+      {
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
+        },
+        relationshipDuration: null,
+        upcoming: [],
+        recentShared: [],
+        retrospective: null,
+        thinkingOfYouAvailableAt: null,
+      },
+      undefined,
+      { supportGesturesEnabled: false },
+    );
+
+    expect(html).not.toContain('today-hero-action-container');
   });
 
   it('reflects the server-authoritative Thinking-of-you cooldown from the Dashboard on load (regression #790/#791)', () => {

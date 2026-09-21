@@ -417,9 +417,7 @@ export function DailyVibeCheckIn({
               key={`${revealVersion}:${partnerProjection.value}`}
               className={
                 'daily-vibe-person daily-vibe-partner is-visible' +
-                (revealVersion > 0
-                  ? ' is-revealed'
-                  : ' is-startup-reveal')
+                (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal')
               }
               data-state="VISIBLE"
               data-testid="daily-vibe-partner"

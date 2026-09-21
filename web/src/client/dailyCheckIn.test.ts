@@ -50,11 +50,7 @@ describe('DailyCheckIn web query contract', () => {
 
   it('keeps an active Today surface converged with partner Daily Check-in changes', () => {
     const api = {} as DailyCheckInsApi;
-    const options = dailyCheckInTodayQueryOptions(
-      api,
-      'account-1',
-      'space-1',
-    );
+    const options = dailyCheckInTodayQueryOptions(api, 'account-1', 'space-1');
 
     expect(options.refetchInterval).toBe(DAILY_CHECK_IN_REFRESH_INTERVAL_MS);
     expect(options.refetchInterval).toBe(5_000);

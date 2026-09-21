@@ -16,6 +16,7 @@ export interface PartnerAvatarPairProps {
   secondaryPerson?: PartnerAvatarPerson | null;
   size?: PartnerAvatarSize;
   status?: PartnerPresenceStatus;
+  statusLabel?: string;
   className?: string;
   onInviteClick?: () => void;
 }
@@ -63,6 +64,7 @@ export function PartnerAvatarPair({
   secondaryPerson = null,
   size = 'medium',
   status = 'unknown',
+  statusLabel,
   className = '',
   onInviteClick,
 }: PartnerAvatarPairProps) {
@@ -113,13 +115,23 @@ export function PartnerAvatarPair({
         )}
       </div>
 
-      {status === 'active' && (
+      {secondaryPerson && statusLabel ? (
+        <span
+          className={`partner-presence-badge status-${status}`}
+          title={statusLabel}
+        >
+          {status === 'active' ? (
+            <span className="partner-presence-badge-dot" aria-hidden="true" />
+          ) : null}
+          <span className="partner-presence-badge-label">{statusLabel}</span>
+        </span>
+      ) : status === 'active' ? (
         <span
           className="partner-presence-pip"
           aria-hidden="true"
           title={t('couplePresenceActive')}
         />
-      )}
+      ) : null}
     </section>
   );
 }

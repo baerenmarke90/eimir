@@ -1,3 +1,4 @@
+import type { QueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { SpaceConfigurationUpdate } from '../api/generated/models/SpaceConfigurationUpdate';
 import type { SpaceConfigurationView } from '../api/generated/models/SpaceConfigurationView';
@@ -19,6 +20,23 @@ export function spaceConfigurationQueryKey(
   // Space-wide. Keep account identity in the key so an account switch can
   // never reuse another caller's canManageSpaceConfiguration result.
   return ['space-configuration', accountId, spaceId] as const;
+}
+
+/**
+ * Runtime consumers call this when the server reports SPACE_MODULE_DISABLED (or
+ * a projection that omits the module), so the stale entry point leaves the
+ * composition now instead of waiting for the periodic refresh.
+ */
+export function refreshSpaceConfiguration(
+  queryClient: QueryClient,
+  accountId: string,
+  spaceId: string,
+): Promise<void> {
+  return queryClient.invalidateQueries({
+    queryKey: spaceConfigurationQueryKey(accountId, spaceId),
+    exact: true,
+    refetchType: 'active',
+  });
 }
 
 async function snapshotFromResponse(
@@ -66,6 +84,53 @@ export async function updateSpaceConfiguration(
   } catch (error) {
     throw await normalizeClientError(error);
   }
+}
+
+type DailyModuleField = 'vibeCheckEnabled' | 'energyCheckInEnabled';
+
+/**
+ * The device zone is only a suggestion for the manager's first Daily Check-in
+ * choice. It is persisted through the Space configuration write, so no client
+ * ever derives the shared day from its own device afterwards.
+ */
+export function suggestedDailyContextTimezone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The server rejects enabling a Daily Check-in module without a shared day
+ * context, so the first enable carries the confirmed zone in the same atomic
+ * write instead of failing with a state the manager cannot resolve.
+ */
+export function dailyModuleToggleUpdate(
+  configuration: SpaceConfigurationView,
+  field: DailyModuleField,
+  suggestedTimezone: string | null,
+): SpaceConfigurationUpdate {
+  const enabling = !configuration[field];
+  const update: SpaceConfigurationUpdate = { [field]: enabling };
+  if (
+    enabling &&
+    configuration.dailyContextTimezone === null &&
+    suggestedTimezone
+  ) {
+    update.dailyContextTimezone = suggestedTimezone;
+  }
+  return update;
+}
+
+export function dailyContextTimezoneOptions(current: string): string[] {
+  let supported: string[] = [];
+  try {
+    supported = Intl.supportedValuesOf('timeZone');
+  } catch {
+    // Older engines lack the enumeration; the current zone stays selectable.
+  }
+  return supported.includes(current) ? supported : [current, ...supported];
 }
 
 export function spaceConfigurationQueryOptions(

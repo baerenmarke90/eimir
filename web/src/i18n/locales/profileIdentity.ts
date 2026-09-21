@@ -61,14 +61,31 @@ const profileIdentity = {
     'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
   supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
   supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
-  energyCheckInTitle: 'Akku-Check-in',
-  energyCheckInIntro:
-    'Teilt euren heutigen Energielevel über die Akkuanzeige an euren Profilbildern auf „Wir“.',
-  energyCheckInToggle: 'Akku-Check-in aktivieren oder deaktivieren',
   vibeCheckTitle: 'Vibe-Check',
   vibeCheckIntro:
     'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',
   vibeCheckToggle: 'Vibe-Check aktivieren oder deaktivieren',
+  energyCheckInTitle: 'Akku-Check-in',
+  energyCheckInIntro:
+    'Zeigt auf „Wir“, wie voll euer Akku heute ist. Niemand muss etwas eintragen.',
+  energyCheckInToggle: 'Akku-Check-in aktivieren oder deaktivieren',
+  visibilityLegend: 'Sichtbarkeit: {{module}}',
+  visibilityImmediate: 'Sofort',
+  visibilityImmediateHint:
+    'Ihr seht den Eintrag des anderen, sobald er da ist.',
+  visibilityMutualReveal: 'Gemeinsam aufdecken',
+  visibilityMutualRevealHint:
+    'Ihr seht den Eintrag des anderen erst, wenn ihr selbst etwas eingetragen habt.',
+  visibilityReadOnly: 'Sichtbarkeit: {{mode}}',
+  spaceModulesKeepDataNote:
+    'Beim Ausschalten bleiben bestehende Einträge erhalten. Sie erscheinen wieder, sobald ihr die Funktion einschaltet.',
+  dailyContextTimezoneLabel: 'Zeitzone für euren gemeinsamen Tag',
+  dailyContextTimezoneIntro:
+    'Vibe und Akku gelten für euren gemeinsamen Tag. Er wechselt um Mitternacht in dieser Zeitzone.',
+  dailyContextTimezoneReadOnly:
+    'Euer gemeinsamer Tag wechselt in {{timezone}}.',
+  dailyContextTimezoneLocked:
+    'Die Zeitzone lässt sich ändern, sobald heute niemand mehr etwas eingetragen hat.',
   spaceModuleOn: 'Aktiv',
   spaceModuleOff: 'Aus',
   settingsNotifications: 'Benachrichtigungen',

@@ -17,7 +17,16 @@ async function installMocks(page: Page): Promise<{
   patchCount: () => number;
   lastIfMatch: () => string | null;
   lastEnergy: () => number | null | undefined;
+  setConfiguration: (next: {
+    energyEnabled: boolean;
+    canManage: boolean;
+  }) => void;
+  dailyCheckInReads: () => number;
 }> {
+  let energyEnabled = true;
+  let canManage = true;
+  let configurationVersion = 7;
+  let dailyCheckInReads = 0;
   let ownEnergy: number | null = null;
   let partner: EnergyProjection = { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' };
   let etag = '"2026-09-21:absent"';
@@ -100,21 +109,21 @@ async function installMocks(page: Page): Promise<{
     ) {
       await fulfillJson(
         {
-          canManageSpaceConfiguration: true,
+          canManageSpaceConfiguration: canManage,
           dailyContextTimezone: 'Europe/Berlin',
           dailyQuestionsEnabled: false,
-          energyCheckInEnabled: true,
+          energyCheckInEnabled: energyEnabled,
           energyVisibilityMode: 'MUTUAL_REVEAL',
           loveNotesEnabled: false,
           sharedAchievementsEnabled: false,
           spaceId: SPACE_ID,
           supportGesturesEnabled: true,
-          version: 7,
+          version: configurationVersion,
           vibeCheckEnabled: false,
           vibeVisibilityMode: 'MUTUAL_REVEAL',
         },
         200,
-        { ETag: '"7"' },
+        { ETag: `"${configurationVersion}"` },
       );
       return;
     }
@@ -195,6 +204,7 @@ async function installMocks(page: Page): Promise<{
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
     ) {
+      dailyCheckInReads += 1;
       await fulfillJson(
         {
           checkedOn: '2026-09-21',
@@ -204,10 +214,12 @@ async function installMocks(page: Page): Promise<{
             vibe: null,
             version: ownEnergy === null ? 0 : 1,
           },
-          energy: {
-            visibilityMode: 'MUTUAL_REVEAL',
-            partner,
-          },
+          energy: energyEnabled
+            ? {
+                visibilityMode: 'MUTUAL_REVEAL',
+                partner,
+              }
+            : null,
           vibe: null,
         },
         200,
@@ -290,6 +302,12 @@ async function installMocks(page: Page): Promise<{
     patchCount: () => patchCount,
     lastIfMatch: () => lastIfMatch,
     lastEnergy: () => lastEnergy,
+    setConfiguration: (next) => {
+      energyEnabled = next.energyEnabled;
+      canManage = next.canManage;
+      configurationVersion += 1;
+    },
+    dailyCheckInReads: () => dailyCheckInReads,
   };
 }
 
@@ -444,6 +462,40 @@ test('Daily Energy keeps an unset own affordance, reveals partner Energy, and al
   await page.keyboard.press('Escape');
   await expect(popover).toHaveCount(0);
   await expect(hero.getByTestId('daily-energy-own-battery')).toBeFocused();
+});
+
+test('an open partner Today adopts the manager turning Energy off and on again', async ({
+  page,
+}) => {
+  const state = await installMocks(page);
+  state.setConfiguration({ energyEnabled: true, canManage: false });
+  await page.clock.install();
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const hero = page.locator('.today-hero');
+  const ownBattery = hero.getByRole('button', {
+    name: dailyEnergy.badgeAriaEmpty,
+  });
+  await expect(ownBattery).toBeVisible();
+
+  // The manager disables Energy elsewhere. The open client converges through
+  // the Space configuration refresh, without a reload.
+  state.setConfiguration({ energyEnabled: false, canManage: false });
+  await page.clock.fastForward(31_000);
+  await expect(ownBattery).toHaveCount(0);
+  await expect(page.locator('.daily-energy-avatar-chip')).toHaveCount(0);
+
+  // While disabled the Today surface no longer polls the Daily Check-in.
+  const readsWhileDisabled = state.dailyCheckInReads();
+  await page.clock.fastForward(10_000);
+  expect(state.dailyCheckInReads()).toBe(readsWhileDisabled);
+
+  // Re-enabling restores the control and the retained own state.
+  state.setConfiguration({ energyEnabled: true, canManage: false });
+  await page.clock.fastForward(31_000);
+  await expect(ownBattery).toBeVisible();
 });
 
 test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent text', async ({

@@ -11,6 +11,8 @@ const snackbar = {
       'Der Vibe hat sich inzwischen geändert. Der aktuelle Stand wurde geladen.',
     dailyVibeModuleDisabled:
       'Der Vibe-Check-in ist für euren Bereich nicht mehr aktiviert.',
+    supportGesturesModuleDisabled:
+      '„Ich denke an dich“ ist für euren Bereich nicht mehr aktiviert.',
   },
 };
 

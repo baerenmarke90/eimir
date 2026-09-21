@@ -20,7 +20,7 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
-import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
+import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import './DailyEnergyCheckIn.css';
 
@@ -163,7 +163,6 @@ export function DailyEnergyCheckIn({
     () => true,
   );
   const queryKey = dailyCheckInTodayQueryKey(accountId, spaceId);
-  const configurationKey = spaceConfigurationQueryKey(accountId, spaceId);
   const dailyQuery = useQuery(
     dailyCheckInTodayQueryOptions(api, accountId, spaceId),
   );
@@ -185,11 +184,7 @@ export function DailyEnergyCheckIn({
 
   useEffect(() => {
     if (!serverReportsModuleDisabled) return;
-    void queryClient.invalidateQueries({
-      queryKey: spaceConfigurationQueryKey(accountId, spaceId),
-      exact: true,
-      refetchType: 'active',
-    });
+    void refreshSpaceConfiguration(queryClient, accountId, spaceId);
   }, [accountId, queryClient, serverReportsModuleDisabled, spaceId]);
 
   const mutation = useMutation({
@@ -224,11 +219,7 @@ export function DailyEnergyCheckIn({
             exact: true,
             type: 'active',
           }),
-          queryClient.invalidateQueries({
-            queryKey: configurationKey,
-            exact: true,
-            refetchType: 'active',
-          }),
+          refreshSpaceConfiguration(queryClient, accountId, spaceId),
         ]);
         return;
       }

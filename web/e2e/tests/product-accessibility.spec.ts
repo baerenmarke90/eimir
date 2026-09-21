@@ -41,10 +41,49 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
-async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
+type SpaceConfigurationPatch = {
+  supportGesturesEnabled?: boolean;
+  vibeCheckEnabled?: boolean;
+  energyCheckInEnabled?: boolean;
+  dailyContextTimezone?: string | null;
+  vibeVisibilityMode?: 'IMMEDIATE' | 'MUTUAL_REVEAL';
+  energyVisibilityMode?: 'IMMEDIATE' | 'MUTUAL_REVEAL';
+};
+
+async function installAuthorizedApiMocks(
+  page: Page,
+): Promise<
+  string[] & { spaceConfigurationPatches: SpaceConfigurationPatch[] }
+> {
+  const spaceConfigurationPatches: SpaceConfigurationPatch[] = [];
   const unexpectedRequests: string[] = [];
+  // Non-enumerable so the many `expect(unexpectedRequests).toEqual([])`
+  // assertions keep comparing only the recorded unexpected requests.
+  Object.defineProperty(unexpectedRequests, 'spaceConfigurationPatches', {
+    value: spaceConfigurationPatches,
+  });
   let supportGesturesEnabled = true;
+  let vibeCheckEnabled = false;
+  let energyCheckInEnabled = false;
+  let dailyContextTimezone: string | null = null;
+  let vibeVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
+  let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let spaceConfigurationVersion = 7;
+  const spaceConfigurationBody = () =>
+    JSON.stringify({
+      canManageSpaceConfiguration: true,
+      dailyContextTimezone,
+      dailyQuestionsEnabled: false,
+      energyCheckInEnabled,
+      energyVisibilityMode,
+      loveNotesEnabled: false,
+      sharedAchievementsEnabled: false,
+      spaceId: SPACE_ID,
+      supportGesturesEnabled,
+      version: spaceConfigurationVersion,
+      vibeCheckEnabled,
+      vibeVisibilityMode,
+    });
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -120,20 +159,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
         status: 200,
         contentType: 'application/json',
         headers: { ETag: `"${spaceConfigurationVersion}"` },
-        body: JSON.stringify({
-          canManageSpaceConfiguration: true,
-          dailyContextTimezone: null,
-          dailyQuestionsEnabled: false,
-          energyCheckInEnabled: false,
-          energyVisibilityMode: 'IMMEDIATE',
-          loveNotesEnabled: false,
-          sharedAchievementsEnabled: false,
-          spaceId: SPACE_ID,
-          supportGesturesEnabled,
-          version: spaceConfigurationVersion,
-          vibeCheckEnabled: false,
-          vibeVisibilityMode: 'IMMEDIATE',
-        }),
+        body: spaceConfigurationBody(),
       });
       return;
     }
@@ -159,31 +185,41 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
         );
         return;
       }
-      const body = request.postDataJSON() as {
-        supportGesturesEnabled?: boolean;
-      };
+      const body = request.postDataJSON() as SpaceConfigurationPatch;
+      spaceConfigurationPatches.push(body);
+      const nextTimezone =
+        body.dailyContextTimezone !== undefined
+          ? body.dailyContextTimezone
+          : dailyContextTimezone;
+      const nextVibe = body.vibeCheckEnabled ?? vibeCheckEnabled;
+      const nextEnergy = body.energyCheckInEnabled ?? energyCheckInEnabled;
+      // Mirror the server's atomic validation of the complete resulting state.
+      if ((nextVibe || nextEnergy) && nextTimezone === null) {
+        await fulfillJson(
+          {
+            code: 'SPACE_DAILY_CONTEXT_TIMEZONE_REQUIRED',
+            detail: 'Daily Check-in modules require a shared time zone.',
+            status: 422,
+            title: 'Unprocessable',
+          },
+          422,
+        );
+        return;
+      }
       if (body.supportGesturesEnabled !== undefined) {
         supportGesturesEnabled = body.supportGesturesEnabled;
       }
+      vibeCheckEnabled = nextVibe;
+      energyCheckInEnabled = nextEnergy;
+      dailyContextTimezone = nextTimezone;
+      vibeVisibilityMode = body.vibeVisibilityMode ?? vibeVisibilityMode;
+      energyVisibilityMode = body.energyVisibilityMode ?? energyVisibilityMode;
       spaceConfigurationVersion += 1;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
         headers: { ETag: `"${spaceConfigurationVersion}"` },
-        body: JSON.stringify({
-          canManageSpaceConfiguration: true,
-          dailyContextTimezone: null,
-          dailyQuestionsEnabled: false,
-          energyCheckInEnabled: false,
-          energyVisibilityMode: 'IMMEDIATE',
-          loveNotesEnabled: false,
-          sharedAchievementsEnabled: false,
-          spaceId: SPACE_ID,
-          supportGesturesEnabled,
-          version: spaceConfigurationVersion,
-          vibeCheckEnabled: false,
-          vibeVisibilityMode: 'IMMEDIATE',
-        }),
+        body: spaceConfigurationBody(),
       });
       return;
     }
@@ -678,6 +714,129 @@ test('Space configuration is touch operable, reload-safe, responsive, and axe-cl
   await reloadedSwitch.click();
   await expect(reloadedSwitch).toHaveAttribute('aria-checked', 'true');
   expect(unexpectedRequests).toEqual([]);
+});
+
+test.describe('Space configuration Daily Check-in modules', () => {
+  test.use({ timezoneId: 'Europe/Berlin' });
+
+  test('manager enables Vibe and Energy with a confirmed shared day zone and keeps compact widths and large text usable', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/more/settings/relationship');
+
+    const energySwitch = page.getByRole('switch', {
+      name: profileIdentity.energyCheckInToggle,
+    });
+    const vibeSwitch = page.getByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    const zoneSelect = page.getByRole('combobox', {
+      name: profileIdentity.dailyContextTimezoneLabel,
+    });
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'false');
+    await expect(zoneSelect).toHaveCount(0);
+
+    // First enable must carry the shared day zone; without it the server
+    // rejects the write and the manager would be stuck.
+    await energySwitch.click();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'true');
+    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+
+    // The zone is now Space state and is not sent again.
+    await vibeSwitch.click();
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+
+    // Visibility is chosen per module and only offered while it is switched on.
+    const vibeVisibility = page.getByRole('group', {
+      name: profileIdentity.visibilityLegend.replace(
+        '{{module}}',
+        profileIdentity.vibeCheckTitle,
+      ),
+    });
+    await vibeVisibility
+      .locator('.space-visibility-option', {
+        hasText: profileIdentity.visibilityMutualReveal,
+      })
+      .click();
+    await expect(
+      vibeVisibility.getByRole('radio', {
+        name: new RegExp(profileIdentity.visibilityMutualReveal),
+      }),
+    ).toBeChecked();
+    expect(unexpectedRequests.spaceConfigurationPatches).toEqual([
+      { energyCheckInEnabled: true, dailyContextTimezone: 'Europe/Berlin' },
+      { vibeCheckEnabled: true },
+      { vibeVisibilityMode: 'MUTUAL_REVEAL' },
+    ]);
+
+    await page.reload();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'true');
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+    await page.locator('.space-configuration-panel').screenshot({
+      path: testInfo.outputPath('space-configuration-daily-modules-390.png'),
+    });
+
+    for (const width of [320, 360, 390, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+      for (const control of [
+        energySwitch,
+        vibeSwitch,
+        zoneSelect,
+        ...(await page.locator('.space-visibility-option').all()),
+      ]) {
+        const box = await control.boundingBox();
+        expect(
+          box?.width ?? 0,
+          `${width}px control width`,
+        ).toBeGreaterThanOrEqual(44);
+        expect(
+          box?.height ?? 0,
+          `${width}px control height`,
+        ).toBeGreaterThanOrEqual(44);
+      }
+      await expectNoWcagViolations(page);
+    }
+
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    // The page heading and neighbouring relationship panels still overflow at
+    // 200 percent text and stretch the shared column, so isolate the Space
+    // configuration surface to prove its own content reflows.
+    await page.addStyleTag({
+      content:
+        '.settings-category-page > :not(.settings-connection-block), .settings-connection-block > :not(.space-configuration-panel) { display: none; }',
+    });
+    const overflowing = await page
+      .locator('.space-configuration-panel')
+      .evaluate((panel) =>
+        [panel, ...panel.querySelectorAll('*')]
+          .filter((element) => element.getBoundingClientRect().right > 321)
+          .map((element) => `${element.tagName}.${element.className}`),
+      );
+    expect(overflowing).toEqual([]);
+    await expectNoWcagViolations(page);
+
+    // Disable is not delete: switching off is a plain module choice and the
+    // manager is told existing entries are kept.
+    await expect(
+      page.getByText(profileIdentity.spaceModulesKeepDataNote),
+    ).toBeVisible();
+    await energySwitch.click();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
+    expect(unexpectedRequests.spaceConfigurationPatches.at(-1)).toEqual({
+      energyCheckInEnabled: false,
+    });
+    expect(unexpectedRequests).toEqual([]);
+  });
 });
 
 test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, and axe-clean', async ({

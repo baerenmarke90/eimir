@@ -190,9 +190,7 @@ describe('DailyVibeCheckIn', () => {
       }),
     ).not.toBeNull();
     const partner = screen.getByTestId('daily-vibe-partner');
-    expect(
-      within(partner).getByText(dailyVibe.values.STRESSED),
-    ).not.toBeNull();
+    expect(within(partner).getByText(dailyVibe.values.STRESSED)).not.toBeNull();
     expect(within(partner).getByText('Marie')).not.toBeNull();
     expect(within(partner).queryByText('Marie Winter')).toBeNull();
     expect(screen.getByRole('status').textContent).toContain('Marie');

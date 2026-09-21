@@ -100,13 +100,9 @@ def _partner_energy_view(
     projection: service.PartnerDimensionProjection,
 ) -> PartnerEnergyProjection:
     if projection.state is service.PartnerRevealState.HIDDEN_UNTIL_SELF_CHECK_IN:
-        return PartnerEnergyProjection(
-            PartnerEnergyHidden(state=projection.state)
-        )
+        return PartnerEnergyProjection(PartnerEnergyHidden(state=projection.state))
     if projection.state is service.PartnerRevealState.NO_CHECK_IN:
-        return PartnerEnergyProjection(
-            PartnerEnergyNoCheckIn(state=projection.state)
-        )
+        return PartnerEnergyProjection(PartnerEnergyNoCheckIn(state=projection.state))
     if projection.value is None:
         raise RuntimeError("VISIBLE partner Energy is missing its value.")
     return PartnerEnergyProjection(

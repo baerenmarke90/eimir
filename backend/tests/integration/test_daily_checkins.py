@@ -126,9 +126,7 @@ class TestAuthorityAndSpaceDay:
         assert foreign.status_code == nonexistent.status_code == 404
         assert foreign.json() == nonexistent.json()
 
-    def test_missing_shared_timezone_fails_closed(
-        self, client, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_missing_shared_timezone_fails_closed(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         response = client.get(
             path(couple["space"].id),
             headers=auth(couple["manager_token"]),
@@ -235,12 +233,17 @@ class TestPersistenceAndEnergy:
         )
         assert updated.status_code == 200
         assert updated.json()["own"] == {"version": 2, "energyLevel": 60}
-        assert session.execute(
-            select(func.count()).select_from(DailyCheckIn).where(
-                DailyCheckIn.space_id == couple["space"].id,
-                DailyCheckIn.account_id == couple["manager"].id,
-            )
-        ).scalar_one() == 1
+        assert (
+            session.execute(
+                select(func.count())
+                .select_from(DailyCheckIn)
+                .where(
+                    DailyCheckIn.space_id == couple["space"].id,
+                    DailyCheckIn.account_id == couple["manager"].id,
+                )
+            ).scalar_one()
+            == 1
+        )
 
         cleared = client.patch(
             path(couple["space"].id),
@@ -250,12 +253,17 @@ class TestPersistenceAndEnergy:
         assert cleared.status_code == 200
         assert cleared.headers["etag"] == '"absent"'
         assert cleared.json()["own"] == {"version": 0, "energyLevel": None}
-        assert session.execute(
-            select(func.count()).select_from(DailyCheckIn).where(
-                DailyCheckIn.space_id == couple["space"].id,
-                DailyCheckIn.account_id == couple["manager"].id,
-            )
-        ).scalar_one() == 0
+        assert (
+            session.execute(
+                select(func.count())
+                .select_from(DailyCheckIn)
+                .where(
+                    DailyCheckIn.space_id == couple["space"].id,
+                    DailyCheckIn.account_id == couple["manager"].id,
+                )
+            ).scalar_one()
+            == 0
+        )
 
     @pytest.mark.parametrize("invalid", [0, 5, 15, 101])
     def test_energy_accepts_only_decided_ten_point_steps(
@@ -274,9 +282,7 @@ class TestPersistenceAndEnergy:
         assert response.status_code == 422
         assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
 
-    def test_database_rejects_empty_or_invented_vibe_rows(
-        self, session: Session, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_database_rejects_empty_or_invented_vibe_rows(self, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
         day = date(2026, 9, 21)
         with pytest.raises(IntegrityError), session.begin_nested():
             session.add(
@@ -366,9 +372,7 @@ class TestMutualReveal:
 
         hidden = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         assert hidden.status_code == 200
-        assert hidden.json()["energy"]["partner"] == {
-            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
-        }
+        assert hidden.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
         hidden_json = hidden.text
         assert str(couple["partner"].id) not in hidden_json
         assert '"value"' not in hidden_json
@@ -387,9 +391,7 @@ class TestMutualReveal:
             "value": 70,
         }
 
-    def test_immediate_and_no_check_in_states(
-        self, client, session: Session, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_immediate_and_no_check_in_states(self, client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
         configure_daily(
             session,
             space_id=couple["space"].id,
@@ -441,9 +443,7 @@ class TestMutualReveal:
 
 
 class TestConcurrency:
-    def test_parallel_first_writes_and_updates_have_one_winner(
-        self, production_client
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_parallel_first_writes_and_updates_have_one_winner(self, production_client) -> None:  # type: ignore[no-untyped-def]
         client, maker = production_client
         with maker() as setup:
             manager = make_account(setup, "Concurrent manager")
@@ -477,16 +477,19 @@ class TestConcurrency:
         assert sorted(response.status_code for response in second) == [200, 409]
 
         with maker() as verifier:
-            assert verifier.execute(
-                select(func.count()).select_from(DailyCheckIn).where(
-                    DailyCheckIn.space_id == space_id,
-                    DailyCheckIn.account_id == manager.id,
-                )
-            ).scalar_one() == 1
+            assert (
+                verifier.execute(
+                    select(func.count())
+                    .select_from(DailyCheckIn)
+                    .where(
+                        DailyCheckIn.space_id == space_id,
+                        DailyCheckIn.account_id == manager.id,
+                    )
+                ).scalar_one()
+                == 1
+            )
 
-    def test_clear_vs_update_and_delete_recreate_reject_stale_etag(
-        self, production_client
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_clear_vs_update_and_delete_recreate_reject_stale_etag(self, production_client) -> None:  # type: ignore[no-untyped-def]
         client, maker = production_client
         with maker() as setup:
             manager = make_account(setup, "ABA manager")
@@ -587,9 +590,7 @@ class TestRetentionAndPortability:
 
         assert retention.purge_expired(session, current_time=instant) == 2
         remaining = set(
-            session.execute(
-                select(DailyCheckIn.space_id, DailyCheckIn.checked_on)
-            ).all()
+            session.execute(select(DailyCheckIn.space_id, DailyCheckIn.checked_on)).all()
         )
         assert remaining == {
             (berlin.id, date(2026, 9, 21)),

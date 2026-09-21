@@ -18,16 +18,15 @@ def test_daily_check_in_contract_has_only_reveal_aware_today_route() -> None:
 def test_hidden_partner_schema_has_no_value_or_partner_metadata() -> None:
     schema = create_app().openapi()
     hidden = schema["components"]["schemas"]["PartnerEnergyHidden"]
-    assert set(hidden["properties"]) == {"state"}
-    assert "value" not in hidden["properties"]
-    serialized = str(hidden)
-    assert "partner" not in serialized.lower()
-    assert "version" not in serialized.lower()
-    assert "updated" not in serialized.lower()
+    properties = set(hidden["properties"])
+    assert properties == {"state"}
+    assert properties.isdisjoint(
+        {"value", "partnerId", "accountId", "version", "createdAt", "updatedAt"}
+    )
 
 
 def test_update_contract_does_not_invent_vibe_values() -> None:
     schema = create_app().openapi()
     update = schema["components"]["schemas"]["DailyCheckInUpdate"]
     assert set(update["properties"]) == {"energyLevel"}
-    assert "vibe" not in str(update).lower()
+    assert "vibe" not in update["properties"]

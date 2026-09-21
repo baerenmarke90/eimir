@@ -52,8 +52,22 @@ function BatteryIcon({ value }: { value: number | null }) {
       aria-hidden="true"
       focusable="false"
     >
-      <rect className="daily-energy-battery-shell" x="1" y="2" width="19" height="10" rx="2" />
-      <rect className="daily-energy-battery-tip" x="21" y="5" width="2" height="4" rx="1" />
+      <rect
+        className="daily-energy-battery-shell"
+        x="1"
+        y="2"
+        width="19"
+        height="10"
+        rx="2"
+      />
+      <rect
+        className="daily-energy-battery-tip"
+        x="21"
+        y="5"
+        width="2"
+        height="4"
+        rx="1"
+      />
       {value !== null ? (
         <rect
           className="daily-energy-battery-fill"
@@ -91,7 +105,9 @@ function PartnerEnergyState({
           data-testid="daily-energy-partner"
         >
           <span>{label}</span>
-          <strong>{t('dailyEnergy.percentage', { value: projection.value })}</strong>
+          <strong>
+            {t('dailyEnergy.percentage', { value: projection.value })}
+          </strong>
         </div>
       );
     case 'NO_CHECK_IN':
@@ -337,12 +353,14 @@ export function DailyEnergyCheckIn({
     mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
     !contextUnavailable;
 
-  const displayedBadge = ownEnergy === null
-    ? t('dailyEnergy.badgePrompt')
-    : t('dailyEnergy.percentage', { value: ownEnergy });
-  const badgeAria = ownEnergy === null
-    ? t('dailyEnergy.badgeAriaEmpty')
-    : t('dailyEnergy.badgeAriaValue', { value: ownEnergy });
+  const displayedBadge =
+    ownEnergy === null
+      ? t('dailyEnergy.badgePrompt')
+      : t('dailyEnergy.percentage', { value: ownEnergy });
+  const badgeAria =
+    ownEnergy === null
+      ? t('dailyEnergy.badgeAriaEmpty')
+      : t('dailyEnergy.badgeAriaValue', { value: ownEnergy });
   const progress = ((draftEnergy - 10) / 90) * 100;
   const sliderStyle = {
     '--daily-energy-progress': `${progress}%`,
@@ -386,7 +404,9 @@ export function DailyEnergyCheckIn({
         >
           <div className="daily-energy-popover-heading">
             <div>
-              <strong id={dialogTitleId}>{t('dailyEnergy.popoverTitle')}</strong>
+              <strong id={dialogTitleId}>
+                {t('dailyEnergy.popoverTitle')}
+              </strong>
               <span>{t('dailyEnergy.question')}</span>
             </div>
             <strong className="daily-energy-current-value">

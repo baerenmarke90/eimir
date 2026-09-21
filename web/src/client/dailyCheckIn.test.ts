@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
 import {
+  DAILY_CHECK_IN_REFRESH_INTERVAL_MS,
   dailyCheckInTodayQueryKey,
+  dailyCheckInTodayQueryOptions,
   loadDailyCheckInToday,
   updateDailyCheckInToday,
 } from './dailyCheckIn';
@@ -44,6 +46,21 @@ describe('DailyCheckIn web query contract', () => {
     expect(dailyCheckInTodayQueryKey('account-1', 'space-2')).not.toEqual(
       dailyCheckInTodayQueryKey('account-1', 'space-1'),
     );
+  });
+
+  it('keeps an active Today surface converged with partner Daily Check-in changes', () => {
+    const api = {} as DailyCheckInsApi;
+    const options = dailyCheckInTodayQueryOptions(
+      api,
+      'account-1',
+      'space-1',
+    );
+
+    expect(options.refetchInterval).toBe(DAILY_CHECK_IN_REFRESH_INTERVAL_MS);
+    expect(options.refetchInterval).toBe(5_000);
+    expect(options.refetchIntervalInBackground).toBe(false);
+    expect(options.refetchOnWindowFocus).toBe('always');
+    expect(options.refetchOnReconnect).toBe('always');
   });
 
   it('preserves the exact ETag and sends it unchanged as If-Match', async () => {

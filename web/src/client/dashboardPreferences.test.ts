@@ -86,9 +86,9 @@ describe('dashboardPreferences', () => {
         ],
       } as DashboardModulePreferenceList;
 
-      expect(
-        selectedDashboardCollectionId(value, 'pinned_collection'),
-      ).toBe('collection-1');
+      expect(selectedDashboardCollectionId(value, 'pinned_collection')).toBe(
+        'collection-1',
+      );
       expect(selectedDashboardCollectionId(value, 'keepsake')).toBeNull();
     });
 

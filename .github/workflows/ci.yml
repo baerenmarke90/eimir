@@ -161,6 +161,28 @@ jobs:
       - name: OpenAPI contract
         run: uv run --frozen python scripts/openapi_contract.py check
 
+      # Temporary development evidence for #432. Removed after the generated
+      # contract/client have been committed from this exact branch revision.
+      - name: Capture generated Daily Check-in contract
+        if: always()
+        run: |
+          uv run --frozen python scripts/openapi_contract.py write
+          cd ..
+          tools/openapi/generate.sh
+          rm -rf .daily-checkin-generated
+          mkdir -p .daily-checkin-generated
+          cp backend/openapi.json .daily-checkin-generated/openapi.json
+          cp -R web/src/api/generated .daily-checkin-generated/generated
+
+      - name: Upload generated Daily Check-in contract
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: daily-checkin-generated-${{ github.sha }}
+          path: .daily-checkin-generated
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
 

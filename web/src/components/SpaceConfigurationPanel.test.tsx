@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { SpaceConfigurationView } from '../api/generated/models/SpaceConfigurationView';
 import { ClientProblemError } from '../client/problemDetails';
+import profileIdentity from '../i18n/locales/profileIdentity';
 import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 
 afterEach(() => cleanup());
@@ -88,7 +89,7 @@ describe('SpaceConfigurationPanel', () => {
     renderPanel(spacesApi);
 
     const toggle = await screen.findByRole('switch', {
-      name: /Ich denke an dich aktivieren oder deaktivieren/i,
+      name: profileIdentity.supportGesturesToggle,
     });
     expect(toggle.getAttribute('aria-checked')).toBe('true');
 
@@ -119,7 +120,7 @@ describe('SpaceConfigurationPanel', () => {
 
     renderPanel(spacesApi);
 
-    expect(await screen.findByText('Aktiv')).not.toBeNull();
+    expect(await screen.findByText(profileIdentity.spaceModuleOn)).not.toBeNull();
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -146,7 +147,7 @@ describe('SpaceConfigurationPanel', () => {
 
     renderPanel(spacesApi);
     const toggle = await screen.findByRole('switch', {
-      name: /Ich denke an dich aktivieren oder deaktivieren/i,
+      name: profileIdentity.supportGesturesToggle,
     });
     fireEvent.click(toggle);
 

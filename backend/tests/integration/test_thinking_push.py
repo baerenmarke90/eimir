@@ -417,6 +417,59 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert "Ben" not in repr(call)
 
 
+def test_disable_after_projection_prevents_pending_push_and_reenable_does_not_replay(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="secret-endpoint-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+
+    response = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert response.status_code == 202
+    request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+    event = session.get(OutboxEvent, request.source_event_id)
+    assert event is not None
+
+    # The notification and PushDelivery already exist before the manager turns
+    # the module off. Disable remains non-destructive, but the queued provider
+    # side effect must still observe the current authoritative capability.
+    service.project_event(session, event)
+    session.flush()
+    notification = session.execute(select(Notification)).scalar_one()
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    _set_support_gestures(client, couple, enabled=False)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    session.flush()
+
+    assert session.get(Notification, notification.id) is not None
+    assert session.get(ThinkingOfYouRequest, request.id) is not None
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert (
+        delivery.last_error_code
+        == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
+    )
+    assert provider.calls == []
+
+    # A terminally suppressed old delivery stays suppressed. Re-enabling only
+    # restores future participation; it must not resurrect stale queued work.
+    _set_support_gestures(client, couple, enabled=True)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    session.flush()
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert provider.calls == []
+
+
 def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]

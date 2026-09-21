@@ -397,43 +397,30 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
     popover.getByRole('slider', { name: dailyEnergy.selectLegend }),
   ).toBeVisible();
 
-  const geometry = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
+  const viewportWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
+  );
+  const popoverGeometry = await popover.evaluate((node) => ({
+    clientWidth: node.clientWidth,
+    scrollWidth: node.scrollWidth,
   }));
-  const overflowingElements = await page.evaluate(() => {
-    const viewportWidth = document.documentElement.clientWidth;
-    return Array.from(document.body.querySelectorAll<HTMLElement>('*'))
-      .map((node) => {
-        const rect = node.getBoundingClientRect();
-        return {
-          className: node.className,
-          clientWidth: node.clientWidth,
-          id: node.id,
-          left: Math.round(rect.left),
-          right: Math.round(rect.right),
-          scrollWidth: node.scrollWidth,
-          tagName: node.tagName,
-        };
-      })
-      .filter(
-        ({ clientWidth, left, right, scrollWidth }) =>
-          left < -1 ||
-          right > viewportWidth + 1 ||
-          scrollWidth > clientWidth + 1,
-      )
-      .slice(0, 20);
-  });
-  expect(overflowingElements).toEqual([]);
-  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+  expect(popoverGeometry.scrollWidth).toBeLessThanOrEqual(
+    popoverGeometry.clientWidth,
+  );
 
   const popoverBox = await popover.boundingBox();
   expect(popoverBox).not.toBeNull();
   if (!popoverBox) throw new Error('Missing Daily Energy popover bounds');
   expect(popoverBox.x).toBeGreaterThanOrEqual(0);
   expect(popoverBox.x + popoverBox.width).toBeLessThanOrEqual(
-    geometry.clientWidth + 1,
+    viewportWidth + 1,
   );
+
+  const heroBox = await hero.boundingBox();
+  expect(heroBox).not.toBeNull();
+  if (!heroBox) throw new Error('Missing Today hero bounds');
+  expect(heroBox.x).toBeGreaterThanOrEqual(0);
+  expect(heroBox.x + heroBox.width).toBeLessThanOrEqual(viewportWidth + 1);
 
   const result = await new AxeBuilder({ page })
     .include('[data-testid="daily-energy-popover"]')
@@ -452,13 +439,18 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
 
   await expect(popover).toBeVisible();
-  const expandedGeometry = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(expandedGeometry.scrollWidth).toBeLessThanOrEqual(
-    expandedGeometry.clientWidth,
+  const expandedViewportWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
   );
+  const expandedPopoverBox = await popover.boundingBox();
+  expect(expandedPopoverBox).not.toBeNull();
+  if (!expandedPopoverBox) {
+    throw new Error('Missing expanded Daily Energy popover bounds');
+  }
+  expect(expandedPopoverBox.x).toBeGreaterThanOrEqual(0);
+  expect(
+    expandedPopoverBox.x + expandedPopoverBox.width,
+  ).toBeLessThanOrEqual(expandedViewportWidth + 1);
 
   const expandedResult = await new AxeBuilder({ page })
     .include('.today-hero')

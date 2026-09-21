@@ -211,7 +211,10 @@ describe('TodayPinnedCollection', () => {
     const updateCollectionItemRaw = vi
       .fn()
       .mockResolvedValue(
-        rawUpdateResponse(item('item-1', 'Milch', true), 'collection-completed'),
+        rawUpdateResponse(
+          item('item-1', 'Milch', true),
+          'collection-completed',
+        ),
       );
     const { onRefresh } = renderPinned({ updateCollectionItemRaw });
 

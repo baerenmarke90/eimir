@@ -112,7 +112,9 @@ def test_production_can_keep_local_media_store() -> None:
 
 def test_factory_selects_s3_without_exposing_it_to_domain_code(
     monkeypatch,  # type: ignore[no-untyped-def]
+    encryption,  # type: ignore[no-untyped-def]
 ) -> None:
+    encryption.apply("disabled")
     monkeypatch.setenv("EIMIR_MEDIA_STORE", "s3")
     monkeypatch.setenv("EIMIR_S3_ENDPOINT", "https://s3.example.test")
     monkeypatch.setenv("EIMIR_S3_REGION", "eu-central-1")

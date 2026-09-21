@@ -154,7 +154,9 @@ def test_keys_next_to_a_disabled_mode_are_refused_instead_of_running_plaintext()
 def test_keys_without_any_mode_are_refused_outside_production_too(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST")
+    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_KEYS", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_ACTIVE_KEY_ID", raising=False)
     with pytest.raises(ValidationError, match="state the mode explicitly"):
         Settings.model_validate(
             {
@@ -168,14 +170,18 @@ def test_keys_without_any_mode_are_refused_outside_production_too(
 def test_development_without_any_configuration_is_plaintext_and_explicit_about_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST")
+    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_KEYS", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_ACTIVE_KEY_ID", raising=False)
     settings = Settings.model_validate({"environment": Environment.DEVELOPMENT})
     assert settings.encryption_mode is EncryptionMode.DISABLED
 
 
 def test_no_built_in_key_exists(monkeypatch: pytest.MonkeyPatch) -> None:
     """A default key in code could reach production. None may exist."""
-    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST")
+    monkeypatch.delenv("EIMIR_ENCRYPTION_AT_REST", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_KEYS", raising=False)
+    monkeypatch.delenv("EIMIR_ENCRYPTION_ACTIVE_KEY_ID", raising=False)
     settings = Settings.model_validate({"environment": Environment.TEST})
     assert settings.encryption_keys == {}
     assert settings.encryption_active_key_id is None

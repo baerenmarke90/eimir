@@ -281,8 +281,7 @@ async function installMocks(
     }
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
     ) {
       await json({ unreadCount: 0 });
       return;
@@ -296,8 +295,7 @@ async function installMocks(
     }
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
+      pathname === `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
     ) {
       await json(collection(), 200, { ETag: '"1"' });
       return;

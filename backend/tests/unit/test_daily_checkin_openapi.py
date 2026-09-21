@@ -1,0 +1,35 @@
+"""Privacy and concurrency shape of the Daily Check-in OpenAPI contract."""
+
+from eimir.main import create_app
+
+
+def test_daily_check_in_contract_has_only_reveal_aware_today_route() -> None:
+    schema = create_app().openapi()
+    daily_paths = {path for path in schema["paths"] if "daily-check-in" in path}
+    assert daily_paths == {"/api/v1/spaces/{spaceId}/daily-check-in/today"}
+    route = schema["paths"]["/api/v1/spaces/{spaceId}/daily-check-in/today"]
+    assert set(route) == {"get", "patch"}
+    if_match = next(
+        parameter
+        for parameter in route["patch"]["parameters"]
+        if parameter["name"] == "If-Match"
+    )
+    assert if_match["required"] is True
+
+
+def test_hidden_partner_schema_has_no_value_or_partner_metadata() -> None:
+    schema = create_app().openapi()
+    hidden = schema["components"]["schemas"]["PartnerEnergyHidden"]
+    assert set(hidden["properties"]) == {"state"}
+    assert "value" not in hidden["properties"]
+    serialized = str(hidden)
+    assert "partner" not in serialized.lower()
+    assert "version" not in serialized.lower()
+    assert "updated" not in serialized.lower()
+
+
+def test_update_contract_does_not_invent_vibe_values() -> None:
+    schema = create_app().openapi()
+    update = schema["components"]["schemas"]["DailyCheckInUpdate"]
+    assert set(update["properties"]) == {"energyLevel"}
+    assert "vibe" not in str(update).lower()

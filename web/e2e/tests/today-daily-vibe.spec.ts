@@ -271,7 +271,8 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
       )
       .sort((a, b) => b.right - a.right)
       .slice(0, 8);
-    const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
+    const openDialog =
+      document.querySelector<HTMLDialogElement>('dialog[open]');
 
     return {
       clientWidth: root.clientWidth,

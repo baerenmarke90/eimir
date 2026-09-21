@@ -1,48 +1,74 @@
 .daily-energy-checkin {
   position: relative;
+  width: 100%;
+  height: 100%;
   z-index: 1;
+  pointer-events: none;
 }
 
 .daily-energy-badge {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.daily-energy-avatar-control {
+  position: absolute;
+  top: -18px;
+  left: 7px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.daily-energy-avatar-chip {
+  display: grid;
+  width: 28px;
+  height: 20px;
+  place-items: center;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
-  padding: var(--space-2) var(--space-3);
   background: color-mix(in srgb, var(--color-surface) 94%, transparent);
-  color: var(--color-text);
-  box-shadow: var(--shadow-soft);
-  font: inherit;
-  font-size: 0.84rem;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
+  box-shadow: 0 2px 8px var(--color-shadow-card);
   transition:
-    transform var(--motion-fast),
     border-color var(--motion-fast),
-    background var(--motion-fast);
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
 }
 
-.daily-energy-badge:hover:not(:disabled),
-.daily-energy-badge:focus-visible {
+.daily-energy-badge:hover:not(:disabled) .daily-energy-avatar-chip,
+.daily-energy-badge:focus-visible .daily-energy-avatar-chip {
   border-color: var(--color-brand);
   background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
 }
 
-.daily-energy-badge:hover:not(:disabled) {
-  transform: translateY(-1px);
+.daily-energy-badge:focus-visible {
+  outline: none;
+}
+
+.daily-energy-badge:focus-visible .daily-energy-avatar-chip {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .daily-energy-badge:disabled {
   cursor: default;
-  opacity: 0.72;
+}
+
+.daily-energy-badge:disabled .daily-energy-avatar-chip {
+  opacity: 0.64;
 }
 
 .daily-energy-battery-icon {
-  width: 24px;
-  height: 14px;
+  width: 20px;
+  height: 12px;
   flex: 0 0 auto;
 }
 
@@ -57,10 +83,36 @@
   fill: var(--color-shared);
 }
 
+.daily-energy-partner-battery {
+  position: absolute;
+  top: -6px;
+  right: 15px;
+  display: grid;
+  width: 28px;
+  height: 20px;
+  place-items: center;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.daily-energy-partner-battery[data-state="hidden"] .daily-energy-avatar-chip {
+  opacity: 0.78;
+}
+
+.daily-energy-partner-battery[data-state="hidden"] .daily-energy-battery-shell {
+  stroke-dasharray: 2.5 2;
+}
+
+.daily-energy-partner-battery[data-state="empty"] .daily-energy-avatar-chip,
+.daily-energy-partner-battery[data-state="unavailable"]
+  .daily-energy-avatar-chip {
+  opacity: 0.58;
+}
+
 .daily-energy-popover {
   position: absolute;
   top: calc(100% + var(--space-2));
-  left: calc(-1 * var(--space-3));
+  left: -8px;
   width: min(18rem, calc(100vw - 2rem));
   display: grid;
   gap: var(--space-3);
@@ -71,13 +123,14 @@
   color: var(--color-text);
   box-shadow: var(--elevation-overlay);
   z-index: 30;
+  pointer-events: auto;
 }
 
 .daily-energy-popover::before {
   content: "";
   position: absolute;
   top: -7px;
-  left: 2rem;
+  left: 1.55rem;
   width: 12px;
   height: 12px;
   border-top: 1px solid var(--color-border-subtle);
@@ -88,35 +141,19 @@
 
 .daily-energy-popover-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-.daily-energy-popover-heading > div {
-  display: grid;
   gap: var(--space-1);
   min-width: 0;
 }
 
-.daily-energy-popover-heading > div > strong {
+.daily-energy-popover-heading > strong {
   font-family: var(--font-display);
   font-size: 1.08rem;
 }
 
-.daily-energy-popover-heading > div > span {
+.daily-energy-popover-heading > span {
   color: var(--color-text-secondary);
   font-size: 0.84rem;
   line-height: 1.35;
-}
-
-.daily-energy-current-value {
-  max-width: 8rem;
-  color: var(--color-brand-text);
-  font-size: 0.9rem;
-  text-align: right;
-  overflow-wrap: anywhere;
 }
 
 .daily-energy-slider {
@@ -189,15 +226,6 @@
   border-radius: var(--radius-pill);
 }
 
-.daily-energy-scale {
-  display: flex;
-  justify-content: space-between;
-  margin-top: calc(-1 * var(--space-2));
-  color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .daily-energy-popover-actions {
   display: flex;
   min-height: 1.75rem;
@@ -216,33 +244,6 @@
   color: var(--color-text-secondary);
 }
 
-.daily-energy-partner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: var(--space-2);
-  min-width: 0;
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-border-subtle);
-  color: var(--color-text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.4;
-}
-
-.daily-energy-partner > strong {
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.daily-energy-partner-hidden {
-  grid-template-columns: 1fr;
-  gap: var(--space-1);
-}
-
-.daily-energy-partner-hidden > strong {
-  color: var(--color-text);
-}
-
 .daily-energy-inline-error {
   color: var(--color-text);
   font-size: 0.82rem;
@@ -251,22 +252,8 @@
 
 @media (max-width: 360px) {
   .daily-energy-popover {
-    left: calc(-1 * var(--space-2));
+    left: -6px;
     width: min(17.5rem, calc(100vw - 1.5rem));
-  }
-
-  .daily-energy-popover-heading {
-    grid-template-columns: 1fr;
-    gap: var(--space-1);
-  }
-
-  .daily-energy-current-value {
-    max-width: none;
-    text-align: left;
-  }
-
-  .daily-energy-partner {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -281,7 +268,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .daily-energy-badge {
+  .daily-energy-avatar-chip {
     transition: none;
   }
 }

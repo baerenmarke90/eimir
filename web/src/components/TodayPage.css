@@ -30,6 +30,15 @@
 }
 
 /*
+ * The reveal transform makes each Today section its own stacking context.
+ * Elevate the hero only while the Energy popover is open so the popover can
+ * paint above later sections without competing with shell/header overlays.
+ */
+.today-hero.couple-presence-card:has(.daily-energy-popover) {
+  z-index: 20;
+}
+
+/*
  * Warmth without another card: a soft brand aura bleeding out of the top of
  * the page behind the couple, so the hero reads as a lit place rather than a
  * bordered header block. Purely decorative, so it never affects layout.

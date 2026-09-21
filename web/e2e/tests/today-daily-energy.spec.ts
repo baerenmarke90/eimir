@@ -305,7 +305,7 @@ function energyBadgeAriaValue(value: number): string {
   return dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
 }
 
-test('Daily Energy is a compact avatar battery that opens one accessible slider', async ({
+test('Daily Energy attaches quiet batteries to both avatars and opens one accessible slider', async ({
   page,
 }, testInfo) => {
   const state = await installMocks(page);
@@ -317,20 +317,65 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
   await expect(hero).toBeVisible();
   await expect(page.locator('.today-section-energy')).toHaveCount(0);
 
-  const badge = hero.getByRole('button', {
+  const ownBattery = hero.getByRole('button', {
     name: dailyEnergy.badgeAriaEmpty,
   });
-  await expect(badge).toBeVisible();
+  const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
+  await expect(ownBattery).toBeVisible();
+  await expect(partnerBattery).toBeVisible();
+  await expect(partnerBattery).toHaveAttribute('data-state', 'hidden');
+  expect(await partnerBattery.getAttribute('data-energy')).toBeNull();
 
-  const badgeBox = await badge.boundingBox();
-  expect(badgeBox).not.toBeNull();
-  if (!badgeBox) throw new Error('Missing Daily Energy badge bounds');
-  expect(badgeBox.height).toBeGreaterThanOrEqual(44);
+  const ownTargetBox = await ownBattery.boundingBox();
+  expect(ownTargetBox).not.toBeNull();
+  if (!ownTargetBox) throw new Error('Missing own Energy battery bounds');
+  expect(ownTargetBox.height).toBeGreaterThanOrEqual(44);
+  expect(ownTargetBox.width).toBeGreaterThanOrEqual(44);
 
-  await badge.click();
+  const primaryAvatar = hero.locator('.partner-avatar-primary');
+  const secondaryAvatar = hero.locator('.partner-avatar-secondary');
+  const ownChip = ownBattery.locator('.daily-energy-avatar-chip');
+  const partnerChip = partnerBattery.locator('.daily-energy-avatar-chip');
+  const [primaryBox, secondaryBox, ownChipBox, partnerChipBox] =
+    await Promise.all([
+      primaryAvatar.boundingBox(),
+      secondaryAvatar.boundingBox(),
+      ownChip.boundingBox(),
+      partnerChip.boundingBox(),
+    ]);
+  expect(primaryBox).not.toBeNull();
+  expect(secondaryBox).not.toBeNull();
+  expect(ownChipBox).not.toBeNull();
+  expect(partnerChipBox).not.toBeNull();
+  if (!primaryBox || !secondaryBox || !ownChipBox || !partnerChipBox) {
+    throw new Error('Missing avatar Energy geometry');
+  }
+
+  const ownCenterX = ownChipBox.x + ownChipBox.width / 2;
+  const partnerCenterX = partnerChipBox.x + partnerChipBox.width / 2;
+  expect(ownCenterX).toBeGreaterThan(primaryBox.x);
+  expect(ownCenterX).toBeLessThan(primaryBox.x + primaryBox.width);
+  expect(partnerCenterX).toBeGreaterThan(secondaryBox.x);
+  expect(partnerCenterX).toBeLessThan(secondaryBox.x + secondaryBox.width);
+  expect(ownChipBox.y).toBeLessThan(primaryBox.y);
+  expect(ownChipBox.y + ownChipBox.height).toBeGreaterThan(primaryBox.y);
+  expect(partnerChipBox.y).toBeLessThan(secondaryBox.y);
+  expect(partnerChipBox.y + partnerChipBox.height).toBeGreaterThan(
+    secondaryBox.y,
+  );
+
+  await ownBattery.click();
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
+  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(popover).not.toContainText('%');
+  await expect(popover.locator('.daily-energy-current-value')).toHaveCount(0);
+  await expect(popover.locator('.daily-energy-scale')).toHaveCount(0);
+  await expect(
+    popover.locator('[data-testid="daily-energy-partner"]'),
+  ).toHaveCount(0);
+
   const slider = popover.getByRole('slider', {
     name: dailyEnergy.selectLegend,
   });
@@ -338,11 +383,6 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
   await expect(slider).toHaveAttribute('max', '100');
   await expect(slider).toHaveAttribute('step', '10');
   await expect(slider).toHaveValue('50');
-
-  const partnerState = popover.locator('[data-testid="daily-energy-partner"]');
-  await expect(partnerState.getByText(dailyEnergy.hiddenTitle)).toBeVisible();
-  await expect(partnerState.getByText(dailyEnergy.hiddenBody)).toBeVisible();
-  await expect(partnerState.getByText('20 %')).toHaveCount(0);
 
   await slider.focus();
   await page.keyboard.press('ArrowRight');
@@ -359,7 +399,10 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
       name: energyBadgeAriaValue(70),
     }),
   ).toBeVisible();
-  await expect(partnerState.getByText('20 %')).toBeVisible();
+  await expect(partnerBattery).toHaveAttribute('data-state', 'visible');
+  await expect(partnerBattery).toHaveAttribute('data-energy', '20');
+  await expect(hero).not.toContainText('70 %');
+  await expect(hero).not.toContainText('20 %');
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -373,16 +416,18 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
   expect(result.violations).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('today-daily-energy-hero-slider-390-light.png'),
+    path: testInfo.outputPath(
+      'today-daily-energy-avatar-batteries-390-light.png',
+    ),
     fullPage: true,
   });
 
   await page.keyboard.press('Escape');
   await expect(popover).toHaveCount(0);
-  await expect(hero.locator('.daily-energy-badge')).toBeFocused();
+  await expect(hero.getByTestId('daily-energy-own-battery')).toBeFocused();
 });
 
-test('Daily Energy popover stays inside a 320px viewport with 200 percent text', async ({
+test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent text', async ({
   page,
 }, testInfo) => {
   await installMocks(page);
@@ -395,14 +440,18 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   });
 
   const hero = page.locator('.today-hero');
-  const badge = hero.getByRole('button', {
+  const ownBattery = hero.getByRole('button', {
     name: dailyEnergy.badgeAriaEmpty,
   });
-  await expect(badge).toBeVisible();
-  await badge.click();
+  const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
+  await expect(ownBattery).toBeVisible();
+  await expect(partnerBattery).toBeVisible();
+  await ownBattery.click();
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
+  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(popover).not.toContainText('%');
   await expect(
     popover.getByRole('slider', { name: dailyEnergy.selectLegend }),
   ).toBeVisible();
@@ -439,7 +488,7 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
 
   await page.screenshot({
     path: testInfo.outputPath(
-      'today-daily-energy-hero-slider-320-dark-large-text.png',
+      'today-daily-energy-avatar-batteries-320-dark-large-text.png',
     ),
     fullPage: true,
   });
@@ -468,7 +517,9 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   expect(expandedResult.violations).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('today-daily-energy-hero-slider-1280-light.png'),
+    path: testInfo.outputPath(
+      'today-daily-energy-avatar-batteries-1280-light.png',
+    ),
     fullPage: true,
   });
 });

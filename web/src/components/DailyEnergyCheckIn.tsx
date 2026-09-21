@@ -82,59 +82,56 @@ function BatteryIcon({ value }: { value: number | null }) {
   );
 }
 
-function PartnerEnergyState({
+function PartnerBatteryIndicator({
   projection,
   partnerName,
 }: {
-  projection: PartnerEnergyProjection;
+  projection?: PartnerEnergyProjection;
   partnerName?: string;
 }) {
   const { t } = useTranslation();
-
   const label = partnerName
     ? t('dailyEnergy.partnerLabel', { name: partnerName })
     : t('dailyEnergy.partnerFallback');
 
-  switch (projection.state) {
-    case 'VISIBLE':
-      return (
-        <div
-          className="daily-energy-partner"
-          role="status"
-          aria-label={t('dailyEnergy.partnerStateAria')}
-          data-testid="daily-energy-partner"
-        >
-          <span>{label}</span>
-          <strong>
-            {t('dailyEnergy.percentage', { value: projection.value })}
-          </strong>
-        </div>
-      );
-    case 'NO_CHECK_IN':
-      return (
-        <div
-          className="daily-energy-partner"
-          role="status"
-          aria-label={t('dailyEnergy.partnerStateAria')}
-          data-testid="daily-energy-partner"
-        >
-          <span>{label}</span>
-          <span>{t('dailyEnergy.noCheckIn')}</span>
-        </div>
-      );
-    case 'HIDDEN_UNTIL_SELF_CHECK_IN':
-      return (
-        <div
-          className="daily-energy-partner daily-energy-partner-hidden"
-          role="status"
-          aria-label={t('dailyEnergy.partnerStateAria')}
-          data-testid="daily-energy-partner"
-        >
-          <strong>{t('dailyEnergy.hiddenTitle')}</strong>
-          <span>{t('dailyEnergy.hiddenBody')}</span>
-        </div>
-      );
+  let state: 'visible' | 'hidden' | 'empty' | 'unavailable' = 'unavailable';
+  let value: number | null = null;
+  let ariaLabel = `${label}. ${t('dailyEnergy.unavailable')}`;
+
+  if (projection) {
+    switch (projection.state) {
+      case 'VISIBLE':
+        state = 'visible';
+        value = projection.value;
+        ariaLabel = `${label}: ${t('dailyEnergy.percentage', {
+          value: projection.value,
+        })}`;
+        break;
+      case 'NO_CHECK_IN':
+        state = 'empty';
+        ariaLabel = `${label}. ${t('dailyEnergy.noCheckIn')}`;
+        break;
+      case 'HIDDEN_UNTIL_SELF_CHECK_IN':
+        state = 'hidden';
+        ariaLabel = `${label}. ${t('dailyEnergy.hiddenTitle')}`;
+        break;
+    }
   }
+
+  return (
+    <span
+      className="daily-energy-partner-battery"
+      role="img"
+      aria-label={ariaLabel}
+      data-state={state}
+      data-energy={value ?? undefined}
+      data-testid="daily-energy-partner-battery"
+    >
+      <span className="daily-energy-avatar-chip" aria-hidden="true">
+        <BatteryIcon value={value} />
+      </span>
+    </span>
+  );
 }
 
 export function DailyEnergyCheckIn({
@@ -309,13 +306,16 @@ export function DailyEnergyCheckIn({
       <div className="daily-energy-checkin">
         <button
           type="button"
-          className="daily-energy-badge daily-energy-badge-loading"
+          className="daily-energy-badge daily-energy-avatar-control daily-energy-badge-loading"
           disabled
           aria-label={t('dailyEnergy.loading')}
+          data-testid="daily-energy-own-battery"
         >
-          <BatteryIcon value={null} />
-          <span aria-hidden="true">…</span>
+          <span className="daily-energy-avatar-chip" aria-hidden="true">
+            <BatteryIcon value={null} />
+          </span>
         </button>
+        <PartnerBatteryIndicator partnerName={partnerName} />
       </div>
     );
   }
@@ -326,7 +326,7 @@ export function DailyEnergyCheckIn({
       <div className="daily-energy-checkin">
         <button
           type="button"
-          className="daily-energy-badge daily-energy-badge-unavailable"
+          className="daily-energy-badge daily-energy-avatar-control daily-energy-badge-unavailable"
           disabled={offline}
           onClick={offline ? undefined : () => void dailyQuery.refetch()}
           aria-label={
@@ -334,10 +334,13 @@ export function DailyEnergyCheckIn({
               ? t('dailyEnergy.unavailableOffline')
               : t('dailyEnergy.unavailable')
           }
+          data-testid="daily-energy-own-battery"
         >
-          <BatteryIcon value={null} />
-          <span>{t('dailyEnergy.badgePrompt')}</span>
+          <span className="daily-energy-avatar-chip" aria-hidden="true">
+            <BatteryIcon value={null} />
+          </span>
         </button>
+        <PartnerBatteryIndicator partnerName={partnerName} />
       </div>
     );
   }
@@ -353,10 +356,6 @@ export function DailyEnergyCheckIn({
     mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
     !contextUnavailable;
 
-  const displayedBadge =
-    ownEnergy === null
-      ? t('dailyEnergy.badgePrompt')
-      : t('dailyEnergy.percentage', { value: ownEnergy });
   const badgeAria =
     ownEnergy === null
       ? t('dailyEnergy.badgeAriaEmpty')
@@ -384,15 +383,22 @@ export function DailyEnergyCheckIn({
       <button
         ref={badgeRef}
         type="button"
-        className="daily-energy-badge"
+        className="daily-energy-badge daily-energy-avatar-control"
         aria-expanded={open}
         aria-controls={open ? dialogId : undefined}
         aria-label={badgeAria}
         onClick={() => setOpen((current) => !current)}
+        data-testid="daily-energy-own-battery"
       >
-        <BatteryIcon value={ownEnergy} />
-        <span>{displayedBadge}</span>
+        <span className="daily-energy-avatar-chip" aria-hidden="true">
+          <BatteryIcon value={ownEnergy} />
+        </span>
       </button>
+
+      <PartnerBatteryIndicator
+        projection={snapshot.projection.energy?.partner}
+        partnerName={partnerName}
+      />
 
       {open ? (
         <div
@@ -403,17 +409,8 @@ export function DailyEnergyCheckIn({
           data-testid="daily-energy-popover"
         >
           <div className="daily-energy-popover-heading">
-            <div>
-              <strong id={dialogTitleId}>
-                {t('dailyEnergy.popoverTitle')}
-              </strong>
-              <span>{t('dailyEnergy.question')}</span>
-            </div>
-            <strong className="daily-energy-current-value">
-              {ownEnergy === null && !draftTouched
-                ? t('dailyEnergy.notSet')
-                : t('dailyEnergy.percentage', { value: draftEnergy })}
-            </strong>
+            <strong id={dialogTitleId}>{t('dailyEnergy.popoverTitle')}</strong>
+            <span>{t('dailyEnergy.question')}</span>
           </div>
 
           <label className="sr-only" htmlFor={`daily-energy-slider-${spaceId}`}>
@@ -440,11 +437,6 @@ export function DailyEnergyCheckIn({
               if (draftTouched) submitEnergy(draftEnergy);
             }}
           />
-
-          <div className="daily-energy-scale" aria-hidden="true">
-            <span>10 %</span>
-            <span>100 %</span>
-          </div>
 
           <div className="daily-energy-popover-actions">
             <span
@@ -475,13 +467,6 @@ export function DailyEnergyCheckIn({
             <div className="daily-energy-inline-error" role="status">
               {t('dailyEnergy.saveError')}
             </div>
-          ) : null}
-
-          {snapshot.projection.energy ? (
-            <PartnerEnergyState
-              projection={snapshot.projection.energy.partner}
-              partnerName={partnerName}
-            />
           ) : null}
         </div>
       ) : null}

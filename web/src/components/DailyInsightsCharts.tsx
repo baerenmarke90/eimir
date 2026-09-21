@@ -15,7 +15,7 @@ import {
 import { useTranslation } from '../i18n';
 import {
   formatDayLong,
-  formatWeekdayShort,
+  WeekdayLabel,
   InsightIcon,
   PersonLegend,
   type InsightPerson,
@@ -68,7 +68,7 @@ function WeekAxis({ days }: { days: readonly InsightDay[] }) {
   return (
     <div className="insight-chart-xaxis" aria-hidden="true">
       {days.map((day) => (
-        <span key={day.date}>{formatWeekdayShort(day.date)}</span>
+        <WeekdayLabel key={day.date} date={day.date} />
       ))}
     </div>
   );

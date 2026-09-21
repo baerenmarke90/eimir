@@ -191,6 +191,20 @@ export function formatWeekdayShort(iso: IsoDate): string {
   return format(iso, { weekday: 'short' }).replace(/\.$/u, '');
 }
 
+export function formatWeekdayNarrow(iso: IsoDate): string {
+  return format(iso, { weekday: 'narrow' });
+}
+
+/** Short weekday that collapses to one letter only when the axis is tight. */
+export function WeekdayLabel({ date }: { date: IsoDate }) {
+  return (
+    <span>
+      <span className="insight-wd-short">{formatWeekdayShort(date)}</span>
+      <span className="insight-wd-narrow">{formatWeekdayNarrow(date)}</span>
+    </span>
+  );
+}
+
 export function formatWeekdayLong(iso: IsoDate): string {
   return format(iso, { weekday: 'long' });
 }

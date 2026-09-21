@@ -44,7 +44,7 @@ import {
   formatDayNumber,
   formatDayShort,
   formatWeekdayLong,
-  formatWeekdayShort,
+  WeekdayLabel,
   Handwriting,
   InsightIcon,
   type InsightIconName,
@@ -140,7 +140,7 @@ function ClosingLandscape() {
       aria-hidden="true"
       focusable="false"
     >
-      <circle className="insight-landscape-sun" cx="70" cy="50" r="22" />
+      <circle className="insight-landscape-sun" cx="262" cy="42" r="18" />
       <path
         className="insight-landscape-far"
         d="M0 84c40-26 78-30 120-10 38 18 74 4 104-14 34-20 66-14 96 2v58H0Z"
@@ -405,7 +405,7 @@ export function PatternsView({
           </legend>
           <div className="insight-matrix-head" aria-hidden="true">
             {weekDates(mondayOf(monthStart(monthDate))).map((date) => (
-              <span key={date}>{formatWeekdayShort(date)}</span>
+              <WeekdayLabel key={date} date={date} />
             ))}
           </div>
           {weeks.map((week, weekIndex) => (
@@ -698,6 +698,11 @@ export function RecapView({
                       <span
                         key={person.key}
                         className={`insight-mood insight-series-${person.key}`}
+                        data-vibe={
+                          highlight.kind === 'bothGood'
+                            ? (value.vibe ?? undefined)
+                            : undefined
+                        }
                         role="img"
                         aria-label={`${person.name}: ${
                           highlight.kind === 'bothGood'

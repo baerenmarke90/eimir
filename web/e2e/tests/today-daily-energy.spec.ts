@@ -357,7 +357,9 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
-  const result = await new AxeBuilder({ page }).include('.today-hero').analyze();
+  const result = await new AxeBuilder({ page })
+    .include('.today-hero')
+    .analyze();
   expect(result.violations).toEqual([]);
 
   await page.screenshot({
@@ -440,9 +442,7 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   expect(expandedResult.violations).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath(
-      'today-daily-energy-hero-slider-1280-light.png',
-    ),
+    path: testInfo.outputPath('today-daily-energy-hero-slider-1280-light.png'),
     fullPage: true,
   });
 });

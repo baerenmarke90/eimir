@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from eimir.collections.models import CollectionItem
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import service as relationship_service
+from eimir.relationship.models import SpaceConfiguration
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -274,6 +275,7 @@ class TestCollectionItems:
         )
         assert final.status_code == 200
         assert final.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+        assert "X-Eimir-Shared-Achievement" not in final.headers
 
         stale_retry = client.patch(
             f"{path(couple['space'].id)}/{collection['id']}/items/{second['id']}",
@@ -298,6 +300,32 @@ class TestCollectionItems:
         )
         assert completed_again.status_code == 200
         assert completed_again.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+
+    def test_completion_celebration_is_server_gated(
+        self,
+        client,
+        couple,
+        session: Session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        assert configuration is not None
+        configuration.shared_achievements_enabled = True
+        session.flush()
+
+        collection = create_collection(client, couple).json()
+        item = create_item(client, couple, collection["id"], "Milk").json()
+        completed = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{item['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_b"], item["version"]),
+        )
+
+        assert completed.status_code == 200
+        assert completed.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+        assert (
+            completed.headers["X-Eimir-Shared-Achievement"]
+            == "collection-completed"
+        )
 
     def test_delete_compacts_positions_without_changing_remaining_item_versions(
         self, client, couple

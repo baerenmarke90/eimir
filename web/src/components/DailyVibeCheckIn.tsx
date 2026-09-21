@@ -111,9 +111,15 @@ export function DailyVibeCheckIn({
     () => spaceConfigurationQueryKey(accountId, spaceId),
     [accountId, spaceId],
   );
-  const dailyQuery = useQuery(
-    dailyCheckInTodayQueryOptions(api, accountId, spaceId),
+  const dailyQueryOptions = dailyCheckInTodayQueryOptions(
+    api,
+    accountId,
+    spaceId,
   );
+  const dailyQuery = useQuery({
+    ...dailyQueryOptions,
+    enabled: dailyQueryOptions.enabled && configuredEnabled,
+  });
   const [open, setOpen] = useState(false);
   const [revealVersion, setRevealVersion] = useState(0);
   const [announcement, setAnnouncement] = useState('');
@@ -128,19 +134,19 @@ export function DailyVibeCheckIn({
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
   const serverVibe = dailyQuery.data?.projection.vibe;
   const serverReportsModuleDisabled = serverVibe === null;
-  const serverReportsModuleEnabled =
-    serverVibe !== undefined && serverVibe !== null;
-  const shouldResolveSurface =
-    configuredEnabled || serverReportsModuleEnabled || ownVibe !== null;
-
   useEffect(() => {
-    if (!serverReportsModuleDisabled) return;
+    if (!configuredEnabled || !serverReportsModuleDisabled) return;
     void queryClient.invalidateQueries({
       queryKey: configurationKey,
       exact: true,
       refetchType: 'active',
     });
-  }, [configurationKey, queryClient, serverReportsModuleDisabled]);
+  }, [
+    configurationKey,
+    configuredEnabled,
+    queryClient,
+    serverReportsModuleDisabled,
+  ]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
     const name = partnerName || t('dailyVibe.partnerFallback');
@@ -242,11 +248,10 @@ export function DailyVibeCheckIn({
     setOpen(false);
   }, [dailyQuery.fetchStatus, dailyQuery.isError, online]);
 
-  if (!api || !accountId || !spaceId) return null;
+  if (!api || !accountId || !spaceId || !configuredEnabled) return null;
 
   const loading = dailyQuery.isPending && !dailyQuery.data;
   if (loading) {
-    if (!configuredEnabled) return null;
     return (
       <section
         className="daily-vibe-checkin daily-vibe-loading"
@@ -268,7 +273,6 @@ export function DailyVibeCheckIn({
     dailyQuery.fetchStatus === 'idle';
 
   if (!authoritative || !dailyQuery.data) {
-    if (!shouldResolveSurface) return null;
     const offline = !online || dailyQuery.fetchStatus === 'paused';
     return (
       <section

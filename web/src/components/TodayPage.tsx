@@ -1140,14 +1140,14 @@ export function TodayPage({
             <h1 className="sr-only">{t('m5s5.dashboard.title')}</h1>
           )}
 
-          {partner && account?.id && dailyCheckInsApi ? (
+          {vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
             <DailyVibeCheckIn
               key={`${account.id}:${spaceId}`}
               api={dailyCheckInsApi}
               accountId={account.id}
               spaceId={spaceId}
               partnerName={partner.displayName}
-              configuredEnabled={vibeCheckEnabled}
+              configuredEnabled
             />
           ) : null}
 

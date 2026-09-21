@@ -7,6 +7,10 @@ const snackbar = {
       'Der Akku-Stand hat sich inzwischen geändert. Der aktuelle Stand wurde geladen.',
     dailyEnergyModuleDisabled:
       'Der Akku-Check-in ist für euren Bereich nicht mehr aktiviert.',
+    dailyVibeConflict:
+      'Der Vibe hat sich inzwischen geändert. Der aktuelle Stand wurde geladen.',
+    dailyVibeModuleDisabled:
+      'Der Vibe-Check-in ist für euren Bereich nicht mehr aktiviert.',
   },
 };
 

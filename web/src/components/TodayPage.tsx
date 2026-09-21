@@ -46,6 +46,7 @@ import { usePartnerPresence } from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
+import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -820,6 +821,8 @@ export function TodayPage({
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
   const energyCheckInEnabled =
     spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
+  const vibeCheckEnabled =
+    spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
   const dashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
@@ -1136,6 +1139,17 @@ export function TodayPage({
           ) : (
             <h1 className="sr-only">{t('m5s5.dashboard.title')}</h1>
           )}
+
+          {partner && account?.id && dailyCheckInsApi ? (
+            <DailyVibeCheckIn
+              key={account.id + ':' + spaceId}
+              api={dailyCheckInsApi}
+              accountId={account.id}
+              spaceId={spaceId}
+              partnerName={partner.displayName}
+              configuredEnabled={vibeCheckEnabled}
+            />
+          ) : null}
 
           {isSparse ? (
             <div className="new-space-experience eimir-motion-reveal">

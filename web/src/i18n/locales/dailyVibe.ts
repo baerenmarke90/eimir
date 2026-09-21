@@ -1,0 +1,50 @@
+const dailyVibe = {
+  question: 'Wie geht es euch heute?',
+  voluntary: 'Ein kleiner Check-in, freiwillig und nur für heute.',
+  loading: 'Euer heutiger Vibe wird geladen …',
+  choose: 'Vibe teilen',
+  chooseAria: 'Vibe für heute auswählen',
+  changeAria: 'Dein Vibe heute: {{value}}. Ändern',
+  you: 'Du',
+  partnerFallback: 'Dein Partner',
+  partnerHidden: 'Nach deinem Vibe sichtbar',
+  partnerHiddenAria:
+    '{{name}}s heutiger Vibe wird nach deinem eigenen Vibe sichtbar.',
+  noCheckIn: 'Heute noch kein Vibe geteilt',
+  partnerNoCheckInAria: '{{name}} hat heute noch keinen Vibe geteilt.',
+  partnerFallbackVisible: '{{name}} hat heute einen Vibe geteilt.',
+  sheetTitle: 'Dein Vibe heute',
+  sheetIntro: 'Was passt gerade am besten?',
+  close: 'Vibe-Auswahl schließen',
+  saving: 'Wird gespeichert …',
+  remove: 'Vibe entfernen',
+  disabledTitle: 'Vibe ist gerade ausgeschaltet',
+  disabledBody:
+    'Dein bereits geteilter Vibe „{{value}}“ kann noch entfernt werden.',
+  disabledRemove: 'Heutigen Vibe entfernen',
+  unavailable: 'Euer Vibe heute ist gerade nicht verfügbar.',
+  unavailableOffline:
+    'Offline – euer heutiger Vibe wird nach dem Verbinden wieder angezeigt.',
+  contextUnavailable:
+    'Der heutige Check-in ist gerade nicht verfügbar. Bitte versuche es später erneut.',
+  saveError: 'Dein Vibe konnte nicht gespeichert werden.',
+  retry: 'Erneut versuchen',
+  values: {
+    GOOD: 'Gut & entspannt',
+    OKAY: 'Ganz okay',
+    STRESSED: 'Anstrengender Tag',
+    SAD: 'Nicht so gut',
+    NEEDS_CONNECTION: 'Nähe wäre schön',
+    NEEDS_SPACE: 'Etwas Ruhe',
+  },
+  partnerVisible: {
+    GOOD: '{{name}} geht es heute gut.',
+    OKAY: 'Bei {{name}} ist heute alles ganz okay.',
+    STRESSED: '{{name}} hat heute einen anstrengenden Tag.',
+    SAD: '{{name}} geht es heute nicht so gut.',
+    NEEDS_CONNECTION: '{{name}} wünscht sich heute etwas Nähe.',
+    NEEDS_SPACE: '{{name}} braucht heute etwas Ruhe.',
+  },
+} as const;
+
+export default dailyVibe;

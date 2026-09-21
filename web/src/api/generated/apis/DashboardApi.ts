@@ -198,7 +198,7 @@ export class DashboardApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set one private per-account Dashboard preference (#817 visibility, #848 item limit).
+     * Set one private per-account Dashboard presentation preference.
      * Update Dashboard Module Preference
      */
     async updateDashboardModulePreferenceRaw(requestParameters: UpdateDashboardModulePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardModulePreferenceView>> {
@@ -209,7 +209,7 @@ export class DashboardApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set one private per-account Dashboard preference (#817 visibility, #848 item limit).
+     * Set one private per-account Dashboard presentation preference.
      * Update Dashboard Module Preference
      */
     async updateDashboardModulePreference(requestParameters: UpdateDashboardModulePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardModulePreferenceView> {

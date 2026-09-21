@@ -324,7 +324,7 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
   await expect(ownBattery).toBeVisible();
   await expect(partnerBattery).toBeVisible();
   await expect(partnerBattery).toHaveAttribute('data-state', 'hidden');
-  await expect(partnerBattery).not.toHaveAttribute('data-energy');
+  expect(await partnerBattery.getAttribute('data-energy')).toBeNull();
 
   const ownTargetBox = await ownBattery.boundingBox();
   expect(ownTargetBox).not.toBeNull();
@@ -372,9 +372,9 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
   await expect(popover).not.toContainText('%');
   await expect(popover.locator('.daily-energy-current-value')).toHaveCount(0);
   await expect(popover.locator('.daily-energy-scale')).toHaveCount(0);
-  await expect(popover.locator('[data-testid="daily-energy-partner"]')).toHaveCount(
-    0,
-  );
+  await expect(
+    popover.locator('[data-testid="daily-energy-partner"]'),
+  ).toHaveCount(0);
 
   const slider = popover.getByRole('slider', {
     name: dailyEnergy.selectLegend,

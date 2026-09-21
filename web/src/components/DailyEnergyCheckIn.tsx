@@ -406,8 +406,12 @@ export function DailyEnergyCheckIn({
             style={sliderStyle}
             aria-valuetext={t('dailyEnergy.optionAria', { value: draftEnergy })}
             onChange={(event) => updateDraft(Number(event.currentTarget.value))}
-            onPointerUp={() => submitEnergy(draftEnergy)}
-            onBlur={() => submitEnergy(draftEnergy)}
+            onPointerUp={() => {
+              if (draftTouched) submitEnergy(draftEnergy);
+            }}
+            onBlur={() => {
+              if (draftTouched) submitEnergy(draftEnergy);
+            }}
           />
 
           <div className="daily-energy-scale" aria-hidden="true">

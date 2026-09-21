@@ -199,6 +199,29 @@ def test_reconciliation_rejects_non_active_target_without_side_effects(
     assert audit_count == 0
 
 
+def test_reconciliation_rejects_active_member_from_another_space(
+    client,
+    session: Session,
+    server_admin_allowlist,
+) -> None:
+    admin, token = _admin(session)
+    _grant_recent_admin_action(session, admin)
+    space, _, _ = _legacy_space(session)
+    outsider = make_account(session, "Other Space member")
+    make_space(session, outsider)
+
+    response = client.post(
+        _path(space.id),
+        json={"accountId": str(outsider.id)},
+        headers=auth(token),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "SPACE_CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE"
+    session.refresh(space)
+    assert space.configuration_manager_account_id is None
+
+
 def test_reconciliation_never_overwrites_existing_authority(
     client,
     session: Session,

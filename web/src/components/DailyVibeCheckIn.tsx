@@ -147,7 +147,11 @@ export function DailyVibeCheckIn({
   useEffect(() => {
     if (startupAnimationEvaluatedRef.current) return;
     const projection = dailyQuery.data?.projection;
-    if (!projection || dailyQuery.isError || dailyQuery.fetchStatus !== 'idle') {
+    if (
+      !projection ||
+      dailyQuery.isError ||
+      dailyQuery.fetchStatus !== 'idle'
+    ) {
       return;
     }
 

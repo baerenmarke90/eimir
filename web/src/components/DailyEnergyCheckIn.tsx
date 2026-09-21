@@ -246,7 +246,7 @@ export function DailyEnergyCheckIn({
   }, [mutation.isPending, open, ownEnergy]);
 
   useEffect(() => {
-    if (online && !dailyQuery.isError && dailyQuery.fetchStatus !== 'paused') {
+    if (online && !dailyQuery.isError && dailyQuery.fetchStatus === 'idle') {
       return;
     }
     setOpen(false);

@@ -8,7 +8,7 @@ import type { CollectionItemDetail } from '../api/generated/models/CollectionIte
 import { i18n } from '../i18n';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 
-const COMPLETION_HEADER = 'X-Eimir-Collection-Completion-Transition';
+const ACHIEVEMENT_HEADER = 'X-Eimir-Shared-Achievement';
 
 function item(id: string, title: string, completed = false, position = 0) {
   return {
@@ -49,13 +49,13 @@ function collection(): CollectionDetail {
 
 function rawUpdateResponse(
   updatedItem: CollectionItemDetail,
-  collectionBecameComplete: boolean,
+  achievement: 'collection-completed' | null,
 ) {
   return {
     raw: {
       headers: {
         get: (name: string) =>
-          name === COMPLETION_HEADER ? String(collectionBecameComplete) : null,
+          name === ACHIEVEMENT_HEADER ? achievement : null,
       },
     } as unknown as Response,
     value: vi.fn().mockResolvedValue(updatedItem),
@@ -126,7 +126,7 @@ describe('TodayPinnedCollection', () => {
     const updateCollectionItemRaw = vi
       .fn()
       .mockResolvedValue(
-        rawUpdateResponse(item('item-1', 'Milch', true), false),
+        rawUpdateResponse(item('item-1', 'Milch', true), null),
       );
     const { onRefresh } = renderPinned(
       { updateCollectionItemRaw },
@@ -164,7 +164,7 @@ describe('TodayPinnedCollection', () => {
     const updateCollectionItemRaw = vi
       .fn()
       .mockResolvedValue(
-        rawUpdateResponse(item('item-1', 'Milch', true), true),
+        rawUpdateResponse(item('item-1', 'Milch', true), 'collection-completed'),
       );
     const { onRefresh } = renderPinned(
       { updateCollectionItemRaw },
@@ -201,7 +201,7 @@ describe('TodayPinnedCollection', () => {
     const updateCollectionItemRaw = vi
       .fn()
       .mockResolvedValue(
-        rawUpdateResponse(item('item-1', 'Milch', true), true),
+        rawUpdateResponse(item('item-1', 'Milch', true), 'collection-completed'),
       );
     const { onRefresh } = renderPinned({ updateCollectionItemRaw });
 

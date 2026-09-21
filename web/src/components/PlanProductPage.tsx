@@ -174,21 +174,26 @@ export function PlanProductPage({
       ),
     onSuccess: async (completedPlan) => {
       setCelebratedPlanKey(null);
-      await commitPlan(completedPlan);
+      let celebrationEnabled = false;
 
-      if (!spacesApi || !accountId) return;
-      try {
-        const snapshot = await loadSpaceConfiguration(spacesApi, spaceId);
-        queryClient.setQueryData(
-          spaceConfigurationQueryKey(accountId, spaceId),
-          snapshot,
-        );
-        if (snapshot.configuration.sharedAchievementsEnabled) {
-          setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
+      if (spacesApi && accountId) {
+        try {
+          const snapshot = await loadSpaceConfiguration(spacesApi, spaceId);
+          queryClient.setQueryData(
+            spaceConfigurationQueryKey(accountId, spaceId),
+            snapshot,
+          );
+          celebrationEnabled =
+            snapshot.configuration.sharedAchievementsEnabled;
+        } catch {
+          // The Plan completion is already authoritative. Optional celebration
+          // presentation fails closed when the current Space switch is unknown.
         }
-      } catch {
-        // The Plan completion is already authoritative. Optional celebration
-        // presentation fails closed when the current Space switch is unknown.
+      }
+
+      await commitPlan(completedPlan);
+      if (celebrationEnabled) {
+        setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
       }
     },
   });
@@ -622,7 +627,9 @@ export function PlanProductPage({
                   className="planen-complete-cta"
                   disabled={completeMutation.isPending}
                 >
-                  {t('m5s3.plan.complete')}
+                  {completeMutation.isPending
+                    ? t('m5s3.common.saving')
+                    : t('m5s3.plan.complete')}
                 </button>
               </form>
             </section>

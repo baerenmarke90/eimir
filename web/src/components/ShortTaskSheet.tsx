@@ -53,6 +53,8 @@ export function ShortTaskSheet({
   const navigatingRef = useRef(false);
   const dragPointerRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
+  const dragMaxDistanceRef = useRef(0);
+  const suppressNextClickRef = useRef(false);
   const closeSheet = useEditorHistoryEntry({
     isActive: open,
     isDirty: false,
@@ -68,10 +70,16 @@ export function ShortTaskSheet({
     );
   }
 
-  function beginDrag(event: ReactPointerEvent<HTMLDivElement>): void {
-    if (event.button !== 0 || dragPointerRef.current !== null) return;
+  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
+    const expanded =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(min-width: 840px)').matches;
+    if (expanded || event.button !== 0 || dragPointerRef.current !== null) return;
     dragPointerRef.current = event.pointerId;
     dragStartYRef.current = event.clientY;
+    dragMaxDistanceRef.current = 0;
+    suppressNextClickRef.current = false;
     dialogRef.current?.setAttribute('data-dragging', 'true');
     updateDragOffset(0);
     if (typeof event.currentTarget.setPointerCapture === 'function') {
@@ -79,18 +87,29 @@ export function ShortTaskSheet({
     }
   }
 
-  function moveDrag(event: ReactPointerEvent<HTMLDivElement>): void {
+  function moveDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
     if (dragPointerRef.current !== event.pointerId) return;
     event.preventDefault();
-    updateDragOffset(event.clientY - dragStartYRef.current);
+    const delta = event.clientY - dragStartYRef.current;
+    dragMaxDistanceRef.current = Math.max(
+      dragMaxDistanceRef.current,
+      Math.abs(delta),
+    );
+    updateDragOffset(delta);
   }
 
   function finishDrag(
-    event: ReactPointerEvent<HTMLDivElement>,
+    event: ReactPointerEvent<HTMLButtonElement>,
     allowDismiss: boolean,
   ): void {
     if (dragPointerRef.current !== event.pointerId) return;
-    const offset = Math.max(0, event.clientY - dragStartYRef.current);
+    const delta = event.clientY - dragStartYRef.current;
+    const offset = Math.max(0, delta);
+    dragMaxDistanceRef.current = Math.max(
+      dragMaxDistanceRef.current,
+      Math.abs(delta),
+    );
+    const wasDrag = dragMaxDistanceRef.current > 4;
     dragPointerRef.current = null;
 
     if (
@@ -101,6 +120,12 @@ export function ShortTaskSheet({
     }
 
     dialogRef.current?.removeAttribute('data-dragging');
+    if (wasDrag) {
+      suppressNextClickRef.current = true;
+      window.setTimeout(() => {
+        suppressNextClickRef.current = false;
+      }, 0);
+    }
     if (allowDismiss && offset >= COMPACT_DRAG_DISMISS_THRESHOLD_PX) {
       closeSheet();
       return;
@@ -129,6 +154,8 @@ export function ShortTaskSheet({
     if (!dialog) return;
     navigatingRef.current = false;
     dragPointerRef.current = null;
+    dragMaxDistanceRef.current = 0;
+    suppressNextClickRef.current = false;
     dialog.removeAttribute('data-dragging');
     dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');
     dialog.showModal();
@@ -179,24 +206,25 @@ export function ShortTaskSheet({
       }}
     >
       <header className="short-task-sheet-header">
-        <div
-          className="short-task-sheet-drag-zone"
-          aria-hidden="true"
+        <button
+          ref={closeRef}
+          type="button"
+          className="short-task-sheet-close short-task-sheet-drag-zone"
+          aria-label={resolvedCloseLabel}
+          title={resolvedCloseLabel}
           onPointerDown={beginDrag}
           onPointerMove={moveDrag}
           onPointerUp={(event) => finishDrag(event, true)}
           onPointerCancel={(event) => finishDrag(event, false)}
+          onClick={() => {
+            if (suppressNextClickRef.current) {
+              suppressNextClickRef.current = false;
+              return;
+            }
+            closeSheet();
+          }}
         >
-          <span className="short-task-sheet-drag-handle" />
-        </div>
-        <button
-          ref={closeRef}
-          type="button"
-          className="short-task-sheet-close"
-          aria-label={resolvedCloseLabel}
-          title={resolvedCloseLabel}
-          onClick={() => closeSheet()}
-        >
+          <span className="short-task-sheet-drag-handle" aria-hidden="true" />
           <svg
             className="short-task-sheet-close-icon"
             viewBox="0 0 24 24"

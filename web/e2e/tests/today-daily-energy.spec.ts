@@ -291,6 +291,10 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
+function energyBadgeAriaValue(value: number): string {
+  return dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
+}
+
 test('Daily Energy is a compact avatar battery that opens one accessible slider', async ({
   page,
 }, testInfo) => {
@@ -342,7 +346,7 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
 
   await expect(
     hero.getByRole('button', {
-      name: /Dein Akku heute: 70 Prozent/,
+      name: energyBadgeAriaValue(70),
     }),
   ).toBeVisible();
   await expect(partnerState.getByText('20 %')).toBeVisible();
@@ -374,7 +378,7 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   await page.setViewportSize({ width: 320, height: 844 });
   await signIn(page);
 
-  await page.addStyleTag({
+  const largeTextStyle = await page.addStyleTag({
     content: 'html { font-size: 200% !important; }',
   });
 
@@ -413,6 +417,31 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
   await page.screenshot({
     path: testInfo.outputPath(
       'today-daily-energy-hero-slider-320-dark-large-text.png',
+    ),
+    fullPage: true,
+  });
+
+  await largeTextStyle.evaluate((node) => node.remove());
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+
+  await expect(popover).toBeVisible();
+  const expandedGeometry = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(expandedGeometry.scrollWidth).toBeLessThanOrEqual(
+    expandedGeometry.clientWidth,
+  );
+
+  const expandedResult = await new AxeBuilder({ page })
+    .include('.today-hero')
+    .analyze();
+  expect(expandedResult.violations).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'today-daily-energy-hero-slider-1280-light.png',
     ),
     fullPage: true,
   });

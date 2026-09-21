@@ -205,7 +205,7 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
-  it('uses the Compact drag handle as a supplemental dismissal gesture', async () => {
+  it('uses the Compact grip as the primary touch dismissal gesture', async () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     const trigger = screen.getByText('Task choices');
     trigger.focus();

@@ -278,9 +278,9 @@ describe('DailyVibeCheckIn', () => {
       expect(own.classList.contains('is-startup-reveal')).toBe(true),
     );
     expect(
-      screen.getByTestId('daily-vibe-partner').classList.contains(
-        'is-startup-reveal',
-      ),
+      screen
+        .getByTestId('daily-vibe-partner')
+        .classList.contains('is-startup-reveal'),
     ).toBe(true);
     first.unmount();
 
@@ -290,9 +290,9 @@ describe('DailyVibeCheckIn', () => {
     });
     expect(ownAgain.classList.contains('is-startup-reveal')).toBe(false);
     expect(
-      screen.getByTestId('daily-vibe-partner').classList.contains(
-        'is-startup-reveal',
-      ),
+      screen
+        .getByTestId('daily-vibe-partner')
+        .classList.contains('is-startup-reveal'),
     ).toBe(false);
   });
 

@@ -448,9 +448,9 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
     throw new Error('Missing expanded Daily Energy popover bounds');
   }
   expect(expandedPopoverBox.x).toBeGreaterThanOrEqual(0);
-  expect(
-    expandedPopoverBox.x + expandedPopoverBox.width,
-  ).toBeLessThanOrEqual(expandedViewportWidth + 1);
+  expect(expandedPopoverBox.x + expandedPopoverBox.width).toBeLessThanOrEqual(
+    expandedViewportWidth + 1,
+  );
 
   const expandedResult = await new AxeBuilder({ page })
     .include('.today-hero')

@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { normalizeClientError } from '../client/problemDetails';
+import { collectionDetailPath } from '../client/routes';
 import { planningIfMatch } from '../client/sharedPlanning';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { postSnackbar } from '../client/snackbar';
@@ -106,6 +108,17 @@ export function TodayPinnedCollection({
           body={t('m5s5.today.pinnedCollection.sharedAchievementBody', {
             title: collection.title,
           })}
+          action={
+            <Link
+              className="shared-achievement-cta"
+              to={collectionDetailPath(collection.id)}
+            >
+              {t('m5s5.today.pinnedCollection.sharedAchievementAction')}
+              <span className="shared-achievement-cta-arrow" aria-hidden="true">
+                ›
+              </span>
+            </Link>
+          }
         />
       </div>
     );

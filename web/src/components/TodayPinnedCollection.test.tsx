@@ -195,6 +195,11 @@ describe('TodayPinnedCollection', () => {
         .getByRole('status')
         .classList.contains('shared-achievement-confirmation'),
     ).toBe(true);
+    expect(
+      screen.getByRole('link', {
+        name: i18n.t('m5s5.today.pinnedCollection.sharedAchievementAction'),
+      }),
+    ).toHaveAttribute('href', '/plan/collections/collection-1');
   });
 
   it('suppresses a confirmed Collection transition when shared achievements are disabled', async () => {

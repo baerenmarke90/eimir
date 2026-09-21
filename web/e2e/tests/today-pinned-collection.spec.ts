@@ -533,6 +533,11 @@ test('celebrates only the confirmed final pinned Collection completion and stays
   await expect(
     pinnedSection.locator('.shared-achievement-confirmation'),
   ).toHaveCount(1);
+  await expect(
+    pinnedSection.getByRole('link', {
+      name: m5s5.today.pinnedCollection.sharedAchievementAction,
+    }),
+  ).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

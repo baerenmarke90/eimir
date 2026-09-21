@@ -17,6 +17,7 @@
 }
 
 .shared-achievement-mark {
+  position: relative;
   display: grid;
   width: var(--space-12);
   height: var(--space-12);
@@ -55,6 +56,7 @@
 }
 
 .shared-achievement-confirmation-centered {
+  position: relative;
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   text-align: center;
@@ -72,6 +74,31 @@
 .shared-achievement-confirmation-centered .shared-achievement-mark {
   width: var(--space-16);
   height: var(--space-16);
+  border: 0;
+  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface-raised));
+  box-shadow: none;
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::before,
+.shared-achievement-confirmation-centered .shared-achievement-mark::after {
+  position: absolute;
+  color: var(--color-brand);
+  font-size: 1rem;
+  line-height: 1;
+  content: "♥";
+  opacity: 0.72;
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::before {
+  inset-inline-start: -1.85rem;
+  top: 0.5rem;
+  transform: rotate(-12deg);
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::after {
+  inset-inline-end: -2rem;
+  bottom: 0.65rem;
+  transform: rotate(10deg) scale(0.82);
 }
 
 .shared-achievement-confirmation-centered .shared-achievement-mark svg {
@@ -81,6 +108,45 @@
 
 .shared-achievement-confirmation-centered .shared-achievement-copy {
   max-width: 32rem;
+}
+
+.shared-achievement-action {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.shared-achievement-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  max-width: 100%;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-5);
+  background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface-raised));
+  color: var(--color-text);
+  font-weight: 750;
+  text-decoration: none;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast);
+}
+
+.shared-achievement-cta:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-success) 18%, var(--color-surface-raised));
+}
+
+.shared-achievement-cta:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.shared-achievement-cta-arrow {
+  font-size: 1.25em;
+  line-height: 1;
 }
 
 @keyframes shared-achievement-arrive {
@@ -98,5 +164,13 @@
 @media (prefers-reduced-motion: reduce) {
   .shared-achievement-confirmation {
     animation: none;
+  }
+
+  .shared-achievement-cta {
+    transition: none;
+  }
+
+  .shared-achievement-cta:hover {
+    transform: none;
   }
 }

@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import './SharedAchievementCelebration.css';
 
 export function SharedAchievementCelebration({
@@ -9,6 +9,7 @@ export function SharedAchievementCelebration({
   headingRef,
   headingTabIndex,
   centered = false,
+  action,
 }: {
   title: string;
   body: string;
@@ -17,6 +18,7 @@ export function SharedAchievementCelebration({
   headingRef?: Ref<HTMLHeadingElement>;
   headingTabIndex?: number;
   centered?: boolean;
+  action?: ReactNode;
 }) {
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
 
@@ -45,6 +47,7 @@ export function SharedAchievementCelebration({
         </Heading>
         <p>{body}</p>
       </div>
+      {action ? <div className="shared-achievement-action">{action}</div> : null}
     </div>
   );
 }

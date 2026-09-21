@@ -45,9 +45,18 @@ function onlineSnapshot(): boolean {
 
 function BatteryIcon({ value }: { value: number | null }) {
   const fillWidth = value === null ? 0 : Math.max(1.5, (15 * value) / 100);
+  const level =
+    value === null
+      ? 'empty'
+      : value <= 30
+        ? 'low'
+        : value <= 60
+          ? 'medium'
+          : 'high';
   return (
     <svg
       className="daily-energy-battery-icon"
+      data-level={level}
       viewBox="0 0 24 14"
       aria-hidden="true"
       focusable="false"
@@ -260,11 +269,11 @@ export function DailyEnergyCheckIn({
   }, [mutation.isPending, open, ownEnergy]);
 
   useEffect(() => {
-    if (online && !dailyQuery.isError && dailyQuery.fetchStatus === 'idle') {
+    if (online && !dailyQuery.isError) {
       return;
     }
     setOpen(false);
-  }, [dailyQuery.fetchStatus, dailyQuery.isError, online]);
+  }, [dailyQuery.isError, online]);
 
   useEffect(() => {
     if (!open) return;
@@ -297,10 +306,7 @@ export function DailyEnergyCheckIn({
 
   const loading = dailyQuery.isPending && !dailyQuery.data;
   const authoritative =
-    online &&
-    Boolean(dailyQuery.data) &&
-    !dailyQuery.isError &&
-    dailyQuery.fetchStatus === 'idle';
+    online && Boolean(dailyQuery.data) && !dailyQuery.isError;
 
   if (loading) {
     return (
@@ -322,7 +328,7 @@ export function DailyEnergyCheckIn({
   }
 
   if (!authoritative || !dailyQuery.data) {
-    const offline = !online || dailyQuery.fetchStatus === 'paused';
+    const offline = !online;
     return (
       <div className="daily-energy-checkin">
         <button
@@ -438,6 +444,10 @@ export function DailyEnergyCheckIn({
               if (draftTouched) submitEnergy(draftEnergy);
             }}
           />
+          <div className="daily-energy-slider-labels">
+            <span>{t('dailyEnergy.scaleLow')}</span>
+            <span>{t('dailyEnergy.scaleHigh')}</span>
+          </div>
 
           <div className="daily-energy-popover-actions">
             <span

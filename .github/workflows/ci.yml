@@ -99,8 +99,6 @@ jobs:
   backend:
     name: Backend
     needs: changes
-    permissions:
-      contents: write
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     env:
@@ -163,33 +161,6 @@ jobs:
       - name: OpenAPI contract
         run: uv run --frozen python scripts/openapi_contract.py check
 
-      # Temporary one-shot transport for #432. The follow-up commit removes
-      # this step and its write permission before the PR is eligible to merge.
-      - name: Commit generated Daily Check-in contract
-        if: always() && github.event_name == 'pull_request' && github.head_ref == 'feat/432-daily-checkin-foundation'
-        working-directory: .
-        env:
-          PR_HEAD_REF: ${{ github.head_ref }}
-        run: |
-          set -euo pipefail
-          git fetch origin "$PR_HEAD_REF"
-          git checkout -B "$PR_HEAD_REF" "origin/$PR_HEAD_REF"
-
-          cd backend
-          uv run --frozen python scripts/openapi_contract.py write
-          cd ..
-          tools/openapi/generate.sh
-
-          git add backend/openapi.json web/src/api/generated
-          if git diff --cached --quiet; then
-            echo "Generated Daily Check-in contract is already current."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(api): regenerate Daily Check-in contract (#432)"
-          git push origin "HEAD:$PR_HEAD_REF"
 
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q

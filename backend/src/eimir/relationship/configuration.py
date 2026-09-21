@@ -185,9 +185,7 @@ def _ensure_daily_timezone_change_allowed(
         return
 
     any_check_in = session.execute(
-        select(DailyCheckIn.id)
-        .where(DailyCheckIn.space_id == space_id)
-        .limit(1)
+        select(DailyCheckIn.id).where(DailyCheckIn.space_id == space_id).limit(1)
     ).scalar_one_or_none()
     if any_check_in is None:
         return

@@ -83,6 +83,7 @@ def couple(session: Session):  # type: ignore[no-untyped-def]
 def _url(couple) -> str:  # type: ignore[no-untyped-def]
     return f"/api/v1/spaces/{couple['space'].id}/thinking-of-you"
 
+
 def _set_support_gestures(client, couple, *, enabled: bool) -> None:  # type: ignore[no-untyped-def]
     configuration_url = f"/api/v1/spaces/{couple['space'].id}/configuration"
     current = client.get(configuration_url, headers=auth(couple["anna_token"]))
@@ -112,10 +113,7 @@ def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
         headers=auth(couple["anna_token"]),
     )
     assert blocked.status_code == 403
-    assert (
-        blocked.json()["code"]
-        == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
-    )
+    assert blocked.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 0
     assert session.execute(select(func.count(OutboxEvent.id))).scalar_one() == 0
 
@@ -187,6 +185,7 @@ def test_disable_preserves_existing_notification_and_suppresses_queued_effect(
     assert [notification.id for notification in notifications] == [first_notification.id]
     assert session.get(ThinkingOfYouRequest, requests[0].id) is not None
     assert session.get(ThinkingOfYouRequest, queued_request.id) is not None
+
 
 def test_replay_is_idempotent_before_cooldown_and_projects_notification_only(
     client, session: Session, couple, monkeypatch

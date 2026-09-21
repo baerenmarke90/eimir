@@ -43,7 +43,13 @@ function onlineSnapshot(): boolean {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
-function BatteryIcon({ value }: { value: number | null }) {
+function BatteryIcon({
+  value,
+  showQuestion = false,
+}: {
+  value: number | null;
+  showQuestion?: boolean;
+}) {
   const fillWidth = value === null ? 0 : Math.max(1.5, (15 * value) / 100);
   const level =
     value === null
@@ -87,6 +93,15 @@ function BatteryIcon({ value }: { value: number | null }) {
           height="6"
           rx="1"
         />
+      ) : showQuestion ? (
+        <text
+          className="daily-energy-battery-question"
+          x="10.5"
+          y="9.7"
+          textAnchor="middle"
+        >
+          ?
+        </text>
       ) : null}
     </svg>
   );
@@ -100,45 +115,30 @@ function PartnerBatteryIndicator({
   partnerName?: string;
 }) {
   const { t } = useTranslation();
+
+  // Partner Energy is informative, not an entry point. If there is no
+  // revealable value yet (not checked in, hidden by mutual reveal, loading,
+  // offline, or unavailable), keep the avatar visually quiet.
+  if (!projection || projection.state !== 'VISIBLE') return null;
+
   const label = partnerName
     ? t('dailyEnergy.partnerLabel', { name: partnerName })
     : t('dailyEnergy.partnerFallback');
-
-  let state: 'visible' | 'hidden' | 'empty' | 'unavailable' = 'unavailable';
-  let value: number | null = null;
-  let ariaLabel = `${label}. ${t('dailyEnergy.unavailable')}`;
-
-  if (projection) {
-    switch (projection.state) {
-      case 'VISIBLE':
-        state = 'visible';
-        value = projection.value;
-        ariaLabel = `${label}: ${t('dailyEnergy.percentage', {
-          value: projection.value,
-        })}`;
-        break;
-      case 'NO_CHECK_IN':
-        state = 'empty';
-        ariaLabel = `${label}. ${t('dailyEnergy.noCheckIn')}`;
-        break;
-      case 'HIDDEN_UNTIL_SELF_CHECK_IN':
-        state = 'hidden';
-        ariaLabel = `${label}. ${t('dailyEnergy.hiddenTitle')}`;
-        break;
-    }
-  }
+  const ariaLabel = `${label}: ${t('dailyEnergy.percentage', {
+    value: projection.value,
+  })}`;
 
   return (
     <span
       className="daily-energy-partner-battery"
       role="img"
       aria-label={ariaLabel}
-      data-state={state}
-      data-energy={value ?? undefined}
+      data-state="visible"
+      data-energy={projection.value}
       data-testid="daily-energy-partner-battery"
     >
       <span className="daily-energy-avatar-chip" aria-hidden="true">
-        <BatteryIcon value={value} />
+        <BatteryIcon value={projection.value} />
       </span>
     </span>
   );
@@ -398,7 +398,7 @@ export function DailyEnergyCheckIn({
         data-testid="daily-energy-own-battery"
       >
         <span className="daily-energy-avatar-chip" aria-hidden="true">
-          <BatteryIcon value={ownEnergy} />
+          <BatteryIcon value={ownEnergy} showQuestion={ownEnergy === null} />
         </span>
       </button>
 

@@ -73,7 +73,7 @@ async function installMocks(page: Page) {
         createdAt: '2026-01-01T00:00:00Z',
         partners: [
           { id: ACCOUNT_ID, displayName: 'Anna' },
-          { id: PARTNER_ID, displayName: 'Ben' },
+          { id: PARTNER_ID, displayName: 'Ben Winter' },
         ],
       });
       return;
@@ -136,7 +136,7 @@ async function installMocks(page: Page) {
       await json({
         space: {
           spaceId: SPACE_ID,
-          partner: { id: PARTNER_ID, displayName: 'Ben' },
+          partner: { id: PARTNER_ID, displayName: 'Ben Winter' },
         },
         relationshipDuration: { daysTogether: 250, startedOn: '2026-01-01' },
         retrospective: null,
@@ -342,6 +342,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   expect(order).toBe(true);
   await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
   await expect(page.getByText(dailyVibe.partnerHidden)).toHaveCount(0);
+  await expect(vibe.getByText(dailyVibe.voluntary)).toHaveCount(0);
 
   await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
@@ -378,9 +379,19 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
 
   await sheet.getByRole('button', { name: dailyVibe.values.GOOD }).click();
   await expect(sheet).toHaveCount(0);
+  const partnerCard = page.getByTestId('daily-vibe-partner');
+  await expect(partnerCard.getByText(dailyVibe.values.STRESSED)).toBeVisible();
+  await expect(partnerCard.getByText('Ben', { exact: true })).toBeVisible();
+  await expect(partnerCard.getByText('Ben Winter', { exact: true })).toHaveCount(0);
+  await expect(partnerCard).toHaveClass(/is-revealed/);
   await expect(
-    page.getByTestId('daily-vibe-partner').getByText(dailyVibe.values.STRESSED),
-  ).toBeVisible();
+    page.getByRole('button', {
+      name: dailyVibe.changeAria.replace(
+        '{{value}}',
+        dailyVibe.values.GOOD,
+      ),
+    }),
+  ).toHaveClass(/is-startup-reveal/);
 
   expect(state.lastPatch()).toEqual({ vibe: 'GOOD' });
   expect(state.lastPatch()).not.toHaveProperty('energyLevel');

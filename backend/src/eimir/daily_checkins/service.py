@@ -56,15 +56,25 @@ class TodayProjection:
     partner_energy: PartnerDimensionProjection | None
 
 
-def concurrency_token(check_in: DailyCheckIn | None) -> str:
-    """Return an ABA-safe strong-ETag payload for the caller's current row."""
-    if check_in is None:
-        return ABSENT_CONCURRENCY_TOKEN
-    return f"{check_in.id}:{check_in.version}"
+def concurrency_token(check_in: DailyCheckIn | None, checked_on: date) -> str:
+    """Return an ABA- and day-safe strong-ETag payload for current owner state.
+
+    The authoritative day is part of the token even when no row exists. Without
+    it, yesterday's ``"absent"`` validator would still match after midnight
+    and an offline/stale mutation could accidentally create today's state.
+    """
+    state = ABSENT_CONCURRENCY_TOKEN
+    if check_in is not None:
+        state = f"{check_in.id}:{check_in.version}"
+    return f"{checked_on.isoformat()}:{state}"
 
 
-def _require_expected_token(check_in: DailyCheckIn | None, expected_token: str) -> None:
-    if concurrency_token(check_in) != expected_token:
+def _require_expected_token(
+    check_in: DailyCheckIn | None,
+    checked_on: date,
+    expected_token: str,
+) -> None:
+    if concurrency_token(check_in, checked_on) != expected_token:
         raise ConflictError(
             "The Daily Check-in changed since it was read.",
             ErrorCode.RESOURCE_VERSION_CONFLICT,
@@ -263,7 +273,7 @@ def set_energy(
     configuration = _configuration(session, authorization.space_id)
     checked_on = resolve_space_day(configuration.daily_context_timezone, at=at)
     own = _own_for_day(session, authorization, checked_on, for_update=True)
-    _require_expected_token(own, expected_token)
+    _require_expected_token(own, checked_on, expected_token)
 
     if energy_level is not None:
         normalized_energy = _validate_energy(energy_level)

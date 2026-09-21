@@ -279,9 +279,7 @@ describe('DailyEnergyCheckIn', () => {
   it('fails closed and refreshes DailyCheckIn when a write reports the module disabled', async () => {
     const getDailyCheckInTodayRaw = vi
       .fn()
-      .mockResolvedValueOnce(
-        rawResponse(projection(), '"2026-09-21:absent"'),
-      )
+      .mockResolvedValueOnce(rawResponse(projection(), '"2026-09-21:absent"'))
       .mockResolvedValue(
         rawResponse(
           projection({ energyEnabled: false }),
@@ -320,7 +318,9 @@ describe('DailyEnergyCheckIn', () => {
 
     await waitFor(() => {
       expect(screen.queryAllByRole('radio')).toHaveLength(0);
-      expect(screen.queryByRole('button', { name: dailyEnergy.change })).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: dailyEnergy.change }),
+      ).toBeNull();
       expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
     });
   });

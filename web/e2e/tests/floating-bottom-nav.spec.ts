@@ -359,16 +359,32 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     const dialog = page.getByRole('dialog', {
       name: navigation.quickCreateTitle,
     });
-    await expect(dialog).toBeVisible();
-    await dialog.evaluate(async (element) => {
-      const finite = element.getAnimations().filter((animation) => {
-        const timing = animation.effect?.getTiming();
-        return timing?.iterations !== Number.POSITIVE_INFINITY;
+    const settleDialogMotion = async () => {
+      await dialog.evaluate(async (element) => {
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        const finite = element.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return timing?.iterations !== Number.POSITIVE_INFINITY;
+        });
+        await Promise.all(
+          finite.map((animation) => animation.finished.catch(() => undefined)),
+        );
       });
-      await Promise.all(
-        finite.map((animation) => animation.finished.catch(() => undefined)),
-      );
-    });
+    };
+    const sheetTranslateY = async () =>
+      dialog.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        if (transform === 'none') return 0;
+        return new DOMMatrixReadOnly(transform).m42;
+      });
+
+    await expect(dialog).toBeVisible();
+    await settleDialogMotion();
 
     // F2 uses the native top layer; stacking is independent of CSS z-index.
     expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
@@ -502,15 +518,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await trigger.click();
     await expect(dialog).toBeVisible();
-    await dialog.evaluate(async (element) => {
-      const finite = element.getAnimations().filter((animation) => {
-        const timing = animation.effect?.getTiming();
-        return timing?.iterations !== Number.POSITIVE_INFINITY;
-      });
-      await Promise.all(
-        finite.map((animation) => animation.finished.catch(() => undefined)),
-      );
-    });
+    await settleDialogMotion();
     const dragBox = await dragZone.boundingBox();
     expect(dragBox).not.toBeNull();
     if (!dragBox) throw new Error('Missing drag handle bounds');
@@ -541,12 +549,8 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
         element.style.getPropertyValue('--short-task-sheet-drag-offset'),
       ),
     ).toBe('0px');
-    await expect
-      .poll(async () => {
-        const box = await dragZone.boundingBox();
-        return box ? Math.abs(box.y - dragBox.y) : Number.POSITIVE_INFINITY;
-      })
-      .toBeLessThan(1);
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
     // A deliberate upward reversal means "keep this open", even when the
     // release point is still well below the old fixed dismissal threshold.
@@ -556,12 +560,8 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.mouse.move(dragCenterX, dragCenterY + 140, { steps: 3 });
     await page.mouse.up();
     await expect(dialog).toBeVisible();
-    await expect
-      .poll(async () => {
-        const box = await dragZone.boundingBox();
-        return box ? Math.abs(box.y - dragBox.y) : Number.POSITIVE_INFINITY;
-      })
-      .toBeLessThan(1);
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
     // A fresh, steadily downward pull still dismisses the Compact sheet.
     await page.mouse.move(dragCenterX, dragCenterY);

@@ -539,7 +539,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
       timeout: 10000,
     });
     await expect(
-      page.getByRole('heading', { name: /Alex/i, level: 2 }),
+      page
+        .locator('.couple-presence-card')
+        .getByRole('heading', { name: /Alex/i, level: 2 }),
     ).toBeVisible();
     // DemoEntry person picker is gone
     await expect(

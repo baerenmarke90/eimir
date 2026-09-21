@@ -151,8 +151,7 @@
   justify-content: flex-start;
 }
 
-.today-hero.couple-presence-card
-  .thinking-of-you-btn.today-hero-action {
+.today-hero.couple-presence-card .thinking-of-you-btn.today-hero-action {
   justify-content: flex-start;
   min-height: 44px;
   padding: 0 var(--space-1);

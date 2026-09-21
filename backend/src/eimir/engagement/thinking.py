@@ -21,6 +21,7 @@ from eimir.engagement.models import (
 )
 from eimir.outbox import service as outbox_service
 from eimir.outbox.models import OutboxEvent
+from eimir.relationship import configuration as space_configuration
 from eimir.relationship.models import Membership, MembershipStatus
 
 COOLDOWN_SECONDS = 30 * 60
@@ -92,6 +93,16 @@ def send(
     if existing is not None:
         return existing
 
+    # Configuration writes take the exclusive Space-row lock. Holding a shared
+    # lock while admitting a gesture makes disable vs. send deterministic:
+    # either this already-authorized send finishes first, or a committed
+    # disable is observed before a new event/request is created.
+    space_configuration.require_module_enabled(
+        session,
+        context.space_id,
+        space_configuration.SpaceModule.SUPPORT_GESTURES,
+    )
+
     recipient_id = session.execute(
         select(Membership.account_id)
         .where(
@@ -147,6 +158,17 @@ def send(
 
 def project_notification(session: Session, event: OutboxEvent) -> None:
     """Project the safe signal event into one recipient Notification."""
+    # Queued gesture effects re-check the authoritative Space switch. The
+    # shared Space lock serializes projection with a concurrent disable;
+    # disabling never deletes an already-persisted Notification.
+    if not space_configuration.is_module_enabled(
+        session,
+        event.space_id,
+        space_configuration.SpaceModule.SUPPORT_GESTURES,
+        lock_space=True,
+    ):
+        return
+
     recipient_id = event.payload.recipient_id
     if recipient_id is None or recipient_id == event.actor_id:
         return

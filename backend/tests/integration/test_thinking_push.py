@@ -20,6 +20,7 @@ from eimir.engagement.models import (
 )
 from eimir.jobs.errors import RetryableJobError
 from eimir.outbox.models import OutboxEvent
+from eimir.relationship import configuration as space_configuration
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
@@ -81,6 +82,109 @@ def couple(session: Session):  # type: ignore[no-untyped-def]
 
 def _url(couple) -> str:  # type: ignore[no-untyped-def]
     return f"/api/v1/spaces/{couple['space'].id}/thinking-of-you"
+
+
+def _set_support_gestures(client, couple, *, enabled: bool) -> None:  # type: ignore[no-untyped-def]
+    configuration_url = f"/api/v1/spaces/{couple['space'].id}/configuration"
+    current = client.get(configuration_url, headers=auth(couple["anna_token"]))
+    assert current.status_code == 200
+
+    response = client.patch(
+        configuration_url,
+        json={"supportGesturesEnabled": enabled},
+        headers={
+            **auth(couple["anna_token"]),
+            "If-Match": current.headers["etag"],
+        },
+    )
+    assert response.status_code == 200
+    assert response.json()["supportGesturesEnabled"] is enabled
+
+
+def test_disabled_support_gestures_block_new_send_and_reenable_cleanly(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+
+    _set_support_gestures(client, couple, enabled=False)
+    blocked = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert blocked.status_code == 403
+    assert blocked.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
+    assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 0
+    assert session.execute(select(func.count(OutboxEvent.id))).scalar_one() == 0
+
+    _set_support_gestures(client, couple, enabled=True)
+    allowed = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert allowed.status_code == 202
+    assert session.execute(select(func.count(ThinkingOfYouRequest.id))).scalar_one() == 1
+
+
+def test_disable_preserves_existing_notification_and_suppresses_queued_effect(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+
+    first = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert first.status_code == 202
+    requests = (
+        session.execute(
+            select(ThinkingOfYouRequest).order_by(
+                ThinkingOfYouRequest.created_at, ThinkingOfYouRequest.id
+            )
+        )
+        .scalars()
+        .all()
+    )
+    first_event = session.get(OutboxEvent, requests[0].source_event_id)
+    assert first_event is not None
+    service.project_event(session, first_event)
+    session.flush()
+    first_notification = session.execute(
+        select(Notification).where(Notification.source_event_id == first_event.id)
+    ).scalar_one()
+
+    queued = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["ben_token"]),
+    )
+    assert queued.status_code == 202
+    requests = (
+        session.execute(
+            select(ThinkingOfYouRequest).order_by(
+                ThinkingOfYouRequest.created_at, ThinkingOfYouRequest.id
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(requests) == 2
+    queued_request = next(
+        request for request in requests if request.source_event_id != first_event.id
+    )
+    queued_event = session.get(OutboxEvent, queued_request.source_event_id)
+    assert queued_event is not None
+
+    _set_support_gestures(client, couple, enabled=False)
+    service.project_event(session, queued_event)
+    session.flush()
+
+    notifications = session.execute(select(Notification)).scalars().all()
+    assert [notification.id for notification in notifications] == [first_notification.id]
+    assert session.get(ThinkingOfYouRequest, requests[0].id) is not None
+    assert session.get(ThinkingOfYouRequest, queued_request.id) is not None
 
 
 def test_replay_is_idempotent_before_cooldown_and_projects_notification_only(

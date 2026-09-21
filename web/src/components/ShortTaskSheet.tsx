@@ -18,7 +18,11 @@ export interface ShortTaskSheetHandle {
   closeForNavigation: (navigate: () => void) => void;
 }
 
-const COMPACT_DRAG_DISMISS_THRESHOLD_PX = 72;
+const COMPACT_DRAG_DISMISS_MIN_PX = 120;
+const COMPACT_DRAG_DISMISS_MAX_PX = 180;
+const COMPACT_DRAG_DISMISS_RATIO = 0.22;
+const COMPACT_DRAG_REVERSAL_CANCEL_PX = 24;
+const COMPACT_DRAG_SLOP_PX = 4;
 
 /** A bounded choice task: the native modal owns inertness and keyboard focus. */
 export function ShortTaskSheet({
@@ -54,6 +58,7 @@ export function ShortTaskSheet({
   const dragPointerRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
   const dragMaxDistanceRef = useRef(0);
+  const dragPeakOffsetRef = useRef(0);
   const suppressNextClickRef = useRef(false);
   const closeSheet = useEditorHistoryEntry({
     isActive: open,
@@ -70,6 +75,14 @@ export function ShortTaskSheet({
     );
   }
 
+  function compactDragDismissThreshold(): number {
+    const height = dialogRef.current?.getBoundingClientRect().height ?? 0;
+    return Math.min(
+      COMPACT_DRAG_DISMISS_MAX_PX,
+      Math.max(COMPACT_DRAG_DISMISS_MIN_PX, height * COMPACT_DRAG_DISMISS_RATIO),
+    );
+  }
+
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
     const expanded =
       typeof window !== 'undefined' &&
@@ -80,6 +93,7 @@ export function ShortTaskSheet({
     dragPointerRef.current = event.pointerId;
     dragStartYRef.current = event.clientY;
     dragMaxDistanceRef.current = 0;
+    dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
     dialogRef.current?.setAttribute('data-dragging', 'true');
     updateDragOffset(0);
@@ -92,10 +106,12 @@ export function ShortTaskSheet({
     if (dragPointerRef.current !== event.pointerId) return;
     event.preventDefault();
     const delta = event.clientY - dragStartYRef.current;
+    const offset = Math.max(0, delta);
     dragMaxDistanceRef.current = Math.max(
       dragMaxDistanceRef.current,
       Math.abs(delta),
     );
+    dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
     updateDragOffset(delta);
   }
 
@@ -110,7 +126,10 @@ export function ShortTaskSheet({
       dragMaxDistanceRef.current,
       Math.abs(delta),
     );
-    const wasDrag = dragMaxDistanceRef.current > 4;
+    dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
+    const wasDrag = dragMaxDistanceRef.current > COMPACT_DRAG_SLOP_PX;
+    const reversedUpward =
+      dragPeakOffsetRef.current - offset >= COMPACT_DRAG_REVERSAL_CANCEL_PX;
     dragPointerRef.current = null;
 
     if (
@@ -121,13 +140,12 @@ export function ShortTaskSheet({
     }
 
     dialogRef.current?.removeAttribute('data-dragging');
-    if (wasDrag) {
-      suppressNextClickRef.current = true;
-      window.setTimeout(() => {
-        suppressNextClickRef.current = false;
-      }, 0);
-    }
-    if (allowDismiss && offset >= COMPACT_DRAG_DISMISS_THRESHOLD_PX) {
+    if (wasDrag) suppressNextClickRef.current = true;
+    if (
+      allowDismiss &&
+      !reversedUpward &&
+      offset >= compactDragDismissThreshold()
+    ) {
       closeSheet();
       return;
     }
@@ -156,6 +174,7 @@ export function ShortTaskSheet({
     navigatingRef.current = false;
     dragPointerRef.current = null;
     dragMaxDistanceRef.current = 0;
+    dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
     dialog.removeAttribute('data-dragging');
     dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');

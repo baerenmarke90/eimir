@@ -442,7 +442,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   );
 });
 
-test('adapts the same pinned Collection composition to Expanded Web without becoming a dashboard grid', async ({
+test('keeps the pinned Collection full-width on Expanded Web without introducing a dashboard grid', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });

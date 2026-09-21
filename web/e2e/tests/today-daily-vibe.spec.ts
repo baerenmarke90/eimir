@@ -320,6 +320,7 @@ test('Daily Vibe lets one visible person fill the complete Vibe row', async ({
     partnerState: { state: 'NO_CHECK_IN' },
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await signIn(page);
 
   const vibe = page.getByTestId('daily-vibe-checkin');

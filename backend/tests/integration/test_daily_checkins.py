@@ -278,3 +278,70 @@ class TestPersistenceAndEnergy:
         self, session: Session, couple
     ) -> None:  # type: ignore[no-untyped-def]
         day = date(2026, 9, 21)
+        with pytest.raises(IntegrityError):
+            with session.begin_nested():
+                session.add(
+                    DailyCheckIn(
+                        space_id=couple["space"].id,
+                        account_id=couple["manager"].id,
+                        checked_on=day,
+                    )
+                )
+                session.flush()
+
+        with pytest.raises(IntegrityError):
+            with session.begin_nested():
+                session.add(
+                    DailyCheckIn(
+                        space_id=couple["space"].id,
+                        account_id=couple["manager"].id,
+                        checked_on=day,
+                        vibe="INVENTED_MOOD",
+                    )
+                )
+                session.flush()
+
+    def test_disabled_energy_hides_partner_projection_but_owner_can_clear(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        saved = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 50},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert saved.status_code == 200
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            energy=False,
+        )
+
+        disabled = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert disabled.status_code == 200
+        assert disabled.json()["energy"] is None
+        assert disabled.json()["own"]["energyLevel"] == 50
+
+        rejected = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 60},
+            headers={**auth(couple["manager_token"]), **if_match(disabled.headers["etag"])},
+        )
+        assert rejected.status_code == 403
+        assert rejected.json()["code"] == "SPACE_MODULE_DISABLED"
+
+        cleared = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": None},
+            headers={**auth(couple["manager_token"]), **if_match(disabled.headers["etag"])},
+        )
+        assert cleared.status_code == 200
+        assert cleared.headers["etag"] == '"absent"'
+
+

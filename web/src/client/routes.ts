@@ -325,3 +325,12 @@ export function chapterDetailPath(chapterId: string): string {
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
 }
+
+/**
+ * Pro Vibe/Energy insights (#1151). The three views live under More so the
+ * Mehr destination stays active, matching the approved reference; the Today
+ * (Wir) surface links here only from a deliberate, quiet entry.
+ */
+export const MORE_INSIGHTS_ROUTE = '/more/insights';
+export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
+export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

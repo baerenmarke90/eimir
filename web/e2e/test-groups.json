@@ -2,9 +2,9 @@
   "version": 1,
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
-    "specFiles": 46,
-    "tests": 319,
-    "prCriticalTests": 155
+    "specFiles": 47,
+    "tests": 321,
+    "prCriticalTests": 157
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -247,6 +247,10 @@
     "wish-detective.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 1
+    },
+    "today-pinned-collection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
     }
   }
 }

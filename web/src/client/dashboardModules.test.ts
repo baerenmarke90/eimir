@@ -9,6 +9,7 @@ describe('dashboardModules', () => {
     expect(DASHBOARD_MODULE_KEYS).toEqual([
       'relationship_presence',
       'upcoming',
+      'pinned_collection',
       'keepsake',
       'relationship_signal',
       'monthly_highlights',

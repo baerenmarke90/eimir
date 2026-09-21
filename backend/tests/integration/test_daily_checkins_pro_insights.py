@@ -226,13 +226,15 @@ def test_pro_insights_respects_mutual_reveal_privacy(client, session: Session, c
     )
     _grant_insights(session, couple["space"].id, couple["anna"].id)
 
-    day = date(2026, 9, 20)
-    # Partner Ben checked in, but Anna did NOT check in on this day
+    partner_day = date(2026, 9, 20)
+    empty_day = partner_day - timedelta(days=1)
+
+    # Ben checked in on one day but not the adjacent day. Anna skipped both days.
     session.add(
         DailyCheckIn(
             space_id=couple["space"].id,
             account_id=couple["ben"].id,
-            checked_on=day,
+            checked_on=partner_day,
             vibe=DailyVibe.STRESSED.value,
             energy_level=30,
             version=1,
@@ -242,30 +244,36 @@ def test_pro_insights_respects_mutual_reveal_privacy(client, session: Session, c
 
     response = client.get(
         f"/api/v1/spaces/{couple['space'].id}/daily-check-in/insights",
-        params={"start_date": day.isoformat(), "end_date": day.isoformat()},
+        params={"start_date": empty_day.isoformat(), "end_date": partner_day.isoformat()},
         headers=auth(couple["token_a"]),
     )
     assert response.status_code == 200
     data = response.json()
-    day_entry = data["days"][0]
-    # Anna did not check in -> Partner state is HIDDEN_UNTIL_SELF_CHECK_IN and value is null!
-    assert day_entry["ownVibe"] is None
-    assert day_entry["partnerVibe"]["state"] == "HIDDEN_UNTIL_SELF_CHECK_IN"
-    assert "value" not in day_entry["partnerVibe"]
-    assert day_entry["partnerEnergy"]["state"] == "HIDDEN_UNTIL_SELF_CHECK_IN"
-    assert "value" not in day_entry["partnerEnergy"]
+    days = {entry["checkedOn"]: entry for entry in data["days"]}
+    skipped_without_partner = days[empty_day.isoformat()]
+    skipped_with_partner = days[partner_day.isoformat()]
 
-    # Critical privacy check: summary counts must NOT leak partner participation!
+    # Mutual Reveal must not disclose whether Ben participated while Anna skipped.
+    for day_entry in (skipped_without_partner, skipped_with_partner):
+        assert day_entry["ownVibe"] is None
+        assert day_entry["ownEnergy"] is None
+        assert day_entry["partnerVibe"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert day_entry["partnerEnergy"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+
+    assert skipped_without_partner["partnerVibe"] == skipped_with_partner["partnerVibe"]
+    assert skipped_without_partner["partnerEnergy"] == skipped_with_partner["partnerEnergy"]
+
+    # Summary counters must not leak partner participation either.
     assert data["summary"]["daysWithOwnCheckIn"] == 0
     assert data["summary"]["daysWithPartnerCheckIn"] == 0
     assert data["summary"]["daysWithMutualCheckIn"] == 0
 
-    # Once Anna checks in for one dimension (vibe), that dimension reveals and is counted
+    # Once Anna checks in for vibe on the partner day, only that dimension reveals.
     session.add(
         DailyCheckIn(
             space_id=couple["space"].id,
             account_id=couple["anna"].id,
-            checked_on=day,
+            checked_on=partner_day,
             vibe=DailyVibe.GOOD.value,
             energy_level=None,
             version=1,
@@ -275,20 +283,24 @@ def test_pro_insights_respects_mutual_reveal_privacy(client, session: Session, c
 
     revealed_res = client.get(
         f"/api/v1/spaces/{couple['space'].id}/daily-check-in/insights",
-        params={"start_date": day.isoformat(), "end_date": day.isoformat()},
+        params={"start_date": empty_day.isoformat(), "end_date": partner_day.isoformat()},
         headers=auth(couple["token_a"]),
     )
     assert revealed_res.status_code == 200
     revealed_data = revealed_res.json()
-    revealed_entry = revealed_data["days"][0]
+    revealed_days = {entry["checkedOn"]: entry for entry in revealed_data["days"]}
+    revealed_entry = revealed_days[partner_day.isoformat()]
+    still_skipped_entry = revealed_days[empty_day.isoformat()]
+
     assert revealed_entry["ownVibe"] == "GOOD"
     assert revealed_entry["partnerVibe"]["state"] == "VISIBLE"
     assert revealed_entry["partnerVibe"]["value"] == "STRESSED"
-    # Energy dimension remains hidden until Anna checks in for energy
-    assert revealed_entry["partnerEnergy"]["state"] == "HIDDEN_UNTIL_SELF_CHECK_IN"
-    assert "value" not in revealed_entry["partnerEnergy"]
+    assert revealed_entry["partnerEnergy"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
 
-    # Now partner check-in is visible (vibe revealed), so summary counts reflect it
+    # The adjacent skipped day remains privacy-indistinguishable.
+    assert still_skipped_entry["partnerVibe"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+    assert still_skipped_entry["partnerEnergy"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+
     assert revealed_data["summary"]["daysWithOwnCheckIn"] == 1
     assert revealed_data["summary"]["daysWithPartnerCheckIn"] == 1
     assert revealed_data["summary"]["daysWithMutualCheckIn"] == 1

@@ -76,8 +76,29 @@ function renderEnergy(api: DailyCheckInsApi, spaceId = 'space-1') {
   return { ...view, queryClient };
 }
 
+async function openUnsetEnergy() {
+  const badge = await screen.findByRole('button', {
+    name: dailyEnergy.badgeAriaEmpty,
+  });
+  fireEvent.click(badge);
+  return screen.getByRole('slider', { name: dailyEnergy.selectLegend });
+}
+
+async function openSetEnergy(value: number) {
+  const badge = await screen.findByRole('button', {
+    name: new RegExp(`Dein Akku heute: ${value} Prozent`),
+  });
+  fireEvent.click(badge);
+  return screen.getByRole('slider', { name: dailyEnergy.changeLegend });
+}
+
+function setSlider(slider: HTMLElement, value: number) {
+  fireEvent.change(slider, { target: { value: String(value) } });
+  fireEvent.blur(slider);
+}
+
 describe('DailyEnergyCheckIn', () => {
-  it('offers all ten discrete values and keeps a hidden partner value out of the partner state', async () => {
+  it('keeps Daily Energy compact until the avatar battery is opened', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
@@ -86,9 +107,16 @@ describe('DailyEnergyCheckIn', () => {
 
     renderEnergy(api);
 
-    expect(await screen.findAllByRole('radio')).toHaveLength(10);
-    expect(screen.getByRole('radio', { name: '10 Prozent' })).not.toBeNull();
-    expect(screen.getByRole('radio', { name: '100 Prozent' })).not.toBeNull();
+    expect(
+      await screen.findByRole('button', { name: dailyEnergy.badgeAriaEmpty }),
+    ).not.toBeNull();
+    expect(screen.queryByRole('slider')).toBeNull();
+
+    const slider = await openUnsetEnergy();
+    expect(slider.getAttribute('min')).toBe('10');
+    expect(slider.getAttribute('max')).toBe('100');
+    expect(slider.getAttribute('step')).toBe('10');
+    expect((slider as HTMLInputElement).value).toBe('50');
 
     const partnerState = screen.getByTestId('daily-energy-partner');
     expect(
@@ -97,7 +125,25 @@ describe('DailyEnergyCheckIn', () => {
     expect(within(partnerState).queryByText('20 %')).toBeNull();
   });
 
-  it('renders NO_CHECK_IN neutrally without inventing partner state', async () => {
+  it('does not save the neutral slider position if the user only opens and leaves', async () => {
+    const updateDailyCheckInTodayRaw = vi.fn();
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"')),
+      updateDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    const slider = await (async () => {
+      renderEnergy(api);
+      return openUnsetEnergy();
+    })();
+
+    fireEvent.blur(slider);
+    expect(updateDailyCheckInTodayRaw).not.toHaveBeenCalled();
+  });
+
+  it('renders NO_CHECK_IN neutrally inside the popover without inventing partner state', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(
@@ -111,15 +157,16 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
+    await openSetEnergy(60);
 
-    const partnerState = await screen.findByTestId('daily-energy-partner');
+    const partnerState = screen.getByTestId('daily-energy-partner');
     expect(
       within(partnerState).getByText(dailyEnergy.noCheckIn),
     ).not.toBeNull();
     expect(within(partnerState).queryByText(/\d+ %/)).toBeNull();
   });
 
-  it('writes with the current ETag and adopts the authoritative reveal response', async () => {
+  it('writes one slider selection with the current ETag and adopts the reveal response', async () => {
     const getDailyCheckInTodayRaw = vi
       .fn()
       .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"'));
@@ -138,7 +185,8 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(await screen.findByRole('radio', { name: '70 Prozent' }));
+    const slider = await openUnsetEnergy();
+    setSlider(slider, 70);
 
     await waitFor(() =>
       expect(updateDailyCheckInTodayRaw).toHaveBeenCalledWith({
@@ -147,15 +195,19 @@ describe('DailyEnergyCheckIn', () => {
         dailyCheckInUpdate: { energyLevel: 70 },
       }),
     );
+    expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(1);
 
-    expect(await screen.findByText(dailyEnergy.ownLabel)).not.toBeNull();
-    expect(screen.getByText('70 %')).not.toBeNull();
+    expect(
+      await screen.findByRole('button', {
+        name: /Dein Akku heute: 70 Prozent/,
+      }),
+    ).not.toBeNull();
     expect(
       within(screen.getByTestId('daily-energy-partner')).getByText('20 %'),
     ).not.toBeNull();
   });
 
-  it('changes an existing value and adopts the returned snapshot', async () => {
+  it('changes an existing value using the compact slider', async () => {
     const updateDailyCheckInTodayRaw = vi.fn().mockResolvedValue(
       rawResponse(
         projection({
@@ -179,10 +231,8 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(
-      await screen.findByRole('button', { name: dailyEnergy.change }),
-    );
-    fireEvent.click(screen.getByRole('radio', { name: '80 Prozent' }));
+    const slider = await openSetEnergy(60);
+    setSlider(slider, 80);
 
     await waitFor(() =>
       expect(updateDailyCheckInTodayRaw).toHaveBeenCalledWith({
@@ -191,7 +241,11 @@ describe('DailyEnergyCheckIn', () => {
         dailyCheckInUpdate: { energyLevel: 80 },
       }),
     );
-    expect(await screen.findByText('80 %')).not.toBeNull();
+    expect(
+      await screen.findByRole('button', {
+        name: /Dein Akku heute: 80 Prozent/,
+      }),
+    ).not.toBeNull();
   });
 
   it('clears an existing value using the latest validator', async () => {
@@ -218,9 +272,8 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(
-      await screen.findByRole('button', { name: dailyEnergy.remove }),
-    );
+    await openSetEnergy(60);
+    fireEvent.click(screen.getByRole('button', { name: dailyEnergy.remove }));
 
     await waitFor(() =>
       expect(updateDailyCheckInTodayRaw).toHaveBeenCalledWith({
@@ -229,10 +282,12 @@ describe('DailyEnergyCheckIn', () => {
         dailyCheckInUpdate: { energyLevel: null },
       }),
     );
-    expect(await screen.findAllByRole('radio')).toHaveLength(10);
+    expect(
+      await screen.findByRole('button', { name: dailyEnergy.badgeAriaEmpty }),
+    ).not.toBeNull();
   });
 
-  it('refetches a conflict instead of retrying the stale write', async () => {
+  it('refetches a conflict instead of retrying the stale slider write', async () => {
     const getDailyCheckInTodayRaw = vi
       .fn()
       .mockResolvedValueOnce(
@@ -264,19 +319,21 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(
-      await screen.findByRole('button', { name: dailyEnergy.change }),
-    );
-    fireEvent.click(screen.getByRole('radio', { name: '70 Prozent' }));
+    const slider = await openSetEnergy(60);
+    setSlider(slider, 70);
 
     await waitFor(() =>
       expect(getDailyCheckInTodayRaw).toHaveBeenCalledTimes(2),
     );
     expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText('80 %')).not.toBeNull();
+    expect(
+      await screen.findByRole('button', {
+        name: /Dein Akku heute: 80 Prozent/,
+      }),
+    ).not.toBeNull();
   });
 
-  it('fails closed and refreshes DailyCheckIn when a write reports the module disabled', async () => {
+  it('fails closed and refreshes DailyCheckIn when a slider write reports the module disabled', async () => {
     const getDailyCheckInTodayRaw = vi
       .fn()
       .mockResolvedValueOnce(rawResponse(projection(), '"2026-09-21:absent"'))
@@ -296,10 +353,13 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(await screen.findByRole('radio', { name: '50 Prozent' }));
+    const slider = await openUnsetEnergy();
+    setSlider(slider, 60);
 
     await waitFor(() => {
-      expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(
+        screen.queryByRole('button', { name: dailyEnergy.badgeAriaEmpty }),
+      ).toBeNull();
       expect(getDailyCheckInTodayRaw).toHaveBeenCalledTimes(2);
     });
   });
@@ -319,15 +379,15 @@ describe('DailyEnergyCheckIn', () => {
     renderEnergy(api);
 
     await waitFor(() => {
-      expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(screen.queryByRole('slider')).toBeNull();
       expect(
-        screen.queryByRole('button', { name: dailyEnergy.change }),
+        screen.queryByRole('button', { name: /Akku für heute|Dein Akku heute/ }),
       ).toBeNull();
       expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
     });
   });
 
-  it('does not present the cached partner projection while offline', async () => {
+  it('drops the partner projection while offline instead of replaying stale energy', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(
@@ -341,10 +401,9 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
+    await openSetEnergy(60);
     expect(
-      within(await screen.findByTestId('daily-energy-partner')).getByText(
-        '40 %',
-      ),
+      within(screen.getByTestId('daily-energy-partner')).getByText('40 %'),
     ).not.toBeNull();
 
     Object.defineProperty(window.navigator, 'onLine', {
@@ -355,7 +414,10 @@ describe('DailyEnergyCheckIn', () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
+      expect(screen.queryByTestId('daily-energy-popover')).toBeNull();
     });
-    expect(screen.getByText(dailyEnergy.unavailableOffline)).not.toBeNull();
+    expect(
+      screen.getByRole('button', { name: dailyEnergy.unavailableOffline }),
+    ).toBeDisabled();
   });
 });

@@ -16,7 +16,7 @@
 .daily-energy-avatar-control {
   position: absolute;
   bottom: -12px;
-  left: 15px;
+  left: 28px;
   display: grid;
   width: 44px;
   height: 44px;
@@ -100,7 +100,7 @@
 
 .daily-energy-partner-battery {
   position: absolute;
-  right: 15px;
+  right: -2px;
   bottom: -12px;
   display: grid;
   width: 30px;

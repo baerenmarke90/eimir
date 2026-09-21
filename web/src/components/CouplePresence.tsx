@@ -20,6 +20,7 @@ export interface CouplePresenceProps {
   durationTitle?: string;
   onDurationClick?: () => void;
   onInviteClick?: () => void;
+  avatarAdornment?: ReactNode;
   actions?: ReactNode;
   headingLevel?: 'h1' | 'h2';
   className?: string;
@@ -36,6 +37,7 @@ export function CouplePresence({
   durationTitle,
   onDurationClick,
   onInviteClick,
+  avatarAdornment,
   actions,
   headingLevel = 'h2',
   className = '',
@@ -86,13 +88,22 @@ export function CouplePresence({
       aria-labelledby={titleId}
     >
       <div className="couple-presence-main">
-        <PartnerAvatarPair
-          primaryPerson={heroPrimaryPerson}
-          secondaryPerson={heroSecondaryPerson}
-          status={status}
-          size="large"
-          onInviteClick={onInviteClick}
-        />
+        <div
+          className={`couple-presence-avatar-anchor${avatarAdornment ? ' has-adornment' : ''}`}
+        >
+          <PartnerAvatarPair
+            primaryPerson={heroPrimaryPerson}
+            secondaryPerson={heroSecondaryPerson}
+            status={status}
+            size="large"
+            onInviteClick={onInviteClick}
+          />
+          {avatarAdornment ? (
+            <div className="couple-presence-avatar-adornment">
+              {avatarAdornment}
+            </div>
+          ) : null}
+        </div>
 
         <div className="couple-presence-details">
           <HeadingTag id={titleId} className="couple-presence-title">

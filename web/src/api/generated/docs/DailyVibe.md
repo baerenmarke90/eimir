@@ -1,7 +1,7 @@
 
 # DailyVibe
 
-Stable V1 daily-state values owned by #429.  These values describe today's relationship-facing state. They are not diagnoses, scores, or HeartMoment emotions; localized UI copy remains a presentation concern.
+Stable V1 daily-state values owned by #429.  These values describe today\'s relationship-facing state. They are not diagnoses, scores, or HeartMoment emotions; localized UI copy remains a presentation concern.
 
 ## Properties
 
@@ -29,6 +29,5 @@ console.log(exampleParsed)
 ```
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
 
 

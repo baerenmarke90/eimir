@@ -45,9 +45,8 @@ export interface DailyCheckInOwnView {
      * @memberof DailyCheckInOwnView
      */
     vibe: DailyVibe | null;
-
-
 }
+
 
 /**
  * Check if a given object implements the DailyCheckInOwnView interface.

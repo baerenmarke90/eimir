@@ -20,6 +20,7 @@ import {
     DailyVibeToJSON,
     DailyVibeToJSONTyped,
 } from './DailyVibe';
+
 /**
  * 
  * @export

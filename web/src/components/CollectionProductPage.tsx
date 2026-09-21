@@ -633,7 +633,11 @@ export function CollectionProductPage({
           {pinCollection.error ? (
             <ProblemState
               error={pinCollection.error}
-              onRetry={() => void dashboardPreferencesQuery.refetch()}
+              onRetry={() => {
+                if (pinCollection.variables !== undefined) {
+                  pinCollection.mutate(pinCollection.variables);
+                }
+              }}
             />
           ) : null}
         </div>

@@ -22,8 +22,8 @@ from sqlalchemy.orm import Session
 from eimir.core.clock import today_in
 from eimir.outbox.models import OutboxEvent
 from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import configuration as relationship_configuration
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import SpaceConfiguration
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -518,7 +518,7 @@ class TestComplete:
         assert disabled.status_code == 200
         assert "X-Eimir-Shared-Achievement" not in disabled.headers
 
-        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        configuration = relationship_configuration.load(session, couple["space"].id)
         assert configuration is not None
         configuration.shared_achievements_enabled = True
         session.flush()
@@ -541,7 +541,7 @@ class TestComplete:
         couple,
         session: Session,
     ) -> None:  # type: ignore[no-untyped-def]
-        configuration = session.get(SpaceConfiguration, couple["space"].id)
+        configuration = relationship_configuration.load(session, couple["space"].id)
         assert configuration is not None
         configuration.shared_achievements_enabled = True
         session.flush()

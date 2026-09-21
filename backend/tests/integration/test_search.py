@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from eimir.authorization import PrivacyClass
@@ -460,21 +459,6 @@ class TestSearchPersistenceAndIndex:
 
         nested.rollback()
         assert temporary_id not in {item["id"] for item in _items(_search(client, couple))}
-
-    def test_memory_query_uses_the_m4_gin_index(self, session, couple) -> None:  # type: ignore[no-untyped-def]
-        _seed_all_targets(session, couple)
-        session.execute(text("SET LOCAL enable_seqscan = off"))
-        plan = session.execute(
-            text(
-                "EXPLAIN (FORMAT TEXT) SELECT id FROM memories "
-                "WHERE ("
-                "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B')"
-                ") @@ websearch_to_tsquery('simple', 'needle')"
-            )
-        ).all()
-        rendered = "\n".join(str(row[0]) for row in plan)
-        assert "ix_memories_search_fts" in rendered
 
     def test_gift_url_is_not_a_search_lexeme(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
         seeded = _seed_all_targets(session, couple)

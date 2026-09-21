@@ -127,9 +127,4 @@ class HeartMoment(
             "privacy_class",
         ),
         Index("ix_heart_moments_space_id_happened_on", "space_id", "happened_on"),
-        Index(
-            "ix_heart_moments_search_fts",
-            text("setweight(to_tsvector('simple', coalesce(payload->>'text', '')), 'A')"),
-            postgresql_using="gin",
-        ),
     )

@@ -43,6 +43,7 @@ from eimir.transfer.models import (
     TransferImport,
     TransferScope,
 )
+from eimir.transfer.payload_boundary import protect_values, reveal_row
 
 _log = logging.getLogger(__name__)
 RETENTION = timedelta(hours=24)
@@ -240,7 +241,7 @@ def _load_root_rows(
             return []
         predicate = and_(predicate, columns.owner_id == authorization.account_id)
     result = session.execute(select(table).where(predicate)).mappings()
-    return [dict(row) for row in result]
+    return [reveal_row(table.name, dict(row)) for row in result]
 
 
 def _load_child_rows(
@@ -253,7 +254,7 @@ def _load_child_rows(
     if not parent_ids:
         return []
     return [
-        dict(row)
+        reveal_row(table.name, dict(row))
         for row in session.execute(
             select(table).where(table.c[parent_column].in_(parent_ids))
         ).mappings()
@@ -410,7 +411,7 @@ def _media_rows(
     table = _table(session, "attachments", metadata)
     result: list[dict[str, Any]] = []
     for row in session.execute(select(table).where(table.c.id.in_(attachment_ids))).mappings():
-        item = dict(row)
+        item = reveal_row("attachments", dict(row))
         if item.get("status") != AttachmentStatus.READY.value:
             continue
         result.append(
@@ -1444,7 +1445,6 @@ def apply_import_bundle(
                     "ready_at": moment,
                     "failed_at": None,
                     "uploaded_at": moment,
-                    "crypto_version": 0,
                     "payload": {
                         "original_name": "eimir-transfer",
                         "captured_at": item.get("capturedAt"),
@@ -1452,7 +1452,11 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
-                session.execute(attachment_table.insert().values(**attachment_values))
+                session.execute(
+                    attachment_table.insert().values(
+                        **protect_values("attachments", attachment_values)
+                    )
+                )
 
         for table_name in INSERT_ORDER:
             table = tables[table_name]
@@ -1476,7 +1480,7 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                session.execute(table.insert().values(**values))
+                session.execute(table.insert().values(**protect_values(table_name, values)))
     except Exception:
         for key in reversed(written_keys):
             try:

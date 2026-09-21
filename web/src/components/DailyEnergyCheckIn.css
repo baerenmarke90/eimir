@@ -197,7 +197,7 @@
         var(--color-discovery) 52%,
         var(--color-shared)
       )
-      0 0 / var(--daily-energy-progress) 100% no-repeat,
+    0 0 / var(--daily-energy-progress) 100% no-repeat,
     var(--color-surface-subtle);
 }
 

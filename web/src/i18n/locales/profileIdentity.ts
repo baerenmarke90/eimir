@@ -61,6 +61,10 @@ const profileIdentity = {
     'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
   supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
   supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
+  energyCheckInTitle: 'Akku-Check-in',
+  energyCheckInIntro:
+    'Teilt euren heutigen Energielevel über die Akkuanzeige an euren Profilbildern auf „Wir“.',
+  energyCheckInToggle: 'Akku-Check-in aktivieren oder deaktivieren',
   vibeCheckTitle: 'Vibe-Check',
   vibeCheckIntro:
     'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',

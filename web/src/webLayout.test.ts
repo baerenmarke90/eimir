@@ -38,6 +38,9 @@ const timelineProgressiveCss = readSource(
 );
 const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
 const productRolesCss = readSource('./design/product-roles.css');
+const sharedPlanningSanctuaryCss = readSource(
+  './components/SharedPlanningSanctuary.css',
+);
 
 describe('web layout primitives', () => {
   it('lets a page fill the bounded main region instead of a reading column', () => {

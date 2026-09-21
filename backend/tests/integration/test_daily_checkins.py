@@ -205,3 +205,76 @@ class TestAuthorityAndSpaceDay:
         assert allowed.json()["dailyContextTimezone"] == "America/New_York"
 
 
+class TestPersistenceAndEnergy:
+    def test_energy_mutations_share_one_row_and_final_clear_removes_it(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert initial.headers["etag"] == '"absent"'
+        assert initial.json()["own"] == {"version": 0, "energyLevel": None}
+
+        created = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 20},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
+        )
+        assert created.status_code == 200
+        assert created.json()["own"] == {"version": 1, "energyLevel": 20}
+        created_etag = created.headers["etag"]
+        assert created_etag != '"absent"'
+
+        updated = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 60},
+            headers={**auth(couple["manager_token"]), **if_match(created_etag)},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["own"] == {"version": 2, "energyLevel": 60}
+        assert session.execute(
+            select(func.count()).select_from(DailyCheckIn).where(
+                DailyCheckIn.space_id == couple["space"].id,
+                DailyCheckIn.account_id == couple["manager"].id,
+            )
+        ).scalar_one() == 1
+
+        cleared = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": None},
+            headers={**auth(couple["manager_token"]), **if_match(updated.headers["etag"])},
+        )
+        assert cleared.status_code == 200
+        assert cleared.headers["etag"] == '"absent"'
+        assert cleared.json()["own"] == {"version": 0, "energyLevel": None}
+        assert session.execute(
+            select(func.count()).select_from(DailyCheckIn).where(
+                DailyCheckIn.space_id == couple["space"].id,
+                DailyCheckIn.account_id == couple["manager"].id,
+            )
+        ).scalar_one() == 0
+
+    @pytest.mark.parametrize("invalid", [0, 5, 15, 101])
+    def test_energy_accepts_only_decided_ten_point_steps(
+        self, client, session: Session, couple, invalid: int
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        response = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": invalid},
+            headers={**auth(couple["manager_token"]), "If-Match": '"absent"'},
+        )
+        assert response.status_code == 422
+        assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
+
+    def test_database_rejects_empty_or_invented_vibe_rows(
+        self, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        day = date(2026, 9, 21)

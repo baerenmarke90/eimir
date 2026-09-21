@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { PartnerEnergyProjection } from '../api/generated/models/PartnerEnergyProjection';
 import {
@@ -146,6 +146,21 @@ export function DailyEnergyCheckIn({
   );
   const [editing, setEditing] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
+  const serverReportsModuleDisabled =
+    dailyQuery.data?.projection.energy === null;
+
+  useEffect(() => {
+    if (!serverReportsModuleDisabled) return;
+    // A DailyCheckIn response with no Energy projection is itself
+    // authoritative proof that the module is no longer available. Fail
+    // closed immediately and converge the presentation configuration without
+    // ever reconstructing a local participation state.
+    void queryClient.invalidateQueries({
+      queryKey: spaceConfigurationQueryKey(accountId, spaceId),
+      exact: true,
+      refetchType: 'active',
+    });
+  }, [accountId, queryClient, serverReportsModuleDisabled, spaceId]);
 
   const mutation = useMutation({
     mutationFn: async (energyLevel: DailyEnergyLevel | null) => {
@@ -174,11 +189,18 @@ export function DailyEnergyCheckIn({
         // surface immediately, then converge the active configuration query.
         setModuleDisabled(true);
         postSnackbar('snackbar.dailyEnergyModuleDisabled');
-        await queryClient.invalidateQueries({
-          queryKey: configurationKey,
-          exact: true,
-          refetchType: 'active',
-        });
+        await Promise.all([
+          queryClient.refetchQueries({
+            queryKey,
+            exact: true,
+            type: 'active',
+          }),
+          queryClient.invalidateQueries({
+            queryKey: configurationKey,
+            exact: true,
+            refetchType: 'active',
+          }),
+        ]);
         return;
       }
 
@@ -206,7 +228,7 @@ export function DailyEnergyCheckIn({
     },
   });
 
-  if (moduleDisabled) return null;
+  if (moduleDisabled || serverReportsModuleDisabled) return null;
 
   if (dailyQuery.isPending && !dailyQuery.data) {
     return (

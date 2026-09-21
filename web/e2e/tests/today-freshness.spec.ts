@@ -146,6 +146,28 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: {
+          ETag: '"2026-09-01:empty"',
+          'Cache-Control': 'private, no-store',
+        },
+        body: JSON.stringify({
+          checkedOn: '2026-09-01',
+          dailyContextTimezone: 'UTC',
+          own: { energyLevel: null, vibe: null, version: 1 },
+          energy: null,
+          vibe: null,
+        }),
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
       await fulfillJson({

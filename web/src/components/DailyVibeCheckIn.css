@@ -1,0 +1,337 @@
+.daily-vibe-checkin {
+  display: grid;
+  gap: var(--space-3);
+  margin: calc(-1 * var(--space-3)) 0 var(--space-7);
+  padding: var(--space-4);
+  border-radius: var(--radius-large);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-brand-surface) 78%, transparent),
+    color-mix(in srgb, var(--color-surface) 92%, transparent)
+  );
+  color: var(--color-text);
+}
+
+.daily-vibe-heading {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.daily-vibe-heading h2,
+.daily-vibe-disabled-clear h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.05rem, 4vw, 1.25rem);
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.daily-vibe-heading p,
+.daily-vibe-disabled-clear p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.daily-vibe-people {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.daily-vibe-person {
+  display: grid;
+  min-width: 0;
+  min-height: 58px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-text);
+  box-shadow: 0 2px 10px var(--color-shadow-soft);
+  text-align: left;
+}
+
+button.daily-vibe-person {
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+button.daily-vibe-person:hover {
+  transform: translateY(-1px);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+button.daily-vibe-person:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-vibe-glyph,
+.daily-vibe-option-glyph {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: 800;
+}
+
+.daily-vibe-glyph {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+}
+
+.daily-vibe-person-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.daily-vibe-person-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.daily-vibe-person-copy > strong {
+  min-width: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.daily-vibe-partner.is-hidden {
+  background: color-mix(in srgb, var(--color-surface-subtle) 90%, transparent);
+  box-shadow: none;
+}
+
+.daily-vibe-partner.is-hidden .daily-vibe-glyph {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.daily-vibe-partner.is-empty {
+  box-shadow: none;
+}
+
+.daily-vibe-partner.is-empty .daily-vibe-glyph {
+  opacity: 0.68;
+}
+
+.daily-vibe-partner.is-revealed {
+  animation: daily-vibe-reveal var(--duration-context) var(--easing-enter);
+}
+
+.daily-vibe-loading,
+.daily-vibe-unavailable {
+  min-height: 4.75rem;
+  align-content: center;
+}
+
+.daily-vibe-unavailable {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.daily-vibe-retry {
+  min-height: 44px;
+}
+
+.daily-vibe-disabled-clear {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: calc(-1 * var(--space-3)) 0 var(--space-7);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+}
+
+.daily-vibe-disabled-clear > div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.daily-vibe-disabled-clear > button {
+  min-height: 44px;
+  flex: 0 0 auto;
+}
+
+.daily-vibe-sheet .short-task-sheet-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.daily-vibe-sheet-intro {
+  margin: calc(-1 * var(--space-2)) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.daily-vibe-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  max-width: 100%;
+  gap: var(--space-2);
+}
+
+.daily-vibe-option {
+  display: grid;
+  min-width: 0;
+  min-height: 64px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition:
+    border-color var(--motion-fast),
+    background var(--motion-fast),
+    transform var(--motion-fast);
+}
+
+.daily-vibe-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+}
+
+.daily-vibe-option:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-vibe-option.is-selected {
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.daily-vibe-option:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.daily-vibe-option-glyph {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 1.05rem;
+}
+
+.daily-vibe-sheet-footer {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.daily-vibe-save-status {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+.daily-vibe-remove {
+  min-height: 44px;
+}
+
+.daily-vibe-inline-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+@keyframes daily-vibe-reveal {
+  from {
+    opacity: 0.55;
+    transform: translateY(4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@container product-content (max-width: 14rem) {
+  .daily-vibe-people {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .daily-vibe-option {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .daily-vibe-option-glyph {
+    display: none;
+  }
+
+  .daily-vibe-unavailable {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .daily-vibe-disabled-clear {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 340px) {
+  .daily-vibe-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (forced-colors: active) {
+  .daily-vibe-checkin,
+  .daily-vibe-person,
+  .daily-vibe-option,
+  .daily-vibe-disabled-clear {
+    border: 1px solid CanvasText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.daily-vibe-person,
+  .daily-vibe-option {
+    transition: none;
+  }
+
+  button.daily-vibe-person:hover,
+  .daily-vibe-option:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .daily-vibe-partner.is-revealed {
+    animation: none;
+  }
+}

@@ -8,7 +8,10 @@ import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
-import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
+import {
+  loadSpaceConfiguration,
+  spaceConfigurationQueryKey,
+} from '../client/spaceConfiguration';
 import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
@@ -66,6 +69,9 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [celebratedPlanKey, setCelebratedPlanKey] = useState<string | null>(
+    null,
+  );
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
 
   const planQuery = useQuery({
@@ -83,13 +89,6 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
-  const spaceConfigurationQuery = useQuery(
-    spaceConfigurationQueryOptions(spacesApi, accountId ?? '', spaceId),
-  );
-  const sharedAchievementsEnabled =
-    spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
-    true;
-
   const commitPlan = async (plan: PlanDetail) => {
     queryClient.setQueryData(key, plan);
     await Promise.all([
@@ -173,7 +172,25 @@ export function PlanProductPage({
           planComplete: { experiencedOn },
         }),
       ),
-    onSuccess: commitPlan,
+    onSuccess: async (completedPlan) => {
+      setCelebratedPlanKey(null);
+      await commitPlan(completedPlan);
+
+      if (!spacesApi || !accountId) return;
+      try {
+        const snapshot = await loadSpaceConfiguration(spacesApi, spaceId);
+        queryClient.setQueryData(
+          spaceConfigurationQueryKey(accountId, spaceId),
+          snapshot,
+        );
+        if (snapshot.configuration.sharedAchievementsEnabled) {
+          setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
+        }
+      } catch {
+        // The Plan completion is already authoritative. Optional celebration
+        // presentation fails closed when the current Space switch is unknown.
+      }
+    },
   });
   const returnMutation = useMutation({
     mutationFn: (plan: PlanDetail) =>
@@ -525,7 +542,9 @@ export function PlanProductPage({
             spaceId={spaceId}
             plan={plan}
             focusOnMount={completeMutation.isSuccess}
-            sharedAchievementEnabled={sharedAchievementsEnabled}
+            sharedAchievementEnabled={
+              celebratedPlanKey === `${spaceId}:${plan.id}`
+            }
           />
         ) : null}
 

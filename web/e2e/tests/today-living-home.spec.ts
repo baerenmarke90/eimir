@@ -407,6 +407,33 @@ async function installMocks(
       });
       return;
     }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: '"7"' },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,

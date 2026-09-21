@@ -30,6 +30,17 @@ from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
 
+PLAN_COMPLETION_HEADERS = {
+    **ETAG_HEADERS,
+    "X-Eimir-Shared-Achievement": {
+        "description": (
+            "Present with value 'plan-completed' only when the server confirms "
+            "that Shared Achievements is enabled for this Space at completion time."
+        ),
+        "schema": {"type": "string", "enum": ["plan-completed"]},
+    },
+}
+
 
 class PlanSchedule(ApiModel):
     """One explicit Plan schedule representation.
@@ -432,7 +443,10 @@ def unschedule_plan(
     "/spaces/{spaceId}/plans/{planId}/complete",
     response_model=PlanDetail,
     operation_id="completePlan",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+    responses={
+        200: {"headers": PLAN_COMPLETION_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def complete_plan(
     authorization: Authorization,

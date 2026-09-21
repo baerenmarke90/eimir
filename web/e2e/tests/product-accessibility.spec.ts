@@ -210,7 +210,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/invitations`
     ) {
-      await fulfillJson({ items: [] });
+      await fulfillJson([]);
       return;
     }
 

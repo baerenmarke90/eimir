@@ -115,7 +115,7 @@
     },
     "product-accessibility.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 13
+      "baselineTests": 14
     },
     "product-gutters.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -222,7 +222,7 @@
     },
     "today-daily-energy.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2
+      "baselineTests": 3
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",

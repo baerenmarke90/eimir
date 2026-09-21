@@ -1,15 +1,36 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import type { DailyCheckInVisibilityMode } from '../api/generated/models/DailyCheckInVisibilityMode';
 import type { SpaceConfigurationUpdate } from '../api/generated/models/SpaceConfigurationUpdate';
 import {
+  dailyContextTimezoneOptions,
+  dailyModuleToggleUpdate,
   spaceConfigurationQueryKey,
   spaceConfigurationQueryOptions,
+  suggestedDailyContextTimezone,
   updateSpaceConfiguration,
   type SpaceConfigurationSnapshot,
 } from '../client/spaceConfiguration';
 import { ClientProblemError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+
+const VISIBILITY_MODES = [
+  {
+    value: 'IMMEDIATE',
+    labelKey: 'profileIdentity.visibilityImmediate',
+    hintKey: 'profileIdentity.visibilityImmediateHint',
+  },
+  {
+    value: 'MUTUAL_REVEAL',
+    labelKey: 'profileIdentity.visibilityMutualReveal',
+    hintKey: 'profileIdentity.visibilityMutualRevealHint',
+  },
+] as const satisfies ReadonlyArray<{
+  value: DailyCheckInVisibilityMode;
+  labelKey: string;
+  hintKey: string;
+}>;
 
 export function SpaceConfigurationPanel({
   spacesApi,
@@ -103,6 +124,10 @@ export function SpaceConfigurationPanel({
     toggleLabel: string;
     enabled: boolean;
     update: SpaceConfigurationUpdate;
+    visibility?: {
+      mode: DailyCheckInVisibilityMode;
+      update: (mode: DailyCheckInVisibilityMode) => SpaceConfigurationUpdate;
+    };
   }> = [
     {
       id: 'support-gestures',
@@ -115,26 +140,43 @@ export function SpaceConfigurationPanel({
       },
     },
     {
-      id: 'energy-check-in',
-      title: t('profileIdentity.energyCheckInTitle'),
-      intro: t('profileIdentity.energyCheckInIntro'),
-      toggleLabel: t('profileIdentity.energyCheckInToggle'),
-      enabled: configuration.energyCheckInEnabled,
-      update: {
-        energyCheckInEnabled: !configuration.energyCheckInEnabled,
-      },
-    },
-    {
       id: 'vibe-check',
       title: t('profileIdentity.vibeCheckTitle'),
       intro: t('profileIdentity.vibeCheckIntro'),
       toggleLabel: t('profileIdentity.vibeCheckToggle'),
       enabled: configuration.vibeCheckEnabled,
-      update: {
-        vibeCheckEnabled: !configuration.vibeCheckEnabled,
+      update: dailyModuleToggleUpdate(
+        configuration,
+        'vibeCheckEnabled',
+        suggestedDailyContextTimezone(),
+      ),
+      visibility: {
+        mode: configuration.vibeVisibilityMode,
+        update: (mode) => ({ vibeVisibilityMode: mode }),
+      },
+    },
+    {
+      id: 'energy-check-in',
+      title: t('profileIdentity.energyCheckInTitle'),
+      intro: t('profileIdentity.energyCheckInIntro'),
+      toggleLabel: t('profileIdentity.energyCheckInToggle'),
+      enabled: configuration.energyCheckInEnabled,
+      update: dailyModuleToggleUpdate(
+        configuration,
+        'energyCheckInEnabled',
+        suggestedDailyContextTimezone(),
+      ),
+      visibility: {
+        mode: configuration.energyVisibilityMode,
+        update: (mode) => ({ energyVisibilityMode: mode }),
       },
     },
   ];
+  const dailyContextTimezone = configuration.dailyContextTimezone;
+  const timezoneLocked =
+    configurationMutation.error instanceof ClientProblemError &&
+    configurationMutation.error.code ===
+      'SPACE_DAILY_CONTEXT_TIMEZONE_ACTIVE_CHECK_IN';
 
   return (
     <section
@@ -156,41 +198,143 @@ export function SpaceConfigurationPanel({
         {modules.map((module) => {
           const descriptionId = `${module.id}-description`;
           return (
-            <div className="space-module-row" key={module.id}>
-              <div className="space-module-copy">
-                <h3>{module.title}</h3>
-                <p id={descriptionId}>{module.intro}</p>
-              </div>
+            <div className="space-module" key={module.id}>
+              <div className="space-module-row">
+                <div className="space-module-copy">
+                  <h3>{module.title}</h3>
+                  <p id={descriptionId}>{module.intro}</p>
+                </div>
 
-              {canManage ? (
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={module.enabled}
-                  aria-label={module.toggleLabel}
-                  aria-describedby={descriptionId}
-                  className="space-module-switch"
-                  disabled={configurationMutation.isPending}
-                  onClick={() => configurationMutation.mutate(module.update)}
-                >
-                  <span
-                    className="space-module-switch-track"
-                    aria-hidden="true"
+                {canManage ? (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={module.enabled}
+                    aria-label={module.toggleLabel}
+                    aria-describedby={descriptionId}
+                    className="space-module-switch"
+                    disabled={configurationMutation.isPending}
+                    onClick={() => configurationMutation.mutate(module.update)}
                   >
-                    <span className="space-module-switch-thumb" />
+                    <span
+                      className="space-module-switch-track"
+                      aria-hidden="true"
+                    >
+                      <span className="space-module-switch-thumb" />
+                    </span>
+                  </button>
+                ) : (
+                  <span className="space-module-readonly-state">
+                    {module.enabled
+                      ? t('profileIdentity.spaceModuleOn')
+                      : t('profileIdentity.spaceModuleOff')}
                   </span>
-                </button>
-              ) : (
-                <span className="space-module-readonly-state">
-                  {module.enabled
-                    ? t('profileIdentity.spaceModuleOn')
-                    : t('profileIdentity.spaceModuleOff')}
-                </span>
-              )}
+                )}
+              </div>
+              {module.enabled && module.visibility ? (
+                canManage ? (
+                  <fieldset
+                    className="space-visibility"
+                    disabled={configurationMutation.isPending}
+                  >
+                    <legend>
+                      {t('profileIdentity.visibilityLegend', {
+                        module: module.title,
+                      })}
+                    </legend>
+                    <div className="space-visibility-options">
+                      {VISIBILITY_MODES.map((mode) => (
+                        <label
+                          key={mode.value}
+                          className={
+                            module.visibility?.mode === mode.value
+                              ? 'space-visibility-option is-selected'
+                              : 'space-visibility-option'
+                          }
+                        >
+                          <input
+                            type="radio"
+                            name={`${module.id}-visibility`}
+                            value={mode.value}
+                            checked={module.visibility?.mode === mode.value}
+                            onChange={() =>
+                              configurationMutation.mutate(
+                                module.visibility?.update(mode.value) ?? {},
+                              )
+                            }
+                          />
+                          <span className="space-visibility-label">
+                            {t(mode.labelKey)}
+                          </span>
+                          <span className="space-visibility-hint">
+                            {t(mode.hintKey)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                ) : (
+                  <p className="space-visibility-readonly">
+                    {t('profileIdentity.visibilityReadOnly', {
+                      mode: t(
+                        module.visibility.mode === 'MUTUAL_REVEAL'
+                          ? 'profileIdentity.visibilityMutualReveal'
+                          : 'profileIdentity.visibilityImmediate',
+                      ),
+                    })}
+                  </p>
+                )
+              ) : null}
             </div>
           );
         })}
       </div>
+
+      {dailyContextTimezone ? (
+        <div className="space-timezone-row">
+          {canManage ? (
+            <>
+              <label htmlFor="space-daily-timezone">
+                {t('profileIdentity.dailyContextTimezoneLabel')}
+              </label>
+              <p id="space-daily-timezone-hint">
+                {t('profileIdentity.dailyContextTimezoneIntro')}
+              </p>
+              <select
+                id="space-daily-timezone"
+                aria-describedby="space-daily-timezone-hint"
+                value={dailyContextTimezone}
+                disabled={configurationMutation.isPending}
+                onChange={(event) =>
+                  configurationMutation.mutate({
+                    dailyContextTimezone: event.target.value,
+                  })
+                }
+              >
+                {dailyContextTimezoneOptions(dailyContextTimezone).map(
+                  (zone) => (
+                    <option key={zone} value={zone}>
+                      {zone}
+                    </option>
+                  ),
+                )}
+              </select>
+            </>
+          ) : (
+            <p>
+              {t('profileIdentity.dailyContextTimezoneReadOnly', {
+                timezone: dailyContextTimezone,
+              })}
+            </p>
+          )}
+        </div>
+      ) : null}
+
+      {canManage ? (
+        <p className="space-configuration-note">
+          {t('profileIdentity.spaceModulesKeepDataNote')}
+        </p>
+      ) : null}
 
       {configurationMutation.isPending ? (
         <p
@@ -210,7 +354,11 @@ export function SpaceConfigurationPanel({
         </p>
       ) : null}
 
-      {configurationMutation.error ? (
+      {timezoneLocked ? (
+        <p className="space-configuration-status" role="alert">
+          {t('profileIdentity.dailyContextTimezoneLocked')}
+        </p>
+      ) : configurationMutation.error ? (
         <ProblemState
           error={configurationMutation.error}
           onRetry={

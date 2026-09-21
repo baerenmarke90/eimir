@@ -32,7 +32,10 @@ import {
 } from '../client/problemDetails';
 import { ACTIVITY_ROUTE, appRoutePath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
-import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
+import {
+  refreshSpaceConfiguration,
+  spaceConfigurationQueryOptions,
+} from '../client/spaceConfiguration';
 import {
   type LivingModule,
   livingModuleContentId,
@@ -721,14 +724,17 @@ function TodayMonthlyStrip({
   );
 }
 const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
+const SPACE_MODULE_DISABLED_CODE = 'SPACE_MODULE_DISABLED';
 
-function ThinkingOfYouHero({
+export function ThinkingOfYouHero({
   apis,
+  accountId,
   spaceId,
   partnerName,
   thinkingOfYouAvailableAt,
 }: {
   apis: M4ProductApis;
+  accountId: string;
   spaceId: string;
   partnerName?: string;
   thinkingOfYouAvailableAt: Date | null;
@@ -765,6 +771,16 @@ function ThinkingOfYouHero({
       );
     },
     onError: (error) => {
+      if (
+        error instanceof ClientProblemError &&
+        error.code === SPACE_MODULE_DISABLED_CODE
+      ) {
+        // The manager switched the module off after this client last read the
+        // configuration. Drop the stale action now instead of at the next poll.
+        postSnackbar('snackbar.supportGesturesModuleDisabled');
+        void refreshSpaceConfiguration(queryClient, accountId, spaceId);
+        return;
+      }
       if (
         error instanceof ClientProblemError &&
         error.code === THINKING_OF_YOU_COOLDOWN_CODE
@@ -1142,10 +1158,11 @@ export function TodayPage({
                 ) : undefined
               }
               actions={
-                supportGesturesEnabled ? (
+                supportGesturesEnabled && account?.id ? (
                   <div className="today-hero-action-container">
                     <ThinkingOfYouHero
                       apis={apis}
+                      accountId={account.id}
                       spaceId={spaceId}
                       partnerName={partner?.displayName}
                       thinkingOfYouAvailableAt={

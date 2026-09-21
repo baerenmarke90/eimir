@@ -82,6 +82,12 @@ Rules from ADR 0007:
 - Visibility modes are dimension-scoped; enabling one dimension does not unlock/reveal the other.
 - `MUTUAL_REVEAL` affects projection eligibility only. It is not another module or Privacy class.
 
+Web surface (#432): the Account timezone is not part of any client-visible API, so the Web
+settings surface suggests the manager's device time zone for the first Vibe/Energy enable and sends it
+in the same atomic configuration write. The zone then stays visible and deliberately changeable in the
+Space settings; a refused change while current-day state exists is explained in place. The device zone
+is a one-time suggestion only and is never used to derive the shared day afterwards.
+
 The initial visibility mode is `IMMEDIATE`. Mutual Reveal is an explicit configuration choice rather than an implicit consequence of enabling a dimension.
 
 ## 5. What is not a Space module

@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -25,7 +24,7 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
-import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
+import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyVibeCheckIn.css';
@@ -108,10 +107,6 @@ export function DailyVibeCheckIn({
     () => true,
   );
   const queryKey = dailyCheckInTodayQueryKey(accountId, spaceId);
-  const configurationKey = useMemo(
-    () => spaceConfigurationQueryKey(accountId, spaceId),
-    [accountId, spaceId],
-  );
   const dailyQueryOptions = dailyCheckInTodayQueryOptions(
     api,
     accountId,
@@ -140,16 +135,13 @@ export function DailyVibeCheckIn({
   const serverReportsModuleDisabled = serverVibe === null;
   useEffect(() => {
     if (!configuredEnabled || !serverReportsModuleDisabled) return;
-    void queryClient.invalidateQueries({
-      queryKey: configurationKey,
-      exact: true,
-      refetchType: 'active',
-    });
+    void refreshSpaceConfiguration(queryClient, accountId, spaceId);
   }, [
-    configurationKey,
+    accountId,
     configuredEnabled,
     queryClient,
     serverReportsModuleDisabled,
+    spaceId,
   ]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
@@ -212,11 +204,7 @@ export function DailyVibeCheckIn({
             exact: true,
             type: 'active',
           }),
-          queryClient.invalidateQueries({
-            queryKey: configurationKey,
-            exact: true,
-            refetchType: 'active',
-          }),
+          refreshSpaceConfiguration(queryClient, accountId, spaceId),
         ]);
         return;
       }

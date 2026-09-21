@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { SpaceConfigurationView } from '../api/generated/models/SpaceConfigurationView';
 import {
+  dailyContextTimezoneOptions,
+  dailyModuleToggleUpdate,
   loadSpaceConfiguration,
   spaceConfigurationQueryKey,
   updateSpaceConfiguration,
@@ -78,5 +80,51 @@ describe('space configuration query contract', () => {
     });
     expect(updated.etag).toBe('"8"');
     expect(updated.configuration.supportGesturesEnabled).toBe(false);
+  });
+
+  describe('Daily module toggles', () => {
+    const fresh = {
+      ...configuration,
+      energyCheckInEnabled: false,
+      vibeCheckEnabled: false,
+    };
+
+    it('sends the shared day zone atomically with the first enable', () => {
+      expect(
+        dailyModuleToggleUpdate(fresh, 'vibeCheckEnabled', 'Europe/Berlin'),
+      ).toEqual({
+        vibeCheckEnabled: true,
+        dailyContextTimezone: 'Europe/Berlin',
+      });
+    });
+
+    it('never overwrites an existing shared day zone or sends one when disabling', () => {
+      const zoned = { ...fresh, dailyContextTimezone: 'UTC' };
+      expect(
+        dailyModuleToggleUpdate(zoned, 'energyCheckInEnabled', 'Europe/Berlin'),
+      ).toEqual({ energyCheckInEnabled: true });
+      expect(
+        dailyModuleToggleUpdate(
+          { ...configuration, dailyContextTimezone: null },
+          'vibeCheckEnabled',
+          'Europe/Berlin',
+        ),
+      ).toEqual({ vibeCheckEnabled: false });
+    });
+
+    it('leaves the zone out when the device offers none so the server stays the authority', () => {
+      expect(dailyModuleToggleUpdate(fresh, 'vibeCheckEnabled', null)).toEqual({
+        vibeCheckEnabled: true,
+      });
+    });
+
+    it('keeps an unlisted current zone selectable', () => {
+      expect(dailyContextTimezoneOptions('Mars/Olympus')).toContain(
+        'Mars/Olympus',
+      );
+      expect(dailyContextTimezoneOptions('Europe/Berlin')).toContain(
+        'Europe/Berlin',
+      );
+    });
   });
 });

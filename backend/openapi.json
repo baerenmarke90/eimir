@@ -2002,6 +2002,18 @@
             "title": "Itemlimit",
             "type": "integer"
           },
+          "selectedCollectionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcollectionid"
+          },
           "visible": {
             "title": "Visible",
             "type": "boolean"
@@ -2023,6 +2035,11 @@
           },
           "moduleKey": {
             "title": "Modulekey",
+            "type": "string"
+          },
+          "selectedCollectionId": {
+            "format": "uuid",
+            "title": "Selectedcollectionid",
             "type": "string"
           },
           "visible": {
@@ -17618,7 +17635,7 @@
     },
     "/api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey}": {
       "patch": {
-        "description": "Set one private per-account Dashboard preference (#817 visibility, #848 item limit).",
+        "description": "Set one private per-account Dashboard presentation preference.",
         "operationId": "updateDashboardModulePreference",
         "parameters": [
           {

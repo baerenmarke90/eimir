@@ -18,6 +18,12 @@ import type { DailyCheckInInsightDayView } from '../api/generated/models/DailyCh
 import type { DailyCheckInInsightsView } from '../api/generated/models/DailyCheckInInsightsView';
 import { DailyVibe } from '../api/generated/models/DailyVibe';
 import { ClientProblemError } from '../client/problemDetails';
+import de from '../i18n/locales/de';
+import dailyInsights from '../i18n/locales/dailyInsights';
+import {
+  HIDDEN_STATE_WORDING,
+  JUDGING_WORDING,
+} from '../i18n/locales/dailyInsightsWording';
 import {
   DailyInsightsPage,
   type DailyInsightsViewId,
@@ -221,12 +227,8 @@ describe('Pro insights: capability', () => {
     expect(
       await screen.findByText(/Euer Verlauf in Vibe & Energie/),
     ).toBeTruthy();
-    expect(
-      screen.getByText(/bleibt für euch beide wie gewohnt kostenlos/),
-    ).toBeTruthy();
-    expect(
-      screen.getByText(/Alles, was ihr bereits geteilt habt, bleibt erhalten/),
-    ).toBeTruthy();
+    expect(screen.getByText(dailyInsights.gate.freeNote)).toBeTruthy();
+    expect(screen.getByText(dailyInsights.gate.keptNote)).toBeTruthy();
     expect(insights).not.toHaveBeenCalled();
     // No charts, no upgrade dialog, no destructive wording.
     expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
@@ -283,9 +285,7 @@ describe('Pro insights: Space modules', () => {
       await screen.findByRole('heading', { name: /Eure Energie/ }),
     ).toBeTruthy();
     expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
-    expect(
-      screen.getByText('Vibe ist in eurem Space ausgeschaltet.'),
-    ).toBeTruthy();
+    expect(screen.getByText(dailyInsights.modulesOff.vibeOff)).toBeTruthy();
   });
 
   it('renders only the Vibe chart when Energy is disabled', async () => {
@@ -294,15 +294,13 @@ describe('Pro insights: Space modules', () => {
       await screen.findByRole('heading', { name: /Euer Vibe/ }),
     ).toBeTruthy();
     expect(screen.queryByRole('heading', { name: /Eure Energie/ })).toBeNull();
-    expect(
-      screen.getByText('Energie ist in eurem Space ausgeschaltet.'),
-    ).toBeTruthy();
+    expect(screen.getByText(dailyInsights.modulesOff.energyOff)).toBeTruthy();
   });
 
   it('explains that Pro does not change disabled modules when both are off', async () => {
     renderPage({ flags: { vibeEnabled: false, energyEnabled: false } });
     expect(
-      await screen.findByText('Vibe und Energie sind gerade ausgeschaltet'),
+      await screen.findByText(dailyInsights.modulesOff.title),
     ).toBeTruthy();
     expect(screen.getByText(/eimir\. Pro ändert daran nichts/)).toBeTruthy();
     expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
@@ -312,9 +310,7 @@ describe('Pro insights: Space modules', () => {
 describe('Pro insights: data states', () => {
   it('shows a calm empty state for a week without values', async () => {
     renderPage({ data: {} });
-    expect(
-      await screen.findByText('Hier ist noch nichts zu sehen'),
-    ).toBeTruthy();
+    expect(await screen.findByText(dailyInsights.empty.title)).toBeTruthy();
     expect(screen.queryByRole('heading', { name: /Euer Vibe/ })).toBeNull();
   });
 
@@ -325,7 +321,7 @@ describe('Pro insights: data states', () => {
     expect(
       await screen.findByRole('heading', { name: /Euer Vibe/ }),
     ).toBeTruthy();
-    expect(screen.getByText(/nur wenige Tage/)).toBeTruthy();
+    expect(screen.getByText(dailyInsights.sparse)).toBeTruthy();
     // No invented statement without enough data.
     expect(screen.queryByText(/ging es euch beiden gut/)).toBeNull();
   });
@@ -355,10 +351,8 @@ describe('Pro insights: data states', () => {
       ),
     );
     expect(labels[0]).toBe(labels[1]);
-    expect(labels[0]).toContain('Philipp: kein Wert sichtbar');
-    expect(document.body.textContent).not.toMatch(
-      /noch kein|nicht eingecheckt|hat nichts geteilt|verborgen/i,
-    );
+    expect(labels[0]).toContain(`Philipp: ${dailyInsights.noValue}`);
+    expect(document.body.textContent).not.toMatch(HIDDEN_STATE_WORDING);
   });
 
   it('reveals the values of a day as text on selection', async () => {
@@ -407,9 +401,9 @@ describe('Pro insights: data states', () => {
       },
     });
     expect(
-      await screen.findByText('Euer Verlauf ist gerade nicht verfügbar'),
+      await screen.findByText(dailyInsights.contextUnavailable.title),
     ).toBeTruthy();
-    expect(screen.queryByText(/geändert/)).toBeNull();
+    expect(screen.queryByText(de.states.conflict.title)).toBeNull();
   });
 
   it('shows the offline problem state with retry', async () => {
@@ -485,9 +479,9 @@ describe('Pro insights: views', () => {
 
   it('renders the recap hero, noticed statements and highlights from real values', async () => {
     renderPage({ view: 'recap' });
-    expect(await screen.findByText('Eure Woche in einem Satz')).toBeTruthy();
+    expect(await screen.findByText(dailyInsights.recap.heroLabel)).toBeTruthy();
     expect(
-      screen.getByRole('heading', { name: 'Das ist aufgefallen' }),
+      screen.getByRole('heading', { name: dailyInsights.recap.noticedTitle }),
     ).toBeTruthy();
     const highlights = screen
       .getByRole('heading', { name: 'Eure Highlights' })
@@ -501,12 +495,10 @@ describe('Pro insights: views', () => {
     renderPage({ view: 'patterns' });
     expect(
       await screen.findByRole('heading', {
-        name: 'Euer Monat auf einen Blick',
+        name: dailyInsights.patterns.glanceTitle,
       }),
     ).toBeTruthy();
-    expect(
-      screen.getByText('Kein Richtig oder Falsch. Nur Erkenntnisse für euch.'),
-    ).toBeTruthy();
+    expect(screen.getByText(dailyInsights.patterns.calmNote)).toBeTruthy();
     expect(
       screen.getByRole('button', { name: 'Vorheriger Monat' }),
     ).toBeTruthy();
@@ -517,11 +509,9 @@ describe('Pro insights: views', () => {
       renderPage({ view });
       await screen.findByRole('heading', { level: 1 });
       await waitFor(() =>
-        expect(screen.queryByText(/wird geladen/)).toBeNull(),
+        expect(screen.queryByText(dailyInsights.loading)).toBeNull(),
       );
-      expect(document.body.textContent).not.toMatch(
-        /Score|schlechter|besser als|problematisch|deshalb|weil ihr|Diagnose|Punkte/i,
-      );
+      expect(document.body.textContent).not.toMatch(JUDGING_WORDING);
       cleanup();
     }
   });

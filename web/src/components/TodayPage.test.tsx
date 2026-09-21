@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import type { M4ProductApis } from '../client/m4Product';
@@ -2343,10 +2344,31 @@ describe('formatRelationshipDuration', () => {
       queryClient.setQueryData(
         dashboardPreferencesQueryKey('account-1', 'space-1'),
         {
-          items: Object.entries(overrides).map(([moduleKey, visible]) => ({
-            moduleKey,
-            visible,
-          })),
+          items: [
+            {
+              moduleKey: 'pinned_collection',
+              visible: overrides.pinned_collection ?? true,
+              selectedCollectionId: 'collection-1',
+            },
+            ...Object.entries(overrides)
+              .filter(([moduleKey]) => moduleKey !== 'pinned_collection')
+              .map(([moduleKey, visible]) => ({ moduleKey, visible })),
+          ],
+        },
+      );
+      queryClient.setQueryData(
+        ['today-pinned-collection', 'account-1', 'space-1', 'collection-1'],
+        {
+          id: 'collection-1',
+          spaceId: 'space-1',
+          title: 'Einkauf',
+          version: 1,
+          capabilities: { canComment: false, canDelete: true, canEdit: true },
+          createdAt: new Date('2026-09-21T10:00:00Z'),
+          updatedAt: new Date('2026-09-21T10:00:00Z'),
+          createdBy: 'account-1',
+          creator: { id: 'account-1', displayName: 'Alex' },
+          items: [],
         },
       );
 
@@ -2357,6 +2379,7 @@ describe('formatRelationshipDuration', () => {
               apis={{} as M4ProductApis}
               spaceId="space-1"
               account={{ id: 'account-1', displayName: 'Alex' }}
+              collectionsApi={{} as CollectionsApi}
               loadMemoryImage={() => Promise.resolve('blob:http://localhost/x')}
             />
           </MemoryRouter>
@@ -2377,6 +2400,7 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTION_MARKER: Record<DashboardModuleKey, string> = {
       relationship_presence: 'today-hero',
       upcoming: 'today-section-upcoming',
+      pinned_collection: 'today-section-pinned-collection',
       keepsake: 'today-section-moment',
       relationship_signal: 'today-section-living',
       monthly_highlights: 'today-section-monthly',

@@ -1,12 +1,16 @@
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { normalizeClientError } from '../client/problemDetails';
+import { collectionDetailPath } from '../client/routes';
 import { planningIfMatch } from '../client/sharedPlanning';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { SharedAchievementCelebration } from './SharedAchievementCelebration';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -18,16 +22,24 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 
 export function TodayPinnedCollection({
   api,
+  accountId,
   spaceId,
   collection,
+  sharedAchievementsEnabled = false,
   onRefresh,
 }: {
   api: CollectionsApi;
+  accountId: string;
   spaceId: string;
   collection: CollectionDetail;
+  sharedAchievementsEnabled?: boolean;
   onRefresh: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
+  const celebrationScope = `${accountId}:${spaceId}:${collection.id}`;
+  const [celebratedScope, setCelebratedScope] = useState<string | null>(null);
+  const showSharedAchievement =
+    sharedAchievementsEnabled && celebratedScope === celebrationScope;
   const items = [...collection.items]
     .sort((left, right) => left.position - right.position)
     .slice(0, 4);
@@ -35,17 +47,25 @@ export function TodayPinnedCollection({
 
   const toggleItem = useMutation({
     mutationFn: (item: CollectionItemDetail) =>
-      apiCall(() =>
-        api.updateCollectionItem({
+      apiCall(async () => {
+        const response = await api.updateCollectionItemRaw({
           spaceId,
           collectionId: collection.id,
           itemId: item.id,
           ifMatch: planningIfMatch(item),
           collectionItemUpdate: { completed: !item.completed },
-        }),
-      ),
-    onSuccess: async () => {
+        });
+        await response.value();
+        return sharedAchievementKind(response.raw);
+      }),
+    onSuccess: async (achievement) => {
       await onRefresh();
+      if (sharedAchievementsEnabled && achievement === 'collection-completed') {
+        setCelebratedScope(celebrationScope);
+        postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
+          title: collection.title,
+        });
+      }
     },
     onError: () => postSnackbar('m5s5.common.error'),
   });
@@ -73,6 +93,32 @@ export function TodayPinnedCollection({
     createItem.mutate(title, {
       onSuccess: () => form.reset(),
     });
+  }
+
+  if (showSharedAchievement) {
+    return (
+      <div className="today-pinned-list">
+        <SharedAchievementCelebration
+          centered
+          headingLevel={3}
+          title={t('m5s5.today.pinnedCollection.sharedAchievementTitle')}
+          body={t('m5s5.today.pinnedCollection.sharedAchievementBody', {
+            title: collection.title,
+          })}
+          action={
+            <Link
+              className="shared-achievement-cta"
+              to={collectionDetailPath(collection.id)}
+            >
+              {t('m5s5.today.pinnedCollection.sharedAchievementAction')}
+              <span className="shared-achievement-cta-arrow" aria-hidden="true">
+                ›
+              </span>
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   return (

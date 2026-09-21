@@ -15,8 +15,14 @@ from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
+from eimir.api.shared_achievements import (
+    COLLECTION_COMPLETED_ACHIEVEMENT,
+    SHARED_ACHIEVEMENT_HEADER,
+    SHARED_ACHIEVEMENT_RESPONSE_HEADER,
+)
 from eimir.collections import service
 from eimir.collections.models import Collection, CollectionItem
+from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["collections"])
 
@@ -25,6 +31,19 @@ ETAG_HEADERS = {
         "description": "Resource version to use for the next If-Match write request.",
         "schema": {"type": "string"},
     }
+}
+
+COLLECTION_COMPLETION_TRANSITION_HEADER = "X-Eimir-Collection-Completion-Transition"
+COLLECTION_ITEM_UPDATE_HEADERS = {
+    **ETAG_HEADERS,
+    COLLECTION_COMPLETION_TRANSITION_HEADER: {
+        "description": (
+            "True only when this successful Item update caused the shared Collection "
+            "to transition from incomplete to complete; false otherwise."
+        ),
+        "schema": {"type": "boolean"},
+    },
+    SHARED_ACHIEVEMENT_HEADER: SHARED_ACHIEVEMENT_RESPONSE_HEADER,
 }
 
 
@@ -352,7 +371,10 @@ def create_collection_item(
     "/spaces/{spaceId}/collections/{collectionId}/items/{itemId}",
     response_model=CollectionItemDetail,
     operation_id="updateCollectionItem",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+    responses={
+        200: {"headers": COLLECTION_ITEM_UPDATE_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def update_collection_item(
     authorization: Authorization,
@@ -363,7 +385,13 @@ def update_collection_item(
     collection_id: Annotated[str, Path(alias="collectionId")],
     item_id: Annotated[str, Path(alias="itemId")],
 ) -> CollectionItemDetail:
-    item = service.update_item(
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
+    result = service.update_item_with_completion_transition(
         session,
         authorization,
         collection_id,
@@ -373,8 +401,13 @@ def update_collection_item(
         title=body.title,
         completed=body.completed,
     )
-    response.headers["ETag"] = etag_for(item.version)
-    return collection_item_detail(session, item)
+    response.headers["ETag"] = etag_for(result.item.version)
+    response.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] = (
+        "true" if result.collection_became_complete else "false"
+    )
+    if shared_achievement_enabled and result.collection_became_complete:
+        response.headers[SHARED_ACHIEVEMENT_HEADER] = COLLECTION_COMPLETED_ACHIEVEMENT
+    return collection_item_detail(session, result.item)
 
 
 @router.delete(

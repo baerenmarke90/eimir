@@ -7,6 +7,7 @@ import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
@@ -60,6 +61,9 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [celebratedPlanKey, setCelebratedPlanKey] = useState<string | null>(
+    null,
+  );
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
 
   const planQuery = useQuery({
@@ -77,7 +81,6 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
-
   const commitPlan = async (plan: PlanDetail) => {
     queryClient.setQueryData(key, plan);
     await Promise.all([
@@ -146,22 +149,35 @@ export function PlanProductPage({
     onSuccess: commitPlan,
   });
   const completeMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       plan,
       experiencedOn,
     }: {
       plan: PlanDetail;
       experiencedOn: Date;
-    }) =>
-      apiCall(() =>
-        apis.plans.completePlan({
+    }) => {
+      try {
+        const response = await apis.plans.completePlanRaw({
           spaceId,
           planId: plan.id,
           ifMatch: planningIfMatch(plan),
           planComplete: { experiencedOn },
-        }),
-      ),
-    onSuccess: commitPlan,
+        });
+        return {
+          completedPlan: await response.value(),
+          achievement: sharedAchievementKind(response.raw),
+        };
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onSuccess: async ({ completedPlan, achievement }) => {
+      setCelebratedPlanKey(null);
+      await commitPlan(completedPlan);
+      if (achievement === 'plan-completed') {
+        setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
+      }
+    },
   });
   const returnMutation = useMutation({
     mutationFn: (plan: PlanDetail) =>
@@ -513,6 +529,9 @@ export function PlanProductPage({
             spaceId={spaceId}
             plan={plan}
             focusOnMount={completeMutation.isSuccess}
+            sharedAchievementEnabled={
+              celebratedPlanKey === `${spaceId}:${plan.id}`
+            }
           />
         ) : null}
 
@@ -590,7 +609,9 @@ export function PlanProductPage({
                   className="planen-complete-cta"
                   disabled={completeMutation.isPending}
                 >
-                  {t('m5s3.plan.complete')}
+                  {completeMutation.isPending
+                    ? t('m5s3.common.saving')
+                    : t('m5s3.plan.complete')}
                 </button>
               </form>
             </section>

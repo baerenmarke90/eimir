@@ -1,0 +1,188 @@
+.shared-achievement-confirmation {
+  display: grid;
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--radius-large);
+  padding: var(--space-3);
+  background: var(--color-shared-surface);
+  animation: shared-achievement-arrive var(--duration-context)
+    var(--easing-enter);
+}
+
+.shared-achievement-confirmation > * {
+  min-width: 0;
+}
+
+.shared-achievement-mark {
+  position: relative;
+  display: grid;
+  width: var(--space-12);
+  height: var(--space-12);
+  place-items: center;
+  border: 1px solid var(--color-shared-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-success);
+  box-shadow: var(--shadow-soft);
+}
+
+.shared-achievement-mark svg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.shared-achievement-copy {
+  min-width: 0;
+}
+
+.shared-achievement-copy h2,
+.shared-achievement-copy h3,
+.shared-achievement-copy p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.shared-achievement-copy h2,
+.shared-achievement-copy h3 {
+  color: var(--color-success);
+}
+
+.shared-achievement-copy p {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.shared-achievement-confirmation-centered {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  text-align: center;
+  border: 1px solid var(--color-shared-border);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-5), 7vw, var(--space-8)) var(--space-4);
+  background: linear-gradient(
+    180deg,
+    var(--color-shared-surface),
+    var(--color-surface-raised)
+  );
+  box-shadow: var(--shadow-soft);
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark {
+  width: var(--space-16);
+  height: var(--space-16);
+  border: 0;
+  background: color-mix(
+    in srgb,
+    var(--color-success) 16%,
+    var(--color-surface-raised)
+  );
+  box-shadow: none;
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::before,
+.shared-achievement-confirmation-centered .shared-achievement-mark::after {
+  position: absolute;
+  color: var(--color-brand);
+  font-size: 1rem;
+  line-height: 1;
+  content: "♥";
+  opacity: 0.72;
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::before {
+  inset-inline-start: -1.85rem;
+  top: 0.5rem;
+  transform: rotate(-12deg);
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark::after {
+  inset-inline-end: -2rem;
+  bottom: 0.65rem;
+  transform: rotate(10deg) scale(0.82);
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-mark svg {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.shared-achievement-confirmation-centered .shared-achievement-copy {
+  max-width: 32rem;
+}
+
+.shared-achievement-action {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.shared-achievement-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  max-width: 100%;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-5);
+  background: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    var(--color-surface-raised)
+  );
+  color: var(--color-text);
+  font-weight: 750;
+  text-decoration: none;
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast);
+}
+
+.shared-achievement-cta:hover {
+  transform: translateY(-1px);
+  background: color-mix(
+    in srgb,
+    var(--color-success) 18%,
+    var(--color-surface-raised)
+  );
+}
+
+.shared-achievement-cta:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.shared-achievement-cta-arrow {
+  font-size: 1.25em;
+  line-height: 1;
+}
+
+@keyframes shared-achievement-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1)) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-achievement-confirmation {
+    animation: none;
+  }
+
+  .shared-achievement-cta {
+    transition: none;
+  }
+
+  .shared-achievement-cta:hover {
+    transform: none;
+  }
+}

@@ -4,8 +4,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { i18n } from '../i18n';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
+
+const ACHIEVEMENT_HEADER = 'X-Eimir-Shared-Achievement';
 
 function item(id: string, title: string, completed = false, position = 0) {
   return {
@@ -44,7 +47,35 @@ function collection(): CollectionDetail {
   } as CollectionDetail;
 }
 
-function renderPinned(api: Partial<CollectionsApi>) {
+function rawUpdateResponse(
+  updatedItem: CollectionItemDetail,
+  achievement: 'collection-completed' | null,
+) {
+  return {
+    raw: {
+      headers: {
+        get: (name: string) =>
+          name === ACHIEVEMENT_HEADER ? achievement : null,
+      },
+    } as unknown as Response,
+    value: vi.fn().mockResolvedValue(updatedItem),
+  };
+}
+
+function renderPinned(
+  api: Partial<CollectionsApi>,
+  {
+    value = collection(),
+    sharedAchievementsEnabled = false,
+    accountId = 'account-1',
+    spaceId = 'space-1',
+  }: {
+    value?: CollectionDetail;
+    sharedAchievementsEnabled?: boolean;
+    accountId?: string;
+    spaceId?: string;
+  } = {},
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -57,8 +88,10 @@ function renderPinned(api: Partial<CollectionsApi>) {
       <MemoryRouter>
         <TodayPinnedCollection
           api={api as CollectionsApi}
-          spaceId="space-1"
-          collection={collection()}
+          accountId={accountId}
+          spaceId={spaceId}
+          collection={value}
+          sharedAchievementsEnabled={sharedAchievementsEnabled}
           onRefresh={onRefresh}
         />
       </MemoryRouter>
@@ -89,11 +122,16 @@ describe('TodayPinnedCollection', () => {
     ).toBe('true');
   });
 
-  it('completes an item through the existing Collection mutation', async () => {
-    const updateCollectionItem = vi
+  it('uses the existing Collection mutation without celebrating a non-final item', async () => {
+    const updateCollectionItemRaw = vi
       .fn()
-      .mockResolvedValue(item('item-1', 'Milch', true));
-    const { onRefresh } = renderPinned({ updateCollectionItem });
+      .mockResolvedValue(
+        rawUpdateResponse(item('item-1', 'Milch', true), null),
+      );
+    const { onRefresh } = renderPinned(
+      { updateCollectionItemRaw },
+      { sharedAchievementsEnabled: true },
+    );
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -102,7 +140,7 @@ describe('TodayPinnedCollection', () => {
     );
 
     await waitFor(() =>
-      expect(updateCollectionItem).toHaveBeenCalledWith({
+      expect(updateCollectionItemRaw).toHaveBeenCalledWith({
         spaceId: 'space-1',
         collectionId: 'collection-1',
         itemId: 'item-1',
@@ -111,6 +149,111 @@ describe('TodayPinnedCollection', () => {
       }),
     );
     await waitFor(() => expect(onRefresh).toHaveBeenCalled());
+    expect(
+      screen.queryByText(
+        i18n.t('m5s5.today.pinnedCollection.sharedAchievementTitle'),
+      ),
+    ).toBeNull();
+  });
+
+  it('celebrates exactly the server-confirmed final Collection transition when enabled', async () => {
+    const value = collection();
+    value.items = value.items.map((entry) =>
+      entry.id === 'item-1' ? entry : { ...entry, completed: true },
+    );
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawUpdateResponse(
+          item('item-1', 'Milch', true),
+          'collection-completed',
+        ),
+      );
+    const { onRefresh } = renderPinned(
+      { updateCollectionItemRaw },
+      { value, sharedAchievementsEnabled: true },
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+      }),
+    );
+
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1));
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('m5s5.today.pinnedCollection.sharedAchievementTitle'),
+      }),
+    ).toBeDefined();
+    expect(
+      screen.getByText(
+        i18n.t('m5s5.today.pinnedCollection.sharedAchievementBody', {
+          title: 'Einkauf',
+        }),
+      ),
+    ).toBeDefined();
+    expect(
+      screen
+        .getByRole('status')
+        .classList.contains('shared-achievement-confirmation'),
+    ).toBe(true);
+    expect(
+      screen
+        .getByRole('link', {
+          name: i18n.t('m5s5.today.pinnedCollection.sharedAchievementAction'),
+        })
+        .getAttribute('href'),
+    ).toBe('/plan/collections/collection-1');
+  });
+
+  it('suppresses a confirmed Collection transition when shared achievements are disabled', async () => {
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawUpdateResponse(
+          item('item-1', 'Milch', true),
+          'collection-completed',
+        ),
+      );
+    const { onRefresh } = renderPinned({ updateCollectionItemRaw });
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+      }),
+    );
+
+    await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n.t('m5s5.today.pinnedCollection.sharedAchievementTitle'),
+      }),
+    ).toBeNull();
+  });
+
+  it('does not show success when the item write is unconfirmed', async () => {
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockRejectedValue(new Error('request failed'));
+    const { onRefresh } = renderPinned(
+      { updateCollectionItemRaw },
+      { sharedAchievementsEnabled: true },
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+      }),
+    );
+
+    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalled());
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n.t('m5s5.today.pinnedCollection.sharedAchievementTitle'),
+      }),
+    ).toBeNull();
   });
 
   it('adds an item through the existing Collection mutation', async () => {

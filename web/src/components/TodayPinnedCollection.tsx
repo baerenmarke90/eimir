@@ -60,10 +60,7 @@ export function TodayPinnedCollection({
       }),
     onSuccess: async (achievement) => {
       await onRefresh();
-      if (
-        sharedAchievementsEnabled &&
-        achievement === 'collection-completed'
-      ) {
+      if (sharedAchievementsEnabled && achievement === 'collection-completed') {
         setCelebratedScope(celebrationScope);
         postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
           title: collection.title,

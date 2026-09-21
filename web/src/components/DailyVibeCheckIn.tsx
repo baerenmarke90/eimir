@@ -172,8 +172,7 @@ export function DailyVibeCheckIn({
       const current =
         queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
         dailyQuery.data;
-      previousPartnerStateRef.current =
-        current?.projection.vibe?.partner.state;
+      previousPartnerStateRef.current = current?.projection.vibe?.partner.state;
       setAnnouncement('');
     },
     onSuccess: (snapshot) => {
@@ -458,9 +457,7 @@ export function DailyVibeCheckIn({
                 key={option.value}
                 ref={index === 0 ? firstOptionRef : undefined}
                 type="button"
-                className={
-                  `daily-vibe-option${selected ? ' is-selected' : ''}`
-                }
+                className={`daily-vibe-option${selected ? ' is-selected' : ''}`}
                 aria-pressed={selected}
                 disabled={mutation.isPending}
                 data-vibe={option.value}

@@ -24,6 +24,7 @@ from eimir.entitlements.models import (
 )
 
 _DEMO_GAMES_ENTITLEMENT_REFERENCE = "canonical-demo-games"
+_DEMO_TODAY_PRO_ENTITLEMENT_REFERENCE = "canonical-demo-today-pro"
 
 
 def _ensure_games_entitlement(session: Session, result: DemoSeedResult) -> None:
@@ -45,6 +46,50 @@ def _ensure_games_entitlement(session: Session, result: DemoSeedResult) -> None:
     )
 
 
+def _ensure_today_pro_entitlement(session: Session, result: DemoSeedResult) -> None:
+    """Keep the canonical demo Today Pro capabilities active through the normalized boundary."""
+    instant = clock.now()
+    entitlement_service.record_grant(
+        session,
+        space_id=result.space_id,
+        account_id=result.lea_id,
+        source_type=EntitlementSourceType.TEST_FIXTURE,
+        status=EntitlementStatus.ACTIVE,
+        tier=EntitlementTier.PREMIUM,
+        effective_from=instant,
+        effective_until=None,
+        external_reference=_DEMO_TODAY_PRO_ENTITLEMENT_REFERENCE,
+        source_event_at=instant,
+        capabilities=[
+            Capability.DAILY_INSIGHTS.value,
+            Capability.DAILY_QUOTE.value,
+        ],
+        metadata={"fixture": "canonical_demo_today_pro"},
+    )
+
+
+def _ensure_demo_quote_preferences(session: Session, result: DemoSeedResult) -> None:
+    """Configure deterministic, distinct quote preferences for Lea and Alex."""
+    from eimir.quotes import service as quote_preference_service
+
+    quote_preference_service.update_preference(
+        session,
+        result.lea_id,
+        enabled=True,
+        selected_source_ids=["poetic_wisdom", "classic_literature"],
+        selected_category_ids=["love", "mindfulness"],
+        locale="de",
+    )
+    quote_preference_service.update_preference(
+        session,
+        result.alex_id,
+        enabled=True,
+        selected_source_ids=["stoic_philosophy"],
+        selected_category_ids=["philosophy", "serenity"],
+        locale="de",
+    )
+
+
 def _ensure_product_examples(
     session: Session,
     result: DemoSeedResult,
@@ -62,6 +107,8 @@ def _ensure_product_examples(
         alex_id=result.alex_id,
     )
     _ensure_games_entitlement(session, result)
+    _ensure_today_pro_entitlement(session, result)
+    _ensure_demo_quote_preferences(session, result)
 
 
 def create_demo_space(

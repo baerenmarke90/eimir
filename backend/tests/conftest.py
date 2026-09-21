@@ -75,12 +75,14 @@ def engine() -> Iterator[Engine]:
     from eimir.administration import models as _administration  # noqa: F401
     from eimir.attachments import binding as _binding  # noqa: F401
     from eimir.attachments import models as _attachments  # noqa: F401
+    from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
     from eimir.chapters import models as _chapters  # noqa: F401
     from eimir.collections import models as _collections  # noqa: F401
     from eimir.comments import models as _comments  # noqa: F401
     from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
     from eimir.dashboard import models as _dashboard  # noqa: F401
     from eimir.db.base import Base
+    from eimir.demo import models as _demo  # noqa: F401
     from eimir.engagement import models as _engagement  # noqa: F401
     from eimir.entitlements import models as _entitlements  # noqa: F401
     from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
@@ -96,6 +98,7 @@ def engine() -> Iterator[Engine]:
     from eimir.private_collections import models as _private_collections  # noqa: F401
     from eimir.private_notes import models as _private_notes  # noqa: F401
     from eimir.profiles import models as _profiles  # noqa: F401
+    from eimir.quotes import models as _quotes  # noqa: F401
     from eimir.relations import models as _relations  # noqa: F401
     from eimir.relationship import models as _relationship  # noqa: F401
     from eimir.reminders import models as _reminders  # noqa: F401

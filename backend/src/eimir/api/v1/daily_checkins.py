@@ -9,12 +9,13 @@ from fastapi import APIRouter, Response
 from pydantic import ConfigDict, Field, RootModel, model_validator
 
 from eimir.api.concurrency import IfMatchToken, etag_for_token
-from eimir.api.deps import Authorization, DbSession
+from eimir.api.deps import Authorization, DbSession, ensure_capability
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
-from eimir.daily_checkins import service
+from eimir.daily_checkins import insights, service
 from eimir.daily_checkins.context import DailyCheckInErrorCode
 from eimir.daily_checkins.models import DailyVibe
+from eimir.entitlements.models import Capability
 from eimir.relationship.models import DailyCheckInVisibilityMode
 
 router = APIRouter(tags=["daily-check-ins"])
@@ -272,3 +273,105 @@ def update_daily_check_in_today(
     )
     _headers(response, projection)
     return _view(projection)
+
+
+class DailyCheckInInsightDayView(ApiModel):
+    checked_on: date
+    own_vibe: DailyVibe | None = None
+    own_energy: int | None = None
+    partner_vibe: PartnerVibeProjection | None = None
+    partner_energy: PartnerEnergyProjection | None = None
+
+
+class DailyCheckInInsightSummaryView(ApiModel):
+    total_days: int
+    days_with_own_check_in: int
+    days_with_partner_check_in: int
+    days_with_mutual_check_in: int
+
+
+class DailyCheckInInsightsView(ApiModel):
+    start_date: date
+    end_date: date
+    daily_context_timezone: str
+    vibe_enabled: bool
+    energy_enabled: bool
+    days: list[DailyCheckInInsightDayView]
+    summary: DailyCheckInInsightSummaryView
+
+
+def _insights_view(result: insights.DailyInsightsResult) -> DailyCheckInInsightsView:
+    return DailyCheckInInsightsView(
+        start_date=result.start_date,
+        end_date=result.end_date,
+        daily_context_timezone=result.daily_context_timezone,
+        vibe_enabled=result.vibe_enabled,
+        energy_enabled=result.energy_enabled,
+        days=[
+            DailyCheckInInsightDayView(
+                checked_on=day.checked_on,
+                own_vibe=(DailyVibe(day.own_vibe) if day.own_vibe is not None else None),
+                own_energy=day.own_energy,
+                partner_vibe=(
+                    _partner_vibe_view(day.partner_vibe) if day.partner_vibe is not None else None
+                ),
+                partner_energy=(
+                    _partner_energy_view(day.partner_energy)
+                    if day.partner_energy is not None
+                    else None
+                ),
+            )
+            for day in result.days
+        ],
+        summary=DailyCheckInInsightSummaryView(
+            total_days=result.summary.total_days,
+            days_with_own_check_in=result.summary.days_with_own_check_in,
+            days_with_partner_check_in=result.summary.days_with_partner_check_in,
+            days_with_mutual_check_in=result.summary.days_with_mutual_check_in,
+        ),
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/daily-check-in/insights",
+    response_model=DailyCheckInInsightsView,
+    operation_id="getDailyCheckInInsights",
+    responses=problem_responses(
+        401,
+        403,
+        404,
+        409,
+        422,
+        descriptions={
+            403: "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required.",
+            409: (
+                f"`{DailyCheckInErrorCode.CONTEXT_UNAVAILABLE}`: the Space has no "
+                "valid authoritative Daily Check-in time zone."
+            ),
+        },
+    ),
+)
+def get_daily_check_in_insights(
+    authorization: Authorization,
+    session: DbSession,
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> DailyCheckInInsightsView:
+    """Return longitudinal Daily Check-in insights for the authorized Space.
+
+    Protected by the Pro capability `daily.insights`. Free Spaces receive
+    403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.
+    """
+    ensure_capability(
+        session,
+        authorization.space_id,
+        Capability.DAILY_INSIGHTS.value,
+        lock_grants=False,
+    )
+    result = insights.get_daily_insights(
+        session,
+        authorization,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    return _insights_view(result)

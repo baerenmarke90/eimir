@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1351,6 +1351,136 @@
         "title": "DailyCheckInEnergyView",
         "type": "object"
       },
+      "DailyCheckInInsightDayView": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "ownEnergy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ownenergy"
+          },
+          "ownVibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partnerEnergy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartnerEnergyProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partnerVibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartnerVibeProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checkedOn"
+        ],
+        "title": "DailyCheckInInsightDayView",
+        "type": "object"
+      },
+      "DailyCheckInInsightSummaryView": {
+        "properties": {
+          "daysWithMutualCheckIn": {
+            "title": "Dayswithmutualcheckin",
+            "type": "integer"
+          },
+          "daysWithOwnCheckIn": {
+            "title": "Dayswithowncheckin",
+            "type": "integer"
+          },
+          "daysWithPartnerCheckIn": {
+            "title": "Dayswithpartnercheckin",
+            "type": "integer"
+          },
+          "totalDays": {
+            "title": "Totaldays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "totalDays",
+          "daysWithOwnCheckIn",
+          "daysWithPartnerCheckIn",
+          "daysWithMutualCheckIn"
+        ],
+        "title": "DailyCheckInInsightSummaryView",
+        "type": "object"
+      },
+      "DailyCheckInInsightsView": {
+        "properties": {
+          "dailyContextTimezone": {
+            "title": "Dailycontexttimezone",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DailyCheckInInsightDayView"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "endDate": {
+            "format": "date",
+            "title": "Enddate",
+            "type": "string"
+          },
+          "energyEnabled": {
+            "title": "Energyenabled",
+            "type": "boolean"
+          },
+          "startDate": {
+            "format": "date",
+            "title": "Startdate",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DailyCheckInInsightSummaryView"
+          },
+          "vibeEnabled": {
+            "title": "Vibeenabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "startDate",
+          "endDate",
+          "dailyContextTimezone",
+          "vibeEnabled",
+          "energyEnabled",
+          "days",
+          "summary"
+        ],
+        "title": "DailyCheckInInsightsView",
+        "type": "object"
+      },
       "DailyCheckInOwnView": {
         "description": "Only the caller's current-day state; partner row metadata is never exposed.",
         "properties": {
@@ -1498,6 +1628,228 @@
         ],
         "title": "DailyCheckInVisibilityMode",
         "type": "string"
+      },
+      "DailyQuoteCatalogView": {
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteCategoryView"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteSourceView"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources",
+          "categories"
+        ],
+        "title": "DailyQuoteCatalogView",
+        "type": "object"
+      },
+      "DailyQuotePreferencePatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "selectedCategoryIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcategoryids"
+          },
+          "selectedSourceIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedsourceids"
+          }
+        },
+        "title": "DailyQuotePreferencePatch",
+        "type": "object"
+      },
+      "DailyQuotePreferenceView": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "selectedCategoryIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectedcategoryids",
+            "type": "array"
+          },
+          "selectedSourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectedsourceids",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accountId",
+          "enabled",
+          "selectedSourceIds",
+          "selectedCategoryIds",
+          "version"
+        ],
+        "title": "DailyQuotePreferenceView",
+        "type": "object"
+      },
+      "DailyQuoteResponse": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyQuoteView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checkedOn",
+          "enabled"
+        ],
+        "title": "DailyQuoteResponse",
+        "type": "object"
+      },
+      "DailyQuoteView": {
+        "properties": {
+          "attributionRequired": {
+            "title": "Attributionrequired",
+            "type": "boolean"
+          },
+          "authorDisplay": {
+            "title": "Authordisplay",
+            "type": "string"
+          },
+          "categoryIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categoryids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "rightsClassification": {
+            "$ref": "#/components/schemas/RightsClassification"
+          },
+          "sourceDisplay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcedisplay"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "authorDisplay",
+          "sourceId",
+          "categoryIds",
+          "locale",
+          "rightsClassification",
+          "attributionRequired"
+        ],
+        "title": "DailyQuoteView",
+        "type": "object"
       },
       "DailyVibe": {
         "description": "Stable V1 daily-state values owned by #429.\n\nThese values describe today's relationship-facing state. They are not\ndiagnoses, scores, or HeartMoment emotions; localized UI copy remains a\npresentation concern.",
@@ -1870,7 +2222,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3012,7 +3364,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Position",
             "type": "integer"
           }
@@ -5304,6 +5656,56 @@
         "title": "ProfileVisibility",
         "type": "string"
       },
+      "QuoteCategoryView": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "title": "QuoteCategoryView",
+        "type": "object"
+      },
+      "QuoteSourceView": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rightsClassification": {
+            "$ref": "#/components/schemas/RightsClassification"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "rightsClassification"
+        ],
+        "title": "QuoteSourceView",
+        "type": "object"
+      },
       "ReadDescriptor": {
         "properties": {
           "expiresAt": {
@@ -5956,6 +6358,15 @@
         ],
         "title": "ResourceCapabilities",
         "type": "object"
+      },
+      "RightsClassification": {
+        "enum": [
+          "PUBLIC_DOMAIN",
+          "EDITORIAL_CURATED",
+          "PROPRIETARY_LICENSED"
+        ],
+        "title": "RightsClassification",
+        "type": "string"
       },
       "RuleList": {
         "properties": {
@@ -16486,6 +16897,123 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/daily-check-in/insights": {
+      "get": {
+        "description": "Return longitudinal Daily Check-in insights for the authorized Space.\n\nProtected by the Pro capability `daily.insights`. Free Spaces receive\n403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.",
+        "operationId": "getDailyCheckInInsights",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInInsightsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Insights",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/daily-check-in/today": {
       "get": {
         "operationId": "getDailyCheckInToday",
@@ -16662,6 +17190,313 @@
         "summary": "Update Daily Check In Today",
         "tags": [
           "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote": {
+      "get": {
+        "description": "Return the deterministic quote of the day for the authorized caller.\n\nRequires that the Space holds the `daily.quote` Pro entitlement.",
+        "operationId": "getDailyQuote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote",
+        "tags": [
+          "daily-quote"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote/catalog": {
+      "get": {
+        "description": "Return available curated sources and categories for the preference editor.",
+        "operationId": "getDailyQuoteCatalog",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuoteCatalogView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote Catalog",
+        "tags": [
+          "daily-quote"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote/preferences": {
+      "get": {
+        "description": "Return caller's personal Daily Quote preferences.\n\nProtected by `daily.quote`. Returns only the caller's own preferences.",
+        "operationId": "getDailyQuotePreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuotePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque preference concurrency token. Send it unchanged in subsequent PATCH requests in the `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote Preferences",
+        "tags": [
+          "daily-quote"
+        ]
+      },
+      "patch": {
+        "description": "Update caller's personal Daily Quote preferences.\n\nRequires `If-Match` optimistic concurrency header.\nProtected by `daily.quote`. Cannot modify partner preferences.",
+        "operationId": "updateDailyQuotePreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyQuotePreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuotePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque preference concurrency token. Send it unchanged in subsequent PATCH requests in the `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`RESOURCE_VERSION_CONFLICT`: preferences changed since they were read."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Daily Quote Preferences",
+        "tags": [
+          "daily-quote"
         ]
       }
     },

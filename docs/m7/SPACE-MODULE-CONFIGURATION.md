@@ -43,8 +43,8 @@ The V1 catalog is deliberately small. These are the only Space-wide module boole
 
 | Typed field | Product module | Owner | Commercial class | Default | Classification | Rationale |
 |---|---|---:|---|---:|---|---|
-| `vibeCheckEnabled` | Vibe Check | #429 / ADR 0007 | Free/Core | `false` | SPACE_CONFIGURABLE | New optional daily relationship ritual. Explicit enablement avoids silently introducing emotional-status prompts into existing Spaces. |
-| `energyCheckInEnabled` | Daily Energy Check-in | #431 / ADR 0007 | Free/Core | `false` | SPACE_CONFIGURABLE | Independent optional DailyCheckIn dimension; may be enabled without Vibe. |
+| `vibeCheckEnabled` | Vibe Check | #429 / #1151 | Mixed (Free daily ritual; Pro longitudinal insights) | `false` | SPACE_CONFIGURABLE | New optional daily relationship ritual. Space switch remains Free/Core; longitudinal insights are Pro (`daily.insights`). Explicit enablement avoids silently introducing emotional-status prompts into existing Spaces. |
+| `energyCheckInEnabled` | Daily Energy Check-in | #431 / #1151 | Mixed (Free daily ritual; Pro longitudinal insights) | `false` | SPACE_CONFIGURABLE | Independent optional DailyCheckIn dimension; may be enabled without Vibe. Space switch remains Free/Core; longitudinal patterns/recaps are Pro (`daily.insights`). |
 | `loveNotesEnabled` | Liebesbriefkasten / partner notes | #429 | Free/Core | `false` | SPACE_CONFIGURABLE | Optional shared interaction. Existing delivered notes remain protected/readable when disabled. |
 | `supportGesturesEnabled` | Thinking of You + bounded support gestures | #455 / #429 | Free/Core | `true` | SPACE_CONFIGURABLE | Existing ThinkingOfYou behavior is already shipped, so the rollout default preserves current behavior. Future support gestures reuse the same module boundary rather than adding one switch per gesture. |
 | `sharedAchievementsEnabled` | Shared achievements / celebrations | #430 | Free/Core | `false` | SPACE_CONFIGURABLE | Optional relationship-depth presentation over existing authoritative completions. |
@@ -103,6 +103,7 @@ These remain Account-scoped and cannot be changed by the Space manager for the p
 | Locale and Account timezone | Account preferences | Personal presentation/context. `dailyContextTimezone` is separately shared Space state. |
 | Appearance/theme selection where personal | appearance settings | Personal presentation must not become creator authority. |
 | Participation in Vibe/Energy/Daily Questions | owning M7 domain | Enabling a module permits participation; it never forces a person to submit personal relationship information. |
+| Daily Quote preferences (#1151) | `eimir.quotes.service` | Personal content/source/category selection (subject to Space Pro Entitlement); not Space-wide manager state. |
 
 ### 5.2 Always available / not Space-disableable
 
@@ -150,6 +151,7 @@ Some optional product capabilities are **not** added to the V1 Space-module cata
 | Annual video montage | Entitlement/action controlled, not a Space module | Same reason as printable artifacts. |
 | Surprise Mode (#514) | Entitlement/owning interaction controlled, not in v1 catalog | Specialized reveal action; underlying Privacy remains non-paywallable. |
 | Premium themes/covers | PERSONAL_CONFIGURABLE subject to Entitlement | Presentation choice should not let the creator style/control the partner's client. |
+| Daily Quote (#1151) | PERSONAL_CONFIGURABLE subject to Entitlement (`daily.quote`) | A personalized daily inspiration moment. Space manager cannot control or inspect partner's content sources/categories. Not a Space module switch in v1. |
 | External integrations (M8) | Deferred to owning integration decision | Provider authorization, data flow and operator/user ownership need integration-specific semantics rather than a speculative generic Space switch. |
 
 ## 7. Disable / re-enable semantics

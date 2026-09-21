@@ -192,10 +192,10 @@
   border-radius: var(--radius-pill);
   background:
     linear-gradient(
-        to right,
-        color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
-        var(--color-brand)
-      )
+      to right,
+      color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
+      var(--color-brand)
+    )
     0 0 / var(--daily-energy-progress) 100% no-repeat,
     var(--color-surface-subtle);
 }

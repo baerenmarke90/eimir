@@ -79,7 +79,10 @@ export function ShortTaskSheet({
     const height = dialogRef.current?.getBoundingClientRect().height ?? 0;
     return Math.min(
       COMPACT_DRAG_DISMISS_MAX_PX,
-      Math.max(COMPACT_DRAG_DISMISS_MIN_PX, height * COMPACT_DRAG_DISMISS_RATIO),
+      Math.max(
+        COMPACT_DRAG_DISMISS_MIN_PX,
+        height * COMPACT_DRAG_DISMISS_RATIO,
+      ),
     );
   }
 
@@ -236,11 +239,12 @@ export function ShortTaskSheet({
           onPointerMove={moveDrag}
           onPointerUp={(event) => finishDrag(event, true)}
           onPointerCancel={(event) => finishDrag(event, false)}
-          onClick={() => {
-            if (suppressNextClickRef.current) {
+          onClick={(event) => {
+            if (event.detail > 0 && suppressNextClickRef.current) {
               suppressNextClickRef.current = false;
               return;
             }
+            suppressNextClickRef.current = false;
             closeSheet();
           }}
         >

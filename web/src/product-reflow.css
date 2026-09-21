@@ -398,3 +398,21 @@
     min-width: 0;
   }
 }
+
+/*
+ * Settings (#1162). The page is a stack of grid tracks (`.settings-page`,
+ * `.settings-category-content`, `.form-grid`) that each default to one `auto`
+ * column, so the widest unbreakable descendant sets the track for everything
+ * above it. At 320 px with 200% text one long German compound or one select's
+ * intrinsic width widened the whole content column past the viewport.
+ * `overflow-wrap: anywhere` lowers min-content for all Settings copy, and the
+ * form grids get a shrinkable track so controls fit the column instead of
+ * sizing it.
+ */
+.settings-page {
+  overflow-wrap: anywhere;
+}
+
+.settings-page .form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}

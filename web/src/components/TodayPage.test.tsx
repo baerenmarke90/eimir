@@ -9,6 +9,7 @@ import {
   type DashboardModuleKey,
 } from '../client/dashboardModules';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';

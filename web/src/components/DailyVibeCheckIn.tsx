@@ -124,7 +124,8 @@ export function DailyVibeCheckIn({
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
   const serverVibe = dailyQuery.data?.projection.vibe;
   const serverReportsModuleDisabled = serverVibe === null;
-  const serverReportsModuleEnabled = serverVibe !== undefined && serverVibe !== null;
+  const serverReportsModuleEnabled =
+    serverVibe !== undefined && serverVibe !== null;
   const shouldResolveSurface =
     configuredEnabled || serverReportsModuleEnabled || ownVibe !== null;
 
@@ -136,9 +137,10 @@ export function DailyVibeCheckIn({
       refetchType: 'active',
     });
   }, [
-    configurationKey,
+    accountId,
     queryClient,
     serverReportsModuleDisabled,
+    spaceId,
   ]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {

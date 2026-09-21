@@ -97,7 +97,7 @@ export function CouplePresence({
             secondaryPerson={heroSecondaryPerson}
             status={status}
             statusLabel={
-              secondaryPerson ? resolvedStatusText ?? undefined : undefined
+              secondaryPerson ? (resolvedStatusText ?? undefined) : undefined
             }
             size="large"
             onInviteClick={onInviteClick}

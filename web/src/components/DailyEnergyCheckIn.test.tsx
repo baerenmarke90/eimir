@@ -176,9 +176,7 @@ describe('DailyEnergyCheckIn', () => {
 
     await openSetEnergy(60);
     expect(
-      within(screen.getByTestId('daily-energy-popover')).queryByText(
-        /\d+\s*%/,
-      ),
+      within(screen.getByTestId('daily-energy-popover')).queryByText(/\d+\s*%/),
     ).toBeNull();
   });
 
@@ -429,9 +427,7 @@ describe('DailyEnergyCheckIn', () => {
     fireEvent(window, new Event('offline'));
 
     await waitFor(() => {
-      const offlinePartner = screen.getByTestId(
-        'daily-energy-partner-battery',
-      );
+      const offlinePartner = screen.getByTestId('daily-energy-partner-battery');
       expect(offlinePartner.getAttribute('data-state')).toBe('unavailable');
       expect(offlinePartner.hasAttribute('data-energy')).toBe(false);
       expect(screen.queryByTestId('daily-energy-popover')).toBeNull();

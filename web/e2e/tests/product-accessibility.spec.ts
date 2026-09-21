@@ -4,6 +4,7 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -42,6 +43,8 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
+  let supportGesturesEnabled = true;
+  let spaceConfigurationVersion = 7;
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -109,6 +112,82 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: `"${spaceConfigurationVersion}"` },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled,
+          version: spaceConfigurationVersion,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      const ifMatch = request.headers()['if-match'];
+      const expectedEtag = `"${spaceConfigurationVersion}"`;
+      if (ifMatch !== expectedEtag) {
+        unexpectedRequests.push(
+          `PATCH ${pathname} used If-Match ${ifMatch ?? '<missing>'}; expected ${expectedEtag}`,
+        );
+        await fulfillJson(
+          {
+            code: 'RESOURCE_VERSION_CONFLICT',
+            detail: 'The browser fixture received a stale configuration write.',
+            status: 409,
+            title: 'Conflict',
+          },
+          409,
+        );
+        return;
+      }
+      const body = request.postDataJSON() as {
+        supportGesturesEnabled?: boolean;
+      };
+      if (body.supportGesturesEnabled !== undefined) {
+        supportGesturesEnabled = body.supportGesturesEnabled;
+      }
+      spaceConfigurationVersion += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: `"${spaceConfigurationVersion}"` },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled,
+          version: spaceConfigurationVersion,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,
@@ -122,6 +201,14 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
+    ) {
+      await fulfillJson({ items: [] });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/invitations`
     ) {
       await fulfillJson({ items: [] });
       return;
@@ -520,6 +607,64 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('Space configuration is touch operable, reload-safe, responsive, and axe-clean', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await installAuthorizedApiMocks(page);
+
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/more/settings/relationship');
+
+  await expect(
+    page.getByRole('heading', {
+      name: profileIdentity.spaceConfigurationTitle,
+      level: 2,
+    }),
+  ).toBeVisible();
+
+  const supportGestureSwitch = page.getByRole('switch', {
+    name: profileIdentity.supportGesturesToggle,
+  });
+  await expect(supportGestureSwitch).toHaveAttribute('aria-checked', 'true');
+  const compactBounds = await supportGestureSwitch.boundingBox();
+  expect(compactBounds?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(compactBounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shell-space-configuration-compact.png'),
+    fullPage: true,
+  });
+
+  await supportGestureSwitch.click();
+  await expect(supportGestureSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: profileIdentity.spaceConfigurationSaved,
+    }),
+  ).toBeVisible();
+
+  await page.reload();
+  const reloadedSwitch = page.getByRole('switch', {
+    name: profileIdentity.supportGesturesToggle,
+  });
+  await expect(reloadedSwitch).toHaveAttribute('aria-checked', 'false');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shell-space-configuration-expanded.png'),
+    fullPage: true,
+  });
+
+  await reloadedSwitch.click();
+  await expect(reloadedSwitch).toHaveAttribute('aria-checked', 'true');
   expect(unexpectedRequests).toEqual([]);
 });
 

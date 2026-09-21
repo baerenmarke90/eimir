@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1368,10 +1368,21 @@
           "version": {
             "title": "Version",
             "type": "integer"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "version",
+          "vibe",
           "energyLevel"
         ],
         "title": "DailyCheckInOwnView",
@@ -1400,20 +1411,31 @@
           },
           "own": {
             "$ref": "#/components/schemas/DailyCheckInOwnView"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyCheckInVibeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "checkedOn",
           "dailyContextTimezone",
           "own",
-          "energy"
+          "energy",
+          "vibe"
         ],
         "title": "DailyCheckInTodayView",
         "type": "object"
       },
       "DailyCheckInUpdate": {
         "additionalProperties": false,
-        "description": "Partial owner mutation for dimensions whose product values are decided.\n\nVibe is intentionally absent: #429 has not yet frozen the product enum, so\naccepting a string here would turn an implementation guess into API state.",
+        "description": "Partial owner mutation for the shared current-day dimensions.",
         "properties": {
           "energyLevel": {
             "anyOf": [
@@ -1437,9 +1459,35 @@
               }
             ],
             "title": "Energylevel"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "DailyCheckInUpdate",
+        "type": "object"
+      },
+      "DailyCheckInVibeView": {
+        "properties": {
+          "partner": {
+            "$ref": "#/components/schemas/PartnerVibeProjection"
+          },
+          "visibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "visibilityMode",
+          "partner"
+        ],
+        "title": "DailyCheckInVibeView",
         "type": "object"
       },
       "DailyCheckInVisibilityMode": {
@@ -1449,6 +1497,19 @@
           "MUTUAL_REVEAL"
         ],
         "title": "DailyCheckInVisibilityMode",
+        "type": "string"
+      },
+      "DailyVibe": {
+        "description": "Stable V1 daily-state values owned by #429.\n\nThese values describe today's relationship-facing state. They are not\ndiagnoses, scores, or HeartMoment emotions; localized UI copy remains a\npresentation concern.",
+        "enum": [
+          "GOOD",
+          "OKAY",
+          "STRESSED",
+          "SAD",
+          "NEEDS_CONNECTION",
+          "NEEDS_SPACE"
+        ],
+        "title": "DailyVibe",
         "type": "string"
       },
       "DashboardItem": {
@@ -1809,7 +1870,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1.0,
+            "minimum": 1,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -2951,7 +3012,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Position",
             "type": "integer"
           }
@@ -3900,6 +3961,76 @@
           "preferences"
         ],
         "title": "PartnerProfileView",
+        "type": "object"
+      },
+      "PartnerVibeHidden": {
+        "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
+        "properties": {
+          "state": {
+            "const": "HIDDEN_UNTIL_SELF_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerVibeHidden",
+        "type": "object"
+      },
+      "PartnerVibeNoCheckIn": {
+        "properties": {
+          "state": {
+            "const": "NO_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerVibeNoCheckIn",
+        "type": "object"
+      },
+      "PartnerVibeProjection": {
+        "description": "Named discriminated partner Vibe state without hidden optional fields.",
+        "discriminator": {
+          "mapping": {
+            "HIDDEN_UNTIL_SELF_CHECK_IN": "#/components/schemas/PartnerVibeHidden",
+            "NO_CHECK_IN": "#/components/schemas/PartnerVibeNoCheckIn",
+            "VISIBLE": "#/components/schemas/PartnerVibeVisible"
+          },
+          "propertyName": "state"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PartnerVibeHidden"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerVibeNoCheckIn"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerVibeVisible"
+          }
+        ],
+        "title": "PartnerVibeProjection"
+      },
+      "PartnerVibeVisible": {
+        "properties": {
+          "state": {
+            "const": "VISIBLE",
+            "title": "State",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/DailyVibe"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ],
+        "title": "PartnerVibeVisible",
         "type": "object"
       },
       "PartnerView": {
@@ -16495,7 +16626,7 @@
                 }
               }
             },
-            "description": "`SPACE_MODULE_DISABLED`: new Energy participation is disabled."
+            "description": "`SPACE_MODULE_DISABLED`: new Vibe/Energy participation is disabled."
           },
           "404": {
             "content": {

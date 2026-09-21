@@ -75,7 +75,11 @@
   width: var(--space-16);
   height: var(--space-16);
   border: 0;
-  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-success) 16%,
+    var(--color-surface-raised)
+  );
   box-shadow: none;
 }
 
@@ -125,7 +129,11 @@
   max-width: 100%;
   border-radius: var(--radius-pill);
   padding: 0 var(--space-5);
-  background: color-mix(in srgb, var(--color-success) 12%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    var(--color-surface-raised)
+  );
   color: var(--color-text);
   font-weight: 750;
   text-decoration: none;
@@ -136,7 +144,11 @@
 
 .shared-achievement-cta:hover {
   transform: translateY(-1px);
-  background: color-mix(in srgb, var(--color-success) 18%, var(--color-surface-raised));
+  background: color-mix(
+    in srgb,
+    var(--color-success) 18%,
+    var(--color-surface-raised)
+  );
 }
 
 .shared-achievement-cta:focus-visible {

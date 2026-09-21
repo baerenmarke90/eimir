@@ -41,7 +41,12 @@ from eimir.private_collections.models import PrivateCollection
 from eimir.private_notes.models import PrivateNote
 from eimir.profiles.models import ProfilePreference
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import Membership, MembershipStatus, Space
+from eimir.relationship.models import (
+    Membership,
+    MembershipStatus,
+    Space,
+    SpaceConfiguration,
+)
 from eimir.search import service as search_service
 from eimir.wishes.models import Wish, WishStatus
 from tests.conftest import make_account, make_space, requires_database
@@ -70,15 +75,42 @@ def _count(session: Session, model: type, space_id) -> int:  # type: ignore[no-u
     )
 
 
+def _configuration(session: Session, space_id) -> SpaceConfiguration:  # type: ignore[no-untyped-def]
+    return session.execute(
+        select(SpaceConfiguration).where(SpaceConfiguration.space_id == space_id)
+    ).scalar_one()
+
+
+def _assert_demo_configuration(configuration: SpaceConfiguration) -> None:
+    assert configuration.vibe_check_enabled is True
+    assert configuration.energy_check_in_enabled is True
+    assert configuration.love_notes_enabled is True
+    assert configuration.support_gestures_enabled is True
+    assert configuration.shared_achievements_enabled is True
+    assert configuration.daily_questions_enabled is True
+    assert configuration.daily_context_timezone == "Europe/Berlin"
+    assert configuration.vibe_visibility_mode == "IMMEDIATE"
+    assert configuration.energy_visibility_mode == "IMMEDIATE"
+
+
 def test_create_is_idempotent_and_representative(session: Session) -> None:
     first = _seed(session)
+    first_configuration = _configuration(session, first.space_id)
+    first_configuration_version = first_configuration.version
     second = _seed(session)
+    session.refresh(first_configuration)
 
     assert first.created is True
     assert second.created is False
     assert second.space_id == first.space_id
     assert second.lea_id == first.lea_id
     assert second.alex_id == first.alex_id
+
+    space = session.get(Space, first.space_id)
+    assert space is not None
+    assert space.configuration_manager_account_id == first.lea_id
+    _assert_demo_configuration(first_configuration)
+    assert first_configuration.version == first_configuration_version
 
     assert _count(session, Memory, first.space_id) == 10
     assert _count(session, HeartMoment, first.space_id) == 2
@@ -139,6 +171,47 @@ def test_create_establishes_the_durable_identity_marker(session: Session) -> Non
         for marker in session.execute(select(DemoCanonicalIdentity)).scalars()
     }
     assert markers == {"LEA": result.lea_id, "ALEX": result.alex_id}
+
+
+def test_ensure_repairs_only_the_verified_canonical_demo_configuration(
+    session: Session,
+) -> None:
+    result = _seed(session)
+    space = session.get(Space, result.space_id)
+    assert space is not None
+    configuration = _configuration(session, result.space_id)
+
+    # Simulate a pre-0062/0063 upgraded Demo: the generic migration must not
+    # guess a manager for an existing pair and 0063 supplies conservative
+    # product defaults.
+    space.configuration_manager_account_id = None
+    configuration.vibe_check_enabled = False
+    configuration.energy_check_in_enabled = False
+    configuration.love_notes_enabled = False
+    configuration.shared_achievements_enabled = False
+    configuration.daily_questions_enabled = False
+    configuration.daily_context_timezone = None
+    session.flush()
+
+    ensured = _seed(session)
+
+    assert ensured.created is False
+    assert ensured.space_id == result.space_id
+    session.refresh(space)
+    session.refresh(configuration)
+    assert space.configuration_manager_account_id == result.lea_id
+    _assert_demo_configuration(configuration)
+
+
+def test_ensure_refuses_an_unexpected_demo_configuration_manager(session: Session) -> None:
+    result = _seed(session)
+    space = session.get(Space, result.space_id)
+    assert space is not None
+    space.configuration_manager_account_id = result.alex_id
+    session.flush()
+
+    with pytest.raises(RuntimeError, match="unexpected configuration manager"):
+        _seed(session)
 
 
 def test_private_demo_content_stays_owner_only_across_read_models(session: Session) -> None:
@@ -262,6 +335,10 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
 
     assert reset.space_id != old_space_id
     assert session.get(Space, old_space_id) is None
+    replacement = session.get(Space, reset.space_id)
+    assert replacement is not None
+    assert replacement.configuration_manager_account_id == reset.lea_id
+    _assert_demo_configuration(_configuration(session, reset.space_id))
     assert session.get(Space, unrelated_space_id) is not None
     assert (
         not session.execute(select(Attachment.id).where(Attachment.id.in_(old_attachment_ids)))

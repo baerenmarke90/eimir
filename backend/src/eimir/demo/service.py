@@ -27,6 +27,7 @@ from eimir.comments import service as comment_service
 from eimir.comments.models import CommentTarget
 from eimir.config import Environment
 from eimir.db.locks import lock_subject
+from eimir.db.mixins import INITIAL_VERSION
 from eimir.demo.assets import (
     DemoAssetCatalog,
     import_demo_asset,
@@ -63,9 +64,16 @@ from eimir.profiles.models import (
     PreferenceSentiment,
     ProfileVisibility,
 )
+from eimir.relationship import configuration as space_configuration_service
 from eimir.relationship import profile as relationship_profile
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import DurationDisplayMode, Membership, MembershipStatus, Space
+from eimir.relationship.models import (
+    DailyCheckInVisibilityMode,
+    DurationDisplayMode,
+    Membership,
+    MembershipStatus,
+    Space,
+)
 from eimir.wishes import service as wish_service
 
 PRIVATE_CANARY_LEA = "CANARY-PRIVATE-LEA-7421"
@@ -73,6 +81,7 @@ PRIVATE_CANARY_ALEX = "CANARY-PRIVATE-ALEX-9134"
 
 _CANONICAL_DATASET_LOCK = "canonical_demo_dataset"
 _CANONICAL_DATASET_SUBJECT = "canonical"
+_DEMO_DAILY_CONTEXT_TIMEZONE = "Europe/Berlin"
 
 
 def _lock_canonical_demo_dataset(session: Session) -> None:
@@ -312,6 +321,78 @@ def _new_space(session: Session, lea: Account, alex: Account) -> Space:
 
 def _context(account: Account, space: Space) -> AuthorizationContext:
     return AuthorizationContext(account_id=account.id, space_id=space.id)
+
+
+def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> None:
+    """Persist the deterministic #432 module configuration for the canonical Demo.
+
+    This helper is only called after the reserved Lea/Alex dataset has been
+    created or verified as canonical. Older Demo databases may have crossed
+    migration 0062 as an already-two-member Space and therefore have no
+    configuration manager; that generic migration correctly failed closed.
+    The canonical Demo is different: its seed contract itself defines Lea as
+    the founder, so repairing only this verified fixture does not infer
+    authority for user Spaces.
+    """
+    manager_membership = session.execute(
+        select(Membership)
+        .where(
+            Membership.space_id == space.id,
+            Membership.account_id == lea.id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+        )
+        .with_for_update(read=True)
+    ).scalar_one_or_none()
+    if manager_membership is None:
+        raise RuntimeError("Canonical demo founder has no active Membership.")
+
+    if space.configuration_manager_account_id is None:
+        # The generic domain primitive is now the single NULL -> active-member
+        # authority transition. Canonical Demo verification above supplies the
+        # fact that Lea is the known founder; no user-Space inference is added.
+        space = relationship_service.reconcile_configuration_manager(
+            session,
+            space.id,
+            lea.id,
+        )
+    elif space.configuration_manager_account_id != lea.id:
+        raise RuntimeError(
+            "Refusing demo configuration repair: canonical Demo has an unexpected "
+            "configuration manager."
+        )
+
+    configuration = space_configuration_service.load(session, space.id)
+    if configuration is not None and (
+        configuration.vibe_check_enabled
+        and configuration.energy_check_in_enabled
+        and configuration.love_notes_enabled
+        and configuration.support_gestures_enabled
+        and configuration.shared_achievements_enabled
+        and configuration.daily_questions_enabled
+        and configuration.daily_context_timezone == _DEMO_DAILY_CONTEXT_TIMEZONE
+        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
+        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
+    ):
+        return
+
+    expected_version = INITIAL_VERSION
+    if configuration is not None:
+        expected_version = configuration.version
+    space_configuration_service.update(
+        session,
+        space.id,
+        manager_membership,
+        expected_version=expected_version,
+        vibe_check_enabled=True,
+        energy_check_in_enabled=True,
+        love_notes_enabled=True,
+        support_gestures_enabled=True,
+        shared_achievements_enabled=True,
+        daily_questions_enabled=True,
+        daily_context_timezone=_DEMO_DAILY_CONTEXT_TIMEZONE,
+        vibe_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+        energy_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+    )
 
 
 def _instant(day: date, hour: int) -> datetime:
@@ -890,6 +971,7 @@ def _seed(
 ) -> None:
     lea_context = _context(lea, space)
     alex_context = _context(alex, space)
+    _ensure_demo_configuration(session, space, lea)
     _seed_relationship(session, space, reference_date=reference_date)
     _seed_profiles(session, lea, alex, lea_context, alex_context)
     _seed_people(
@@ -946,6 +1028,7 @@ def create_demo_space(
         # this *is* the pre-existing canonical demo, marker or not -- safe to
         # adopt a still-missing marker now that the Space itself proves it.
         _backfill_missing_markers(session, lea, alex)
+        _ensure_demo_configuration(session, existing, lea)
         return DemoSeedResult(
             lea_id=lea.id,
             alex_id=alex.id,

@@ -245,11 +245,11 @@ export function DailyVibeCheckIn({
   });
 
   useEffect(() => {
-    if (online && !dailyQuery.isError && dailyQuery.fetchStatus === 'idle') {
+    if (online && !dailyQuery.isError) {
       return;
     }
     setOpen(false);
-  }, [dailyQuery.fetchStatus, dailyQuery.isError, online]);
+  }, [dailyQuery.isError, online]);
 
   if (!api || !accountId || !spaceId || !configuredEnabled) return null;
 
@@ -270,13 +270,10 @@ export function DailyVibeCheckIn({
   }
 
   const authoritative =
-    online &&
-    Boolean(dailyQuery.data) &&
-    !dailyQuery.isError &&
-    dailyQuery.fetchStatus === 'idle';
+    online && Boolean(dailyQuery.data) && !dailyQuery.isError;
 
   if (!authoritative || !dailyQuery.data) {
-    const offline = !online || dailyQuery.fetchStatus === 'paused';
+    const offline = !online;
     return (
       <section
         className="daily-vibe-checkin daily-vibe-unavailable"

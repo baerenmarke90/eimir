@@ -115,6 +115,16 @@ export function SpaceConfigurationPanel({
       },
     },
     {
+      id: 'energy-check-in',
+      title: t('profileIdentity.energyCheckInTitle'),
+      intro: t('profileIdentity.energyCheckInIntro'),
+      toggleLabel: t('profileIdentity.energyCheckInToggle'),
+      enabled: configuration.energyCheckInEnabled,
+      update: {
+        energyCheckInEnabled: !configuration.energyCheckInEnabled,
+      },
+    },
+    {
       id: 'vibe-check',
       title: t('profileIdentity.vibeCheckTitle'),
       intro: t('profileIdentity.vibeCheckIntro'),

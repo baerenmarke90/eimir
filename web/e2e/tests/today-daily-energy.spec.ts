@@ -305,7 +305,7 @@ function energyBadgeAriaValue(value: number): string {
   return dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
 }
 
-test('Daily Energy attaches quiet batteries to both avatars and opens one accessible slider', async ({
+test('Daily Energy keeps an unset own affordance, reveals partner Energy, and aligns both avatar badges', async ({
   page,
 }, testInfo) => {
   const state = await installMocks(page);
@@ -322,9 +322,10 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
   });
   const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
   await expect(ownBattery).toBeVisible();
-  await expect(partnerBattery).toBeVisible();
-  await expect(partnerBattery).toHaveAttribute('data-state', 'hidden');
-  expect(await partnerBattery.getAttribute('data-energy')).toBeNull();
+  await expect(
+    ownBattery.locator('.daily-energy-battery-question'),
+  ).toHaveText('?');
+  await expect(partnerBattery).toHaveCount(0);
 
   const ownTargetBox = await ownBattery.boundingBox();
   expect(ownTargetBox).not.toBeNull();
@@ -333,38 +334,23 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
   expect(ownTargetBox.width).toBeGreaterThanOrEqual(44);
 
   const primaryAvatar = hero.locator('.partner-avatar-primary');
-  const secondaryAvatar = hero.locator('.partner-avatar-secondary');
   const ownChip = ownBattery.locator('.daily-energy-avatar-chip');
-  const partnerChip = partnerBattery.locator('.daily-energy-avatar-chip');
-  const [primaryBox, secondaryBox, ownChipBox, partnerChipBox] =
-    await Promise.all([
-      primaryAvatar.boundingBox(),
-      secondaryAvatar.boundingBox(),
-      ownChip.boundingBox(),
-      partnerChip.boundingBox(),
-    ]);
+  const [primaryBox, ownChipBox] = await Promise.all([
+    primaryAvatar.boundingBox(),
+    ownChip.boundingBox(),
+  ]);
   expect(primaryBox).not.toBeNull();
-  expect(secondaryBox).not.toBeNull();
   expect(ownChipBox).not.toBeNull();
-  expect(partnerChipBox).not.toBeNull();
-  if (!primaryBox || !secondaryBox || !ownChipBox || !partnerChipBox) {
-    throw new Error('Missing avatar Energy geometry');
+  if (!primaryBox || !ownChipBox) {
+    throw new Error('Missing own avatar Energy geometry');
   }
 
   const ownCenterX = ownChipBox.x + ownChipBox.width / 2;
-  const partnerCenterX = partnerChipBox.x + partnerChipBox.width / 2;
   expect(ownCenterX).toBeGreaterThan(primaryBox.x);
   expect(ownCenterX).toBeLessThan(primaryBox.x + primaryBox.width);
-  expect(partnerCenterX).toBeGreaterThan(secondaryBox.x);
-  expect(partnerCenterX).toBeLessThan(secondaryBox.x + secondaryBox.width);
   const primaryBottom = primaryBox.y + primaryBox.height;
-  const secondaryBottom = secondaryBox.y + secondaryBox.height;
   expect(ownChipBox.y).toBeLessThan(primaryBottom);
   expect(ownChipBox.y + ownChipBox.height).toBeGreaterThan(primaryBottom);
-  expect(partnerChipBox.y).toBeLessThan(secondaryBottom);
-  expect(partnerChipBox.y + partnerChipBox.height).toBeGreaterThan(
-    secondaryBottom,
-  );
 
   await ownBattery.click();
 
@@ -401,8 +387,39 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
       name: energyBadgeAriaValue(70),
     }),
   ).toBeVisible();
+  await expect(partnerBattery).toBeVisible();
   await expect(partnerBattery).toHaveAttribute('data-state', 'visible');
   await expect(partnerBattery).toHaveAttribute('data-energy', '20');
+
+  const currentOwnChip = hero
+    .getByTestId('daily-energy-own-battery')
+    .locator('.daily-energy-avatar-chip');
+  const secondaryAvatar = hero.locator('.partner-avatar-secondary');
+  const partnerChip = partnerBattery.locator('.daily-energy-avatar-chip');
+  const [currentOwnChipBox, secondaryBox, partnerChipBox] = await Promise.all([
+    currentOwnChip.boundingBox(),
+    secondaryAvatar.boundingBox(),
+    partnerChip.boundingBox(),
+  ]);
+  expect(currentOwnChipBox).not.toBeNull();
+  expect(secondaryBox).not.toBeNull();
+  expect(partnerChipBox).not.toBeNull();
+  if (!currentOwnChipBox || !secondaryBox || !partnerChipBox) {
+    throw new Error('Missing revealed partner Energy geometry');
+  }
+
+  const partnerCenterX = partnerChipBox.x + partnerChipBox.width / 2;
+  expect(partnerCenterX).toBeGreaterThan(secondaryBox.x);
+  expect(partnerCenterX).toBeLessThan(secondaryBox.x + secondaryBox.width);
+  const secondaryBottom = secondaryBox.y + secondaryBox.height;
+  expect(partnerChipBox.y).toBeLessThan(secondaryBottom);
+  expect(partnerChipBox.y + partnerChipBox.height).toBeGreaterThan(
+    secondaryBottom,
+  );
+  expect(Math.abs(partnerChipBox.y - currentOwnChipBox.y)).toBeLessThanOrEqual(
+    1,
+  );
+
   await expect(hero).not.toContainText('70 %');
   await expect(hero).not.toContainText('20 %');
 
@@ -447,7 +464,10 @@ test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent
   });
   const partnerBattery = hero.getByTestId('daily-energy-partner-battery');
   await expect(ownBattery).toBeVisible();
-  await expect(partnerBattery).toBeVisible();
+  await expect(
+    ownBattery.locator('.daily-energy-battery-question'),
+  ).toHaveText('?');
+  await expect(partnerBattery).toHaveCount(0);
   await ownBattery.click();
 
   const popover = page.getByTestId('daily-energy-popover');

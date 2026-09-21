@@ -187,4 +187,56 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
     expect(document.body.style.overflow).toBe('auto');
   });
+
+  it('keeps a localized explicit icon close control for every sheet', () => {
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+
+    const closeButton = screen.getByRole('button', { name: taskSheets.close });
+    expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
+    expect(closeButton.textContent?.trim()).toBe('');
+    expect(closeButton.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+  });
+
+  it('uses the Compact drag handle as a supplemental dismissal gesture', async () => {
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    const trigger = screen.getByText('Task choices');
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const dragZone = dialog.querySelector<HTMLElement>(
+      '.short-task-sheet-drag-zone',
+    );
+    expect(dragZone).not.toBeNull();
+    if (!dragZone) throw new Error('Missing short sheet drag zone');
+
+    fireEvent.pointerDown(dragZone, {
+      pointerId: 1,
+      button: 0,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(dragZone, { pointerId: 1, clientY: 140 });
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('40px');
+    fireEvent.pointerUp(dragZone, { pointerId: 1, clientY: 140 });
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    fireEvent.pointerDown(dragZone, {
+      pointerId: 2,
+      button: 0,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(dragZone, { pointerId: 2, clientY: 180 });
+    fireEvent.pointerUp(dragZone, { pointerId: 2, clientY: 180 });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
 });

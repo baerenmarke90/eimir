@@ -80,8 +80,10 @@
   cursor: grabbing;
 }
 
-.short-task-sheet-close:active:not(:disabled) {
-  transform: none;
+@media (max-width: 839px) {
+  .short-task-sheet-close:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .short-task-sheet-close:focus-visible {

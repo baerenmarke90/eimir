@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
@@ -30,6 +31,7 @@ import {
 } from '../client/problemDetails';
 import { ACTIVITY_ROUTE, appRoutePath } from '../client/routes';
 import { postSnackbar } from '../client/snackbar';
+import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
   livingModuleContentId,
@@ -783,10 +785,12 @@ export function TodayPage({
   spaceId,
   loadMemoryImage,
   profilesApi,
+  spacesApi,
   account,
 }: {
   apis: M4ProductApis;
   spaceId: string;
+  spacesApi?: SpacesApi;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -801,6 +805,11 @@ export function TodayPage({
     queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
     retry: false,
   });
+  const spaceConfigurationQuery = useQuery(
+    spaceConfigurationQueryOptions(spacesApi, account?.id ?? '', spaceId),
+  );
+  const supportGesturesEnabled =
+    spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
   const dashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
@@ -1089,16 +1098,18 @@ export function TodayPage({
               }
               durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
               actions={
-                <div className="today-hero-action-container">
-                  <ThinkingOfYouHero
-                    apis={apis}
-                    spaceId={spaceId}
-                    partnerName={partner?.displayName}
-                    thinkingOfYouAvailableAt={
-                      dashboardQuery.data.thinkingOfYouAvailableAt
-                    }
-                  />
-                </div>
+                supportGesturesEnabled ? (
+                  <div className="today-hero-action-container">
+                    <ThinkingOfYouHero
+                      apis={apis}
+                      spaceId={spaceId}
+                      partnerName={partner?.displayName}
+                      thinkingOfYouAvailableAt={
+                        dashboardQuery.data.thinkingOfYouAvailableAt
+                      }
+                    />
+                  </div>
+                ) : undefined
               }
             />
           ) : (

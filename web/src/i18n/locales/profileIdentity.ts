@@ -48,6 +48,21 @@ const profileIdentity = {
   settingsRelationship: 'Partner und Verbindung',
   settingsRelationshipIntro:
     'Verwalte euren gemeinsamen Startpunkt und die Verbindung zu deinem Partner.',
+  spaceConfigurationTitle: 'Gemeinsame Funktionen',
+  spaceConfigurationManagerIntro:
+    'Lege fest, welche bereits verfügbaren gemeinsamen Funktionen ihr in diesem Bereich nutzt.',
+  spaceConfigurationReadOnlyIntro:
+    'Du siehst hier den gemeinsamen Zustand. Änderungen sind für dein Konto nicht verfügbar.',
+  spaceConfigurationLoading: 'Gemeinsame Funktionen werden geladen …',
+  spaceConfigurationSaving: 'Wird gespeichert …',
+  spaceConfigurationSaved: '✓ Gespeichert',
+  supportGesturesTitle: 'Ich denke an dich',
+  supportGesturesIntro:
+    'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
+  supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
+  supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
+  spaceModuleOn: 'Aktiv',
+  spaceModuleOff: 'Aus',
   settingsNotifications: 'Benachrichtigungen',
   settingsNotificationsIntro:
     'Lege fest, wie eimir. dich über Neuigkeiten informiert. Deine aktuellen Mitteilungen findest du im Posteingang.',

@@ -897,6 +897,7 @@ SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/server-admin/overview"),
     ("GET", "/api/v1/server-admin/spaces"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}"),
+    ("POST", "/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}/entitlement"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants"),
     ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke"),

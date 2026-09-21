@@ -114,6 +114,16 @@ import {
     ServerAdminSettingsToJSON,
 } from '../models/ServerAdminSettings';
 import {
+    type ServerAdminSpaceConfigurationManagerReconcileRequest,
+    ServerAdminSpaceConfigurationManagerReconcileRequestFromJSON,
+    ServerAdminSpaceConfigurationManagerReconcileRequestToJSON,
+} from '../models/ServerAdminSpaceConfigurationManagerReconcileRequest';
+import {
+    type ServerAdminSpaceConfigurationManagerView,
+    ServerAdminSpaceConfigurationManagerViewFromJSON,
+    ServerAdminSpaceConfigurationManagerViewToJSON,
+} from '../models/ServerAdminSpaceConfigurationManagerView';
+import {
     type ServerAdminSpaceDetail,
     ServerAdminSpaceDetailFromJSON,
     ServerAdminSpaceDetailToJSON,
@@ -193,6 +203,11 @@ export interface ListServerAdminSpacesApiV1ServerAdminSpacesGetRequest {
     status?: ListServerAdminSpacesApiV1ServerAdminSpacesGetStatusEnum;
     limit?: number;
     offset?: number;
+}
+
+export interface ReconcileServerAdminSpaceConfigurationManagerRequest {
+    spaceId: string;
+    serverAdminSpaceConfigurationManagerReconcileRequest: ServerAdminSpaceConfigurationManagerReconcileRequest;
 }
 
 export interface RequestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequest {
@@ -965,6 +980,63 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async listServerAdminSpacesApiV1ServerAdminSpacesGet(requestParameters: ListServerAdminSpacesApiV1ServerAdminSpacesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceList> {
         const response = await this.listServerAdminSpacesApiV1ServerAdminSpacesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for reconcileServerAdminSpaceConfigurationManager without sending the request
+     */
+    async reconcileServerAdminSpaceConfigurationManagerRequestOpts(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling reconcileServerAdminSpaceConfigurationManager().'
+            );
+        }
+
+        if (requestParameters['serverAdminSpaceConfigurationManagerReconcileRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSpaceConfigurationManagerReconcileRequest',
+                'Required parameter "serverAdminSpaceConfigurationManagerReconcileRequest" was null or undefined when calling reconcileServerAdminSpaceConfigurationManager().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSpaceConfigurationManagerReconcileRequestToJSON(requestParameters['serverAdminSpaceConfigurationManagerReconcileRequest']),
+        };
+    }
+
+    /**
+     * Assign missing legacy Space configuration authority exactly once.
+     * Reconcile Server Admin Space Configuration Manager
+     */
+    async reconcileServerAdminSpaceConfigurationManagerRaw(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceConfigurationManagerView>> {
+        const requestOptions = await this.reconcileServerAdminSpaceConfigurationManagerRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceConfigurationManagerViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Assign missing legacy Space configuration authority exactly once.
+     * Reconcile Server Admin Space Configuration Manager
+     */
+    async reconcileServerAdminSpaceConfigurationManager(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceConfigurationManagerView> {
+        const response = await this.reconcileServerAdminSpaceConfigurationManagerRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -7130,6 +7130,40 @@
         "title": "ServerAdminSettings",
         "type": "object"
       },
+      "ServerAdminSpaceConfigurationManagerReconcileRequest": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "title": "ServerAdminSpaceConfigurationManagerReconcileRequest",
+        "type": "object"
+      },
+      "ServerAdminSpaceConfigurationManagerView": {
+        "properties": {
+          "configurationManagerAccountId": {
+            "format": "uuid",
+            "title": "Configurationmanageraccountid",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spaceId",
+          "configurationManagerAccountId"
+        ],
+        "title": "ServerAdminSpaceConfigurationManagerView",
+        "type": "object"
+      },
       "ServerAdminSpaceDetail": {
         "properties": {
           "activeMembershipCount": {
@@ -12508,6 +12542,100 @@
           }
         },
         "summary": "Get Server Admin Space",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile": {
+      "post": {
+        "description": "Assign missing legacy Space configuration authority exactly once.",
+        "operationId": "reconcileServerAdminSpaceConfigurationManager",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminSpaceConfigurationManagerReconcileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSpaceConfigurationManagerView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Reconcile Server Admin Space Configuration Manager",
         "tags": [
           "server-admin"
         ]

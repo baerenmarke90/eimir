@@ -205,6 +205,8 @@ export * from './ServerAdminRecoveryProof';
 export * from './ServerAdminSessionRevocationResult';
 export * from './ServerAdminSettingUpdate';
 export * from './ServerAdminSettings';
+export * from './ServerAdminSpaceConfigurationManagerReconcileRequest';
+export * from './ServerAdminSpaceConfigurationManagerView';
 export * from './ServerAdminSpaceDetail';
 export * from './ServerAdminSpaceEntitlementView';
 export * from './ServerAdminSpaceList';

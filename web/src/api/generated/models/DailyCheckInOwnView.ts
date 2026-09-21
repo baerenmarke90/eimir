@@ -48,6 +48,7 @@ export interface DailyCheckInOwnView {
 }
 
 
+
 /**
  * Check if a given object implements the DailyCheckInOwnView interface.
  */

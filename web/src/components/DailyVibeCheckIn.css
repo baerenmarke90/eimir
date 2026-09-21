@@ -285,6 +285,16 @@ button.daily-vibe-person:focus-visible {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .daily-vibe-option {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .daily-vibe-option-glyph {
+    display: none;
+  }
+
   .daily-vibe-unavailable {
     grid-template-columns: minmax(0, 1fr);
   }

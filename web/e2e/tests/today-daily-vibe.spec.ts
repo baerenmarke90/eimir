@@ -271,18 +271,35 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
       )
       .sort((a, b) => b.right - a.right)
       .slice(0, 8);
+    const openDialog = document.querySelector<HTMLDialogElement>('dialog[open]');
 
     return {
       clientWidth: root.clientWidth,
       scrollWidth: root.scrollWidth,
       overflowing,
+      dialog: openDialog
+        ? {
+            clientWidth: openDialog.clientWidth,
+            scrollWidth: openDialog.scrollWidth,
+          }
+        : null,
     };
   });
 
   expect(
-    result.scrollWidth,
-    `Horizontal overflow: ${JSON.stringify(result.overflowing, null, 2)}`,
-  ).toBeLessThanOrEqual(result.clientWidth);
+    result.overflowing,
+    `Elements outside viewport: ${JSON.stringify(result.overflowing, null, 2)}`,
+  ).toEqual([]);
+
+  if (result.dialog) {
+    expect(
+      result.dialog.scrollWidth,
+      'Open dialog must not contain horizontal scrolling or clipped content',
+    ).toBeLessThanOrEqual(result.dialog.clientWidth);
+    return;
+  }
+
+  expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
 }
 
 test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves Energy', async ({

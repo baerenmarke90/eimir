@@ -55,6 +55,7 @@ export function ShortTaskSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const navigatingRef = useRef(false);
+  const dismissingRef = useRef(false);
   const dragPointerRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
   const dragMaxDistanceRef = useRef(0);
@@ -84,6 +85,24 @@ export function ShortTaskSheet({
         height * COMPACT_DRAG_DISMISS_RATIO,
       ),
     );
+  }
+
+  function commitDragDismiss(): void {
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      closeSheet();
+      return;
+    }
+    const reducedMotion =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) {
+      closeSheet();
+      return;
+    }
+    dismissingRef.current = true;
+    dialog.setAttribute('data-dismissing', 'true');
+    updateDragOffset(window.innerHeight);
   }
 
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
@@ -149,7 +168,7 @@ export function ShortTaskSheet({
       !reversedUpward &&
       offset >= compactDragDismissThreshold()
     ) {
-      closeSheet();
+      commitDragDismiss();
       return;
     }
     updateDragOffset(0);
@@ -175,16 +194,20 @@ export function ShortTaskSheet({
     const dialog = dialogRef.current;
     if (!dialog) return;
     navigatingRef.current = false;
+    dismissingRef.current = false;
     dragPointerRef.current = null;
     dragMaxDistanceRef.current = 0;
     dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
     dialog.removeAttribute('data-dragging');
+    dialog.removeAttribute('data-dismissing');
     dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');
     dialog.showModal();
     return () => {
+      dismissingRef.current = false;
       dragPointerRef.current = null;
       dialog.removeAttribute('data-dragging');
+      dialog.removeAttribute('data-dismissing');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
       dialog.close();
     };
@@ -214,6 +237,16 @@ export function ShortTaskSheet({
       }}
       onCancel={(event) => {
         event.preventDefault();
+        closeSheet();
+      }}
+      onTransitionEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          event.propertyName !== 'transform' ||
+          !dismissingRef.current
+        )
+          return;
+        dismissingRef.current = false;
         closeSheet();
       }}
       onClick={(event) => {

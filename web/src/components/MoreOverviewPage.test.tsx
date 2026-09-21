@@ -6,7 +6,7 @@ import games from '../i18n/locales/games';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
 describe('MoreOverviewPage', () => {
-  it('renders named personal, shared, and utility destinations from More', () => {
+  it('renders a compact destination overview without descriptive sublines', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
@@ -51,6 +51,8 @@ describe('MoreOverviewPage', () => {
 
     expect(html).toContain('Alex');
     expect(html).not.toContain('href="/more/private/notes"');
+    expect(html).not.toContain('more-destination-description');
+    expect(html).not.toContain(de.more.intro);
 
     const rowMatches = html.match(/class="more-destination"/g);
     expect(rowMatches).toHaveLength(9);
@@ -58,6 +60,5 @@ describe('MoreOverviewPage', () => {
     const badgeMatches = html.match(/class="more-destination-badge"/g);
     expect(badgeMatches).toHaveLength(1);
     expect(html).toContain(games.status.premium);
-    expect(html).toContain(de.more.intro);
   });
 });

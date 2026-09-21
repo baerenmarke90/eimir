@@ -83,7 +83,9 @@ describe('PartnerAvatarPair', () => {
       relationshipComponents.couplePresenceActive,
     );
     expect(activeLabel.closest('.partner-presence-badge')).not.toBeNull();
-    expect(document.querySelector('.partner-presence-badge-dot')).not.toBeNull();
+    expect(
+      document.querySelector('.partner-presence-badge-dot'),
+    ).not.toBeNull();
     expect(document.querySelectorAll('.partner-presence-pip')).toHaveLength(1);
 
     rerender(

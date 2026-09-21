@@ -160,7 +160,6 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
-
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/configuration`

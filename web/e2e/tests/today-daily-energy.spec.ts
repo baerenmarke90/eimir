@@ -199,7 +199,11 @@ async function installMocks(page: Page): Promise<{
         {
           checkedOn: '2026-09-21',
           dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: ownEnergy, vibe: null, version: ownEnergy === null ? 0 : 1 },
+          own: {
+            energyLevel: ownEnergy,
+            vibe: null,
+            version: ownEnergy === null ? 0 : 1,
+          },
           energy: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner,
@@ -251,7 +255,11 @@ async function installMocks(page: Page): Promise<{
         {
           checkedOn: '2026-09-21',
           dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: ownEnergy, vibe: null, version: ownEnergy === null ? 0 : 1 },
+          own: {
+            energyLevel: ownEnergy,
+            vibe: null,
+            version: ownEnergy === null ? 0 : 1,
+          },
           energy: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner,

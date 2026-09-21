@@ -153,6 +153,7 @@ export function DailyEnergyCheckIn({
   const submittedEnergyRef = useRef<DailyEnergyLevel | null | undefined>(
     undefined,
   );
+  const dialogId = useId();
   const dialogTitleId = useId();
 
   const serverReportsModuleDisabled =
@@ -360,7 +361,7 @@ export function DailyEnergyCheckIn({
         type="button"
         className="daily-energy-badge"
         aria-expanded={open}
-        aria-controls={open ? dialogTitleId : undefined}
+        aria-controls={open ? dialogId : undefined}
         aria-label={badgeAria}
         onClick={() => setOpen((current) => !current)}
       >
@@ -370,6 +371,7 @@ export function DailyEnergyCheckIn({
 
       {open ? (
         <div
+          id={dialogId}
           className="daily-energy-popover"
           role="dialog"
           aria-labelledby={dialogTitleId}
@@ -405,22 +407,6 @@ export function DailyEnergyCheckIn({
             aria-valuetext={t('dailyEnergy.optionAria', { value: draftEnergy })}
             onChange={(event) => updateDraft(Number(event.currentTarget.value))}
             onPointerUp={() => submitEnergy(draftEnergy)}
-            onKeyUp={(event) => {
-              if (
-                [
-                  'ArrowLeft',
-                  'ArrowRight',
-                  'ArrowUp',
-                  'ArrowDown',
-                  'Home',
-                  'End',
-                  'PageUp',
-                  'PageDown',
-                ].includes(event.key)
-              ) {
-                submitEnergy(draftEnergy);
-              }
-            }}
             onBlur={() => submitEnergy(draftEnergy)}
           />
 

@@ -9,6 +9,7 @@ export function PageHeader({
   action,
   before,
   className = '',
+  variant = 'default',
 }: {
   eyebrow?: string;
   title: ReactNode;
@@ -18,11 +19,14 @@ export function PageHeader({
   action?: ReactNode;
   before?: ReactNode;
   className?: string;
+  variant?: 'default' | 'primary';
 }) {
   return (
     <>
       {before}
-      <header className={`page-heading ${className}`.trim()}>
+      <header
+        className={`page-heading ${variant === 'primary' ? 'page-heading-primary' : ''} ${className}`.trim()}
+      >
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           {titleEditor ? (

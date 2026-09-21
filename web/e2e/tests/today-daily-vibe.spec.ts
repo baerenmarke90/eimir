@@ -62,7 +62,7 @@ async function installMocks(page: Page) {
       await json([{ role: 'MEMBER', spaceId: SPACE_ID, status: 'ACTIVE' }]);
       return;
     }
-    if (method === 'GET' && pathname === '/api/v1/spaces/' + SPACE_ID) {
+    if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
       await json({
         id: SPACE_ID,
         createdAt: '2026-01-01T00:00:00Z',
@@ -75,7 +75,7 @@ async function installMocks(page: Page) {
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/configuration'
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
     ) {
       await json(
         {
@@ -100,9 +100,9 @@ async function installMocks(page: Page) {
     if (
       method === 'GET' &&
       (pathname ===
-        '/api/v1/spaces/' + SPACE_ID + '/profiles/' + ACCOUNT_ID ||
+        `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
         pathname ===
-          '/api/v1/spaces/' + SPACE_ID + '/profiles/' + PARTNER_ID)
+          `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}`)
     ) {
       const partner = pathname.endsWith(PARTNER_ID);
       await json({
@@ -121,14 +121,14 @@ async function installMocks(page: Page) {
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/dashboard/preferences'
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
       await json({ items: [] });
       return;
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/dashboard'
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
       await json({
         space: {
@@ -152,28 +152,28 @@ async function installMocks(page: Page) {
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/activity'
+      pathname === `/api/v1/spaces/${SPACE_ID}/activity`
     ) {
       await json({ hasMore: false, items: [], nextCursor: null });
       return;
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/notifications/unread-count'
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
     ) {
       await json({ unreadCount: 0 });
       return;
     }
     if (
       (method === 'GET' || method === 'POST') &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/presence'
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
       await json({ state: null });
       return;
     }
     if (
       method === 'GET' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/daily-check-in/today'
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
     ) {
       await json(
         {
@@ -197,7 +197,7 @@ async function installMocks(page: Page) {
     ) {
       lastPatch = request.postDataJSON() as Record<string, unknown>;
       ownVibe =
-        Object.prototype.hasOwnProperty.call(lastPatch, 'vibe')
+        Object.hasOwn(lastPatch, 'vibe')
           ? (lastPatch.vibe as string | null)
           : ownVibe;
       partnerState =
@@ -225,7 +225,7 @@ async function installMocks(page: Page) {
     await json(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
-        detail: 'Unexpected ' + method + ' ' + pathname,
+        detail: `Unexpected ${method} ${pathname}`,
         status: 500,
         title: 'Unexpected browser test request',
       },

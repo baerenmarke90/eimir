@@ -1142,7 +1142,7 @@ export function TodayPage({
 
           {partner && account?.id && dailyCheckInsApi ? (
             <DailyVibeCheckIn
-              key={account.id + ':' + spaceId}
+              key={`${account.id}:${spaceId}`}
               api={dailyCheckInsApi}
               accountId={account.id}
               spaceId={spaceId}

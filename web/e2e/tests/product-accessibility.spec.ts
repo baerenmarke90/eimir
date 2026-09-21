@@ -224,6 +224,20 @@ async function installAuthorizedApiMocks(
       return;
     }
 
+    if (
+      method === 'GET' &&
+      /\/rules\/(relationship_anniversary_reminder|partner_birthday_reminder)\/preference$/.test(
+        pathname,
+      )
+    ) {
+      await fulfillJson({
+        ruleKey: pathname.split('/').at(-2),
+        enabled: true,
+        parameters: { daysBefore: [30, 7, 1], localTime: '09:00:00' },
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,
@@ -808,18 +822,18 @@ test.describe('Space configuration Daily Check-in modules', () => {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%';
     });
-    // The page heading and neighbouring relationship panels still overflow at
-    // 200 percent text and stretch the shared column, so isolate the Space
-    // configuration surface to prove its own content reflows.
-    await page.addStyleTag({
-      content:
-        '.settings-category-page > :not(.settings-connection-block), .settings-connection-block > :not(.space-configuration-panel) { display: none; }',
-    });
+    // The complete Settings page, not an isolated panel: the shared heading,
+    // the neighbouring relationship panels and the Space configuration must all
+    // reflow inside the 320 px column at 200 percent text (#1162).
+    await expectNoHorizontalOverflow(page);
     const overflowing = await page
-      .locator('.space-configuration-panel')
-      .evaluate((panel) =>
-        [panel, ...panel.querySelectorAll('*')]
-          .filter((element) => element.getBoundingClientRect().right > 321)
+      .locator('.settings-page')
+      .evaluate((settingsPage) =>
+        [settingsPage, ...settingsPage.querySelectorAll('*')]
+          .filter((element) => {
+            const box = element.getBoundingClientRect();
+            return box.width > 0 && box.right > 321;
+          })
           .map((element) => `${element.tagName}.${element.className}`),
       );
     expect(overflowing).toEqual([]);
@@ -835,6 +849,145 @@ test.describe('Space configuration Daily Check-in modules', () => {
     expect(unexpectedRequests.spaceConfigurationPatches.at(-1)).toEqual({
       energyCheckInEnabled: false,
     });
+    expect(unexpectedRequests).toEqual([]);
+  });
+});
+
+const SETTINGS_PAGES = [
+  { path: '/more/settings', heading: navigation.settings },
+  {
+    path: '/more/settings/relationship',
+    heading: profileIdentity.settingsRelationship,
+  },
+  {
+    path: '/more/settings/notifications',
+    heading: profileIdentity.settingsNotifications,
+  },
+  { path: '/more/settings/today', heading: profileIdentity.settingsToday },
+  { path: '/more/settings/appearance', heading: de.theme.label },
+  { path: '/more/settings/data', heading: profileIdentity.settingsData },
+  { path: '/more/settings/account', heading: profileIdentity.settingsAccount },
+] as const;
+
+async function expectSettingsControlsInsideViewport(page: Page): Promise<void> {
+  const outside = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '.settings-page a[href], .settings-page button, .settings-page input, .settings-page select, .settings-page textarea',
+      ),
+    )
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.width > 1 && box.height > 1;
+      })
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.left < -1 || box.right > viewportWidth + 1;
+      })
+      .map(
+        (element) =>
+          element.getAttribute('aria-label') ||
+          element.textContent?.trim().slice(0, 60) ||
+          element.tagName,
+      );
+  });
+  expect(outside, 'Settings controls outside the viewport').toEqual([]);
+}
+
+test.describe('Complete Settings pages reflow (#1162)', () => {
+  test.use({ timezoneId: 'Europe/Berlin' });
+
+  test('every Settings page fits the compact widths and 200 percent text without horizontal overflow', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+
+    for (const { path, heading } of SETTINGS_PAGES) {
+      await page.goto(path);
+      await expect(
+        page.getByRole('heading', { name: heading, level: 1 }),
+      ).toBeVisible();
+
+      for (const width of [320, 360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectNoHorizontalOverflow(page);
+        await expectSettingsControlsInsideViewport(page);
+      }
+
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+      await expectNoHorizontalOverflow(page);
+      await expectSettingsControlsInsideViewport(page);
+      // The page column itself must stay inside the viewport: an overflowing
+      // child that only widens its own box would still be a defect.
+      const columnRight = await page
+        .locator('.settings-page')
+        .evaluate((column) => column.getBoundingClientRect().right);
+      expect(columnRight, `${path} column right edge`).toBeLessThanOrEqual(320);
+      await expectNoWcagViolations(page);
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '';
+      });
+    }
+
+    expect(unexpectedRequests).toEqual([]);
+  });
+
+  test('Settings selects and switches stay operable with a visible focus ring at 320 px and 200 percent text', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/more/settings/relationship');
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+
+    const vibeSwitch = page.getByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    await vibeSwitch.scrollIntoViewIfNeeded();
+    await vibeSwitch.focus();
+    await expect(vibeSwitch).toBeFocused();
+    const focusRing = await vibeSwitch.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return {
+        outlineStyle: style.outlineStyle,
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+        left: box.left,
+        right: box.right,
+      };
+    });
+    expect(focusRing.outlineStyle).not.toBe('none');
+    expect(focusRing.outlineWidth).toBeGreaterThanOrEqual(2);
+    expect(focusRing.left).toBeGreaterThanOrEqual(0);
+    expect(focusRing.right).toBeLessThanOrEqual(320);
+
+    await vibeSwitch.click();
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+    const zoneSelect = page.getByRole('combobox', {
+      name: profileIdentity.dailyContextTimezoneLabel,
+    });
+    await expect(zoneSelect).toBeVisible();
+    const selectBox = await zoneSelect.boundingBox();
+    expect(selectBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(selectBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((selectBox?.x ?? 0) + (selectBox?.width ?? 0)).toBeLessThanOrEqual(
+      320,
+    );
+    await zoneSelect.selectOption('Europe/Berlin');
+    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+    await expectNoHorizontalOverflow(page);
     expect(unexpectedRequests).toEqual([]);
   });
 });

@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from sqlalchemy import select
@@ -35,8 +34,6 @@ ABSENT_CONCURRENCY_TOKEN = "absent"
 ENERGY_LEVELS = frozenset(range(10, 101, 10))
 
 DimensionValue = int | str
-DimensionUpdateValue = TypeVar("DimensionUpdateValue")
-
 
 class DailyCheckInDimension(StrEnum):
     VIBE = "VIBE"
@@ -50,7 +47,7 @@ class PartnerRevealState(StrEnum):
 
 
 @dataclass(frozen=True)
-class DimensionUpdate(Generic[DimensionUpdateValue]):
+class DimensionUpdate[DimensionUpdateValue]:
     """One PATCH dimension, preserving omitted versus explicit null."""
 
     supplied: bool

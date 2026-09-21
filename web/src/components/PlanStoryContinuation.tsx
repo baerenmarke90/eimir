@@ -16,11 +16,13 @@ export function PlanStoryContinuation({
   apis: _apis,
   spaceId: _spaceId,
   plan,
+  celebrateAsTeam = false,
   focusOnMount = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
+  celebrateAsTeam?: boolean;
   focusOnMount?: boolean;
 }) {
   const { t } = useTranslation();
@@ -57,17 +59,28 @@ export function PlanStoryContinuation({
 
   return (
     <section
-      className="plan-completed-celebration plan-story-continuation eimir-motion-reveal"
+      className={`plan-completed-celebration plan-story-continuation eimir-motion-reveal${celebrateAsTeam ? ' is-shared-achievement' : ''}`}
       aria-labelledby="plan-completed-heading"
     >
+      {celebrateAsTeam ? (
+        <span className="plan-shared-achievement-mark" aria-hidden="true">
+          ✓
+        </span>
+      ) : null}
       <h2
         id="plan-completed-heading"
         ref={headingRef}
         tabIndex={focusOnMount ? -1 : undefined}
       >
-        {t('m5s3.plan.completedTitle')}
+        {celebrateAsTeam
+          ? t('m5s3.plan.sharedAchievementTitle')
+          : t('m5s3.plan.completedTitle')}
       </h2>
-      <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
+      <p className="plan-completed-intro">
+        {celebrateAsTeam
+          ? t('m5s3.plan.sharedAchievementBody', { title: plan.title })
+          : t('m5s3.planStory.intro')}
+      </p>
       <div className="plan-story-actions">
         <button
           type="button"

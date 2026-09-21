@@ -7,11 +7,20 @@ const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 
-async function installMocks(page: Page) {
-  let ownVibe: string | null = null;
-  let partnerState:
-    | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
-    | { state: 'VISIBLE'; value: string } = {
+type VibePartnerState =
+  | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
+  | { state: 'NO_CHECK_IN' }
+  | { state: 'VISIBLE'; value: string };
+
+async function installMocks(
+  page: Page,
+  initial: {
+    ownVibe?: string | null;
+    partnerState?: VibePartnerState;
+  } = {},
+) {
+  let ownVibe: string | null = initial.ownVibe ?? null;
+  let partnerState: VibePartnerState = initial.partnerState ?? {
     state: 'HIDDEN_UNTIL_SELF_CHECK_IN',
   };
   let etag = '"2026-09-21:check-in-1:1"';
@@ -302,6 +311,35 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
   expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
 }
+
+test('Daily Vibe lets one visible person fill the complete Vibe row', async ({
+  page,
+}) => {
+  await installMocks(page, {
+    ownVibe: 'OKAY',
+    partnerState: { state: 'NO_CHECK_IN' },
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const vibe = page.getByTestId('daily-vibe-checkin');
+  const people = vibe.locator('.daily-vibe-people');
+  const cards = people.locator('.daily-vibe-person');
+
+  await expect(cards).toHaveCount(1);
+  const [peopleBox, cardBox] = await Promise.all([
+    people.boundingBox(),
+    cards.first().boundingBox(),
+  ]);
+  expect(peopleBox).not.toBeNull();
+  expect(cardBox).not.toBeNull();
+  if (!peopleBox || !cardBox) {
+    throw new Error('Missing single Vibe card geometry');
+  }
+
+  expect(Math.abs(cardBox.x - peopleBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(cardBox.width - peopleBox.width)).toBeLessThanOrEqual(1);
+});
 
 test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves Energy', async ({
   page,

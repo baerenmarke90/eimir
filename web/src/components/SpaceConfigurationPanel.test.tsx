@@ -110,17 +110,21 @@ describe('SpaceConfigurationPanel', () => {
 
   it('shows a partner the shared state without any write affordance', async () => {
     const spacesApi = {
-      getSpaceConfigurationRaw: vi.fn().mockResolvedValue(
-        rawResponse(
-          configuration({ canManageSpaceConfiguration: false }),
-          '"7"',
+      getSpaceConfigurationRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(
+            configuration({ canManageSpaceConfiguration: false }),
+            '"7"',
+          ),
         ),
-      ),
     } as unknown as SpacesApi;
 
     renderPanel(spacesApi);
 
-    expect(await screen.findByText(profileIdentity.spaceModuleOn)).not.toBeNull();
+    expect(
+      await screen.findByText(profileIdentity.spaceModuleOn),
+    ).not.toBeNull();
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -162,8 +166,9 @@ describe('SpaceConfigurationPanel', () => {
 
   it('does not reuse configuration state when the active Space changes', async () => {
     const spacesApi = {
-      getSpaceConfigurationRaw: vi.fn().mockImplementation(
-        ({ spaceId }: { spaceId: string }) =>
+      getSpaceConfigurationRaw: vi
+        .fn()
+        .mockImplementation(({ spaceId }: { spaceId: string }) =>
           Promise.resolve(
             rawResponse(
               configuration({
@@ -173,7 +178,7 @@ describe('SpaceConfigurationPanel', () => {
               '"7"',
             ),
           ),
-      ),
+        ),
     } as unknown as SpacesApi;
 
     const { rerender, queryClient } = renderPanel(spacesApi);

@@ -1,0 +1,1202 @@
+/*
+ * Pro Vibe/Energy insights (#1151).
+ *
+ * The chart palette is defined once here as semantic roles and derives its
+ * surfaces from the existing theme tokens, so Light and Dark stay aligned with
+ * the rest of the product. Person identity never relies on color alone: the
+ * own person is a circle, the partner a diamond, and every value is also
+ * available as text.
+ */
+.daily-insights,
+.insight-entry {
+  --insight-own: #d9634f;
+  --insight-partner: #7d69c4;
+  --insight-ink: #3b2b34;
+  --insight-track: color-mix(
+    in srgb,
+    var(--color-border-subtle) 70%,
+    transparent
+  );
+  --insight-vibe-good: #f4bb62;
+  --insight-vibe-okay: #dccfa9;
+  --insight-vibe-needs-connection: #f1a3b6;
+  --insight-vibe-needs-space: #bcb1e4;
+  --insight-vibe-stressed: #db937a;
+  --insight-vibe-sad: #97abcd;
+  --insight-energy-very-low: #efdcd6;
+  --insight-energy-low: #f0c6bb;
+  --insight-energy-mid: #eda999;
+  --insight-energy-high: #e78a78;
+  --insight-energy-very-high: #d4614f;
+  --insight-sun: #f4c98a;
+  --insight-plot-pad: 0.75rem;
+  --insight-card-surface: color-mix(
+    in srgb,
+    var(--color-surface) 94%,
+    transparent
+  );
+  --insight-card-line: color-mix(
+    in srgb,
+    var(--color-border-subtle) 70%,
+    transparent
+  );
+}
+
+:root[data-theme="dark"] .daily-insights,
+:root[data-theme="dark"] .insight-entry {
+  --insight-own: #f08a76;
+  --insight-partner: #a898ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .daily-insights,
+  :root:not([data-theme]) .insight-entry {
+    --insight-own: #f08a76;
+    --insight-partner: #a898ea;
+  }
+}
+
+.daily-insights {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+  color: var(--color-text);
+}
+
+.daily-insights > * {
+  min-width: 0;
+}
+
+.insight-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* Header ---------------------------------------------------------------- */
+
+.insight-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.insight-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.insight-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.insight-subtitle {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+
+.insight-pro-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: fit-content;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-brand) 13%, var(--color-surface));
+  color: var(--color-brand-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.insight-pro-crown {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.insight-handwriting {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.25;
+  transform: rotate(-2.5deg);
+  transform-origin: left center;
+}
+
+/* Sub navigation and pickers ------------------------------------------- */
+
+.insight-nav {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface-subtle) 70%, transparent);
+}
+
+.insight-nav a {
+  display: grid;
+  flex: 1 1 0;
+  min-height: 44px;
+  min-width: 0;
+  place-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 650;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.insight-nav a[aria-current="page"] {
+  background: var(--color-surface);
+  color: var(--color-brand-text);
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}
+
+.insight-nav a:focus-visible,
+.insight-picker button:focus-visible,
+.insight-cta:focus-visible,
+.insight-link:focus-visible,
+.insight-entry:focus-visible,
+.insight-chart-column:focus-visible,
+.insight-cell:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.insight-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--insight-card-surface);
+  box-shadow: 0 2px 10px var(--color-shadow-soft);
+}
+
+.insight-picker button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.insight-picker button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.insight-picker-text {
+  min-width: 0;
+  font-weight: 650;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+/* Cards ---------------------------------------------------------------- */
+
+.insight-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--insight-card-line);
+  border-radius: var(--radius-card);
+  background: var(--insight-card-surface);
+  box-shadow: 0 6px 22px var(--color-shadow-soft);
+}
+
+.insight-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.insight-card-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.insight-card h2,
+.insight-closing h2,
+.insight-hero h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+}
+
+.insight-card h2 {
+  font-size: clamp(1.15rem, 5vw, 1.4rem);
+}
+
+.insight-card-heading p,
+.insight-card > p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.insight-title-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-inline-start: 0.35rem;
+  vertical-align: -0.12em;
+  color: var(--color-brand-text);
+}
+
+.insight-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.insight-reassurance {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-brand) 8%, var(--color-surface));
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.insight-empty,
+.insight-gate {
+  justify-items: start;
+}
+
+.insight-gate-reassurance {
+  color: var(--color-text);
+}
+
+.insight-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--color-brand-text);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.insight-link:hover {
+  text-decoration: underline;
+}
+
+/* Legend ---------------------------------------------------------------- */
+
+.insight-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.insight-marker,
+.insight-series-own.insight-mark,
+.insight-energy-dot.insight-series-own,
+.insight-mood.insight-series-own {
+  border-radius: 50%;
+}
+
+.insight-marker {
+  width: 0.7rem;
+  height: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.insight-marker-own {
+  background: var(--insight-own);
+}
+
+.insight-marker-partner {
+  border-radius: 0.15rem;
+  background: var(--insight-partner);
+  transform: rotate(45deg) scale(0.9);
+}
+
+.insight-series-own {
+  --series: var(--insight-own);
+}
+
+.insight-series-partner {
+  --series: var(--insight-partner);
+}
+
+/* Week charts ------------------------------------------------------------- */
+
+.insight-chart,
+.insight-matrix,
+.insight-picker,
+.insight-chart-columns {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+}
+
+.insight-matrix,
+.insight-chart {
+  padding: 0;
+}
+
+.insight-chart {
+  display: grid;
+  grid-template-columns: minmax(3.1rem, 22%) minmax(0, 1fr);
+  column-gap: var(--space-1);
+}
+
+.insight-chart-yaxis {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.1;
+}
+
+.insight-chart-plot {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.insight-chart-energy .insight-chart-yaxis,
+.insight-chart-energy .insight-chart-plot {
+  height: 10rem;
+}
+
+.insight-chart-energy .insight-chart-yaxis li {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(
+    var(--insight-plot-pad) +
+    (100% - 2 * var(--insight-plot-pad)) *
+    var(--y)
+  );
+  transform: translateY(-50%);
+}
+
+.insight-chart-vibe .insight-chart-yaxis li {
+  display: flex;
+  height: 2.1rem;
+  align-items: center;
+}
+
+.insight-chart-vibe .insight-chart-plot {
+  height: calc(6 * 2.1rem);
+}
+
+.insight-chart-lanes {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+}
+
+.insight-chart-lane {
+  border-top: 1px solid var(--insight-card-line);
+}
+
+.insight-chart-inner {
+  position: absolute;
+  inset: var(--insight-plot-pad) 0;
+}
+
+.insight-chart-gridline {
+  position: absolute;
+  inset-inline: 0;
+  height: 0;
+  border-top: 1px dashed var(--insight-card-line);
+}
+
+.insight-chart-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.insight-line {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.insight-series-partner .insight-line {
+  stroke-dasharray: 6 4;
+}
+
+.insight-area {
+  fill: var(--series);
+  fill-opacity: 0.1;
+}
+
+.insight-energy-dot {
+  position: absolute;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--color-surface);
+  background: var(--series);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px var(--color-shadow-soft);
+}
+
+.insight-energy-dot.insight-series-own {
+  border-radius: 50%;
+}
+
+.insight-energy-dot.insight-series-partner {
+  border-radius: 0.18rem;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.insight-vibe-dot {
+  position: absolute;
+  display: grid;
+  width: 0.85rem;
+  height: 0.85rem;
+  place-items: center;
+  border: 2px solid var(--series);
+  border-radius: 50%;
+  background: var(--insight-track);
+  color: var(--insight-ink);
+  font-size: 0.5rem;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+
+.insight-vibe-dot.insight-series-partner {
+  border-radius: 0.22rem;
+}
+
+.insight-vibe-dot[data-vibe],
+.insight-mark-vibe[data-vibe] {
+  background: var(--insight-vibe-color);
+}
+
+.daily-insights [data-vibe="GOOD"] {
+  --insight-vibe-color: var(--insight-vibe-good);
+}
+
+.daily-insights [data-vibe="OKAY"] {
+  --insight-vibe-color: var(--insight-vibe-okay);
+}
+
+.daily-insights [data-vibe="NEEDS_CONNECTION"] {
+  --insight-vibe-color: var(--insight-vibe-needs-connection);
+}
+
+.daily-insights [data-vibe="NEEDS_SPACE"] {
+  --insight-vibe-color: var(--insight-vibe-needs-space);
+}
+
+.daily-insights [data-vibe="STRESSED"] {
+  --insight-vibe-color: var(--insight-vibe-stressed);
+}
+
+.daily-insights [data-vibe="SAD"] {
+  --insight-vibe-color: var(--insight-vibe-sad);
+}
+
+.daily-insights [data-band="veryLow"] {
+  --insight-band-color: var(--insight-energy-very-low);
+}
+
+.daily-insights [data-band="low"] {
+  --insight-band-color: var(--insight-energy-low);
+}
+
+.daily-insights [data-band="mid"] {
+  --insight-band-color: var(--insight-energy-mid);
+}
+
+.daily-insights [data-band="high"] {
+  --insight-band-color: var(--insight-energy-high);
+}
+
+.daily-insights [data-band="veryHigh"] {
+  --insight-band-color: var(--insight-energy-very-high);
+}
+
+.insight-chart-columns {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 0;
+}
+
+.insight-chart-column {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: transparent;
+  cursor: pointer;
+}
+
+.insight-chart-column:hover,
+.insight-chart-column[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-brand) 9%, transparent);
+}
+
+.insight-chart-xaxis {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding-top: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.insight-chart-detail {
+  min-height: 2.6em;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-surface-subtle) 55%, transparent);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* Statements -------------------------------------------------------------- */
+
+.insight-statements {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-statement {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+  background: var(--insight-card-surface);
+  box-shadow: 0 3px 14px var(--color-shadow-soft);
+}
+
+.insight-statements-numbered .insight-statement {
+  grid-template-columns: auto auto minmax(0, 1fr);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--color-brand) 6%, var(--color-surface));
+}
+
+.insight-statement-index {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-brand) 14%, var(--color-surface));
+  color: var(--color-brand-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.insight-statement-icon {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-brand) 12%, var(--color-surface));
+  color: var(--color-brand-text);
+}
+
+.insight-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.insight-statement-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.insight-statement-copy strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.insight-statement-copy span {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  .insight-statements-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Closing surfaces and hero ----------------------------------------------- */
+
+.insight-closing,
+.insight-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  padding: var(--space-5) var(--space-4) 5.5rem;
+  border-radius: var(--radius-card);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-brand) 16%, var(--color-surface)),
+    color-mix(in srgb, var(--insight-partner) 16%, var(--color-surface))
+  );
+}
+
+.insight-closing > *,
+.insight-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.insight-closing > .insight-landscape,
+.insight-hero > .insight-landscape {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 100%;
+  height: 6.5rem;
+}
+
+.insight-landscape-sun {
+  fill: color-mix(in srgb, var(--insight-sun) 80%, transparent);
+}
+
+.insight-landscape-far {
+  fill: color-mix(in srgb, var(--insight-partner) 30%, transparent);
+}
+
+.insight-landscape-near {
+  fill: color-mix(in srgb, var(--color-brand) 24%, transparent);
+}
+
+.insight-closing > .insight-handwriting,
+.insight-hero > .insight-handwriting {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-3);
+  max-width: 9rem;
+  text-align: right;
+  transform-origin: right center;
+}
+
+.insight-closing h2 {
+  font-size: clamp(1.25rem, 5.5vw, 1.6rem);
+}
+
+.insight-closing-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.insight-closing-copy p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.insight-hero {
+  min-height: 15rem;
+  align-content: start;
+  padding-bottom: 7rem;
+}
+
+.insight-hero h2 {
+  max-width: 22ch;
+  font-size: clamp(1.4rem, 6.4vw, 2rem);
+  font-style: italic;
+  line-height: 1.25;
+}
+
+.insight-eyebrow {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insight-cta {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-strong);
+  text-align: center;
+  color: var(--color-on-accent);
+  font-weight: 650;
+  max-width: 100%;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.insight-cta:hover {
+  box-shadow: 0 6px 18px var(--color-shadow-brand);
+}
+
+.insight-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-chips li {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Month matrix ------------------------------------------------------------ */
+
+.insight-matrix {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.insight-matrix-head,
+.insight-matrix-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.insight-matrix-head {
+  color: var(--color-text-secondary);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.insight-matrix-week {
+  display: grid;
+  gap: 0.1rem;
+  padding-block: 0.15rem;
+}
+
+.insight-matrix-week + .insight-matrix-week {
+  border-top: 1px solid var(--insight-card-line);
+}
+
+.insight-matrix-week-label {
+  color: var(--color-text-secondary);
+  font-size: 0.66rem;
+}
+
+.insight-cell {
+  display: grid;
+  min-width: 0;
+  min-height: 3rem;
+  align-content: center;
+  justify-items: center;
+  gap: 0.15rem;
+  padding: 0.15rem 0;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.insight-cell[aria-pressed="true"],
+.insight-cell:hover {
+  background: color-mix(in srgb, var(--color-brand) 9%, transparent);
+}
+
+.insight-cell-outside {
+  cursor: default;
+}
+
+.insight-cell-number {
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.insight-cell-marks {
+  display: grid;
+  grid-template-columns: repeat(2, 0.8rem);
+  gap: 0.15rem;
+}
+
+.insight-matrix[data-people="1"] .insight-cell-marks {
+  grid-template-columns: 0.8rem;
+}
+
+.insight-mark {
+  position: relative;
+  display: grid;
+  width: 0.8rem;
+  height: 0.8rem;
+  place-items: center;
+  overflow: hidden;
+  background: var(--insight-track);
+  color: var(--insight-ink);
+  font-size: 0.5rem;
+  line-height: 1;
+}
+
+.insight-mark.insight-series-partner {
+  border-radius: 0.18rem;
+}
+
+.insight-mark-empty {
+  background: color-mix(in srgb, var(--insight-track) 60%, transparent);
+  opacity: 0.6;
+}
+
+.insight-mark-energy {
+  align-content: end;
+}
+
+.insight-mark-fill {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  background: var(--insight-band-color);
+}
+
+.insight-legend-scale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  list-style: none;
+}
+
+.insight-legend-scale li,
+.insight-strip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.insight-legend-scale .insight-mark,
+.insight-strip-label .insight-mark {
+  border-radius: 50%;
+}
+
+/* Vibe and Energy in relation -------------------------------------------- */
+
+.insight-relation {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.insight-strip-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-strip {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.insight-strip-label {
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.insight-strip-count {
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.insight-strip-track {
+  position: relative;
+  height: 1.1rem;
+  margin-inline: 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--insight-track);
+}
+
+.insight-strip-dot {
+  position: absolute;
+  top: 50%;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--insight-band-color);
+  transform: translate(-50%, -50%);
+}
+
+.insight-strip-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+}
+
+/* Recap highlights --------------------------------------------------------- */
+
+.insight-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insight-highlight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  align-content: start;
+  min-width: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-large);
+  background: color-mix(in srgb, var(--color-brand) 6%, var(--color-surface));
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.insight-highlight time {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.insight-highlight strong {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.insight-highlight > span:last-child {
+  color: var(--color-text-secondary);
+}
+
+.insight-highlight-moods {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.insight-mood {
+  display: grid;
+  min-width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding-inline: 0.3rem;
+  border: 2px solid var(--series);
+  background: var(--insight-track);
+  color: var(--insight-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.insight-mood.insight-series-own {
+  border-radius: 1rem;
+}
+
+.insight-mood.insight-series-partner {
+  border-radius: 0.5rem;
+}
+
+.insight-highlight-heart {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-inline-start: auto;
+  color: var(--color-brand-text);
+}
+
+/* Today entry ------------------------------------------------------------- */
+
+.insight-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--insight-card-line);
+  border-radius: var(--radius-large);
+  background: var(--insight-card-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.insight-entry:hover {
+  box-shadow: 0 4px 16px var(--color-shadow-soft);
+}
+
+.insight-entry-icon {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-brand) 12%, var(--color-surface));
+  color: var(--color-brand-text);
+}
+
+.insight-entry-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.insight-entry-copy strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.insight-entry-copy span {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.insight-entry-chevron {
+  color: var(--color-text-secondary);
+  font-size: 1.4rem;
+}
+
+/* Motion ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: no-preference) {
+  .insight-line {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: insight-draw var(--motion-duration-long)
+      var(--motion-easing-reveal) forwards;
+  }
+
+  .insight-series-partner .insight-line {
+    animation-name: insight-draw-partner;
+  }
+
+  .insight-card,
+  .insight-closing,
+  .insight-hero {
+    animation: insight-fade var(--motion-duration-medium)
+      var(--motion-easing-reveal) both;
+  }
+}
+
+@keyframes insight-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes insight-draw-partner {
+  from {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+  }
+  to {
+    stroke-dasharray: 6 4;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes insight-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

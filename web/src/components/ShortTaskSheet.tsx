@@ -117,6 +117,7 @@ export function ShortTaskSheet({
     dragMaxDistanceRef.current = 0;
     dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
+    dialogRef.current?.setAttribute('data-interacted', 'true');
     dialogRef.current?.setAttribute('data-dragging', 'true');
     updateDragOffset(0);
     if (typeof event.currentTarget.setPointerCapture === 'function') {
@@ -199,6 +200,7 @@ export function ShortTaskSheet({
     dragMaxDistanceRef.current = 0;
     dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
+    dialog.removeAttribute('data-interacted');
     dialog.removeAttribute('data-dragging');
     dialog.removeAttribute('data-dismissing');
     dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');
@@ -206,6 +208,7 @@ export function ShortTaskSheet({
     return () => {
       dismissingRef.current = false;
       dragPointerRef.current = null;
+      dialog.removeAttribute('data-interacted');
       dialog.removeAttribute('data-dragging');
       dialog.removeAttribute('data-dismissing');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');

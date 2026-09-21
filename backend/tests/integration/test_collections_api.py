@@ -322,10 +322,7 @@ class TestCollectionItems:
 
         assert completed.status_code == 200
         assert completed.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
-        assert (
-            completed.headers["X-Eimir-Shared-Achievement"]
-            == "collection-completed"
-        )
+        assert completed.headers["X-Eimir-Shared-Achievement"] == "collection-completed"
 
     def test_delete_compacts_positions_without_changing_remaining_item_versions(
         self, client, couple

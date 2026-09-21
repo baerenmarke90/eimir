@@ -471,6 +471,5 @@ export function DailyEnergyCheckIn({
         </div>
       ) : null}
     </div>
-
   );
 }

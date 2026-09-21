@@ -48,12 +48,14 @@ describe('space configuration query contract', () => {
     const getSpaceConfigurationRaw = vi
       .fn()
       .mockResolvedValue(rawResponse(configuration, '"7"'));
-    const updateSpaceConfigurationRaw = vi.fn().mockResolvedValue(
-      rawResponse(
-        { ...configuration, supportGesturesEnabled: false, version: 8 },
-        '"8"',
-      ),
-    );
+    const updateSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawResponse(
+          { ...configuration, supportGesturesEnabled: false, version: 8 },
+          '"8"',
+        ),
+      );
     const spacesApi = {
       getSpaceConfigurationRaw,
       updateSpaceConfigurationRaw,

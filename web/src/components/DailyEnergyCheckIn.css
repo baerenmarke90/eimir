@@ -81,6 +81,9 @@
 
 .daily-energy-battery-fill {
   fill: var(--color-shared);
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: daily-energy-battery-fill 440ms var(--easing-enter) both;
 }
 
 .daily-energy-partner-battery {
@@ -250,6 +253,21 @@
   line-height: 1.4;
 }
 
+@keyframes daily-energy-battery-fill {
+  0% {
+    opacity: 0.45;
+    transform: scaleX(0.2);
+  }
+  72% {
+    opacity: 1;
+    transform: scaleX(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
 @media (max-width: 360px) {
   .daily-energy-popover {
     left: -6px;
@@ -270,5 +288,9 @@
 @media (prefers-reduced-motion: reduce) {
   .daily-energy-avatar-chip {
     transition: none;
+  }
+
+  .daily-energy-battery-fill {
+    animation: none;
   }
 }

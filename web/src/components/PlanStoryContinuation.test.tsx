@@ -34,13 +34,14 @@ function LocationProbe() {
   return <output aria-label="location">{location.pathname}</output>;
 }
 
-function renderContinuation() {
+function renderContinuation(celebrateAsTeam = false) {
   return render(
     <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
       <PlanStoryContinuation
         apis={{} as SharedPlanningApis}
         spaceId="space-1"
         plan={plan}
+        celebrateAsTeam={celebrateAsTeam}
       />
       <LocationProbe />
     </MemoryRouter>,
@@ -48,6 +49,27 @@ function renderContinuation() {
 }
 
 describe('PlanStoryContinuation', () => {
+  it('presents a confirmed shared achievement without changing the continuation contract', () => {
+    renderContinuation(true);
+
+    expect(
+      screen.getByRole('heading', {
+        name: i18n.t('m5s3.plan.sharedAchievementTitle'),
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        i18n.t('m5s3.plan.sharedAchievementBody', { title: plan.title }),
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('✓')).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.planStory.memoryAction'),
+      }),
+    ).toBeTruthy();
+  });
+
   it('hands Memory capture to the canonical R1 route without rendering a second editor', () => {
     renderContinuation();
 

@@ -64,6 +64,8 @@ class Capability(StrEnum):
     THEME_BESPOKE_PACKS = "theme.bespoke_packs"
     INTEGRATION_EXTERNAL_SYNC = "integration.external_sync"
     GAMES_COUPLE = "games.couple"
+    DAILY_INSIGHTS = "daily.insights"
+    DAILY_QUOTE = "daily.quote"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

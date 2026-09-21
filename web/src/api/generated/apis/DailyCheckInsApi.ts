@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type DailyCheckInInsightsView,
+    DailyCheckInInsightsViewFromJSON,
+    DailyCheckInInsightsViewToJSON,
+} from '../models/DailyCheckInInsightsView';
+import {
     type DailyCheckInTodayView,
     DailyCheckInTodayViewFromJSON,
     DailyCheckInTodayViewToJSON,
@@ -29,6 +34,12 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 
+export interface GetDailyCheckInInsightsRequest {
+    spaceId: string;
+    startDate?: Date | null;
+    endDate?: Date | null;
+}
+
 export interface GetDailyCheckInTodayRequest {
     spaceId: string;
 }
@@ -43,6 +54,61 @@ export interface UpdateDailyCheckInTodayRequest {
  * 
  */
 export class DailyCheckInsApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getDailyCheckInInsights without sending the request
+     */
+    async getDailyCheckInInsightsRequestOpts(requestParameters: GetDailyCheckInInsightsRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getDailyCheckInInsights().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['startDate'] != null) {
+            queryParameters['start_date'] = (requestParameters['startDate'] as any).toISOString().substring(0,10);
+        }
+
+        if (requestParameters['endDate'] != null) {
+            queryParameters['end_date'] = (requestParameters['endDate'] as any).toISOString().substring(0,10);
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/daily-check-in/insights`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return longitudinal Daily Check-in insights for the authorized Space.  Protected by the Pro capability `daily.insights`. Free Spaces receive 403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.
+     * Get Daily Check In Insights
+     */
+    async getDailyCheckInInsightsRaw(requestParameters: GetDailyCheckInInsightsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DailyCheckInInsightsView>> {
+        const requestOptions = await this.getDailyCheckInInsightsRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DailyCheckInInsightsViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return longitudinal Daily Check-in insights for the authorized Space.  Protected by the Pro capability `daily.insights`. Free Spaces receive 403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.
+     * Get Daily Check In Insights
+     */
+    async getDailyCheckInInsights(requestParameters: GetDailyCheckInInsightsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DailyCheckInInsightsView> {
+        const response = await this.getDailyCheckInInsightsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getDailyCheckInToday without sending the request

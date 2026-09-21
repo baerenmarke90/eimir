@@ -19,6 +19,7 @@ from eimir.api.v1 import (
     collections,
     comments,
     daily_checkins,
+    daily_quote,
     dashboard,
     demo,
     engagement,
@@ -77,6 +78,7 @@ normal_router.include_router(milestones.router)
 normal_router.include_router(heart_moments.router)
 normal_router.include_router(comments.router)
 normal_router.include_router(daily_checkins.router)
+normal_router.include_router(daily_quote.router)
 normal_router.include_router(people.router)
 normal_router.include_router(profiles.router)
 normal_router.include_router(spaces.router)

@@ -8,6 +8,7 @@ export * from './ChapterRelationsApi';
 export * from './ChaptersApi';
 export * from './CollectionsApi';
 export * from './CommentsApi';
+export * from './DailyCheckInsApi';
 export * from './DashboardApi';
 export * from './EntitlementsApi';
 export * from './GamesApi';

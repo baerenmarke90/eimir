@@ -401,6 +401,30 @@ test('Daily Energy popover stays inside a 320px viewport with 200 percent text',
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
+  const overflowingElements = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return Array.from(document.body.querySelectorAll<HTMLElement>('*'))
+      .map((node) => {
+        const rect = node.getBoundingClientRect();
+        return {
+          className: node.className,
+          clientWidth: node.clientWidth,
+          id: node.id,
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          scrollWidth: node.scrollWidth,
+          tagName: node.tagName,
+        };
+      })
+      .filter(
+        ({ clientWidth, left, right, scrollWidth }) =>
+          left < -1 ||
+          right > viewportWidth + 1 ||
+          scrollWidth > clientWidth + 1,
+      )
+      .slice(0, 20);
+  });
+  expect(overflowingElements).toEqual([]);
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
 
   const popoverBox = await popover.boundingBox();

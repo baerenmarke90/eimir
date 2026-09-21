@@ -265,5 +265,5 @@ describe('ShortTaskSheet history ownership', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
-  });;
+  });
 });

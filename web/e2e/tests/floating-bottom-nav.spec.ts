@@ -456,7 +456,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await expect(
       closeButton.locator('.short-task-sheet-drag-handle'),
     ).toBeVisible();
-    await expect(closeButton.locator('.short-task-sheet-close-icon')).toBeHidden();
+    await expect(
+      closeButton.locator('.short-task-sheet-close-icon'),
+    ).toBeHidden();
 
     const headerBox = await dialog
       .locator('.short-task-sheet-header')

@@ -131,6 +131,8 @@ describe('DailyEnergyCheckIn', () => {
     expect((slider as HTMLInputElement).value).toBe('50');
 
     const popover = screen.getByTestId('daily-energy-popover');
+    expect(within(popover).getByText(dailyEnergy.scaleLow)).not.toBeNull();
+    expect(within(popover).getByText(dailyEnergy.scaleHigh)).not.toBeNull();
     expect(within(popover).queryByText(/\d+\s*%/)).toBeNull();
     expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
   });

@@ -851,13 +851,40 @@ test('Place, Collection, and Chapter editors honor browser focus and history', a
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await chapterEdit.click();
-  await expect(page.getByLabel(m5s3.common.title)).toBeFocused();
+  const expandedChapterTitle = page.getByLabel(m5s3.common.title);
+  await expect(expandedChapterTitle).toBeFocused();
+  await expandedChapterTitle.fill('Expanded chapter title');
+  await page.goBack();
+
+  const expandedDiscard = page.getByRole('alertdialog');
+  await expect(expandedDiscard).toBeVisible();
+  const expandedClose = expandedDiscard.locator('.short-task-sheet-close');
+  await expect(expandedClose).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-close-icon'),
+  ).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-drag-handle'),
+  ).toBeHidden();
+
+  const expandedCloseBox = await expandedClose.boundingBox();
+  expect(expandedCloseBox).not.toBeNull();
+  if (!expandedCloseBox) throw new Error('Missing expanded close bounds');
+  expect(expandedCloseBox.width).toBeGreaterThanOrEqual(44);
+  expect(expandedCloseBox.height).toBeGreaterThanOrEqual(44);
+
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
-    path: testInfo.outputPath('planning-wave5-editor-history-expanded.png'),
+    path: testInfo.outputPath(
+      'planning-wave5-editor-discard-expanded-grip-only.png',
+    ),
     fullPage: false,
   });
+
+  await expandedClose.click();
+  await expect(expandedDiscard).toHaveCount(0);
+  await expect(expandedChapterTitle).toHaveValue('Expanded chapter title');
   expect(unexpectedRequests).toEqual([]);
 });
 

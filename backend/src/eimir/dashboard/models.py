@@ -31,6 +31,14 @@ class DashboardModulePreference(IdMixin, TimestampMixin, Base):
     item_limit: Mapped[int | None] = mapped_column(Integer)
     # Reserved for the common #817 seam. #848 neither reads nor exposes it.
     visible: Mapped[bool | None] = mapped_column(Boolean)
+    selected_collection_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey(
+            "collections.id",
+            name="fk_dashboard_pref_selected_collection",
+            ondelete="SET NULL",
+        ),
+    )
 
     __table_args__ = (
         UniqueConstraint(
@@ -43,5 +51,9 @@ class DashboardModulePreference(IdMixin, TimestampMixin, Base):
             "ix_dashboard_module_preferences_space_account",
             "space_id",
             "account_id",
+        ),
+        Index(
+            "ix_dashboard_module_preferences_selected_collection_id",
+            "selected_collection_id",
         ),
     )

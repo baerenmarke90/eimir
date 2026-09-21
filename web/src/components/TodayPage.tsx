@@ -810,7 +810,11 @@ export function TodayPage({
     retry: false,
   });
   const spaceConfigurationQuery = useQuery(
-    spaceConfigurationQueryOptions(spacesApi, account?.id ?? '', spaceId),
+    spaceConfigurationQueryOptions(
+      dashboardQuery.data?.space.partner ? spacesApi : undefined,
+      account?.id ?? '',
+      spaceId,
+    ),
   );
   const supportGesturesEnabled =
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;

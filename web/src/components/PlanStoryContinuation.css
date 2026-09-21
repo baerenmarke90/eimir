@@ -10,7 +10,8 @@
   border-radius: var(--radius-large);
   padding: var(--space-3);
   background: var(--color-shared-surface);
-  animation: shared-achievement-arrive var(--duration-context) var(--easing-enter);
+  animation: shared-achievement-arrive var(--duration-context)
+    var(--easing-enter);
 }
 
 .shared-achievement-mark {

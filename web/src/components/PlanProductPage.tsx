@@ -183,8 +183,7 @@ export function PlanProductPage({
             spaceConfigurationQueryKey(accountId, spaceId),
             snapshot,
           );
-          celebrationEnabled =
-            snapshot.configuration.sharedAchievementsEnabled;
+          celebrationEnabled = snapshot.configuration.sharedAchievementsEnabled;
         } catch {
           // The Plan completion is already authoritative. Optional celebration
           // presentation fails closed when the current Space switch is unknown.

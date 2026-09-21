@@ -25,8 +25,7 @@ async function installMocks(
   options: MockOptions = {},
 ): Promise<MockState> {
   let completed = false;
-  const sharedAchievementsEnabled =
-    options.sharedAchievementsEnabled ?? true;
+  const sharedAchievementsEnabled = options.sharedAchievementsEnabled ?? true;
   const completionFailuresBeforeSuccess =
     options.completionFailuresBeforeSuccess ?? 0;
   const state: MockState = { completionCalls: 0 };
@@ -383,9 +382,7 @@ async function prepareScenario(
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toBeVisible();
-  await expect(page.locator('.shared-achievement-confirmation')).toHaveCount(
-    1,
-  );
+  await expect(page.locator('.shared-achievement-confirmation')).toHaveCount(1);
   await expect(
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toBeVisible();

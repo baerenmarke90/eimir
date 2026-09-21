@@ -89,9 +89,7 @@ export function PlanStoryContinuation({
             >
               {t('m5s3.plan.sharedAchievementTitle')}
             </h2>
-            <p>
-              {t('m5s3.plan.sharedAchievementBody', { title: plan.title })}
-            </p>
+            <p>{t('m5s3.plan.sharedAchievementBody', { title: plan.title })}</p>
           </div>
         </div>
       ) : (

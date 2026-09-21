@@ -30,8 +30,8 @@ from eimir.chapters import models as _chapters  # noqa: F401
 from eimir.collections import models as _collections  # noqa: F401
 from eimir.comments import models as _comments  # noqa: F401
 from eimir.config import DatabaseSettings
-from eimir.dashboard import models as _dashboard  # noqa: F401
 from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
+from eimir.dashboard import models as _dashboard  # noqa: F401
 from eimir.db.base import Base
 from eimir.demo import models as _demo  # noqa: F401
 from eimir.engagement import models as _engagement  # noqa: F401

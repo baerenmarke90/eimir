@@ -84,9 +84,13 @@ async function openUnsetEnergy() {
   return screen.getByRole('slider', { name: dailyEnergy.selectLegend });
 }
 
+function energyBadgeAriaValue(value: number): string {
+  return dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
+}
+
 async function openSetEnergy(value: number) {
   const badge = await screen.findByRole('button', {
-    name: new RegExp(`Dein Akku heute: ${value} Prozent`),
+    name: energyBadgeAriaValue(value),
   });
   fireEvent.click(badge);
   return screen.getByRole('slider', { name: dailyEnergy.changeLegend });
@@ -199,7 +203,7 @@ describe('DailyEnergyCheckIn', () => {
 
     expect(
       await screen.findByRole('button', {
-        name: /Dein Akku heute: 70 Prozent/,
+        name: energyBadgeAriaValue(70),
       }),
     ).not.toBeNull();
     expect(
@@ -243,7 +247,7 @@ describe('DailyEnergyCheckIn', () => {
     );
     expect(
       await screen.findByRole('button', {
-        name: /Dein Akku heute: 80 Prozent/,
+        name: energyBadgeAriaValue(80),
       }),
     ).not.toBeNull();
   });
@@ -328,7 +332,7 @@ describe('DailyEnergyCheckIn', () => {
     expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(1);
     expect(
       await screen.findByRole('button', {
-        name: /Dein Akku heute: 80 Prozent/,
+        name: energyBadgeAriaValue(80),
       }),
     ).not.toBeNull();
   });
@@ -380,9 +384,7 @@ describe('DailyEnergyCheckIn', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('slider')).toBeNull();
-      expect(
-        screen.queryByRole('button', { name: /Akku für heute|Dein Akku heute/ }),
-      ).toBeNull();
+      expect(document.querySelector('.daily-energy-badge')).toBeNull();
       expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
     });
   });
@@ -416,8 +418,9 @@ describe('DailyEnergyCheckIn', () => {
       expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
       expect(screen.queryByTestId('daily-energy-popover')).toBeNull();
     });
-    expect(
-      screen.getByRole('button', { name: dailyEnergy.unavailableOffline }),
-    ).toBeDisabled();
+    const offlineBadge = screen.getByRole('button', {
+      name: dailyEnergy.unavailableOffline,
+    }) as HTMLButtonElement;
+    expect(offlineBadge.disabled).toBe(true);
   });
 });

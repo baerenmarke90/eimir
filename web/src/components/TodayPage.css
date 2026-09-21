@@ -236,6 +236,13 @@
   margin-bottom: var(--space-6);
 }
 
+/* A pinned checklist is intentionally a focused Today utility, not a
+   desktop-width form. Reuse the page's established quiet content measure so
+   Compact still fills the available width while Expanded stays glanceable. */
+.today-section-pinned-collection {
+  max-width: 45rem;
+}
+
 /*
  * `Euer Moment` is the page's dominant surface, so it gets the one deliberate
  * pause in the rhythm - before it, to set it apart, and after it, so the

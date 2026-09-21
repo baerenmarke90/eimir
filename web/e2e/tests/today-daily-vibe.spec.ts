@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -180,7 +181,7 @@ async function installMocks(
       (method === 'GET' || method === 'POST') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
-      await json({ state: null });
+      await json({ state: 'ACTIVE' });
       return;
     }
     if (
@@ -357,6 +358,9 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   const vibe = page.getByTestId('daily-vibe-checkin');
   const upcoming = page.locator('.today-section-upcoming');
   await expect(hero).toBeVisible();
+  await expect(
+    hero.locator('.partner-presence-badge.status-active'),
+  ).toContainText(relationshipComponents.couplePresenceActive);
   await expect(vibe).toBeVisible();
   await expect(upcoming).toBeVisible();
 

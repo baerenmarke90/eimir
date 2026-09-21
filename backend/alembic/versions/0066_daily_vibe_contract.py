@@ -15,8 +15,7 @@ branch_labels = None
 depends_on = None
 
 _VIBE_CHECK = (
-    "vibe IS NULL OR vibe IN "
-    "('GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')"
+    "vibe IS NULL OR vibe IN ('GOOD', 'OKAY', 'STRESSED', 'SAD', 'NEEDS_CONNECTION', 'NEEDS_SPACE')"
 )
 
 

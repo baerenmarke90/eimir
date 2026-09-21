@@ -617,9 +617,7 @@ class TestVibeContract:
         )
         assert energy_only.status_code == 200
         assert energy_only.json()["energy"]["partner"] == {"state": "VISIBLE", "value": 70}
-        assert energy_only.json()["vibe"]["partner"] == {
-            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
-        }
+        assert energy_only.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
 
         vibe_added = client.patch(
             path(couple["space"].id),
@@ -639,9 +637,7 @@ class TestVibeContract:
             headers={**auth(couple["manager_token"]), **if_match(vibe_added.headers["etag"])},
         )
         assert energy_cleared.status_code == 200
-        assert energy_cleared.json()["energy"]["partner"] == {
-            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
-        }
+        assert energy_cleared.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
         assert energy_cleared.json()["vibe"]["partner"] == {
             "state": "VISIBLE",
             "value": DailyVibe.SAD.value,

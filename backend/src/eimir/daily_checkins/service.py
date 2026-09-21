@@ -35,6 +35,7 @@ ENERGY_LEVELS = frozenset(range(10, 101, 10))
 
 DimensionValue = int | str
 
+
 class DailyCheckInDimension(StrEnum):
     VIBE = "VIBE"
     ENERGY = "ENERGY"

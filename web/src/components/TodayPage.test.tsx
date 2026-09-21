@@ -15,7 +15,11 @@ import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
-import { formatRelationshipDuration, TodayPage } from './TodayPage';
+import {
+  formatRelationshipDuration,
+  formatTodayHeaderDate,
+  TodayPage,
+} from './TodayPage';
 
 /**
  * By default this seeds an already-resolved (empty-override) Dashboard
@@ -77,6 +81,13 @@ function renderTodayPage(
 }
 
 describe('TodayPage', () => {
+  it('formats the Today date in the compact reference hierarchy', () => {
+    const label = formatTodayHeaderDate(
+      new Date('2026-09-21T12:00:00.000Z'),
+    );
+    expect(label).toContain('21. September 2026');
+  });
+
   it('renders couple presence hero, days together, thinking-of-you button, and the composed modules', () => {
     const html = renderTodayPage({
       space: {
@@ -114,6 +125,9 @@ describe('TodayPage', () => {
       },
     });
 
+    expect(html).toContain('today-date-heading');
+    expect(html).toContain('today-date-title');
+    expect(html).toContain('Heute');
     expect(html).toContain('Marie');
     expect(html).toContain('420');
     expect(html).toContain('today-hero-action');
@@ -348,7 +362,7 @@ describe('TodayPage', () => {
       retrospective: null,
     });
 
-    // Couple Presence remains the permanent H1 entry point, even for a sparse space
+    // Today remains the permanent H1; Couple Presence stays the relationship hero.
     expect(html).toContain('today-hero');
     expect(html).toContain('couple-presence-title');
 

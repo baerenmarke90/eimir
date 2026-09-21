@@ -171,7 +171,9 @@ describe('DailyEnergyCheckIn', () => {
     const partnerBattery = await screen.findByTestId(
       'daily-energy-partner-battery',
     );
-    expect(partnerBattery.getAttribute('data-state')).toBe('empty');
+    await waitFor(() =>
+      expect(partnerBattery.getAttribute('data-state')).toBe('empty'),
+    );
     expect(partnerBattery.hasAttribute('data-energy')).toBe(false);
 
     await openSetEnergy(60);

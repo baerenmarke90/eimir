@@ -15,14 +15,13 @@
   box-shadow: var(--elevation-overlay);
   overflow: hidden;
   transform: translateY(var(--short-task-sheet-drag-offset, 0px));
-  transition: transform var(--duration-transition) var(--easing-enter);
+  transition: transform var(--duration-context) var(--easing-enter);
 }
 
 .short-task-sheet[open] {
   display: flex;
   flex-direction: column;
-  animation: short-task-sheet-enter var(--duration-transition)
-    var(--easing-enter);
+  animation: short-task-sheet-enter var(--duration-context) var(--easing-enter);
 }
 
 .short-task-sheet[open][data-dragging="true"] {
@@ -55,7 +54,8 @@
 .short-task-sheet-close {
   position: absolute;
   top: 0;
-  left: 50%;
+  left: 0;
+  right: 0;
   z-index: 1;
   display: grid;
   width: var(--space-16);
@@ -69,7 +69,8 @@
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--color-text-secondary);
-  transform: translateX(-50%);
+  margin-inline: auto;
+  transform: none;
   touch-action: none;
   user-select: none;
   cursor: grab;
@@ -77,6 +78,10 @@
 
 .short-task-sheet[data-dragging="true"] .short-task-sheet-close {
   cursor: grabbing;
+}
+
+.short-task-sheet-close:active:not(:disabled) {
+  transform: none;
 }
 
 .short-task-sheet-close:focus-visible {
@@ -148,6 +153,8 @@
 
   .short-task-sheet-close {
     position: static;
+    left: auto;
+    right: auto;
     width: 44px;
     height: 44px;
     padding: 0;
@@ -155,6 +162,7 @@
     border: 1px solid var(--color-border-subtle);
     background: var(--color-surface-subtle);
     color: var(--color-text);
+    margin-inline: 0;
     transform: none;
     touch-action: auto;
     user-select: auto;

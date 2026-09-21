@@ -12,6 +12,7 @@ import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
+import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
@@ -274,6 +275,16 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const dailyCheckInsApi = useMemo(
+    () =>
+      new DailyCheckInsApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
@@ -494,6 +505,7 @@ function AuthenticatedApp({
                 apis={m4Apis}
                 spaceId={spaceId}
                 spacesApi={spacesApi}
+                dailyCheckInsApi={dailyCheckInsApi}
                 loadMemoryImage={loadMemoryImage}
                 profilesApi={profilesApi}
                 account={account}

@@ -220,6 +220,10 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 7
     },
+    "today-daily-energy.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 1

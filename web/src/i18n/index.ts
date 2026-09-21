@@ -5,6 +5,7 @@ import de from './locales/de';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import demo from './locales/demo';
+import dailyEnergy from './locales/dailyEnergy';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
 import m5s3 from './locales/m5s3';
@@ -45,6 +46,7 @@ if (!i18n.isInitialized) {
           accountSettings,
           navigation: { ...de.navigation, ...navigation },
           demo,
+          dailyEnergy,
           games,
           importantDates,
           m5s3,

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -44,6 +45,7 @@ import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import { usePartnerPresence } from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
+import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -786,11 +788,13 @@ export function TodayPage({
   loadMemoryImage,
   profilesApi,
   spacesApi,
+  dailyCheckInsApi,
   account,
 }: {
   apis: M4ProductApis;
   spaceId: string;
   spacesApi?: SpacesApi;
+  dailyCheckInsApi?: DailyCheckInsApi;
   loadMemoryImage?: (
     memoryId: string,
     attachmentId: string,
@@ -814,6 +818,8 @@ export function TodayPage({
   );
   const supportGesturesEnabled =
     spaceConfigurationQuery.data?.configuration.supportGesturesEnabled === true;
+  const energyCheckInEnabled =
+    spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
   const dashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
@@ -1119,6 +1125,22 @@ export function TodayPage({
           ) : (
             <h1 className="sr-only">{t('m5s5.dashboard.title')}</h1>
           )}
+
+          {energyCheckInEnabled && account?.id ? (
+            <TodayModuleSection
+              className="today-section-energy"
+              title={t('dailyEnergy.question')}
+              animationDelay="20ms"
+            >
+              <DailyEnergyCheckIn
+                key={`${account.id}:${spaceId}`}
+                api={dailyCheckInsApi}
+                accountId={account.id}
+                spaceId={spaceId}
+                partnerName={partner?.displayName}
+              />
+            </TodayModuleSection>
+          ) : null}
 
           {isSparse ? (
             <div className="new-space-experience eimir-motion-reveal">

@@ -27,6 +27,18 @@ ETAG_HEADERS = {
     }
 }
 
+COLLECTION_COMPLETION_TRANSITION_HEADER = "X-Eimir-Collection-Completion-Transition"
+COLLECTION_ITEM_UPDATE_HEADERS = {
+    **ETAG_HEADERS,
+    COLLECTION_COMPLETION_TRANSITION_HEADER: {
+        "description": (
+            "True only when this successful Item update caused the shared Collection "
+            "to transition from incomplete to complete; false otherwise."
+        ),
+        "schema": {"type": "boolean"},
+    },
+}
+
 
 class CollectionCreate(ApiModel):
     model_config = ConfigDict(extra="forbid")
@@ -352,7 +364,10 @@ def create_collection_item(
     "/spaces/{spaceId}/collections/{collectionId}/items/{itemId}",
     response_model=CollectionItemDetail,
     operation_id="updateCollectionItem",
-    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+    responses={
+        200: {"headers": COLLECTION_ITEM_UPDATE_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def update_collection_item(
     authorization: Authorization,
@@ -363,7 +378,7 @@ def update_collection_item(
     collection_id: Annotated[str, Path(alias="collectionId")],
     item_id: Annotated[str, Path(alias="itemId")],
 ) -> CollectionItemDetail:
-    item = service.update_item(
+    result = service.update_item_with_completion_transition(
         session,
         authorization,
         collection_id,
@@ -373,8 +388,11 @@ def update_collection_item(
         title=body.title,
         completed=body.completed,
     )
-    response.headers["ETag"] = etag_for(item.version)
-    return collection_item_detail(session, item)
+    response.headers["ETag"] = etag_for(result.item.version)
+    response.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] = (
+        "true" if result.collection_became_complete else "false"
+    )
+    return collection_item_detail(session, result.item)
 
 
 @router.delete(

@@ -16370,6 +16370,12 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Eimir-Collection-Completion-Transition": {
+                "description": "True only when this successful Item update caused the shared Collection to transition from incomplete to complete; false otherwise.",
+                "schema": {
+                  "type": "boolean"
+                }
               }
             }
           },

@@ -27,21 +27,25 @@ afterEach(() => {
 function projection({
   own = null,
   partner = { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' } as const,
+  energyEnabled = true,
 }: {
   own?: number | null;
   partner?:
     | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
     | { state: 'NO_CHECK_IN' }
     | { state: 'VISIBLE'; value: number };
+  energyEnabled?: boolean;
 } = {}): DailyCheckInTodayView {
   return {
     checkedOn: new Date('2026-09-21T00:00:00.000Z'),
     dailyContextTimezone: 'Europe/Berlin',
     own: { energyLevel: own, version: own === null ? 0 : 1 },
-    energy: {
-      visibilityMode: 'MUTUAL_REVEAL',
-      partner,
-    },
+    energy: energyEnabled
+      ? {
+          visibilityMode: 'MUTUAL_REVEAL',
+          partner,
+        }
+      : null,
   };
 }
 
@@ -93,6 +97,28 @@ describe('DailyEnergyCheckIn', () => {
     expect(within(partnerState).queryByText('20 %')).toBeNull();
   });
 
+  it('renders NO_CHECK_IN neutrally without inventing partner state', async () => {
+    const api = {
+      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+        rawResponse(
+          projection({
+            own: 60,
+            partner: { state: 'NO_CHECK_IN' },
+          }),
+          '"2026-09-21:check-in-1:1"',
+        ),
+      ),
+    } as unknown as DailyCheckInsApi;
+
+    renderEnergy(api);
+
+    const partnerState = await screen.findByTestId('daily-energy-partner');
+    expect(
+      within(partnerState).getByText(dailyEnergy.noCheckIn),
+    ).not.toBeNull();
+    expect(within(partnerState).queryByText(/\d+ %/)).toBeNull();
+  });
+
   it('writes with the current ETag and adopts the authoritative reveal response', async () => {
     const getDailyCheckInTodayRaw = vi
       .fn()
@@ -127,6 +153,45 @@ describe('DailyEnergyCheckIn', () => {
     expect(
       within(screen.getByTestId('daily-energy-partner')).getByText('20 %'),
     ).not.toBeNull();
+  });
+
+  it('changes an existing value and adopts the returned snapshot', async () => {
+    const updateDailyCheckInTodayRaw = vi.fn().mockResolvedValue(
+      rawResponse(
+        projection({
+          own: 80,
+          partner: { state: 'VISIBLE', value: 40 },
+        }),
+        '"2026-09-21:check-in-1:4"',
+      ),
+    );
+    const api = {
+      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+        rawResponse(
+          projection({
+            own: 60,
+            partner: { state: 'VISIBLE', value: 40 },
+          }),
+          '"2026-09-21:check-in-1:3"',
+        ),
+      ),
+      updateDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    renderEnergy(api);
+    fireEvent.click(
+      await screen.findByRole('button', { name: dailyEnergy.change }),
+    );
+    fireEvent.click(screen.getByRole('radio', { name: '80 Prozent' }));
+
+    await waitFor(() =>
+      expect(updateDailyCheckInTodayRaw).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        ifMatch: '"2026-09-21:check-in-1:3"',
+        dailyCheckInUpdate: { energyLevel: 80 },
+      }),
+    );
+    expect(await screen.findByText('80 %')).not.toBeNull();
   });
 
   it('clears an existing value using the latest validator', async () => {
@@ -211,11 +276,20 @@ describe('DailyEnergyCheckIn', () => {
     expect(await screen.findByText('80 %')).not.toBeNull();
   });
 
-  it('fails closed when the server says the module was disabled', async () => {
+  it('fails closed and refreshes DailyCheckIn when a write reports the module disabled', async () => {
+    const getDailyCheckInTodayRaw = vi
+      .fn()
+      .mockResolvedValueOnce(
+        rawResponse(projection(), '"2026-09-21:absent"'),
+      )
+      .mockResolvedValue(
+        rawResponse(
+          projection({ energyEnabled: false }),
+          '"2026-09-21:absent"',
+        ),
+      );
     const api = {
-      getDailyCheckInTodayRaw: vi
-        .fn()
-        .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"')),
+      getDailyCheckInTodayRaw,
       updateDailyCheckInTodayRaw: vi
         .fn()
         .mockRejectedValue(
@@ -228,6 +302,26 @@ describe('DailyEnergyCheckIn', () => {
 
     await waitFor(() => {
       expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(getDailyCheckInTodayRaw).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('never offers participation when the authoritative projection says Energy is disabled', async () => {
+    const api = {
+      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+        rawResponse(
+          projection({ own: 60, energyEnabled: false }),
+          '"2026-09-21:check-in-1:3"',
+        ),
+      ),
+    } as unknown as DailyCheckInsApi;
+
+    renderEnergy(api);
+
+    await waitFor(() => {
+      expect(screen.queryAllByRole('radio')).toHaveLength(0);
+      expect(screen.queryByRole('button', { name: dailyEnergy.change })).toBeNull();
+      expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
     });
   });
 

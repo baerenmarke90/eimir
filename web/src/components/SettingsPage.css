@@ -42,7 +42,7 @@
 .settings-section,
 .settings-category-content.settings-section {
   min-width: 0;
-  scroll-margin-top: calc(var(--topbar-height, 72px) + var(--space-4));
+  scroll-margin-top: var(--space-4);
 }
 
 .settings-category-content > .settings-section,

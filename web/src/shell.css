@@ -33,33 +33,43 @@
 }
 
 .product-shell {
+  --shell-header-safe-top: var(
+    --safe-area-inset-top,
+    env(safe-area-inset-top, 0px)
+  );
+
   min-height: 100vh;
   background: transparent;
 }
 
-.product-shell:not([data-focused-task="true"])::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  background: var(--color-header-surface);
-  z-index: 35;
-  pointer-events: none;
+#root:has(> .demo-instance-banner) .product-shell {
+  --shell-header-safe-top: 0px;
+}
+
+.product-shell[data-top-surface="today"] {
+  background:
+    radial-gradient(
+      120% 24rem at 30% 0%,
+      var(--color-brand-glow),
+      transparent 70%
+    )
+    top center / 100% 24rem no-repeat;
+}
+
+.product-shell[data-top-surface="today"]
+  .today-hero.couple-presence-card::before {
+  content: none;
 }
 
 .product-topbar {
   z-index: 40;
   flex-wrap: wrap;
   padding-inline: var(--space-5);
-  background: var(--color-header-surface);
-  transform: translateZ(0);
+  background: transparent;
 }
 
 .product-shell-body {
   position: relative;
-  min-height: calc(100vh - var(--topbar-height));
 }
 
 .quick-create-trigger {
@@ -654,24 +664,6 @@
   border: 1px solid var(--color-border-subtle);
   box-shadow: var(--shadow-card);
   box-sizing: border-box;
-  transition:
-    transform 200ms cubic-bezier(0.2, 0, 0, 1),
-    opacity 200ms ease;
-  will-change: transform, opacity;
-}
-
-.mobile-bottom-shell[data-hidden="true"] {
-  transform: translate(
-    -50%,
-    calc(
-      100% +
-      var(--shell-floating-nav-offset) +
-      env(safe-area-inset-bottom, 0px) +
-      var(--space-4)
-    )
-  );
-  opacity: 0;
-  pointer-events: none;
 }
 
 .mobile-bottom-shell .mobile-bottom-nav {
@@ -917,12 +909,6 @@
     min-width: 44px;
   }
 
-  .header-profile-popover {
-    position: fixed;
-    top: calc(var(--topbar-height) - var(--space-1));
-    right: var(--space-3);
-  }
-
   .page-heading-action,
   .page-heading-action .button-link {
     width: 100%;
@@ -1000,8 +986,7 @@
   .shell-nav-link,
   .shell-nav .shell-nav-link,
   .shell-utility-link,
-  .header-profile-trigger,
-  .mobile-bottom-shell {
+  .header-profile-trigger {
     transition: none;
   }
 }

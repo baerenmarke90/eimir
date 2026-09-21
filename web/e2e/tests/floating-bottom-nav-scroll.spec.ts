@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,13 +10,16 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
+const PARTNER_PROFILE_ID = '55555555-5555-4555-8555-555555555555';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 const ME = { id: ACCOUNT_ID, displayName: 'Anna Sommer' };
+const PARTNER = { id: PARTNER_ID, displayName: 'Ben Winter' };
 const CAPABILITIES = { canEdit: true, canDelete: true, canComment: true };
 
 const EVIDENCE_DIR = path.resolve(
   __dirname,
-  '../../../docs/design/eimir/screenshots/970-hide-on-scroll',
+  '../../../docs/design/eimir/screenshots/global-header-document-flow',
 );
 
 function generateTimelineItems() {
@@ -176,7 +180,11 @@ async function installApiMocks(page: Page): Promise<void> {
     }
 
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}`) {
-      await fulfillJson({ id: SPACE_ID, createdAt: TEST_NOW, partners: [] });
+      await fulfillJson({
+        id: SPACE_ID,
+        createdAt: TEST_NOW,
+        partners: [ME, PARTNER],
+      });
       return;
     }
 
@@ -214,7 +222,7 @@ async function installApiMocks(page: Page): Promise<void> {
         recentShared: [],
         relationshipDuration: null,
         retrospective: null,
-        space: { partner: null, spaceId: SPACE_ID },
+        space: { partner: PARTNER, spaceId: SPACE_ID },
         upcoming: [],
       });
       return;
@@ -222,13 +230,15 @@ async function installApiMocks(page: Page): Promise<void> {
 
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}`
+      (pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
+        pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}`)
     ) {
+      const isPartner = pathname.endsWith(PARTNER_ID);
       await fulfillJson({
-        accountId: ACCOUNT_ID,
+        accountId: isPartner ? PARTNER_ID : ACCOUNT_ID,
         createdAt: TEST_NOW,
-        displayName: 'Anna',
-        id: PROFILE_ID,
+        displayName: isPartner ? PARTNER.displayName : ME.displayName,
+        id: isPartner ? PARTNER_PROFILE_ID : PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
         updatedAt: TEST_NOW,
@@ -366,310 +376,257 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
-test.describe('Context-Aware Hide-on-Scroll Navigation (#970)', () => {
+async function addScrollFixture(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const main = document.querySelector('main');
+    if (!main) throw new Error('Main content missing.');
+    document.querySelector('[data-shell-scroll-fixture]')?.remove();
+    const spacer = document.createElement('div');
+    spacer.dataset.shellScrollFixture = 'true';
+    spacer.setAttribute('aria-hidden', 'true');
+    spacer.style.height = '1800px';
+    main.appendChild(spacer);
+  });
+}
+
+async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const dimensions = await page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(
+    dimensions.clientWidth + 1,
+  );
+}
+
+test.describe('Global header document flow and persistent bottom navigation', () => {
   test.beforeAll(() => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
     }
   });
 
-  test('Momente: deliberate downward scroll hides navigation; slight upward scroll reveals it quickly', async ({
+  test('Today, Momente, Planen and Mehr scroll the global header naturally while bottom navigation stays fixed', async ({
     page,
-  }) => {
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+
+    for (const route of ['/today', '/story?tab=timeline', '/plan', '/more']) {
+      await page.goto(route);
+      await page.evaluate(() => window.scrollTo(0, 0));
+
+      const header = page.locator('.product-topbar');
+      const bottomShell = page.locator('.mobile-bottom-shell');
+      await expect(header).toBeVisible();
+      await expect(bottomShell).toBeVisible();
+
+      expect(
+        await header.evaluate((element) => getComputedStyle(element).position),
+      ).toBe('relative');
+      expect(
+        await bottomShell.evaluate(
+          (element) => getComputedStyle(element).position,
+        ),
+      ).toBe('fixed');
+      expect(await bottomShell.getAttribute('data-hidden')).toBeNull();
+
+      const flowGap = await page.evaluate(() => {
+        const header = document
+          .querySelector('.product-topbar')
+          ?.getBoundingClientRect();
+        const body = document
+          .querySelector('.product-shell-body')
+          ?.getBoundingClientRect();
+        if (!header || !body) throw new Error('Shell geometry missing.');
+        return body.top - header.bottom;
+      });
+      expect(Math.abs(flowGap)).toBeLessThanOrEqual(1);
+
+      await addScrollFixture(page);
+      await page.evaluate(() =>
+        window.scrollTo({ top: 700, behavior: 'instant' }),
+      );
+      await page.waitForFunction(() => window.scrollY > 500);
+
+      const afterDown = await header.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      });
+      expect(afterDown.bottom).toBeLessThanOrEqual(0);
+      await expect(bottomShell).toBeVisible();
+
+      await page.evaluate(() =>
+        window.scrollTo({
+          top: Math.max(0, window.scrollY - 40),
+          behavior: 'instant',
+        }),
+      );
+      const afterSmallReverse = await header.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom };
+      });
+      expect(afterSmallReverse.bottom).toBeLessThanOrEqual(0);
+      await expect(bottomShell).toBeVisible();
+
+      await expectNoHorizontalOverflow(page);
+      await page.evaluate(() =>
+        window.scrollTo({ top: 0, behavior: 'instant' }),
+      );
+      await expect(header).toBeInViewport();
+
+      if (route === '/today') {
+        await page.screenshot({
+          path: path.join(EVIDENCE_DIR, '01-today-header-at-top.png'),
+        });
+        await testInfo.attach('today-header-at-top', {
+          path: path.join(EVIDENCE_DIR, '01-today-header-at-top.png'),
+          contentType: 'image/png',
+        });
+      }
+    }
+  });
+
+  test('Today header and Couple Presence share one surface, including with the demo banner', async ({
+    page,
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installApiMocks(page);
     await page.goto('/login');
     await signIn(page);
     await page.waitForURL('**/today');
 
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-    const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
+    const shell = page.locator('.product-shell');
+    const header = page.locator('.product-topbar');
+    const hero = page.locator('.today-hero');
 
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '01-momente-initial-visible.png'),
+    await expect(shell).toHaveAttribute('data-top-surface', 'today');
+    await expect(header).toBeVisible();
+    await expect(hero).toBeVisible();
+
+    expect(
+      await shell.evaluate(
+        (element) => getComputedStyle(element).backgroundImage,
+      ),
+    ).toContain('radial-gradient');
+
+    const headerMaterial = await header.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        borderBottomWidth: style.borderBottomWidth,
+        boxShadow: style.boxShadow,
+      };
     });
-
-    const scrollHeight = await page.evaluate(
-      () => document.documentElement.scrollHeight,
+    expect(headerMaterial.backgroundColor).toMatch(
+      /rgba\(0, 0, 0, 0\)|transparent/,
     );
-    expect(scrollHeight).toBeGreaterThan(1200);
+    expect(headerMaterial.backgroundImage).toBe('none');
+    expect(headerMaterial.borderBottomWidth).toBe('0px');
+    expect(headerMaterial.boxShadow).toBe('none');
+    expect(
+      await hero.evaluate(
+        (element) => getComputedStyle(element, '::before').content,
+      ),
+    ).toBe('none');
+
+    const search = header.locator('a[href="/search"]');
+    await search.focus();
+    await expect(search).toBeFocused();
+    const notifications = header.locator('.header-notifications-trigger');
+    await notifications.focus();
+    await expect(notifications).toBeFocused();
+
+    const axe = await new AxeBuilder({ page })
+      .include('.product-topbar')
+      .include('.today-hero')
+      .analyze();
+    expect(axe.violations).toEqual([]);
 
     await page.evaluate(() => {
-      window.scrollTo({ top: 120, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '02-momente-scrolled-down-hidden.png'),
-    });
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 95, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '03-momente-scrolled-up-revealed.png'),
+      const root = document.querySelector('#root');
+      const shell = root?.querySelector('.product-shell');
+      if (!root || !shell) throw new Error('Shell root missing.');
+      const banner = document.createElement('div');
+      banner.className = 'demo-instance-banner';
+      banner.setAttribute('role', 'note');
+      banner.textContent = 'Demo · Test environment';
+      root.insertBefore(banner, shell);
     });
 
-    await page.evaluate(() => {
-      window.scrollTo({ top: 200, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
+    const demoGeometry = await page.evaluate(() => {
+      const banner = document
+        .querySelector('.demo-instance-banner')
+        ?.getBoundingClientRect();
+      const header = document
+        .querySelector('.product-topbar')
+        ?.getBoundingClientRect();
+      if (!banner || !header) throw new Error('Demo/header geometry missing.');
+      return {
+        gap: header.top - banner.bottom,
+        safeTop: getComputedStyle(
+          document.querySelector('.product-shell') as HTMLElement,
+        ).getPropertyValue('--shell-header-safe-top'),
+      };
     });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
+    expect(Math.abs(demoGeometry.gap)).toBeLessThanOrEqual(1);
+    expect(demoGeometry.safeTop.trim()).toBe('0px');
+    await expectNoHorizontalOverflow(page);
 
-    await page.evaluate(() => {
-      document.querySelector<HTMLAnchorElement>('a[href="/plan"]')?.click();
-    });
-    await page.waitForURL('**/plan');
-
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '04-route-change-reset-visible.png'),
-    });
-  });
-
-  test('Persistent surfaces: Heute and Planen remain visible when scrolled', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await page.waitForURL('**/today');
-
-    const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      const spacer = document.createElement('div');
-      spacer.style.height = '1500px';
-      spacer.textContent = 'Spacer for testing Heute scroll persistence';
-      document.querySelector('main')?.appendChild(spacer);
-    });
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 200, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '05-heute-persistent-scrolled.png'),
-    });
-
-    await page.goto('/plan');
-    await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      const spacer = document.createElement('div');
-      spacer.style.height = '1500px';
-      spacer.textContent = 'Spacer for testing Planen scroll persistence';
-      document.querySelector('main')?.appendChild(spacer);
-    });
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 200, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '06-planen-persistent-scrolled.png'),
-    });
-  });
-
-  test('Top of page always restores navigation visibility', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-
-    const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 150, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '07-top-of-page-reset.png'),
-    });
-  });
-
-  test('Keyboard focus inside bottom navigation restores and keeps it visible', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-
-    const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 120, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    const trigger = bottomShell.locator('button.quick-create-trigger');
-    await trigger.focus();
-
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 250, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-  });
-
-  test('Reduced-motion preferences: transition is disabled when prefers-reduced-motion: reduce', async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
-
-    const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    const transition = await bottomShell.evaluate(
-      (el) => window.getComputedStyle(el).transitionProperty,
+    const screenshotPath = path.join(
+      EVIDENCE_DIR,
+      '02-today-shared-surface-with-demo-banner.png',
     );
-    expect(transition).toBe('none');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 120, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    await page.screenshot({
-      path: path.join(EVIDENCE_DIR, '08-reduced-motion-hidden.png'),
+    await page.screenshot({ path: screenshotPath, fullPage: false });
+    await testInfo.attach('today-shared-surface-with-demo-banner', {
+      path: screenshotPath,
+      contentType: 'image/png',
     });
   });
 
-  test('Layout stability: showing and hiding navigation causes no horizontal overflow or reflow', async ({
+  test('Compact widths, short height and 200% text keep shell controls reflow-safe', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
     await installApiMocks(page);
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/login');
     await signIn(page);
-    await page.goto('/story?tab=timeline');
-    await page.waitForSelector('.story-timeline');
 
-    const dimensionsBefore = await page.evaluate(() => ({
-      clientWidth: document.documentElement.clientWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-    }));
-    expect(dimensionsBefore.scrollWidth).toBeLessThanOrEqual(
-      dimensionsBefore.clientWidth + 1,
-    );
+    for (const [width, height] of [
+      [320, 640],
+      [360, 640],
+      [390, 700],
+      [430, 720],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/today');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await expect(page.locator('.product-topbar')).toBeVisible();
+      await expect(page.locator('.mobile-bottom-shell')).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
 
-    await page.evaluate(() => {
-      window.scrollTo({ top: 120, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.addStyleTag({ content: ':root { font-size: 200%; }' });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expectNoHorizontalOverflow(page);
+
+    const header = page.locator('.product-topbar');
     const bottomShell = page.locator('.mobile-bottom-shell');
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    const dimensionsAfterHide = await page.evaluate(() => ({
-      clientWidth: document.documentElement.clientWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-    }));
-    expect(dimensionsAfterHide.scrollWidth).toBe(dimensionsBefore.scrollWidth);
-    expect(dimensionsAfterHide.clientWidth).toBe(dimensionsBefore.clientWidth);
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 95, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    const dimensionsAfterReveal = await page.evaluate(() => ({
-      clientWidth: document.documentElement.clientWidth,
-      scrollWidth: document.documentElement.scrollWidth,
-    }));
-    expect(dimensionsAfterReveal.scrollWidth).toBe(
-      dimensionsBefore.scrollWidth,
+    await addScrollFixture(page);
+    await page.evaluate(() =>
+      window.scrollTo({ top: 700, behavior: 'instant' }),
     );
-  });
-
-  test('Momente same-path peer mode navigation: switching Discover ↔ Timeline through product UI restores visible bottom navigation (#970)', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await installApiMocks(page);
-    await page.goto('/login');
-    await signIn(page);
-    await page.waitForURL('**/today');
-
-    await page.goto('/story?tab=discover');
-    await page.waitForSelector('.momente-discover-page');
-    const bottomShell = page.locator('.mobile-bottom-shell');
+    await page.waitForFunction(() => window.scrollY > 500);
+    expect(
+      await header.evaluate(
+        (element) => element.getBoundingClientRect().bottom,
+      ),
+    ).toBeLessThanOrEqual(0);
     await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: 80, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    const timelineTab = page.getByRole('tab', { name: de.story.tabTimeline });
-    await expect(timelineTab).toBeVisible();
-    await timelineTab.click();
-
-    await page.waitForSelector('.story-timeline');
-    await expect(page).toHaveURL(/.*[?&]tab=timeline/);
-
-    await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
-
-    await page.evaluate(() => {
-      window.scrollTo({ top: window.scrollY + 80, behavior: 'instant' });
-      window.dispatchEvent(new Event('scroll'));
-    });
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'true');
-
-    const discoverTab = page.getByRole('tab', { name: de.story.tabDiscover });
-    await expect(discoverTab).toBeVisible();
-    await discoverTab.click();
-
-    await page.waitForSelector('.momente-discover-page');
-    await expect(page).toHaveURL(/.*[?&]tab=discover/);
-
-    await expect(bottomShell).toBeVisible();
-    await expect(bottomShell).toHaveAttribute('data-hidden', 'false');
+    await expectNoHorizontalOverflow(page);
   });
 });

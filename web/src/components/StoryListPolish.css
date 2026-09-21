@@ -355,34 +355,28 @@
 }
 
 /*
- * Month headings and the app bar (#969). In the Timeline a month heading is
- * pinned directly below the app bar while its month is on screen, so it is
- * either fully visible or handed over to the next month, never left half
- * beneath the bar. `useStickyTimelineMonths` measures the rendered bar for
- * the offset and turns pinning off (plain content) when the bar is too tall,
- * e.g. with enlarged text or zoom. The band is opaque and keeps the heading's
- * layout height, and focused cards scroll clear of both bands.
+ * Month headings remain useful progressive context, but they no longer need
+ * to measure the global app header. The header is ordinary document flow and
+ * leaves the viewport before a month heading reaches the top edge, so CSS
+ * sticky positioning at the viewport edge is the complete contract.
  */
-.story-timeline-months[data-sticky-months]
-  > .story-year-month
-  > .story-year-month-header {
+.story-timeline-months > .story-year-month > .story-year-month-header {
   position: sticky;
   z-index: 2;
-  top: var(--story-month-sticky-top, 0px);
+  top: 0;
   margin-block: calc(var(--space-2) * -1);
   padding-block: var(--space-2);
   background: var(--color-surface);
 }
 
-.story-timeline-months[data-sticky-months] .story-card-link {
-  scroll-margin-top: calc(var(--story-month-sticky-top, 0px) + 4rem);
+.story-timeline-months .story-card-link {
+  scroll-margin-top: 4rem;
 }
 
 /*
- * The floating bottom navigation (#970) hides on downward scrolling but is
- * revealed after a small upward scroll. A keyboard focus move that scrolls
- * only a few pixels leaves it revealed, so a focused card is scrolled clear
- * of its footprint wherever the bottom shell exists.
+ * The floating bottom navigation is persistent on Compact. Focused Timeline
+ * cards therefore reserve its real footprint at the bottom instead of relying
+ * on scroll-direction state to reveal or hide global navigation.
  */
 @container product-shell (max-width: 52.4375rem) {
   .story-card-link {
@@ -391,17 +385,4 @@
       var(--space-3)
     );
   }
-}
-
-/*
- * The shared app bar is 95% opaque. Content handed over beneath it (a pushed
- * out month heading, a card) stayed legible as a ghost. While month-grouped
- * Momente content is on screen the bar is backed by the page background; its
- * own tint, height and behaviour are unchanged and no other destination is
- * affected.
- */
-.product-shell:has(.story-year-month) .product-topbar {
-  background:
-    linear-gradient(var(--color-header-surface), var(--color-header-surface)),
-    var(--color-background);
 }

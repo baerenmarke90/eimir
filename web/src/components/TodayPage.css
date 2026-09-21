@@ -145,50 +145,6 @@
   }
 }
 
-/*
- * Large-text reflow: once the effective content width drops below 14rem
- * (for example 320–430 CSS px at 200% text), the avatar + identity row no
- * longer has enough inline space. Stack the identity below the avatars and
- * let the relationship action wrap instead of widening the document.
- */
-@container product-content (max-width: 14rem) {
-  .today-section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-1);
-  }
-
-  .today-section-link {
-    max-width: 100%;
-    flex: 0 1 auto;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .today-hero .couple-presence-main {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-
-  .today-hero .couple-presence-details,
-  .today-hero .couple-presence-actions {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .today-hero-action-container {
-    justify-content: flex-start;
-  }
-
-  .today-hero-action {
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    text-align: left;
-  }
-}
-
 .today-hero-duration-link:hover,
 .today-hero-duration-link:focus-visible {
   color: var(--color-brand-strong);
@@ -291,9 +247,11 @@
 
 .today-section-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
+  row-gap: var(--space-1);
   margin-bottom: var(--space-3);
   padding-left: var(--space-1);
 }
@@ -310,10 +268,12 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  flex: 0 0 auto;
+  max-width: 100%;
+  flex: 0 1 auto;
   font-size: 0.84rem;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
   text-decoration: none;
   transition: color var(--motion-fast);
@@ -1146,6 +1106,36 @@
     flex: initial;
     max-width: none;
     scroll-snap-align: none;
+  }
+}
+
+/*
+ * Extremely narrow content columns stack the relationship identity below the
+ * avatars. Section headers do not depend on this breakpoint: their base flex
+ * contract below is intrinsically wrap-safe for browser text zoom.
+ */
+@container product-content (max-width: 14rem) {
+  .today-hero .couple-presence-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .today-hero .couple-presence-details,
+  .today-hero .couple-presence-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .today-hero-action-container {
+    justify-content: flex-start;
+  }
+
+  .today-hero-action {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
   }
 }
 

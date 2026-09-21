@@ -77,7 +77,6 @@ import {
 } from './storyPresentation';
 import { UiState } from './UiState';
 import { usePullToRefresh } from './usePullToRefresh';
-import { useStickyTimelineMonths } from './useStickyTimelineMonths';
 import {
   useDiscoverReveal,
   useTimelineAutoPagination,
@@ -547,10 +546,6 @@ export function StoryProductPage({
   const timelineMonthGroups = useMemo(
     () => groupStoryItems(timelineItems, locale),
     [timelineItems, locale],
-  );
-  useStickyTimelineMonths(
-    timelineMonthsRef,
-    activeView === 'timeline' && timelineMonthGroups.length > 0,
   );
   useTimelineReveal({
     rootRef: timelineMonthsRef,

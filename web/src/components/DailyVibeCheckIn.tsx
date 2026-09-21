@@ -423,8 +423,6 @@ export function DailyVibeCheckIn({
             partnerStateClass +
             (revealVersion > 0 ? ' is-revealed' : '')
           }
-          role="group"
-          aria-label={partnerAccessibleCopy(partnerProjection)}
           data-state={partnerProjection.state}
           data-testid="daily-vibe-partner"
         >

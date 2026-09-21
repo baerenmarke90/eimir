@@ -34,13 +34,14 @@ function LocationProbe() {
   return <output aria-label="location">{location.pathname}</output>;
 }
 
-function renderContinuation() {
+function renderContinuation(sharedAchievementEnabled = false) {
   return render(
     <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
       <PlanStoryContinuation
         apis={{} as SharedPlanningApis}
         spaceId="space-1"
         plan={plan}
+        sharedAchievementEnabled={sharedAchievementEnabled}
       />
       <LocationProbe />
     </MemoryRouter>,
@@ -48,6 +49,42 @@ function renderContinuation() {
 }
 
 describe('PlanStoryContinuation', () => {
+  it('renders exactly one team celebration when the Space module is enabled', () => {
+    const view = renderContinuation(true);
+
+    expect(
+      screen.getAllByRole('heading', {
+        name: i18n.t('m5s3.plan.sharedAchievementTitle'),
+      }),
+    ).toHaveLength(1);
+    expect(screen.getByRole('status').textContent).toContain(
+      i18n.t('m5s3.plan.sharedAchievementBody', { title: plan.title }),
+    );
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n.t('m5s3.plan.completedTitle'),
+      }),
+    ).toBeNull();
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/plan/plans/plan-1']}>
+        <PlanStoryContinuation
+          apis={{} as SharedPlanningApis}
+          spaceId="space-1"
+          plan={plan}
+          sharedAchievementEnabled
+        />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getAllByRole('heading', {
+        name: i18n.t('m5s3.plan.sharedAchievementTitle'),
+      }),
+    ).toHaveLength(1);
+  });
+
   it('hands Memory capture to the canonical R1 route without rendering a second editor', () => {
     renderContinuation();
 

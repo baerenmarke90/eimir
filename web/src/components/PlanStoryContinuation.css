@@ -2,6 +2,66 @@
   align-content: start;
 }
 
+.shared-achievement-confirmation {
+  display: grid;
+  grid-template-columns: var(--space-12) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-large);
+  padding: var(--space-3);
+  background: var(--color-shared-surface);
+  animation: shared-achievement-arrive var(--motion-emphasized)
+    var(--easing-enter);
+}
+
+.shared-achievement-mark {
+  display: grid;
+  width: var(--space-12);
+  height: var(--space-12);
+  place-items: center;
+  border: 1px solid var(--color-shared-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-success);
+  box-shadow: var(--shadow-soft);
+}
+
+.shared-achievement-mark svg {
+  width: var(--space-6);
+  height: var(--space-6);
+}
+
+.shared-achievement-copy {
+  min-width: 0;
+}
+
+.shared-achievement-copy h2,
+.shared-achievement-copy p {
+  margin: 0;
+}
+
+.shared-achievement-copy h2 {
+  color: var(--color-success);
+}
+
+.shared-achievement-copy p {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+@keyframes shared-achievement-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1)) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .plan-story-actions {
   display: grid;
   gap: var(--space-3);
@@ -16,5 +76,11 @@
 @media (max-width: 520px) {
   .plan-story-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-achievement-confirmation {
+    animation: none;
   }
 }

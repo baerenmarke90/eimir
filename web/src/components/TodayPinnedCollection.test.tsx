@@ -111,6 +111,9 @@ describe('TodayPinnedCollection', () => {
       }),
     );
     await waitFor(() => expect(onRefresh).toHaveBeenCalled());
+    expect(
+      screen.queryByText(i18n.t('m5s3.plan.sharedAchievementTitle')),
+    ).toBeNull();
   });
 
   it('adds an item through the existing Collection mutation', async () => {

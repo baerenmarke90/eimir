@@ -134,6 +134,9 @@ const m5s3 = {
     returnToWish: 'Zurück zum Wunsch',
     completedTitle: 'Gemeinsam erlebt',
     completedBody: 'Aus einem Plan wurde etwas, das ihr erlebt habt.',
+    sharedAchievementTitle: 'Gemeinsam geschafft',
+    sharedAchievementBody:
+      '„{{title}}“ ist geschafft. Das habt ihr zusammen erreicht.',
     createMemoryFromPlan: 'Erinnerung daraus festhalten',
     deleteConsequence:
       'Der Plan wird gelöscht. Ein verknüpfter Ort oder andere eigenständige Inhalte bleiben erhalten.',

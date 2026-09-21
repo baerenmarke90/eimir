@@ -11,16 +11,38 @@ const PLAN_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-12T07:00:00Z';
 const EXPERIENCED_ON = '2026-09-11';
 
-async function installMocks(page: Page): Promise<void> {
+type MockOptions = {
+  sharedAchievementsEnabled?: boolean;
+  completionFailuresBeforeSuccess?: number;
+};
+
+type MockState = {
+  completionCalls: number;
+};
+
+async function installMocks(
+  page: Page,
+  options: MockOptions = {},
+): Promise<MockState> {
   let completed = false;
+  const sharedAchievementsEnabled =
+    options.sharedAchievementsEnabled ?? true;
+  const completionFailuresBeforeSuccess =
+    options.completionFailuresBeforeSuccess ?? 0;
+  const state: MockState = { completionCalls: 0 };
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
-    const fulfillJson = async (body: unknown, status = 200) =>
+    const fulfillJson = async (
+      body: unknown,
+      status = 200,
+      headers: Record<string, string> = {},
+    ) =>
       route.fulfill({
         status,
         contentType: 'application/json',
+        headers,
         body: JSON.stringify(body),
       });
 
@@ -104,6 +126,31 @@ async function installMocks(page: Page): Promise<void> {
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await fulfillJson(
+        {
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 1,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        },
+        200,
+        { ETag: '"1"' },
+      );
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
       await fulfillJson({ items: [] });
@@ -178,6 +225,19 @@ async function installMocks(page: Page): Promise<void> {
       method === 'POST' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/complete`
     ) {
+      state.completionCalls += 1;
+      if (state.completionCalls <= completionFailuresBeforeSuccess) {
+        await fulfillJson(
+          {
+            code: 'E2E_PLAN_COMPLETE_FAILED',
+            detail: 'Synthetic completion failure.',
+            status: 500,
+            title: 'Synthetic completion failure',
+          },
+          500,
+        );
+        return;
+      }
       completed = true;
       await fulfillJson({
         capabilities: { canComment: true, canDelete: true, canEdit: true },
@@ -223,6 +283,8 @@ async function installMocks(page: Page): Promise<void> {
       500,
     );
   });
+
+  return state;
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -265,12 +327,28 @@ type VisualScenario = {
   name: string;
   viewport: { width: number; height: number };
   theme: 'light' | 'dark';
+  reducedMotion?: boolean;
+  fontScale?: number;
 };
 
 const visualScenarios: VisualScenario[] = [
   { name: '390-light', viewport: { width: 390, height: 844 }, theme: 'light' },
   { name: '390-dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
   { name: '320-reflow', viewport: { width: 320, height: 720 }, theme: 'light' },
+  { name: '360-light', viewport: { width: 360, height: 800 }, theme: 'light' },
+  { name: '430-light', viewport: { width: 430, height: 900 }, theme: 'light' },
+  {
+    name: '390-reduced-motion',
+    viewport: { width: 390, height: 844 },
+    theme: 'light',
+    reducedMotion: true,
+  },
+  {
+    name: '390-200-percent',
+    viewport: { width: 390, height: 1100 },
+    theme: 'light',
+    fontScale: 2,
+  },
   {
     name: '1440-expanded-light',
     viewport: { width: 1440, height: 900 },
@@ -283,20 +361,31 @@ async function prepareScenario(
   scenario: VisualScenario,
 ): Promise<void> {
   await page.setViewportSize(scenario.viewport);
+  await page.emulateMedia({
+    reducedMotion: scenario.reducedMotion ? 'reduce' : 'no-preference',
+  });
   await page.addInitScript((theme) => {
     window.localStorage.setItem('eimir.theme', theme);
   }, scenario.theme);
   await installMocks(page);
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
+  if (scenario.fontScale) {
+    await page.addStyleTag({
+      content: `html { font-size: ${scenario.fontScale * 100}% !important; }`,
+    });
+  }
 
   await page.getByText(m5s3.plan.actionsHeading).click();
   await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
   await page.getByRole('button', { name: m5s3.plan.complete }).click();
 
   await expect(
-    page.getByRole('heading', { name: m5s3.plan.completedTitle }),
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toBeVisible();
+  await expect(page.locator('.shared-achievement-confirmation')).toHaveCount(
+    1,
+  );
   await expect(
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toBeVisible();
@@ -311,6 +400,12 @@ async function prepareScenario(
     scenario.theme,
   );
   await assertNoHorizontalOverflow(page);
+  if (scenario.reducedMotion) {
+    const animationName = await page
+      .locator('.shared-achievement-confirmation')
+      .evaluate((node) => getComputedStyle(node).animationName);
+    expect(animationName).toBe('none');
+  }
 }
 
 async function captureEvidence(
@@ -364,8 +459,64 @@ test('Later dismisses the continuation and restores focus to stable Plan navigat
   await page.getByRole('button', { name: m5s3.planStory.later }).click();
 
   await expect(
-    page.getByRole('heading', { name: m5s3.plan.completedTitle }),
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(0);
   await expect(backLink).toBeFocused();
   await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
+});
+
+
+test('disabled Shared Achievements keeps normal Plan completion without celebration', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eimir.theme', 'light');
+  });
+  await installMocks(page, { sharedAchievementsEnabled: false });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.completedTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+});
+
+test('failed completion shows no celebration and a deliberate retry celebrates exactly once', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eimir.theme', 'light');
+  });
+  const state = await installMocks(page, {
+    sharedAchievementsEnabled: true,
+    completionFailuresBeforeSuccess: 1,
+  });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  const complete = page.getByRole('button', { name: m5s3.plan.complete });
+  await complete.click();
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+  await expect(complete).toBeVisible();
+
+  await complete.click();
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(1);
+  expect(state.completionCalls).toBe(2);
 });

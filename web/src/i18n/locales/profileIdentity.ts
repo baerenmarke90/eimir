@@ -61,6 +61,11 @@ const profileIdentity = {
     'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
   supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
   supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
+  sharedAchievementsTitle: 'Gemeinsame Erfolge',
+  sharedAchievementsIntro:
+    'Würdigt größere gemeinsame Abschlüsse kurz als Team – ohne Punkte, Streaks oder Rankings.',
+  sharedAchievementsToggle:
+    'Gemeinsame Erfolge aktivieren oder deaktivieren',
   vibeCheckTitle: 'Vibe-Check',
   vibeCheckIntro:
     'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',

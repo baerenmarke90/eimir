@@ -456,7 +456,13 @@ function AuthenticatedApp({
           />
           <Route
             path={PLAN_DETAIL_ROUTE_PATTERN}
-            element={<PlanProductPage {...planningProductProps} />}
+            element={
+              <PlanProductPage
+                {...planningProductProps}
+                spacesApi={spacesApi}
+                accountId={account.id}
+              />
+            }
           />
           <Route
             path={STORY_CHAPTERS_ROUTE}

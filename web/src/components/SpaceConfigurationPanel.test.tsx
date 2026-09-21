@@ -109,6 +109,44 @@ describe('SpaceConfigurationPanel', () => {
     expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
   });
 
+  it('lets the manager disable Shared Achievements through the typed Space configuration contract', async () => {
+    const updatedConfiguration = configuration({
+      sharedAchievementsEnabled: false,
+      version: 8,
+    });
+    const getSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValueOnce(rawResponse(configuration(), '"7"'))
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const updateSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const spacesApi = {
+      getSpaceConfigurationRaw,
+      updateSpaceConfigurationRaw,
+    } as unknown as SpacesApi;
+
+    renderPanel(spacesApi);
+
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.sharedAchievementsToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(updateSpaceConfigurationRaw).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        ifMatch: '"7"',
+        spaceConfigurationUpdate: { sharedAchievementsEnabled: false },
+      });
+    });
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+    });
+  });
+
   it('lets the manager disable Vibe Check through the same configuration contract', async () => {
     const updatedConfiguration = configuration({
       vibeCheckEnabled: false,
@@ -164,7 +202,7 @@ describe('SpaceConfigurationPanel', () => {
 
     expect(
       await screen.findAllByText(profileIdentity.spaceModuleOn),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('combobox')).toBeNull();

@@ -17,11 +17,13 @@ export function PlanStoryContinuation({
   spaceId: _spaceId,
   plan,
   focusOnMount = false,
+  sharedAchievementEnabled = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   focusOnMount?: boolean;
+  sharedAchievementEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -60,13 +62,46 @@ export function PlanStoryContinuation({
       className="plan-completed-celebration plan-story-continuation eimir-motion-reveal"
       aria-labelledby="plan-completed-heading"
     >
-      <h2
-        id="plan-completed-heading"
-        ref={headingRef}
-        tabIndex={focusOnMount ? -1 : undefined}
-      >
-        {t('m5s3.plan.completedTitle')}
-      </h2>
+      {sharedAchievementEnabled ? (
+        <div
+          className="shared-achievement-confirmation"
+          role="status"
+          aria-atomic="true"
+        >
+          <span className="shared-achievement-mark" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m5 12 4 4L19 6" />
+            </svg>
+          </span>
+          <div className="shared-achievement-copy">
+            <h2
+              id="plan-completed-heading"
+              ref={headingRef}
+              tabIndex={focusOnMount ? -1 : undefined}
+            >
+              {t('m5s3.plan.sharedAchievementTitle')}
+            </h2>
+            <p>
+              {t('m5s3.plan.sharedAchievementBody', { title: plan.title })}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <h2
+          id="plan-completed-heading"
+          ref={headingRef}
+          tabIndex={focusOnMount ? -1 : undefined}
+        >
+          {t('m5s3.plan.completedTitle')}
+        </h2>
+      )}
       <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
       <div className="plan-story-actions">
         <button

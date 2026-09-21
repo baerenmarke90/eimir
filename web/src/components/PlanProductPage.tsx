@@ -4,9 +4,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
+import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
+import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
@@ -46,9 +48,13 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
 export function PlanProductPage({
   apis,
   spaceId,
+  spacesApi,
+  accountId,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
+  spacesApi?: SpacesApi;
+  accountId?: string;
 }) {
   const { t } = useTranslation();
   const { planId } = useParams();
@@ -77,6 +83,12 @@ export function PlanProductPage({
     staleTime: 30_000,
     retry: false,
   });
+  const spaceConfigurationQuery = useQuery(
+    spaceConfigurationQueryOptions(spacesApi, accountId ?? '', spaceId),
+  );
+  const sharedAchievementsEnabled =
+    spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
+    true;
 
   const commitPlan = async (plan: PlanDetail) => {
     queryClient.setQueryData(key, plan);
@@ -513,6 +525,7 @@ export function PlanProductPage({
             spaceId={spaceId}
             plan={plan}
             focusOnMount={completeMutation.isSuccess}
+            sharedAchievementEnabled={sharedAchievementsEnabled}
           />
         ) : null}
 

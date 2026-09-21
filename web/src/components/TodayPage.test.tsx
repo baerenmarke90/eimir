@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import type { M4ProductApis } from '../client/m4Product';
 import {
@@ -193,6 +194,82 @@ describe('TodayPage', () => {
     expect(upcomingIndex).toBeGreaterThan(detailsIndex);
     expect(html).toContain('couple-presence-avatar-adornment');
     expect(html).not.toContain('today-section-energy');
+  });
+
+  it('places Daily Vibe directly after Couple Presence and before planning', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(['m5-s5', 'dashboard', 'space-1'], {
+      space: {
+        id: 'space-1',
+        partner: { id: 'partner-1', displayName: 'Marie' },
+      },
+      relationshipDuration: null,
+      upcoming: [
+        {
+          id: 'plan-1',
+          type: 'PLAN',
+          titleOrText: 'Weekend trip',
+          scheduledAt: new Date('2026-09-22T10:00:00Z'),
+        },
+      ],
+      recentShared: [],
+      retrospective: null,
+    });
+    queryClient.setQueryData(
+      dashboardPreferencesQueryKey('account-1', 'space-1'),
+      { items: [] },
+    );
+    queryClient.setQueryData(
+      spaceConfigurationQueryKey('account-1', 'space-1'),
+      {
+        configuration: {
+          supportGesturesEnabled: true,
+          energyCheckInEnabled: false,
+          vibeCheckEnabled: true,
+        },
+        etag: '"1"',
+      },
+    );
+    queryClient.setQueryData(
+      dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      {
+        etag: '"today:1"',
+        projection: {
+          checkedOn: new Date('2026-09-21T00:00:00Z'),
+          dailyContextTimezone: 'Europe/Berlin',
+          own: { energyLevel: null, vibe: null, version: 0 },
+          energy: null,
+          vibe: {
+            visibilityMode: 'MUTUAL_REVEAL',
+            partner: { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' },
+          },
+        },
+      },
+    );
+
+    const html = renderToStaticMarkup(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <TodayPage
+            apis={{} as M4ProductApis}
+            spaceId="space-1"
+            account={{ id: 'account-1', displayName: 'Alex' }}
+            dailyCheckInsApi={{} as DailyCheckInsApi}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const heroIndex = html.indexOf('today-hero');
+    const vibeIndex = html.indexOf('daily-vibe-checkin');
+    const upcomingIndex = html.indexOf('today-section-upcoming');
+    expect(heroIndex).toBeGreaterThanOrEqual(0);
+    expect(vibeIndex).toBeGreaterThan(heroIndex);
+    expect(upcomingIndex).toBeGreaterThan(vibeIndex);
+    expect(html).toContain('Wie geht es euch heute?');
+    expect(html).not.toContain('today-section-vibe');
   });
 
   it('never mounts the hero Energy control before authoritative Space configuration enables it', () => {

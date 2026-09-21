@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -2239,7 +2239,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3381,7 +3381,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Position",
             "type": "integer"
           }

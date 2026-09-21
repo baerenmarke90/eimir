@@ -382,7 +382,9 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   const partnerCard = page.getByTestId('daily-vibe-partner');
   await expect(partnerCard.getByText(dailyVibe.values.STRESSED)).toBeVisible();
   await expect(partnerCard.getByText('Ben', { exact: true })).toBeVisible();
-  await expect(partnerCard.getByText('Ben Winter', { exact: true })).toHaveCount(0);
+  await expect(
+    partnerCard.getByText('Ben Winter', { exact: true }),
+  ).toHaveCount(0);
   await expect(partnerCard).toHaveClass(/is-revealed/);
   await expect(
     page.getByRole('button', {

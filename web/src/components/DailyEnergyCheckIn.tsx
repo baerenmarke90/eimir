@@ -113,7 +113,7 @@ function EnergyUnavailable({
           : t('dailyEnergy.unavailable')}
       </span>
       {!offline ? (
-        <button type="button" className="text-button" onClick={onRetry}>
+        <button type="button" className="tertiary" onClick={onRetry}>
           {t('common.retry')}
         </button>
       ) : null}
@@ -298,7 +298,7 @@ export function DailyEnergyCheckIn({
           {editing && ownEnergy !== null ? (
             <button
               type="button"
-              className="text-button daily-energy-cancel"
+              className="tertiary daily-energy-cancel"
               disabled={mutation.isPending}
               onClick={() => setEditing(false)}
             >
@@ -315,7 +315,7 @@ export function DailyEnergyCheckIn({
           <div className="daily-energy-own-actions">
             <button
               type="button"
-              className="text-button"
+              className="tertiary"
               disabled={mutation.isPending}
               onClick={() => setEditing(true)}
             >
@@ -323,7 +323,7 @@ export function DailyEnergyCheckIn({
             </button>
             <button
               type="button"
-              className="text-button daily-energy-remove"
+              className="tertiary daily-energy-remove"
               disabled={mutation.isPending}
               onClick={() => mutation.mutate(null)}
             >

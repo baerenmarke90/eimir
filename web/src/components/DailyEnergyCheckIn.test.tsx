@@ -77,20 +77,14 @@ describe('DailyEnergyCheckIn', () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
-        .mockResolvedValue(
-          rawResponse(projection(), '"2026-09-21:absent"'),
-        ),
+        .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"')),
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
 
     expect(await screen.findAllByRole('radio')).toHaveLength(10);
-    expect(
-      screen.getByRole('radio', { name: '10 Prozent' }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole('radio', { name: '100 Prozent' }),
-    ).not.toBeNull();
+    expect(screen.getByRole('radio', { name: '10 Prozent' })).not.toBeNull();
+    expect(screen.getByRole('radio', { name: '100 Prozent' })).not.toBeNull();
 
     const partnerState = screen.getByTestId('daily-energy-partner');
     expect(
@@ -118,9 +112,7 @@ describe('DailyEnergyCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(
-      await screen.findByRole('radio', { name: '70 Prozent' }),
-    );
+    fireEvent.click(await screen.findByRole('radio', { name: '70 Prozent' }));
 
     await waitFor(() =>
       expect(updateDailyCheckInTodayRaw).toHaveBeenCalledWith({
@@ -130,9 +122,7 @@ describe('DailyEnergyCheckIn', () => {
       }),
     );
 
-    expect(
-      await screen.findByText(dailyEnergy.ownLabel),
-    ).not.toBeNull();
+    expect(await screen.findByText(dailyEnergy.ownLabel)).not.toBeNull();
     expect(screen.getByText('70 %')).not.toBeNull();
     expect(
       within(screen.getByTestId('daily-energy-partner')).getByText('20 %'),
@@ -150,17 +140,15 @@ describe('DailyEnergyCheckIn', () => {
       ),
     );
     const api = {
-      getDailyCheckInTodayRaw: vi
-        .fn()
-        .mockResolvedValue(
-          rawResponse(
-            projection({
-              own: 60,
-              partner: { state: 'VISIBLE', value: 40 },
-            }),
-            '"2026-09-21:check-in-1:3"',
-          ),
+      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+        rawResponse(
+          projection({
+            own: 60,
+            partner: { state: 'VISIBLE', value: 40 },
+          }),
+          '"2026-09-21:check-in-1:3"',
         ),
+      ),
       updateDailyCheckInTodayRaw,
     } as unknown as DailyCheckInsApi;
 
@@ -203,11 +191,7 @@ describe('DailyEnergyCheckIn', () => {
     const updateDailyCheckInTodayRaw = vi
       .fn()
       .mockRejectedValue(
-        new ClientProblemError(
-          'conflict',
-          409,
-          'RESOURCE_VERSION_CONFLICT',
-        ),
+        new ClientProblemError('conflict', 409, 'RESOURCE_VERSION_CONFLICT'),
       );
     const api = {
       getDailyCheckInTodayRaw,
@@ -231,24 +215,16 @@ describe('DailyEnergyCheckIn', () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
-        .mockResolvedValue(
-          rawResponse(projection(), '"2026-09-21:absent"'),
-        ),
+        .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"')),
       updateDailyCheckInTodayRaw: vi
         .fn()
         .mockRejectedValue(
-          new ClientProblemError(
-            'permission',
-            403,
-            'SPACE_MODULE_DISABLED',
-          ),
+          new ClientProblemError('permission', 403, 'SPACE_MODULE_DISABLED'),
         ),
     } as unknown as DailyCheckInsApi;
 
     renderEnergy(api);
-    fireEvent.click(
-      await screen.findByRole('radio', { name: '50 Prozent' }),
-    );
+    fireEvent.click(await screen.findByRole('radio', { name: '50 Prozent' }));
 
     await waitFor(() => {
       expect(screen.queryAllByRole('radio')).toHaveLength(0);

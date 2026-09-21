@@ -24,11 +24,7 @@ async function snapshotFromResponse(
   const projection = await response.value();
   const etag = response.raw.headers.get('ETag');
   if (!etag) {
-    throw new ClientProblemError(
-      'server',
-      500,
-      'DAILY_CHECK_IN_ETAG_MISSING',
-    );
+    throw new ClientProblemError('server', 500, 'DAILY_CHECK_IN_ETAG_MISSING');
   }
   return { projection, etag };
 }

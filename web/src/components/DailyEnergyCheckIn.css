@@ -77,8 +77,7 @@
   border-color: var(--color-brand);
   background: var(--color-brand-surface);
   color: var(--color-brand-text);
-  box-shadow: 0 0 0 1px
-    color-mix(in srgb, var(--color-brand) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-brand) 20%, transparent);
 }
 
 .daily-energy-choice:has(.daily-energy-choice-input:focus-visible)

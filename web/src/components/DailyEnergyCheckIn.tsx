@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useSyncExternalStore } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { PartnerEnergyProjection } from '../api/generated/models/PartnerEnergyProjection';
@@ -314,9 +310,7 @@ export function DailyEnergyCheckIn({
         <div className="daily-energy-own-set">
           <div className="daily-energy-own-copy">
             <span>{t('dailyEnergy.ownLabel')}</span>
-            <strong>
-              {t('dailyEnergy.percentage', { value: ownEnergy })}
-            </strong>
+            <strong>{t('dailyEnergy.percentage', { value: ownEnergy })}</strong>
           </div>
           <div className="daily-energy-own-actions">
             <button

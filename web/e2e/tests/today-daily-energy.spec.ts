@@ -129,9 +129,7 @@ async function installMocks(page: Page): Promise<{
         accountId: isPartner ? PARTNER_ID : ACCOUNT_ID,
         createdAt: '2026-01-01T00:00:00Z',
         displayName: isPartner ? 'Ben' : 'Anna',
-        id: isPartner
-          ? '00000000-0000-0000-0000-000000000022'
-          : PROFILE_ID,
+        id: isPartner ? '00000000-0000-0000-0000-000000000022' : PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
         updatedAt: '2026-01-01T00:00:00Z',
@@ -179,8 +177,7 @@ async function installMocks(page: Page): Promise<{
 
     if (
       method === 'GET' &&
-      pathname ===
-        `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
+      pathname === `/api/v1/spaces/${SPACE_ID}/notifications/unread-count`
     ) {
       await fulfillJson({ unreadCount: 0 });
       return;
@@ -289,9 +286,7 @@ async function installMocks(page: Page): Promise<{
 async function signIn(page: Page): Promise<void> {
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('anna@example.org');
-  await page
-    .getByLabel(de.login.password)
-    .fill('a-long-enough-test-password');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
 }

@@ -37,6 +37,7 @@ const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
 );
 const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
+const productRolesCss = readSource('./design/product-roles.css');
 
 describe('web layout primitives', () => {
   it('lets a page fill the bounded main region instead of a reading column', () => {
@@ -99,6 +100,23 @@ describe('web layout primitives', () => {
     expect(ruleBlock(layoutCss, '.layout-section-head p')).toContain(
       'max-width: var(--reading-max)',
     );
+  });
+
+  it('gives primary navigation pages one tokenized title scale and content rhythm', () => {
+    const rootHeader = ruleBlock(layoutCss, '.page-heading-root');
+    expect(rootHeader).toContain('margin-bottom: var(--space-section)');
+    expect(rootHeader).toContain('padding-bottom: 0');
+
+    const rootTitle = ruleBlock(layoutCss, '.page-heading-root h1');
+    expect(rootTitle).toContain('font: var(--font-page-heading)');
+    expect(rootTitle).toContain(
+      'letter-spacing: var(--tracking-page-heading)',
+    );
+
+    expect(productRolesCss).toContain(
+      '--font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif',
+    );
+    expect(productRolesCss).toContain('--tracking-page-heading: -0.015em');
   });
 
   it('stacks the page header and its action on compact viewports', () => {
@@ -214,7 +232,7 @@ describe('web layout tokens', () => {
       shellCss,
       layoutCss,
       readSource('./theme.css'),
-      readSource('./design/product-roles.css'),
+      productRolesCss,
       readSource('./story-media.css'),
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),

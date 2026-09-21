@@ -223,6 +223,31 @@
   margin-bottom: var(--space-2);
 }
 
+/*
+ * Primary navigation destinations share one orientation rhythm. This variant
+ * keeps the same PageHeader semantics while giving Momente, Planen and Mehr a
+ * single title scale and one header-to-content spacing contract.
+ */
+.page-heading-root {
+  margin-bottom: var(--space-section);
+  padding-bottom: 0;
+}
+
+.page-heading-root .page-heading-title-container {
+  margin-bottom: 0;
+}
+
+.page-heading-root h1 {
+  font: var(--font-page-heading);
+  letter-spacing: var(--tracking-page-heading);
+}
+
+.page-heading-root > div > p:last-child {
+  margin: var(--space-2) 0 0;
+  font: var(--font-reading-body);
+  letter-spacing: var(--tracking-reading-body);
+}
+
 /* Metric strip ----------------------------------------------------------- */
 
 /*

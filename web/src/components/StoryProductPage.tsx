@@ -658,19 +658,11 @@ export function StoryProductPage({
 
       <PullToRefreshIndicator state={pullRefresh} />
 
-      {activeView === 'timeline' ? (
-        <PageHeader
-          title={t('story.timelineTitle')}
-          description={t('story.timelineIntro')}
-          className="momente-timeline-header"
-        />
-      ) : (
-        <PageHeader
-          eyebrow={t('story.eyebrow')}
-          title={t('story.title')}
-          description={t('story.intro')}
-        />
-      )}
+      <PageHeader
+        variant="root"
+        title={t('story.timelineTitle')}
+        description={t('story.timelineIntro')}
+      />
 
       <div
         className={`momente-tabs-container eimir-motion-reveal ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`}

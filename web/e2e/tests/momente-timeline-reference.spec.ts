@@ -1116,8 +1116,10 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=discover');
     await page.waitForSelector('.momente-discover-page');
 
-    await expect(page.getByText(de.story.title)).toBeVisible();
-    await expect(page.getByText(de.story.intro)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',

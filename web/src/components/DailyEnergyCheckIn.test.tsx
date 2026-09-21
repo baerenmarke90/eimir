@@ -104,7 +104,7 @@ function setSlider(slider: HTMLElement, value: number) {
 }
 
 describe('DailyEnergyCheckIn', () => {
-  it('keeps both avatar batteries compact and percentages out of visible UI', async () => {
+  it('keeps the own Energy entry point clear and hides unrevealed partner Energy', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
@@ -120,9 +120,10 @@ describe('DailyEnergyCheckIn', () => {
       'daily-energy-own-battery',
     );
 
-    const partnerBattery = screen.getByTestId('daily-energy-partner-battery');
-    expect(partnerBattery.getAttribute('data-state')).toBe('hidden');
-    expect(partnerBattery.hasAttribute('data-energy')).toBe(false);
+    expect(
+      ownBattery.querySelector('.daily-energy-battery-question')?.textContent,
+    ).toBe('?');
+    expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
     expect(screen.queryByRole('slider')).toBeNull();
 
     const slider = await openUnsetEnergy();
@@ -214,7 +215,7 @@ describe('DailyEnergyCheckIn', () => {
     expect(updateDailyCheckInTodayRaw).not.toHaveBeenCalled();
   });
 
-  it('renders NO_CHECK_IN as an empty partner avatar battery without inventing a value', async () => {
+  it('hides the partner avatar battery when the partner has no Energy value', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(
@@ -229,13 +230,9 @@ describe('DailyEnergyCheckIn', () => {
 
     renderEnergy(api);
 
-    const partnerBattery = await screen.findByTestId(
-      'daily-energy-partner-battery',
-    );
     await waitFor(() =>
-      expect(partnerBattery.getAttribute('data-state')).toBe('empty'),
+      expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull(),
     );
-    expect(partnerBattery.hasAttribute('data-energy')).toBe(false);
 
     await openSetEnergy(60);
     expect(
@@ -360,9 +357,13 @@ describe('DailyEnergyCheckIn', () => {
         dailyCheckInUpdate: { energyLevel: null },
       }),
     );
+    const emptyBattery = await screen.findByRole('button', {
+      name: dailyEnergy.badgeAriaEmpty,
+    });
     expect(
-      await screen.findByRole('button', { name: dailyEnergy.badgeAriaEmpty }),
-    ).not.toBeNull();
+      emptyBattery.querySelector('.daily-energy-battery-question')?.textContent,
+    ).toBe('?');
+    expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
   });
 
   it('refetches a conflict instead of retrying the stale slider write', async () => {
@@ -463,7 +464,7 @@ describe('DailyEnergyCheckIn', () => {
     });
   });
 
-  it('drops the partner value while offline but keeps both quiet avatar indicators', async () => {
+  it('drops the partner value while offline without inventing an empty partner battery', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(
@@ -490,14 +491,15 @@ describe('DailyEnergyCheckIn', () => {
     fireEvent(window, new Event('offline'));
 
     await waitFor(() => {
-      const offlinePartner = screen.getByTestId('daily-energy-partner-battery');
-      expect(offlinePartner.getAttribute('data-state')).toBe('unavailable');
-      expect(offlinePartner.hasAttribute('data-energy')).toBe(false);
+      expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
       expect(screen.queryByTestId('daily-energy-popover')).toBeNull();
     });
     const offlineBadge = screen.getByRole('button', {
       name: dailyEnergy.unavailableOffline,
     }) as HTMLButtonElement;
     expect(offlineBadge.disabled).toBe(true);
+    expect(
+      offlineBadge.querySelector('.daily-energy-battery-question'),
+    ).toBeNull();
   });
 });

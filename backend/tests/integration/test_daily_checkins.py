@@ -345,3 +345,100 @@ class TestPersistenceAndEnergy:
         assert cleared.headers["etag"] == '"absent"'
 
 
+class TestMutualReveal:
+    def test_mutual_reveal_is_structurally_hidden_until_same_dimension_self_check_in(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            energy_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        )
+
+        partner_initial = client.get(
+            path(couple["space"].id), headers=auth(couple["partner_token"])
+        )
+        partner_saved = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 70},
+            headers={**auth(couple["partner_token"]), **if_match(partner_initial.headers["etag"])},
+        )
+        assert partner_saved.status_code == 200
+
+        hidden = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert hidden.status_code == 200
+        assert hidden.json()["energy"]["partner"] == {
+            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
+        }
+        hidden_json = hidden.text
+        assert str(couple["partner"].id) not in hidden_json
+        assert '"value"' not in hidden_json
+        assert "updatedAt" not in hidden_json
+        assert '"version"' in hidden_json  # Own version only.
+        assert "hasPartnerCheckedIn" not in hidden_json
+
+        revealed = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 40},
+            headers={**auth(couple["manager_token"]), **if_match(hidden.headers["etag"])},
+        )
+        assert revealed.status_code == 200
+        assert revealed.json()["energy"]["partner"] == {
+            "state": "VISIBLE",
+            "value": 70,
+        }
+
+    def test_immediate_and_no_check_in_states(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        none_yet = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert none_yet.json()["energy"]["partner"] == {"state": "NO_CHECK_IN"}
+
+        partner = client.get(path(couple["space"].id), headers=auth(couple["partner_token"]))
+        saved = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 90},
+            headers={**auth(couple["partner_token"]), **if_match(partner.headers["etag"])},
+        )
+        assert saved.status_code == 200
+
+        visible_without_self = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        assert visible_without_self.json()["energy"]["partner"] == {
+            "state": "VISIBLE",
+            "value": 90,
+        }
+
+    def test_ended_partner_membership_never_projects_retained_value(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        partner = client.get(path(couple["space"].id), headers=auth(couple["partner_token"]))
+        saved = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 80},
+            headers={**auth(couple["partner_token"]), **if_match(partner.headers["etag"])},
+        )
+        assert saved.status_code == 200
+
+        membership = _membership(session, couple["space"].id, couple["partner"].id)
+        membership.status = MembershipStatus.LEFT.value
+        membership.ended_at = datetime.now(UTC)
+        session.flush()
+
+        result = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
+        assert result.status_code == 200
+        assert result.json()["energy"]["partner"] == {"state": "NO_CHECK_IN"}
+
+

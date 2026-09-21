@@ -70,6 +70,7 @@ function BatteryIcon({ value }: { value: number | null }) {
       />
       {value !== null ? (
         <rect
+          key={value}
           className="daily-energy-battery-fill"
           x="3"
           y="4"

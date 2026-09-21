@@ -155,7 +155,7 @@ No authorization required
 
 Update Dashboard Module Preference
 
-Set one private per-account Dashboard preference (#817 visibility, #848 item limit).
+Set one private per-account Dashboard presentation preference.
 
 ### Example
 

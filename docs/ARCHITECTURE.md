@@ -204,14 +204,18 @@ Every sensitive domain object therefore separates two areas:
 | `happened_on`, `created_at` | additional sensitive fields |
 | `crypto_version` | |
 
-In version 1 the payload is plaintext (`crypto_version = 0`). The boundary
-already exists in API and persistence, so a later switch to client-generated
-ciphertext is a format change rather than an architectural rewrite.
+`crypto_version = 0` is legacy plaintext. `crypto_version = 2` is an
+application-encrypted envelope (issue #797, [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)):
+the server encrypts with operator-held keys and can still read the content, so this is
+encryption at rest, not end-to-end encryption. `crypto_version = 1` remains reserved for
+client-generated ciphertext. Because the boundary already exists in API and persistence,
+a later switch to client-generated ciphertext is a format change rather than an
+architectural rewrite.
 
 Persistence uses `ProtectedPayloadJSON` with a concrete `ProtectedPayload`
 class. A raw dictionary or payload from another domain is rejected before SQL
-binding. This is a type and architecture boundary, **not encryption**: with
-`crypto_version = 0`, the server can still read the content.
+binding, and this layer applies the active encryption mode: it seals on write and
+authenticates and decrypts on read, so domain code never handles ciphertext.
 
 Outbox events enforce the opposite boundary. Their payload is not an arbitrary
 JSON dictionary but `PublicEventPayload` with a central allowlist of
@@ -221,7 +225,9 @@ ProtectedPayload and is not persistently copied into Outbox, worker, or logs.
 
 Derived functionality — Dashboard, recaps, rules, notifications — should use
 metadata whenever possible. Anything that requires plaintext will no longer
-work once real E2EE is introduced.
+work once real E2EE is introduced. Database indexes over payload text are not
+permitted: they would be an unencrypted copy of protected content (Search matches
+in the application instead, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)).
 
 See [SECURITY.md](SECURITY.md).
 

@@ -123,13 +123,17 @@ describe('CouplePresence', () => {
         spaceTitle="Philipp & Lea"
         primaryPerson={{ displayName: 'Philipp' }}
         secondaryPerson={{ displayName: 'Lea' }}
-        avatarAdornment={<button type="button">Akku</button>}
+        avatarAdornment={<button type="button">Energy</button>}
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Akku' })).toBeDefined();
-    expect(document.querySelector('.couple-presence-avatar-adornment')).not.toBeNull();
-    expect(document.querySelector('.couple-presence-avatar-anchor.has-adornment')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Energy' })).toBeDefined();
+    expect(
+      document.querySelector('.couple-presence-avatar-adornment'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('.couple-presence-avatar-anchor.has-adornment'),
+    ).not.toBeNull();
   });
 
   it('renders custom actions slot if provided', () => {

@@ -312,12 +312,18 @@ test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Toda
 
   const radios = section.getByRole('radio');
   await expect(radios).toHaveCount(10);
-  await expect(
-    section.getByRole('radio', { name: '10 Prozent' }),
-  ).toBeVisible();
-  await expect(
-    section.getByRole('radio', { name: '100 Prozent' }),
-  ).toBeVisible();
+  await expect(section.getByText('10 %')).toBeVisible();
+  await expect(section.getByText('100 %')).toBeVisible();
+
+  const touchHeights = await section
+    .locator('.daily-energy-choice-visual')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().height),
+    );
+  expect(touchHeights).toHaveLength(10);
+  for (const height of touchHeights) {
+    expect(height).toBeGreaterThanOrEqual(44);
+  }
 
   const partnerState = section.locator('[data-testid="daily-energy-partner"]');
   await expect(partnerState.getByText(dailyEnergy.hiddenTitle)).toBeVisible();
@@ -336,15 +342,6 @@ test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Toda
   await expect(section.getByText(dailyEnergy.ownLabel)).toBeVisible();
   await expect(section.getByText('70 %')).toBeVisible();
   await expect(partnerState.getByText('20 %')).toBeVisible();
-
-  const touchHeights = await section
-    .locator('.daily-energy-choice-visual')
-    .evaluateAll((nodes) =>
-      nodes.map((node) => node.getBoundingClientRect().height),
-    );
-  for (const height of touchHeights) {
-    expect(height).toBeGreaterThanOrEqual(44);
-  }
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,

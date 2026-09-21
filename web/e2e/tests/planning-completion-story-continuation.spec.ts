@@ -238,24 +238,30 @@ async function installMocks(
         return;
       }
       completed = true;
-      await fulfillJson({
-        capabilities: { canComment: true, canDelete: true, canEdit: true },
-        createdAt: TEST_NOW,
-        createdBy: ACCOUNT_ID,
-        creator: { id: ACCOUNT_ID, displayName: 'Anna' },
-        description: 'Remember the blanket.',
-        experiencedOn: EXPERIENCED_ON,
-        id: PLAN_ID,
-        placeId: null,
-        plannedEnd: null,
-        plannedStart: null,
-        sourceWishId: null,
-        spaceId: SPACE_ID,
-        status: 'COMPLETED',
-        title: 'Picnic in the park',
-        updatedAt: TEST_NOW,
-        version: 4,
-      });
+      await fulfillJson(
+        {
+          capabilities: { canComment: true, canDelete: true, canEdit: true },
+          createdAt: TEST_NOW,
+          createdBy: ACCOUNT_ID,
+          creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+          description: 'Remember the blanket.',
+          experiencedOn: EXPERIENCED_ON,
+          id: PLAN_ID,
+          placeId: null,
+          plannedEnd: null,
+          plannedStart: null,
+          sourceWishId: null,
+          spaceId: SPACE_ID,
+          status: 'COMPLETED',
+          title: 'Picnic in the park',
+          updatedAt: TEST_NOW,
+          version: 4,
+        },
+        200,
+        sharedAchievementsEnabled
+          ? { 'X-Eimir-Shared-Achievement': 'plan-completed' }
+          : {},
+      );
       return;
     }
 

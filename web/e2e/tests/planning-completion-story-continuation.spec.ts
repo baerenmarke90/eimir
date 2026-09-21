@@ -300,9 +300,11 @@ type VisualScenario = {
 };
 
 const visualScenarios: VisualScenario[] = [
+  { name: '320-reflow', viewport: { width: 320, height: 720 }, theme: 'light' },
+  { name: '360-light', viewport: { width: 360, height: 800 }, theme: 'light' },
   { name: '390-light', viewport: { width: 390, height: 844 }, theme: 'light' },
   { name: '390-dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
-  { name: '320-reflow', viewport: { width: 320, height: 720 }, theme: 'light' },
+  { name: '430-light', viewport: { width: 430, height: 900 }, theme: 'light' },
   {
     name: '1440-expanded-light',
     viewport: { width: 1440, height: 900 },
@@ -328,7 +330,11 @@ async function prepareScenario(
   await page.getByRole('button', { name: m5s3.plan.complete }).click();
 
   await expect(
-    page.getByRole('heading', { name: m5s3.plan.completedTitle }),
+    page.getByRole('heading', {
+      name: options.sharedAchievement
+        ? m5s3.plan.sharedAchievementTitle
+        : m5s3.plan.completedTitle,
+    }),
   ).toBeVisible();
   await expect(
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
@@ -360,12 +366,12 @@ async function captureEvidence(
 }
 
 for (const scenario of visualScenarios) {
-  test(`completed Plan continuation: ${scenario.name}`, async ({
+  test(`shared achievement completion: ${scenario.name}`, async ({
     page,
   }, testInfo) => {
-    await prepareScenario(page, scenario);
+    await prepareScenario(page, scenario, { sharedAchievement: true });
     if (scenario.name === '390-light') await assertNoWcagViolations(page);
-    await captureEvidence(page, testInfo, scenario.name);
+    await captureEvidence(page, testInfo, `shared-achievement-${scenario.name}`);
   });
 }
 
@@ -411,6 +417,27 @@ test('server-confirmed shared achievement is announced in context without replac
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toBeVisible();
   await assertNoWcagViolations(page);
+  await assertNoHorizontalOverflow(page);
+});
+
+test('shared achievement reflows at 320 px with 200 percent text', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  await installMocks(page, { sharedAchievement: true });
+  await signIn(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toBeVisible();
   await assertNoHorizontalOverflow(page);
 });
 

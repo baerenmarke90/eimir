@@ -119,7 +119,7 @@ function PartnerBatteryIndicator({
   // Partner Energy is informative, not an entry point. If there is no
   // revealable value yet (not checked in, hidden by mutual reveal, loading,
   // offline, or unavailable), keep the avatar visually quiet.
-  if (!projection || projection.state !== 'VISIBLE') return null;
+  if (projection?.state !== 'VISIBLE') return null;
 
   const label = partnerName
     ? t('dailyEnergy.partnerLabel', { name: partnerName })

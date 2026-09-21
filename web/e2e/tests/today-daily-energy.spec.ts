@@ -301,7 +301,11 @@ async function signIn(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/today$/);
 }
 
-test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Today', async ({
+function energyBadgeAriaValue(value: number): string {
+  return dailyEnergy.badgeAriaValue.replace('{{value}}', String(value));
+}
+
+test('Daily Energy is a compact avatar battery that opens one accessible slider', async ({
   page,
 }, testInfo) => {
   const state = await installMocks(page);
@@ -309,45 +313,52 @@ test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Toda
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
 
-  const section = page.locator('.today-section-energy');
-  await expect(section).toBeVisible();
-  await expect(
-    section.getByRole('heading', { name: dailyEnergy.question }),
-  ).toBeVisible();
+  const hero = page.locator('.today-hero');
+  await expect(hero).toBeVisible();
+  await expect(page.locator('.today-section-energy')).toHaveCount(0);
 
-  const radios = section.getByRole('radio');
-  await expect(radios).toHaveCount(10);
-  await expect(section.getByText('10 %')).toBeVisible();
-  await expect(section.getByText('100 %')).toBeVisible();
+  const badge = hero.getByRole('button', {
+    name: dailyEnergy.badgeAriaEmpty,
+  });
+  await expect(badge).toBeVisible();
 
-  const touchHeights = await section
-    .locator('.daily-energy-choice-visual')
-    .evaluateAll((nodes) =>
-      nodes.map((node) => node.getBoundingClientRect().height),
-    );
-  expect(touchHeights).toHaveLength(10);
-  for (const height of touchHeights) {
-    expect(height).toBeGreaterThanOrEqual(44);
-  }
+  const badgeBox = await badge.boundingBox();
+  expect(badgeBox).not.toBeNull();
+  if (!badgeBox) throw new Error('Missing Daily Energy badge bounds');
+  expect(badgeBox.height).toBeGreaterThanOrEqual(44);
 
-  const partnerState = section.locator('[data-testid="daily-energy-partner"]');
+  await badge.click();
+
+  const popover = page.getByTestId('daily-energy-popover');
+  await expect(popover).toBeVisible();
+  const slider = popover.getByRole('slider', {
+    name: dailyEnergy.selectLegend,
+  });
+  await expect(slider).toHaveAttribute('min', '10');
+  await expect(slider).toHaveAttribute('max', '100');
+  await expect(slider).toHaveAttribute('step', '10');
+  await expect(slider).toHaveValue('50');
+
+  const partnerState = popover.locator('[data-testid="daily-energy-partner"]');
   await expect(partnerState.getByText(dailyEnergy.hiddenTitle)).toBeVisible();
   await expect(partnerState.getByText(dailyEnergy.hiddenBody)).toBeVisible();
   await expect(partnerState.getByText('20 %')).toHaveCount(0);
 
-  const target = section.getByRole('radio', { name: '70 Prozent' });
-  await target.focus();
-  await expect(target).toBeFocused();
-  await page.keyboard.press('Space');
+  await slider.focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(slider).toHaveValue('70');
+  await page.keyboard.press('Tab');
 
   await expect.poll(state.patchCount).toBe(1);
   expect(state.lastIfMatch()).toBe('"2026-09-21:absent"');
   expect(state.lastEnergy()).toBe(70);
 
-  await expect(section.locator('.daily-energy-own-copy > span')).toHaveText(
-    dailyEnergy.ownLabel,
-  );
-  await expect(section.getByText('70 %')).toBeVisible();
+  await expect(
+    hero.getByRole('button', {
+      name: energyBadgeAriaValue(70),
+    }),
+  ).toBeVisible();
   await expect(partnerState.getByText('20 %')).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
@@ -357,17 +368,21 @@ test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Toda
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 
   const result = await new AxeBuilder({ page })
-    .include('.today-section-energy')
+    .include('.today-hero')
     .analyze();
   expect(result.violations).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('today-daily-energy-390-light.png'),
+    path: testInfo.outputPath('today-daily-energy-hero-slider-390-light.png'),
     fullPage: true,
   });
+
+  await page.keyboard.press('Escape');
+  await expect(popover).toHaveCount(0);
+  await expect(hero.locator('.daily-energy-badge')).toBeFocused();
 });
 
-test('Daily Energy reflows at 320px with 200 percent text without horizontal overflow', async ({
+test('Daily Energy popover stays inside a 320px viewport with 200 percent text', async ({
   page,
 }, testInfo) => {
   await installMocks(page);
@@ -375,30 +390,85 @@ test('Daily Energy reflows at 320px with 200 percent text without horizontal ove
   await page.setViewportSize({ width: 320, height: 844 });
   await signIn(page);
 
-  await page.addStyleTag({
+  const largeTextStyle = await page.addStyleTag({
     content: 'html { font-size: 200% !important; }',
   });
 
-  const section = page.locator('.today-section-energy');
-  await expect(section).toBeVisible();
-  const geometry = await section.evaluate((node) => ({
+  const hero = page.locator('.today-hero');
+  const badge = hero.getByRole('button', {
+    name: dailyEnergy.badgeAriaEmpty,
+  });
+  await expect(badge).toBeVisible();
+  await badge.click();
+
+  const popover = page.getByTestId('daily-energy-popover');
+  await expect(popover).toBeVisible();
+  await expect(
+    popover.getByRole('slider', { name: dailyEnergy.selectLegend }),
+  ).toBeVisible();
+
+  const viewportWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
+  );
+  const popoverGeometry = await popover.evaluate((node) => ({
     clientWidth: node.clientWidth,
     scrollWidth: node.scrollWidth,
   }));
-  expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+  expect(popoverGeometry.scrollWidth).toBeLessThanOrEqual(
+    popoverGeometry.clientWidth,
+  );
 
-  const gridColumns = await section
-    .locator('.daily-energy-grid')
-    .evaluate((node) => getComputedStyle(node).gridTemplateColumns.split(' '));
-  expect(gridColumns).toHaveLength(2);
+  const popoverBox = await popover.boundingBox();
+  expect(popoverBox).not.toBeNull();
+  if (!popoverBox) throw new Error('Missing Daily Energy popover bounds');
+  expect(popoverBox.x).toBeGreaterThanOrEqual(0);
+  expect(popoverBox.x + popoverBox.width).toBeLessThanOrEqual(
+    viewportWidth + 1,
+  );
+
+  const heroBox = await hero.boundingBox();
+  expect(heroBox).not.toBeNull();
+  if (!heroBox) throw new Error('Missing Today hero bounds');
+  expect(heroBox.x).toBeGreaterThanOrEqual(0);
+  expect(heroBox.x + heroBox.width).toBeLessThanOrEqual(viewportWidth + 1);
 
   const result = await new AxeBuilder({ page })
-    .include('.today-section-energy')
+    .include('[data-testid="daily-energy-popover"]')
     .analyze();
   expect(result.violations).toEqual([]);
 
   await page.screenshot({
-    path: testInfo.outputPath('today-daily-energy-320-dark-large-text.png'),
+    path: testInfo.outputPath(
+      'today-daily-energy-hero-slider-320-dark-large-text.png',
+    ),
+    fullPage: true,
+  });
+
+  await largeTextStyle.evaluate((node) => node.remove());
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+
+  await expect(popover).toBeVisible();
+  const expandedViewportWidth = await page.evaluate(
+    () => document.documentElement.clientWidth,
+  );
+  const expandedPopoverBox = await popover.boundingBox();
+  expect(expandedPopoverBox).not.toBeNull();
+  if (!expandedPopoverBox) {
+    throw new Error('Missing expanded Daily Energy popover bounds');
+  }
+  expect(expandedPopoverBox.x).toBeGreaterThanOrEqual(0);
+  expect(expandedPopoverBox.x + expandedPopoverBox.width).toBeLessThanOrEqual(
+    expandedViewportWidth + 1,
+  );
+
+  const expandedResult = await new AxeBuilder({ page })
+    .include('.today-hero')
+    .analyze();
+  expect(expandedResult.violations).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-energy-hero-slider-1280-light.png'),
     fullPage: true,
   });
 });

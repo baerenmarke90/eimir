@@ -546,7 +546,8 @@ test('a pending submission retains its draft and cannot create twice or exit', a
 
 test('dirty Browser Back asks before discarding and nested Escape keeps the task', async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await installProductApi(page);
   await signIn(page);
   await openMemory(page);
@@ -558,6 +559,25 @@ test('dirty Browser Back asks before discarding and nested Escape keeps the task
   await expect(
     confirmation.getByRole('heading', { name: taskBoundary.discardTitle }),
   ).toBeVisible();
+
+  const expandedClose = confirmation.locator('.short-task-sheet-close');
+  await expect(expandedClose).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-close-icon'),
+  ).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-drag-handle'),
+  ).toBeHidden();
+  const expandedCloseBox = await expandedClose.boundingBox();
+  expect(expandedCloseBox).not.toBeNull();
+  if (!expandedCloseBox) throw new Error('Missing expanded close bounds');
+  expect(expandedCloseBox.width).toBeGreaterThanOrEqual(44);
+  expect(expandedCloseBox.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({
+    path: testInfo.outputPath('f2-short-task-sheet-expanded-close.png'),
+    fullPage: false,
+  });
+
   await page.keyboard.press('Escape');
   await expect(confirmation).toHaveCount(0);
   await expect(

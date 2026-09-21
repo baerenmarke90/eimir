@@ -117,6 +117,25 @@ describe('CouplePresence', () => {
     expect(handleInvite).toHaveBeenCalledTimes(1);
   });
 
+  it('renders an avatar-adjacent control without changing the identity primitive', () => {
+    render(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        avatarAdornment={<button type="button">Energy</button>}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Energy' })).toBeDefined();
+    expect(
+      document.querySelector('.couple-presence-avatar-adornment'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('.couple-presence-avatar-anchor.has-adornment'),
+    ).not.toBeNull();
+  });
+
   it('renders custom actions slot if provided', () => {
     render(
       <CouplePresence

@@ -1107,6 +1107,17 @@ export function TodayPage({
                   : undefined
               }
               durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
+              avatarAdornment={
+                energyCheckInEnabled && account?.id ? (
+                  <DailyEnergyCheckIn
+                    key={`${account.id}:${spaceId}`}
+                    api={dailyCheckInsApi}
+                    accountId={account.id}
+                    spaceId={spaceId}
+                    partnerName={partner?.displayName}
+                  />
+                ) : undefined
+              }
               actions={
                 supportGesturesEnabled ? (
                   <div className="today-hero-action-container">
@@ -1125,22 +1136,6 @@ export function TodayPage({
           ) : (
             <h1 className="sr-only">{t('m5s5.dashboard.title')}</h1>
           )}
-
-          {energyCheckInEnabled && account?.id ? (
-            <TodayModuleSection
-              className="today-section-energy"
-              title={t('dailyEnergy.question')}
-              animationDelay="20ms"
-            >
-              <DailyEnergyCheckIn
-                key={`${account.id}:${spaceId}`}
-                api={dailyCheckInsApi}
-                accountId={account.id}
-                spaceId={spaceId}
-                partnerName={partner?.displayName}
-              />
-            </TodayModuleSection>
-          ) : null}
 
           {isSparse ? (
             <div className="new-space-experience eimir-motion-reveal">

@@ -37,12 +37,12 @@
 .short-task-sheet-header {
   position: relative;
   display: flex;
+  min-height: var(--space-8);
   align-items: center;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding: var(--space-2) var(--page-gutter);
+  padding: 0 var(--page-gutter);
   flex-shrink: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .short-task-sheet-title {
@@ -52,48 +52,48 @@
   overflow-wrap: anywhere;
 }
 
-.short-task-sheet-drag-zone {
+.short-task-sheet-close {
   position: absolute;
   top: 0;
   left: 50%;
+  z-index: 1;
   display: grid;
   width: var(--space-16);
-  height: var(--space-8);
-  place-items: center;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  place-items: start center;
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
   transform: translateX(-50%);
   touch-action: none;
   user-select: none;
   cursor: grab;
 }
 
-.short-task-sheet[data-dragging="true"] .short-task-sheet-drag-zone {
+.short-task-sheet[data-dragging="true"] .short-task-sheet-close {
   cursor: grabbing;
+}
+
+.short-task-sheet-close:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -4px;
 }
 
 .short-task-sheet-drag-handle {
   width: var(--space-10);
   height: var(--space-1);
   border-radius: var(--radius-pill);
-  background: var(--color-text-secondary);
+  background: currentColor;
   opacity: 0.38;
 }
 
-.short-task-sheet-close {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  flex-shrink: 0;
-  place-items: center;
-  padding: 0;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-subtle);
-  color: var(--color-text);
-}
-
 .short-task-sheet-close-icon {
+  display: none;
   width: var(--space-5);
   height: var(--space-5);
   fill: none;
@@ -140,8 +140,33 @@
     border-radius: var(--radius-content);
   }
 
-  .short-task-sheet-drag-zone {
+  .short-task-sheet-header {
+    min-height: 0;
+    padding: var(--space-2) var(--page-gutter);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .short-task-sheet-close {
+    position: static;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--color-border-subtle);
+    background: var(--color-surface-subtle);
+    color: var(--color-text);
+    transform: none;
+    touch-action: auto;
+    user-select: auto;
+    cursor: pointer;
+  }
+
+  .short-task-sheet-drag-handle {
     display: none;
+  }
+
+  .short-task-sheet-close-icon {
+    display: block;
   }
 }
 

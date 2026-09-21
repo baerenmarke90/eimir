@@ -1075,24 +1075,7 @@
 /* =====================================================================
  * Momente > Zeitleiste: Header & Filter Chips (#860)
  * ===================================================================== */
-.momente-timeline-header {
-  margin-bottom: 0;
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.momente-timeline-header h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 6vw, 2.5rem);
-  letter-spacing: -0.015em;
-  margin: 0 0 var(--space-2);
-}
-
 .momente-timeline-header p {
-  color: var(--color-text-secondary);
-  font-size: 1.05rem;
-  line-height: 1.45;
-  margin: 0 0 var(--space-4);
   max-width: 44ch;
 }
 

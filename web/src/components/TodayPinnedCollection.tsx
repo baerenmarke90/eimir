@@ -5,12 +5,10 @@ import type { CollectionDetail } from '../api/generated/models/CollectionDetail'
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { normalizeClientError } from '../client/problemDetails';
 import { planningIfMatch } from '../client/sharedPlanning';
+import { sharedAchievementKind } from '../client/sharedAchievements';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
 import { SharedAchievementCelebration } from './SharedAchievementCelebration';
-
-const COLLECTION_COMPLETION_TRANSITION_HEADER =
-  'X-Eimir-Collection-Completion-Transition';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -56,14 +54,14 @@ export function TodayPinnedCollection({
           collectionItemUpdate: { completed: !item.completed },
         });
         await response.value();
-        return (
-          response.raw.headers.get(COLLECTION_COMPLETION_TRANSITION_HEADER) ===
-          'true'
-        );
+        return sharedAchievementKind(response.raw);
       }),
-    onSuccess: async (collectionBecameComplete) => {
+    onSuccess: async (achievement) => {
       await onRefresh();
-      if (sharedAchievementsEnabled && collectionBecameComplete) {
+      if (
+        sharedAchievementsEnabled &&
+        achievement === 'collection-completed'
+      ) {
         setCelebratedScope(celebrationScope);
         postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
           title: collection.title,

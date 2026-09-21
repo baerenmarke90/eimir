@@ -442,3 +442,106 @@ class TestMutualReveal:
         assert result.json()["energy"]["partner"] == {"state": "NO_CHECK_IN"}
 
 
+class TestConcurrency:
+    def test_parallel_first_writes_and_updates_have_one_winner(
+        self, production_client
+    ) -> None:  # type: ignore[no-untyped-def]
+        client, maker = production_client
+        with maker() as setup:
+            manager = make_account(setup, "Concurrent manager")
+            space = make_space(setup, manager)
+            configure_daily(setup, space_id=space.id, manager_id=manager.id)
+            token = sign_in(setup, manager)
+            space_id = space.id
+            setup.commit()
+
+        def race(payloads: list[dict[str, object]], etag: str):
+            start = Barrier(2)
+
+            def write(payload: dict[str, object]):
+                start.wait(timeout=5)
+                return client.patch(
+                    path(space_id),
+                    json=payload,
+                    headers={**auth(token), **if_match(etag)},
+                )
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                return list(pool.map(write, payloads))
+
+        first = race([{"energyLevel": 20}, {"energyLevel": 30}], '"absent"')
+        assert sorted(response.status_code for response in first) == [200, 409]
+        loser = next(response for response in first if response.status_code == 409)
+        assert loser.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+
+        current = client.get(path(space_id), headers=auth(token))
+        second = race([{"energyLevel": 40}, {"energyLevel": 50}], current.headers["etag"])
+        assert sorted(response.status_code for response in second) == [200, 409]
+
+        with maker() as verifier:
+            assert verifier.execute(
+                select(func.count()).select_from(DailyCheckIn).where(
+                    DailyCheckIn.space_id == space_id,
+                    DailyCheckIn.account_id == manager.id,
+                )
+            ).scalar_one() == 1
+
+    def test_clear_vs_update_and_delete_recreate_reject_stale_etag(
+        self, production_client
+    ) -> None:  # type: ignore[no-untyped-def]
+        client, maker = production_client
+        with maker() as setup:
+            manager = make_account(setup, "ABA manager")
+            space = make_space(setup, manager)
+            configure_daily(setup, space_id=space.id, manager_id=manager.id)
+            token = sign_in(setup, manager)
+            space_id = space.id
+            setup.commit()
+
+        created = client.patch(
+            path(space_id),
+            json={"energyLevel": 20},
+            headers={**auth(token), "If-Match": '"absent"'},
+        )
+        old_etag = created.headers["etag"]
+
+        start = Barrier(2)
+
+        def write(payload: dict[str, object]):
+            start.wait(timeout=5)
+            return client.patch(
+                path(space_id),
+                json=payload,
+                headers={**auth(token), "If-Match": old_etag},
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            raced = list(pool.map(write, [{"energyLevel": None}, {"energyLevel": 60}]))
+        assert sorted(response.status_code for response in raced) == [200, 409]
+
+        current = client.get(path(space_id), headers=auth(token))
+        if current.headers["etag"] != '"absent"':
+            cleared = client.patch(
+                path(space_id),
+                json={"energyLevel": None},
+                headers={**auth(token), "If-Match": current.headers["etag"]},
+            )
+            assert cleared.status_code == 200
+
+        recreated = client.patch(
+            path(space_id),
+            json={"energyLevel": 70},
+            headers={**auth(token), "If-Match": '"absent"'},
+        )
+        assert recreated.status_code == 200
+        assert recreated.headers["etag"] != old_etag
+
+        stale = client.patch(
+            path(space_id),
+            json={"energyLevel": 80},
+            headers={**auth(token), "If-Match": old_etag},
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+
+

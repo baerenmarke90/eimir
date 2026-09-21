@@ -441,5 +441,4 @@ describe('DailyEnergyCheckIn', () => {
     }) as HTMLButtonElement;
     expect(offlineBadge.disabled).toBe(true);
   });
-
 });

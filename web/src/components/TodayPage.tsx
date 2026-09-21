@@ -863,6 +863,9 @@ export function TodayPage({
     spaceConfigurationQuery.data?.configuration.energyCheckInEnabled === true;
   const vibeCheckEnabled =
     spaceConfigurationQuery.data?.configuration.vibeCheckEnabled === true;
+  const sharedAchievementsEnabled =
+    spaceConfigurationQuery.data?.configuration.sharedAchievementsEnabled ===
+    true;
   const dashboardPreferencesQuery = useQuery({
     queryKey: dashboardPreferencesQueryKey(account?.id ?? '', spaceId),
     queryFn: () =>
@@ -1304,8 +1307,10 @@ export function TodayPage({
                   {collectionsApi ? (
                     <TodayPinnedCollection
                       api={collectionsApi}
+                      accountId={account?.id ?? ''}
                       spaceId={spaceId}
                       collection={pinnedCollectionQuery.data}
+                      sharedAchievementsEnabled={sharedAchievementsEnabled}
                       onRefresh={() => pinnedCollectionQuery.refetch()}
                     />
                   ) : null}

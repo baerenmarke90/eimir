@@ -50,7 +50,15 @@ function collectionItem(
 
 async function installMocks(
   page: Page,
-  { initiallyPinned = false }: { initiallyPinned?: boolean } = {},
+  {
+    initiallyPinned = false,
+    sharedAchievementsEnabled = false,
+    failFinalCompletionOnce = false,
+  }: {
+    initiallyPinned?: boolean;
+    sharedAchievementsEnabled?: boolean;
+    failFinalCompletionOnce?: boolean;
+  } = {},
 ) {
   let pinnedCollectionId: string | null = initiallyPinned
     ? COLLECTION_ID
@@ -60,6 +68,7 @@ async function installMocks(
     collectionItem('00000000-0000-0000-0000-000000000032', 'Brot', 1, true),
     collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
   ];
+  let finalCompletionFailed = false;
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -170,7 +179,7 @@ async function installMocks(
           energyCheckInEnabled: false,
           energyVisibilityMode: 'MUTUAL_REVEAL',
           loveNotesEnabled: false,
-          sharedAchievementsEnabled: false,
+          sharedAchievementsEnabled,
           spaceId: SPACE_ID,
           supportGesturesEnabled: false,
           version: 1,
@@ -324,11 +333,43 @@ async function installMocks(
         completed?: boolean;
         title?: string;
       };
+      const wasComplete =
+        items.length > 0 && items.every((candidate) => candidate.completed);
+      const completesFinalItem =
+        body.completed === true &&
+        !item.completed &&
+        items.every(
+          (candidate) => candidate.id === item.id || candidate.completed,
+        );
+      if (
+        failFinalCompletionOnce &&
+        !finalCompletionFailed &&
+        completesFinalItem
+      ) {
+        finalCompletionFailed = true;
+        await json(
+          {
+            code: 'SERVER_ERROR',
+            detail: 'The write was not confirmed.',
+            status: 503,
+            title: 'Service unavailable',
+          },
+          503,
+        );
+        return;
+      }
       if (typeof body.completed === 'boolean') item.completed = body.completed;
       if (typeof body.title === 'string') item.title = body.title;
       item.version += 1;
       item.updatedAt = '2026-09-21T10:05:00Z';
-      await json(item, 200, { ETag: `"${item.version}"` });
+      const isComplete =
+        items.length > 0 && items.every((candidate) => candidate.completed);
+      await json(item, 200, {
+        ETag: `"${item.version}"`,
+        'X-Eimir-Collection-Completion-Transition': String(
+          !wasComplete && isComplete,
+        ),
+      });
       return;
     }
     if (
@@ -438,6 +479,66 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   await expect(page).toHaveURL(
     new RegExp(`/plan/collections/${COLLECTION_ID}$`),
   );
+});
+
+test('celebrates only the confirmed final pinned Collection completion and stays retry-safe', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page, {
+    initiallyPinned: true,
+    sharedAchievementsEnabled: true,
+    failFinalCompletionOnce: true,
+  });
+  await signIn(page);
+
+  const pinnedSection = page.locator('.today-section-pinned-collection');
+  const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
+  const appleDoneName = m5s3.collection.markDone.replace('{{title}}', 'Äpfel');
+
+  await pinnedSection.getByRole('button', { name: milkDoneName }).click();
+  await expect(
+    pinnedSection.getByRole('heading', {
+      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
+    }),
+  ).toHaveCount(0);
+
+  const appleButton = pinnedSection.getByRole('button', { name: appleDoneName });
+  await appleButton.click();
+  await expect(appleButton).toBeEnabled();
+  await expect(
+    pinnedSection.getByRole('heading', {
+      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
+    }),
+  ).toHaveCount(0);
+
+  await appleButton.click();
+  await expect(
+    pinnedSection.getByRole('heading', {
+      name: m5s5.today.pinnedCollection.sharedAchievementTitle,
+    }),
+  ).toBeVisible();
+  await expect(
+    pinnedSection.getByText(
+      m5s5.today.pinnedCollection.sharedAchievementBody.replace(
+        '{{title}}',
+        'Einkauf',
+      ),
+    ),
+  ).toBeVisible();
+  await expect(
+    pinnedSection.locator('.shared-achievement-confirmation'),
+  ).toHaveCount(1);
+
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'today-pinned-collection-celebration-390-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
 });
 
 test('keeps the pinned Collection compact on Expanded Web without introducing a dashboard grid', async ({

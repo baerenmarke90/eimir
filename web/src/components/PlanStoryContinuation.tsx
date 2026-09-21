@@ -5,6 +5,7 @@ import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { SharedAchievementCelebration } from './SharedAchievementCelebration';
 import './PlanStoryContinuation.css';
 
 /**
@@ -63,35 +64,13 @@ export function PlanStoryContinuation({
       aria-labelledby="plan-completed-heading"
     >
       {sharedAchievementEnabled ? (
-        <div
-          className="shared-achievement-confirmation"
-          role="status"
-          aria-atomic="true"
-        >
-          <span className="shared-achievement-mark" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m5 12 4 4L19 6" />
-            </svg>
-          </span>
-          <div className="shared-achievement-copy">
-            <h2
-              id="plan-completed-heading"
-              ref={headingRef}
-              tabIndex={focusOnMount ? -1 : undefined}
-            >
-              {t('m5s3.plan.sharedAchievementTitle')}
-            </h2>
-            <p>{t('m5s3.plan.sharedAchievementBody', { title: plan.title })}</p>
-          </div>
-        </div>
+        <SharedAchievementCelebration
+          title={t('m5s3.plan.sharedAchievementTitle')}
+          body={t('m5s3.plan.sharedAchievementBody', { title: plan.title })}
+          headingId="plan-completed-heading"
+          headingRef={headingRef}
+          headingTabIndex={focusOnMount ? -1 : undefined}
+        />
       ) : (
         <h2
           id="plan-completed-heading"

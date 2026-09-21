@@ -87,6 +87,10 @@ const m5s5 = {
       more_one: 'Noch {{count}} weiterer Eintrag',
       more_other: 'Noch {{count}} weitere Einträge',
       loadError: 'Die angeheftete Liste konnte gerade nicht geladen werden.',
+      sharedAchievementConfirmed: '„{{title}}“ als erledigt markiert',
+      sharedAchievementTitle: 'Gemeinsam geschafft!',
+      sharedAchievementBody:
+        'Ihr habt alle Punkte auf „{{title}}“ erledigt. Starkes Team! 💙',
     },
     living: {
       kicker: 'Gerade bei euch',

@@ -3,8 +3,8 @@
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
     "specFiles": 47,
-    "tests": 321,
-    "prCriticalTests": 157
+    "tests": 322,
+    "prCriticalTests": 158
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -250,7 +250,7 @@
     },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 2
+      "baselineTests": 3
     }
   }
 }

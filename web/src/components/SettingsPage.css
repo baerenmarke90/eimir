@@ -118,6 +118,10 @@
   margin-bottom: var(--space-4);
 }
 
+.settings-connection-block > .page.profile-page .section-kicker {
+  color: var(--color-text-secondary);
+}
+
 .space-configuration-panel {
   display: grid;
   gap: var(--space-4);

@@ -17,6 +17,8 @@ A Pull Request submission does not guarantee inclusion in the project.
 
 Read the [design authority index](docs/product/design/README.md) and [Product Reference v1](docs/product/design/product-reference-v1.md) before planning client work. v1 governs conflicting older design references unless a later explicit Product Owner decision supersedes it. Follow the [Partner-App Experience Standard](docs/PARTNER-APP-EXPERIENCE-STANDARD.md), complete the Mobile Interaction Contract before UI implementation, and review the full open/interact/save/result/return journey. Technical, privacy, security, accessibility, business-model, and reuse gates remain cumulative.
 
+Before implementing a new or materially changed user-facing feature, the owning issue must also contain the generated visual product reference required by Partner-App Experience Standard section 9A. Generate it against the current repository/product state, showing the actual destination composition with existing functions that remain in scope and the new feature integrated into that whole. #1151 is a non-binding example only, not a reusable design template.
+
 ## Security issues
 
 Do not report security vulnerabilities through public issues or pull requests.

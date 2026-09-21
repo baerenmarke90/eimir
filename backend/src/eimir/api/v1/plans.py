@@ -26,6 +26,7 @@ from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.wishes import ETAG_HEADERS, WishDetail, wish_detail
 from eimir.plans import service
 from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import configuration as relationship_configuration
 
 router = APIRouter(tags=["plans"])
 
@@ -441,6 +442,12 @@ def complete_plan(
     expected_version: IfMatchVersion,
     plan_id: Annotated[str, Path(alias="planId")],
 ) -> PlanDetail:
+    shared_achievement_enabled = relationship_configuration.is_module_enabled(
+        session,
+        authorization.space_id,
+        relationship_configuration.SpaceModule.SHARED_ACHIEVEMENTS,
+        lock_space=True,
+    )
     plan, _wish = service.complete_plan(
         session,
         authorization,
@@ -449,6 +456,8 @@ def complete_plan(
         experienced_on=body.experienced_on,
     )
     response.headers["ETag"] = etag_for(plan.version)
+    if shared_achievement_enabled:
+        response.headers["X-Eimir-Shared-Achievement"] = "plan-completed"
     return _plan_detail(session, authorization, plan)
 
 

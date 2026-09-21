@@ -193,7 +193,7 @@ async function installMocks(page: Page) {
     }
     if (
       method === 'PATCH' &&
-      pathname === '/api/v1/spaces/' + SPACE_ID + '/daily-check-in/today'
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
     ) {
       lastPatch = request.postDataJSON() as Record<string, unknown>;
       ownVibe =
@@ -244,6 +244,46 @@ async function signIn(page: Page) {
   await expect(page).toHaveURL(/\/today$/);
 }
 
+async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const result = await page.evaluate(() => {
+    const root = document.documentElement;
+    const overflowing = Array.from(
+      document.querySelectorAll<HTMLElement>('body *'),
+    )
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName.toLowerCase(),
+          className: element.className,
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth,
+        };
+      })
+      .filter(
+        (box) =>
+          box.width > 0 &&
+          (box.left < -1 || box.right > root.clientWidth + 1),
+      )
+      .sort((a, b) => b.right - a.right)
+      .slice(0, 8);
+
+    return {
+      clientWidth: root.clientWidth,
+      scrollWidth: root.scrollWidth,
+      overflowing,
+    };
+  });
+
+  expect(
+    result.scrollWidth,
+    `Horizontal overflow: ${JSON.stringify(result.overflowing, null, 2)}`,
+  ).toBeLessThanOrEqual(result.clientWidth);
+}
+
 test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves Energy', async ({
   page,
 }, testInfo) => {
@@ -282,6 +322,18 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     await expect(sheet.getByRole('button', { name: label })).toBeVisible();
   }
 
+  const intro = sheet.locator('.daily-vibe-sheet-intro');
+  const introBox = await intro.boundingBox();
+  expect(introBox).not.toBeNull();
+  if (!introBox) throw new Error('Missing Vibe sheet content area');
+  const contentX = introBox.x + introBox.width / 2;
+  const contentY = introBox.y + introBox.height / 2;
+  await page.mouse.move(contentX, contentY);
+  await page.mouse.down();
+  await page.mouse.move(contentX, contentY + 72, { steps: 4 });
+  await page.mouse.up();
+  await expect(sheet).toBeVisible();
+
   const grip = sheet.getByRole('button', { name: dailyVibe.close });
   const box = await grip.boundingBox();
   expect(box).not.toBeNull();
@@ -306,11 +358,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   expect(state.lastPatch()).toEqual({ vibe: 'GOOD' });
   expect(state.lastPatch()).not.toHaveProperty('energyLevel');
 
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  await expectNoHorizontalOverflow(page);
 
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations).toEqual([]);
@@ -353,11 +401,7 @@ test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({
     sheet.getByRole('button', { name: dailyVibe.values.NEEDS_CONNECTION }),
   ).toBeVisible();
 
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  await expectNoHorizontalOverflow(page);
 
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations).toEqual([]);
@@ -367,3 +411,29 @@ test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({
     fullPage: true,
   });
 });
+
+test('Daily Vibe adapts the same interaction for Expanded Web', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' });
+  await signIn(page);
+
+  await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await expect(sheet).toBeVisible();
+  await expect(
+    sheet.getByRole('button', { name: dailyVibe.close }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  const axe = await new AxeBuilder({ page }).analyze();
+  expect(axe.violations).toEqual([]);
+
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-vibe-1280-light.png'),
+    fullPage: true,
+  });
+});
+

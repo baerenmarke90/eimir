@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -106,7 +107,10 @@ export function DailyVibeCheckIn({
     () => true,
   );
   const queryKey = dailyCheckInTodayQueryKey(accountId, spaceId);
-  const configurationKey = spaceConfigurationQueryKey(accountId, spaceId);
+  const configurationKey = useMemo(
+    () => spaceConfigurationQueryKey(accountId, spaceId),
+    [accountId, spaceId],
+  );
   const dailyQuery = useQuery(
     dailyCheckInTodayQueryOptions(api, accountId, spaceId),
   );
@@ -136,12 +140,7 @@ export function DailyVibeCheckIn({
       exact: true,
       refetchType: 'active',
     });
-  }, [
-    accountId,
-    queryClient,
-    serverReportsModuleDisabled,
-    spaceId,
-  ]);
+  }, [configurationKey, queryClient, serverReportsModuleDisabled]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
     const name = partnerName || t('dailyVibe.partnerFallback');
@@ -424,6 +423,7 @@ export function DailyVibeCheckIn({
             partnerStateClass +
             (revealVersion > 0 ? ' is-revealed' : '')
           }
+          role="group"
           aria-label={partnerAccessibleCopy(partnerProjection)}
           data-state={partnerProjection.state}
           data-testid="daily-vibe-partner"
@@ -463,7 +463,7 @@ export function DailyVibeCheckIn({
                 ref={index === 0 ? firstOptionRef : undefined}
                 type="button"
                 className={
-                  'daily-vibe-option' + (selected ? ' is-selected' : '')
+                  `daily-vibe-option${selected ? ' is-selected' : ''}`
                 }
                 aria-pressed={selected}
                 disabled={mutation.isPending}

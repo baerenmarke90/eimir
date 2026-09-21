@@ -8,6 +8,8 @@ const dailyEnergy = {
   badgeAriaEmpty: 'Akku für heute setzen',
   badgeAriaValue: 'Dein Akku heute: {{value}} Prozent. Wert ändern',
   popoverTitle: 'Akku heute',
+  scaleLow: 'Ganz wenig',
+  scaleHigh: 'Voll dabei',
   notSet: 'Noch nicht gesetzt',
   change: 'Ändern',
   remove: 'Entfernen',

@@ -12,6 +12,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
 import type { DailyVibe } from '../api/generated/models/DailyVibe';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import dailyVibe from '../i18n/locales/dailyVibe';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
@@ -148,6 +149,67 @@ describe('DailyVibeCheckIn', () => {
         within(dialog).getByRole('button', { name: label }),
       ).not.toBeNull();
     }
+  });
+
+  it('keeps the Vibe sheet open while partner sync refetches in the background', async () => {
+    let resolveRefetch:
+      | ((value: ReturnType<typeof rawResponse>) => void)
+      | undefined;
+    const backgroundRefetch = new Promise<ReturnType<typeof rawResponse>>(
+      (resolve) => {
+        resolveRefetch = resolve;
+      },
+    );
+    const initial = rawResponse(
+      projection({
+        ownVibe: 'GOOD',
+        partner: { state: 'VISIBLE', value: 'STRESSED' },
+      }),
+      '"today:1"',
+    );
+    const getDailyCheckInTodayRaw = vi
+      .fn()
+      .mockResolvedValueOnce(initial)
+      .mockReturnValueOnce(backgroundRefetch);
+    const api = {
+      getDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    const { queryClient } = renderVibe(api);
+    await openVibeSheet(changeAria(dailyVibe.values.GOOD));
+
+    void queryClient.refetchQueries({
+      queryKey: dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      exact: true,
+    });
+    await waitFor(() =>
+      expect(getDailyCheckInTodayRaw).toHaveBeenCalledTimes(2),
+    );
+
+    expect(
+      screen.getByRole('dialog', { name: dailyVibe.sheetTitle }),
+    ).not.toBeNull();
+
+    resolveRefetch?.(
+      rawResponse(
+        projection({
+          ownVibe: 'GOOD',
+          partner: { state: 'VISIBLE', value: 'GOOD' },
+        }),
+        '"today:1"',
+      ),
+    );
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(
+      screen.getByRole('dialog', { name: dailyVibe.sheetTitle }),
+    ).not.toBeNull();
+    await waitFor(() =>
+      expect(
+        within(screen.getByTestId('daily-vibe-partner')).getByText(
+          dailyVibe.values.GOOD,
+        ),
+      ).not.toBeNull(),
+    );
   });
 
   it('sets Vibe with the shared full-owner ETag and never patches Energy', async () => {

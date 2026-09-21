@@ -15,8 +15,8 @@
 
 .daily-energy-avatar-control {
   position: absolute;
-  top: -18px;
-  left: 7px;
+  bottom: -12px;
+  left: 28px;
   display: grid;
   width: 44px;
   height: 44px;
@@ -29,8 +29,8 @@
 
 .daily-energy-avatar-chip {
   display: grid;
-  width: 28px;
-  height: 20px;
+  width: 30px;
+  height: 22px;
   place-items: center;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-pill);
@@ -86,13 +86,25 @@
   animation: daily-energy-battery-fill 440ms var(--easing-enter) both;
 }
 
+.daily-energy-battery-icon[data-level="low"] .daily-energy-battery-fill {
+  fill: var(--color-brand);
+}
+
+.daily-energy-battery-icon[data-level="medium"] .daily-energy-battery-fill {
+  fill: var(--color-discovery);
+}
+
+.daily-energy-battery-icon[data-level="high"] .daily-energy-battery-fill {
+  fill: var(--color-shared);
+}
+
 .daily-energy-partner-battery {
   position: absolute;
-  top: -6px;
-  right: 15px;
+  right: -2px;
+  bottom: -12px;
   display: grid;
-  width: 28px;
-  height: 20px;
+  width: 30px;
+  height: 22px;
   place-items: center;
   color: var(--color-text);
   pointer-events: none;
@@ -114,12 +126,12 @@
 
 .daily-energy-popover {
   position: absolute;
-  top: calc(100% + var(--space-2));
+  top: calc(100% + var(--space-4));
   left: -8px;
-  width: min(18rem, calc(100vw - 2rem));
+  width: min(19rem, calc(100vw - 2rem));
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-5) var(--space-4) var(--space-4);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -176,27 +188,32 @@
 }
 
 .daily-energy-slider::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 7px;
   border-radius: var(--radius-pill);
-  background: linear-gradient(
-    to right,
-    var(--color-brand) 0,
-    var(--color-brand) var(--daily-energy-progress),
-    var(--color-surface-subtle) var(--daily-energy-progress),
-    var(--color-surface-subtle) 100%
-  );
+  background:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
+      var(--color-brand)
+    )
+    0 0 / var(--daily-energy-progress) 100% no-repeat,
+    var(--color-surface-subtle);
 }
 
 .daily-energy-slider::-moz-range-track {
-  height: 6px;
+  height: 7px;
   border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
 }
 
 .daily-energy-slider::-moz-range-progress {
-  height: 6px;
+  height: 7px;
   border-radius: var(--radius-pill);
-  background: var(--color-brand);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
+    var(--color-brand)
+  );
 }
 
 .daily-energy-slider::-webkit-slider-thumb {
@@ -227,6 +244,22 @@
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
   border-radius: var(--radius-pill);
+}
+
+.daily-energy-slider-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: calc(-1 * var(--space-2));
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.daily-energy-slider-labels > span:last-child {
+  text-align: right;
 }
 
 .daily-energy-popover-actions {

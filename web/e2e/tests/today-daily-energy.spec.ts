@@ -357,11 +357,13 @@ test('Daily Energy attaches quiet batteries to both avatars and opens one access
   expect(ownCenterX).toBeLessThan(primaryBox.x + primaryBox.width);
   expect(partnerCenterX).toBeGreaterThan(secondaryBox.x);
   expect(partnerCenterX).toBeLessThan(secondaryBox.x + secondaryBox.width);
-  expect(ownChipBox.y).toBeLessThan(primaryBox.y);
-  expect(ownChipBox.y + ownChipBox.height).toBeGreaterThan(primaryBox.y);
-  expect(partnerChipBox.y).toBeLessThan(secondaryBox.y);
+  const primaryBottom = primaryBox.y + primaryBox.height;
+  const secondaryBottom = secondaryBox.y + secondaryBox.height;
+  expect(ownChipBox.y).toBeLessThan(primaryBottom);
+  expect(ownChipBox.y + ownChipBox.height).toBeGreaterThan(primaryBottom);
+  expect(partnerChipBox.y).toBeLessThan(secondaryBottom);
   expect(partnerChipBox.y + partnerChipBox.height).toBeGreaterThan(
-    secondaryBox.y,
+    secondaryBottom,
   );
 
   await ownBattery.click();

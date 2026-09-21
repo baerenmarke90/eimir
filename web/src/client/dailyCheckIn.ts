@@ -89,6 +89,9 @@ export function dailyCheckInTodayQueryOptions(
     // device without causing any browser lifecycle event here.
     refetchInterval: DAILY_CHECK_IN_REFRESH_INTERVAL_MS,
     refetchIntervalInBackground: false,
+    // Keep React Query's default deep structural sharing. The response ETag is
+    // intentionally caller-owner state only; partner projection can change while
+    // that ETag remains stable, so it must never be used as a cache equality key.
     // Current partner DailyCheckIn is deliberately ephemeral. Once the active
     // consumer disappears (module/Space/account switch), do not retain it in a
     // detached React Query cache.

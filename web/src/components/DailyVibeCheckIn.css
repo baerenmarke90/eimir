@@ -1,15 +1,19 @@
 .daily-vibe-checkin {
   display: grid;
-  gap: var(--space-3);
-  margin: calc(-1 * var(--space-3)) 0 var(--space-7);
-  padding: var(--space-4);
-  border-radius: var(--radius-large);
+  gap: var(--space-4);
+  margin: 0 0 var(--space-7);
+  padding: var(--space-5) var(--space-4);
+  border: 1px solid
+    color-mix(in srgb, var(--color-border-subtle) 72%, transparent);
+  border-radius: var(--radius-card);
   background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--color-brand-surface) 78%, transparent),
-    color-mix(in srgb, var(--color-surface) 92%, transparent)
+    145deg,
+    color-mix(in srgb, var(--color-surface) 96%, transparent),
+    color-mix(in srgb, var(--color-brand-surface) 58%, var(--color-surface))
   );
+  box-shadow: var(--shadow-raised);
   color: var(--color-text);
+  overflow: hidden;
 }
 
 .daily-vibe-heading {
@@ -37,23 +41,24 @@
 
 .daily-vibe-people {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(10.5rem, 100%), 1fr));
-  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 .daily-vibe-person {
   display: grid;
   min-width: 0;
-  min-height: 58px;
+  min-height: 72px;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 0;
+  padding: var(--space-3);
+  border: 1px solid
+    color-mix(in srgb, var(--color-border-subtle) 74%, transparent);
   border-radius: var(--radius-large);
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
   color: var(--color-text);
-  box-shadow: 0 2px 10px var(--color-shadow-soft);
+  box-shadow: 0 3px 14px var(--color-shadow-soft);
   text-align: left;
 }
 
@@ -102,13 +107,13 @@ button.daily-vibe-person:focus-visible {
 
 .daily-vibe-person-copy > span {
   color: var(--color-text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 650;
 }
 
 .daily-vibe-person-copy > strong {
   min-width: 0;
-  font-size: 0.86rem;
+  font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;

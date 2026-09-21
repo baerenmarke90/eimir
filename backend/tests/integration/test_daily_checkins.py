@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from eimir.daily_checkins import context as daily_context
-from eimir.daily_checkins import retention, service
+from eimir.daily_checkins import retention
 from eimir.daily_checkins.models import DailyCheckIn
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service

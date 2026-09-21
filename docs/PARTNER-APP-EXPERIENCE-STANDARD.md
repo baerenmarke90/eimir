@@ -1,8 +1,8 @@
 # eimir. Partner-App Experience Standard
 
 **Status:** Mandatory product UI standard  
-**Version:** 2.2<br/>
-**Effective from:** September 15, 2026
+**Version:** 2.3<br/>
+**Effective from:** September 21, 2026
 
 This document is binding for every user-facing Web change (which reaches Android through the Capacitor wrapper) and for any wrapper or native-capability change that affects what couples see. It complements `DESIGN-PRINCIPLES.md`, `UX-PATTERNS.md`, `SCREEN-TEMPLATES.md`, `COMPONENT-CONTRACTS.md`, and `DESIGN-SYSTEM-DELIVERY.md`. Where any of those documents can be read as permitting a desktop-first, table-first, or "design desktop then shrink" interpretation, section 0 of this document governs and the conflicting wording must be corrected or explicitly documented as a conflict rather than followed literally.
 
@@ -292,6 +292,37 @@ Appropriate examples include a subtle heart pulse, tiny particles, soft glow, sh
 
 Haptics may supplement visible feedback on supported mobile devices but never replace it.
 
+## 9A. Generated visual product reference before implementation
+
+Before implementation starts, every new or materially changed user-facing feature MUST have at least one generated visual product reference attached or linked in the owning issue.
+
+This is a product-composition preflight. The image MUST be generated only after reviewing the current repository state and the real destination surface. At minimum:
+
+1. inspect current `main` and record the baseline SHA;
+2. inspect the destination screen/route and the existing functions already visible or reachable there;
+3. identify the current shell/navigation, content hierarchy, interaction primitives, components, tokens, and relevant states that constrain the composition;
+4. generate the Compact/smartphone reference first;
+5. show existing functionality that remains in scope as part of the same composition, represented consistently with the current product;
+6. integrate the new feature into that composition rather than depicting it in isolation;
+7. add an Expanded/Web visual only when the adaptation materially changes the composition;
+8. record assumptions and any intentional departure from the current screen.
+
+The following do **not** satisfy the requirement:
+
+- an isolated new card/component with no surrounding product context;
+- a blank replacement screen that omits existing functions without an explicit product decision;
+- generic SaaS, dashboard, admin, or moodboard imagery detached from current eimir.;
+- an image generated from stale issue text while ignoring newer repository behavior;
+- a textual description without an actual visual artifact.
+
+If the destination screen changes materially after the image was created but before implementation starts, the visual reference MUST be regenerated or updated against the new baseline.
+
+The requirement to generate and attach the image is binding. The image is a composition reference, not automatically an immutable pixel specification. Product Reference v1, this standard, accessibility, privacy, security, business/domain constraints, real data behavior, and later explicit Product Owner decisions remain authoritative. An issue may make specific visual choices binding, but it must identify them explicitly.
+
+For older feature issues that do not yet contain such an image, the Product Design Preflight in section 15 MUST add one before UI implementation begins or continues.
+
+[#1151](https://github.com/baerenmarke90/eimir/issues/1151) is a **non-binding example only**. It may illustrate the desired preflight discipline, but its images, layouts, content, and Pro-specific treatment do not create design precedence for other features.
+
 ## 10. Mandatory Mobile Interaction Contract
 
 Before implementation starts, every new or materially changed user-facing Web feature (or native capability) MUST document a Mobile Interaction Contract in the owning issue (or, for an existing issue that lacks one, in a Product Design Preflight performed before UI code is written; see section 15).
@@ -317,7 +348,8 @@ The Contract MUST cover at least:
 17. why a conventional table/list/master-detail is appropriate, if one is used (section 2, section 16);
 18. which established platform/mobile interaction patterns are reused and why any deviation is necessary (section 2A);
 19. how unnecessary typing, early keyboard activation, and recall-dependent interaction are avoided on Compact (section 2A);
-20. visual acceptance plan (section 12).
+20. generated visual product reference, including baseline SHA and the existing screen/functions represented (section 9A);
+21. visual acceptance plan (section 12).
 
 The Contract also implicitly identifies, and the issue/PR MUST still record:
 
@@ -348,6 +380,8 @@ Responsive behavior is composition, not shrinking.
 - side rails contain supporting information, not required form fields dumped out of the main flow.
 
 ## 12. Visual evidence is required
+
+The pre-implementation generated visual product reference from section 9A does not replace implementation evidence. It defines the composition to review before code exists; this section verifies the real implemented result.
 
 A PR that changes couple-facing Web UI MUST include visual evidence for review; a PR that changes the Android wrapper or a native capability adds device evidence for the affected behavior.
 

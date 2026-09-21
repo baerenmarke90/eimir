@@ -109,9 +109,7 @@ describe('web layout primitives', () => {
 
     const rootTitle = ruleBlock(layoutCss, '.page-heading-root h1');
     expect(rootTitle).toContain('font: var(--font-page-heading)');
-    expect(rootTitle).toContain(
-      'letter-spacing: var(--tracking-page-heading)',
-    );
+    expect(rootTitle).toContain('letter-spacing: var(--tracking-page-heading)');
 
     expect(productRolesCss).toContain(
       '--font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif',

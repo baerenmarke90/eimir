@@ -220,6 +220,15 @@ def test_reconciliation_rejects_active_member_from_another_space(
     assert response.json()["code"] == "SPACE_CONFIGURATION_MANAGER_TARGET_NOT_ACTIVE"
     session.refresh(space)
     assert space.configuration_manager_account_id is None
+    audit_count = session.execute(
+        select(func.count())
+        .select_from(InstanceAdministrationActionEvent)
+        .where(
+            InstanceAdministrationActionEvent.action
+            == AdministrationAction.SPACE_CONFIGURATION_MANAGER_RECONCILED.value
+        )
+    ).scalar_one()
+    assert audit_count == 0
 
 
 def test_reconciliation_never_overwrites_existing_authority(

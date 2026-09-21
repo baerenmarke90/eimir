@@ -155,7 +155,11 @@ export function MoreOverviewPage({
 
   return (
     <div className="page more-page">
-      <PageHeader eyebrow={t('more.eyebrow')} title={t('more.title')} />
+      <PageHeader
+        eyebrow={t('more.eyebrow')}
+        title={t('more.title')}
+        variant="primary"
+      />
 
       <div className="more-groups">
         <MoreDestinationGroup title={t('more.groups.personal')}>

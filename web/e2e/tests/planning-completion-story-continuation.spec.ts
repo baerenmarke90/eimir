@@ -11,15 +11,28 @@ const PLAN_ID = '44444444-4444-4444-8444-444444444444';
 const TEST_NOW = '2026-09-12T07:00:00Z';
 const EXPERIENCED_ON = '2026-09-11';
 
-async function installMocks(page: Page): Promise<void> {
+type CompletionMockOptions = {
+  sharedAchievement?: boolean;
+  completeStatus?: number;
+};
+
+async function installMocks(
+  page: Page,
+  options: CompletionMockOptions = {},
+): Promise<void> {
   let completed = false;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
-    const fulfillJson = async (body: unknown, status = 200) =>
+    const fulfillJson = async (
+      body: unknown,
+      status = 200,
+      headers: Record<string, string> = {},
+    ) =>
       route.fulfill({
         status,
+        headers,
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
@@ -178,25 +191,44 @@ async function installMocks(page: Page): Promise<void> {
       method === 'POST' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/complete`
     ) {
+      if (options.completeStatus && options.completeStatus >= 400) {
+        await fulfillJson(
+          {
+            code: 'PLAN_COMPLETION_FAILED',
+            detail: 'Completion failed.',
+            status: options.completeStatus,
+            title: 'Completion failed',
+          },
+          options.completeStatus,
+        );
+        return;
+      }
+
       completed = true;
-      await fulfillJson({
-        capabilities: { canComment: true, canDelete: true, canEdit: true },
-        createdAt: TEST_NOW,
-        createdBy: ACCOUNT_ID,
-        creator: { id: ACCOUNT_ID, displayName: 'Anna' },
-        description: 'Remember the blanket.',
-        experiencedOn: EXPERIENCED_ON,
-        id: PLAN_ID,
-        placeId: null,
-        plannedEnd: null,
-        plannedStart: null,
-        sourceWishId: null,
-        spaceId: SPACE_ID,
-        status: 'COMPLETED',
-        title: 'Picnic in the park',
-        updatedAt: TEST_NOW,
-        version: 4,
-      });
+      await fulfillJson(
+        {
+          capabilities: { canComment: true, canDelete: true, canEdit: true },
+          createdAt: TEST_NOW,
+          createdBy: ACCOUNT_ID,
+          creator: { id: ACCOUNT_ID, displayName: 'Anna' },
+          description: 'Remember the blanket.',
+          experiencedOn: EXPERIENCED_ON,
+          id: PLAN_ID,
+          placeId: null,
+          plannedEnd: null,
+          plannedStart: null,
+          sourceWishId: null,
+          spaceId: SPACE_ID,
+          status: 'COMPLETED',
+          title: 'Picnic in the park',
+          updatedAt: TEST_NOW,
+          version: 4,
+        },
+        200,
+        options.sharedAchievement
+          ? { 'X-Eimir-Shared-Achievement': 'plan-completed' }
+          : {},
+      );
       return;
     }
 
@@ -281,12 +313,13 @@ const visualScenarios: VisualScenario[] = [
 async function prepareScenario(
   page: Page,
   scenario: VisualScenario,
+  options: CompletionMockOptions = {},
 ): Promise<void> {
   await page.setViewportSize(scenario.viewport);
   await page.addInitScript((theme) => {
     window.localStorage.setItem('eimir.theme', theme);
   }, scenario.theme);
-  await installMocks(page);
+  await installMocks(page, options);
   await signIn(page);
   await page.goto(`/plan/plans/${PLAN_ID}`);
 
@@ -353,6 +386,60 @@ test('completed Plan continuation opens canonical Memory capture and cancellatio
   await expect(
     page.getByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toHaveCount(0);
+});
+
+test('server-confirmed shared achievement is announced in context without replacing completion actions', async ({
+  page,
+}) => {
+  await prepareScenario(page, visualScenarios[0], { sharedAchievement: true });
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      m5s3.plan.sharedAchievementBody.replace(
+        '{{title}}',
+        'Picnic in the park',
+      ),
+    ),
+  ).toBeVisible();
+  await expect(page.locator('.plan-story-continuation')).toHaveClass(
+    /is-shared-achievement/,
+  );
+  await expect(
+    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
+  ).toBeVisible();
+  await assertNoWcagViolations(page);
+  await assertNoHorizontalOverflow(page);
+});
+
+test('shared achievement respects reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await prepareScenario(page, visualScenarios[0], { sharedAchievement: true });
+
+  const animationName = await page
+    .locator('.plan-story-continuation.is-shared-achievement')
+    .evaluate((element) => getComputedStyle(element).animationName);
+  expect(animationName).toBe('none');
+});
+
+test('failed completion never renders shared achievement success', async ({
+  page,
+}) => {
+  await page.setViewportSize(visualScenarios[0].viewport);
+  await installMocks(page, { sharedAchievement: true, completeStatus: 500 });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+  await expect(page.locator('.plan-story-continuation')).toHaveCount(0);
 });
 
 test('Later dismisses the continuation and restores focus to stable Plan navigation', async ({

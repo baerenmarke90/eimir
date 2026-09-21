@@ -453,6 +453,19 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     const dragZone = dialog.locator('.short-task-sheet-drag-zone');
     await expect(dragZone).toBeVisible();
+    await expect(
+      closeButton.locator('.short-task-sheet-drag-handle'),
+    ).toBeVisible();
+    await expect(
+      closeButton.locator('.short-task-sheet-close-icon'),
+    ).toBeHidden();
+
+    const headerBox = await dialog
+      .locator('.short-task-sheet-header')
+      .boundingBox();
+    expect(headerBox).not.toBeNull();
+    if (!headerBox) throw new Error('Missing sheet header bounds');
+    expect(headerBox.height).toBeLessThan(44);
 
     await page.keyboard.press('Shift+Tab');
     const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');

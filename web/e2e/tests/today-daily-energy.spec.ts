@@ -334,7 +334,9 @@ test('Daily Energy is a compact keyboard-accessible mutual-reveal moment on Toda
   expect(state.lastIfMatch()).toBe('"2026-09-21:absent"');
   expect(state.lastEnergy()).toBe(70);
 
-  await expect(section.getByText(dailyEnergy.ownLabel)).toBeVisible();
+  await expect(
+    section.locator('.daily-energy-own-copy > span'),
+  ).toHaveText(dailyEnergy.ownLabel);
   await expect(section.getByText('70 %')).toBeVisible();
   await expect(partnerState.getByText('20 %')).toBeVisible();
 

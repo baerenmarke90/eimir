@@ -55,6 +55,7 @@ const m5s5 = {
       'Du hast gerade schon ein Zeichen geschickt. In {{minutes}} Minuten kannst du wieder „Ich denke an dich“ senden.',
   },
   today: {
+    headerTitle: 'Heute',
     roles: {
       hero: 'Paar-Präsenz',
       relationshipSignal: 'Bei euch passiert',

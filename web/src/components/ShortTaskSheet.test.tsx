@@ -188,13 +188,18 @@ describe('ShortTaskSheet history ownership', () => {
     expect(document.body.style.overflow).toBe('auto');
   });
 
-  it('keeps a localized explicit icon close control for every sheet', () => {
+  it('keeps one localized semantic dismissal control for Compact and Expanded', () => {
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     fireEvent.click(screen.getByText('Task choices'));
 
     const closeButton = screen.getByRole('button', { name: taskSheets.close });
     expect(closeButton.getAttribute('title')).toBe(taskSheets.close);
-    expect(closeButton.textContent?.trim()).toBe('');
+    expect(closeButton.classList.contains('short-task-sheet-drag-zone')).toBe(
+      true,
+    );
+    expect(
+      closeButton.querySelector('.short-task-sheet-drag-handle'),
+    ).not.toBeNull();
     expect(closeButton.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
       'true',
     );
@@ -227,6 +232,11 @@ describe('ShortTaskSheet history ownership', () => {
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('0px');
+
+    // A release after a real but sub-threshold drag must not turn into the
+    // button's synthetic click and accidentally dismiss the sheet.
+    fireEvent.click(dragZone);
+    expect(screen.getByRole('dialog')).toBeDefined();
 
     fireEvent.pointerDown(dragZone, {
       pointerId: 2,

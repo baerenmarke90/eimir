@@ -1335,6 +1335,113 @@
         "title": "ContentVisibility",
         "type": "string"
       },
+      "DailyCheckInEnergyView": {
+        "properties": {
+          "partner": {
+            "$ref": "#/components/schemas/PartnerEnergyProjection"
+          },
+          "visibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "visibilityMode",
+          "partner"
+        ],
+        "title": "DailyCheckInEnergyView",
+        "type": "object"
+      },
+      "DailyCheckInOwnView": {
+        "description": "Only the caller's current-day state; partner row metadata is never exposed.",
+        "properties": {
+          "energyLevel": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energylevel"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "energyLevel"
+        ],
+        "title": "DailyCheckInOwnView",
+        "type": "object"
+      },
+      "DailyCheckInTodayView": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "dailyContextTimezone": {
+            "title": "Dailycontexttimezone",
+            "type": "string"
+          },
+          "energy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyCheckInEnergyView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "own": {
+            "$ref": "#/components/schemas/DailyCheckInOwnView"
+          }
+        },
+        "required": [
+          "checkedOn",
+          "dailyContextTimezone",
+          "own",
+          "energy"
+        ],
+        "title": "DailyCheckInTodayView",
+        "type": "object"
+      },
+      "DailyCheckInUpdate": {
+        "additionalProperties": false,
+        "description": "Partial owner mutation for dimensions whose product values are decided.\n\nVibe is intentionally absent: #429 has not yet frozen the product enum, so\naccepting a string here would turn an implementation guess into API state.",
+        "properties": {
+          "energyLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  10,
+                  20,
+                  30,
+                  40,
+                  50,
+                  60,
+                  70,
+                  80,
+                  90,
+                  100
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energylevel"
+          }
+        },
+        "title": "DailyCheckInUpdate",
+        "type": "object"
+      },
       "DailyCheckInVisibilityMode": {
         "description": "How one DailyCheckIn dimension becomes visible to the partner.",
         "enum": [
@@ -1344,7 +1451,6 @@
         "title": "DailyCheckInVisibilityMode",
         "type": "string"
       },
-
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -3622,6 +3728,77 @@
           "at"
         ],
         "title": "OnceSchedule",
+        "type": "object"
+      },
+      "PartnerEnergyHidden": {
+        "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
+        "properties": {
+          "state": {
+            "const": "HIDDEN_UNTIL_SELF_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerEnergyHidden",
+        "type": "object"
+      },
+      "PartnerEnergyNoCheckIn": {
+        "properties": {
+          "state": {
+            "const": "NO_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerEnergyNoCheckIn",
+        "type": "object"
+      },
+      "PartnerEnergyProjection": {
+        "description": "Named discriminated partner Energy state without hidden optional fields.",
+        "discriminator": {
+          "mapping": {
+            "HIDDEN_UNTIL_SELF_CHECK_IN": "#/components/schemas/PartnerEnergyHidden",
+            "NO_CHECK_IN": "#/components/schemas/PartnerEnergyNoCheckIn",
+            "VISIBLE": "#/components/schemas/PartnerEnergyVisible"
+          },
+          "propertyName": "state"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PartnerEnergyHidden"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerEnergyNoCheckIn"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerEnergyVisible"
+          }
+        ],
+        "title": "PartnerEnergyProjection"
+      },
+      "PartnerEnergyVisible": {
+        "properties": {
+          "state": {
+            "const": "VISIBLE",
+            "title": "State",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ],
+        "title": "PartnerEnergyVisible",
         "type": "object"
       },
       "PartnerPresenceView": {
@@ -7883,7 +8060,6 @@
         "title": "SpaceConfigurationView",
         "type": "object"
       },
-
       "SpaceEntitlementView": {
         "description": "Effective commercial entitlement representation for a Space.",
         "properties": {
@@ -16179,7 +16355,185 @@
         ]
       }
     },
-
+    "/api/v1/spaces/{spaceId}/daily-check-in/today": {
+      "get": {
+        "operationId": "getDailyCheckInToday",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInTodayView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque owner-state concurrency token. Send it unchanged in the next Daily Check-in write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
+          }
+        },
+        "summary": "Get Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      },
+      "patch": {
+        "operationId": "updateDailyCheckInToday",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyCheckInUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInTodayView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque owner-state concurrency token. Send it unchanged in the next Daily Check-in write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`SPACE_MODULE_DISABLED`: new Energy participation is disabled."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`RESOURCE_VERSION_CONFLICT`: the owner state changed, or `DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the shared day cannot be resolved."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/dashboard": {
       "get": {
         "description": "Return the shared-only relationship overview for one Space.",

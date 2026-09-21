@@ -50,11 +50,7 @@ def parse_if_match_token(value: str) -> str:
                 ErrorCode.IF_MATCH_MALFORMED,
             )
         raw = raw[1:-1]
-    if (
-        not raw
-        or any(ord(char) < 0x21 or ord(char) > 0x7E for char in raw)
-        or '"' in raw
-    ):
+    if not raw or any(ord(char) < 0x21 or ord(char) > 0x7E for char in raw) or '"' in raw:
         raise ValidationError(
             "The If-Match header must carry a single strong ETag.",
             ErrorCode.IF_MATCH_MALFORMED,

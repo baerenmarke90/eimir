@@ -82,9 +82,7 @@ function renderTodayPage(
 
 describe('TodayPage', () => {
   it('formats the Today date in the compact reference hierarchy', () => {
-    const label = formatTodayHeaderDate(
-      new Date('2026-09-21T12:00:00.000Z'),
-    );
+    const label = formatTodayHeaderDate(new Date('2026-09-21T12:00:00.000Z'));
     expect(label).toContain('21. September 2026');
   });
 

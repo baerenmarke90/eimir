@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -531,12 +532,15 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await leaButton.click();
 
     // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
-    // Couple Presence is the permanent H1 entry point, even for a sparse/new space.
+    // Today owns the page H1; Couple Presence remains the relationship hero below it.
     await expect(
-      page.getByRole('heading', { name: /Alex/i, level: 1 }),
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
     ).toBeVisible({
       timeout: 10000,
     });
+    await expect(
+      page.getByRole('heading', { name: /Alex/i, level: 2 }),
+    ).toBeVisible();
     // DemoEntry person picker is gone
     await expect(
       page.getByRole('button', { name: demoDe.joinLea }),

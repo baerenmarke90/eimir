@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -2239,7 +2239,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1.0,
+            "minimum": 1,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3381,7 +3381,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Position",
             "type": "integer"
           }
@@ -16376,6 +16376,16 @@
                 "schema": {
                   "type": "boolean"
                 }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ]
+                }
               }
             }
           },
@@ -22720,6 +22730,16 @@
                 "description": "Resource version to use for the next If-Match write request.",
                 "schema": {
                   "type": "string"
+                }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ]
                 }
               }
             }

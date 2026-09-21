@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+import type { SpaceConfigurationUpdate } from '../api/generated/models/SpaceConfigurationUpdate';
 import {
   spaceConfigurationQueryKey,
   spaceConfigurationQueryOptions,
@@ -26,8 +27,8 @@ export function SpaceConfigurationPanel({
     spaceConfigurationQueryOptions(spacesApi, accountId, spaceId),
   );
 
-  const supportGestureMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
+  const configurationMutation = useMutation({
+    mutationFn: async (update: SpaceConfigurationUpdate) => {
       const snapshot = configurationQuery.data;
       if (!snapshot?.configuration.canManageSpaceConfiguration) {
         throw new ClientProblemError(
@@ -36,9 +37,12 @@ export function SpaceConfigurationPanel({
           'SPACE_CONFIGURATION_MANAGEMENT_REQUIRED',
         );
       }
-      return updateSpaceConfiguration(spacesApi, spaceId, snapshot.etag, {
-        supportGesturesEnabled: enabled,
-      });
+      return updateSpaceConfiguration(
+        spacesApi,
+        spaceId,
+        snapshot.etag,
+        update,
+      );
     },
     onSuccess: async (snapshot) => {
       queryClient.setQueryData<SpaceConfigurationSnapshot>(queryKey, snapshot);
@@ -92,6 +96,35 @@ export function SpaceConfigurationPanel({
 
   const { configuration } = configurationQuery.data;
   const canManage = configuration.canManageSpaceConfiguration;
+  const modules: Array<{
+    id: string;
+    title: string;
+    intro: string;
+    toggleLabel: string;
+    enabled: boolean;
+    update: SpaceConfigurationUpdate;
+  }> = [
+    {
+      id: 'support-gestures',
+      title: t('profileIdentity.supportGesturesTitle'),
+      intro: t('profileIdentity.supportGesturesIntro'),
+      toggleLabel: t('profileIdentity.supportGesturesToggle'),
+      enabled: configuration.supportGesturesEnabled,
+      update: {
+        supportGesturesEnabled: !configuration.supportGesturesEnabled,
+      },
+    },
+    {
+      id: 'vibe-check',
+      title: t('profileIdentity.vibeCheckTitle'),
+      intro: t('profileIdentity.vibeCheckIntro'),
+      toggleLabel: t('profileIdentity.vibeCheckToggle'),
+      enabled: configuration.vibeCheckEnabled,
+      update: {
+        vibeCheckEnabled: !configuration.vibeCheckEnabled,
+      },
+    },
+  ];
 
   return (
     <section
@@ -110,44 +143,46 @@ export function SpaceConfigurationPanel({
       </div>
 
       <div className="space-module-list">
-        <div className="space-module-row">
-          <div className="space-module-copy">
-            <h3>{t('profileIdentity.supportGesturesTitle')}</h3>
-            <p id="support-gestures-description">
-              {t('profileIdentity.supportGesturesIntro')}
-            </p>
-          </div>
+        {modules.map((module) => {
+          const descriptionId = `${module.id}-description`;
+          return (
+            <div className="space-module-row" key={module.id}>
+              <div className="space-module-copy">
+                <h3>{module.title}</h3>
+                <p id={descriptionId}>{module.intro}</p>
+              </div>
 
-          {canManage ? (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={configuration.supportGesturesEnabled}
-              aria-label={t('profileIdentity.supportGesturesToggle')}
-              aria-describedby="support-gestures-description"
-              className="space-module-switch"
-              disabled={supportGestureMutation.isPending}
-              onClick={() =>
-                supportGestureMutation.mutate(
-                  !configuration.supportGesturesEnabled,
-                )
-              }
-            >
-              <span className="space-module-switch-track" aria-hidden="true">
-                <span className="space-module-switch-thumb" />
-              </span>
-            </button>
-          ) : (
-            <span className="space-module-readonly-state">
-              {configuration.supportGesturesEnabled
-                ? t('profileIdentity.spaceModuleOn')
-                : t('profileIdentity.spaceModuleOff')}
-            </span>
-          )}
-        </div>
+              {canManage ? (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={module.enabled}
+                  aria-label={module.toggleLabel}
+                  aria-describedby={descriptionId}
+                  className="space-module-switch"
+                  disabled={configurationMutation.isPending}
+                  onClick={() => configurationMutation.mutate(module.update)}
+                >
+                  <span
+                    className="space-module-switch-track"
+                    aria-hidden="true"
+                  >
+                    <span className="space-module-switch-thumb" />
+                  </span>
+                </button>
+              ) : (
+                <span className="space-module-readonly-state">
+                  {module.enabled
+                    ? t('profileIdentity.spaceModuleOn')
+                    : t('profileIdentity.spaceModuleOff')}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {supportGestureMutation.isPending ? (
+      {configurationMutation.isPending ? (
         <p
           className="space-configuration-status"
           role="status"
@@ -155,7 +190,7 @@ export function SpaceConfigurationPanel({
         >
           {t('profileIdentity.spaceConfigurationSaving')}
         </p>
-      ) : supportGestureMutation.isSuccess ? (
+      ) : configurationMutation.isSuccess ? (
         <p
           className="space-configuration-status"
           role="status"
@@ -165,14 +200,14 @@ export function SpaceConfigurationPanel({
         </p>
       ) : null}
 
-      {supportGestureMutation.error ? (
+      {configurationMutation.error ? (
         <ProblemState
-          error={supportGestureMutation.error}
+          error={configurationMutation.error}
           onRetry={
-            supportGestureMutation.error instanceof ClientProblemError &&
-            supportGestureMutation.error.kind === 'conflict'
+            configurationMutation.error instanceof ClientProblemError &&
+            configurationMutation.error.kind === 'conflict'
               ? () => {
-                  supportGestureMutation.reset();
+                  configurationMutation.reset();
                   void configurationQuery.refetch();
                 }
               : undefined

@@ -27,6 +27,7 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup();
+  window.sessionStorage.clear();
   vi.restoreAllMocks();
   Object.defineProperty(window.navigator, 'onLine', {
     configurable: true,
@@ -127,7 +128,7 @@ function changeAria(value: string): string {
 }
 
 describe('DailyVibeCheckIn', () => {
-  it('offers all six semantic values and keeps Mutual Reveal structurally neutral', async () => {
+  it('offers all six semantic values without rendering an empty or hidden person', async () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
@@ -135,12 +136,9 @@ describe('DailyVibeCheckIn', () => {
     } as unknown as DailyCheckInsApi;
 
     renderVibe(api);
-    const partner = await screen.findByTestId('daily-vibe-partner');
-    expect(partner.getAttribute('data-state')).toBe(
-      'HIDDEN_UNTIL_SELF_CHECK_IN',
-    );
-    expect(within(partner).getByText(dailyVibe.partnerHidden)).not.toBeNull();
-    expect(partner.textContent).not.toContain('Anstrengender Tag');
+    await screen.findByRole('button', { name: dailyVibe.chooseAria });
+    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+    expect(screen.queryByText(dailyVibe.partnerHidden)).toBeNull();
 
     const dialog = await openVibeSheet();
     for (const label of Object.values(dailyVibe.values)) {
@@ -255,6 +253,47 @@ describe('DailyVibeCheckIn', () => {
     expect(
       await screen.findByRole('button', { name: dailyVibe.chooseAria }),
     ).not.toBeNull();
+    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  });
+
+  it('plays the populated Vibe reveal only once per day and browser session', async () => {
+    const getToday = vi.fn().mockResolvedValue(
+      rawResponse(
+        projection({
+          ownVibe: 'GOOD',
+          partner: { state: 'VISIBLE', value: 'STRESSED' },
+        }),
+        '"today:1"',
+      ),
+    );
+    const api = {
+      getDailyCheckInTodayRaw: getToday,
+    } as unknown as DailyCheckInsApi;
+
+    const first = renderVibe(api);
+    const own = await screen.findByRole('button', {
+      name: changeAria(dailyVibe.values.GOOD),
+    });
+    await waitFor(() =>
+      expect(own.classList.contains('is-startup-reveal')).toBe(true),
+    );
+    expect(
+      screen.getByTestId('daily-vibe-partner').classList.contains(
+        'is-startup-reveal',
+      ),
+    ).toBe(true);
+    first.unmount();
+
+    renderVibe(api);
+    const ownAgain = await screen.findByRole('button', {
+      name: changeAria(dailyVibe.values.GOOD),
+    });
+    expect(ownAgain.classList.contains('is-startup-reveal')).toBe(false);
+    expect(
+      screen.getByTestId('daily-vibe-partner').classList.contains(
+        'is-startup-reveal',
+      ),
+    ).toBe(false);
   });
 
   it('refetches a stale ETag conflict without retrying the mutation', async () => {
@@ -307,12 +346,10 @@ describe('DailyVibeCheckIn', () => {
       within(dialog).getByRole('button', { name: dailyVibe.values.SAD }),
     );
     expect(await screen.findByText(dailyVibe.saveError)).not.toBeNull();
-    expect(
-      screen.getByTestId('daily-vibe-partner').getAttribute('data-state'),
-    ).toBe('HIDDEN_UNTIL_SELF_CHECK_IN');
+    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
   });
 
-  it('renders IMMEDIATE NO_CHECK_IN and VISIBLE projections without technical enums', async () => {
+  it('omits IMMEDIATE NO_CHECK_IN and renders only an actual partner Vibe', async () => {
     const apiNo = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(
@@ -325,11 +362,9 @@ describe('DailyVibeCheckIn', () => {
       ),
     } as unknown as DailyCheckInsApi;
     const first = renderVibe(apiNo);
-    expect(
-      within(await screen.findByTestId('daily-vibe-partner')).getByText(
-        dailyVibe.noCheckIn,
-      ),
-    ).not.toBeNull();
+    await screen.findByRole('button', { name: dailyVibe.chooseAria });
+    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+    expect(screen.queryByText(dailyVibe.noCheckIn)).toBeNull();
     first.unmount();
 
     const apiVisible = {

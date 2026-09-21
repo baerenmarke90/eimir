@@ -116,6 +116,7 @@ export function DailyVibeCheckIn({
   );
   const [open, setOpen] = useState(false);
   const [revealVersion, setRevealVersion] = useState(0);
+  const [startupReveal, setStartupReveal] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstOptionRef = useRef<HTMLButtonElement>(null);
@@ -123,6 +124,7 @@ export function DailyVibeCheckIn({
   const previousPartnerStateRef = useRef<
     PartnerVibeProjection['state'] | undefined
   >(undefined);
+  const startupAnimationEvaluatedRef = useRef(false);
   const titleId = useId();
 
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
@@ -141,6 +143,41 @@ export function DailyVibeCheckIn({
       refetchType: 'active',
     });
   }, [configurationKey, queryClient, serverReportsModuleDisabled]);
+
+  useEffect(() => {
+    if (startupAnimationEvaluatedRef.current) return;
+    const projection = dailyQuery.data?.projection;
+    if (!projection || dailyQuery.isError || dailyQuery.fetchStatus !== 'idle') {
+      return;
+    }
+
+    startupAnimationEvaluatedRef.current = true;
+    const partnerHasVibe = projection.vibe?.partner.state === 'VISIBLE';
+    if (projection.own.vibe === null && !partnerHasVibe) return;
+
+    const storageKey = [
+      'eimir',
+      'daily-vibe-startup',
+      accountId,
+      spaceId,
+      projection.checkedOn.toISOString().slice(0, 10),
+    ].join(':');
+
+    try {
+      if (window.sessionStorage.getItem(storageKey) === '1') return;
+      window.sessionStorage.setItem(storageKey, '1');
+    } catch {
+      // A blocked storage API must not suppress the visual affordance.
+    }
+
+    setStartupReveal(true);
+  }, [
+    accountId,
+    dailyQuery.data,
+    dailyQuery.fetchStatus,
+    dailyQuery.isError,
+    spaceId,
+  ]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
     const name = partnerName || t('dailyVibe.partnerFallback');
@@ -180,8 +217,7 @@ export function DailyVibeCheckIn({
       const nextPartner = snapshot.projection.vibe?.partner;
       if (
         previousPartnerStateRef.current === 'HIDDEN_UNTIL_SELF_CHECK_IN' &&
-        nextPartner &&
-        nextPartner.state !== 'HIDDEN_UNTIL_SELF_CHECK_IN'
+        nextPartner?.state === 'VISIBLE'
       ) {
         setRevealVersion((current) => current + 1);
         setAnnouncement(partnerAccessibleCopy(nextPartner));
@@ -342,33 +378,22 @@ export function DailyVibeCheckIn({
   }
 
   const ownOption = ownVibe ? vibeOption(ownVibe) : undefined;
-  const ownLabel = ownOption ? t(ownOption.labelKey) : t('dailyVibe.choose');
+  const ownLabel = ownOption ? t(ownOption.labelKey) : '';
   const triggerLabel = ownOption
     ? t('dailyVibe.changeAria', { value: ownLabel })
     : t('dailyVibe.chooseAria');
   const partnerProjection = snapshot.projection.vibe.partner;
   const partnerLabel = partnerName || t('dailyVibe.partnerFallback');
-
-  let partnerValue = '';
-  let partnerStateClass = '';
-  switch (partnerProjection.state) {
-    case 'HIDDEN_UNTIL_SELF_CHECK_IN':
-      partnerValue = t('dailyVibe.partnerHidden');
-      partnerStateClass = 'is-hidden';
-      break;
-    case 'NO_CHECK_IN':
-      partnerValue = t('dailyVibe.noCheckIn');
-      partnerStateClass = 'is-empty';
-      break;
-    case 'VISIBLE': {
-      const option = vibeOption(partnerProjection.value);
-      partnerValue = option
-        ? t(option.labelKey)
-        : t('dailyVibe.partnerFallbackVisible', { name: partnerLabel });
-      partnerStateClass = 'is-visible';
-      break;
-    }
-  }
+  const partnerOption =
+    partnerProjection.state === 'VISIBLE'
+      ? vibeOption(partnerProjection.value)
+      : undefined;
+  const partnerValue =
+    partnerProjection.state === 'VISIBLE'
+      ? partnerOption
+        ? t(partnerOption.labelKey)
+        : t('dailyVibe.partnerFallbackVisible', { name: partnerLabel })
+      : '';
 
   const mutationProblem =
     mutation.error instanceof ClientProblemError ? mutation.error : null;
@@ -391,11 +416,62 @@ export function DailyVibeCheckIn({
         <p>{t('dailyVibe.voluntary')}</p>
       </div>
 
-      <div className="daily-vibe-people">
+      {ownOption || partnerProjection.state === 'VISIBLE' ? (
+        <div className="daily-vibe-people">
+          {ownOption ? (
+            <button
+              ref={triggerRef}
+              type="button"
+              className={
+                'daily-vibe-person daily-vibe-own' +
+                (startupReveal ? ' is-startup-reveal' : '')
+              }
+              aria-haspopup="dialog"
+              aria-expanded={open}
+              aria-label={triggerLabel}
+              onClick={() => {
+                mutation.reset();
+                setOpen(true);
+              }}
+            >
+              <span className="daily-vibe-glyph" aria-hidden="true">
+                {ownOption.glyph}
+              </span>
+              <span className="daily-vibe-person-copy">
+                <span>{t('dailyVibe.you')}</span>
+                <strong>{ownLabel}</strong>
+              </span>
+            </button>
+          ) : null}
+
+          {partnerProjection.state === 'VISIBLE' ? (
+            <div
+              key={revealVersion}
+              className={
+                'daily-vibe-person daily-vibe-partner is-visible' +
+                (startupReveal ? ' is-startup-reveal' : '') +
+                (revealVersion > 0 ? ' is-revealed' : '')
+              }
+              data-state="VISIBLE"
+              data-testid="daily-vibe-partner"
+            >
+              <span className="daily-vibe-glyph" aria-hidden="true">
+                {partnerOption?.glyph ?? '♡'}
+              </span>
+              <span className="daily-vibe-person-copy">
+                <span>{partnerLabel}</span>
+                <strong>{partnerValue}</strong>
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!ownOption ? (
         <button
           ref={triggerRef}
           type="button"
-          className="daily-vibe-person daily-vibe-own"
+          className="tertiary daily-vibe-share"
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label={triggerLabel}
@@ -404,36 +480,9 @@ export function DailyVibeCheckIn({
             setOpen(true);
           }}
         >
-          <span className="daily-vibe-glyph" aria-hidden="true">
-            {ownOption?.glyph ?? '♡'}
-          </span>
-          <span className="daily-vibe-person-copy">
-            <span>{t('dailyVibe.you')}</span>
-            <strong>{ownLabel}</strong>
-          </span>
+          {t('dailyVibe.choose')}
         </button>
-
-        <div
-          key={revealVersion}
-          className={
-            'daily-vibe-person daily-vibe-partner ' +
-            partnerStateClass +
-            (revealVersion > 0 ? ' is-revealed' : '')
-          }
-          data-state={partnerProjection.state}
-          data-testid="daily-vibe-partner"
-        >
-          <span className="daily-vibe-glyph" aria-hidden="true">
-            {partnerProjection.state === 'VISIBLE'
-              ? (vibeOption(partnerProjection.value)?.glyph ?? '♡')
-              : '♡'}
-          </span>
-          <span className="daily-vibe-person-copy">
-            <span>{partnerLabel}</span>
-            <strong>{partnerValue}</strong>
-          </span>
-        </div>
-      </div>
+      ) : null}
 
       <span className="sr-only" role="status" aria-live="polite">
         {announcement}

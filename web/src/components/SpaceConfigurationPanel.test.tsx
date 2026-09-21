@@ -21,7 +21,7 @@ function configuration(
 ): SpaceConfigurationView {
   return {
     canManageSpaceConfiguration: true,
-    dailyContextTimezone: null,
+    dailyContextTimezone: 'Europe/Berlin',
     dailyQuestionsEnabled: true,
     energyCheckInEnabled: true,
     energyVisibilityMode: 'MUTUAL_REVEAL',
@@ -108,6 +108,45 @@ describe('SpaceConfigurationPanel', () => {
     expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
   });
 
+  it('lets the manager disable Vibe Check through the same configuration contract', async () => {
+    const updatedConfiguration = configuration({
+      vibeCheckEnabled: false,
+      version: 8,
+    });
+    const getSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValueOnce(rawResponse(configuration(), '"7"'))
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const updateSpaceConfigurationRaw = vi
+      .fn()
+      .mockResolvedValue(rawResponse(updatedConfiguration, '"8"'));
+    const spacesApi = {
+      getSpaceConfigurationRaw,
+      updateSpaceConfigurationRaw,
+    } as unknown as SpacesApi;
+
+    renderPanel(spacesApi);
+
+    const toggle = await screen.findByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(updateSpaceConfigurationRaw).toHaveBeenCalledWith({
+        spaceId: 'space-1',
+        ifMatch: '"7"',
+        spaceConfigurationUpdate: { vibeCheckEnabled: false },
+      });
+    });
+    await waitFor(() => {
+      expect(toggle.getAttribute('aria-checked')).toBe('false');
+    });
+    expect(getSpaceConfigurationRaw).toHaveBeenCalledTimes(2);
+  });
+
   it('shows a partner the shared state without any write affordance', async () => {
     const spacesApi = {
       getSpaceConfigurationRaw: vi
@@ -123,8 +162,8 @@ describe('SpaceConfigurationPanel', () => {
     renderPanel(spacesApi);
 
     expect(
-      await screen.findByText(profileIdentity.spaceModuleOn),
-    ).not.toBeNull();
+      await screen.findAllByText(profileIdentity.spaceModuleOn),
+    ).toHaveLength(2);
     expect(screen.queryByRole('switch')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -183,7 +222,11 @@ describe('SpaceConfigurationPanel', () => {
 
     const { rerender, queryClient } = renderPanel(spacesApi);
     expect(
-      (await screen.findByRole('switch')).getAttribute('aria-checked'),
+      (
+        await screen.findByRole('switch', {
+          name: profileIdentity.supportGesturesToggle,
+        })
+      ).getAttribute('aria-checked'),
     ).toBe('true');
 
     rerender(
@@ -197,9 +240,13 @@ describe('SpaceConfigurationPanel', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe(
-        'false',
-      );
+      expect(
+        screen
+          .getByRole('switch', {
+            name: profileIdentity.supportGesturesToggle,
+          })
+          .getAttribute('aria-checked'),
+      ).toBe('false');
     });
   });
 });

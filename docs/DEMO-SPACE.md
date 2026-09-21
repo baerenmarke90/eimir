@@ -70,7 +70,10 @@ uv run python -m scripts.demo_space create
 ```
 
 Creation is idempotent. If the verified reserved accounts already share their canonical Space, the
-command returns that Space instead of duplicating data.
+command returns that Space instead of duplicating data. The command also reconciles the canonical
+Space to the deterministic M7 module configuration defined in
+`docs/m7/SPACE-MODULE-CONFIGURATION.md`; it does not infer or repair configuration authority for
+ordinary user Spaces.
 
 For deterministic acceptance runs:
 

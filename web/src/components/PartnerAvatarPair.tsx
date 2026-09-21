@@ -121,7 +121,10 @@ export function PartnerAvatarPair({
           title={statusLabel}
         >
           {status === 'active' ? (
-            <span className="partner-presence-badge-dot" aria-hidden="true" />
+            <span
+              className="partner-presence-pip partner-presence-badge-dot"
+              aria-hidden="true"
+            />
           ) : null}
           <span className="partner-presence-badge-label">{statusLabel}</span>
         </span>

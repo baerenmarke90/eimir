@@ -115,15 +115,20 @@ button.daily-vibe-person:focus-visible {
 }
 
 .daily-vibe-person.is-startup-reveal {
-  animation: daily-vibe-startup 560ms var(--easing-enter) both;
+  animation: daily-vibe-startup 640ms var(--easing-enter) both;
 }
 
 .daily-vibe-person.is-startup-reveal + .daily-vibe-person.is-startup-reveal {
-  animation-delay: 70ms;
+  animation-delay: 90ms;
 }
 
 .daily-vibe-partner.is-revealed {
-  animation: daily-vibe-reveal var(--duration-context) var(--easing-enter);
+  animation: daily-vibe-reveal 520ms var(--easing-enter) both;
+}
+
+.daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
+.daily-vibe-partner.is-revealed .daily-vibe-glyph {
+  animation: daily-vibe-glyph-pop 640ms var(--easing-enter) both;
 }
 
 .daily-vibe-share {
@@ -267,11 +272,11 @@ button.daily-vibe-person:focus-visible {
 @keyframes daily-vibe-startup {
   0% {
     opacity: 0;
-    transform: translateY(8px) scale(0.97);
+    transform: translateY(12px) scale(0.94);
   }
-  68% {
+  62% {
     opacity: 1;
-    transform: translateY(-1px) scale(1.01);
+    transform: translateY(-2px) scale(1.025);
   }
   100% {
     opacity: 1;
@@ -280,13 +285,32 @@ button.daily-vibe-person:focus-visible {
 }
 
 @keyframes daily-vibe-reveal {
-  from {
-    opacity: 0.55;
-    transform: translateY(4px) scale(0.985);
+  0% {
+    opacity: 0.35;
+    transform: translateY(10px) scale(0.94);
   }
-  to {
+  68% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.02);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes daily-vibe-glyph-pop {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.72) rotate(-7deg);
+  }
+  68% {
+    opacity: 1;
+    transform: scale(1.12) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
   }
 }
 
@@ -342,7 +366,9 @@ button.daily-vibe-person:focus-visible {
   }
 
   .daily-vibe-person.is-startup-reveal,
-  .daily-vibe-partner.is-revealed {
+  .daily-vibe-partner.is-revealed,
+  .daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
+  .daily-vibe-partner.is-revealed .daily-vibe-glyph {
     animation: none;
   }
 }

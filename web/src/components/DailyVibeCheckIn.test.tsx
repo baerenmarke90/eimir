@@ -27,7 +27,6 @@ beforeAll(() => {
 
 afterEach(() => {
   cleanup();
-  window.sessionStorage.clear();
   vi.restoreAllMocks();
   Object.defineProperty(window.navigator, 'onLine', {
     configurable: true,
@@ -92,10 +91,12 @@ function renderVibe(
     accountId = 'account-1',
     spaceId = 'space-1',
     configuredEnabled = true,
+    partnerName = 'Marie Winter',
   }: {
     accountId?: string;
     spaceId?: string;
     configuredEnabled?: boolean;
+    partnerName?: string;
   } = {},
 ) {
   const queryClient = new QueryClient({
@@ -110,7 +111,7 @@ function renderVibe(
         api={api}
         accountId={accountId}
         spaceId={spaceId}
-        partnerName="Marie"
+        partnerName={partnerName}
         configuredEnabled={configuredEnabled}
       />
     </QueryClientProvider>,
@@ -139,6 +140,7 @@ describe('DailyVibeCheckIn', () => {
     await screen.findByRole('button', { name: dailyVibe.chooseAria });
     expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
     expect(screen.queryByText(dailyVibe.partnerHidden)).toBeNull();
+    expect(screen.queryByText(dailyVibe.voluntary)).toBeNull();
 
     const dialog = await openVibeSheet();
     for (const label of Object.values(dailyVibe.values)) {
@@ -187,11 +189,10 @@ describe('DailyVibeCheckIn', () => {
         name: changeAria(dailyVibe.values.GOOD),
       }),
     ).not.toBeNull();
-    expect(
-      within(screen.getByTestId('daily-vibe-partner')).getByText(
-        dailyVibe.values.STRESSED,
-      ),
-    ).not.toBeNull();
+    const partner = screen.getByTestId('daily-vibe-partner');
+    expect(within(partner).getByText(dailyVibe.values.STRESSED)).not.toBeNull();
+    expect(within(partner).getByText('Marie')).not.toBeNull();
+    expect(within(partner).queryByText('Marie Winter')).toBeNull();
     expect(screen.getByRole('status').textContent).toContain('Marie');
   });
 
@@ -256,7 +257,7 @@ describe('DailyVibeCheckIn', () => {
     expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
   });
 
-  it('plays the populated Vibe reveal only once per day and browser session', async () => {
+  it('animates populated Vibe cards each time the Today surface is mounted', async () => {
     const getToday = vi.fn().mockResolvedValue(
       rawResponse(
         projection({
@@ -274,9 +275,7 @@ describe('DailyVibeCheckIn', () => {
     const own = await screen.findByRole('button', {
       name: changeAria(dailyVibe.values.GOOD),
     });
-    await waitFor(() =>
-      expect(own.classList.contains('is-startup-reveal')).toBe(true),
-    );
+    expect(own.classList.contains('is-startup-reveal')).toBe(true);
     expect(
       screen
         .getByTestId('daily-vibe-partner')
@@ -288,12 +287,12 @@ describe('DailyVibeCheckIn', () => {
     const ownAgain = await screen.findByRole('button', {
       name: changeAria(dailyVibe.values.GOOD),
     });
-    expect(ownAgain.classList.contains('is-startup-reveal')).toBe(false);
+    expect(ownAgain.classList.contains('is-startup-reveal')).toBe(true);
     expect(
       screen
         .getByTestId('daily-vibe-partner')
         .classList.contains('is-startup-reveal'),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('refetches a stale ETag conflict without retrying the mutation', async () => {

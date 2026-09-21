@@ -4,6 +4,8 @@ import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpd
 import type { ApiResponse } from '../api/generated/runtime';
 import { ClientProblemError, normalizeClientError } from './problemDetails';
 
+export const DAILY_CHECK_IN_REFRESH_INTERVAL_MS = 5_000;
+
 export interface DailyCheckInSnapshot {
   projection: DailyCheckInTodayView;
   etag: string;
@@ -81,6 +83,12 @@ export function dailyCheckInTodayQueryOptions(
     enabled: Boolean(api && accountId && spaceId),
     retry: false,
     staleTime: 0,
+    // Vibe and Energy are shared current-day presence signals. Keep the active
+    // Today surface converged while both partners leave it open; focus/reconnect
+    // alone is not enough because the other partner can update from a separate
+    // device without causing any browser lifecycle event here.
+    refetchInterval: DAILY_CHECK_IN_REFRESH_INTERVAL_MS,
+    refetchIntervalInBackground: false,
     // Current partner DailyCheckIn is deliberately ephemeral. Once the active
     // consumer disappears (module/Space/account switch), do not retain it in a
     // detached React Query cache.

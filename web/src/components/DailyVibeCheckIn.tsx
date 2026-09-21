@@ -19,6 +19,7 @@ import {
   type DailyCheckInSnapshot,
   updateDailyCheckInToday,
 } from '../client/dailyCheckIn';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -122,7 +123,6 @@ export function DailyVibeCheckIn({
   });
   const [open, setOpen] = useState(false);
   const [revealVersion, setRevealVersion] = useState(0);
-  const [startupReveal, setStartupReveal] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstOptionRef = useRef<HTMLButtonElement>(null);
@@ -130,11 +130,13 @@ export function DailyVibeCheckIn({
   const previousPartnerStateRef = useRef<
     PartnerVibeProjection['state'] | undefined
   >(undefined);
-  const startupAnimationEvaluatedRef = useRef(false);
   const titleId = useId();
 
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
   const serverVibe = dailyQuery.data?.projection.vibe;
+  const personalPartnerName = partnerName
+    ? firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
+    : t('dailyVibe.partnerFallback');
   const serverReportsModuleDisabled = serverVibe === null;
   useEffect(() => {
     if (!configuredEnabled || !serverReportsModuleDisabled) return;
@@ -150,47 +152,8 @@ export function DailyVibeCheckIn({
     serverReportsModuleDisabled,
   ]);
 
-  useEffect(() => {
-    if (startupAnimationEvaluatedRef.current) return;
-    const projection = dailyQuery.data?.projection;
-    if (
-      !projection ||
-      dailyQuery.isError ||
-      dailyQuery.fetchStatus !== 'idle'
-    ) {
-      return;
-    }
-
-    startupAnimationEvaluatedRef.current = true;
-    const partnerHasVibe = projection.vibe?.partner.state === 'VISIBLE';
-    if (projection.own.vibe === null && !partnerHasVibe) return;
-
-    const storageKey = [
-      'eimir',
-      'daily-vibe-startup',
-      accountId,
-      spaceId,
-      projection.checkedOn.toISOString().slice(0, 10),
-    ].join(':');
-
-    try {
-      if (window.sessionStorage.getItem(storageKey) === '1') return;
-      window.sessionStorage.setItem(storageKey, '1');
-    } catch {
-      // A blocked storage API must not suppress the visual affordance.
-    }
-
-    setStartupReveal(true);
-  }, [
-    accountId,
-    dailyQuery.data,
-    dailyQuery.fetchStatus,
-    dailyQuery.isError,
-    spaceId,
-  ]);
-
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
-    const name = partnerName || t('dailyVibe.partnerFallback');
+    const name = personalPartnerName;
     switch (projection.state) {
       case 'HIDDEN_UNTIL_SELF_CHECK_IN':
         return t('dailyVibe.partnerHiddenAria', { name });
@@ -391,7 +354,7 @@ export function DailyVibeCheckIn({
     ? t('dailyVibe.changeAria', { value: ownLabel })
     : t('dailyVibe.chooseAria');
   const partnerProjection = snapshot.projection.vibe.partner;
-  const partnerLabel = partnerName || t('dailyVibe.partnerFallback');
+  const partnerLabel = personalPartnerName;
   const partnerOption =
     partnerProjection.state === 'VISIBLE'
       ? vibeOption(partnerProjection.value)
@@ -421,19 +384,16 @@ export function DailyVibeCheckIn({
     >
       <div className="daily-vibe-heading">
         <h2 id={titleId}>{t('dailyVibe.question')}</h2>
-        <p>{t('dailyVibe.voluntary')}</p>
       </div>
 
       {ownOption || partnerProjection.state === 'VISIBLE' ? (
         <div className="daily-vibe-people">
           {ownOption ? (
             <button
+              key={ownVibe}
               ref={triggerRef}
               type="button"
-              className={
-                'daily-vibe-person daily-vibe-own' +
-                (startupReveal ? ' is-startup-reveal' : '')
-              }
+              className="daily-vibe-person daily-vibe-own is-startup-reveal"
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-label={triggerLabel}
@@ -454,11 +414,10 @@ export function DailyVibeCheckIn({
 
           {partnerProjection.state === 'VISIBLE' ? (
             <div
-              key={revealVersion}
+              key={`${revealVersion}:${partnerProjection.value}`}
               className={
                 'daily-vibe-person daily-vibe-partner is-visible' +
-                (startupReveal ? ' is-startup-reveal' : '') +
-                (revealVersion > 0 ? ' is-revealed' : '')
+                (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal')
               }
               data-state="VISIBLE"
               data-testid="daily-vibe-partner"

@@ -165,7 +165,9 @@ jobs:
       # contract/client have been committed from this exact branch revision.
       - name: Capture generated Daily Check-in contract
         if: always()
+        working-directory: .
         run: |
+          cd backend
           uv run --frozen python scripts/openapi_contract.py write
           cd ..
           tools/openapi/generate.sh
@@ -179,7 +181,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: daily-checkin-generated-${{ github.sha }}
-          path: .daily-checkin-generated
+          path: ${{ github.workspace }}/.daily-checkin-generated
           if-no-files-found: error
           retention-days: 1
 

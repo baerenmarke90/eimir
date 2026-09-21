@@ -663,12 +663,14 @@ export function StoryProductPage({
           title={t('story.timelineTitle')}
           description={t('story.timelineIntro')}
           className="momente-timeline-header"
+          variant="primary"
         />
       ) : (
         <PageHeader
           eyebrow={t('story.eyebrow')}
           title={t('story.title')}
           description={t('story.intro')}
+          variant="primary"
         />
       )}
 

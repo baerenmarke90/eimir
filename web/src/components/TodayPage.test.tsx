@@ -159,7 +159,7 @@ describe('TodayPage', () => {
     expect(html).not.toContain('today-hero-action-container');
   });
 
-  it('places the enabled Daily Energy Check-in directly after the relationship hero', () => {
+  it('integrates enabled Daily Energy into the relationship hero instead of a separate module', () => {
     const html = renderTodayPage(
       {
         space: {
@@ -183,15 +183,19 @@ describe('TodayPage', () => {
     );
 
     const heroIndex = html.indexOf('today-hero');
-    const energyIndex = html.indexOf('today-section-energy');
+    const energyIndex = html.indexOf('daily-energy-checkin');
+    const detailsIndex = html.indexOf('couple-presence-details');
     const upcomingIndex = html.indexOf('today-section-upcoming');
 
     expect(heroIndex).toBeGreaterThanOrEqual(0);
     expect(energyIndex).toBeGreaterThan(heroIndex);
-    expect(upcomingIndex).toBeGreaterThan(energyIndex);
+    expect(detailsIndex).toBeGreaterThan(energyIndex);
+    expect(upcomingIndex).toBeGreaterThan(detailsIndex);
+    expect(html).toContain('couple-presence-avatar-adornment');
+    expect(html).not.toContain('today-section-energy');
   });
 
-  it('never flashes Daily Energy before authoritative Space configuration enables it', () => {
+  it('never mounts the hero Energy control before authoritative Space configuration enables it', () => {
     const dashboard = {
       space: {
         id: 'space-1',
@@ -207,12 +211,12 @@ describe('TodayPage', () => {
       renderTodayPage(dashboard, undefined, {
         energyCheckInEnabled: false,
       }),
-    ).not.toContain('today-section-energy');
+    ).not.toContain('daily-energy-checkin');
     expect(
       renderTodayPage(dashboard, undefined, {
         configurationPending: true,
       }),
-    ).not.toContain('today-section-energy');
+    ).not.toContain('daily-energy-checkin');
   });
 
   it('reflects the server-authoritative Thinking-of-you cooldown from the Dashboard on load (regression #790/#791)', () => {

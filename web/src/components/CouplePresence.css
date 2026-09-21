@@ -21,12 +21,31 @@
 
 .couple-presence-main {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: var(--space-4);
 }
 
+.couple-presence-avatar-anchor {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.couple-presence-avatar-anchor.has-adornment {
+  margin-top: var(--space-4);
+}
+
+.couple-presence-avatar-adornment {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% - var(--space-2));
+  z-index: 6;
+}
+
 .couple-presence-details {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-1);
 }

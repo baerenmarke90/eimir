@@ -145,50 +145,6 @@
   }
 }
 
-/*
- * Large-text reflow: once the effective content width drops below 14rem
- * (for example 320–430 CSS px at 200% text), the avatar + identity row no
- * longer has enough inline space. Stack the identity below the avatars and
- * let the relationship action wrap instead of widening the document.
- */
-@container product-content (max-width: 14rem) {
-  .today-section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-1);
-  }
-
-  .today-section-link {
-    max-width: 100%;
-    flex: 0 1 auto;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .today-hero .couple-presence-main {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-  }
-
-  .today-hero .couple-presence-details,
-  .today-hero .couple-presence-actions {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .today-hero-action-container {
-    justify-content: flex-start;
-  }
-
-  .today-hero-action {
-    max-width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    text-align: left;
-  }
-}
-
 .today-hero-duration-link:hover,
 .today-hero-duration-link:focus-visible {
   color: var(--color-brand-strong);
@@ -1146,6 +1102,52 @@
     flex: initial;
     max-width: none;
     scroll-snap-align: none;
+  }
+}
+
+/*
+ * Large-text reflow: once the effective content width drops below 14rem
+ * (for example 320–430 CSS px at 200% text), the avatar + identity row no
+ * longer has enough inline space. Stack the identity below the avatars and
+ * let the relationship action wrap instead of widening the document.
+ * Keep this after the base Today rules so the compact overrides win the
+ * cascade; placing it earlier makes the later nowrap/flex defaults undo it.
+ */
+@container product-content (max-width: 14rem) {
+  .today-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+
+  .today-section-link {
+    max-width: 100%;
+    flex: 0 1 auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .today-hero .couple-presence-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .today-hero .couple-presence-details,
+  .today-hero .couple-presence-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .today-hero-action-container {
+    justify-content: flex-start;
+  }
+
+  .today-hero-action {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
   }
 }
 

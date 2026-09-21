@@ -135,6 +135,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/configuration",
+        body={"loveNotesEnabled": True},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),

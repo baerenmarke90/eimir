@@ -1335,6 +1335,16 @@
         "title": "ContentVisibility",
         "type": "string"
       },
+      "DailyCheckInVisibilityMode": {
+        "description": "How one DailyCheckIn dimension becomes visible to the partner.",
+        "enum": [
+          "IMMEDIATE",
+          "MUTUAL_REVEAL"
+        ],
+        "title": "DailyCheckInVisibilityMode",
+        "type": "string"
+      },
+
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -7747,6 +7757,133 @@
         "title": "SignupSessionView",
         "type": "object"
       },
+      "SpaceConfigurationUpdate": {
+        "additionalProperties": false,
+        "description": "Partial typed update for Space-wide module configuration.",
+        "properties": {
+          "dailyContextTimezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dailycontexttimezone"
+          },
+          "dailyQuestionsEnabled": {
+            "title": "Dailyquestionsenabled",
+            "type": "boolean"
+          },
+          "energyCheckInEnabled": {
+            "title": "Energycheckinenabled",
+            "type": "boolean"
+          },
+          "energyVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode",
+            "title": "Energyvisibilitymode"
+          },
+          "loveNotesEnabled": {
+            "title": "Lovenotesenabled",
+            "type": "boolean"
+          },
+          "sharedAchievementsEnabled": {
+            "title": "Sharedachievementsenabled",
+            "type": "boolean"
+          },
+          "supportGesturesEnabled": {
+            "title": "Supportgesturesenabled",
+            "type": "boolean"
+          },
+          "vibeCheckEnabled": {
+            "title": "Vibecheckenabled",
+            "type": "boolean"
+          },
+          "vibeVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode",
+            "title": "Vibevisibilitymode"
+          }
+        },
+        "title": "SpaceConfigurationUpdate",
+        "type": "object"
+      },
+      "SpaceConfigurationView": {
+        "description": "Shared typed module configuration visible to both active partners.",
+        "properties": {
+          "canManageSpaceConfiguration": {
+            "title": "Canmanagespaceconfiguration",
+            "type": "boolean"
+          },
+          "dailyContextTimezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dailycontexttimezone"
+          },
+          "dailyQuestionsEnabled": {
+            "title": "Dailyquestionsenabled",
+            "type": "boolean"
+          },
+          "energyCheckInEnabled": {
+            "title": "Energycheckinenabled",
+            "type": "boolean"
+          },
+          "energyVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          },
+          "loveNotesEnabled": {
+            "title": "Lovenotesenabled",
+            "type": "boolean"
+          },
+          "sharedAchievementsEnabled": {
+            "title": "Sharedachievementsenabled",
+            "type": "boolean"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          },
+          "supportGesturesEnabled": {
+            "title": "Supportgesturesenabled",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "vibeCheckEnabled": {
+            "title": "Vibecheckenabled",
+            "type": "boolean"
+          },
+          "vibeVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "spaceId",
+          "version",
+          "canManageSpaceConfiguration",
+          "vibeCheckEnabled",
+          "energyCheckInEnabled",
+          "loveNotesEnabled",
+          "supportGesturesEnabled",
+          "sharedAchievementsEnabled",
+          "dailyQuestionsEnabled",
+          "dailyContextTimezone",
+          "vibeVisibilityMode",
+          "energyVisibilityMode"
+        ],
+        "title": "SpaceConfigurationView",
+        "type": "object"
+      },
+
       "SpaceEntitlementView": {
         "description": "Effective commercial entitlement representation for a Space.",
         "properties": {
@@ -15871,6 +16008,178 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/configuration": {
+      "get": {
+        "description": "Return authoritative shared module configuration and caller capability.",
+        "operationId": "getSpaceConfiguration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceConfigurationView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version. Send it unchanged in the next write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Space Configuration",
+        "tags": [
+          "spaces"
+        ]
+      },
+      "patch": {
+        "description": "Apply a typed partial update under the existing If-Match contract.",
+        "operationId": "updateSpaceConfiguration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceConfigurationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceConfigurationView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version. Send it unchanged in the next write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`SPACE_CONFIGURATION_MANAGEMENT_REQUIRED`: the caller may read this Space configuration but is not its persisted configuration manager."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The supplied version is no longer current. Nothing was changed; reload the latest configuration before retrying."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Space Configuration",
+        "tags": [
+          "spaces"
+        ]
+      }
+    },
+
     "/api/v1/spaces/{spaceId}/dashboard": {
       "get": {
         "description": "Return the shared-only relationship overview for one Space.",

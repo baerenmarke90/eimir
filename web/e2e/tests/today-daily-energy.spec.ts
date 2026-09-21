@@ -369,7 +369,7 @@ test('Daily Energy is a compact avatar battery that opens one accessible slider'
 
   await page.keyboard.press('Escape');
   await expect(popover).toHaveCount(0);
-  await expect(badge).toBeFocused();
+  await expect(hero.locator('.daily-energy-badge')).toBeFocused();
 });
 
 test('Daily Energy popover stays inside a 320px viewport with 200 percent text', async ({

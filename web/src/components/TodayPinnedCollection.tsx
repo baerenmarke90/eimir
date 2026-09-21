@@ -65,10 +65,9 @@ export function TodayPinnedCollection({
       await onRefresh();
       if (sharedAchievementsEnabled && collectionBecameComplete) {
         setCelebratedScope(celebrationScope);
-        postSnackbar(
-          'm5s5.today.pinnedCollection.sharedAchievementConfirmed',
-          { title: collection.title },
-        );
+        postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
+          title: collection.title,
+        });
       }
     },
     onError: () => postSnackbar('m5s5.common.error'),

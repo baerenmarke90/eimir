@@ -55,9 +55,7 @@ function rawUpdateResponse(
     raw: {
       headers: {
         get: (name: string) =>
-          name === COMPLETION_HEADER
-            ? String(collectionBecameComplete)
-            : null,
+          name === COMPLETION_HEADER ? String(collectionBecameComplete) : null,
       },
     } as unknown as Response,
     value: vi.fn().mockResolvedValue(updatedItem),
@@ -125,9 +123,11 @@ describe('TodayPinnedCollection', () => {
   });
 
   it('uses the existing Collection mutation without celebrating a non-final item', async () => {
-    const updateCollectionItemRaw = vi.fn().mockResolvedValue(
-      rawUpdateResponse(item('item-1', 'Milch', true), false),
-    );
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawUpdateResponse(item('item-1', 'Milch', true), false),
+      );
     const { onRefresh } = renderPinned(
       { updateCollectionItemRaw },
       { sharedAchievementsEnabled: true },
@@ -161,9 +161,11 @@ describe('TodayPinnedCollection', () => {
     value.items = value.items.map((entry) =>
       entry.id === 'item-1' ? entry : { ...entry, completed: true },
     );
-    const updateCollectionItemRaw = vi.fn().mockResolvedValue(
-      rawUpdateResponse(item('item-1', 'Milch', true), true),
-    );
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawUpdateResponse(item('item-1', 'Milch', true), true),
+      );
     const { onRefresh } = renderPinned(
       { updateCollectionItemRaw },
       { value, sharedAchievementsEnabled: true },
@@ -196,9 +198,11 @@ describe('TodayPinnedCollection', () => {
   });
 
   it('suppresses a confirmed Collection transition when shared achievements are disabled', async () => {
-    const updateCollectionItemRaw = vi.fn().mockResolvedValue(
-      rawUpdateResponse(item('item-1', 'Milch', true), true),
-    );
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockResolvedValue(
+        rawUpdateResponse(item('item-1', 'Milch', true), true),
+      );
     const { onRefresh } = renderPinned({ updateCollectionItemRaw });
 
     fireEvent.click(

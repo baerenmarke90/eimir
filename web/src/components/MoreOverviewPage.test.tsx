@@ -31,6 +31,8 @@ describe('MoreOverviewPage', () => {
     );
 
     expect(html).toContain('more-groups');
+    expect(html).toContain('page-heading-root');
+    expect(html).not.toContain(`class="eyebrow">${de.more.eyebrow}`);
     expect(html).toContain(de.more.groups.personal);
     expect(html).toContain(de.more.groups.shared);
     expect(html).toContain(de.more.groups.utility);

@@ -371,7 +371,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
   await expect(page.locator('.momente-hero-highlight')).toContainText(
     'Danke, dass du heute für mich da warst.',
@@ -424,7 +424,7 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
@@ -440,7 +440,7 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
 
   const tapestryLinkTitles = await page

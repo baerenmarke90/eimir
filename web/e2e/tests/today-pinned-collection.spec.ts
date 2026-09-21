@@ -503,7 +503,9 @@ test('celebrates only the confirmed final pinned Collection completion and stays
     }),
   ).toHaveCount(0);
 
-  const appleButton = pinnedSection.getByRole('button', { name: appleDoneName });
+  const appleButton = pinnedSection.getByRole('button', {
+    name: appleDoneName,
+  });
   await appleButton.click();
   await expect(appleButton).toBeEnabled();
   await expect(

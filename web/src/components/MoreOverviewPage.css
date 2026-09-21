@@ -1,6 +1,6 @@
 .more-page {
   display: grid;
-  gap: var(--space-8);
+  gap: 0;
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
@@ -125,10 +125,6 @@
 }
 
 @media (max-width: 389px) {
-  .more-page {
-    gap: var(--space-6);
-  }
-
   .more-groups {
     gap: var(--space-6);
   }

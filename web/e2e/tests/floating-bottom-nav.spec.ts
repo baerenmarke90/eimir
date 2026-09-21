@@ -360,7 +360,15 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       name: navigation.quickCreateTitle,
     });
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
+    await dialog.evaluate(async (element) => {
+      const finite = element.getAnimations().filter((animation) => {
+        const timing = animation.effect?.getTiming();
+        return timing?.iterations !== Number.POSITIVE_INFINITY;
+      });
+      await Promise.all(
+        finite.map((animation) => animation.finished.catch(() => undefined)),
+      );
+    });
 
     // F2 uses the native top layer; stacking is independent of CSS z-index.
     expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
@@ -494,6 +502,15 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await trigger.click();
     await expect(dialog).toBeVisible();
+    await dialog.evaluate(async (element) => {
+      const finite = element.getAnimations().filter((animation) => {
+        const timing = animation.effect?.getTiming();
+        return timing?.iterations !== Number.POSITIVE_INFINITY;
+      });
+      await Promise.all(
+        finite.map((animation) => animation.finished.catch(() => undefined)),
+      );
+    });
     const dragBox = await dragZone.boundingBox();
     expect(dragBox).not.toBeNull();
     if (!dragBox) throw new Error('Missing drag handle bounds');

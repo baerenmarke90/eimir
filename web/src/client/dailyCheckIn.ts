@@ -92,10 +92,11 @@ export function dailyCheckInTodayQueryOptions(
     // A foreground poll with the same ETag is not a product-state change.
     // Preserve the previous snapshot identity so the 5s convergence loop does
     // not repaint Today when nothing changed on the server.
-    structuralSharing: (
-      oldData: DailyCheckInSnapshot | undefined,
-      newData: DailyCheckInSnapshot,
-    ) => (oldData?.etag === newData.etag ? oldData : newData),
+    structuralSharing: (oldData: unknown, newData: unknown) => {
+      const previous = oldData as DailyCheckInSnapshot | undefined;
+      const incoming = newData as DailyCheckInSnapshot;
+      return previous?.etag === incoming.etag ? previous : incoming;
+    },
     // Current partner DailyCheckIn is deliberately ephemeral. Once the active
     // consumer disappears (module/Space/account switch), do not retain it in a
     // detached React Query cache.

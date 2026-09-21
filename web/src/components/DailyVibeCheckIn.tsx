@@ -343,9 +343,7 @@ export function DailyVibeCheckIn({
   }
 
   const ownOption = ownVibe ? vibeOption(ownVibe) : undefined;
-  const ownLabel = ownOption
-    ? t(ownOption.labelKey)
-    : t('dailyVibe.choose');
+  const ownLabel = ownOption ? t(ownOption.labelKey) : t('dailyVibe.choose');
   const triggerLabel = ownOption
     ? t('dailyVibe.changeAria', { value: ownLabel })
     : t('dailyVibe.chooseAria');
@@ -428,7 +426,7 @@ export function DailyVibeCheckIn({
         >
           <span className="daily-vibe-glyph" aria-hidden="true">
             {partnerProjection.state === 'VISIBLE'
-              ? vibeOption(partnerProjection.value)?.glyph ?? '♡'
+              ? (vibeOption(partnerProjection.value)?.glyph ?? '♡')
               : '♡'}
           </span>
           <span className="daily-vibe-person-copy">

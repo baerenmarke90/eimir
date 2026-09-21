@@ -38,7 +38,12 @@ async function installMocks(page: Page) {
         maintenanceMode: false,
         registrationAvailable: true,
         registrationUnavailableReason: null,
-        auth: { localPassword: true, passkey: true, magicLink: true, oidc: false },
+        auth: {
+          localPassword: true,
+          passkey: true,
+          magicLink: true,
+          oidc: false,
+        },
       });
       return;
     }
@@ -99,10 +104,8 @@ async function installMocks(page: Page) {
     }
     if (
       method === 'GET' &&
-      (pathname ===
-        `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
-        pathname ===
-          `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}`)
+      (pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
+        pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}`)
     ) {
       const partner = pathname.endsWith(PARTNER_ID);
       await json({
@@ -196,10 +199,9 @@ async function installMocks(page: Page) {
       pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
     ) {
       lastPatch = request.postDataJSON() as Record<string, unknown>;
-      ownVibe =
-        Object.hasOwn(lastPatch, 'vibe')
-          ? (lastPatch.vibe as string | null)
-          : ownVibe;
+      ownVibe = Object.hasOwn(lastPatch, 'vibe')
+        ? (lastPatch.vibe as string | null)
+        : ownVibe;
       partnerState =
         ownVibe === null
           ? { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
@@ -265,8 +267,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
       })
       .filter(
         (box) =>
-          box.width > 0 &&
-          (box.left < -1 || box.right > root.clientWidth + 1),
+          box.width > 0 && (box.left < -1 || box.right > root.clientWidth + 1),
       )
       .sort((a, b) => b.right - a.right)
       .slice(0, 8);
@@ -289,7 +290,10 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
 }, testInfo) => {
   const state = await installMocks(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' });
+  await page.emulateMedia({
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
   await signIn(page);
 
   const hero = page.locator('.today-hero');
@@ -301,16 +305,21 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
 
   const order = await page.evaluate(() => {
     const heroNode = document.querySelector('.today-hero');
-    const vibeNode = document.querySelector('[data-testid="daily-vibe-checkin"]');
+    const vibeNode = document.querySelector(
+      '[data-testid="daily-vibe-checkin"]',
+    );
     const upcomingNode = document.querySelector('.today-section-upcoming');
     if (!heroNode || !vibeNode || !upcomingNode) return false;
-    return Boolean(
-      heroNode.compareDocumentPosition(vibeNode) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ) &&
+    return (
+      Boolean(
+        heroNode.compareDocumentPosition(vibeNode) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ) &&
       Boolean(
         vibeNode.compareDocumentPosition(upcomingNode) &
           Node.DOCUMENT_POSITION_FOLLOWING,
-      );
+      )
+    );
   });
   expect(order).toBe(true);
 
@@ -350,9 +359,7 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await sheet.getByRole('button', { name: dailyVibe.values.GOOD }).click();
   await expect(sheet).toHaveCount(0);
   await expect(
-    page.getByTestId('daily-vibe-partner').getByText(
-      dailyVibe.values.STRESSED,
-    ),
+    page.getByTestId('daily-vibe-partner').getByText(dailyVibe.values.STRESSED),
   ).toBeVisible();
 
   expect(state.lastPatch()).toEqual({ vibe: 'GOOD' });
@@ -368,17 +375,14 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     fullPage: true,
   });
 
-  await page.getByRole('button', {
-    name: dailyVibe.changeAria.replace(
-      '{{value}}',
-      dailyVibe.values.GOOD,
-    ),
-  }).click();
+  await page
+    .getByRole('button', {
+      name: dailyVibe.changeAria.replace('{{value}}', dailyVibe.values.GOOD),
+    })
+    .click();
   await page.getByRole('button', { name: dailyVibe.remove }).click();
   await expect(
-    page.getByTestId('daily-vibe-partner').getByText(
-      dailyVibe.partnerHidden,
-    ),
+    page.getByTestId('daily-vibe-partner').getByText(dailyVibe.partnerHidden),
   ).toBeVisible();
   expect(state.lastPatch()).toEqual({ vibe: null });
 });
@@ -417,7 +421,10 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
 }, testInfo) => {
   await installMocks(page);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'no-preference' });
+  await page.emulateMedia({
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
   await signIn(page);
 
   await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
@@ -436,4 +443,3 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
     fullPage: true,
   });
 });
-

@@ -144,7 +144,9 @@ describe('DailyVibeCheckIn', () => {
 
     const dialog = await openVibeSheet();
     for (const label of Object.values(dailyVibe.values)) {
-      expect(within(dialog).getByRole('button', { name: label })).not.toBeNull();
+      expect(
+        within(dialog).getByRole('button', { name: label }),
+      ).not.toBeNull();
     }
   });
 
@@ -163,7 +165,9 @@ describe('DailyVibeCheckIn', () => {
     const api = {
       getDailyCheckInTodayRaw: vi
         .fn()
-        .mockResolvedValue(rawResponse(projection({ ownEnergy: 60 }), '"today:1"')),
+        .mockResolvedValue(
+          rawResponse(projection({ ownEnergy: 60 }), '"today:1"'),
+        ),
       updateDailyCheckInTodayRaw: update,
     } as unknown as DailyCheckInsApi;
 
@@ -190,9 +194,7 @@ describe('DailyVibeCheckIn', () => {
         dailyVibe.values.STRESSED,
       ),
     ).not.toBeNull();
-    expect(
-      screen.getByRole('status').textContent,
-    ).toContain('Marie');
+    expect(screen.getByRole('status').textContent).toContain('Marie');
   });
 
   it('changes and removes only the Vibe dimension', async () => {
@@ -352,12 +354,14 @@ describe('DailyVibeCheckIn', () => {
 
   it('keeps a disabled module absent unless an existing own Vibe still needs a clear path', async () => {
     const apiAbsent = {
-      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
-        rawResponse(
-          projection({ ownVibe: null, vibeEnabled: false }),
-          '"today:1"',
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(
+            projection({ ownVibe: null, vibeEnabled: false }),
+            '"today:1"',
+          ),
         ),
-      ),
     } as unknown as DailyCheckInsApi;
     const first = renderVibe(apiAbsent, { configuredEnabled: false });
     await waitFor(() =>
@@ -365,19 +369,23 @@ describe('DailyVibeCheckIn', () => {
     );
     first.unmount();
 
-    const update = vi.fn().mockResolvedValue(
-      rawResponse(
-        projection({ ownVibe: null, vibeEnabled: false }),
-        '"today:2"',
-      ),
-    );
-    const apiClear = {
-      getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
+    const update = vi
+      .fn()
+      .mockResolvedValue(
         rawResponse(
-          projection({ ownVibe: 'GOOD', vibeEnabled: false }),
-          '"today:1"',
+          projection({ ownVibe: null, vibeEnabled: false }),
+          '"today:2"',
         ),
-      ),
+      );
+    const apiClear = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(
+            projection({ ownVibe: 'GOOD', vibeEnabled: false }),
+            '"today:1"',
+          ),
+        ),
       updateDailyCheckInTodayRaw: update,
     } as unknown as DailyCheckInsApi;
     renderVibe(apiClear, { configuredEnabled: false });

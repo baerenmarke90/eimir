@@ -115,11 +115,7 @@ button.daily-vibe-person:focus-visible {
 }
 
 .daily-vibe-partner.is-hidden {
-  background: color-mix(
-    in srgb,
-    var(--color-surface-subtle) 90%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--color-surface-subtle) 90%, transparent);
   box-shadow: none;
 }
 
@@ -191,10 +187,7 @@ button.daily-vibe-person:focus-visible {
 
 .daily-vibe-options {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(min(9.5rem, 100%), 1fr)
-  );
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
   max-width: 100%;
   gap: var(--space-2);
 }

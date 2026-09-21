@@ -18,3 +18,35 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.plan-story-continuation.is-shared-achievement {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--color-shared-border);
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised),
+    var(--color-shared-surface)
+  );
+}
+
+.plan-shared-achievement-mark {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-story-continuation.is-shared-achievement {
+    animation: none;
+    transition: none;
+  }
+}

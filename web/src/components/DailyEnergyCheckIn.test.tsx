@@ -11,6 +11,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
+import { dailyCheckInTodayQueryKey } from '../client/dailyCheckIn';
 import { ClientProblemError } from '../client/problemDetails';
 import dailyEnergy from '../i18n/locales/dailyEnergy';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
@@ -135,6 +136,49 @@ describe('DailyEnergyCheckIn', () => {
     expect(within(popover).getByText(dailyEnergy.scaleHigh)).not.toBeNull();
     expect(within(popover).queryByText(/\d+\s*%/)).toBeNull();
     expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
+  });
+
+  it('keeps the open Energy control stable while partner sync refetches in the background', async () => {
+    let resolveRefetch:
+      | ((value: ReturnType<typeof rawResponse>) => void)
+      | undefined;
+    const backgroundRefetch = new Promise<ReturnType<typeof rawResponse>>(
+      (resolve) => {
+        resolveRefetch = resolve;
+      },
+    );
+    const initial = rawResponse(
+      projection({
+        own: 60,
+        partner: { state: 'VISIBLE', value: 40 },
+      }),
+      '"today:1"',
+    );
+    const getDailyCheckInTodayRaw = vi
+      .fn()
+      .mockResolvedValueOnce(initial)
+      .mockReturnValueOnce(backgroundRefetch);
+    const api = {
+      getDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    const { queryClient } = renderEnergy(api);
+    await openSetEnergy(60);
+
+    void queryClient.refetchQueries({
+      queryKey: dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      exact: true,
+    });
+    await waitFor(() =>
+      expect(getDailyCheckInTodayRaw).toHaveBeenCalledTimes(2),
+    );
+
+    expect(screen.getByTestId('daily-energy-popover')).not.toBeNull();
+    expect(screen.getByRole('slider')).not.toBeNull();
+
+    resolveRefetch?.(initial);
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(screen.getByTestId('daily-energy-popover')).not.toBeNull();
   });
 
   it('does not save the neutral slider position if the user only opens and leaves', async () => {

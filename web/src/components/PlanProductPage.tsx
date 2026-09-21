@@ -60,6 +60,9 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [sharedAchievementKey, setSharedAchievementKey] = useState<string | null>(
+    null,
+  );
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
 
   const planQuery = useQuery({
@@ -146,22 +149,36 @@ export function PlanProductPage({
     onSuccess: commitPlan,
   });
   const completeMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       plan,
       experiencedOn,
     }: {
       plan: PlanDetail;
       experiencedOn: Date;
-    }) =>
-      apiCall(() =>
-        apis.plans.completePlan({
+    }) => {
+      try {
+        const response = await apis.plans.completePlanRaw({
           spaceId,
           planId: plan.id,
           ifMatch: planningIfMatch(plan),
           planComplete: { experiencedOn },
-        }),
-      ),
-    onSuccess: commitPlan,
+        });
+        return {
+          plan: await response.value(),
+          celebrateSharedAchievement:
+            response.raw.headers.get('X-Eimir-Shared-Achievement') ===
+            'plan-completed',
+        };
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onSuccess: async ({ plan, celebrateSharedAchievement }) => {
+      await commitPlan(plan);
+      setSharedAchievementKey(
+        celebrateSharedAchievement ? `${spaceId}:${plan.id}` : null,
+      );
+    },
   });
   const returnMutation = useMutation({
     mutationFn: (plan: PlanDetail) =>
@@ -512,6 +529,9 @@ export function PlanProductPage({
             apis={apis}
             spaceId={spaceId}
             plan={plan}
+            celebrateAsTeam={
+              sharedAchievementKey === `${spaceId}:${plan.id}`
+            }
             focusOnMount={completeMutation.isSuccess}
           />
         ) : null}

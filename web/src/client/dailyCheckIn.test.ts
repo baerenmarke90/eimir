@@ -57,6 +57,21 @@ describe('DailyCheckIn web query contract', () => {
     expect(options.refetchIntervalInBackground).toBe(false);
     expect(options.refetchOnWindowFocus).toBe('always');
     expect(options.refetchOnReconnect).toBe('always');
+
+    const unchanged = {
+      etag: '"today:1"',
+      projection: projection(60),
+    };
+    const sameVersion = {
+      etag: '"today:1"',
+      projection: projection(60),
+    };
+    const changed = {
+      etag: '"today:2"',
+      projection: projection(70),
+    };
+    expect(options.structuralSharing(unchanged, sameVersion)).toBe(unchanged);
+    expect(options.structuralSharing(unchanged, changed)).toBe(changed);
   });
 
   it('preserves the exact ETag and sends it unchanged as If-Match', async () => {

@@ -100,9 +100,7 @@
 
 /* Energy owns the lower avatar edge. Keep the existing online-presence pip
    readable by moving it to the upper edge only while avatar Energy is present. */
-.today-hero
-  .couple-presence-avatar-anchor.has-adornment
-  .partner-presence-pip {
+.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip {
   top: 2px;
   right: 2px;
   bottom: auto;

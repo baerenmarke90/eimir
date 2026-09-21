@@ -213,7 +213,8 @@ class TestPersistenceAndEnergy:
             manager_id=couple["manager"].id,
         )
         initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
-        assert initial.headers["etag"] == '"absent"'
+        initial_etag = initial.headers["etag"]
+        assert initial_etag.endswith(':absent"')
         assert initial.json()["own"] == {"version": 0, "energyLevel": None}
 
         created = client.patch(
@@ -224,7 +225,7 @@ class TestPersistenceAndEnergy:
         assert created.status_code == 200
         assert created.json()["own"] == {"version": 1, "energyLevel": 20}
         created_etag = created.headers["etag"]
-        assert created_etag != '"absent"'
+        assert created_etag != initial_etag
 
         updated = client.patch(
             path(couple["space"].id),
@@ -251,7 +252,7 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(updated.headers["etag"])},
         )
         assert cleared.status_code == 200
-        assert cleared.headers["etag"] == '"absent"'
+        assert cleared.headers["etag"] == initial_etag
         assert cleared.json()["own"] == {"version": 0, "energyLevel": None}
         assert (
             session.execute(
@@ -274,10 +275,11 @@ class TestPersistenceAndEnergy:
             space_id=couple["space"].id,
             manager_id=couple["manager"].id,
         )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         response = client.patch(
             path(couple["space"].id),
             json={"energyLevel": invalid},
-            headers={**auth(couple["manager_token"]), "If-Match": '"absent"'},
+            headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
         )
         assert response.status_code == 422
         assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
@@ -346,7 +348,7 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(disabled.headers["etag"])},
         )
         assert cleared.status_code == 200
-        assert cleared.headers["etag"] == '"absent"'
+        assert cleared.headers["etag"].endswith(':absent"')
 
 
 class TestMutualReveal:
@@ -443,6 +445,50 @@ class TestMutualReveal:
 
 
 class TestConcurrency:
+    def test_absent_etag_is_bound_to_authoritative_space_day(
+        self, client, session: Session, couple, monkeypatch
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+        )
+        monkeypatch.setattr(
+            daily_context,
+            "now",
+            lambda: datetime(2026, 9, 21, 10, 0, tzinfo=UTC),
+        )
+        first_day = client.get(
+            path(couple["space"].id),
+            headers=auth(couple["manager_token"]),
+        )
+        assert first_day.status_code == 200
+        assert first_day.json()["checkedOn"] == "2026-09-21"
+
+        monkeypatch.setattr(
+            daily_context,
+            "now",
+            lambda: datetime(2026, 9, 22, 10, 0, tzinfo=UTC),
+        )
+        stale = client.patch(
+            path(couple["space"].id),
+            json={"energyLevel": 30},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(first_day.headers["etag"]),
+            },
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+        assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0
+
+        second_day = client.get(
+            path(couple["space"].id),
+            headers=auth(couple["manager_token"]),
+        )
+        assert second_day.json()["checkedOn"] == "2026-09-22"
+        assert second_day.headers["etag"] != first_day.headers["etag"]
+
     def test_parallel_first_writes_and_updates_have_one_winner(self, production_client) -> None:  # type: ignore[no-untyped-def]
         client, maker = production_client
         with maker() as setup:
@@ -467,7 +513,8 @@ class TestConcurrency:
             with ThreadPoolExecutor(max_workers=2) as pool:
                 return list(pool.map(write, payloads))
 
-        first = race([{"energyLevel": 20}, {"energyLevel": 30}], '"absent"')
+        initial = client.get(path(space_id), headers=auth(token))
+        first = race([{"energyLevel": 20}, {"energyLevel": 30}], initial.headers["etag"])
         assert sorted(response.status_code for response in first) == [200, 409]
         loser = next(response for response in first if response.status_code == 409)
         assert loser.json()["code"] == "RESOURCE_VERSION_CONFLICT"
@@ -499,10 +546,11 @@ class TestConcurrency:
             space_id = space.id
             setup.commit()
 
+        initial = client.get(path(space_id), headers=auth(token))
         created = client.patch(
             path(space_id),
             json={"energyLevel": 20},
-            headers={**auth(token), "If-Match": '"absent"'},
+            headers={**auth(token), **if_match(initial.headers["etag"])},
         )
         old_etag = created.headers["etag"]
 
@@ -521,18 +569,21 @@ class TestConcurrency:
         assert sorted(response.status_code for response in raced) == [200, 409]
 
         current = client.get(path(space_id), headers=auth(token))
-        if current.headers["etag"] != '"absent"':
+        if current.json()["own"]["energyLevel"] is not None:
             cleared = client.patch(
                 path(space_id),
                 json={"energyLevel": None},
                 headers={**auth(token), "If-Match": current.headers["etag"]},
             )
             assert cleared.status_code == 200
+            absent_etag = cleared.headers["etag"]
+        else:
+            absent_etag = current.headers["etag"]
 
         recreated = client.patch(
             path(space_id),
             json={"energyLevel": 70},
-            headers={**auth(token), "If-Match": '"absent"'},
+            headers={**auth(token), "If-Match": absent_etag},
         )
         assert recreated.status_code == 200
         assert recreated.headers["etag"] != old_etag

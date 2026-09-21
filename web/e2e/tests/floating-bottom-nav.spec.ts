@@ -346,7 +346,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
   test('Quick Create mobile floating panel opens with fully rounded corners, clear nav separation and accessibility', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installApiMocks(page);
     await page.goto('/login');
@@ -412,6 +412,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
     });
+    await page.screenshot({
+      path: testInfo.outputPath('quick-create-sheet-390-light.png'),
+    });
 
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -425,6 +428,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
+    });
+    await page.screenshot({
+      path: testInfo.outputPath('quick-create-sheet-390-dark.png'),
     });
 
     await page.evaluate(() => {

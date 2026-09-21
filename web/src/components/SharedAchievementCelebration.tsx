@@ -47,7 +47,9 @@ export function SharedAchievementCelebration({
         </Heading>
         <p>{body}</p>
       </div>
-      {action ? <div className="shared-achievement-action">{action}</div> : null}
+      {action ? (
+        <div className="shared-achievement-action">{action}</div>
+      ) : null}
     </div>
   );
 }

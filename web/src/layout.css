@@ -78,7 +78,7 @@
 
   .layout-rail-sticky {
     position: sticky;
-    top: calc(var(--topbar-height) + var(--space-6));
+    top: var(--space-6);
   }
 }
 

@@ -584,239 +584,100 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
     await expectContainedFooters(page);
   });
 
-  test('month heading pins below the measured app bar instead of hiding under it', async ({
+  test('month heading pins at the viewport edge after the app header scrolls away', async ({
     page,
   }, testInfo) => {
     await openTimeline(page, { width: 390, height: 844 });
     const topbar = page.locator('.product-topbar');
-    const barBottom = () =>
-      topbar.evaluate((el) => el.getBoundingClientRect().bottom);
-    const header = page.locator('.story-year-month-header').nth(1);
-    const heading = page.getByRole('heading', {
-      name: 'August 2026',
-      level: 2,
-    });
+    const august = page.locator('.story-year-month-header').nth(1);
 
-    // Scroll well into August: its heading stays whole, right below the bar.
-    const bottom = await barBottom();
+    expect(await topbar.evaluate((el) => getComputedStyle(el).position)).toBe(
+      'relative',
+    );
+
     await page
       .locator('.story-timeline-item', {
         hasText: 'Thinking of our spring picnic',
       })
-      .evaluate((el, barEdge) => {
-        window.scrollBy(0, el.getBoundingClientRect().top - barEdge - 80);
-      }, bottom);
+      .evaluate((el) => {
+        window.scrollBy(0, el.getBoundingClientRect().top - 120);
+      });
     await page.waitForTimeout(150);
-    await capture(
-      page,
-      testInfo,
-      '09-month-heading-pinned-below-app-bar-390.png',
-    );
-    expect(await header.evaluate((el) => getComputedStyle(el).position)).toBe(
+
+    expect(
+      await topbar.evaluate((el) => el.getBoundingClientRect().bottom),
+    ).toBeLessThanOrEqual(0);
+    expect(await august.evaluate((el) => getComputedStyle(el).position)).toBe(
       'sticky',
     );
-    const pinned = await header.boundingBox();
+    const pinned = await august.boundingBox();
+    expect(Math.abs(pinned?.y ?? 999)).toBeLessThanOrEqual(1);
     expect(
-      Math.abs((pinned?.y ?? 0) - (await barBottom())),
-    ).toBeLessThanOrEqual(1);
-    await expect(heading).toBeInViewport({ ratio: 1 });
+      await august.evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).not.toMatch(/transparent|rgba\([^)]*,\s*0\)$/);
 
-    // The band is opaque, so cards pass beneath it rather than through it.
-    expect(
-      await header.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).not.toMatch(/rgba\(.*,\s*0(\.\d+)?\)$|transparent/);
-
-    // The next month hands over: December pushes August out.
-    await page
-      .locator('.story-timeline-item', { hasText: 'Keys to our flat' })
-      .evaluate((el) => el.scrollIntoView({ block: 'end' }));
-    await page.waitForTimeout(150);
-    await capture(page, testInfo, '10-month-heading-handover-390.png');
-    const december = page.locator('.story-year-month-header').nth(2);
-    const decemberBox = await december.boundingBox();
-    expect(decemberBox?.y ?? 0).toBeGreaterThanOrEqual((await barBottom()) - 1);
-
-    // The shared bar is opaque over the Timeline, so a handed-over heading
-    // never shows through it.
-    const layers = await topbar.evaluate(
-      (el) => getComputedStyle(el).backgroundImage,
+    await capture(
+      page,
+      testInfo,
+      '09-month-heading-pinned-at-viewport-edge-390.png',
     );
-    expect(layers).toContain('linear-gradient');
   });
 
-  test('pinned month heading and hide-on-scroll bottom bar work together (#970)', async ({
+  test('persistent bottom navigation stays visible while Timeline month context is pinned', async ({
     page,
   }, testInfo) => {
     await openTimeline(page, { width: 390, height: 844 });
     const shell = page.locator('.mobile-bottom-shell');
-    const topbar = page.locator('.product-topbar');
-    const barBottom = await topbar.evaluate(
-      (el) => el.getBoundingClientRect().bottom,
-    );
-    // The heading currently pinned under the app bar, whichever month it is.
-    const pinnedHeading = () =>
-      page.evaluate((edge) => {
-        const boxes = Array.from(
-          document.querySelectorAll('.story-year-month-header'),
-        ).map((el) => el.getBoundingClientRect());
-        const box = boxes.find((b) => Math.abs(b.top - edge) <= 1);
-        return box ? { y: box.top, height: box.height } : null;
-      }, barBottom);
-    const noOverflow = () =>
-      page.evaluate(
-        () =>
-          document.documentElement.scrollWidth <=
-          document.documentElement.clientWidth,
-      );
 
-    // Deliberate downward reading into August hides the bottom bar while the
-    // month heading stays pinned directly below the app bar.
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
+    await expect(shell).toBeVisible();
+    expect(await shell.getAttribute('data-hidden')).toBeNull();
+
     for (let step = 0; step < 9; step += 1) {
       await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(60);
+      await page.waitForTimeout(40);
     }
-    await expect(shell).toHaveAttribute('data-hidden', 'true');
-    await page.waitForTimeout(300);
-    const hiddenPinned = await pinnedHeading();
-    expect(hiddenPinned).not.toBeNull();
-    expect(await noOverflow()).toBe(true);
-    await capture(
-      page,
-      testInfo,
-      '13-integrated-scrolled-down-bar-hidden-heading-pinned-390.png',
-    );
 
-    // A small upward scroll reveals the bar; the heading does not move.
-    await page.mouse.wheel(0, -40);
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
-    await page.waitForTimeout(300);
-    const revealedPinned = await pinnedHeading();
-    expect(revealedPinned?.y).toBe(hiddenPinned?.y);
-    const shellBox = await shell.boundingBox();
-    // The pinned heading and the bottom bar never overlap.
+    await expect(shell).toBeVisible();
+    expect(await shell.getAttribute('data-hidden')).toBeNull();
     expect(
-      (revealedPinned?.y ?? 0) + (revealedPinned?.height ?? 0),
-    ).toBeLessThan(shellBox?.y ?? 0);
-    expect(await noOverflow()).toBe(true);
-    await capture(
-      page,
-      testInfo,
-      '14-integrated-scrolled-up-bar-revealed-heading-pinned-390.png',
-    );
-  });
+      await page
+        .locator('.product-topbar')
+        .evaluate((el) => el.getBoundingClientRect().bottom),
+    ).toBeLessThanOrEqual(0);
 
-  test('the revealed bottom bar never covers the last card or a focused card (#970)', async ({
-    page,
-  }, testInfo) => {
-    await openTimeline(page, { width: 390, height: 844 });
-    const shell = page.locator('.mobile-bottom-shell');
-    const links = page.locator('.story-card-link');
-    const count = await links.count();
-
-    // End of the Timeline with the bar revealed: content clears the bar.
-    await page.evaluate(() =>
-      window.scrollTo(0, document.documentElement.scrollHeight),
-    );
-    await page.waitForTimeout(300);
-    await page.mouse.wheel(0, -40);
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
-    await page.waitForTimeout(300);
-    const lastCard = await links.nth(count - 1).boundingBox();
-    const revealed = await shell.boundingBox();
-    expect((lastCard?.y ?? 0) + (lastCard?.height ?? 0)).toBeLessThanOrEqual(
-      (revealed?.y ?? 0) + 1,
-    );
-    await capture(
-      page,
-      testInfo,
-      '15-integrated-timeline-end-bar-revealed-390.png',
-    );
-
-    // Park the last card just below the revealed bar, then move focus to it
-    // with the keyboard: the focus scroll must leave it clear of the bar.
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(300);
-    await links.nth(count - 1).evaluate((el) => {
-      window.scrollBy(
-        0,
-        el.getBoundingClientRect().top - (window.innerHeight - 100),
-      );
+    const pinned = await page.evaluate(() => {
+      const boxes = Array.from(
+        document.querySelectorAll('.story-year-month-header'),
+      ).map((el) => el.getBoundingClientRect());
+      return boxes.some((box) => Math.abs(box.top) <= 1);
     });
-    await page.waitForTimeout(200);
-    await page.mouse.wheel(0, -30);
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
-    await page.waitForTimeout(300);
-    await links
-      .nth(count - 2)
-      .evaluate((el) => (el as HTMLElement).focus({ preventScroll: true }));
-    await page.keyboard.press('Tab');
-    await expect(links.nth(count - 1)).toBeFocused();
-    await page.waitForTimeout(400);
-    const focused = await links.nth(count - 1).boundingBox();
-    const state = await shell.evaluate((el) => ({
-      hidden: el.getAttribute('data-hidden'),
-      top: el.getBoundingClientRect().top,
-    }));
-    if (state.hidden === 'false') {
-      expect((focused?.y ?? 0) + (focused?.height ?? 0)).toBeLessThanOrEqual(
-        state.top + 1,
-      );
-    }
+    expect(pinned).toBe(true);
+
+    await page.mouse.wheel(0, -40);
+    await expect(shell).toBeVisible();
+    expect(await shell.getAttribute('data-hidden')).toBeNull();
+
     await capture(
       page,
       testInfo,
-      '16-integrated-keyboard-focus-clear-of-bar-390.png',
+      '13-integrated-persistent-bar-heading-pinned-390.png',
     );
   });
 
-  test('dark mode keeps pinned heading and hidden bar coherent (#970)', async ({
+  test('320px and 200% text keep the persistent shell collision-free', async ({
     page,
   }, testInfo) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
-    await page.addInitScript(() =>
-      window.localStorage.setItem('eimir.theme', 'system'),
-    );
-    await openTimeline(page, { width: 390, height: 844 });
-    for (let step = 0; step < 9; step += 1) {
+    await openTimeline(page, { width: 320, height: 640 });
+    const shell = page.locator('.mobile-bottom-shell');
+
+    await page.addStyleTag({ content: ':root { font-size: 200%; }' });
+    for (let step = 0; step < 8; step += 1) {
       await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(60);
+      await page.waitForTimeout(40);
     }
-    await expect(page.locator('.mobile-bottom-shell')).toHaveAttribute(
-      'data-hidden',
-      'true',
-    );
-    await page.waitForTimeout(300);
-    const header = page.locator('.story-year-month-header').nth(1);
-    expect(
-      await header.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).not.toMatch(/rgba\(.*,\s*0(\.\d+)?\)$|transparent/);
-    await capture(
-      page,
-      testInfo,
-      '17-integrated-dark-bar-hidden-heading-pinned-390.png',
-    );
-  });
 
-  test('Expanded 1280px pins month headings without a bottom bar (#970)', async ({
-    page,
-  }, testInfo) => {
-    await openTimeline(page, { width: 1280, height: 900 });
-    await expect(page.locator('.mobile-bottom-shell')).toBeHidden();
-    await page
-      .locator('.story-timeline-item', { hasText: 'Saturday market' })
-      .evaluate((el) => {
-        window.scrollBy(0, el.getBoundingClientRect().top - 200);
-      });
-    await page.waitForTimeout(300);
-    const barBottom = await page
-      .locator('.product-topbar')
-      .evaluate((el) => el.getBoundingClientRect().bottom);
-    const august = await page
-      .locator('.story-year-month-header')
-      .nth(1)
-      .boundingBox();
-    expect(Math.abs((august?.y ?? 0) - barBottom)).toBeLessThanOrEqual(1);
+    await expect(shell).toBeVisible();
+    expect(await shell.getAttribute('data-hidden')).toBeNull();
     expect(
       await page.evaluate(
         () =>
@@ -824,118 +685,25 @@ test.describe('R2 follow-up: Timeline card hierarchy (#969)', () => {
           document.documentElement.clientWidth,
       ),
     ).toBe(true);
-    await capture(
-      page,
-      testInfo,
-      '18-integrated-expanded-1280-heading-pinned.png',
-    );
-  });
-
-  test('320px and 200% text keep the integrated shell free of collisions (#970)', async ({
-    page,
-  }, testInfo) => {
-    await openTimeline(page, { width: 320, height: 640 });
-    const shell = page.locator('.mobile-bottom-shell');
-    for (let step = 0; step < 8; step += 1) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(60);
-    }
-    await expect(shell).toHaveAttribute('data-hidden', 'true');
-    await page.mouse.wheel(0, -40);
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
-    await page.waitForTimeout(300);
     await expectContainedFooters(page);
-    await capture(page, testInfo, '19-integrated-320-bar-revealed.png');
 
-    // Enlarged text: pinning falls back when the app bar grows too tall,
-    // the bar still hides and reveals, and nothing overflows.
-    await page.setViewportSize({ width: 320, height: 640 });
-    await page.addStyleTag({ content: ':root { font-size: 200%; }' });
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await page.waitForTimeout(300);
-    for (let step = 0; step < 8; step += 1) {
-      await page.mouse.wheel(0, 120);
-      await page.waitForTimeout(60);
-    }
-    await expect(shell).toHaveAttribute('data-hidden', 'true');
-    await page.mouse.wheel(0, -40);
-    await expect(shell).toHaveAttribute('data-hidden', 'false');
-    await page.waitForTimeout(300);
-    await expectContainedFooters(page);
-    const pinned = await page
-      .locator('.story-timeline-months')
-      .evaluate((el) => el.hasAttribute('data-sticky-months'));
-    const barHeight = await page
-      .locator('.product-topbar')
-      .evaluate((el) => el.getBoundingClientRect().height);
-    expect(pinned).toBe(barHeight <= 640 * 0.2);
-    await capture(
-      page,
-      testInfo,
-      '20-integrated-320-200pct-text-bar-revealed.png',
-    );
-  });
-
-  test('month headings stay ordinary content when the app bar is too tall', async ({
-    page,
-  }) => {
-    await openTimeline(page, { width: 390, height: 844 });
-    await page.locator('html').evaluate((el) => {
-      el.style.zoom = '2';
-    });
-    await expect(page.locator('.story-timeline-months')).not.toHaveAttribute(
-      'data-sticky-months',
-      '',
-    );
-    expect(
-      await page
-        .locator('.story-year-month-header')
-        .first()
-        .evaluate((el) => getComputedStyle(el).position),
-    ).not.toBe('sticky');
-  });
-
-  test('a focused card scrolls clear of the pinned month heading', async ({
-    page,
-  }) => {
-    await openTimeline(page, { width: 390, height: 844 });
     const links = page.locator('.story-card-link');
     const count = await links.count();
-    for (let index = 0; index < count; index += 1) {
-      await page.keyboard.press('Tab');
-    }
-    await links.nth(4).focus();
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.keyboard.press('Shift+Tab');
-    const focused = page.locator('.story-card-link:focus');
-    await expect(focused).toHaveCount(1);
-    const obstruction = await page.evaluate(() => {
-      const bar = document
-        .querySelector('.product-topbar')
-        ?.getBoundingClientRect();
-      if (!bar || !document.activeElement) throw new Error('No bar or focus.');
-      const link = document.activeElement.getBoundingClientRect();
-      const headers = Array.from(
-        document.querySelectorAll('.story-year-month-header'),
-      )
-        .map((el) => el.getBoundingClientRect())
-        .filter((box) => box.top <= bar.bottom + 1 && box.bottom > bar.bottom);
-      const cover = Math.max(bar.bottom, ...headers.map((box) => box.bottom));
-      return { linkTop: link.top, cover };
-    });
-    expect(obstruction.linkTop).toBeGreaterThanOrEqual(obstruction.cover - 1);
-  });
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await page.waitForTimeout(150);
+    const last = await links.nth(count - 1).boundingBox();
+    const bar = await shell.boundingBox();
+    expect((last?.y ?? 0) + (last?.height ?? 0)).toBeLessThanOrEqual(
+      (bar?.y ?? 0) + 1,
+    );
 
-  test('the app bar keeps its own translucency away from the Timeline', async ({
-    page,
-  }) => {
-    await openTimeline(page, { width: 390, height: 844 });
-    await page.goto('/plan');
-    await expect(page.locator('.story-year-month')).toHaveCount(0);
-    const image = await page
-      .locator('.product-topbar')
-      .evaluate((el) => getComputedStyle(el).backgroundImage);
-    expect(image).toBe('none');
+    await capture(
+      page,
+      testInfo,
+      '16-integrated-320-200pct-text-persistent-bar.png',
+    );
   });
 
   test('Expanded 1280px adapts the same card system', async ({

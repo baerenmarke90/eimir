@@ -22,7 +22,6 @@ import {
   SEARCH_ROUTE,
 } from '../client/routes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
-import { useHideOnScrollNav } from '../client/useHideOnScrollNav';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { Brand } from './Brand';
@@ -157,8 +156,6 @@ function AuthenticatedAppShell({
 
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
-  const { isVisible: isBottomNavVisible, shellRef: bottomNavRef } =
-    useHideOnScrollNav(location.pathname, location.search);
   const isPrivateArea = location.pathname.startsWith('/more/private');
   const storyDetailMatch =
     /^\/story\/(?:memories|heart-moments|milestones)\/([^/]+)$/.exec(
@@ -210,7 +207,13 @@ function AuthenticatedAppShell({
   const unreadCount = unreadQuery.data?.unreadCount ?? 0;
 
   return (
-    <div className="product-shell" data-focused-task={isFocusedTask}>
+    <div
+      className="product-shell"
+      data-focused-task={isFocusedTask}
+      data-top-surface={
+        location.pathname === DEFAULT_APP_ROUTE ? 'today' : undefined
+      }
+    >
       <ThemeControl />
       <RouteEntryHandoff />
       <PresenceHeartbeat accountId={account.id} spaceId={spaceId} />
@@ -330,11 +333,7 @@ function AuthenticatedAppShell({
       </div>
 
       {!isFocusedTask ? (
-        <div
-          ref={bottomNavRef}
-          className="mobile-bottom-shell"
-          data-hidden={!isBottomNavVisible ? 'true' : 'false'}
-        >
+        <div className="mobile-bottom-shell">
           <nav
             className="mobile-bottom-nav"
             aria-label={t('navigation.primary')}

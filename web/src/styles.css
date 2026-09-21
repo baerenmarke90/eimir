@@ -109,7 +109,7 @@
 }
 
 :target {
-  scroll-margin-top: calc(var(--topbar-height, 72px) + var(--space-4));
+  scroll-margin-top: var(--space-4);
 }
 
 html {
@@ -540,17 +540,17 @@ code {
 }
 
 .app-header {
-  position: sticky;
+  position: relative;
   z-index: 40;
-  top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
   width: 100%;
-  min-height: 72px;
+  min-height: calc(72px + var(--shell-header-safe-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem max(1.25rem, calc((100vw - var(--content-max)) / 2));
-  background: var(--color-header-surface);
+  padding: calc(0.75rem + var(--shell-header-safe-top, 0px))
+    max(1.25rem, calc((100vw - var(--content-max)) / 2)) 0.75rem;
+  background: transparent;
 }
 
 .header-actions {
@@ -920,8 +920,8 @@ code {
 
 @media (max-width: 599px) {
   .app-header {
-    min-height: 64px;
-    padding: 0.55rem 1rem;
+    min-height: calc(64px + var(--shell-header-safe-top, 0px));
+    padding: calc(0.55rem + var(--shell-header-safe-top, 0px)) 1rem 0.55rem;
   }
 
   .brand {

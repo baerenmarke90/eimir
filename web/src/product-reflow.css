@@ -72,6 +72,15 @@
 
 /* Existing <= 760px compact contracts, keyed to available product width. */
 @container product-content (max-width: 47.5rem) {
+  /*
+   * Sparse-state display copy may contain long localized words. At large text
+   * sizes their min-content width must not widen the product canvas.
+   */
+  .new-space-title {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   /* Shared section headers must be able to place their action on a new line
      instead of making a grid item's min-content width wider than the page. */
   .section-head {

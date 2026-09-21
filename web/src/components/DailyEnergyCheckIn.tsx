@@ -246,6 +246,13 @@ export function DailyEnergyCheckIn({
   }, [mutation.isPending, open, ownEnergy]);
 
   useEffect(() => {
+    if (online && !dailyQuery.isError && dailyQuery.fetchStatus !== 'paused') {
+      return;
+    }
+    setOpen(false);
+  }, [dailyQuery.fetchStatus, dailyQuery.isError, online]);
+
+  useEffect(() => {
     if (!open) return;
 
     function onPointerDown(event: PointerEvent) {

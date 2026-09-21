@@ -364,11 +364,13 @@ async function installMocks(
       item.updatedAt = '2026-09-21T10:05:00Z';
       const isComplete =
         items.length > 0 && items.every((candidate) => candidate.completed);
+      const becameComplete = !wasComplete && isComplete;
       await json(item, 200, {
         ETag: `"${item.version}"`,
-        'X-Eimir-Collection-Completion-Transition': String(
-          !wasComplete && isComplete,
-        ),
+        'X-Eimir-Collection-Completion-Transition': String(becameComplete),
+        ...(sharedAchievementsEnabled && becameComplete
+          ? { 'X-Eimir-Shared-Achievement': 'collection-completed' }
+          : {}),
       });
       return;
     }

@@ -545,3 +545,63 @@ class TestConcurrency:
         assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
 
+class TestRetentionAndPortability:
+    def test_retention_keeps_current_and_previous_day_per_space_timezone(
+        self, session: Session
+    ) -> None:
+        instant = datetime(2026, 9, 21, 0, 30, tzinfo=UTC)
+        berlin_owner = make_account(session, "Berlin")
+        la_owner = make_account(session, "LA")
+        berlin = make_space(session, berlin_owner)
+        la = make_space(session, la_owner)
+        configure_daily(
+            session,
+            space_id=berlin.id,
+            manager_id=berlin_owner.id,
+            timezone="Europe/Berlin",
+        )
+        configure_daily(
+            session,
+            space_id=la.id,
+            manager_id=la_owner.id,
+            timezone="America/Los_Angeles",
+        )
+
+        for checked_on in (date(2026, 9, 21), date(2026, 9, 20), date(2026, 9, 19)):
+            session.add(
+                DailyCheckIn(
+                    space_id=berlin.id,
+                    account_id=berlin_owner.id,
+                    checked_on=checked_on,
+                    energy_level=10,
+                )
+            )
+        for checked_on in (date(2026, 9, 20), date(2026, 9, 19), date(2026, 9, 18)):
+            session.add(
+                DailyCheckIn(
+                    space_id=la.id,
+                    account_id=la_owner.id,
+                    checked_on=checked_on,
+                    energy_level=20,
+                )
+            )
+        session.flush()
+
+        assert retention.purge_expired(session, current_time=instant) == 2
+        remaining = set(
+            session.execute(
+                select(DailyCheckIn.space_id, DailyCheckIn.checked_on)
+            ).all()
+        )
+        assert remaining == {
+            (berlin.id, date(2026, 9, 21)),
+            (berlin.id, date(2026, 9, 20)),
+            (la.id, date(2026, 9, 20)),
+            (la.id, date(2026, 9, 19)),
+        }
+
+    def test_daily_check_ins_are_not_portable_transfer_state(self) -> None:
+        portable_tables = {
+            table for tables in transfer_service.FILE_TABLES.values() for table in tables
+        }
+        assert "daily_check_ins" not in portable_tables

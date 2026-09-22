@@ -443,23 +443,23 @@
   }
 }
 
-@media (max-width: 640px) {
+.header-notifications-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background-color: var(--color-scrim);
+  animation: header-notifications-backdrop-enter var(--duration-context)
+    var(--easing-enter);
+}
+
+.header-notifications-portal[data-presence="exiting"]
   .header-notifications-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 90;
-    background-color: var(--color-scrim);
-    animation: header-notifications-backdrop-enter var(--duration-context)
-      var(--easing-enter);
-  }
+  pointer-events: none;
+  animation: header-notifications-backdrop-exit var(--duration-transition)
+    var(--easing-exit) forwards;
+}
 
-  .header-notifications-portal[data-presence="exiting"]
-    .header-notifications-backdrop {
-    pointer-events: none;
-    animation: header-notifications-backdrop-exit var(--duration-transition)
-      var(--easing-exit) forwards;
-  }
-
+@media (max-width: 640px) {
   .header-notifications-popover {
     position: fixed;
     top: auto;

@@ -49,6 +49,74 @@ function mockMatchMedia({
   }));
 }
 
+function mockResponsiveMatchMedia({
+  compact,
+  reducedMotion,
+}: {
+  compact: boolean;
+  reducedMotion: boolean;
+}): { setCompact: (matches: boolean) => void } {
+  let compactMatches = compact;
+  const compactListeners = new Set<(event: MediaQueryListEvent) => void>();
+
+  window.matchMedia = vi.fn().mockImplementation((query: string) => {
+    const isCompactQuery = query === '(max-width: 640px)';
+    const mediaQuery = {
+      get matches() {
+        if (isCompactQuery) return compactMatches;
+        if (query === '(prefers-reduced-motion: reduce)') return reducedMotion;
+        return false;
+      },
+      media: query,
+      onchange: null,
+      addListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+        if (isCompactQuery) compactListeners.add(listener);
+      }),
+      removeListener: vi.fn(
+        (listener: (event: MediaQueryListEvent) => void) => {
+          if (isCompactQuery) compactListeners.delete(listener);
+        },
+      ),
+      addEventListener: vi.fn(
+        (
+          type: string,
+          listener: (event: MediaQueryListEvent) => void,
+        ) => {
+          if (isCompactQuery && type === 'change') {
+            compactListeners.add(listener);
+          }
+        },
+      ),
+      removeEventListener: vi.fn(
+        (
+          type: string,
+          listener: (event: MediaQueryListEvent) => void,
+        ) => {
+          if (isCompactQuery && type === 'change') {
+            compactListeners.delete(listener);
+          }
+        },
+      ),
+      dispatchEvent: vi.fn(),
+    };
+
+    return mediaQuery;
+  });
+
+  return {
+    setCompact(matches: boolean) {
+      compactMatches = matches;
+      const event = {
+        matches,
+        media: '(max-width: 640px)',
+      } as MediaQueryListEvent;
+      act(() => {
+        for (const listener of compactListeners) listener(event);
+      });
+    },
+  };
+}
+
 function LocationTracker({
   onLocation,
 }: {
@@ -467,6 +535,47 @@ describe('HeaderNotificationsMenu', () => {
           document.body.querySelector('.header-notifications-portal'),
         ).toBeNull(),
       );
+    });
+
+    it('keeps compact exit motion alive across a resize into Expanded before handing off to the desktop popover', async () => {
+      const responsiveMedia = mockResponsiveMatchMedia({
+        compact: true,
+        reducedMotion: false,
+      });
+      const { trigger } = openSheet();
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const sheet = portal.querySelector(
+        '.header-notifications-bottom-sheet',
+      ) as HTMLElement;
+
+      responsiveMedia.setCompact(false);
+
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+      expect(sheet.classList.contains('header-notifications-bottom-sheet')).toBe(
+        true,
+      );
+      expect(document.body.contains(portal)).toBe(true);
+
+      fireReactAnimationEnd(sheet);
+
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
+      expect(trigger.getAttribute('aria-expanded')).toBe('true');
+
+      const desktopPopover = document.querySelector(
+        '.header-notifications-popover',
+      ) as HTMLElement;
+      expect(desktopPopover).not.toBeNull();
+      expect(
+        desktopPopover.classList.contains('header-notifications-bottom-sheet'),
+      ).toBe(false);
     });
 
     it('moves focus into the modal sheet and contains Tab navigation', () => {

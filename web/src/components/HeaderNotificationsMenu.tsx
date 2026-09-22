@@ -216,9 +216,9 @@ export function HeaderNotificationsMenu({
   const popoverContent = (
     <section
       ref={panelRef as React.RefObject<HTMLElement>}
-      className={`header-notifications-popover${isCompact ? ' header-notifications-bottom-sheet' : ''}`}
+      className={`header-notifications-popover${compactPresent ? ' header-notifications-bottom-sheet' : ''}`}
       aria-label={t('m5s5.notifications.previewTitle')}
-      hidden={isCompact ? false : !isOpen}
+      hidden={compactPresent ? false : !isOpen}
       onAnimationEnd={(event) => {
         if (
           event.target !== event.currentTarget ||

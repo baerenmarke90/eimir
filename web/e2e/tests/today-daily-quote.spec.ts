@@ -326,7 +326,9 @@ async function expectQuoteSurfaceAccessible(
   { wholeDocument = true }: { wholeDocument?: boolean } = {},
 ): Promise<void> {
   await expect(
-    page.getByRole('heading', { level: 2, name: dailyQuote.title }),
+    page
+      .locator('.daily-quote-card')
+      .getByRole('heading', { level: 2, name: dailyQuote.title }),
   ).toBeVisible();
 
   const result = await page.evaluate(() => {

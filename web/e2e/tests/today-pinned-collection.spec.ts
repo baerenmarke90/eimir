@@ -71,6 +71,7 @@ async function installMocks(
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
+  let collectionVersion = 1;
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -82,7 +83,7 @@ async function installMocks(
     spaceId: SPACE_ID,
     title: 'Einkauf',
     updatedAt: '2026-09-21T10:00:00Z',
-    version: 1,
+    version: collectionVersion,
   });
 
   await page.route('**/api/v1/**', async (route) => {
@@ -310,7 +311,7 @@ async function installMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
     ) {
       collectionGetCount += 1;
-      await json(collection(), 200, { ETag: '"1"' });
+      await json(collection(), 200, { ETag: `"${collectionVersion}"` });
       return;
     }
     if (
@@ -390,6 +391,7 @@ async function installMocks(
         items.length,
       );
       items.push(created);
+      collectionVersion += 1;
       await json(created, 201, { ETag: '"1"' });
       return;
     }
@@ -496,7 +498,9 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   await expect(addDialog).toHaveCount(0);
   await expect(addButton).toBeFocused();
   await expect(pinnedSection.getByText('Butter')).toBeVisible();
-  expect(network.collectionGetCount()).toBe(collectionGetsBeforeToggle);
+  await expect
+    .poll(() => network.collectionGetCount())
+    .toBe(collectionGetsBeforeToggle + 1);
   expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
   const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(

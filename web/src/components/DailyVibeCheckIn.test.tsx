@@ -309,7 +309,8 @@ describe('DailyVibeCheckIn', () => {
   });
 
   it('keeps partner context out of Today until the visible Vibe card is opened', async () => {
-    const note = 'My head feels a little empty today. A quiet evening would be nice.';
+    const note =
+      'My head feels a little empty today. A quiet evening would be nice.';
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(

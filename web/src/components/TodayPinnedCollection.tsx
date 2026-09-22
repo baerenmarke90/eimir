@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -42,6 +42,7 @@ export function TodayPinnedCollection({
   const celebrationScope = `${accountId}:${spaceId}:${collection.id}`;
   const [celebratedScope, setCelebratedScope] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const previousScopeRef = useRef(celebrationScope);
   const showSharedAchievement =
     sharedAchievementsEnabled && celebratedScope === celebrationScope;
 
@@ -57,6 +58,8 @@ export function TodayPinnedCollection({
   const canExpand = todayItems.length > 4;
 
   useEffect(() => {
+    if (previousScopeRef.current === celebrationScope) return;
+    previousScopeRef.current = celebrationScope;
     setExpanded(false);
     setCelebratedScope(null);
   }, [celebrationScope]);

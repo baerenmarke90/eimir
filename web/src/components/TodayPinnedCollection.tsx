@@ -26,7 +26,6 @@ const CELEBRATION_DISMISS_MS = 3_600;
 
 type ToggleVariables = {
   itemId: string;
-  title: string;
   completed: boolean;
   fallbackItem: CollectionItemDetail;
   operationId: number;
@@ -321,7 +320,6 @@ export function TodayPinnedCollection({
     latestToggleByItemRef.current.set(item.id, operationId);
     toggleItem.mutate({
       itemId: item.id,
-      title: item.title,
       completed,
       fallbackItem: item,
       operationId,

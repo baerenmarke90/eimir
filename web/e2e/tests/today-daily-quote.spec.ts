@@ -17,10 +17,7 @@ interface PreferencePatch {
   ifMatch: string | undefined;
 }
 
-async function installMocks(
-  page: Page,
-  options: DailyQuoteMockOptions = {},
-) {
+async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   const capabilities = options.capabilities ?? ['daily.quote'];
   const quoteAvailable = options.quoteAvailable ?? true;
   const requests = {
@@ -258,10 +255,7 @@ async function installMocks(
       return;
     }
 
-    if (
-      method === 'GET' &&
-      pathname === `${space}/daily-quote/preferences`
-    ) {
+    if (method === 'GET' && pathname === `${space}/daily-quote/preferences`) {
       requests.preferences += 1;
       await json(
         {
@@ -281,10 +275,7 @@ async function installMocks(
       return;
     }
 
-    if (
-      method === 'PATCH' &&
-      pathname === `${space}/daily-quote/preferences`
-    ) {
+    if (method === 'PATCH' && pathname === `${space}/daily-quote/preferences`) {
       const body = request.postDataJSON() as Record<string, unknown>;
       requests.patches.push({
         body,
@@ -390,7 +381,9 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
   expect(requests.quote).toBe(1);
 
   const quoteBox = await page.locator('.daily-quote-card').boundingBox();
-  const upcomingBox = await page.locator('.today-section-upcoming').boundingBox();
+  const upcomingBox = await page
+    .locator('.today-section-upcoming')
+    .boundingBox();
   expect(quoteBox).not.toBeNull();
   expect(upcomingBox).not.toBeNull();
   expect(quoteBox?.y ?? 0).toBeLessThan(upcomingBox?.y ?? Number.MAX_VALUE);
@@ -412,16 +405,12 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
 
-  await page
-    .getByRole('button', { name: dailyQuote.settingsAria })
-    .click();
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
   await expect(
     page.getByRole('heading', { name: dailyQuote.sheetTitle }),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      dailyQuote.privacy.replace('{{name, firstName}}', 'Ben'),
-    ),
+    page.getByText(dailyQuote.privacy.replace('{{name, firstName}}', 'Ben')),
   ).toBeVisible();
 
   await page.getByRole('checkbox', { name: /Mindfulness/u }).check();

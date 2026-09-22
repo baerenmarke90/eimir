@@ -209,9 +209,10 @@ export function ShortTaskSheet({
     const navigate = pendingNavigationRef.current;
     if (!navigate) return;
     pendingNavigationRef.current = null;
-    // Passive-effect cleanups have ended native modality and released the
-    // shared scroll lock before the destination can assign focus.
-    queueMicrotask(navigate);
+    // React runs passive cleanup for the prior presentation before setup
+    // effects for this closed state, so native modality and scroll ownership
+    // are already released before the destination can assign focus.
+    navigate();
   }, [present]);
 
   useModalLifecycle({
@@ -242,11 +243,7 @@ export function ShortTaskSheet({
         closeSheet();
       }}
       onAnimationEnd={(event) => {
-        if (
-          event.target !== event.currentTarget ||
-          !event.animationName.startsWith('short-task-sheet-exit') ||
-          presenceState !== 'exiting'
-        )
+        if (event.target !== event.currentTarget || presenceState !== 'exiting')
           return;
         completeExit();
       }}

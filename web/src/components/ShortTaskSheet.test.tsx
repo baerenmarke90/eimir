@@ -369,6 +369,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(dragZone, {
       pointerId: 1,
       button: 0,
+      isPrimary: true,
       clientY: 100,
     });
     fireEvent.pointerMove(dragZone, { pointerId: 1, clientY: 200 });
@@ -388,6 +389,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(dragZone, {
       pointerId: 2,
       button: 0,
+      isPrimary: true,
       clientY: 100,
     });
     fireEvent.pointerMove(dragZone, { pointerId: 2, clientY: 290 });
@@ -404,6 +406,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(dragZone, {
       pointerId: 3,
       button: 0,
+      isPrimary: true,
       clientY: 100,
     });
     fireEvent.pointerMove(dragZone, { pointerId: 3, clientY: 260 });
@@ -428,6 +431,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 11,
       button: 0,
+      isPrimary: true,
       clientX: 40,
       clientY: 100,
     });
@@ -454,6 +458,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 12,
       button: 0,
+      isPrimary: true,
       clientX: 40,
       clientY: 100,
     });
@@ -487,6 +492,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(control, {
       pointerId: 21,
       button: 0,
+      isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
@@ -509,6 +515,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 22,
       button: 0,
+      isPrimary: true,
       clientX: 100,
       clientY: 100,
     });
@@ -544,6 +551,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 31,
       button: 0,
+      isPrimary: true,
       clientX: 50,
       clientY: 100,
     });
@@ -567,6 +575,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 32,
       button: 0,
+      isPrimary: true,
       clientX: 50,
       clientY: 100,
     });
@@ -684,6 +693,7 @@ describe('ShortTaskSheet history ownership', () => {
     fireEvent.pointerDown(surface, {
       pointerId: 51,
       button: 0,
+      isPrimary: true,
       clientX: 10,
       clientY: 100,
     });

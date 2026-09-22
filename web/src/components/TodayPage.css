@@ -44,10 +44,10 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
   border: none;
   border-radius: 0;
-  padding: var(--space-2) 0 var(--space-5);
+  padding: var(--space-2) 0 0;
   background: transparent;
   box-shadow: none;
   gap: var(--space-4);
@@ -233,7 +233,7 @@
 }
 
 .today-section {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
 }
 
 /* A pinned checklist is intentionally a focused Today utility, not a
@@ -244,12 +244,12 @@
 }
 
 /*
- * `Euer Moment` is the page's dominant surface, so it gets the one deliberate
- * pause in the rhythm - before it, to set it apart, and after it, so the
- * contextual module below is read as a new thought rather than a caption.
+ * Personal content is distinguished by its image/prose composition rather
+ * than an exceptional whitespace island. Keep the same section rhythm as the
+ * rest of the root product surfaces.
  */
 .today-section-moment {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-section);
 }
 
 .today-section-header {

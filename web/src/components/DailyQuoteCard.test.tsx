@@ -217,9 +217,7 @@ describe('DailyQuoteCard', () => {
     );
     renderCard({ quoteError: entitlementError });
 
-    expect(
-      await screen.findByText(dailyQuote.discovery),
-    ).toBeTruthy();
+    expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.queryByText(dailyQuote.empty)).toBeNull();
   });
 

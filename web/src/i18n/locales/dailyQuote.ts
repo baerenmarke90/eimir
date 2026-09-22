@@ -13,7 +13,7 @@ const dailyQuote = {
   settingsAria: 'Deine Einstellungen für das Zitat des Tages öffnen',
   sheetTitle: 'Dein Zitat des Tages',
   close: 'Zitat-Einstellungen schließen',
-  privacy: 'Nur für dich – {{name}} sieht deine Auswahl nicht.',
+  privacy: 'Nur für dich – {{name, firstName}} sieht deine Auswahl nicht.',
   privacyFallback: 'Nur für dich – deine Auswahl bleibt persönlich.',
   categories: 'Rubriken',
   sources: 'Quellen',

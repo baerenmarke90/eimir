@@ -28592,7 +28592,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ThinkingOfYouAccepted"
+                  "$ref": "#/components/schemas/PartnerQuickActionAccepted"
                 }
               }
             },

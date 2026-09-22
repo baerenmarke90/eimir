@@ -524,7 +524,9 @@ export function DailyVibeCheckIn({
 
         <label className="daily-vibe-note-field">
           <span>{t('dailyVibe.noteLabel')}</span>
-          <span className="daily-vibe-note-hint">{t('dailyVibe.noteHint')}</span>
+          <span className="daily-vibe-note-hint">
+            {t('dailyVibe.noteHint')}
+          </span>
           <textarea
             value={draftNote}
             maxLength={200}

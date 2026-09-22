@@ -31,6 +31,18 @@ const mockSession: SessionView = {
   tokens: mockTokens,
 };
 
+const secondAccount: AccountView = {
+  id: 'acc-456',
+  displayName: 'Second User',
+};
+
+const secondTokens: TokenView = {
+  accessToken: 'access-token-b',
+  refreshToken: 'refresh-token-b',
+  accessExpiresAt: new Date(Date.now() + 15 * 60 * 1000),
+  refreshExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+};
+
 const storageMap = new Map<string, string>();
 const mockSessionStorage = {
   getItem: (key: string) => storageMap.get(key) ?? null,
@@ -189,6 +201,124 @@ describe('sessionPersistence', () => {
     const updated = loadStoredSession();
     expect(updated?.tokens.accessToken).toBe('rotated-access-2');
     expect(updated?.tokens.refreshToken).toBe('rotated-refresh-2');
+  });
+
+  it('keeps concurrent refreshes from different token generations independent', async () => {
+    let resolveFirst!: (tokens: TokenView) => void;
+    let resolveSecond!: (tokens: TokenView) => void;
+    const firstResult = new Promise<TokenView>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondResult = new Promise<TokenView>((resolve) => {
+      resolveSecond = resolve;
+    });
+    const mockRefresh = vi
+      .fn()
+      .mockReturnValueOnce(firstResult)
+      .mockReturnValueOnce(secondResult);
+
+    vi.spyOn(referenceFlow, 'createReferenceApis').mockReturnValue({
+      auth: {
+        refreshApiV1AuthRefreshPost: mockRefresh,
+      },
+    } as unknown as ReturnType<typeof referenceFlow.createReferenceApis>);
+
+    const first = refreshSessionTokens(
+      'http://localhost:8000',
+      'refresh-token-a',
+    );
+    const second = refreshSessionTokens(
+      'http://localhost:8000',
+      'refresh-token-b',
+    );
+
+    expect(mockRefresh).toHaveBeenCalledTimes(2);
+
+    resolveSecond({
+      ...secondTokens,
+      accessToken: 'rotated-access-b',
+      refreshToken: 'rotated-refresh-b',
+    });
+    resolveFirst({
+      ...mockTokens,
+      accessToken: 'rotated-access-a',
+      refreshToken: 'rotated-refresh-a',
+    });
+
+    await expect(first).resolves.toMatchObject({
+      accessToken: 'rotated-access-a',
+    });
+    await expect(second).resolves.toMatchObject({
+      accessToken: 'rotated-access-b',
+    });
+  });
+
+  it('does not let a late refresh overwrite a newer stored session', async () => {
+    storeSession(mockSession);
+
+    let resolveRefresh!: (tokens: TokenView) => void;
+    const pendingRefresh = new Promise<TokenView>((resolve) => {
+      resolveRefresh = resolve;
+    });
+    vi.spyOn(referenceFlow, 'createReferenceApis').mockReturnValue({
+      auth: {
+        refreshApiV1AuthRefreshPost: vi.fn().mockReturnValue(pendingRefresh),
+      },
+    } as unknown as ReturnType<typeof referenceFlow.createReferenceApis>);
+
+    const refresh = refreshSessionTokens(
+      'http://localhost:8000',
+      mockTokens.refreshToken,
+    );
+    storeSession({ account: secondAccount, tokens: secondTokens });
+
+    resolveRefresh({
+      ...mockTokens,
+      accessToken: 'late-access-a',
+      refreshToken: 'late-refresh-a',
+    });
+    await refresh;
+
+    const current = loadStoredSession();
+    expect(current?.account.id).toBe(secondAccount.id);
+    expect(current?.tokens.accessToken).toBe(secondTokens.accessToken);
+    expect(current?.tokens.refreshToken).toBe(secondTokens.refreshToken);
+  });
+
+  it('does not let a stale refresh rejection clear a newer stored session', async () => {
+    storeSession(mockSession);
+
+    let rejectRefresh!: (error: unknown) => void;
+    const pendingRefresh = new Promise<TokenView>((_resolve, reject) => {
+      rejectRefresh = reject;
+    });
+    vi.spyOn(referenceFlow, 'createReferenceApis').mockReturnValue({
+      auth: {
+        refreshApiV1AuthRefreshPost: vi.fn().mockReturnValue(pendingRefresh),
+      },
+    } as unknown as ReturnType<typeof referenceFlow.createReferenceApis>);
+
+    const refresh = refreshSessionTokens(
+      'http://localhost:8000',
+      mockTokens.refreshToken,
+    );
+    storeSession({ account: secondAccount, tokens: secondTokens });
+
+    rejectRefresh({
+      status: 401,
+      json: async () => ({
+        detail: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Session revoked or expired.',
+        },
+      }),
+    });
+
+    await expect(refresh).rejects.toMatchObject({ status: 401 });
+    expect(loadStoredSession()).toMatchObject({
+      account: secondAccount,
+      tokens: secondTokens,
+    });
   });
 
   it('clears stored session on 401 unauthenticated refresh response', async () => {

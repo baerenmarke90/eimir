@@ -26,14 +26,22 @@ function setVisibility(value: DocumentVisibilityState) {
   });
 }
 
-function renderHeartbeat() {
+function renderHeartbeat(enabled?: boolean) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   const result = render(
     <QueryClientProvider client={queryClient}>
       <ApiRuntimeProvider apiBaseUrl="http://api.test" accessToken="token">
-        <PresenceHeartbeat accountId="account-1" spaceId="space-1" />
+        {enabled === undefined ? (
+          <PresenceHeartbeat accountId="account-1" spaceId="space-1" />
+        ) : (
+          <PresenceHeartbeat
+            accountId="account-1"
+            spaceId="space-1"
+            enabled={enabled}
+          />
+        )}
       </ApiRuntimeProvider>
     </QueryClientProvider>,
   );
@@ -41,6 +49,11 @@ function renderHeartbeat() {
 }
 
 describe('PresenceHeartbeat', () => {
+  it('stays dormant behind the product gate by default', () => {
+    renderHeartbeat();
+    expect(mocks.touchPresence).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-19T18:00:00Z'));
@@ -61,7 +74,7 @@ describe('PresenceHeartbeat', () => {
   });
 
   it('heartbeats at a bounded cadence only while actively visible', async () => {
-    renderHeartbeat();
+    renderHeartbeat(true);
     expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -82,7 +95,7 @@ describe('PresenceHeartbeat', () => {
   });
 
   it('resumes immediately after a short suspension even inside the event dedupe window', async () => {
-    renderHeartbeat();
+    renderHeartbeat(true);
     expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
 
     act(() => window.dispatchEvent(new Event('blur')));
@@ -98,7 +111,7 @@ describe('PresenceHeartbeat', () => {
     });
     mocks.touchPresence.mockReturnValueOnce(pendingTouch);
 
-    const { queryClient } = renderHeartbeat();
+    const { queryClient } = renderHeartbeat(true);
     expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
 
     act(() => window.dispatchEvent(new Event('blur')));
@@ -125,7 +138,7 @@ describe('PresenceHeartbeat', () => {
       .mockReturnValueOnce(firstTouch)
       .mockResolvedValueOnce({ state: 'ACTIVE' });
 
-    const { queryClient } = renderHeartbeat();
+    const { queryClient } = renderHeartbeat(true);
     expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -150,7 +163,7 @@ describe('PresenceHeartbeat', () => {
 
   it('fails closed and removes the old Account+Space scope on unmount', async () => {
     mocks.touchPresence.mockRejectedValueOnce(new Error('network'));
-    const { queryClient, unmount } = renderHeartbeat();
+    const { queryClient, unmount } = renderHeartbeat(true);
 
     await act(async () => {
       await Promise.resolve();

@@ -4,6 +4,7 @@ import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   createPresenceApi,
   partnerPresenceQueryKey,
+  PARTNER_PRESENCE_PRODUCT_ENABLED,
   PRESENCE_EVENT_DEDUPE_MS,
   PRESENCE_HEARTBEAT_INTERVAL_MS,
 } from '../client/presence';
@@ -19,9 +20,11 @@ function appIsActivelyVisible(): boolean {
 export function PresenceHeartbeat({
   accountId,
   spaceId,
+  enabled = PARTNER_PRESENCE_PRODUCT_ENABLED,
 }: {
   accountId: string;
   spaceId: string;
+  enabled?: boolean;
 }) {
   const runtime = useApiRuntime();
   const queryClient = useQueryClient();
@@ -34,7 +37,7 @@ export function PresenceHeartbeat({
   );
 
   useEffect(() => {
-    if (!api || !accountId || !spaceId) return;
+    if (!enabled || !api || !accountId || !spaceId) return;
 
     const queryKey = partnerPresenceQueryKey(accountId, spaceId);
     let disposed = false;
@@ -111,7 +114,7 @@ export function PresenceHeartbeat({
       window.removeEventListener('offline', suspend);
       queryClient.removeQueries({ queryKey, exact: true });
     };
-  }, [accountId, api, queryClient, spaceId]);
+  }, [accountId, api, enabled, queryClient, spaceId]);
 
   return null;
 }

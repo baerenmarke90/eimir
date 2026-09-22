@@ -53,7 +53,10 @@ import {
 } from '../client/todayComposition';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
-import { usePartnerPresence } from '../client/presence';
+import {
+  PARTNER_PRESENCE_PRODUCT_ENABLED,
+  usePartnerPresence,
+} from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
@@ -930,17 +933,20 @@ export function TodayPage({
   const presenceQuery = usePartnerPresence({
     accountId: account?.id ?? '',
     spaceId,
-    enabled: Boolean(account?.id && partner),
+    enabled:
+      PARTNER_PRESENCE_PRODUCT_ENABLED && Boolean(account?.id && partner),
   });
   const partnerPresenceStatus = !partner
     ? 'waiting'
-    : presenceQuery.error
+    : !PARTNER_PRESENCE_PRODUCT_ENABLED
       ? 'unknown'
-      : presenceQuery.data?.state === 'ACTIVE'
-        ? 'active'
-        : presenceQuery.data?.state === 'RECENT'
-          ? 'recent'
-          : 'unknown';
+      : presenceQuery.error
+        ? 'unknown'
+        : presenceQuery.data?.state === 'ACTIVE'
+          ? 'active'
+          : presenceQuery.data?.state === 'RECENT'
+            ? 'recent'
+            : 'unknown';
 
   const userProfileQuery = useQuery({
     queryKey: ['profile-identity', spaceId, account?.id],

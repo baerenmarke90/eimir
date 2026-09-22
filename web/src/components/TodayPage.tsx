@@ -13,6 +13,7 @@ import type { DashboardItemType } from '../api/generated/models/DashboardItemTyp
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   dashboardPreferencesQueryKey,
@@ -887,12 +888,10 @@ export function TodayPage({
     'pinned_collection',
   );
   const pinnedCollectionQuery = useQuery({
-    queryKey: [
-      'today-pinned-collection',
-      account?.id ?? '',
+    queryKey: authorSummaryQueryKeys.collectionDetail(
       spaceId,
-      pinnedCollectionId ?? '',
-    ],
+      pinnedCollectionId ?? undefined,
+    ),
     queryFn: () => {
       if (!collectionsApi || !pinnedCollectionId) {
         throw new Error('Pinned Collection is not available.');
@@ -1345,7 +1344,6 @@ export function TodayPage({
                       spaceId={spaceId}
                       collection={pinnedCollectionQuery.data}
                       sharedAchievementsEnabled={sharedAchievementsEnabled}
-                      onRefresh={() => pinnedCollectionQuery.refetch()}
                     />
                   ) : null}
                 </TodayModuleSection>

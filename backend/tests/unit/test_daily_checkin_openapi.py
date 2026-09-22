@@ -38,7 +38,11 @@ def test_update_contract_exposes_only_the_typed_daily_dimensions() -> None:
     schema = create_app().openapi()
     update = schema["components"]["schemas"]["DailyCheckInUpdate"]
     assert set(update["properties"]) == {"energyLevel", "vibe", "vibeNote"}
-    assert update["properties"]["vibeNote"]["maxLength"] == 200
+    vibe_note = update["properties"]["vibeNote"]
+    vibe_note_string = next(
+        variant for variant in vibe_note["anyOf"] if variant.get("type") == "string"
+    )
+    assert vibe_note_string["maxLength"] == 200
 
     vibe = schema["components"]["schemas"]["DailyVibe"]
     assert vibe["enum"] == [

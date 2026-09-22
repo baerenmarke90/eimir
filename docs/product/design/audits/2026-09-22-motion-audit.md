@@ -367,5 +367,5 @@ No capability, entitlement, quota, downgrade, Cloud/Self-hosted or Premium class
 - [x] existing issue ownership reconciled;
 - [x] only necessary new root-cause follow-up issues created;
 - [x] small Daily Quote foundation defect corrected with a regression guard;
-- [ ] final branch-vs-current-main reconciliation immediately before PR;
+- [x] final branch-vs-current-main reconciliation immediately before PR (branch is 0 behind current main at `a9749f3`);
 - [ ] branch checks / PR CI.

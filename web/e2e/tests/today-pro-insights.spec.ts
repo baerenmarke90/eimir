@@ -436,36 +436,34 @@ test('Pro insights are absent from Today and open from More on Compact', async (
   await visitViews(page, testInfo, '390-light');
 });
 
-test(
-  'Pro insights reflow from More at 320px with large text, Dark and Reduced Motion',
-  async ({ page }, testInfo) => {
-    await installMocks(page);
-    await page.setViewportSize({ width: 320, height: 640 });
-    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
-    await signIn(page);
-    await page.evaluate(() => {
-      document.documentElement.style.fontSize = '200%';
-    });
-    await expect(
-      page.getByRole('link', { name: dailyInsights.week.title }),
-    ).toHaveCount(0);
-    await visitViews(page, testInfo, '320-dark-200pct');
-  },
-);
+test('Pro insights reflow from More at 320px with large text, Dark and Reduced Motion', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expect(
+    page.getByRole('link', { name: dailyInsights.week.title }),
+  ).toHaveCount(0);
+  await visitViews(page, testInfo, '320-dark-200pct');
+});
 
-test(
-  'Pro insights adapt to Expanded Web from More',
-  async ({ page }, testInfo) => {
-    await installMocks(page);
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.emulateMedia({
-      colorScheme: 'light',
-      reducedMotion: 'no-preference',
-    });
-    await signIn(page);
-    await visitViews(page, testInfo, '1280-light');
-  },
-);
+test('Pro insights adapt to Expanded Web from More', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+  });
+  await signIn(page);
+  await visitViews(page, testInfo, '1280-light');
+});
 
 test('Free Spaces see a calm gated state and never request insights', async ({
   page,

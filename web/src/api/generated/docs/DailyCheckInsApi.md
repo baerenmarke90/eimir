@@ -227,7 +227,7 @@ No authorization required
 | **403** | &#x60;SPACE_MODULE_DISABLED&#x60;: new Vibe/Energy participation is disabled. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | &#x60;RESOURCE_VERSION_CONFLICT&#x60;: the owner state changed, or &#x60;DAILY_CHECK_IN_CONTEXT_UNAVAILABLE&#x60;: the shared day cannot be resolved. |  -  |
-| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **422** | &#x60;DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE&#x60;: Vibe context requires a current-day Vibe. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

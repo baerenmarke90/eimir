@@ -46,6 +46,12 @@ export interface DailyCheckInVibeView {
      * @memberof DailyCheckInVibeView
      */
     visibilityMode: DailyCheckInVisibilityMode;
+    /**
+     * 
+     * @type {string}
+     * @memberof DailyCheckInVibeView
+     */
+    partnerNote?: string | null;
 }
 
 
@@ -71,6 +77,7 @@ export function DailyCheckInVibeViewFromJSONTyped(json: any, ignoreDiscriminator
         
         'partner': PartnerVibeProjectionFromJSON(json['partner']),
         'visibilityMode': DailyCheckInVisibilityModeFromJSON(json['visibilityMode']),
+        'partnerNote': json['partnerNote'] === undefined ? undefined : json['partnerNote'] === null ? null : json['partnerNote'],
     };
 }
 
@@ -87,6 +94,7 @@ export function DailyCheckInVibeViewToJSONTyped(value?: DailyCheckInVibeView | n
         
         'partner': PartnerVibeProjectionToJSON(value['partner']),
         'visibilityMode': DailyCheckInVisibilityModeToJSON(value['visibilityMode']),
+        'partnerNote': value['partnerNote'],
     };
 }
 

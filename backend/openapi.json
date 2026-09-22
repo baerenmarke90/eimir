@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1508,11 +1508,23 @@
                 "type": "null"
               }
             ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibenote"
           }
         },
         "required": [
           "version",
           "vibe",
+          "vibeNote",
           "energyLevel"
         ],
         "title": "DailyCheckInOwnView",
@@ -1599,6 +1611,18 @@
                 "type": "null"
               }
             ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibenote"
           }
         },
         "title": "DailyCheckInUpdate",
@@ -1611,6 +1635,17 @@
           },
           "visibilityMode": {
             "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          },
+          "partnerNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnernote"
           }
         },
         "required": [
@@ -2239,7 +2274,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3381,7 +3416,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Position",
             "type": "integer"
           }
@@ -17217,7 +17252,7 @@
                 }
               }
             },
-            "description": "Request parameters or domain inputs are invalid."
+            "description": "`DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE`: Vibe context requires a current-day Vibe."
           }
         },
         "summary": "Update Daily Check In Today",

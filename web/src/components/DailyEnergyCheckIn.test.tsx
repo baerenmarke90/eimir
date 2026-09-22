@@ -40,7 +40,12 @@ function projection({
   return {
     checkedOn: new Date('2026-09-21T00:00:00.000Z'),
     dailyContextTimezone: 'Europe/Berlin',
-    own: { energyLevel: own, vibe: null, version: own === null ? 0 : 1 },
+    own: {
+      energyLevel: own,
+      vibe: null,
+      vibeNote: null,
+      version: own === null ? 0 : 1,
+    },
     energy: energyEnabled
       ? {
           visibilityMode: 'MUTUAL_REVEAL',

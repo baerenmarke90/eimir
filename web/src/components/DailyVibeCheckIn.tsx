@@ -7,6 +7,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import {
   DailyVibe,
   type DailyVibe as DailyVibeValue,
@@ -112,18 +113,26 @@ export function DailyVibeCheckIn({
     enabled: dailyQueryOptions.enabled && configuredEnabled,
   });
   const [open, setOpen] = useState(false);
+  const [draftVibe, setDraftVibe] = useState<DailyVibeValue | null>(null);
+  const [draftNote, setDraftNote] = useState('');
+  const [partnerNoteOpen, setPartnerNoteOpen] = useState(false);
   const [revealVersion, setRevealVersion] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const partnerTriggerRef = useRef<HTMLButtonElement>(null);
   const firstOptionRef = useRef<HTMLButtonElement>(null);
-  const submittedVibeRef = useRef<DailyVibeValue | null | undefined>(undefined);
   const previousPartnerStateRef = useRef<
     PartnerVibeProjection['state'] | undefined
   >(undefined);
   const titleId = useId();
 
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
+  const ownVibeNote = dailyQuery.data?.projection.own.vibeNote ?? null;
   const serverVibe = dailyQuery.data?.projection.vibe;
+  const serverPartnerNote =
+    serverVibe?.partner.state === 'VISIBLE'
+      ? (serverVibe.partnerNote ?? null)
+      : null;
   const personalPartnerName = partnerName
     ? firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
     : t('dailyVibe.partnerFallback');
@@ -138,6 +147,12 @@ export function DailyVibeCheckIn({
     serverReportsModuleDisabled,
     spaceId,
   ]);
+
+  useEffect(() => {
+    if (partnerNoteOpen && serverPartnerNote === null) {
+      setPartnerNoteOpen(false);
+    }
+  }, [partnerNoteOpen, serverPartnerNote]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
     const name = personalPartnerName;
@@ -156,14 +171,14 @@ export function DailyVibeCheckIn({
   }
 
   const mutation = useMutation({
-    mutationFn: async (vibe: DailyVibeValue | null) => {
+    mutationFn: async (update: DailyCheckInUpdate) => {
       const current =
         queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
         dailyQuery.data;
       if (!api || !current) {
         throw new ClientProblemError('unknown');
       }
-      return updateDailyCheckInToday(api, spaceId, current.etag, { vibe });
+      return updateDailyCheckInToday(api, spaceId, current.etag, update);
     },
     onMutate: () => {
       const current =
@@ -219,11 +234,9 @@ export function DailyVibeCheckIn({
           exact: true,
           type: 'active',
         });
+        setOpen(false);
         postSnackbar('snackbar.dailyVibeConflict');
       }
-    },
-    onSettled: () => {
-      submittedVibeRef.current = undefined;
     },
   });
 
@@ -232,6 +245,7 @@ export function DailyVibeCheckIn({
       return;
     }
     setOpen(false);
+    setPartnerNoteOpen(false);
   }, [dailyQuery.isError, online]);
 
   if (!api || !accountId || !spaceId || !configuredEnabled) return null;
@@ -286,15 +300,30 @@ export function DailyVibeCheckIn({
 
   const snapshot = dailyQuery.data;
 
-  function submitVibe(value: DailyVibeValue | null): void {
-    if (mutation.isPending) return;
-    if (submittedVibeRef.current === value) return;
-    if (value === ownVibe) {
+  function openOwnSheet(): void {
+    mutation.reset();
+    setDraftVibe(ownVibe);
+    setDraftNote(ownVibeNote ?? '');
+    setOpen(true);
+  }
+
+  function saveDraft(): void {
+    if (mutation.isPending || draftVibe === null) return;
+    const normalizedNote = draftNote.trim();
+    const currentNote = ownVibeNote?.trim() ?? '';
+    if (draftVibe === ownVibe && normalizedNote === currentNote) {
       setOpen(false);
       return;
     }
-    submittedVibeRef.current = value;
-    mutation.mutate(value);
+    mutation.mutate({
+      vibe: draftVibe,
+      vibeNote: normalizedNote.length > 0 ? normalizedNote : null,
+    });
+  }
+
+  function removeVibe(): void {
+    if (mutation.isPending) return;
+    mutation.mutate({ vibe: null });
   }
 
   if (snapshot.projection.vibe === null) {
@@ -318,7 +347,7 @@ export function DailyVibeCheckIn({
           type="button"
           className="tertiary"
           disabled={mutation.isPending}
-          onClick={() => submitVibe(null)}
+          onClick={removeVibe}
         >
           {mutation.isPending
             ? t('dailyVibe.saving')
@@ -345,6 +374,21 @@ export function DailyVibeCheckIn({
         ? t(partnerOption.labelKey)
         : t('dailyVibe.partnerFallbackVisible', { name: partnerLabel })
       : '';
+  const partnerNote = serverPartnerNote;
+  const partnerCardClass =
+    'daily-vibe-person daily-vibe-partner is-visible' +
+    (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal');
+  const partnerCardContent = (
+    <>
+      <span className="daily-vibe-glyph" aria-hidden="true">
+        {partnerOption ? <DailyVibeIcon value={partnerOption.value} /> : null}
+      </span>
+      <span className="daily-vibe-person-copy">
+        <span>{partnerLabel}</span>
+        <strong>{partnerValue}</strong>
+      </span>
+    </>
+  );
 
   const mutationProblem =
     mutation.error instanceof ClientProblemError ? mutation.error : null;
@@ -377,10 +421,7 @@ export function DailyVibeCheckIn({
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-label={triggerLabel}
-              onClick={() => {
-                mutation.reset();
-                setOpen(true);
-              }}
+              onClick={openOwnSheet}
             >
               <span className="daily-vibe-glyph" aria-hidden="true">
                 <DailyVibeIcon value={ownOption.value} />
@@ -393,23 +434,34 @@ export function DailyVibeCheckIn({
           ) : null}
 
           {partnerProjection.state === 'VISIBLE' ? (
-            <div
-              key={`${revealVersion}:${partnerProjection.value}`}
-              className={
-                'daily-vibe-person daily-vibe-partner is-visible' +
-                (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal')
-              }
-              data-state="VISIBLE"
-              data-testid="daily-vibe-partner"
-            >
-              <span className="daily-vibe-glyph" aria-hidden="true">
-                <DailyVibeIcon value={partnerProjection.value} />
-              </span>
-              <span className="daily-vibe-person-copy">
-                <span>{partnerLabel}</span>
-                <strong>{partnerValue}</strong>
-              </span>
-            </div>
+            partnerNote ? (
+              <button
+                key={`${revealVersion}:${partnerProjection.value}`}
+                ref={partnerTriggerRef}
+                type="button"
+                className={`${partnerCardClass} daily-vibe-partner-context`}
+                data-state="VISIBLE"
+                data-testid="daily-vibe-partner"
+                aria-haspopup="dialog"
+                aria-expanded={partnerNoteOpen}
+                aria-label={t('dailyVibe.partnerContextAria', {
+                  name: partnerLabel,
+                  value: partnerValue,
+                })}
+                onClick={() => setPartnerNoteOpen(true)}
+              >
+                {partnerCardContent}
+              </button>
+            ) : (
+              <div
+                key={`${revealVersion}:${partnerProjection.value}`}
+                className={partnerCardClass}
+                data-state="VISIBLE"
+                data-testid="daily-vibe-partner"
+              >
+                {partnerCardContent}
+              </div>
+            )
           ) : null}
         </div>
       ) : null}
@@ -422,10 +474,7 @@ export function DailyVibeCheckIn({
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-label={triggerLabel}
-          onClick={() => {
-            mutation.reset();
-            setOpen(true);
-          }}
+          onClick={openOwnSheet}
         >
           {t('dailyVibe.choose')}
         </button>
@@ -447,7 +496,7 @@ export function DailyVibeCheckIn({
         <p className="daily-vibe-sheet-intro">{t('dailyVibe.sheetIntro')}</p>
         <div className="daily-vibe-options">
           {VIBE_OPTIONS.map((option, index) => {
-            const selected = ownVibe === option.value;
+            const selected = draftVibe === option.value;
             return (
               <button
                 key={option.value}
@@ -457,7 +506,7 @@ export function DailyVibeCheckIn({
                 aria-pressed={selected}
                 disabled={mutation.isPending}
                 data-vibe={option.value}
-                onClick={() => submitVibe(option.value)}
+                onClick={() => setDraftVibe(option.value)}
               >
                 <span className="daily-vibe-option-glyph" aria-hidden="true">
                   <DailyVibeIcon value={option.value} />
@@ -468,20 +517,47 @@ export function DailyVibeCheckIn({
           })}
         </div>
 
+        <label className="daily-vibe-note-field">
+          <span>{t('dailyVibe.noteLabel')}</span>
+          <span className="daily-vibe-note-hint">
+            {t('dailyVibe.noteHint')}
+          </span>
+          <textarea
+            value={draftNote}
+            maxLength={200}
+            rows={3}
+            disabled={mutation.isPending}
+            placeholder={t('dailyVibe.notePlaceholder')}
+            onChange={(event) => setDraftNote(event.currentTarget.value)}
+          />
+        </label>
+
         <div className="daily-vibe-sheet-footer">
           <span className="daily-vibe-save-status" role="status">
             {mutation.isPending ? t('dailyVibe.saving') : ''}
           </span>
-          {ownVibe !== null ? (
+          <div className="daily-vibe-sheet-actions">
+            {ownVibe !== null ? (
+              <button
+                type="button"
+                className="tertiary daily-vibe-remove"
+                disabled={mutation.isPending}
+                onClick={removeVibe}
+              >
+                {t('dailyVibe.remove')}
+              </button>
+            ) : null}
             <button
               type="button"
-              className="tertiary daily-vibe-remove"
-              disabled={mutation.isPending}
-              onClick={() => submitVibe(null)}
+              className="primary daily-vibe-save"
+              disabled={mutation.isPending || draftVibe === null}
+              onClick={saveDraft}
             >
-              {t('dailyVibe.remove')}
+              {ownVibe === null
+                ? t('dailyVibe.share')
+                : t('dailyVibe.saveChanges')}
             </button>
-          ) : null}
+          </div>
         </div>
 
         {contextUnavailable ? (
@@ -493,6 +569,22 @@ export function DailyVibeCheckIn({
             {t('dailyVibe.saveError')}
           </p>
         ) : null}
+      </ShortTaskSheet>
+
+      <ShortTaskSheet
+        open={partnerNoteOpen}
+        title={t('dailyVibe.partnerNoteTitle', { name: partnerLabel })}
+        closeLabel={t('dailyVibe.partnerNoteClose')}
+        onClose={() => setPartnerNoteOpen(false)}
+        restoreFocusRef={partnerTriggerRef}
+        className="daily-vibe-sheet daily-vibe-partner-note-sheet"
+      >
+        <div className="daily-vibe-partner-note-header">
+          <strong>{partnerValue}</strong>
+        </div>
+        <blockquote className="daily-vibe-partner-note">
+          {partnerNote}
+        </blockquote>
       </ShortTaskSheet>
     </section>
   );

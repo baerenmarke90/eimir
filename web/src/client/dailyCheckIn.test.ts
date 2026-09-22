@@ -13,7 +13,12 @@ function projection(energyLevel: number | null): DailyCheckInTodayView {
   return {
     checkedOn: new Date('2026-09-21T00:00:00.000Z'),
     dailyContextTimezone: 'Europe/Berlin',
-    own: { energyLevel, vibe: null, version: energyLevel === null ? 0 : 1 },
+    own: {
+      energyLevel,
+      vibe: null,
+      vibeNote: null,
+      version: energyLevel === null ? 0 : 1,
+    },
     energy: {
       visibilityMode: 'MUTUAL_REVEAL',
       partner: { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' },

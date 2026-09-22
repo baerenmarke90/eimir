@@ -10,6 +10,7 @@ Name | Type
 `energyLevel` | number
 `version` | number
 `vibe` | [DailyVibe](DailyVibe.md)
+`vibeNote` | string
 
 ## Example
 
@@ -21,6 +22,7 @@ const example = {
   "energyLevel": null,
   "version": null,
   "vibe": null,
+  "vibeNote": null,
 } satisfies DailyCheckInOwnView
 
 console.log(example)

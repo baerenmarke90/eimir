@@ -13,6 +13,7 @@ from eimir.identity.preferences import validate_timezone
 class DailyCheckInErrorCode:
     CONTEXT_UNAVAILABLE = "DAILY_CHECK_IN_CONTEXT_UNAVAILABLE"
     ENERGY_LEVEL_INVALID = "DAILY_CHECK_IN_ENERGY_LEVEL_INVALID"
+    VIBE_NOTE_REQUIRES_VIBE = "DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE"
 
 
 def resolve_space_day(

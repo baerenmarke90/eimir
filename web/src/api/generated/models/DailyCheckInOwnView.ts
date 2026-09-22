@@ -45,6 +45,12 @@ export interface DailyCheckInOwnView {
      * @memberof DailyCheckInOwnView
      */
     vibe: DailyVibe | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof DailyCheckInOwnView
+     */
+    vibeNote: string | null;
 }
 
 
@@ -56,6 +62,7 @@ export function instanceOfDailyCheckInOwnView(value: object): value is DailyChec
     if (!('energyLevel' in value) || value['energyLevel'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
     if (!('vibe' in value) || value['vibe'] === undefined) return false;
+    if (!('vibeNote' in value) || value['vibeNote'] === undefined) return false;
     return true;
 }
 
@@ -72,6 +79,7 @@ export function DailyCheckInOwnViewFromJSONTyped(json: any, ignoreDiscriminator:
         'energyLevel': json['energyLevel'],
         'version': json['version'],
         'vibe': DailyVibeFromJSON(json['vibe']),
+        'vibeNote': json['vibeNote'],
     };
 }
 
@@ -89,6 +97,7 @@ export function DailyCheckInOwnViewToJSONTyped(value?: DailyCheckInOwnView | nul
         'energyLevel': value['energyLevel'],
         'version': value['version'],
         'vibe': DailyVibeToJSON(value['vibe']),
+        'vibeNote': value['vibeNote'],
     };
 }
 

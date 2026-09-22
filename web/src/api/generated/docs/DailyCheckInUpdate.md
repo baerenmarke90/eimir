@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `energyLevel` | number
 `vibe` | [DailyVibe](DailyVibe.md)
+`vibeNote` | string
 
 ## Example
 
@@ -19,6 +20,7 @@ import type { DailyCheckInUpdate } from ''
 const example = {
   "energyLevel": null,
   "vibe": null,
+  "vibeNote": null,
 } satisfies DailyCheckInUpdate
 
 console.log(example)

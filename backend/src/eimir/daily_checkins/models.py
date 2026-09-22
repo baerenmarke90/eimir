@@ -11,12 +11,25 @@ from datetime import date
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, String, UniqueConstraint
+from pydantic import Field
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
+from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
 
 
 class DailyVibe(StrEnum):
@@ -33,6 +46,12 @@ class DailyVibe(StrEnum):
     SAD = "SAD"
     NEEDS_CONNECTION = "NEEDS_CONNECTION"
     NEEDS_SPACE = "NEEDS_SPACE"
+
+
+class DailyVibeNotePayload(ProtectedPayload):
+    """Short user-authored context attached to one current-day Vibe."""
+
+    note: str = Field(min_length=1, max_length=200)
 
 
 class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
@@ -77,4 +96,35 @@ class DailyCheckIn(IdMixin, TimestampMixin, VersionMixin, Base):
             name="energy_level_is_step",
         ),
         Index("ix_daily_check_ins_space_day", "space_id", "checked_on"),
+    )
+
+
+class DailyCheckInVibeNote(IdMixin, TimestampMixin, Base):
+    """Encrypted optional Vibe context owned by one DailyCheckIn aggregate."""
+
+    __tablename__ = "daily_check_in_vibe_notes"
+
+    daily_check_in_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("daily_check_ins.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger,
+        nullable=False,
+        default=CRYPTO_VERSION_PLAINTEXT,
+        server_default=text("0"),
+    )
+    payload: Mapped[DailyVibeNotePayload] = mapped_column(
+        ProtectedPayloadJSON(DailyVibeNotePayload),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "crypto_version >= 0",
+            name="crypto_version_is_non_negative",
+        ),
     )

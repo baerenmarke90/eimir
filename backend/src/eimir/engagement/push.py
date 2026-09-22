@@ -38,6 +38,8 @@ _TERMINAL_DELIVERY_STATUSES = {
 }
 _NOTIFICATION_SPACE_MODULES = {
     NotificationKind.THINKING_OF_YOU.value: space_configuration.SpaceModule.SUPPORT_GESTURES,
+    NotificationKind.PARTNER_KISS.value: space_configuration.SpaceModule.SUPPORT_GESTURES,
+    NotificationKind.PARTNER_CHECK_IN.value: space_configuration.SpaceModule.SUPPORT_GESTURES,
 }
 
 

@@ -1100,8 +1100,7 @@
   .insight-line {
     stroke-dasharray: 400;
     stroke-dashoffset: 400;
-    animation: insight-draw var(--motion-duration-long)
-      var(--motion-easing-reveal) forwards;
+    animation: insight-draw var(--duration-context) var(--easing-enter) forwards;
   }
 
   .insight-series-partner .insight-line {
@@ -1111,8 +1110,7 @@
   .insight-card,
   .insight-closing,
   .insight-hero {
-    animation: insight-fade var(--motion-duration-medium)
-      var(--motion-easing-reveal) both;
+    animation: insight-fade var(--duration-transition) var(--easing-enter) both;
   }
 }
 

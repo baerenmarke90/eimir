@@ -29,9 +29,9 @@
   color: inherit;
   text-decoration: none;
   transition:
-    transform var(--motion-duration-short) ease,
-    border-color var(--motion-duration-short) ease,
-    box-shadow var(--motion-duration-short) ease;
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .story-year-link.is-current {

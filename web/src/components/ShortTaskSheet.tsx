@@ -163,11 +163,7 @@ export function ShortTaskSheet({
   const { present, presenceState, completeExit } = useOverlayPresence(open);
 
   useLayoutEffect(() => {
-    if (
-      present &&
-      !wasPresentRef.current &&
-      typeof document !== 'undefined'
-    ) {
+    if (present && !wasPresentRef.current && typeof document !== 'undefined') {
       const activeElement = restoreFocusRef?.current ?? document.activeElement;
       implicitRestoreFocusRef.current =
         activeElement instanceof HTMLElement ? activeElement : null;

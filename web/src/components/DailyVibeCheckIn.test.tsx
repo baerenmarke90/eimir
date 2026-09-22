@@ -149,6 +149,9 @@ describe('DailyVibeCheckIn', () => {
         within(dialog).getByRole('button', { name: label }),
       ).not.toBeNull();
     }
+    expect(
+      dialog.querySelectorAll('[data-vibe-icon]'),
+    ).toHaveLength(6);
   });
 
   it('keeps the Vibe sheet open while partner sync refetches in the background', async () => {

@@ -112,7 +112,7 @@ describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
     expect(document.body.style.overflow).toBe('hidden');
     expect(screen.getByRole('dialog')).toBe(dialog);
 
-    fireEvent.animationEnd(dialog, { animationName: 'preference-modal-exit' });
+    fireEvent.animationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

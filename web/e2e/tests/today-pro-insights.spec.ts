@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import dailyInsights from '../../src/i18n/locales/dailyInsights';
+import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -334,7 +335,8 @@ async function openInsightsFromMore(
   testInfo?: import('@playwright/test').TestInfo,
   label?: string,
 ) {
-  await page.goto('/more');
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
   await expect(
     page.getByRole('heading', { level: 1, name: de.more.title }),
   ).toBeVisible();

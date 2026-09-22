@@ -78,20 +78,14 @@ function mockResponsiveMatchMedia({
         },
       ),
       addEventListener: vi.fn(
-        (
-          type: string,
-          listener: (event: MediaQueryListEvent) => void,
-        ) => {
+        (type: string, listener: (event: MediaQueryListEvent) => void) => {
           if (isCompactQuery && type === 'change') {
             compactListeners.add(listener);
           }
         },
       ),
       removeEventListener: vi.fn(
-        (
-          type: string,
-          listener: (event: MediaQueryListEvent) => void,
-        ) => {
+        (type: string, listener: (event: MediaQueryListEvent) => void) => {
           if (isCompactQuery && type === 'change') {
             compactListeners.delete(listener);
           }
@@ -555,9 +549,9 @@ describe('HeaderNotificationsMenu', () => {
       await waitFor(() =>
         expect(portal.getAttribute('data-presence')).toBe('exiting'),
       );
-      expect(sheet.classList.contains('header-notifications-bottom-sheet')).toBe(
-        true,
-      );
+      expect(
+        sheet.classList.contains('header-notifications-bottom-sheet'),
+      ).toBe(true);
       expect(document.body.contains(portal)).toBe(true);
 
       fireReactAnimationEnd(sheet);

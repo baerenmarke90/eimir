@@ -418,8 +418,11 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     page.getByText(dailyQuote.privacy.replace('{{name, firstName}}', 'Ben')),
   ).toBeVisible();
 
-  const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
-  await page.getByText('Mindfulness', { exact: true }).click();
+  const preferencesSheet = page.locator('.daily-quote-preferences-sheet');
+  const mindfulness = preferencesSheet.getByRole('checkbox', {
+    name: /Mindfulness/u,
+  });
+  await preferencesSheet.getByText('Mindfulness', { exact: true }).click();
   await expect(mindfulness).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({

@@ -300,6 +300,7 @@ export function TodayPinnedCollection({
       void queryClient.invalidateQueries({
         queryKey: authorSummaryQueryKeys.collections(spaceId),
       });
+      setExpanded(true);
       setAddOpen(false);
       setAddDraft('');
       setAddValidationError(false);

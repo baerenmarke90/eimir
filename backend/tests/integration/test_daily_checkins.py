@@ -1025,9 +1025,7 @@ class TestVibeContextNote:
             vibe=True,
             energy=False,
         )
-        initial = client.get(
-            path(couple["space"].id), headers=auth(couple["manager_token"])
-        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
 
         without_vibe = client.patch(
             path(couple["space"].id),
@@ -1053,10 +1051,7 @@ class TestVibeContextNote:
         )
         assert saved.status_code == 200
         assert saved.json()["own"]["vibe"] == DailyVibe.GOOD.value
-        assert (
-            saved.json()["own"]["vibeNote"]
-            == "The appointment went better than expected."
-        )
+        assert saved.json()["own"]["vibeNote"] == "The appointment went better than expected."
         first_etag = saved.headers["etag"]
 
         note_only = client.patch(
@@ -1069,10 +1064,7 @@ class TestVibeContextNote:
         )
         assert note_only.status_code == 200
         assert note_only.headers["etag"] != first_etag
-        assert (
-            note_only.json()["own"]["vibeNote"]
-            == "A quiet evening would be good."
-        )
+        assert note_only.json()["own"]["vibeNote"] == "A quiet evening would be good."
 
         stale = client.patch(
             path(couple["space"].id),
@@ -1100,9 +1092,7 @@ class TestVibeContextNote:
         assert cleared.json()["own"]["vibe"] is None
         assert cleared.json()["own"]["vibeNote"] is None
         assert (
-            session.execute(
-                select(func.count()).select_from(DailyCheckInVibeNote)
-            ).scalar_one()
+            session.execute(select(func.count()).select_from(DailyCheckInVibeNote)).scalar_one()
             == 0
         )
 
@@ -1118,9 +1108,7 @@ class TestVibeContextNote:
             vibe_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
         )
 
-        manager_before = client.get(
-            path(couple["space"].id), headers=auth(couple["manager_token"])
-        )
+        manager_before = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         before_vibe = manager_before.json()["vibe"]
         assert before_vibe == {
             "visibilityMode": "MUTUAL_REVEAL",
@@ -1144,9 +1132,7 @@ class TestVibeContextNote:
         )
         assert partner_saved.status_code == 200
 
-        hidden = client.get(
-            path(couple["space"].id), headers=auth(couple["manager_token"])
-        )
+        hidden = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         assert hidden.json()["vibe"] == before_vibe
         assert "My head is full" not in hidden.text
 

@@ -608,9 +608,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(width);
       await expectNoHorizontalOverflow(page);
 
-      await dialog
-        .getByRole('button', { name: navigation.closeMenu })
-        .click();
+      await dialog.getByRole('button', { name: navigation.closeMenu }).click();
       await expect(dialog).toHaveCount(0);
       await expect(trigger).toBeFocused();
     }

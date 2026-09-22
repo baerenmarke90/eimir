@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type CSSProperties,
+  type RefObject,
   useEffect,
   useId,
   useRef,
@@ -20,6 +21,7 @@ import {
   clientProblemKind,
 } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
+import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import './DailyEnergyCheckIn.css';
@@ -166,12 +168,16 @@ export function DailyEnergyCheckIn({
   const dailyQuery = useQuery(
     dailyCheckInTodayQueryOptions(api, accountId, spaceId),
   );
-  const [open, setOpen] = useState(false);
+  const {
+    isOpen: open,
+    setIsOpen: setOpen,
+    toggle,
+    triggerRef,
+    panelRef,
+  } = useDismissiblePopover();
   const [draftEnergy, setDraftEnergy] = useState<DailyEnergyLevel>(50);
   const [draftTouched, setDraftTouched] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const badgeRef = useRef<HTMLButtonElement>(null);
   const submittedEnergyRef = useRef<DailyEnergyLevel | null | undefined>(
     undefined,
   );
@@ -266,33 +272,6 @@ export function DailyEnergyCheckIn({
     setOpen(false);
   }, [dailyQuery.isError, online]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    function onPointerDown(event: PointerEvent) {
-      if (
-        rootRef.current &&
-        event.target instanceof Node &&
-        !rootRef.current.contains(event.target)
-      ) {
-        setOpen(false);
-      }
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
-      setOpen(false);
-      badgeRef.current?.focus();
-    }
-
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
-
   if (moduleDisabled || serverReportsModuleDisabled) return null;
 
   const loading = dailyQuery.isPending && !dailyQuery.data;
@@ -377,15 +356,19 @@ export function DailyEnergyCheckIn({
   }
 
   return (
-    <div className="daily-energy-checkin" ref={rootRef}>
+    <div
+      className="daily-energy-checkin"
+      ref={panelRef as RefObject<HTMLDivElement>}
+    >
       <button
-        ref={badgeRef}
+        ref={triggerRef as RefObject<HTMLButtonElement>}
         type="button"
         className="daily-energy-badge daily-energy-avatar-control"
+        aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? dialogId : undefined}
         aria-label={badgeAria}
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggle}
         data-testid="daily-energy-own-battery"
       >
         <span className="daily-energy-avatar-chip" aria-hidden="true">

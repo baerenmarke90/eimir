@@ -515,10 +515,10 @@ export function PreferenceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
-        onTransitionEnd={(event) => {
+        onAnimationEnd={(event) => {
           if (
             event.target !== event.currentTarget ||
-            event.propertyName !== 'transform' ||
+            !event.animationName.startsWith('preference-modal-') ||
             presenceState !== 'exiting'
           )
             return;

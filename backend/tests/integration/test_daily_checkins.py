@@ -221,7 +221,12 @@ class TestPersistenceAndEnergy:
         initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         initial_etag = initial.headers["etag"]
         assert initial_etag.endswith(':absent"')
-        assert initial.json()["own"] == {"version": 0, "vibe": None, "energyLevel": None}
+        assert initial.json()["own"] == {
+            "version": 0,
+            "vibe": None,
+            "vibeNote": None,
+            "energyLevel": None,
+        }
 
         created = client.patch(
             path(couple["space"].id),
@@ -229,7 +234,12 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(initial.headers["etag"])},
         )
         assert created.status_code == 200
-        assert created.json()["own"] == {"version": 1, "vibe": None, "energyLevel": 20}
+        assert created.json()["own"] == {
+            "version": 1,
+            "vibe": None,
+            "vibeNote": None,
+            "energyLevel": 20,
+        }
         created_etag = created.headers["etag"]
         assert created_etag != initial_etag
 
@@ -239,7 +249,12 @@ class TestPersistenceAndEnergy:
             headers={**auth(couple["manager_token"]), **if_match(created_etag)},
         )
         assert updated.status_code == 200
-        assert updated.json()["own"] == {"version": 2, "vibe": None, "energyLevel": 60}
+        assert updated.json()["own"] == {
+            "version": 2,
+            "vibe": None,
+            "vibeNote": None,
+            "energyLevel": 60,
+        }
         assert (
             session.execute(
                 select(func.count())
@@ -259,7 +274,12 @@ class TestPersistenceAndEnergy:
         )
         assert cleared.status_code == 200
         assert cleared.headers["etag"] == initial_etag
-        assert cleared.json()["own"] == {"version": 0, "vibe": None, "energyLevel": None}
+        assert cleared.json()["own"] == {
+            "version": 0,
+            "vibe": None,
+            "vibeNote": None,
+            "energyLevel": None,
+        }
         assert (
             session.execute(
                 select(func.count())
@@ -385,6 +405,7 @@ class TestVibeContract:
         assert saved.json()["own"] == {
             "version": 1,
             "vibe": vibe.value,
+            "vibeNote": None,
             "energyLevel": None,
         }
         row = session.execute(
@@ -488,6 +509,7 @@ class TestVibeContract:
         assert final_clear.json()["own"] == {
             "version": 0,
             "vibe": None,
+            "vibeNote": None,
             "energyLevel": None,
         }
         assert session.execute(select(func.count()).select_from(DailyCheckIn)).scalar_one() == 0

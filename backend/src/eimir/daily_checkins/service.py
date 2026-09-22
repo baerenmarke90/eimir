@@ -380,7 +380,7 @@ def update_today(
     expected_token: str,
     energy: DimensionUpdate[int],
     vibe: DimensionUpdate[DailyVibe],
-    vibe_note: DimensionUpdate[str] = DimensionUpdate[str](supplied=False),
+    vibe_note: DimensionUpdate[str] | None = None,
     at: datetime | None = None,
 ) -> TodayProjection:
     """Apply a partial owner mutation to the shared current-day record.
@@ -395,6 +395,9 @@ def update_today(
     # Offboarding uses Membership -> Space as well; preserving that order
     # prevents a Daily Check-in response from racing a partner exit without
     # introducing a new deadlock cycle.
+    if vibe_note is None:
+        vibe_note = DimensionUpdate[str](supplied=False)
+
     _active_partner_account_id(session, authorization)
     _locked_space(session, authorization.space_id)
     configuration = _configuration(session, authorization.space_id)

@@ -126,11 +126,23 @@ def project_pending(session: Session, *, limit: int = 50) -> int:
             # persisted verbatim (#680, extended to Outbox per its own
             # follow-up comment; #695 tracks whether Outbox needs anything
             # beyond this).
-            outbox_service.mark_failed(event, safe_exception_summary(exc))
+            became_terminal = outbox_service.mark_failed(event, safe_exception_summary(exc))
             log.exception(
                 "outbox event projection failed",
                 extra={"event_id": str(event.id), "event_type": event.event_type},
             )
+            if became_terminal:
+                # Distinct from the retry-scheduled case above: this event
+                # will never be reclaimed again and needs operator attention,
+                # the same way jobs/worker.py's "unknown job kind" does.
+                log.error(
+                    "outbox event permanently failed after exhausting retries",
+                    extra={
+                        "event_id": str(event.id),
+                        "event_type": event.event_type,
+                        "attempts": event.attempts,
+                    },
+                )
         else:
             outbox_service.mark_processed(event)
     return len(events)

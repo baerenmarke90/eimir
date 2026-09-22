@@ -190,6 +190,39 @@ def test_successful_projection_retry_clears_failure_diagnostic(
     assert row.next_attempt_at is None
 
 
+def test_a_poison_projection_becomes_terminal_and_logs_distinctly(
+    session: Session, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A permanently-broken projector must not retry this event forever; the
+    worker would otherwise reclaim it every poll indefinitely (mirrors
+    jobs/worker.py's "unknown job kind" terminal path)."""
+    marker = "DIAGNOSTIC-CANARY-POISON-PROJECTION-4F10"
+
+    def always_failing_projection(_session: Session, _event: OutboxEvent) -> None:
+        raise RuntimeError(marker)
+
+    monkeypatch.setattr(engagement_service, "project_event", always_failing_projection)
+
+    row = outbox_service.record(session, _projection_event())
+    session.flush()
+    row.attempts = outbox_service.MAX_ATTEMPTS - 1
+    session.flush()
+
+    with caplog.at_level("ERROR", logger="eimir.engagement.service"):
+        assert engagement_service.project_pending(session) == 1
+
+    assert row.attempts == outbox_service.MAX_ATTEMPTS
+    assert row.failed_at is not None
+    assert row.processed_at is None
+    assert marker not in (row.last_error or "")
+    assert any("permanently failed" in record.message for record in caplog.records), (
+        "a terminally failed event must log distinctly from an ordinary retry"
+    )
+
+    # Never reclaimed again, even though nothing else changed about eligibility.
+    assert engagement_service.project_pending(session) == 0
+
+
 def test_unexpected_projection_failure_never_persists_private_content(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -1,4 +1,5 @@
 const dailyQuote = {
+  kicker: 'Euer Impuls',
   title: 'Zitat des Tages',
   pro: 'Pro',
   loading: 'Dein Zitat für heute wird geladen …',

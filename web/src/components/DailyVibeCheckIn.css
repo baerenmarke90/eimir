@@ -17,7 +17,13 @@
   padding-inline: var(--space-1);
 }
 
-.daily-vibe-heading h2,
+/* The shared today-section-kicker already carries its own margin-bottom;
+   the grid gap above provides the equivalent space here, so it is zeroed
+   to avoid doubling the gap between kicker and title. */
+.daily-vibe-heading .today-section-kicker {
+  margin-bottom: 0;
+}
+
 .daily-vibe-disabled-clear h2 {
   margin: 0;
   font-family: var(--font-display);

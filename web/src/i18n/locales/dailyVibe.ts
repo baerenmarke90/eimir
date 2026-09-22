@@ -1,4 +1,5 @@
 const dailyVibe = {
+  kicker: 'Vibecheck',
   question: 'Wie geht es euch heute?',
   voluntary: 'Ein kleiner Check-in, freiwillig und nur für heute.',
   loading: 'Euer heutiger Vibe wird geladen …',

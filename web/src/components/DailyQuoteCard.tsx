@@ -516,9 +516,16 @@ export function DailyQuoteCard({
     <>
       <section className="daily-quote-card" aria-labelledby="daily-quote-title">
         <header className="daily-quote-header">
-          <div className="daily-quote-heading">
-            <h2 id="daily-quote-title">{t('dailyQuote.title')}</h2>
-            <ProMark label={t('dailyQuote.pro')} />
+          <div className="daily-quote-heading-group">
+            <span className="today-section-kicker">
+              {t('dailyQuote.kicker')}
+            </span>
+            <div className="daily-quote-heading">
+              <h2 id="daily-quote-title" className="today-section-title">
+                {t('dailyQuote.title')}
+              </h2>
+              <ProMark label={t('dailyQuote.pro')} />
+            </div>
           </div>
           {settingsAvailable ? (
             <button

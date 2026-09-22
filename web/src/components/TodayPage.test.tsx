@@ -1155,6 +1155,10 @@ describe('TodayPage', () => {
     expect(html).toContain('today-section-upcoming');
     expect(html).toContain('today-agenda-row');
     expect(html).toContain('Cooking Night');
+    // Demnächst carries the same red-eyebrow/title hierarchy as the other
+    // Today modules (e.g. `Euer Moment`), not a locally styled heading.
+    expect(html).toContain('today-section-kicker');
+    expect(html).toContain('Euer Ausblick');
     // Nothing qualifies for the contextual slot, so the section is omitted
     // entirely rather than rendered as an empty placeholder.
     expect(html).not.toContain('today-section-living');

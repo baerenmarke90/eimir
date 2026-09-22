@@ -259,7 +259,10 @@ export function DailyVibeCheckIn({
         data-testid="daily-vibe-checkin"
       >
         <div className="daily-vibe-heading">
-          <h2 id={titleId}>{t('dailyVibe.question')}</h2>
+          <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
+          <h2 id={titleId} className="today-section-title">
+            {t('dailyVibe.question')}
+          </h2>
           <p>{t('dailyVibe.loading')}</p>
         </div>
       </section>
@@ -278,7 +281,10 @@ export function DailyVibeCheckIn({
         data-testid="daily-vibe-checkin"
       >
         <div className="daily-vibe-heading">
-          <h2 id={titleId}>{t('dailyVibe.question')}</h2>
+          <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
+          <h2 id={titleId} className="today-section-title">
+            {t('dailyVibe.question')}
+          </h2>
           <p>
             {offline
               ? t('dailyVibe.unavailableOffline')
@@ -407,7 +413,10 @@ export function DailyVibeCheckIn({
       data-testid="daily-vibe-checkin"
     >
       <div className="daily-vibe-heading">
-        <h2 id={titleId}>{t('dailyVibe.question')}</h2>
+        <span className="today-section-kicker">{t('dailyVibe.kicker')}</span>
+        <h2 id={titleId} className="today-section-title">
+          {t('dailyVibe.question')}
+        </h2>
       </div>
 
       {ownOption || partnerProjection.state === 'VISIBLE' ? (

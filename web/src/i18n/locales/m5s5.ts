@@ -28,6 +28,7 @@ const m5s5 = {
     retrospectiveTitle: 'Weißt du noch?',
     retrospectiveEmpty:
       'Hier erscheint eine gemeinsame Erinnerung, sobald es etwas Passendes gibt.',
+    upcomingKicker: 'Euer Ausblick',
     upcomingTitle: 'Demnächst',
     upcomingEmpty: 'Gerade steht nichts Gemeinsames bevor.',
     pinnedCollectionSettingsTitle: 'Angeheftete Liste',

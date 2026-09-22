@@ -264,11 +264,7 @@
 
 .daily-quote-category.is-selected {
   border-color: color-mix(in srgb, var(--color-brand) 38%, transparent);
-  background: color-mix(
-    in srgb,
-    var(--color-brand) 15%,
-    var(--color-surface)
-  );
+  background: color-mix(in srgb, var(--color-brand) 15%, var(--color-surface));
   color: var(--color-brand-text);
   font-weight: 650;
 }

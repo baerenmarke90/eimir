@@ -177,9 +177,7 @@ describe('DailyQuoteCard', () => {
   it('shows quiet Pro discovery in Free Spaces without requesting a quote', async () => {
     const api = renderCard({ capabilities: [] });
 
-    expect(
-      await screen.findByText(dailyQuote.discovery),
-    ).toBeTruthy();
+    expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.getByText(dailyQuote.discoveryMeta)).toBeTruthy();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
@@ -193,11 +191,7 @@ describe('DailyQuoteCard', () => {
   it('renders the server-resolved Pro quote with attribution and catalog labels', async () => {
     renderCard();
 
-    expect(
-      await screen.findByText(
-        '„A server-resolved quote.“',
-      ),
-    ).toBeTruthy();
+    expect(await screen.findByText('„A server-resolved quote.“')).toBeTruthy();
     expect(
       screen.getByText(
         i18n.t('dailyQuote.quoteAttribution', {
@@ -238,12 +232,8 @@ describe('DailyQuoteCard', () => {
       },
     });
 
-    expect(
-      await screen.findByText(dailyQuote.empty),
-    ).toBeTruthy();
-    expect(
-      screen.getByText(dailyQuote.emptyMeta),
-    ).toBeTruthy();
+    expect(await screen.findByText(dailyQuote.empty)).toBeTruthy();
+    expect(screen.getByText(dailyQuote.emptyMeta)).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: dailyQuote.retry }),
     ).not.toBeTruthy();
@@ -259,9 +249,7 @@ describe('DailyQuoteCard', () => {
     await user.click(settings);
 
     expect(
-      await screen.findByText(
-        i18n.t('dailyQuote.privacy', { name: 'Ben' }),
-      ),
+      await screen.findByText(i18n.t('dailyQuote.privacy', { name: 'Ben' })),
     ).toBeTruthy();
 
     const mindfulness = screen.getByRole('checkbox', {

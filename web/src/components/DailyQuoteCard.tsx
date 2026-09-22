@@ -281,12 +281,7 @@ export function DailyQuoteCard({
         selectedCategoryIds: nextDraft.categoryIds,
         selectedSourceIds: nextDraft.sourceIds,
       };
-      return saveDailyQuotePreferences(
-        quoteApi,
-        spaceId,
-        snapshot,
-        patch,
-      );
+      return saveDailyQuotePreferences(quoteApi, spaceId, snapshot, patch);
     },
     onSuccess: (snapshot) => {
       queryClient.setQueryData(preferencesKey, snapshot);
@@ -359,7 +354,11 @@ export function DailyQuoteCard({
             : undefined
         }
         action={
-          <button type="button" className="daily-quote-retry" onClick={retryEntitlement}>
+          <button
+            type="button"
+            className="daily-quote-retry"
+            onClick={retryEntitlement}
+          >
             {t('dailyQuote.retry')}
           </button>
         }
@@ -401,7 +400,11 @@ export function DailyQuoteCard({
             : undefined
         }
         action={
-          <button type="button" className="daily-quote-retry" onClick={retryQuote}>
+          <button
+            type="button"
+            className="daily-quote-retry"
+            onClick={retryQuote}
+          >
             {t('dailyQuote.retry')}
           </button>
         }
@@ -441,7 +444,10 @@ export function DailyQuoteCard({
           {quote.attributionRequired ? <footer>{attribution}</footer> : null}
         </blockquote>
         {visibleCategories.length > 0 ? (
-          <ul className="daily-quote-categories" aria-label={t('dailyQuote.categories')}>
+          <ul
+            className="daily-quote-categories"
+            aria-label={t('dailyQuote.categories')}
+          >
             {visibleCategories.map((name) => (
               <li key={name}>{name}</li>
             ))}
@@ -495,8 +501,9 @@ export function DailyQuoteCard({
         ) : preferencesQuery.error || catalogQuery.error ? (
           <div className="daily-quote-preference-error" role="alert">
             <p>
-              {clientProblemKind(preferencesQuery.error ?? catalogQuery.error) ===
-              'offline'
+              {clientProblemKind(
+                preferencesQuery.error ?? catalogQuery.error,
+              ) === 'offline'
                 ? t('dailyQuote.preferencesOffline')
                 : t('dailyQuote.preferencesUnavailable')}
             </p>

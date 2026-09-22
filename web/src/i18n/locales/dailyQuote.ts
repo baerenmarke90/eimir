@@ -26,8 +26,7 @@ const dailyQuote = {
   preferencesOffline:
     'Offline – deine Auswahl wird nach dem Verbinden wieder verfügbar.',
   saveError: 'Deine Auswahl konnte nicht gespeichert werden.',
-  conflict:
-    'Deine Auswahl wurde inzwischen auf einem anderen Gerät geändert.',
+  conflict: 'Deine Auswahl wurde inzwischen auf einem anderen Gerät geändert.',
   reload: 'Aktuelle Auswahl laden',
   quoteAttribution: '— {{author}}, {{source}}',
   quoteAttributionAuthorOnly: '— {{author}}',

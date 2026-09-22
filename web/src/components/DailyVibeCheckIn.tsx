@@ -381,7 +381,7 @@ export function DailyVibeCheckIn({
   const partnerCardContent = (
     <>
       <span className="daily-vibe-glyph" aria-hidden="true">
-        <DailyVibeIcon value={partnerProjection.value} />
+        {partnerOption ? <DailyVibeIcon value={partnerOption.value} /> : null}
       </span>
       <span className="daily-vibe-person-copy">
         <span>{partnerLabel}</span>

@@ -115,6 +115,11 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
     triggerRef,
     panelRef,
   } = useDismissiblePopover({
+    // Quick Create is a persistent shell action. Target handoff closes it
+    // explicitly, while outside/Escape own ordinary dismissal. Inheriting the
+    // generic route auto-dismiss would race with opening it immediately after
+    // shell navigation.
+    closeOnRouteChange: false,
     // Desktop is a non-modal anchored menu. Compact hands dismissal and focus
     // ownership to ShortTaskSheet so Escape/outside input has one owner.
     dismissOnOutsidePointerDown: variant === 'desktop',

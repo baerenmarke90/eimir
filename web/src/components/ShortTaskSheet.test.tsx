@@ -453,5 +453,4 @@ describe('ShortTaskSheet history ownership', () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();
   });
-
 });

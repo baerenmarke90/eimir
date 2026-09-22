@@ -802,16 +802,24 @@ test.describe('Today R4: the living home of a relationship', () => {
         return node ? Math.round(node.getBoundingClientRect().top) : null;
       };
       return {
-        title: top('.couple-presence-title'),
+        dateTitle: top('.today-date-title'),
+        relationshipTitle: top('.couple-presence-title'),
         moment: top('.today-section-moment'),
         momentImage: top('.today-moment-media'),
       };
     });
 
-    // The relationship identity starts close under the shell chrome instead
-    // of behind a stacked band of page/hero padding.
-    expect(metrics.title).not.toBeNull();
-    expect(metrics.title as number).toBeLessThan(120);
+    // #1155 deliberately inserted the Today/date masthead before Couple
+    // Presence. The masthead now owns the old "close under shell chrome"
+    // invariant, while the relationship identity must still remain early in
+    // the first phone viewport rather than being pushed below a stacked band.
+    expect(metrics.dateTitle).not.toBeNull();
+    expect(metrics.dateTitle as number).toBeLessThan(120);
+    expect(metrics.relationshipTitle).not.toBeNull();
+    expect(metrics.relationshipTitle as number).toBeLessThan(260);
+    expect(metrics.relationshipTitle as number).toBeGreaterThan(
+      metrics.dateTitle as number,
+    );
 
     // The page's emotional anchor, and its actual photograph, are both inside
     // the first 844 px viewport rather than a scroll away.

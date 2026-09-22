@@ -40,7 +40,14 @@ class ActivityKind(StrEnum):
 class NotificationKind(StrEnum):
     COMMENT_CREATED = "COMMENT_CREATED"
     THINKING_OF_YOU = "THINKING_OF_YOU"
+    PARTNER_KISS = "PARTNER_KISS"
+    PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
+
+
+class SupportGestureKind(StrEnum):
+    KISS = "KISS"
+    CHECK_IN = "CHECK_IN"
 
 
 class EngagementTarget(StrEnum):
@@ -64,6 +71,9 @@ class PushDeliveryStatus(StrEnum):
 
 _ACTIVITY_KIND_VALUES = ", ".join(f"'{value.value}'" for value in ActivityKind)
 _NOTIFICATION_KIND_VALUES = ", ".join(f"'{value.value}'" for value in NotificationKind)
+_SUPPORT_GESTURE_KIND_VALUES = ", ".join(
+    f"'{value.value}'" for value in SupportGestureKind
+)
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
 
@@ -215,6 +225,67 @@ class ThinkingOfYouRequest(IdMixin, Base):
             "ix_thinking_requests_sender_space_created",
             "sender_account_id",
             "space_id",
+            "created_at",
+        ),
+    )
+
+
+class SupportGestureRequest(IdMixin, Base):
+    """Idempotency/cooldown receipt for one content-free extended partner gesture."""
+
+    __tablename__ = "support_gesture_requests"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    sender_account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    recipient_account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    client_request_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), nullable=False
+    )
+    source_event_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "sender_account_id <> recipient_account_id",
+            name="support_gesture_sender_ne_recipient",
+        ),
+        CheckConstraint(
+            f"kind IN ({_SUPPORT_GESTURE_KIND_VALUES})",
+            name="support_gesture_kind_allowed",
+        ),
+        UniqueConstraint(
+            "source_event_id",
+            name="uq_support_gesture_requests_source_event_id",
+        ),
+        UniqueConstraint(
+            "space_id",
+            "sender_account_id",
+            "kind",
+            "client_request_id",
+            name="uq_support_gesture_requests_sender_space_kind_client",
+        ),
+        Index(
+            "ix_support_gesture_requests_sender_space_kind_created",
+            "sender_account_id",
+            "space_id",
+            "kind",
             "created_at",
         ),
     )

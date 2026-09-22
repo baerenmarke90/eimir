@@ -5,10 +5,7 @@ export type OverlayPresenceState = 'open' | 'exiting';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function motionEnabledByPreference(): boolean {
-  if (
-    typeof window === 'undefined' ||
-    typeof window.matchMedia !== 'function'
-  )
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
     return false;
   return !window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }

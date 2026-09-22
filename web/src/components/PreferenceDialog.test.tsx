@@ -84,7 +84,6 @@ describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
     document.body.style.overflow = '';
   });
 
-
   it('keeps focus containment and scroll lock until animated exit completion', async () => {
     mockMatchMedia(false);
     document.body.style.overflow = 'auto';
@@ -103,17 +102,13 @@ describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
       onSubmit: vi.fn(),
       restoreFocusRef,
     };
-    const { rerender } = render(
-      <PreferenceDialog isOpen={true} {...props} />,
-    );
+    const { rerender } = render(<PreferenceDialog isOpen={true} {...props} />);
     const dialog = screen.getByRole('dialog');
     expect(document.body.style.overflow).toBe('hidden');
 
     rerender(<PreferenceDialog isOpen={false} {...props} />);
 
-    expect(
-      dialog.parentElement?.getAttribute('data-presence'),
-    ).toBe('exiting');
+    expect(dialog.parentElement?.getAttribute('data-presence')).toBe('exiting');
     expect(document.body.style.overflow).toBe('hidden');
     expect(screen.getByRole('dialog')).toBe(dialog);
 

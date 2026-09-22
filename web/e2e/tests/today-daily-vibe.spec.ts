@@ -370,8 +370,8 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   page,
 }, testInfo) => {
   const partnerNote =
-    'Mein Kopf ist heute etwas leer. Ein ruhiger Abend wäre schön.';
-  const ownNote = 'Der Termin heute lief endlich besser als gedacht.';
+    'My head feels a little empty today. A quiet evening would be nice.';
+  const ownNote = 'Today's appointment finally went better than expected.';
   const state = await installMocks(page, { partnerVibeNote: partnerNote });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({

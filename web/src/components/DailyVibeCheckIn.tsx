@@ -26,6 +26,7 @@ import {
 import { postSnackbar } from '../client/snackbar';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
+import { DailyVibeIcon } from './DailyVibeIcon';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyVibeCheckIn.css';
 
@@ -34,37 +35,31 @@ const VIBE_OPTIONS = [
     value: DailyVibe.GOOD,
     labelKey: 'dailyVibe.values.GOOD',
     partnerKey: 'dailyVibe.partnerVisible.GOOD',
-    glyph: '☀',
   },
   {
     value: DailyVibe.OKAY,
     labelKey: 'dailyVibe.values.OKAY',
     partnerKey: 'dailyVibe.partnerVisible.OKAY',
-    glyph: '●',
   },
   {
     value: DailyVibe.STRESSED,
     labelKey: 'dailyVibe.values.STRESSED',
     partnerKey: 'dailyVibe.partnerVisible.STRESSED',
-    glyph: '↯',
   },
   {
     value: DailyVibe.SAD,
     labelKey: 'dailyVibe.values.SAD',
     partnerKey: 'dailyVibe.partnerVisible.SAD',
-    glyph: '☂',
   },
   {
     value: DailyVibe.NEEDS_CONNECTION,
     labelKey: 'dailyVibe.values.NEEDS_CONNECTION',
     partnerKey: 'dailyVibe.partnerVisible.NEEDS_CONNECTION',
-    glyph: '♡',
   },
   {
     value: DailyVibe.NEEDS_SPACE,
     labelKey: 'dailyVibe.values.NEEDS_SPACE',
     partnerKey: 'dailyVibe.partnerVisible.NEEDS_SPACE',
-    glyph: '○',
   },
 ] as const;
 
@@ -388,7 +383,7 @@ export function DailyVibeCheckIn({
               }}
             >
               <span className="daily-vibe-glyph" aria-hidden="true">
-                {ownOption.glyph}
+                <DailyVibeIcon value={ownOption.value} />
               </span>
               <span className="daily-vibe-person-copy">
                 <span>{t('dailyVibe.you')}</span>
@@ -408,7 +403,7 @@ export function DailyVibeCheckIn({
               data-testid="daily-vibe-partner"
             >
               <span className="daily-vibe-glyph" aria-hidden="true">
-                {partnerOption?.glyph ?? '♡'}
+                <DailyVibeIcon value={partnerProjection.value} />
               </span>
               <span className="daily-vibe-person-copy">
                 <span>{partnerLabel}</span>
@@ -465,7 +460,7 @@ export function DailyVibeCheckIn({
                 onClick={() => submitVibe(option.value)}
               >
                 <span className="daily-vibe-option-glyph" aria-hidden="true">
-                  {option.glyph}
+                  <DailyVibeIcon value={option.value} />
                 </span>
                 <span>{t(option.labelKey)}</span>
               </button>

@@ -137,8 +137,8 @@ describe('TodayPage', () => {
     // The full R4 order when every eligible role is present, top to bottom.
     const order = [
       'today-hero',
-      'today-section-upcoming',
       'today-section-moment',
+      'today-section-upcoming',
       'today-section-living',
       'today-section-recent',
     ].map((section) => html.indexOf(section));

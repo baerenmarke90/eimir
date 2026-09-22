@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   DailyVibe,
   type DailyVibe as DailyVibeValue,
@@ -18,7 +19,7 @@ export function DailyVibeIcon({
     strokeLinejoin: 'round' as const,
   };
 
-  let shape;
+  let shape: ReactNode = null;
   switch (value) {
     case DailyVibe.GOOD:
       shape = (

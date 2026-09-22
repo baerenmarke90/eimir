@@ -12,7 +12,11 @@ const snackbar = {
     dailyVibeModuleDisabled:
       'Der Vibe-Check-in ist für euren Bereich nicht mehr aktiviert.',
     supportGesturesModuleDisabled:
-      '„Ich denke an dich“ ist für euren Bereich nicht mehr aktiviert.',
+      'Partnergesten sind für euren Bereich nicht mehr aktiviert.',
+    partnerQuickActionThinkingSent: 'Dein Gruß ist unterwegs.',
+    partnerQuickActionKissSent: 'Dein Kuss ist unterwegs.',
+    partnerQuickActionCheckInSent: 'Dein Check-in ist unterwegs.',
+    partnerQuickActionCooldown: 'Diese Geste ist später wieder möglich.',
   },
 };
 

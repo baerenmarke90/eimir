@@ -16,7 +16,11 @@
     linear-gradient(
       145deg,
       color-mix(in srgb, var(--color-brand) 9%, var(--color-surface)),
-      color-mix(in srgb, #8f74c9 8%, var(--color-surface))
+      color-mix(
+        in srgb,
+        var(--color-surface-subtle) 72%,
+        var(--color-surface)
+      )
     );
   box-shadow: 0 8px 24px var(--color-shadow-soft);
   color: var(--color-text);
@@ -359,7 +363,7 @@
   border-radius: var(--radius-small);
   background: color-mix(
     in srgb,
-    var(--color-danger, #b74b4b) 8%,
+    var(--color-error) 8%,
     var(--color-surface)
   );
 }

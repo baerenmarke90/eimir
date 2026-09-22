@@ -63,12 +63,12 @@
   transition: transform var(--motion-duration-short);
 }
 
-.preference-switch-control[aria-checked='true'] .preference-switch-track {
+.preference-switch-control[aria-checked="true"] .preference-switch-track {
   border-color: var(--color-brand-strong);
   background: var(--color-brand-strong);
 }
 
-.preference-switch-control[aria-checked='true'] .preference-switch-thumb {
+.preference-switch-control[aria-checked="true"] .preference-switch-thumb {
   transform: translate(1.15rem, -50%);
 }
 

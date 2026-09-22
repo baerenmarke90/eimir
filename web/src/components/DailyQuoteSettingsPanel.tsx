@@ -13,7 +13,10 @@ import {
   saveDailyQuotePreferences,
   type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
-import { ClientProblemError, clientProblemKind } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  clientProblemKind,
+} from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
@@ -67,20 +70,18 @@ export function DailyQuoteSettingsPanel({
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     queryClient.setQueryData(entitlementKey, false);
-  }, [
-    entitlementKey,
-    preferencesKey,
-    preferencesQuery.error,
-    queryClient,
-  ]);
+  }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
 
   const mutation = useMutation({
     mutationFn: (enabled: boolean) => {
       const snapshot =
-        queryClient.getQueryData<DailyQuotePreferenceSnapshot>(preferencesKey) ??
-        preferencesQuery.data;
+        queryClient.getQueryData<DailyQuotePreferenceSnapshot>(
+          preferencesKey,
+        ) ?? preferencesQuery.data;
       if (!snapshot) throw new ClientProblemError('unknown');
-      return saveDailyQuotePreferences(quoteApi, spaceId, snapshot, { enabled });
+      return saveDailyQuotePreferences(quoteApi, spaceId, snapshot, {
+        enabled,
+      });
     },
     onSuccess: (snapshot) => {
       queryClient.setQueryData(preferencesKey, snapshot);
@@ -112,8 +113,12 @@ export function DailyQuoteSettingsPanel({
       aria-labelledby="settings-daily-quote-heading"
     >
       <div className="settings-section-head">
-        <h2 id="settings-daily-quote-heading">{t('dailyQuote.settingsTitle')}</h2>
-        <p className="settings-section-intro">{t('dailyQuote.settingsIntro')}</p>
+        <h2 id="settings-daily-quote-heading">
+          {t('dailyQuote.settingsTitle')}
+        </h2>
+        <p className="settings-section-intro">
+          {t('dailyQuote.settingsIntro')}
+        </p>
       </div>
 
       {entitlementQuery.isPending ? (
@@ -182,8 +187,7 @@ export function DailyQuoteSettingsPanel({
         </p>
       ) : null}
 
-      {mutation.error &&
-      !isDailyQuoteEntitlementRequired(mutation.error) ? (
+      {mutation.error && !isDailyQuoteEntitlementRequired(mutation.error) ? (
         <div className="daily-quote-settings-error" role="status">
           <p>
             {isDailyQuoteConflict(mutation.error)

@@ -19,9 +19,7 @@ export function PreferenceSwitch({
   const descriptionId = useId();
 
   return (
-    <div
-      className={`preference-switch-row${className ? ` ${className}` : ''}`}
-    >
+    <div className={`preference-switch-row${className ? ` ${className}` : ''}`}>
       <span className="preference-switch-copy">
         <strong>{label}</strong>
         {description ? <span id={descriptionId}>{description}</span> : null}

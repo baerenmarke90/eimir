@@ -207,19 +207,20 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       await json({
         checkedOn: '2026-09-22',
         enabled: preferenceEnabled,
-        quote: preferenceEnabled && quoteAvailable
-          ? {
-              id: 'quote-browser-001',
-              text: 'A calm thought for today.',
-              authorDisplay: 'Example Author',
-              sourceDisplay: 'Example Source',
-              sourceId: 'classic_literature',
-              categoryIds: ['love', 'mindfulness'],
-              locale: 'de',
-              rightsClassification: 'PUBLIC_DOMAIN',
-              attributionRequired: true,
-            }
-          : null,
+        quote:
+          preferenceEnabled && quoteAvailable
+            ? {
+                id: 'quote-browser-001',
+                text: 'A calm thought for today.',
+                authorDisplay: 'Example Author',
+                sourceDisplay: 'Example Source',
+                sourceId: 'classic_literature',
+                categoryIds: ['love', 'mindfulness'],
+                locale: 'de',
+                rightsClassification: 'PUBLIC_DOMAIN',
+                attributionRequired: true,
+              }
+            : null,
       });
       return;
     }

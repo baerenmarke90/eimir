@@ -142,8 +142,7 @@ function renderCard({
           rawResponse(
             {
               ...preference,
-              enabled:
-                dailyQuotePreferencePatch.enabled ?? preference.enabled,
+              enabled: dailyQuotePreferencePatch.enabled ?? preference.enabled,
               selectedCategoryIds:
                 dailyQuotePreferencePatch.selectedCategoryIds ??
                 preference.selectedCategoryIds,

@@ -51,8 +51,7 @@ function renderPanel(capabilities = ['daily.quote']) {
         rawResponse(
           {
             ...preference,
-            enabled:
-              dailyQuotePreferencePatch.enabled ?? preference.enabled,
+            enabled: dailyQuotePreferencePatch.enabled ?? preference.enabled,
             version: 3,
           },
           '"quote-pref:3"',
@@ -105,9 +104,7 @@ describe('DailyQuoteSettingsPanel', () => {
 
     await user.click(toggle);
 
-    await waitFor(() =>
-      expect(api.updatePreferences).toHaveBeenCalledTimes(1),
-    );
+    await waitFor(() => expect(api.updatePreferences).toHaveBeenCalledTimes(1));
     expect(api.updatePreferences).toHaveBeenCalledWith(
       expect.objectContaining({
         spaceId: SPACE_ID,

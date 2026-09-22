@@ -617,7 +617,7 @@ test('keeps the pinned Collection compact on Expanded Web without introducing a 
   );
   expect(dialogWidth).toBeLessThan(700);
   await addDialog
-    .getByRole('button', { name: de.cancel })
+    .getByRole('button', { name: de.common.cancel })
     .click();
   await expect(addDialog).toHaveCount(0);
 

@@ -606,13 +606,14 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     resolveOldRefresh();
     await lateRefreshResponse;
 
-    await page.getByRole('button', { name: navigation.notifications }).click();
-    const notificationsRequest = await page.waitForRequest(
+    const notificationsRequestPromise = page.waitForRequest(
       (request) =>
         request.method() === 'GET' &&
         new URL(request.url()).pathname ===
           `/api/v1/spaces/${SPACE_ID}/notifications`,
     );
+    await page.getByRole('button', { name: navigation.notifications }).click();
+    const notificationsRequest = await notificationsRequestPromise;
     expect(notificationsRequest.headers().authorization).toBe('Bearer access-b');
 
     const storedSession = await page.evaluate(() => {

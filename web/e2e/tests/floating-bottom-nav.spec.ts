@@ -563,14 +563,55 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await settleDialogMotion();
     expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
-    // A fresh, steadily downward pull still dismisses the Compact sheet.
-    await page.mouse.move(dragCenterX, dragCenterY);
+    // Surface-wide direct manipulation is not limited to the visible handle.
+    // A fresh downward pull that starts on plain sheet content dismisses too.
+    const surface = dialog.locator('.short-task-sheet-title');
+    const surfaceBox = await surface.boundingBox();
+    expect(surfaceBox).not.toBeNull();
+    if (!surfaceBox) throw new Error('Missing sheet surface bounds');
+    const surfaceCenterX = surfaceBox.x + surfaceBox.width / 2;
+    const surfaceCenterY = surfaceBox.y + surfaceBox.height / 2;
+    await page.mouse.move(surfaceCenterX, surfaceCenterY);
     await page.mouse.down();
-    await page.mouse.move(dragCenterX, dragCenterY + 220, { steps: 6 });
+    await page.mouse.move(surfaceCenterX, surfaceCenterY + 220, { steps: 6 });
     await page.mouse.up();
 
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
+  });
+
+  test('Quick Create sheet stays bounded at 360px and 430px Compact widths', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      const trigger = page.locator(
+        '.mobile-bottom-shell .quick-create-trigger',
+      );
+      await trigger.click();
+
+      const dialog = page.getByRole('dialog', {
+        name: navigation.quickCreateTitle,
+      });
+      await expect(dialog).toBeVisible();
+
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      if (!box) throw new Error(`Missing Quick Create bounds at ${width}px`);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      await expectNoHorizontalOverflow(page);
+
+      await dialog.getByRole('button', { name: navigation.closeMenu }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    }
   });
 
   test('Quick Create floating panel in constrained height and 320px reflow maintains reachability and separation', async ({

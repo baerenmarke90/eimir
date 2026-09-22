@@ -134,6 +134,10 @@ export function DailyVibeCheckIn({
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
   const ownVibeNote = dailyQuery.data?.projection.own.vibeNote ?? null;
   const serverVibe = dailyQuery.data?.projection.vibe;
+  const serverPartnerNote =
+    serverVibe?.partner.state === 'VISIBLE'
+      ? (serverVibe.partnerNote ?? null)
+      : null;
   const personalPartnerName = partnerName
     ? firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
     : t('dailyVibe.partnerFallback');
@@ -148,6 +152,12 @@ export function DailyVibeCheckIn({
     serverReportsModuleDisabled,
     spaceId,
   ]);
+
+  useEffect(() => {
+    if (partnerNoteOpen && serverPartnerNote === null) {
+      setPartnerNoteOpen(false);
+    }
+  }, [partnerNoteOpen, serverPartnerNote]);
 
   function partnerAccessibleCopy(projection: PartnerVibeProjection): string {
     const name = personalPartnerName;
@@ -229,6 +239,7 @@ export function DailyVibeCheckIn({
           exact: true,
           type: 'active',
         });
+        setOpen(false);
         postSnackbar('snackbar.dailyVibeConflict');
       }
     },
@@ -368,10 +379,7 @@ export function DailyVibeCheckIn({
         ? t(partnerOption.labelKey)
         : t('dailyVibe.partnerFallbackVisible', { name: partnerLabel })
       : '';
-  const partnerNote =
-    partnerProjection.state === 'VISIBLE'
-      ? (snapshot.projection.vibe.partnerNote ?? null)
-      : null;
+  const partnerNote = serverPartnerNote;
   const partnerCardClass =
     'daily-vibe-person daily-vibe-partner is-visible' +
     (revealVersion > 0 ? ' is-revealed' : ' is-startup-reveal');

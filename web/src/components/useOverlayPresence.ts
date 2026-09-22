@@ -61,8 +61,8 @@ export function useOverlayPresence(open: boolean): {
     !open && present ? 'exiting' : 'open';
 
   const completeExit = useCallback(() => {
-    // A transitionend from an interrupted exit must never tear down a reopened
-    // layer. Only the current authoritative closed state may release presence.
+    // A stale completion signal from an interrupted exit must never tear down
+    // a reopened layer. Only the authoritative closed state may release presence.
     if (!openRef.current) setRetained(false);
   }, []);
 

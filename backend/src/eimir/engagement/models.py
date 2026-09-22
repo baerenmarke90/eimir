@@ -71,9 +71,7 @@ class PushDeliveryStatus(StrEnum):
 
 _ACTIVITY_KIND_VALUES = ", ".join(f"'{value.value}'" for value in ActivityKind)
 _NOTIFICATION_KIND_VALUES = ", ".join(f"'{value.value}'" for value in NotificationKind)
-_SUPPORT_GESTURE_KIND_VALUES = ", ".join(
-    f"'{value.value}'" for value in SupportGestureKind
-)
+_SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in SupportGestureKind)
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
 
@@ -251,12 +249,8 @@ class SupportGestureRequest(IdMixin, Base):
         nullable=False,
     )
     kind: Mapped[str] = mapped_column(String(32), nullable=False)
-    client_request_id: Mapped[UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), nullable=False
-    )
-    source_event_id: Mapped[UUID] = mapped_column(
-        postgresql.UUID(as_uuid=True), nullable=False
-    )
+    client_request_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
+    source_event_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

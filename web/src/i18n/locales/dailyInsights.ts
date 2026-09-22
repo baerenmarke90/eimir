@@ -7,11 +7,6 @@
 const dailyInsights = {
   pro: 'Pro',
   proBrand: 'eimir. Pro',
-  entry: {
-    title: 'Eure Woche',
-    subline: 'Vibe & Energie im Überblick',
-    aria: 'Eure Woche: Vibe und Energie im Überblick, eimir. Pro',
-  },
   nav: {
     label: 'Ansicht wechseln',
     week: 'Woche',

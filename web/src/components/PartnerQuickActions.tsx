@@ -422,9 +422,11 @@ export function PartnerQuickActions({
   // This mirrors the notification-sheet handoff from #1220: the two surfaces
   // never coexist, and the currently presented surface keeps its stable id
   // until its real completion signal releases ownership.
-  const surfaceId = expandedPresent
-    ? 'partner-quick-actions-popover'
-    : 'partner-quick-actions-sheet';
+  const surfaceId = compactPresent
+    ? 'partner-quick-actions-sheet'
+    : expandedPresent || isExpanded
+      ? 'partner-quick-actions-popover'
+      : 'partner-quick-actions-sheet';
 
   const avatarAction: CouplePresenceAvatarAction = {
     onActivate: () => {

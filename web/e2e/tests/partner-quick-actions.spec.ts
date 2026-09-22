@@ -602,7 +602,12 @@ test('presents a non-modal, dismissible popover on Expanded Web instead of the C
   await installMocks(page, { hasExtendedCapability: true });
   await signIn(page);
 
-  await triggerLocator(page).click();
+  const trigger = triggerLocator(page);
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-popover',
+  );
+  await trigger.click();
   const popover = page.locator('.partner-quick-actions-popover');
   await expect(popover).toBeVisible();
   await expect(popover).toHaveAttribute('aria-modal', 'false');
@@ -620,16 +625,20 @@ test('presents a non-modal, dismissible popover on Expanded Web instead of the C
   await expect(popover.getByRole('button', { name: copy.thinking })).toBeFocused();
 
   await page.keyboard.press('Escape');
-  await expect(triggerLocator(page)).toBeFocused();
+  await expect(trigger).toBeFocused();
   await expect(popover).toHaveCount(0);
-  await expect(triggerLocator(page)).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-popover',
+  );
 
   // Reopen to exercise outside-pointer dismissal independently of Escape.
-  await triggerLocator(page).click();
+  await trigger.click();
   await expect(popover).toBeVisible();
   await page.mouse.click(20, 20);
   await expect(popover).toHaveCount(0);
-  await expect(triggerLocator(page)).toHaveAttribute('aria-expanded', 'false');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('keeps the trigger reachable across Compact widths and holds up at 320px/200% text, Dark, reduced motion', async ({

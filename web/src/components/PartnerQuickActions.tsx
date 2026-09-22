@@ -117,6 +117,28 @@ export function PartnerQuickActions({
   } = usePresentationPresence(desiredExpandedOpen);
   const compactOpen = isOpen && !isExpanded && !expandedPresent;
 
+  const applyCooldown = (action: PartnerAction, availableAt: Date) => {
+    if (action === 'THINKING') {
+      setLocalThinkingCooldown(availableAt);
+      queryClient.setQueryData<DashboardView>(
+        dashboardQueryKey(spaceId),
+        (old) =>
+          old
+            ? {
+                ...old,
+                thinkingOfYouAvailableAt: availableAt,
+              }
+            : old,
+      );
+      return;
+    }
+
+    setExtendedCooldowns((current) => ({
+      ...current,
+      [action]: availableAt,
+    }));
+  };
+
   const capabilityQuery = useQuery({
     queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
     queryFn: ({ signal }) => {
@@ -164,18 +186,8 @@ export function PartnerQuickActions({
       return { action, availableAt: accepted.availableAt };
     },
     onSuccess: (result) => {
+      applyCooldown(result.action, result.availableAt);
       if (result.action === 'THINKING') {
-        setLocalThinkingCooldown(result.availableAt);
-        queryClient.setQueryData<DashboardView>(
-          dashboardQueryKey(spaceId),
-          (old) =>
-            old
-              ? {
-                  ...old,
-                  thinkingOfYouAvailableAt: result.availableAt,
-                }
-              : old,
-        );
         setFeedback({
           tone: 'success',
           text: t('partnerQuickActions.sentThinking'),
@@ -184,10 +196,6 @@ export function PartnerQuickActions({
         return;
       }
 
-      setExtendedCooldowns((current) => ({
-        ...current,
-        [result.action]: result.availableAt,
-      }));
       if (result.action === 'KISS') {
         setFeedback({
           tone: 'success',
@@ -202,7 +210,7 @@ export function PartnerQuickActions({
         postSnackbar('snackbar.partnerQuickActionCheckInSent');
       }
     },
-    onError: (error) => {
+    onError: (error, action) => {
       if (
         error instanceof ClientProblemError &&
         error.code === SPACE_MODULE_DISABLED_CODE
@@ -218,6 +226,15 @@ export function PartnerQuickActions({
         (error.code === THINKING_OF_YOU_COOLDOWN_CODE ||
           error.code === SUPPORT_GESTURE_COOLDOWN_CODE)
       ) {
+        if (
+          error.retryAfterSeconds !== undefined &&
+          error.retryAfterSeconds > 0
+        ) {
+          applyCooldown(
+            action,
+            new Date(Date.now() + error.retryAfterSeconds * 1000),
+          );
+        }
         setFeedback({
           tone: 'error',
           text: t('partnerQuickActions.cooldown'),

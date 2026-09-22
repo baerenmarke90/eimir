@@ -373,7 +373,7 @@ describe('PartnerQuickActions', () => {
     expect(screen.getByText(copy.sentKiss)).toBeDefined();
   });
 
-  it('closes the sheet and reports a cooldown error without disabling the trigger permanently', async () => {
+  it('uses server Retry-After to disable Thinking-of-you after a cooldown response', async () => {
     const sendThinkingOfYou = vi
       .fn()
       .mockRejectedValue(
@@ -393,6 +393,44 @@ describe('PartnerQuickActions', () => {
     fireEvent.click(thinkingButton);
 
     expect(await screen.findByText(copy.cooldown)).toBeDefined();
-    expect(thinkingButton.disabled).toBe(false);
+    expect(thinkingButton.disabled).toBe(true);
+    fireEvent.click(thinkingButton);
+    expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses server Retry-After to disable an extended gesture after a stale cooldown response', async () => {
+    const sendPartnerQuickAction = vi
+      .fn()
+      .mockRejectedValue(
+        new ClientProblemError(
+          'rateLimit',
+          429,
+          'SUPPORT_GESTURE_COOLDOWN',
+          60,
+        ),
+      );
+    renderQuickActions({
+      apis: { sendPartnerQuickAction },
+      entitlementApi: {
+        getSpaceEntitlementsApiV1SpacesSpaceIdEntitlementsGet: vi
+          .fn()
+          .mockResolvedValue({
+            capabilities: ['partner.quick_actions.extended'],
+          }),
+      },
+    });
+
+    openSheet();
+    const kissButton = (await screen.findByText(copy.kiss)).closest(
+      'button',
+    ) as HTMLButtonElement;
+    await waitFor(() => expect(kissButton.disabled).toBe(false));
+
+    fireEvent.click(kissButton);
+
+    expect(await screen.findByText(copy.cooldown)).toBeDefined();
+    await waitFor(() => expect(kissButton.disabled).toBe(true));
+    fireEvent.click(kissButton);
+    expect(sendPartnerQuickAction).toHaveBeenCalledTimes(1);
   });
 });

@@ -359,4 +359,4 @@ No capability, entitlement, quota, downgrade, Cloud/Self-hosted or Premium class
 - [x] existing issue ownership reconciled;
 - [x] only necessary new root-cause follow-up issues created;
 - [x] final branch-vs-current-main reconciliation immediately before PR (branch is 0 behind current main at `a9749f3`);
-- [ ] branch checks / PR CI.
+PR CI is an external merge gate and is recorded on the pull request rather than versioned as a point-in-time audit result.

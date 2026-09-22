@@ -114,7 +114,12 @@ function renderQuickActions({
           partnerName="Marie"
           thinkingOfYouAvailableAt={thinkingOfYouAvailableAt}
         >
-          {(avatarAction) => <AvatarTrigger action={avatarAction} />}
+          {(avatarAction, avatarOverlay) => (
+            <>
+              <AvatarTrigger action={avatarAction} />
+              {avatarOverlay}
+            </>
+          )}
         </PartnerQuickActions>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -417,7 +422,7 @@ describe('PartnerQuickActions', () => {
       .closest('button') as HTMLButtonElement;
     fireEvent.click(thinkingButton);
 
-    expect(await screen.findByText(copy.cooldown)).toBeDefined();
+    expect(await screen.findByRole('alert')).toHaveTextContent(copy.cooldown);
     expect(thinkingButton.disabled).toBe(true);
     fireEvent.click(thinkingButton);
     expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
@@ -453,7 +458,7 @@ describe('PartnerQuickActions', () => {
 
     fireEvent.click(kissButton);
 
-    expect(await screen.findByText(copy.cooldown)).toBeDefined();
+    expect(await screen.findByRole('alert')).toHaveTextContent(copy.cooldown);
     await waitFor(() => expect(kissButton.disabled).toBe(true));
     fireEvent.click(kissButton);
     expect(sendPartnerQuickAction).toHaveBeenCalledTimes(1);

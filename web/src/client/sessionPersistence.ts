@@ -182,15 +182,11 @@ export async function refreshSessionTokens(
   })();
 
   inFlightRefreshes.set(refreshKey, refreshPromise);
-  void refreshPromise.finally(() => {
+  try {
+    return await refreshPromise;
+  } finally {
     if (inFlightRefreshes.get(refreshKey) === refreshPromise) {
       inFlightRefreshes.delete(refreshKey);
     }
-  }).catch(() => {
-    // The caller owns the original refresh rejection. The cleanup continuation
-    // intentionally observes it only so this detached Promise cannot become an
-    // unhandled rejection.
-  });
-
-  return refreshPromise;
+  }
 }

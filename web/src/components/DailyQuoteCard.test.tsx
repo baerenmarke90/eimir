@@ -248,7 +248,7 @@ describe('DailyQuoteCard', () => {
   it('keeps an offline entitlement failure local to the card and retries it', async () => {
     const user = userEvent.setup();
     const api = renderCard({
-      entitlementError: new ClientProblemError('offline', undefined, null),
+      entitlementError: new ClientProblemError('offline', undefined, undefined),
     });
 
     expect(await screen.findByText(dailyQuote.unavailableOffline)).toBeTruthy();

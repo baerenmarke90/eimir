@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
+import dailyInsights from '../i18n/locales/dailyInsights';
 import games from '../i18n/locales/games';
 import { MoreOverviewPage } from './MoreOverviewPage';
 
@@ -43,6 +44,7 @@ describe('MoreOverviewPage', () => {
       '/more/people',
       '/more/places',
       '/more/collections',
+      '/more/insights',
       '/games',
       '/more/notifications',
       '/today/activity',
@@ -57,10 +59,13 @@ describe('MoreOverviewPage', () => {
     expect(html).not.toContain(de.more.intro);
 
     const rowMatches = html.match(/class="more-destination"/g);
-    expect(rowMatches).toHaveLength(9);
+    expect(rowMatches).toHaveLength(10);
 
     const badgeMatches = html.match(/class="more-destination-badge"/g);
-    expect(badgeMatches).toHaveLength(1);
+    expect(badgeMatches).toHaveLength(2);
     expect(html).toContain(games.status.premium);
+    expect(html).toContain(dailyInsights.week.title);
+    expect(html).toContain(dailyInsights.pro);
+    expect(html).not.toContain(dailyInsights.week.subtitle);
   });
 });

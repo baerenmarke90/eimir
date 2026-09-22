@@ -140,9 +140,7 @@ def _vibe_note_row(
     check_in_id: UUID,
 ) -> DailyCheckInVibeNote | None:
     return session.execute(
-        select(DailyCheckInVibeNote).where(
-            DailyCheckInVibeNote.daily_check_in_id == check_in_id
-        )
+        select(DailyCheckInVibeNote).where(DailyCheckInVibeNote.daily_check_in_id == check_in_id)
     ).scalar_one_or_none()
 
 
@@ -205,9 +203,7 @@ def _partner_dimension(
         DailyCheckIn.checked_on == checked_on,
     )
     selected_dimension = (
-        DailyCheckIn.vibe
-        if dimension is DailyCheckInDimension.VIBE
-        else DailyCheckIn.energy_level
+        DailyCheckIn.vibe if dimension is DailyCheckInDimension.VIBE else DailyCheckIn.energy_level
     )
     partner_row = session.execute(
         select(DailyCheckIn.id, selected_dimension).where(*filters)
@@ -252,9 +248,7 @@ def _project(
     )
 
     own_vibe_note = (
-        _vibe_note_value(session, own.id)
-        if own is not None and own.vibe is not None
-        else None
+        _vibe_note_value(session, own.id) if own is not None and own.vibe is not None else None
     )
     partner_vibe_note = (
         _vibe_note_value(session, partner_vibe.check_in_id)
@@ -418,9 +412,7 @@ def update_today(
         )
 
     current_note_row = _vibe_note_row(session, own.id) if own is not None else None
-    current_vibe_note = (
-        current_note_row.payload.note if current_note_row is not None else None
-    )
+    current_vibe_note = current_note_row.payload.note if current_note_row is not None else None
 
     next_energy = own.energy_level if own is not None else None
     next_vibe = own.vibe if own is not None else None

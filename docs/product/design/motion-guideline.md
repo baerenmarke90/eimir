@@ -48,7 +48,7 @@ The 320 ms token is a guardrail, not a fourth default speed. Continuous loading 
 
 Do not add component-local duration scales or `cubic-bezier(...)` curves. If the three easing roles cannot truthfully express a repeated interaction, extend the token contract first and migrate equivalent consumers deliberately.
 
-The legacy `--motion-duration-*`, `--motion-easing-*` and `--motion-fast` aliases are existing compatibility mechanisms, not the vocabulary for new work. Their staged retirement is tracked from the #1204 audit.
+The former `--motion-duration-*`, `--motion-easing-*` and `--motion-fast` compatibility aliases were retired from production Web by #1213. Do not reintroduce them; historical fixtures or previews that need motion must use the generated roles as well.
 
 ## 3. Motion roles
 

@@ -53,6 +53,11 @@ describe('MoreOverviewPage', () => {
       expect(html).toContain(`href="${href}"`);
     }
 
+    const weeklyInsightsIndex = html.indexOf('href="/more/insights"');
+    const peopleIndex = html.indexOf('href="/more/people"');
+    expect(weeklyInsightsIndex).toBeGreaterThan(-1);
+    expect(weeklyInsightsIndex).toBeLessThan(peopleIndex);
+
     expect(html).toContain('Alex');
     expect(html).not.toContain('href="/more/private/notes"');
     expect(html).not.toContain('more-destination-description');

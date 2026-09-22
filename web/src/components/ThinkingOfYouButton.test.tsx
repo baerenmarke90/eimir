@@ -86,6 +86,74 @@ describe('ThinkingOfYouButton', () => {
     });
   });
 
+  it('does not schedule a reset after a pending send outlives unmount', async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveSend!: () => void;
+      const sendPromise = new Promise<void>((resolve) => {
+        resolveSend = resolve;
+      });
+      const { unmount } = render(
+        <ThinkingOfYouButton
+          partnerName="Lea"
+          onSend={() => sendPromise}
+        />,
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: expectedPartnerLabel,
+        }),
+      );
+      unmount();
+
+      await act(async () => {
+        resolveSend();
+        await sendPromise;
+      });
+
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears an owned confirmation reset timer on unmount', async () => {
+    vi.useFakeTimers();
+    try {
+      const { unmount } = render(
+        <ThinkingOfYouButton
+          partnerName="Lea"
+          onSend={() => Promise.resolve()}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: expectedPartnerLabel,
+          }),
+        );
+        await Promise.resolve();
+      });
+
+      expect(
+        screen.getByRole('button', {
+          name: relationshipComponents.thinkingOfYouSent,
+        }),
+      ).toBeDefined();
+      expect(vi.getTimerCount()).toBe(1);
+
+      unmount();
+
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
+  });
+
   it('respects disabled state', () => {
     const onSend = vi.fn();
     render(

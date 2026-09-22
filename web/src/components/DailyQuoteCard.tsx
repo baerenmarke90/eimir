@@ -17,7 +17,10 @@ import {
   saveDailyQuotePreferences,
   type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
-import { ClientProblemError, clientProblemKind } from '../client/problemDetails';
+import {
+  ClientProblemError,
+  clientProblemKind,
+} from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';

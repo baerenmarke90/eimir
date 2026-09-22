@@ -404,6 +404,7 @@ test('opens the Compact avatar quick-actions hub as one overlapping-pair trigger
   // restores focus to the avatar trigger (#1215 presence contract).
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
+  await expect(trigger).toBeFocused();
 });
 
 test('preserves the pair composition with one real avatar, one fallback, and long names on Compact', async ({

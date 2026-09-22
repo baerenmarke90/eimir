@@ -264,7 +264,9 @@ describe('TodayPinnedCollection', () => {
         }),
       ).toBeDefined(),
     );
-    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1),
+    );
 
     await act(async () => {
       request.reject(new Error('request failed'));
@@ -308,7 +310,9 @@ describe('TodayPinnedCollection', () => {
       }),
     );
 
-    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1),
+    );
     await waitFor(() =>
       expect(
         screen
@@ -436,7 +440,9 @@ describe('TodayPinnedCollection', () => {
       }),
     );
 
-    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2),
+    );
     expect(
       screen.getByRole('button', {
         name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
@@ -588,8 +594,8 @@ describe('TodayPinnedCollection', () => {
     fireEvent.submit(input.closest('form') as HTMLFormElement);
     await waitFor(() =>
       expect(createCollectionItem).toHaveBeenCalledWith({
-      spaceId: 'space-1',
-      collectionId: 'collection-1',
+        spaceId: 'space-1',
+        collectionId: 'collection-1',
         collectionItemCreate: { title: 'Butter' },
       }),
     );

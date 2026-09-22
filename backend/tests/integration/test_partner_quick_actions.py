@@ -7,7 +7,6 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.core.clock import now
 from eimir.engagement import service, thinking
 from eimir.engagement.models import (
     Activity,
@@ -58,6 +57,14 @@ def _url(couple, *, space_id=None) -> str:  # type: ignore[no-untyped-def]
 
 
 def _grant_extended_actions(session: Session, couple) -> None:  # type: ignore[no-untyped-def]
+    # `effective_from` is anchored to the test's own frozen NOW rather than
+    # the real wall clock: several tests monkeypatch `thinking.clock.now` to
+    # NOW *after* granting, and that patch freezes the single shared
+    # `eimir.core.clock` module (`thinking.clock` is the same module object
+    # the entitlement service reads), not just the `thinking` module's own
+    # calls. A real-time `effective_from` created moments before that patch
+    # would then sit in the "future" relative to the frozen NOW and the grant
+    # would look not-yet-effective.
     entitlement_service.record_grant(
         session,
         space_id=couple["space"].id,
@@ -65,7 +72,7 @@ def _grant_extended_actions(session: Session, couple) -> None:  # type: ignore[n
         source_type=EntitlementSourceType.TEST_FIXTURE,
         status=EntitlementStatus.ACTIVE,
         tier=EntitlementTier.PREMIUM,
-        effective_from=now(),
+        effective_from=NOW - timedelta(days=1),
         capabilities=[Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value],
     )
     session.flush()

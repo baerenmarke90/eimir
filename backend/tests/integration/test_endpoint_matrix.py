@@ -335,6 +335,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "/api/v1/spaces/{spaceId}/thinking-of-you",
         body={"clientRequestId": str(uuid4())},
     ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-quick-actions",
+        body={"kind": "KISS", "clientRequestId": str(uuid4())},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/reminders"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/reminders", body=REMINDER),
     Endpoint(

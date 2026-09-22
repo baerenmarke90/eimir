@@ -167,18 +167,9 @@ export function ShortTaskSheet({
   }
 
   function updateDragOffset(offset: number): void {
-    const normalizedOffset = Math.max(0, offset);
-    const progress = Math.min(
-      1,
-      normalizedOffset / Math.max(dragSheetHeightRef.current, 1),
-    );
     dialogRef.current?.style.setProperty(
       '--short-task-sheet-drag-offset',
-      `${normalizedOffset}px`,
-    );
-    dialogRef.current?.style.setProperty(
-      '--short-task-sheet-backdrop-opacity',
-      String(1 - progress * 0.45),
+      `${Math.max(0, offset)}px`,
     );
   }
 

@@ -18,10 +18,7 @@ import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
-import {
-  containModalTabFocus,
-  useModalLifecycle,
-} from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 function useIsCompact(query = '(max-width: 640px)'): boolean {
   const [isCompact, setIsCompact] = useState(() => {

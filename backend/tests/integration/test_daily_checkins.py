@@ -615,9 +615,9 @@ class TestVibeContract:
         assert hidden.json()["vibe"]["partner"] == hidden_without_partner_check_in.json()["vibe"][
             "partner"
         ]
-        assert hidden.json()["energy"]["partner"] == hidden_without_partner_check_in.json()["energy"][
-            "partner"
-        ]
+        assert hidden.json()["energy"]["partner"] == hidden_without_partner_check_in.json()[
+            "energy"
+        ]["partner"]
         hidden_json = hidden.text
         assert str(couple["partner"].id) not in hidden_json
         assert '"value"' not in hidden_json

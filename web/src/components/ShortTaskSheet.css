@@ -46,9 +46,7 @@
 
 .short-task-sheet::backdrop {
   background-color: var(--color-scrim);
-  opacity: calc(
-    1 - (var(--short-task-sheet-drag-progress, 0) * 0.45)
-  );
+  opacity: var(--short-task-sheet-backdrop-opacity, 1);
   transition: opacity var(--duration-transition) var(--easing-standard);
   animation: short-task-sheet-backdrop-enter var(--duration-context)
     var(--easing-enter);

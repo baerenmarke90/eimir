@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
+import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -471,11 +472,15 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
     expect.objectContaining({ enabled: false }),
   );
 
-  await page.locator('a[href="/more"]').first().click();
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
   await expect(page).toHaveURL(/\/more$/);
-  await page.locator('a[href="/more/settings"]').first().click();
+  await page
+    .getByRole('link', { name: navigation.settings, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/more\/settings$/);
-  await page.locator('a[href="/more/settings/today"]').first().click();
+  await page
+    .locator('.settings-index a[href="/more/settings/today"]')
+    .click();
   await expect(page).toHaveURL(/\/more\/settings\/today$/);
 
   const settingsToggle = page
@@ -486,7 +491,7 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await expect(settingsToggle).toHaveAttribute('aria-checked', 'true');
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
-  await page.locator('a[href="/today"]').first().click();
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
 });

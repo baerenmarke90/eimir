@@ -412,7 +412,7 @@ describe('TodayPinnedCollection', () => {
     });
   });
 
-  it('lets different items update independently instead of globally disabling the list', async () => {
+  it('lets different items update independently while completed rows leave the compact slice immediately', async () => {
     const milk = deferred<ReturnType<typeof rawUpdateResponse>>();
     const apples = deferred<ReturnType<typeof rawUpdateResponse>>();
     const updateCollectionItemRaw = vi
@@ -450,11 +450,12 @@ describe('TodayPinnedCollection', () => {
     ).toBeDefined();
     await waitFor(() =>
       expect(
-        screen.getByRole('button', {
+        screen.queryByRole('button', {
           name: i18n.t('m5s3.collection.markOpen', { title: 'Äpfel' }),
         }),
-      ).toBeDefined(),
+      ).toBeNull(),
     );
+    expect(screen.getByText('Brot')).toBeDefined();
 
     await act(async () => {
       milk.resolve(
@@ -570,10 +571,17 @@ describe('TodayPinnedCollection', () => {
     );
   });
 
-  it('opens the add task from the plus, validates, saves locally, and restores focus without a Collection refetch', async () => {
+  it('opens the add task from the plus, saves locally, then reconciles the canonical Collection detail', async () => {
     const request = deferred<CollectionItemDetail>();
     const createCollectionItem = vi.fn().mockReturnValue(request.promise);
-    const { queryFn } = renderPinned({ createCollectionItem });
+    const { queryClient, queryFn, key } = renderPinned({ createCollectionItem });
+    const refreshed = collection();
+    refreshed.version = 4;
+    refreshed.items = [
+      ...refreshed.items,
+      item('item-6', 'Butter', false, 5, 1),
+    ];
+    queryFn.mockResolvedValue(refreshed);
     const add = screen.getByRole('button', {
       name: i18n.t('m5s5.today.pinnedCollection.addAction'),
     });
@@ -608,7 +616,10 @@ describe('TodayPinnedCollection', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(screen.getByText('Butter')).toBeDefined();
     await waitFor(() => expect(document.activeElement).toBe(add));
-    expect(queryFn).not.toHaveBeenCalled();
+    await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
+    expect(
+      queryClient.getQueryData<CollectionDetail>(key)?.version,
+    ).toBe(4);
   });
 
   it('keeps a failed add task open and returns focus to the editable field', async () => {

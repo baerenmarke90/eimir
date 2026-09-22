@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { type MouseEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -11,7 +11,6 @@ import type { AccountView } from '../api/generated/models/AccountView';
 import type { DashboardItem } from '../api/generated/models/DashboardItem';
 import type { DashboardItemType } from '../api/generated/models/DashboardItemType';
 import type { DashboardRelationshipDuration } from '../api/generated/models/DashboardRelationshipDuration';
-import type { DashboardView } from '../api/generated/models/DashboardView';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
@@ -31,20 +30,13 @@ import {
   engagementTargetPath,
   type M4ProductApis,
 } from '../client/m4Product';
-import {
-  ClientProblemError,
-  normalizeClientError,
-} from '../client/problemDetails';
+import { normalizeClientError } from '../client/problemDetails';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
   collectionDetailPath,
 } from '../client/routes';
-import { postSnackbar } from '../client/snackbar';
-import {
-  refreshSpaceConfiguration,
-  spaceConfigurationQueryOptions,
-} from '../client/spaceConfiguration';
+import { spaceConfigurationQueryOptions } from '../client/spaceConfiguration';
 import {
   type LivingModule,
   livingModuleContentId,
@@ -59,7 +51,10 @@ import {
   usePartnerPresence,
 } from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
-import { CouplePresence } from './CouplePresence';
+import {
+  CouplePresence,
+  type CouplePresenceAvatarAction,
+} from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
@@ -67,7 +62,7 @@ import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
 import { SharedStorySummary } from './SharedStorySummary';
-import { ThinkingOfYouButton } from './ThinkingOfYouButton';
+import { PartnerQuickActions } from './PartnerQuickActions';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
 import { UiState } from './UiState';
 import './TodayPage.css';
@@ -731,97 +726,6 @@ function TodayMonthlyStrip({
     </ul>
   );
 }
-const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
-const SPACE_MODULE_DISABLED_CODE = 'SPACE_MODULE_DISABLED';
-
-export function ThinkingOfYouHero({
-  apis,
-  accountId,
-  spaceId,
-  partnerName,
-  thinkingOfYouAvailableAt,
-}: {
-  apis: M4ProductApis;
-  accountId: string;
-  spaceId: string;
-  partnerName?: string;
-  thinkingOfYouAvailableAt: Date | null;
-}) {
-  const clientRequestIdRef = useRef<string>('');
-  const queryClient = useQueryClient();
-  // A locally-known cooldown, only ever set from a server response (the
-  // 429's Retry-After header) so the button reflects reality immediately
-  // even before the next Dashboard refetch lands.
-  const [localCooldownUntil, setLocalCooldownUntil] = useState<Date | null>(
-    null,
-  );
-
-  const mutation = useMutation({
-    mutationFn: () =>
-      apiCall(() =>
-        apis.notifications.sendThinkingOfYou({
-          spaceId,
-          thinkingOfYouCreate: { clientRequestId: clientRequestIdRef.current },
-        }),
-      ),
-    onSuccess: (accepted) => {
-      postSnackbar('m5s5.dashboard.thinkingOfYouSent');
-      setLocalCooldownUntil(null);
-      queryClient.setQueryData<DashboardView>(
-        dashboardQueryKey(spaceId),
-        (old) =>
-          old
-            ? {
-                ...old,
-                thinkingOfYouAvailableAt: accepted.thinkingOfYouAvailableAt,
-              }
-            : old,
-      );
-    },
-    onError: (error) => {
-      if (
-        error instanceof ClientProblemError &&
-        error.code === SPACE_MODULE_DISABLED_CODE
-      ) {
-        // The manager switched the module off after this client last read the
-        // configuration. Drop the stale action now instead of at the next poll.
-        postSnackbar('snackbar.supportGesturesModuleDisabled');
-        void refreshSpaceConfiguration(queryClient, accountId, spaceId);
-        return;
-      }
-      if (
-        error instanceof ClientProblemError &&
-        error.code === THINKING_OF_YOU_COOLDOWN_CODE
-      ) {
-        const minutes = error.retryAfterSeconds
-          ? Math.max(1, Math.ceil(error.retryAfterSeconds / 60))
-          : 30;
-        setLocalCooldownUntil(new Date(Date.now() + minutes * 60_000));
-        postSnackbar('m5s5.dashboard.thinkingOfYouCooldownBlocked', {
-          minutes,
-        });
-        return;
-      }
-      postSnackbar('m5s5.common.error');
-    },
-  });
-
-  const handleSend = async () => {
-    clientRequestIdRef.current = crypto.randomUUID();
-    await mutation.mutateAsync();
-  };
-
-  return (
-    <ThinkingOfYouButton
-      className="today-hero-action"
-      partnerName={partnerName}
-      disabled={mutation.isPending}
-      onSend={handleSend}
-      cooldownUntil={thinkingOfYouAvailableAt ?? localCooldownUntil}
-    />
-  );
-}
-
 export function TodayPage({
   apis,
   spaceId,
@@ -1125,6 +1029,66 @@ export function TodayPage({
   const showMomentSection = Boolean(!isSparse && focalItem);
   const todayDate = formatTodayHeaderDate(new Date());
 
+  const renderRelationshipHero = (
+    avatarAction?: CouplePresenceAvatarAction,
+    avatarOverlay?: ReactNode,
+  ) => (
+    <CouplePresence
+      className="today-hero"
+      headingLevel="h2"
+      spaceTitle={
+        partner
+          ? t('m5s5.dashboard.partner', {
+              name: partner.displayName,
+            })
+          : t('m5s5.dashboard.durationTitle')
+      }
+      primaryPerson={{
+        displayName:
+          account?.displayName ||
+          t('m5s5.activity.you', { defaultValue: 'Du' }),
+        imageUrl: userAvatar.avatarUrl,
+      }}
+      secondaryPerson={
+        partner
+          ? {
+              displayName: partner.displayName,
+              imageUrl: partnerAvatar.avatarUrl,
+            }
+          : null
+      }
+      status={partnerPresenceStatus}
+      relationshipDuration={
+        dashboardQuery.data?.relationshipDuration
+          ? formatRelationshipDuration(
+              dashboardQuery.data.relationshipDuration,
+              t,
+            )
+          : undefined
+      }
+      durationLinkTo={
+        dashboardQuery.data?.relationshipDuration
+          ? '/more/profile#relationship-profile-title'
+          : undefined
+      }
+      durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
+      avatarSize="hero"
+      avatarAction={avatarAction}
+      avatarOverlay={avatarOverlay}
+      avatarAdornment={
+        energyCheckInEnabled && account?.id ? (
+          <DailyEnergyCheckIn
+            key={`${account.id}:${spaceId}`}
+            api={dailyCheckInsApi}
+            accountId={account.id}
+            spaceId={spaceId}
+            partnerName={partner?.displayName}
+          />
+        ) : undefined
+      }
+    />
+  );
+
   return (
     <div className="page today-page">
       {(dashboardQuery.isLoading ||
@@ -1161,72 +1125,24 @@ export function TodayPage({
               the user hid the `relationship_presence` module. The Today date
               heading above remains the stable page-level H1 either way. */}
           {relationshipPresenceVisible ? (
-            <CouplePresence
-              className="today-hero"
-              headingLevel="h2"
-              spaceTitle={
-                partner
-                  ? t('m5s5.dashboard.partner', {
-                      name: partner.displayName,
-                    })
-                  : t('m5s5.dashboard.durationTitle')
-              }
-              primaryPerson={{
-                displayName:
-                  account?.displayName ||
-                  t('m5s5.activity.you', { defaultValue: 'Du' }),
-                imageUrl: userAvatar.avatarUrl,
-              }}
-              secondaryPerson={
-                partner
-                  ? {
-                      displayName: partner.displayName,
-                      imageUrl: partnerAvatar.avatarUrl,
-                    }
-                  : null
-              }
-              status={partnerPresenceStatus}
-              relationshipDuration={
-                dashboardQuery.data.relationshipDuration
-                  ? formatRelationshipDuration(
-                      dashboardQuery.data.relationshipDuration,
-                      t,
-                    )
-                  : undefined
-              }
-              durationLinkTo={
-                dashboardQuery.data.relationshipDuration
-                  ? '/more/profile#relationship-profile-title'
-                  : undefined
-              }
-              durationTitle={t('m5s5.dashboard.openRelationshipSettings')}
-              avatarAdornment={
-                energyCheckInEnabled && account?.id ? (
-                  <DailyEnergyCheckIn
-                    key={`${account.id}:${spaceId}`}
-                    api={dailyCheckInsApi}
-                    accountId={account.id}
-                    spaceId={spaceId}
-                    partnerName={partner?.displayName}
-                  />
-                ) : undefined
-              }
-              actions={
-                supportGesturesEnabled && account?.id ? (
-                  <div className="today-hero-action-container">
-                    <ThinkingOfYouHero
-                      apis={apis}
-                      accountId={account.id}
-                      spaceId={spaceId}
-                      partnerName={partner?.displayName}
-                      thinkingOfYouAvailableAt={
-                        dashboardQuery.data.thinkingOfYouAvailableAt
-                      }
-                    />
-                  </div>
-                ) : undefined
-              }
-            />
+            supportGesturesEnabled && partner && account?.id ? (
+              <PartnerQuickActions
+                apis={apis}
+                entitlementApi={entitlementApi}
+                accountId={account.id}
+                spaceId={spaceId}
+                partnerName={partner.displayName}
+                thinkingOfYouAvailableAt={
+                  dashboardQuery.data.thinkingOfYouAvailableAt
+                }
+              >
+                {(avatarAction, avatarOverlay) =>
+                  renderRelationshipHero(avatarAction, avatarOverlay)
+                }
+              </PartnerQuickActions>
+            ) : (
+              renderRelationshipHero()
+            )
           ) : null}
 
           {vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (

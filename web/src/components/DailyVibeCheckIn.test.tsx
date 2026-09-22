@@ -268,7 +268,7 @@ describe('DailyVibeCheckIn', () => {
   });
 
   it('shares an optional context note atomically with the selected Vibe', async () => {
-    const note = 'Der Termin heute lief endlich besser als gedacht.';
+    const note = 'Today's appointment finally went better than expected.';
     const update = vi.fn().mockResolvedValue(
       rawResponse(
         projection({
@@ -309,7 +309,7 @@ describe('DailyVibeCheckIn', () => {
   });
 
   it('keeps partner context out of Today until the visible Vibe card is opened', async () => {
-    const note = 'Mein Kopf ist heute etwas leer. Ein ruhiger Abend wäre schön.';
+    const note = 'My head feels a little empty today. A quiet evening would be nice.';
     const api = {
       getDailyCheckInTodayRaw: vi.fn().mockResolvedValue(
         rawResponse(

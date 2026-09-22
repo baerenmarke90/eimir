@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,6 +9,28 @@ import { PreferenceCategory } from '../api/generated/models/PreferenceCategory';
 import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
+
+function mockMatchMedia(reducedMotion: boolean): void {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches:
+        query === '(prefers-reduced-motion: reduce)' ? reducedMotion : false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+beforeEach(() => {
+  mockMatchMedia(true);
+});
 
 describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
   it('preserves and restores previous body overflow value on close and on unmount', () => {
@@ -60,6 +82,47 @@ describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
     unmount();
     expect(document.body.style.overflow).toBe('scroll');
     document.body.style.overflow = '';
+  });
+
+
+  it('keeps focus containment and scroll lock until animated exit completion', async () => {
+    mockMatchMedia(false);
+    document.body.style.overflow = 'auto';
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Trigger';
+    document.body.append(trigger);
+    trigger.focus();
+    const restoreFocusRef = { current: trigger };
+
+    const props = {
+      preference: null,
+      privateNote: false,
+      pending: false,
+      deletePending: false,
+      onCancel: vi.fn(),
+      onSubmit: vi.fn(),
+      restoreFocusRef,
+    };
+    const { rerender } = render(
+      <PreferenceDialog isOpen={true} {...props} />,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(document.body.style.overflow).toBe('hidden');
+
+    rerender(<PreferenceDialog isOpen={false} {...props} />);
+
+    expect(
+      dialog.parentElement?.getAttribute('data-presence'),
+    ).toBe('exiting');
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(screen.getByRole('dialog')).toBe(dialog);
+
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    expect(document.body.style.overflow).toBe('auto');
+    trigger.remove();
   });
 
   it('targets the first real focusable form control on open and provides tabIndex -1 on heading', async () => {

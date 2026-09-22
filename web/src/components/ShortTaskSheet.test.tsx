@@ -24,6 +24,24 @@ import {
 import taskSheets from '../i18n/locales/taskSheets';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
+function mockMatchMedia(reducedMotion: boolean): void {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches:
+        query === '(prefers-reduced-motion: reduce)' ? reducedMotion : false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.setAttribute('open', '');
@@ -32,13 +50,14 @@ beforeAll(() => {
     this.removeAttribute('open');
   };
 });
-beforeEach(() =>
+beforeEach(() => {
+  mockMatchMedia(true);
   window.history.replaceState(
     { key: 'editor-route', idx: 0 },
     '',
     '/story/memories/new',
-  ),
-);
+  );
+});
 afterEach(async () => {
   cleanup();
   await act(async () => {
@@ -205,7 +224,96 @@ describe('ShortTaskSheet history ownership', () => {
     );
   });
 
+  it('keeps modality and scroll locking through animated Close until the real exit signal', async () => {
+    mockMatchMedia(false);
+    document.body.style.overflow = 'auto';
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    const trigger = screen.getByText('Task choices');
+    trigger.focus();
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(document.activeElement).not.toBe(trigger);
+
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(trigger));
+    expect(document.body.style.overflow).toBe('auto');
+  });
+
+  it('ignores a stale exit completion after a rapid reopen', async () => {
+    mockMatchMedia(false);
+    document.body.style.overflow = 'auto';
+    const triggerRef = { current: document.createElement('button') };
+    document.body.append(triggerRef.current);
+    const { rerender } = render(
+      <ShortTaskSheet
+        open={true}
+        title="Presence"
+        onClose={vi.fn()}
+        restoreFocusRef={triggerRef}
+      >
+        <button type="button">Inside</button>
+      </ShortTaskSheet>,
+    );
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+
+    rerender(
+      <ShortTaskSheet
+        open={false}
+        title="Presence"
+        onClose={vi.fn()}
+        restoreFocusRef={triggerRef}
+      >
+        <button type="button">Inside</button>
+      </ShortTaskSheet>,
+    );
+    expect(dialog.getAttribute('data-presence')).toBe('exiting');
+
+    rerender(
+      <ShortTaskSheet
+        open={true}
+        title="Presence"
+        onClose={vi.fn()}
+        restoreFocusRef={triggerRef}
+      >
+        <button type="button">Inside</button>
+      </ShortTaskSheet>,
+    );
+    expect(dialog.getAttribute('data-presence')).toBe('open');
+
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    rerender(
+      <ShortTaskSheet
+        open={false}
+        title="Presence"
+        onClose={vi.fn()}
+        restoreFocusRef={triggerRef}
+      >
+        <button type="button">Inside</button>
+      </ShortTaskSheet>,
+    );
+    expect(dialog.getAttribute('data-presence')).toBe('exiting');
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(document.body.style.overflow).toBe('auto');
+    triggerRef.current.remove();
+  });
+
   it('requires a deliberate downward drag and lets reversal cancel dismissal', async () => {
+    mockMatchMedia(false);
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
     const trigger = screen.getByText('Task choices');
     trigger.focus();
@@ -262,7 +370,9 @@ describe('ShortTaskSheet history ownership', () => {
     });
     fireEvent.pointerMove(dragZone, { pointerId: 3, clientY: 260 });
     fireEvent.pointerUp(dragZone, { pointerId: 3, clientY: 260 });
-    expect(dialog.getAttribute('data-dismissing')).toBe('true');
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
     fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

@@ -1,4 +1,11 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
@@ -33,6 +40,7 @@ import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { useOverlayPresence } from './useOverlayPresence';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE
@@ -416,6 +424,7 @@ export function PreferenceDialog({
   onDelete,
   error,
   deleteError,
+  restoreFocusRef,
 }: {
   isOpen: boolean;
   preference: ProfilePreferenceView | null;
@@ -427,24 +436,31 @@ export function PreferenceDialog({
   onDelete?: () => void;
   error?: unknown;
   deleteError?: unknown;
+  restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
-  const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
+  const renderedPreferenceRef = useRef(preference);
+  if (isOpen) renderedPreferenceRef.current = preference;
+  const renderedPreference = renderedPreferenceRef.current;
+  const { present, presenceState, completeExit } =
+    useOverlayPresence(isOpen);
 
   useModalLifecycle({
-    active: isOpen,
+    active: present,
     initialFocusRef: firstInputRef,
-    restoreFocus: false,
-    focusDelayMs: 20,
+    restoreFocusRef,
+    restoreFocus: Boolean(restoreFocusRef),
+    deferRestoreFocus: true,
   });
 
-  // Keyboard navigation: Escape key closes, Tab/Shift+Tab trap inside dialog.
+  // Keyboard navigation: Escape closes only the active intent, while focus
+  // containment remains in force until presentation presence actually ends.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!present) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isOpen) {
         onCancel();
         return;
       }
@@ -454,23 +470,9 @@ export function PreferenceDialog({
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCancel]);
+  }, [isOpen, onCancel, present]);
 
-  // Dismiss on backdrop click outside dialog content.
-  useEffect(() => {
-    if (!isOpen) return;
-    const backdropEl = backdropRef.current;
-    if (!backdropEl) return;
-    function handleBackdropClick(e: MouseEvent) {
-      if (e.target === backdropEl) {
-        onCancel();
-      }
-    }
-    backdropEl.addEventListener('click', handleBackdropClick);
-    return () => backdropEl.removeEventListener('click', handleBackdropClick);
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
+  if (!present) return null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -489,9 +491,12 @@ export function PreferenceDialog({
 
   return (
     <div
-      ref={backdropRef}
       className="preference-modal-backdrop"
+      data-presence={presenceState}
       role="presentation"
+      onClick={(event) => {
+        if (isOpen && event.target === event.currentTarget) onCancel();
+      }}
     >
       <div
         ref={dialogRef}
@@ -499,10 +504,19 @@ export function PreferenceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
+        onTransitionEnd={(event) => {
+          if (
+            event.target !== event.currentTarget ||
+            event.propertyName !== 'transform' ||
+            presenceState !== 'exiting'
+          )
+            return;
+          completeExit();
+        }}
       >
         <div className="preference-modal-header">
           <h3 id="pref-dialog-heading" tabIndex={-1}>
-            {preference
+            {renderedPreference
               ? privateNote
                 ? t('profiles.noteEditTitle')
                 : t('profiles.preferenceEditTitle')
@@ -521,7 +535,7 @@ export function PreferenceDialog({
         </div>
 
         <form
-          key={preference?.id ?? 'new'}
+          key={renderedPreference?.id ?? 'new'}
           className="form-grid"
           onSubmit={submit}
         >
@@ -535,7 +549,7 @@ export function PreferenceDialog({
               ref={firstInputRef}
               id={`preference-category-${privateNote ? 'private' : 'self'}`}
               name="category"
-              defaultValue={preference?.category ?? PreferenceCategory.OTHER}
+              defaultValue={renderedPreference?.category ?? PreferenceCategory.OTHER}
             >
               {CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -554,7 +568,7 @@ export function PreferenceDialog({
             <select
               id={`preference-sentiment-${privateNote ? 'private' : 'self'}`}
               name="sentiment"
-              defaultValue={preference?.sentiment ?? PreferenceSentiment.LIKE}
+              defaultValue={renderedPreference?.sentiment ?? PreferenceSentiment.LIKE}
             >
               {SENTIMENTS.map((sentiment) => (
                 <option key={sentiment} value={sentiment}>
@@ -575,7 +589,7 @@ export function PreferenceDialog({
               name="topic"
               required
               maxLength={120}
-              defaultValue={preference?.topic ?? ''}
+              defaultValue={renderedPreference?.topic ?? ''}
               placeholder={
                 privateNote
                   ? t('profiles.noteTopicPlaceholder')
@@ -596,7 +610,7 @@ export function PreferenceDialog({
               required
               rows={3}
               maxLength={500}
-              defaultValue={preference?.value ?? ''}
+              defaultValue={renderedPreference?.value ?? ''}
               placeholder={
                 privateNote
                   ? t('profiles.noteValuePlaceholder')
@@ -609,7 +623,7 @@ export function PreferenceDialog({
           {deleteError ? <ProblemState error={deleteError} /> : null}
 
           <div className="preference-modal-actions">
-            {preference && onDelete ? (
+            {renderedPreference && onDelete ? (
               <button
                 type="button"
                 className="tertiary compact-action preference-delete-btn"
@@ -632,7 +646,7 @@ export function PreferenceDialog({
               <button type="submit" disabled={pending || deletePending}>
                 {pending
                   ? t('profiles.saving')
-                  : preference
+                  : renderedPreference
                     ? t('profiles.saveChanges')
                     : t('profiles.create')}
               </button>
@@ -682,10 +696,6 @@ export function PreferenceManager({
     setEditing(null);
     saveMutation.reset();
     deleteMutation.reset();
-    // Dynamically restore focus to the exact button or chip that triggered opening.
-    setTimeout(() => {
-      triggerElementRef.current?.focus();
-    }, 0);
   }
 
   const saveMutation = useMutation({
@@ -868,6 +878,7 @@ export function PreferenceManager({
         }
         error={saveMutation.error}
         deleteError={deleteMutation.error}
+        restoreFocusRef={triggerElementRef}
       />
     </section>
   );

@@ -276,8 +276,11 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: rgba(0, 0, 0, 0.45);
+  background-color: var(--color-scrim);
   backdrop-filter: blur(4px);
+  animation: preference-modal-backdrop-enter var(--duration-transition)
+    var(--easing-enter);
+  transition: background-color var(--duration-transition) var(--easing-exit);
 }
 
 .preference-modal-dialog {
@@ -290,12 +293,63 @@
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+  opacity: 1;
+  transform: scale(1);
+  animation: preference-modal-enter var(--duration-transition)
+    var(--easing-enter);
+  transition:
+    opacity var(--duration-transition) var(--easing-exit),
+    transform var(--duration-transition) var(--easing-exit);
+}
+
+.preference-modal-backdrop[data-presence="exiting"] {
+  pointer-events: none;
+  background-color: transparent;
+  animation: none;
+}
+
+.preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
+  opacity: 0;
+  transform: scale(0.985);
+  animation: none;
+}
+
+@keyframes preference-modal-backdrop-enter {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--color-scrim);
+  }
+}
+
+@keyframes preference-modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes preference-modal-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 599px) {
   .preference-modal-backdrop {
     align-items: flex-end;
     padding: 0;
+    animation-duration: var(--duration-context);
   }
 
   .preference-modal-dialog {
@@ -305,6 +359,20 @@
     border-bottom: none;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
+    animation-name: preference-modal-sheet-enter;
+    animation-duration: var(--duration-context);
+  }
+
+  .preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preference-modal-backdrop,
+  .preference-modal-dialog {
+    animation: none;
+    transition: none;
   }
 }
 

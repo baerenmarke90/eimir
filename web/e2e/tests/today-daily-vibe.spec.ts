@@ -383,9 +383,8 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   const vibe = page.getByTestId('daily-vibe-checkin');
   const upcoming = page.locator('.today-section-upcoming');
   await expect(hero).toBeVisible();
-  await expect(
-    hero.locator('.partner-presence-avatar-state.status-active'),
-  ).toBeVisible();
+  await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+  await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
   await expect(hero).toHaveAttribute(
     'aria-labelledby',
     /couple-presence-title-/,

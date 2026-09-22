@@ -285,51 +285,15 @@ type Scenario = {
   activity: unknown[];
 };
 
-type SharedPresenceClock = {
-  nowMs: number;
-  lastActiveByAccount: Map<string, number>;
-};
-
-type PresenceSession = {
-  accountId: string;
-  displayName: string;
-  partnerId: string;
-  partnerName: string;
-  shared: SharedPresenceClock;
-};
-
-function semanticPresenceState(
-  session: PresenceSession,
-): 'ACTIVE' | 'RECENT' | null {
-  const lastActive = session.shared.lastActiveByAccount.get(session.partnerId);
-  if (lastActive === undefined) return null;
-
-  const elapsed = Math.max(0, session.shared.nowMs - lastActive);
-  if (elapsed < 2 * 60_000) return 'ACTIVE';
-  if (elapsed <= 10 * 60_000) return 'RECENT';
-  return null;
-}
-
 async function installMocks(
   page: Page,
   scenario: Scenario,
   itemLimit: 1 | 2 | 3 = 1,
   presenceState: 'ACTIVE' | 'RECENT' | null | 'ERROR' = null,
   withPartner = true,
-  presenceSession?: PresenceSession,
 ): Promise<void> {
-  const viewer = presenceSession
-    ? {
-        id: presenceSession.accountId,
-        displayName: presenceSession.displayName,
-      }
-    : { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
-  const partner = presenceSession
-    ? {
-        id: presenceSession.partnerId,
-        displayName: presenceSession.partnerName,
-      }
-    : { id: PARTNER_ID, displayName: 'Alex Berger' };
+  const viewer = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
+  const partner = { id: PARTNER_ID, displayName: 'Alex Berger' };
 
   await page.route('**/media/**', async (route) => {
     const id = new URL(route.request().url()).pathname
@@ -465,16 +429,6 @@ async function installMocks(
       (method === 'GET' || method === 'POST') &&
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
-      if (presenceSession) {
-        if (method === 'POST') {
-          presenceSession.shared.lastActiveByAccount.set(
-            presenceSession.accountId,
-            presenceSession.shared.nowMs,
-          );
-        }
-        await fulfillJson({ state: semanticPresenceState(presenceSession) });
-        return;
-      }
       if (presenceState === 'ERROR') {
         await fulfillJson(
           {
@@ -589,163 +543,71 @@ async function capture(
 }
 
 test.describe('Today R4: the living home of a relationship', () => {
-  test('two isolated partner sessions converge from active to recent to no Presence claim', async ({
-    browser,
-  }) => {
-    test.setTimeout(120_000);
-    const shared: SharedPresenceClock = {
-      nowMs: Date.parse('2026-09-19T18:00:00Z'),
-      lastActiveByAccount: new Map(),
-    };
-    const leaContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-    });
-    const alexContext = await browser.newContext({
-      viewport: { width: 390, height: 844 },
-    });
-    const leaPage = await leaContext.newPage();
-    const alexPage = await alexContext.newPage();
-    let alexClosed = false;
-
-    try {
-      await installMocks(leaPage, RICH_SPACE, 1, null, true, {
-        accountId: ACCOUNT_ID,
-        displayName: 'Lea Sommer',
-        partnerId: PARTNER_ID,
-        partnerName: 'Alex Berger',
-        shared,
-      });
-      await installMocks(alexPage, RICH_SPACE, 1, null, true, {
-        accountId: PARTNER_ID,
-        displayName: 'Alex Berger',
-        partnerId: ACCOUNT_ID,
-        partnerName: 'Lea Sommer',
-        shared,
-      });
-
-      await leaPage.bringToFront();
-      await signInAndOpenToday(leaPage);
-      await expect
-        .poll(() => shared.lastActiveByAccount.has(ACCOUNT_ID))
-        .toBe(true);
-      await alexPage.bringToFront();
-      await signInAndOpenToday(alexPage);
-      await expect
-        .poll(() => shared.lastActiveByAccount.has(PARTNER_ID))
-        .toBe(true);
-
-      await leaPage.reload();
-      await alexPage.reload();
-      await expect(
-        leaPage.getByText(relationshipComponents.couplePresenceActive),
-      ).toBeVisible();
-      await expect(
-        alexPage.getByText(relationshipComponents.couplePresenceActive),
-      ).toBeVisible();
-      await expect(leaPage.locator('.partner-presence-pip')).toHaveCount(1);
-      await expect(alexPage.locator('.partner-presence-pip')).toHaveCount(1);
-
-      await alexContext.close();
-      alexClosed = true;
-      shared.nowMs += 2 * 60_000;
-      await leaPage.bringToFront();
-      await leaPage.reload();
-      await expect(
-        leaPage.getByText(relationshipComponents.couplePresenceRecent),
-      ).toBeVisible();
-      await expect(leaPage.locator('.partner-presence-pip')).toHaveCount(0);
-
-      shared.nowMs += 8 * 60_000 + 1;
-      await leaPage.reload();
-      await expect(
-        leaPage.getByText(relationshipComponents.couplePresenceRecent),
-      ).toHaveCount(0);
-      await expect(
-        leaPage.getByText(relationshipComponents.couplePresenceActive),
-      ).toHaveCount(0);
-      await expect(leaPage.locator('.couple-presence-indicator')).toHaveCount(
-        0,
-      );
-      await expectNoWcagViolations(leaPage);
-    } finally {
-      await leaContext.close();
-      if (!alexClosed) await alexContext.close();
-    }
-  });
-
-  test('renders bounded partner Presence states and fails closed without disturbing Today', async ({
+  test('keeps partner Presence hidden and dormant across Today viewports', async ({
     page,
   }, testInfo) => {
     test.setTimeout(120_000);
+    const presenceRequests: string[] = [];
+    page.on('request', (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (pathname === `/api/v1/spaces/${SPACE_ID}/presence`) {
+        presenceRequests.push(`${request.method()} ${pathname}`);
+      }
+    });
+
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ colorScheme: 'light' });
     await installMocks(page, RICH_SPACE, 1, 'ACTIVE');
     await signInAndOpenToday(page);
+    await page.waitForLoadState('networkidle');
 
+    const hero = page.locator('.today-hero');
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
     await expect(
       page.getByText(relationshipComponents.couplePresenceActive),
-    ).toBeVisible();
-    await expect(page.locator('.partner-presence-pip')).toHaveCount(1);
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceRecent),
+    ).toHaveCount(0);
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'presence-active-390-light');
+    await capture(page, testInfo, 'presence-disabled-390-light');
 
     await page.emulateMedia({ colorScheme: 'dark' });
     await settleMotion(page);
-    await expect(
-      page.getByText(relationshipComponents.couplePresenceActive),
-    ).toBeVisible();
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'presence-active-390-dark');
+    await capture(page, testInfo, 'presence-disabled-390-dark');
 
-    for (const width of [320, 360, 430, 1440]) {
-      await page.setViewportSize({ width, height: width >= 1000 ? 1000 : 844 });
+    for (const width of [320, 360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
       await settleMotion(page);
-      await expect(
-        page.getByText(relationshipComponents.couplePresenceActive),
-      ).toBeVisible();
+      await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+      await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     }
 
-    await page.unrouteAll({ behavior: 'ignoreErrors' });
-    await installMocks(page, RICH_SPACE, 1, 'RECENT');
-    await page.reload();
-    await expect(page.locator('.today-hero')).toBeVisible();
-    await expect(
-      page.getByText(relationshipComponents.couplePresenceRecent),
-    ).toBeVisible();
-    await expect(
-      page.getByText(relationshipComponents.couplePresenceActive),
-    ).toHaveCount(0);
-    await expect(page.locator('.partner-presence-pip')).toHaveCount(0);
-
-    await page.unrouteAll({ behavior: 'ignoreErrors' });
-    await installMocks(page, RICH_SPACE, 1, null);
-    await page.reload();
-    await expect(page.locator('.today-hero')).toBeVisible();
-    await expect(
-      page.getByText(relationshipComponents.couplePresenceActive),
-    ).toHaveCount(0);
-    await expect(
-      page.getByText(relationshipComponents.couplePresenceRecent),
-    ).toHaveCount(0);
-    await expect(page.locator('.couple-presence-indicator')).toHaveCount(0);
-
-    await page.unrouteAll({ behavior: 'ignoreErrors' });
-    await installMocks(page, RICH_SPACE, 1, 'ERROR');
-    await page.reload();
-    await expect(page.locator('.today-hero')).toBeVisible();
-    await expect(page.locator('.couple-presence-indicator')).toHaveCount(0);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await settleMotion(page);
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-disabled-1440-light');
+
+    expect(presenceRequests).toEqual([]);
 
     await page.unrouteAll({ behavior: 'ignoreErrors' });
     await installMocks(page, RICH_SPACE, 1, null, false);
     await page.reload();
+    await page.waitForLoadState('networkidle');
     await expect(page.locator('.today-hero')).toBeVisible();
     await expect(
       page.getByText(relationshipComponents.couplePresenceWaiting),
     ).toBeVisible();
-    await expect(page.locator('.partner-presence-pip')).toHaveCount(0);
+    await expect(page.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    expect(presenceRequests).toEqual([]);
   });
 
   test('composes the full eligible hierarchy on a 390-class phone, in Light and Dark', async ({

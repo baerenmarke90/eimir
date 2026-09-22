@@ -1164,9 +1164,7 @@ class TestVibeContextNote:
             vibe=True,
             energy=False,
         )
-        initial = client.get(
-            path(couple["space"].id), headers=auth(couple["manager_token"])
-        )
+        initial = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
         response = client.patch(
             path(couple["space"].id),
             json={"vibe": DailyVibe.OKAY.value, "vibeNote": "x" * 201},

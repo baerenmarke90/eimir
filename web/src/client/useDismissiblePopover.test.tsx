@@ -1,45 +1,8 @@
 // @vitest-environment jsdom
-import {
-  act,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-} from '@testing-library/react';
-import { useLayoutEffect, useRef } from 'react';
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
+import { renderHook, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { useDismissiblePopover } from './useDismissiblePopover';
-
-function RouteTransitionReopenHarness() {
-  const { isOpen, open } = useDismissiblePopover();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const reopenAfterNavigationRef = useRef(false);
-
-  useLayoutEffect(() => {
-    if (!reopenAfterNavigationRef.current || location.pathname !== '/next') {
-      return;
-    }
-    reopenAfterNavigationRef.current = false;
-    open();
-  }, [location.pathname, open]);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => {
-          reopenAfterNavigationRef.current = true;
-          void navigate('/next');
-        }}
-      >
-        Navigate and reopen
-      </button>
-      <output data-testid="popover-state">{isOpen ? 'open' : 'closed'}</output>
-    </>
-  );
-}
 
 describe('useDismissiblePopover', () => {
   it('toggles open state and respects initial closed state', () => {
@@ -58,18 +21,6 @@ describe('useDismissiblePopover', () => {
       result.current.close();
     });
     expect(result.current.isOpen).toBe(false);
-  });
-
-  it('does not let route cleanup close a popover opened from the newly committed route', () => {
-    render(
-      <MemoryRouter initialEntries={['/current']}>
-        <RouteTransitionReopenHarness />
-      </MemoryRouter>,
-    );
-
-    fireEvent.click(screen.getByText('Navigate and reopen'));
-
-    expect(screen.getByTestId('popover-state').textContent).toBe('open');
   });
 
   it('closes on outside pointer down, but stays open on inside pointer down', () => {

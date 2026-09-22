@@ -63,7 +63,7 @@ describe('StoryCreatePageShell', () => {
     expect(children[0]).toBe(screen.getByTestId('custom-header'));
     expect(
       container.querySelector(
-        '.immersive-create-card.eimir-motion-reveal.heart-moment-create-card[aria-labelledby="create-heading"]',
+        '.immersive-create-card.heart-moment-create-card[aria-labelledby="create-heading"]',
       ),
     ).not.toBeNull();
   });

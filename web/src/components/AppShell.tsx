@@ -316,7 +316,7 @@ function AuthenticatedAppShell({
         <main
           key={location.pathname}
           id="main-content"
-          className="product-main eimir-motion-reveal"
+          className="product-main"
           tabIndex={-1}
         >
           <AppSurfacePullToRefresh pathname={location.pathname} />

@@ -493,11 +493,9 @@ export function StoryProductPage({
       // Browser history restoration and late layout work can settle one frame
       // after the first paint. Re-apply the exact captured offset before the
       // task origin is marked restored so return continuity stays geometry-stable.
-      // The position calculation intentionally uses layout coordinates rather
-      // than getBoundingClientRect(): Back remounts both AppShell's product-main
-      // and this Timeline wrapper with eimir-motion-reveal, so two transient
-      // 8px ancestor transforms can otherwise skew the captured coordinate by
-      // exactly 16px until their animations finish.
+      // Use layout coordinates so task-return geometry stays independent of
+      // bounded presentation transforms. Motion ownership must never become
+      // part of the scroll-restoration coordinate system.
       settleFrame = window.requestAnimationFrame(() => {
         restorePosition();
         restoredEntryRef.current = entry;
@@ -665,7 +663,7 @@ export function StoryProductPage({
       />
 
       <div
-        className={`momente-tabs-container eimir-motion-reveal ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`}
+        className={`momente-tabs-container ${activeView === 'timeline' ? 'momente-tabs-container-timeline' : ''}`.trim()}
       >
         <div
           className="momente-tabs"
@@ -775,7 +773,7 @@ export function StoryProductPage({
       timelineItems.length === 0 &&
       availableYears.length === 0 &&
       !hasActiveFilters ? (
-        <div className="new-space-experience eimir-motion-reveal">
+        <div className="new-space-experience">
           <div className="new-space-mark" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
@@ -802,7 +800,7 @@ export function StoryProductPage({
         discoverQuery.data &&
         !featuredItem &&
         discoverItems.length === 0 ? (
-        <div className="new-space-experience eimir-motion-reveal">
+        <div className="new-space-experience">
           <div className="new-space-mark" aria-hidden="true">
             <svg
               viewBox="0 0 24 24"
@@ -1065,7 +1063,7 @@ export function StoryProductPage({
           </section>
         </div>
       ) : combinedStory && activeView === 'timeline' ? (
-        <div className="layout-single-column eimir-motion-reveal">
+        <div className="layout-single-column">
           <div className="story-filter-container">
             <ShortTaskSheet
               ref={filterSheetRef}
@@ -1257,7 +1255,7 @@ export function StoryProductPage({
               </h2>
 
               {timelineItems.length === 0 ? (
-                <div className="story-filter-empty-state eimir-motion-reveal">
+                <div className="story-filter-empty-state">
                   <p className="story-filter-empty-text">
                     {t('storyFilters.noMatches')}
                   </p>

@@ -1035,15 +1035,13 @@ code {
   }
 }
 
-/* Reusable Motion Semantics.
-   Transform-only: an opacity fade here would, for the animation's whole
-   duration, composite every descendant's text color toward the page
-   background — including on every SPA navigation, since AppShell remounts
-   `.product-main` per route (`key={location.pathname}`). That transient
-   blend can drop already-borderline token pairs below WCAG AA contrast, as
-   real rendered pixels, not just a test artifact (#790/#791 axe follow-up).
-   Slide-only keeps the reveal motion without ever touching opacity. */
-@keyframes eimir-reveal {
+/* Shared bounded disclosure motion.
+   This transform-only primitive belongs to content revealed from a known
+   control or local state transition. Route, page, section, query-result and
+   create-surface mounts must not opt in. Keeping the primitive transform-only
+   also avoids transient descendant text-contrast changes from opacity
+   compositing (#790/#791). */
+@keyframes eimir-disclosure-reveal {
   from {
     transform: translateY(8px);
   }
@@ -1052,9 +1050,9 @@ code {
   }
 }
 
-.eimir-motion-reveal {
-  animation: eimir-reveal var(--duration-transition) var(--easing-enter)
-    forwards;
+.eimir-motion-disclosure {
+  animation: eimir-disclosure-reveal var(--duration-transition)
+    var(--easing-enter) forwards;
 }
 
 @keyframes eimir-lift {
@@ -1233,7 +1231,7 @@ code {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .eimir-motion-reveal,
+  .eimir-motion-disclosure,
   .eimir-motion-lift,
   .eimir-motion-lift:hover,
   .eimir-motion-success,

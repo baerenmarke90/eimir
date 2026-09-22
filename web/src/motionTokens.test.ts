@@ -15,14 +15,14 @@ type NodeProcess = {
   getBuiltinModule(name: 'fs'): NodeFs;
 };
 
-function readProductionStylesheets(): Record<string, string> {
+function readProductionSources(): Record<string, string> {
   const processRef = (
     globalThis as typeof globalThis & { process?: NodeProcess }
   ).process;
   if (!processRef) throw new Error('Node process API is unavailable.');
 
   const fs = processRef.getBuiltinModule('fs');
-  const stylesheets: Record<string, string> = {};
+  const sources: Record<string, string> = {};
 
   function visit(directory: URL, prefix: string): void {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -30,22 +30,24 @@ function readProductionStylesheets(): Record<string, string> {
         visit(new URL(`${entry.name}/`, directory), `${prefix}${entry.name}/`);
         continue;
       }
-      if (!entry.isFile() || !entry.name.endsWith('.css')) continue;
+      if (!entry.isFile() || !/\.(?:css|ts|tsx)$/.test(entry.name)) continue;
+      if (/\.(?:test|spec)\.(?:ts|tsx)$/.test(entry.name)) continue;
 
       const path = `${prefix}${entry.name}`;
-      if (path === './design/product-roles.css') continue;
-      stylesheets[path] = fs.readFileSync(
-        new URL(entry.name, directory),
-        'utf8',
-      );
+      sources[path] = fs.readFileSync(new URL(entry.name, directory), 'utf8');
     }
   }
 
   visit(new URL('./', import.meta.url), './');
-  return stylesheets;
+  return sources;
 }
 
-const productionStylesheets = readProductionStylesheets();
+const productionSources = readProductionSources();
+const productionStylesheets = Object.fromEntries(
+  Object.entries(productionSources).filter(
+    ([path]) => path.endsWith('.css') && path !== './design/product-roles.css',
+  ),
+);
 
 const LEGACY_MOTION_ROLE =
   /--motion-fast\b|--motion-duration-|--motion-easing-|--duration-fast\b|--duration-standard\b/;
@@ -81,6 +83,19 @@ function motionDeclarations(css: string): string[] {
 }
 
 describe('canonical Web motion roles', () => {
+  it('keeps the retired generic mount reveal out of production source', () => {
+    const genericReveal = /\beimir-motion-reveal\b|\beimir-reveal\b/;
+    const offenders = Object.entries(productionSources)
+      .filter(([, source]) => genericReveal.test(source))
+      .map(([path]) => path)
+      .sort();
+
+    expect(offenders).toEqual([]);
+    expect(productionSources['./components/TodayPage.tsx']).not.toContain(
+      'animationDelay',
+    );
+  });
+
   it('keeps retired motion aliases out of production stylesheets', () => {
     const offenders = Object.entries(productionStylesheets)
       .filter(([, css]) => LEGACY_MOTION_ROLE.test(css))

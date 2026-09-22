@@ -121,7 +121,7 @@ function SearchResultCard({
   );
 
   return (
-    <li className="search-result-wrapper eimir-motion-reveal">
+    <li className="search-result-wrapper">
       {path ? (
         <Link
           className="search-result-link"
@@ -404,7 +404,7 @@ function ActivityCard({
   );
 
   return (
-    <li className="activity-result-wrapper eimir-motion-reveal">
+    <li className="activity-result-wrapper">
       {path ? (
         <Link
           className="activity-result-link"
@@ -606,7 +606,7 @@ function NotificationCard({
   );
 
   return (
-    <li className="m4-notification-wrapper eimir-motion-reveal">
+    <li className="m4-notification-wrapper">
       {path ? (
         <Link
           className="m4-notification-link"

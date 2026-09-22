@@ -495,7 +495,7 @@ export function PreferenceDialog({
     >
       <div
         ref={dialogRef}
-        className="preference-modal-dialog eimir-motion-reveal"
+        className="preference-modal-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"

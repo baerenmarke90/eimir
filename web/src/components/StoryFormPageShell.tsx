@@ -61,11 +61,7 @@ export function StoryCreatePageShell({
     >
       {header}
       <section
-        className={[
-          'immersive-create-card',
-          cardClassName,
-          'eimir-motion-reveal',
-        ]
+        className={['immersive-create-card', cardClassName]
           .filter(Boolean)
           .join(' ')}
         aria-labelledby={labelledBy}

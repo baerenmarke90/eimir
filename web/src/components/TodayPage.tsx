@@ -244,7 +244,6 @@ export function TodayModuleSection({
   subline,
   headerAction,
   children,
-  animationDelay,
 }: {
   id?: string;
   className?: string;
@@ -253,14 +252,9 @@ export function TodayModuleSection({
   subline?: string;
   headerAction?: React.ReactNode;
   children: React.ReactNode;
-  animationDelay?: string;
 }) {
   return (
-    <section
-      id={id}
-      className={`today-section ${className ?? ''} eimir-motion-reveal`}
-      style={animationDelay ? { animationDelay } : undefined}
-    >
+    <section id={id} className={`today-section ${className ?? ''}`.trim()}>
       <div className="today-section-header">
         <div>
           {kicker ? (
@@ -1158,7 +1152,7 @@ export function TodayPage({
 
       {contentReady && dashboardQuery.data ? (
         <div className="today-content">
-          <header className="today-date-heading eimir-motion-reveal">
+          <header className="today-date-heading">
             <h1 className="today-date-title">{t('m5s5.today.headerTitle')}</h1>
             <time className="today-date-value">{todayDate}</time>
           </header>
@@ -1169,7 +1163,7 @@ export function TodayPage({
               heading above remains the stable page-level H1 either way. */}
           {relationshipPresenceVisible ? (
             <CouplePresence
-              className="today-hero eimir-motion-reveal"
+              className="today-hero"
               headingLevel="h2"
               spaceTitle={
                 partner
@@ -1259,7 +1253,7 @@ export function TodayPage({
           ) : null}
 
           {isSparse ? (
-            <div className="new-space-experience eimir-motion-reveal">
+            <div className="new-space-experience">
               <h2 className="new-space-title">
                 {partner
                   ? t('m5s5.dashboard.newSpacePartner', {
@@ -1289,7 +1283,6 @@ export function TodayPage({
                   className="today-section-moment"
                   title={t('m5s5.today.keepsake.title')}
                   kicker={t('m5s5.today.keepsake.kicker')}
-                  animationDelay="40ms"
                 >
                   <TodayMomentFeature
                     item={focalItem.item}
@@ -1307,7 +1300,6 @@ export function TodayPage({
                   className="today-section-upcoming"
                   title={t('m5s5.dashboard.upcomingTitle')}
                   kicker={t('m5s5.dashboard.upcomingKicker')}
-                  animationDelay="80ms"
                   headerAction={
                     <Link
                       to={appRoutePath('plan')}
@@ -1333,7 +1325,6 @@ export function TodayPage({
                   className="today-section-pinned-collection"
                   title={pinnedCollectionQuery.data.title}
                   kicker={t('m5s5.today.pinnedCollection.kicker')}
-                  animationDelay="100ms"
                   headerAction={
                     <TodayDestinationLink
                       to={collectionDetailPath(pinnedCollectionId)}
@@ -1380,7 +1371,6 @@ export function TodayPage({
                 <TodayModuleSection
                   className="today-section-living"
                   title={t('m5s5.today.living.kicker')}
-                  animationDelay="120ms"
                 >
                   <TodayLivingModuleCard
                     module={livingModule}
@@ -1412,7 +1402,6 @@ export function TodayPage({
                 <TodayModuleSection
                   className="today-section-monthly"
                   title={t('m5s5.today.monthly.title')}
-                  animationDelay="160ms"
                   headerAction={
                     <Link
                       to={`${appRoutePath('story')}?tab=timeline`}
@@ -1437,7 +1426,6 @@ export function TodayPage({
                   className="today-section-recent"
                   title={t('m5s5.dashboard.recentTitle')}
                   kicker={t('m5s5.dashboard.recentKicker')}
-                  animationDelay="200ms"
                 >
                   <div className="today-stream today-stream-recent">
                     {recentSharedForTrace

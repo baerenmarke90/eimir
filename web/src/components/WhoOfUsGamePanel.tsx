@@ -74,7 +74,7 @@ function ActiveWhoOfUsSessionView({
     const differentCount = snapshot.roundsPlayed - snapshot.agreementCount;
     return (
       <section
-        className="who-of-us-card who-of-us-finish eimir-motion-reveal"
+        className="who-of-us-card who-of-us-finish eimir-motion-success"
         aria-labelledby="who-of-us-finish-title"
       >
         <p className="eyebrow">{t('games.whoOfUs.finishEyebrow')}</p>
@@ -104,7 +104,7 @@ function ActiveWhoOfUsSessionView({
     return (
       <section
         key={`handoff-${snapshot.currentRoundIndex}`}
-        className="who-of-us-card who-of-us-handoff eimir-motion-reveal"
+        className="who-of-us-card who-of-us-handoff eimir-motion-disclosure"
         aria-labelledby="who-of-us-handoff-title"
       >
         <p className="eyebrow">{t('games.whoOfUs.handoffEyebrow')}</p>
@@ -139,7 +139,7 @@ function ActiveWhoOfUsSessionView({
     return (
       <section
         key={`reveal-${snapshot.currentRoundIndex}`}
-        className="who-of-us-card who-of-us-reveal eimir-motion-reveal"
+        className="who-of-us-card who-of-us-reveal"
         data-outcome={outcome}
         aria-live="polite"
         aria-labelledby="who-of-us-reveal-title"
@@ -203,7 +203,7 @@ function ActiveWhoOfUsSessionView({
       </div>
       <section
         key={`question-${snapshot.phase}-${snapshot.currentRoundIndex}`}
-        className="who-of-us-card who-of-us-question eimir-motion-reveal"
+        className="who-of-us-card who-of-us-question eimir-motion-disclosure"
         aria-labelledby="who-of-us-question-title"
       >
         <p className="eyebrow">

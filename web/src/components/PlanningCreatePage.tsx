@@ -265,7 +265,7 @@ export function PlanningCreatePage({
           {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
-              <div className="planning-optional-fields">
+              <div className="planning-optional-fields eimir-motion-disclosure">
                 <label htmlFor="planning-create-description">
                   {t('m5s3.common.description')}
                 </label>

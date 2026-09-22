@@ -616,10 +616,13 @@ test('keeps the pinned Collection compact on Expanded Web without introducing a 
     (element) => element.getBoundingClientRect().width,
   );
   expect(dialogWidth).toBeLessThan(700);
-  await addDialog
-    .getByRole('button', { name: de.common.cancel })
-    .click();
+  await page.keyboard.press('Escape');
   await expect(addDialog).toHaveCount(0);
+  await expect(
+    pinnedSection.getByRole('button', {
+      name: m5s5.today.pinnedCollection.addAction,
+    }),
+  ).toBeFocused();
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

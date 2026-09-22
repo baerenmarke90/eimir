@@ -75,8 +75,8 @@
     background: transparent;
     box-shadow: none;
     transition:
-      background var(--motion-fast),
-      border-color var(--motion-fast);
+      background var(--duration-feedback) var(--easing-standard),
+      border-color var(--duration-feedback) var(--easing-standard);
 
     &:hover {
       transform: none;

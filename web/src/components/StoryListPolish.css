@@ -119,7 +119,7 @@
   height: auto;
   object-fit: cover;
   object-position: center 30%;
-  transition: transform var(--motion-fast);
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {

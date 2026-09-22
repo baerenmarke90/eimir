@@ -238,8 +238,8 @@
   cursor: pointer;
   text-align: left;
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .profile-preference-chip:hover {
@@ -541,7 +541,7 @@
   font-size: 0.85rem;
   text-decoration: underline;
   text-underline-offset: 3px;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .relationship-notification-hint-link:hover,

@@ -143,8 +143,8 @@
   border: 0;
   border-radius: var(--radius-large);
   transition:
-    background var(--motion-fast),
-    transform var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .important-date-card:hover {
@@ -351,8 +351,8 @@ button.danger:hover:not(:disabled) {
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
   text-align: left;
   width: 100%;
   min-width: 0;
@@ -726,7 +726,7 @@ button.danger:hover:not(:disabled) {
   color: var(--color-text-secondary);
   font-size: 1.1rem;
   transform: rotate(0deg);
-  transition: transform var(--motion-fast);
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .focused-editor-disclosure[open] > summary::after {

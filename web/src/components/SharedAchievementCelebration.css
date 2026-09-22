@@ -138,8 +138,8 @@
   font-weight: 750;
   text-decoration: none;
   transition:
-    transform var(--motion-fast),
-    background var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .shared-achievement-cta:hover {

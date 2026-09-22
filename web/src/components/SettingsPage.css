@@ -182,8 +182,8 @@
   background: var(--color-surface);
   cursor: pointer;
   transition:
-    border-color var(--motion-duration-short),
-    background var(--motion-duration-short);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .space-visibility-option input {
@@ -281,8 +281,8 @@
   border-radius: 999px;
   background: var(--color-surface-subtle);
   transition:
-    border-color var(--motion-duration-short),
-    background var(--motion-duration-short);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .space-module-switch-thumb {
@@ -294,8 +294,8 @@
   border-radius: 50%;
   background: var(--color-text-secondary);
   transition:
-    transform var(--motion-duration-short),
-    background var(--motion-duration-short);
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .space-module-switch[aria-checked="true"] .space-module-switch-track {
@@ -467,9 +467,9 @@
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   transition:
-    border-color var(--motion-duration-short),
-    background var(--motion-duration-short),
-    color var(--motion-duration-short);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .dashboard-upcoming-option input {

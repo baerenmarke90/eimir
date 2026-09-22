@@ -2,7 +2,6 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
-import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';

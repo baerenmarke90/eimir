@@ -6,8 +6,8 @@
 
 Name | Type
 ------------ | -------------
-`kind` | [SupportGestureKind](SupportGestureKind.md)
 `clientRequestId` | string
+`kind` | [SupportGestureKind](SupportGestureKind.md)
 
 ## Example
 
@@ -16,8 +16,8 @@ import type { PartnerQuickActionCreate } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "kind": null,
   "clientRequestId": null,
+  "kind": null,
 } satisfies PartnerQuickActionCreate
 
 console.log(example)

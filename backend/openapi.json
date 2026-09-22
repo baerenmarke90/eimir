@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -1633,9 +1633,6 @@
           "partner": {
             "$ref": "#/components/schemas/PartnerVibeProjection"
           },
-          "visibilityMode": {
-            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
-          },
           "partnerNote": {
             "anyOf": [
               {
@@ -1646,6 +1643,9 @@
               }
             ],
             "title": "Partnernote"
+          },
+          "visibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
           }
         },
         "required": [
@@ -2274,7 +2274,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3416,7 +3416,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Position",
             "type": "integer"
           }
@@ -4367,6 +4367,49 @@
           "preferences"
         ],
         "title": "PartnerProfileView",
+        "type": "object"
+      },
+      "PartnerQuickActionAccepted": {
+        "properties": {
+          "availableAt": {
+            "format": "date-time",
+            "title": "Availableat",
+            "type": "string"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId",
+          "availableAt"
+        ],
+        "title": "PartnerQuickActionAccepted",
+        "type": "object"
+      },
+      "PartnerQuickActionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId"
+        ],
+        "title": "PartnerQuickActionCreate",
         "type": "object"
       },
       "PartnerVibeHidden": {
@@ -9093,6 +9136,14 @@
         "title": "StoryViewReceipt",
         "type": "object"
       },
+      "SupportGestureKind": {
+        "enum": [
+          "KISS",
+          "CHECK_IN"
+        ],
+        "title": "SupportGestureKind",
+        "type": "string"
+      },
       "ThinkingOfYouAccepted": {
         "properties": {
           "clientRequestId": {
@@ -9662,57 +9713,6 @@
           "state"
         ],
         "title": "OidcCallbackRequest",
-        "type": "object"
-      },
-      "SupportGestureKind": {
-        "enum": [
-          "KISS",
-          "CHECK_IN"
-        ],
-        "title": "SupportGestureKind",
-        "type": "string"
-      },
-      "PartnerQuickActionCreate": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "$ref": "#/components/schemas/SupportGestureKind"
-          },
-          "clientRequestId": {
-            "format": "uuid",
-            "title": "Clientrequestid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "clientRequestId"
-        ],
-        "title": "PartnerQuickActionCreate",
-        "type": "object"
-      },
-      "PartnerQuickActionAccepted": {
-        "properties": {
-          "kind": {
-            "$ref": "#/components/schemas/SupportGestureKind"
-          },
-          "clientRequestId": {
-            "format": "uuid",
-            "title": "Clientrequestid",
-            "type": "string"
-          },
-          "availableAt": {
-            "format": "date-time",
-            "title": "Availableat",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind",
-          "clientRequestId",
-          "availableAt"
-        ],
-        "title": "PartnerQuickActionAccepted",
         "type": "object"
       }
     }
@@ -13667,7 +13667,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants": {
       "post": {
-        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.",
+        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.\n\nGranting unlimited Premium is as consequential as the other high-risk\nServerAdmin actions in this router (account deletion, email verification,\nrecovery issuance), so it requires the same step-up re-authentication.",
         "operationId": "grant_server_admin_space_entitlement_api_v1_server_admin_spaces__space_id__entitlement_grants_post",
         "parameters": [
           {
@@ -13751,7 +13751,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke": {
       "post": {
-        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).",
+        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).\n\nRevoking a paying customer's entitlement is as consequential as the other\nhigh-risk ServerAdmin actions in this router, so it requires the same\nstep-up re-authentication.",
         "operationId": "revoke_server_admin_space_entitlement_grant_api_v1_server_admin_spaces__space_id__entitlement_grants__grant_id__revoke_post",
         "parameters": [
           {
@@ -16468,11 +16468,11 @@
               "X-Eimir-Shared-Achievement": {
                 "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
                 "schema": {
-                  "type": "string",
                   "enum": [
                     "plan-completed",
                     "collection-completed"
-                  ]
+                  ],
+                  "type": "string"
                 }
               }
             }
@@ -21312,6 +21312,98 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/partner-quick-actions": {
+      "post": {
+        "operationId": "sendPartnerQuickAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerQuickActionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerQuickActionAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Send Partner Quick Action",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/places": {
       "get": {
         "operationId": "listPlaces",
@@ -22823,11 +22915,11 @@
               "X-Eimir-Shared-Achievement": {
                 "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
                 "schema": {
-                  "type": "string",
                   "enum": [
                     "plan-completed",
                     "collection-completed"
-                  ]
+                  ],
+                  "type": "string"
                 }
               }
             }
@@ -28560,98 +28652,6 @@
         "summary": "Convert Wish To Plan",
         "tags": [
           "plans"
-        ]
-      }
-    },
-    "/api/v1/spaces/{spaceId}/partner-quick-actions": {
-      "post": {
-        "operationId": "sendPartnerQuickAction",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "spaceId",
-            "required": true,
-            "schema": {
-              "title": "Spaceid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PartnerQuickActionCreate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PartnerQuickActionAccepted"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The resource does not exist or is not visible to the caller."
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Request parameters or domain inputs are invalid."
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "Too many attempts occurred within the allowed time window."
-          }
-        },
-        "summary": "Send Partner Quick Action",
-        "tags": [
-          "notifications"
         ]
       }
     }

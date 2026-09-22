@@ -34,7 +34,10 @@ function readProductionStylesheets(): Record<string, string> {
 
       const path = `${prefix}${entry.name}`;
       if (path === './design/product-roles.css') continue;
-      stylesheets[path] = fs.readFileSync(new URL(entry.name, directory), 'utf8');
+      stylesheets[path] = fs.readFileSync(
+        new URL(entry.name, directory),
+        'utf8',
+      );
     }
   }
 

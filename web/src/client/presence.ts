@@ -8,6 +8,12 @@ import { useApiRuntime } from './apiRuntimeContext';
 export const PRESENCE_HEARTBEAT_INTERVAL_MS = 60_000;
 export const PRESENCE_EVENT_DEDUPE_MS = 5_000;
 
+/**
+ * Product gate for partner presence. The dormant implementation stays intact
+ * so re-enabling the feature remains a deliberate single-point decision.
+ */
+export const PARTNER_PRESENCE_PRODUCT_ENABLED = false;
+
 export function partnerPresenceQueryKey(accountId: string, spaceId: string) {
   return ['partner-presence', accountId, spaceId] as const;
 }

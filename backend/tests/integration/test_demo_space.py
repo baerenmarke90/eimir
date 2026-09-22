@@ -15,6 +15,8 @@ from eimir.authorization import AuthorizationContext
 from eimir.collections.models import Collection
 from eimir.config import Environment
 from eimir.core.errors import NotFoundError
+from eimir.daily_checkins.models import DailyCheckIn
+from eimir.dashboard import preferences as dashboard_preferences
 from eimir.dashboard import service as dashboard_service
 from eimir.demo.assets import import_demo_asset, load_and_validate_assets
 from eimir.demo.models import DemoCanonicalIdentity
@@ -89,8 +91,8 @@ def _assert_demo_configuration(configuration: SpaceConfiguration) -> None:
     assert configuration.shared_achievements_enabled is True
     assert configuration.daily_questions_enabled is True
     assert configuration.daily_context_timezone == "Europe/Berlin"
-    assert configuration.vibe_visibility_mode == "IMMEDIATE"
-    assert configuration.energy_visibility_mode == "IMMEDIATE"
+    assert configuration.vibe_visibility_mode == "MUTUAL_REVEAL"
+    assert configuration.energy_visibility_mode == "MUTUAL_REVEAL"
 
 
 def test_create_is_idempotent_and_representative(session: Session) -> None:
@@ -112,13 +114,13 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     _assert_demo_configuration(first_configuration)
     assert first_configuration.version == first_configuration_version
 
-    assert _count(session, Memory, first.space_id) == 10
+    assert _count(session, Memory, first.space_id) == 13
     assert _count(session, HeartMoment, first.space_id) == 2
     assert _count(session, Milestone, first.space_id) == 3
     assert _count(session, Wish, first.space_id) == 3
-    assert _count(session, Plan, first.space_id) == 6
+    assert _count(session, Plan, first.space_id) == 7
     assert _count(session, Place, first.space_id) == 2
-    assert _count(session, Collection, first.space_id) == 2
+    assert _count(session, Collection, first.space_id) == 3
     assert _count(session, PrivateNote, first.space_id) == 4
     assert _count(session, GiftIdea, first.space_id) == 4
     assert _count(session, PrivateCollection, first.space_id) == 2
@@ -127,6 +129,22 @@ def test_create_is_idempotent_and_representative(session: Session) -> None:
     assert _count(session, ProfilePreference, first.space_id) == 6
     assert _count(session, Activity, first.space_id) > 0
     assert _count(session, Notification, first.space_id) >= 2
+
+    assert _count(session, DailyCheckIn, first.space_id) == 26
+    for account_id in (first.lea_id, first.alex_id):
+        pinned = {
+            state.key: state
+            for state in dashboard_preferences.read_module_preferences(
+                session,
+                account_id=account_id,
+                space_id=first.space_id,
+            )
+        }[dashboard_preferences.DashboardModuleKey.PINNED_COLLECTION]
+        assert pinned.visible is True
+        assert pinned.selected_collection_id is not None
+        selected = session.get(Collection, pinned.selected_collection_id)
+        assert selected is not None
+        assert selected.payload.title == "Fürs Wochenende am See"
 
     attachments = list(
         session.execute(select(Attachment).where(Attachment.space_id == first.space_id)).scalars()
@@ -272,7 +290,7 @@ def test_reset_replaces_only_verified_demo_space(session: Session) -> None:
     result = _seed(session)
     old_space_id = result.space_id
     canonical_media = _canonical_memory_media(session, old_space_id)
-    assert len(canonical_media) == 10
+    assert len(canonical_media) == 13
     assert sum(len(filenames) for filenames in canonical_media.values()) == 11
 
     old_attachments = list(
@@ -436,6 +454,9 @@ def test_shared_story_has_no_placeholders_or_external_media_urls(session: Sessio
         "Wochenendtrip nach Trier",
         "Sonnenuntergang nach Feierabend",
         "Picknick im Grünen",
+        "Pfannkuchen am Sonntag",
+        "Abendrunde im Regen",
+        "Frühstück auf dem Balkon",
     } <= {memory.payload.title for memory in memories}
     for forbidden in ("${", "{variable}", "todo", "placeholder", "example", "http://", "https://"):
         assert forbidden not in shared_text

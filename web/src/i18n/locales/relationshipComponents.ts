@@ -13,13 +13,6 @@ const relationshipComponents = {
   couplePresencePartnerFallback: 'Dein Partner',
   formerMemberLabel: 'Ehemaliges Mitglied',
 
-  thinkingOfYouSendToPartner: 'Lieben Gruß an {{partner}} senden',
-  thinkingOfYouAction: 'Ich denke an dich',
-  thinkingOfYouSending: 'Wird gesendet …',
-  thinkingOfYouSent: 'Gesendet!',
-  thinkingOfYouCooldown: 'Wieder möglich in {{minutes}} Min.',
-  thinkingOfYouError: 'Senden fehlgeschlagen',
-
   partnerQuickActions: {
     trigger: 'Aktionen für {{partner}} öffnen',
     title: 'Für {{partner}}',

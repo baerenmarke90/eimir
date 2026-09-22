@@ -51,10 +51,6 @@ const m5s5 = {
     storySummaryMilestonesCount_one: '{{count}} Meilenstein',
     storySummaryMilestonesCount_other: '{{count}} Meilensteine',
     itemFallback: 'Gemeinsamer Eintrag',
-    thinkingOfYouButton: 'Ich denke an dich',
-    thinkingOfYouSent: 'Liebesgruß gesendet! ❤️',
-    thinkingOfYouCooldownBlocked:
-      'Du hast gerade schon ein Zeichen geschickt. In {{minutes}} Minuten kannst du wieder „Ich denke an dich“ senden.',
   },
   today: {
     headerTitle: 'Heute',

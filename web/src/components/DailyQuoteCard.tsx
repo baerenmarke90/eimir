@@ -278,12 +278,7 @@ export function DailyQuoteCard({
     setDraft(null);
     queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     queryClient.setQueryData(entitlementKey, false);
-  }, [
-    catalogQuery.error,
-    entitlementKey,
-    preferencesKey,
-    queryClient,
-  ]);
+  }, [catalogQuery.error, entitlementKey, preferencesKey, queryClient]);
 
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;

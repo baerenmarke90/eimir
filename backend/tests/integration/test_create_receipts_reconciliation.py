@@ -84,19 +84,18 @@ class TestCommentReplay:
         key = uuid4()
         path = self._path(couple, memory["id"])
 
-        first = client.post(path, json={"body": "Schoen!"}, headers=with_key(couple["token_a"], key))
+        headers = with_key(couple["token_a"], key)
+        first = client.post(path, json={"body": "Schoen!"}, headers=headers)
         assert first.status_code == 201
         events_after_create = session.execute(
             select(func.count()).select_from(OutboxEvent)
         ).scalar_one()
 
-        second = client.post(path, json={"body": "Schoen!"}, headers=with_key(couple["token_a"], key))
+        second = client.post(path, json={"body": "Schoen!"}, headers=headers)
 
         assert second.status_code == 200
         assert second.json()["id"] == first.json()["id"]
-        assert (
-            session.execute(select(func.count()).select_from(Comment)).scalar_one() == 1
-        )
+        assert session.execute(select(func.count()).select_from(Comment)).scalar_one() == 1
         # A replay writes nothing, so it cannot fire a second COMMENT_CREATED
         # event and therefore cannot deliver a second push notification.
         assert (
@@ -137,7 +136,8 @@ class TestCommentReplay:
         memory = _memory(client, couple)
         key = uuid4()
         path = self._path(couple, memory["id"])
-        created = client.post(path, json={"body": "Weg damit"}, headers=with_key(couple["token_a"], key))
+        headers = with_key(couple["token_a"], key)
+        created = client.post(path, json={"body": "Weg damit"}, headers=headers)
         assert created.status_code == 201
 
         deleted = client.delete(
@@ -146,20 +146,22 @@ class TestCommentReplay:
         )
         assert deleted.status_code == 204
 
-        replay = client.post(path, json={"body": "Weg damit"}, headers=with_key(couple["token_a"], key))
+        replay = client.post(path, json={"body": "Weg damit"}, headers=headers)
         assert replay.status_code == 404
         assert replay.json()["code"] == "COMMENT_CREATE_RESULT_DELETED"
         assert session.execute(select(func.count()).select_from(Comment)).scalar_one() == 0
 
-    def test_a_partner_using_the_same_key_gets_an_unrelated_create(
-        self, client, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_a_partner_using_the_same_key_gets_an_unrelated_create(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         memory = _memory(client, couple)
         key = uuid4()
         path = self._path(couple, memory["id"])
 
-        anna_comment = client.post(path, json={"body": "Anna"}, headers=with_key(couple["token_a"], key))
-        ben_comment = client.post(path, json={"body": "Ben"}, headers=with_key(couple["token_b"], key))
+        anna_comment = client.post(
+            path, json={"body": "Anna"}, headers=with_key(couple["token_a"], key)
+        )
+        ben_comment = client.post(
+            path, json={"body": "Ben"}, headers=with_key(couple["token_b"], key)
+        )
 
         assert anna_comment.status_code == 201
         assert ben_comment.status_code == 201
@@ -206,9 +208,7 @@ class TestCrossDomainIsolation:
     """The whole point of a shared table is that one client-chosen UUID must
     stay scoped to the resource type it was used for."""
 
-    def test_the_same_key_for_a_comment_and_a_wish_does_not_collide(
-        self, client, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_the_same_key_for_a_comment_and_a_wish_does_not_collide(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         memory = _memory(client, couple)
         key = uuid4()
 
@@ -304,9 +304,7 @@ class TestHeartMomentReplay:
         assert second.json()["id"] == first.json()["id"]
         assert session.execute(select(func.count()).select_from(HeartMoment)).scalar_one() == 1
 
-    def test_only_the_creator_can_replay_an_owner_only_heart_moment(
-        self, client, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_only_the_creator_can_replay_an_owner_only_heart_moment(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         key = uuid4()
         path = f"{base_path(couple['space'].id)}/heart-moments"
         body = {

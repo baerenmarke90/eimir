@@ -222,7 +222,7 @@ export function ShortTaskSheet({
       if (current instanceof HTMLElement) {
         if (current.classList.contains('short-task-sheet-body')) return current;
         const style = window.getComputedStyle(current);
-        const scrollableOverflow = /(auto|scroll|overlay)/.test(style.overflowY);
+        const scrollableOverflow = /(auto|scroll|overlay)/.test(\n          style.overflowY,\n        );
         if (
           scrollableOverflow &&
           (current.scrollHeight > current.clientHeight || current.scrollTop > 0)
@@ -240,7 +240,7 @@ export function ShortTaskSheet({
     dialog: HTMLDialogElement,
   ): { target: Element; scrollOwner: HTMLElement | null } | null {
     const element = elementFromTarget(target);
-    if (!element || element === dialog || !dialog.contains(element)) return null;
+    if (!element || element === dialog || !dialog.contains(element))\n      return null;
 
     const startsOnClose = Boolean(
       element.closest('.short-task-sheet-drag-zone'),

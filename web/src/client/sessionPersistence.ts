@@ -6,7 +6,7 @@ import { createReferenceApis } from './referenceFlow';
 export const SESSION_STORAGE_KEY = 'eimir-session-v1';
 export const LEGACY_SESSION_STORAGE_KEY = 'sidebyside-session-v1';
 
-let inFlightRefresh: Promise<TokenView> | null = null;
+const inFlightRefreshes = new Map<string, Promise<TokenView>>();
 
 function parseStoredDate(value: unknown): Date {
   if (value instanceof Date) return value;
@@ -144,20 +144,23 @@ export async function refreshSessionTokens(
   apiBaseUrl: string,
   refreshToken: string,
 ): Promise<TokenView> {
-  if (inFlightRefresh) {
-    return inFlightRefresh;
-  }
+  const refreshKey = `${apiBaseUrl}\u0000${refreshToken}`;
+  const existingRefresh = inFlightRefreshes.get(refreshKey);
+  if (existingRefresh) return existingRefresh;
 
-  inFlightRefresh = (async () => {
+  const refreshPromise = (async () => {
     try {
       const apis = createReferenceApis(apiBaseUrl);
       const newTokens = await apis.auth.refreshApiV1AuthRefreshPost({
         refreshRequest: { refreshToken },
       });
 
-      // Update session in storage if present
+      // A refresh response belongs to exactly the session generation that
+      // started it. Logout, re-authentication, or an Account switch may replace
+      // sessionStorage while the request is in flight; never write old tokens
+      // into that newer session.
       const currentSession = loadStoredSession();
-      if (currentSession) {
+      if (currentSession?.tokens.refreshToken === refreshToken) {
         storeSession({
           account: currentSession.account,
           tokens: newTokens,
@@ -169,13 +172,25 @@ export async function refreshSessionTokens(
     } catch (error) {
       const normalized = await normalizeClientError(error);
       if (normalized.status === 401) {
-        clearStoredSession();
+        const currentSession = loadStoredSession();
+        if (currentSession?.tokens.refreshToken === refreshToken) {
+          clearStoredSession();
+        }
       }
       throw normalized;
-    } finally {
-      inFlightRefresh = null;
     }
   })();
 
-  return inFlightRefresh;
+  inFlightRefreshes.set(refreshKey, refreshPromise);
+  void refreshPromise.finally(() => {
+    if (inFlightRefreshes.get(refreshKey) === refreshPromise) {
+      inFlightRefreshes.delete(refreshKey);
+    }
+  }).catch(() => {
+    // The caller owns the original refresh rejection. The cleanup continuation
+    // intentionally observes it only so this detached Promise cannot become an
+    // unhandled rejection.
+  });
+
+  return refreshPromise;
 }

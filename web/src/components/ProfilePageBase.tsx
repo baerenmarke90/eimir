@@ -439,6 +439,7 @@ export function PreferenceDialog({
   restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
+  const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
   const renderedPreferenceRef = useRef(preference);
@@ -472,6 +473,19 @@ export function PreferenceDialog({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onCancel, present]);
 
+  // Backdrop dismissal remains pointer-owned; Escape is the keyboard
+  // equivalent, so the presentation container itself is not a fake button.
+  useEffect(() => {
+    if (!present) return;
+    const backdrop = backdropRef.current;
+    if (!backdrop) return;
+    function handleBackdropClick(event: MouseEvent) {
+      if (isOpen && event.target === backdrop) onCancel();
+    }
+    backdrop.addEventListener('click', handleBackdropClick);
+    return () => backdrop.removeEventListener('click', handleBackdropClick);
+  }, [isOpen, onCancel, present]);
+
   if (!present) return null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -491,12 +505,10 @@ export function PreferenceDialog({
 
   return (
     <div
+      ref={backdropRef}
       className="preference-modal-backdrop"
       data-presence={presenceState}
       role="presentation"
-      onClick={(event) => {
-        if (isOpen && event.target === event.currentTarget) onCancel();
-      }}
     >
       <div
         ref={dialogRef}

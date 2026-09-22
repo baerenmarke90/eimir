@@ -1,15 +1,5 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import {
-  type ReactNode,
-  type RefObject,
-  useId,
-  useRef,
-  useState,
-} from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type ReactNode, type RefObject, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
@@ -33,10 +23,7 @@ import type { M4ProductApis } from '../client/m4Product';
 import { useTranslation } from '../i18n';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { ProMark } from './ProMark';
-import {
-  ShortTaskSheet,
-  type ShortTaskSheetHandle,
-} from './ShortTaskSheet';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PartnerQuickActions.css';
 
 const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
@@ -107,24 +94,30 @@ export function PartnerQuickActions({
   const inFlightRef = useRef(false);
   const titleId = useId();
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [compactPresent, setCompactPresent] = useState(false);
   const [localThinkingCooldown, setLocalThinkingCooldown] =
     useState<Date | null>(null);
   const [extendedCooldowns, setExtendedCooldowns] = useState<
     Partial<Record<'KISS' | 'CHECK_IN', Date>>
   >({});
 
-  const { isOpen, close, toggle, triggerRef, panelRef } =
-    useDismissiblePopover({
+  const { isOpen, close, toggle, triggerRef, panelRef } = useDismissiblePopover(
+    {
       restoreFocusOnEscape: isExpanded,
       dismissOnOutsidePointerDown: isExpanded,
       dismissOnEscape: isExpanded,
-    });
+    },
+  );
 
   const capabilityQuery = useQuery({
     queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
     queryFn: ({ signal }) => {
       if (!entitlementApi) {
-        throw new ClientProblemError('server', undefined, 'ENTITLEMENT_API_UNAVAILABLE');
+        throw new ClientProblemError(
+          'server',
+          undefined,
+          'ENTITLEMENT_API_UNAVAILABLE',
+        );
       }
       return loadPartnerQuickActionsCapability(entitlementApi, spaceId, signal);
     },
@@ -249,12 +242,10 @@ export function PartnerQuickActions({
   const resolvedThinkingCooldown =
     localThinkingCooldown ?? thinkingOfYouAvailableAt;
   const thinkingCoolingDown = Boolean(
-    resolvedThinkingCooldown &&
-      resolvedThinkingCooldown.getTime() > Date.now(),
+    resolvedThinkingCooldown && resolvedThinkingCooldown.getTime() > Date.now(),
   );
   const kissCoolingDown = Boolean(
-    extendedCooldowns.KISS &&
-      extendedCooldowns.KISS.getTime() > Date.now(),
+    extendedCooldowns.KISS && extendedCooldowns.KISS.getTime() > Date.now(),
   );
   const checkInCoolingDown = Boolean(
     extendedCooldowns.CHECK_IN &&
@@ -339,9 +330,7 @@ export function PartnerQuickActions({
                 mutation.isPending || (hasExtendedCapability && kissCoolingDown)
               }
               onClick={() =>
-                hasExtendedCapability
-                  ? void submit('KISS')
-                  : navigateToPro()
+                hasExtendedCapability ? void submit('KISS') : navigateToPro()
               }
             >
               <span className="partner-quick-action-icon" aria-hidden="true">
@@ -419,7 +408,11 @@ export function PartnerQuickActions({
     </div>
   );
 
-  const surfaceId = isExpanded
+  // Keep the Compact retained exit authoritative across a breakpoint change.
+  // This mirrors the notification-sheet handoff from #1220: the Expanded
+  // popover must not coexist with a still-modal sheet or steal its surface id.
+  const expandedPopoverOpen = isExpanded && isOpen && !compactPresent;
+  const surfaceId = expandedPopoverOpen
     ? 'partner-quick-actions-popover'
     : 'partner-quick-actions-sheet';
 
@@ -436,7 +429,7 @@ export function PartnerQuickActions({
   };
 
   const expandedPopover =
-    isExpanded && isOpen ? (
+    expandedPopoverOpen ? (
       <section
         ref={panelRef as RefObject<HTMLElement>}
         id={surfaceId}
@@ -463,6 +456,7 @@ export function PartnerQuickActions({
         onClose={() => close()}
         initialFocusRef={firstActionRef}
         restoreFocusRef={triggerRef}
+        onPresenceChange={setCompactPresent}
         className="partner-quick-actions-sheet"
       >
         {actionList}

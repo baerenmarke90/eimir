@@ -392,7 +392,9 @@ test('reflects a Dashboard-authoritative Thinking-of-you cooldown immediately on
   const sheet = page.getByRole('dialog', {
     name: copy.title.replace('{{partner}}', 'Ben'),
   });
-  await expect(sheet.getByRole('button', { name: copy.thinking })).toBeDisabled();
+  await expect(
+    sheet.getByRole('button', { name: copy.thinking }),
+  ).toBeDisabled();
   await expect(sheet.getByText(copy.cooldown).first()).toBeVisible();
 });
 
@@ -448,6 +450,52 @@ test('sends both extended gestures once the central entitlement grants the capab
       .map((action) => action.kind)
       .sort(),
   ).toEqual(['CHECK_IN', 'KISS']);
+});
+
+test('hands an open Compact sheet to Expanded without duplicate surfaces or stale modality, then returns to Compact', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page, { hasExtendedCapability: true });
+  await signIn(page);
+
+  const trigger = triggerLocator(page);
+  await trigger.click();
+  const sheet = page.locator('.partner-quick-actions-sheet.short-task-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toHaveAttribute('data-presence', 'open');
+  await expect(page.locator('.partner-quick-actions-popover')).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await expect(sheet).toHaveAttribute('data-presence', 'exiting');
+  await expect(page.locator('.partner-quick-actions-popover')).toHaveCount(0);
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-sheet',
+  );
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .toBe('hidden');
+
+  await expect(sheet).toHaveCount(0);
+  const popover = page.locator('.partner-quick-actions-popover');
+  await expect(popover).toBeVisible();
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-popover',
+  );
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.overflow))
+    .not.toBe('hidden');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(popover).toHaveCount(0);
+  await expect(page.locator('.partner-quick-actions-sheet')).toBeVisible();
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-sheet',
+  );
 });
 
 test('presents a non-modal, dismissible popover on Expanded Web instead of the Compact sheet', async ({

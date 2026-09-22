@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -8,7 +9,15 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import '../i18n';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
@@ -51,11 +60,7 @@ beforeEach(() => {
   });
 });
 
-function AvatarTrigger({
-  action,
-}: {
-  action: CouplePresenceAvatarAction;
-}) {
+function AvatarTrigger({ action }: { action: CouplePresenceAvatarAction }) {
   return (
     <button
       type="button"
@@ -85,7 +90,9 @@ function renderQuickActions({
   });
   const snackbars: string[] = [];
   window.addEventListener(SNACKBAR_EVENT, (event) =>
-    snackbars.push((event as CustomEvent<SnackbarEventDetail>).detail.messageKey),
+    snackbars.push(
+      (event as CustomEvent<SnackbarEventDetail>).detail.messageKey,
+    ),
   );
 
   const resolvedEntitlementApi =
@@ -120,6 +127,68 @@ function openSheet() {
   fireEvent.click(screen.getByRole('button', { name: /Marie/ }));
 }
 
+function fireReactAnimationEnd(element: Element): void {
+  fireEvent.animationEnd(element);
+  if (element.isConnected) {
+    fireEvent(element, new Event('webkitAnimationEnd', { bubbles: true }));
+  }
+}
+
+function mockResponsiveMatchMedia(): {
+  setExpanded: (matches: boolean) => void;
+} {
+  let expanded = false;
+  const expandedListeners = new Set<(event: MediaQueryListEvent) => void>();
+
+  window.matchMedia = vi.fn().mockImplementation((query: string) => {
+    const isExpandedQuery = query === '(min-width: 840px)';
+    const mediaQuery = {
+      get matches() {
+        if (isExpandedQuery) return expanded;
+        if (query === '(prefers-reduced-motion: reduce)') return false;
+        return false;
+      },
+      media: query,
+      onchange: null,
+      addListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+        if (isExpandedQuery) expandedListeners.add(listener);
+      }),
+      removeListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
+        if (isExpandedQuery) expandedListeners.delete(listener);
+      }),
+      addEventListener: vi.fn(
+        (type: string, listener: (event: MediaQueryListEvent) => void) => {
+          if (isExpandedQuery && type === 'change') {
+            expandedListeners.add(listener);
+          }
+        },
+      ),
+      removeEventListener: vi.fn(
+        (type: string, listener: (event: MediaQueryListEvent) => void) => {
+          if (isExpandedQuery && type === 'change') {
+            expandedListeners.delete(listener);
+          }
+        },
+      ),
+      dispatchEvent: vi.fn(),
+    };
+    return mediaQuery;
+  });
+
+  return {
+    setExpanded(matches: boolean) {
+      expanded = matches;
+      const event = {
+        matches,
+        media: '(min-width: 840px)',
+      } as MediaQueryListEvent;
+      act(() => {
+        for (const listener of expandedListeners) listener(event);
+      });
+    },
+  };
+}
+
 describe('PartnerQuickActions', () => {
   it('exposes the avatar as a closed dialog trigger and opens the Compact sheet on activation', async () => {
     renderQuickActions();
@@ -135,6 +204,54 @@ describe('PartnerQuickActions', () => {
     expect(screen.getByText(copy.thinking)).toBeDefined();
     expect(await screen.findByText(copy.kiss)).toBeDefined();
     expect(screen.getByText(copy.checkIn)).toBeDefined();
+  });
+
+  it('hands an open Compact sheet to Expanded only after retained exit completes, then returns cleanly to Compact', async () => {
+    const responsive = mockResponsiveMatchMedia();
+    renderQuickActions();
+    openSheet();
+
+    const trigger = screen.getByRole('button', { name: /Marie/ });
+    const sheet = screen.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Marie'),
+    });
+
+    expect(sheet.getAttribute('id')).toBe('partner-quick-actions-sheet');
+    expect(document.querySelector('.partner-quick-actions-popover')).toBeNull();
+
+    responsive.setExpanded(true);
+
+    await waitFor(() =>
+      expect(sheet.getAttribute('data-presence')).toBe('exiting'),
+    );
+    expect(document.body.contains(sheet)).toBe(true);
+    expect(document.querySelector('.partner-quick-actions-popover')).toBeNull();
+    expect(trigger.getAttribute('aria-controls')).toBe(
+      'partner-quick-actions-sheet',
+    );
+
+    fireReactAnimationEnd(sheet);
+
+    await waitFor(() => expect(document.body.contains(sheet)).toBe(false));
+    await waitFor(() =>
+      expect(
+        document.querySelector('.partner-quick-actions-popover'),
+      ).not.toBeNull(),
+    );
+    expect(trigger.getAttribute('aria-controls')).toBe(
+      'partner-quick-actions-popover',
+    );
+    expect(document.body.style.overflow).not.toBe('hidden');
+
+    responsive.setExpanded(false);
+
+    await waitFor(() =>
+      expect(document.querySelector('.short-task-sheet')).not.toBeNull(),
+    );
+    expect(document.querySelector('.partner-quick-actions-popover')).toBeNull();
+    expect(trigger.getAttribute('aria-controls')).toBe(
+      'partner-quick-actions-sheet',
+    );
   });
 
   it('reflects a server-authoritative Thinking-of-you cooldown from load without sending (regression #790/#791)', () => {
@@ -245,7 +362,12 @@ describe('PartnerQuickActions', () => {
     const sendThinkingOfYou = vi
       .fn()
       .mockRejectedValue(
-        new ClientProblemError('rateLimit', 429, 'THINKING_OF_YOU_COOLDOWN', 60),
+        new ClientProblemError(
+          'rateLimit',
+          429,
+          'THINKING_OF_YOU_COOLDOWN',
+          60,
+        ),
       );
     renderQuickActions({ apis: { sendThinkingOfYou } });
 

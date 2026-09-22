@@ -51,11 +51,13 @@ export function useModalLifecycle({
   shouldRestoreFocus,
 }: ModalLifecycleOptions): void {
   const shouldRestoreFocusRef = useRef(shouldRestoreFocus);
+  const activationGenerationRef = useRef(0);
   shouldRestoreFocusRef.current = shouldRestoreFocus;
 
   useEffect(() => {
     if (!active || typeof document === 'undefined') return;
 
+    const activationGeneration = ++activationGenerationRef.current;
     const previousFocus =
       restoreFocusRef?.current ??
       (document.activeElement instanceof HTMLElement
@@ -74,6 +76,9 @@ export function useModalLifecycle({
 
       if (mayRestore) {
         const restore = () => {
+          // A deferred cleanup from StrictMode replay or a rapid close/reopen
+          // must not steal focus from the newer active modal generation.
+          if (activationGenerationRef.current !== activationGeneration) return;
           if (previousFocus.isConnected) {
             previousFocus.focus({ preventScroll: true });
           }

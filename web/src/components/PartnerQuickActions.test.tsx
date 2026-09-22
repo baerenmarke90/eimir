@@ -284,6 +284,31 @@ describe('PartnerQuickActions', () => {
     expect(screen.getAllByText(copy.cooldown).length).toBeGreaterThan(0);
   });
 
+  it('reenables Thinking-of-you when the server-authoritative cooldown expires while the hub stays open', () => {
+    vi.useFakeTimers();
+    try {
+      const now = new Date('2026-09-22T20:00:00Z');
+      vi.setSystemTime(now);
+      renderQuickActions({
+        thinkingOfYouAvailableAt: new Date(now.getTime() + 1_000),
+      });
+
+      openSheet();
+      const thinkingButton = screen
+        .getByText(copy.thinking)
+        .closest('button') as HTMLButtonElement;
+      expect(thinkingButton.disabled).toBe(true);
+
+      act(() => {
+        vi.advanceTimersByTime(1_001);
+      });
+
+      expect(thinkingButton.disabled).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not disable Thinking-of-you when no cooldown is active, and sends on activation', async () => {
     const sendThinkingOfYou = vi.fn().mockResolvedValue({
       thinkingOfYouAvailableAt: new Date(Date.now() + 30 * 60_000),

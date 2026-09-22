@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type ReactNode, type RefObject, useId, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
@@ -96,6 +103,7 @@ export function PartnerQuickActions({
   const titleId = useId();
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [compactPresent, setCompactPresent] = useState(false);
+  const [, setCooldownRevision] = useState(0);
   const [localThinkingCooldown, setLocalThinkingCooldown] =
     useState<Date | null>(null);
   const [extendedCooldowns, setExtendedCooldowns] = useState<
@@ -266,15 +274,45 @@ export function PartnerQuickActions({
 
   const resolvedThinkingCooldown =
     localThinkingCooldown ?? thinkingOfYouAvailableAt;
+  const cooldownNow = Date.now();
+  const nextCooldownAt = [
+    resolvedThinkingCooldown?.getTime(),
+    extendedCooldowns.KISS?.getTime(),
+    extendedCooldowns.CHECK_IN?.getTime(),
+  ]
+    .filter(
+      (deadline): deadline is number =>
+        deadline !== undefined && deadline > cooldownNow,
+    )
+    .reduce<number | null>(
+      (earliest, deadline) =>
+        earliest === null ? deadline : Math.min(earliest, deadline),
+      null,
+    );
+
+  useEffect(() => {
+    if (!isOpen || nextCooldownAt === null) return;
+    // The server-owned absolute deadline remains the source of truth. This
+    // timeout only causes a presentation refresh when that deadline passes; it
+    // never delays domain state, sending, or overlay lifecycle.
+    const timeout = window.setTimeout(
+      () => setCooldownRevision((revision) => revision + 1),
+      Math.max(0, nextCooldownAt - Date.now() + 1),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [isOpen, nextCooldownAt]);
+
   const thinkingCoolingDown = Boolean(
-    resolvedThinkingCooldown && resolvedThinkingCooldown.getTime() > Date.now(),
+    resolvedThinkingCooldown &&
+      resolvedThinkingCooldown.getTime() > cooldownNow,
   );
   const kissCoolingDown = Boolean(
-    extendedCooldowns.KISS && extendedCooldowns.KISS.getTime() > Date.now(),
+    extendedCooldowns.KISS &&
+      extendedCooldowns.KISS.getTime() > cooldownNow,
   );
   const checkInCoolingDown = Boolean(
     extendedCooldowns.CHECK_IN &&
-      extendedCooldowns.CHECK_IN.getTime() > Date.now(),
+      extendedCooldowns.CHECK_IN.getTime() > cooldownNow,
   );
 
   const submit = async (action: PartnerAction) => {

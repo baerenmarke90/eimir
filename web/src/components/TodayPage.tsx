@@ -1262,14 +1262,32 @@ export function TodayPage({
             </div>
           ) : (
             <>
-              {/* 2. Demnächst — the short shared horizon. One item is the
+              {/* Personal shared content comes before the practical horizon:
+                  Today should show the relationship itself before another
+                  stack of planning utilities. */}
+              {showMomentSection && keepsakeVisible && focalItem ? (
+                <TodayModuleSection
+                  className="today-section-moment"
+                  title={t('m5s5.today.keepsake.title')}
+                  kicker={t('m5s5.today.keepsake.kicker')}
+                  animationDelay="40ms"
+                >
+                  <TodayMomentFeature
+                    item={focalItem.item}
+                    loadMemoryImage={loadMemoryImage}
+                    isKeepsake={focalItem.kind === 'keepsake'}
+                  />
+                </TodayModuleSection>
+              ) : null}
+
+              {/* Demnächst — the short shared horizon. One item is the
                   default and must read as complete on its own; two or three
                   stay restrained rather than becoming an agenda table. */}
               {upcomingVisible && upcoming.length > 0 ? (
                 <TodayModuleSection
                   className="today-section-upcoming"
                   title={t('m5s5.dashboard.upcomingTitle')}
-                  animationDelay="40ms"
+                  animationDelay="80ms"
                   headerAction={
                     <Link
                       to={appRoutePath('plan')}
@@ -1295,7 +1313,7 @@ export function TodayPage({
                   className="today-section-pinned-collection"
                   title={pinnedCollectionQuery.data.title}
                   kicker={t('m5s5.today.pinnedCollection.kicker')}
-                  animationDelay="60ms"
+                  animationDelay="100ms"
                   headerAction={
                     <TodayDestinationLink
                       to={collectionDetailPath(pinnedCollectionId)}
@@ -1335,22 +1353,6 @@ export function TodayPage({
                     {t('common.retry')}
                   </button>
                 </div>
-              ) : null}
-
-              {/* 3. One real shared focal item — photo or deliberate text. */}
-              {showMomentSection && keepsakeVisible && focalItem ? (
-                <TodayModuleSection
-                  className="today-section-moment"
-                  title={t('m5s5.today.keepsake.title')}
-                  kicker={t('m5s5.today.keepsake.kicker')}
-                  animationDelay="80ms"
-                >
-                  <TodayMomentFeature
-                    item={focalItem.item}
-                    loadMemoryImage={loadMemoryImage}
-                    isKeepsake={focalItem.kind === 'keepsake'}
-                  />
-                </TodayModuleSection>
               ) : null}
 
               {/* 4. Gerade bei euch — exactly one contextual module. */}

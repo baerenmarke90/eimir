@@ -38,10 +38,7 @@ export function SharedAchievementCelebration({
       aria-hidden={presenceState === 'exiting' ? true : undefined}
       inert={presenceState === 'exiting' ? true : undefined}
       onAnimationEnd={(event) => {
-        if (
-          event.target !== event.currentTarget ||
-          presenceState !== 'exiting'
-        )
+        if (event.target !== event.currentTarget || presenceState !== 'exiting')
           return;
         completeExit();
       }}

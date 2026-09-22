@@ -1,3 +1,21 @@
+@keyframes partner-quick-actions-popover-enter {
+  from {
+    transform: translate(-50%, var(--space-1));
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes partner-quick-actions-popover-exit {
+  from {
+    transform: translate(-50%, 0);
+  }
+  to {
+    transform: translate(-50%, calc(-1 * var(--space-1)));
+  }
+}
+
 .partner-quick-actions-popover {
   position: absolute;
   top: calc(100% + var(--space-3));
@@ -11,6 +29,14 @@
   box-shadow: var(--shadow-soft);
   transform: translateX(-50%);
   text-align: left;
+  animation: partner-quick-actions-popover-enter var(--duration-transition)
+    var(--easing-enter) both;
+}
+
+.partner-quick-actions-popover[data-presence='exiting'] {
+  pointer-events: none;
+  animation-name: partner-quick-actions-popover-exit;
+  animation-timing-function: var(--easing-exit);
 }
 
 .partner-quick-actions-title {
@@ -197,6 +223,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .partner-quick-actions-popover {
+    animation: none;
+  }
+
   .partner-quick-action {
     transition: none;
   }

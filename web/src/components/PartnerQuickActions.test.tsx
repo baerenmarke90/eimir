@@ -243,7 +243,20 @@ describe('PartnerQuickActions', () => {
     );
     expect(document.body.style.overflow).not.toBe('hidden');
 
+    const popover = document.querySelector(
+      '.partner-quick-actions-popover',
+    ) as HTMLElement;
     responsive.setExpanded(false);
+
+    await waitFor(() =>
+      expect(popover.getAttribute('data-presence')).toBe('exiting'),
+    );
+    expect(document.querySelector('.short-task-sheet')).toBeNull();
+    expect(trigger.getAttribute('aria-controls')).toBe(
+      'partner-quick-actions-popover',
+    );
+
+    fireReactAnimationEnd(popover);
 
     await waitFor(() =>
       expect(document.querySelector('.short-task-sheet')).not.toBeNull(),

@@ -490,6 +490,13 @@ test('hands an open Compact sheet to Expanded without duplicate surfaces or stal
     .not.toBe('hidden');
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(popover).toHaveAttribute('data-presence', 'exiting');
+  await expect(page.locator('.partner-quick-actions-sheet')).toHaveCount(0);
+  await expect(trigger).toHaveAttribute(
+    'aria-controls',
+    'partner-quick-actions-popover',
+  );
+
   await expect(popover).toHaveCount(0);
   await expect(page.locator('.partner-quick-actions-sheet')).toBeVisible();
   await expect(trigger).toHaveAttribute(

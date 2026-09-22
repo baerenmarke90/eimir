@@ -24,6 +24,7 @@ import { useTranslation } from '../i18n';
 import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { usePresentationPresence } from './useOverlayPresence';
 import './PartnerQuickActions.css';
 
 const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
@@ -108,6 +109,13 @@ export function PartnerQuickActions({
       dismissOnEscape: isExpanded,
     },
   );
+  const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  const {
+    present: expandedPresent,
+    presenceState: expandedPresenceState,
+    completeExit: completeExpandedExit,
+  } = usePresentationPresence(desiredExpandedOpen);
+  const compactOpen = isOpen && !isExpanded && !expandedPresent;
 
   const capabilityQuery = useQuery({
     queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
@@ -389,7 +397,9 @@ export function PartnerQuickActions({
 
       {feedback ? (
         <p
-          className={`partner-quick-actions-feedback is-${feedback.tone}`}
+          className={`partner-quick-actions-feedback is-${feedback.tone}${
+            feedback.tone === 'success' ? ' eimir-motion-success' : ''
+          }`}
           role={feedback.tone === 'error' ? 'alert' : 'status'}
           aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
         >
@@ -408,11 +418,11 @@ export function PartnerQuickActions({
     </div>
   );
 
-  // Keep the Compact retained exit authoritative across a breakpoint change.
-  // This mirrors the notification-sheet handoff from #1220: the Expanded
-  // popover must not coexist with a still-modal sheet or steal its surface id.
-  const expandedPopoverOpen = isExpanded && isOpen && !compactPresent;
-  const surfaceId = expandedPopoverOpen
+  // Keep retained presentation authoritative in both breakpoint directions.
+  // This mirrors the notification-sheet handoff from #1220: the two surfaces
+  // never coexist, and the currently presented surface keeps its stable id
+  // until its real completion signal releases ownership.
+  const surfaceId = expandedPresent
     ? 'partner-quick-actions-popover'
     : 'partner-quick-actions-sheet';
 
@@ -429,14 +439,23 @@ export function PartnerQuickActions({
   };
 
   const expandedPopover =
-    expandedPopoverOpen ? (
+    expandedPresent ? (
       <section
         ref={panelRef as RefObject<HTMLElement>}
         id={surfaceId}
         className="partner-quick-actions-popover"
+        data-presence={expandedPresenceState}
         role="dialog"
         aria-modal="false"
         aria-labelledby={titleId}
+        onAnimationEnd={(event) => {
+          if (
+            event.target !== event.currentTarget ||
+            expandedPresenceState !== 'exiting'
+          )
+            return;
+          completeExpandedExit();
+        }}
       >
         <h2 id={titleId} className="partner-quick-actions-title">
           {t('partnerQuickActions.title', { partner: partnerName })}
@@ -451,7 +470,7 @@ export function PartnerQuickActions({
       <ShortTaskSheet
         ref={sheetRef}
         id={surfaceId}
-        open={isOpen && !isExpanded}
+        open={compactOpen}
         title={t('partnerQuickActions.title', { partner: partnerName })}
         onClose={() => close()}
         initialFocusRef={firstActionRef}

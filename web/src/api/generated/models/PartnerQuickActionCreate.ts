@@ -41,6 +41,8 @@ export interface PartnerQuickActionCreate {
     clientRequestId: string;
 }
 
+
+
 /**
  * Check if a given object implements the PartnerQuickActionCreate interface.
  */

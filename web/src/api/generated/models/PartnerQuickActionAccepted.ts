@@ -47,6 +47,8 @@ export interface PartnerQuickActionAccepted {
     availableAt: Date;
 }
 
+
+
 /**
  * Check if a given object implements the PartnerQuickActionAccepted interface.
  */

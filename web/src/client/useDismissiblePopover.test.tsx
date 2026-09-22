@@ -94,4 +94,31 @@ describe('useDismissiblePopover', () => {
 
     document.body.removeChild(trigger);
   });
+
+  it('closes on Escape without restoring focus when restoreFocusOnEscape is false', () => {
+    const { result } = renderHook(
+      () => useDismissiblePopover({ restoreFocusOnEscape: false }),
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    );
+
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const focusSpy = vi.spyOn(trigger, 'focus');
+    result.current.triggerRef.current = trigger;
+
+    act(() => {
+      result.current.open();
+    });
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.isOpen).toBe(false);
+    expect(focusSpy).not.toHaveBeenCalled();
+
+    document.body.removeChild(trigger);
+  });
 });

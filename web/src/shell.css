@@ -351,14 +351,15 @@
 
 .header-notifications-footer {
   padding: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-border-subtle);
-  background: var(--color-surface-subtle);
   text-align: center;
 }
 
 .header-notifications-all-link {
-  display: inline-block;
-  padding: var(--space-2);
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-brand);
@@ -388,6 +389,58 @@
   z-index: 91;
   padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  opacity: 1;
+  transform: translateY(0);
+  animation: header-notifications-sheet-enter var(--duration-context)
+    var(--easing-enter);
+}
+
+.header-notifications-portal[data-presence="exiting"]
+  .header-notifications-bottom-sheet {
+  pointer-events: none;
+  animation: header-notifications-sheet-exit var(--duration-transition)
+    var(--easing-exit) forwards;
+}
+
+@keyframes header-notifications-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes header-notifications-sheet-exit {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes header-notifications-backdrop-enter {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--color-scrim);
+  }
+}
+
+@keyframes header-notifications-backdrop-exit {
+  to {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-notifications-bottom-sheet,
+  .header-notifications-backdrop {
+    animation: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -395,7 +448,16 @@
     position: fixed;
     inset: 0;
     z-index: 90;
-    background: rgba(0, 0, 0, 0.4);
+    background-color: var(--color-scrim);
+    animation: header-notifications-backdrop-enter var(--duration-context)
+      var(--easing-enter);
+  }
+
+  .header-notifications-portal[data-presence="exiting"]
+    .header-notifications-backdrop {
+    pointer-events: none;
+    animation: header-notifications-backdrop-exit var(--duration-transition)
+      var(--easing-exit) forwards;
   }
 
   .header-notifications-popover {

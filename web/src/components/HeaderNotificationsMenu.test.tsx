@@ -1,8 +1,14 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import {
   notificationUnreadCountQueryKey,
@@ -11,6 +17,37 @@ import {
 import m5s5 from '../i18n/locales/m5s5';
 import navigation from '../i18n/locales/navigation';
 import { HeaderNotificationsMenu } from './HeaderNotificationsMenu';
+
+function fireReactAnimationEnd(element: Element): void {
+  fireEvent.animationEnd(element);
+  if (element.isConnected) {
+    fireEvent(element, new Event('webkitAnimationEnd', { bubbles: true }));
+  }
+}
+
+function mockMatchMedia({
+  compact,
+  reducedMotion,
+}: {
+  compact: boolean;
+  reducedMotion: boolean;
+}): void {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches:
+      query === '(max-width: 640px)'
+        ? compact
+        : query === '(prefers-reduced-motion: reduce)'
+          ? reducedMotion
+          : false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
 
 function LocationTracker({
   onLocation,
@@ -271,16 +308,11 @@ describe('HeaderNotificationsMenu', () => {
     const originalMatchMedia = window.matchMedia;
 
     beforeEach(() => {
-      window.matchMedia = vi.fn().mockImplementation((query) => ({
-        matches: query === '(max-width: 640px)',
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      }));
+      // Reduced motion by default: presence ends synchronously (no retained
+      // exit phase), matching the contract's immediate-close requirement.
+      // Individual tests override to `reducedMotion: false` to exercise the
+      // animated exit lifecycle explicitly.
+      mockMatchMedia({ compact: true, reducedMotion: true });
     });
 
     afterEach(() => {
@@ -288,14 +320,20 @@ describe('HeaderNotificationsMenu', () => {
       document.body.style.overflow = '';
     });
 
-    it('renders viewport-level bottom sheet into document.body and locks body scroll', async () => {
-      document.body.style.overflow = 'auto';
-      renderNotificationMenu({ unreadCount: 1 });
-      const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
-
+    function openSheet(unreadCount = 1) {
+      const result = renderNotificationMenu({ unreadCount });
+      const trigger = screen.getByRole('button', {
+        name: new RegExp(`${unreadCount} ungelesen`, 'i'),
+      });
       act(() => {
         fireEvent.click(trigger);
       });
+      return { ...result, trigger };
+    }
+
+    it('renders viewport-level bottom sheet into document.body and locks body scroll', () => {
+      document.body.style.overflow = 'auto';
+      const { trigger } = openSheet();
 
       expect(trigger.getAttribute('aria-expanded')).toBe('true');
 
@@ -305,9 +343,10 @@ describe('HeaderNotificationsMenu', () => {
       );
       expect(portal).not.toBeNull();
 
-      // Portal container has dialog accessibility role
+      // Portal container has dialog accessibility role and open presence
       expect(portal?.getAttribute('role')).toBe('dialog');
       expect(portal?.getAttribute('aria-modal')).toBe('true');
+      expect(portal?.getAttribute('data-presence')).toBe('open');
 
       // Sheet has bottom sheet class
       const sheet = portal?.querySelector('.header-notifications-bottom-sheet');
@@ -315,30 +354,123 @@ describe('HeaderNotificationsMenu', () => {
 
       // Body scroll is locked
       expect(document.body.style.overflow).toBe('hidden');
-
-      // Clicking backdrop dismisses sheet and restores body scroll
-      const backdrop = portal?.querySelector('.header-notifications-backdrop');
-      expect(backdrop).not.toBeNull();
-      await act(async () => {
-        fireEvent.click(backdrop as HTMLElement);
-        await Promise.resolve();
-      });
-
-      expect(trigger.getAttribute('aria-expanded')).toBe('false');
-      expect(
-        document.body.querySelector('.header-notifications-portal'),
-      ).toBeNull();
-      expect(document.body.style.overflow).toBe('auto');
-      expect(document.activeElement).toBe(trigger);
     });
 
-    it('moves focus into the modal sheet and contains Tab navigation', () => {
-      renderNotificationMenu({ unreadCount: 1 });
-      const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
+    it('reduced motion closes the backdrop-dismissed sheet immediately, with no retained exit phase', async () => {
+      document.body.style.overflow = 'auto';
+      const { trigger } = openSheet();
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const backdrop = portal.querySelector('.header-notifications-backdrop');
+      expect(backdrop).not.toBeNull();
 
+      act(() => {
+        fireEvent.click(backdrop as HTMLElement);
+      });
+
+      // No animationend is fired here: reduced motion must not wait for one.
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
+      expect(document.body.style.overflow).toBe('auto');
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    });
+
+    it('keeps the sheet and backdrop present through an animated backdrop-close and completes only after the exit signal', async () => {
+      mockMatchMedia({ compact: true, reducedMotion: false });
+      document.body.style.overflow = 'auto';
+      const { trigger } = openSheet();
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const sheet = portal.querySelector(
+        '.header-notifications-bottom-sheet',
+      ) as HTMLElement;
+      const backdrop = portal.querySelector(
+        '.header-notifications-backdrop',
+      ) as HTMLElement;
+
+      act(() => {
+        fireEvent.click(backdrop);
+      });
+
+      // Authoritative state closes immediately...
+      expect(trigger.getAttribute('aria-expanded')).toBe('false');
+      // ...but presentation, modality and scroll lock are retained while
+      // backdrop and surface share the visible exit.
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+      expect(document.body.contains(portal)).toBe(true);
+      expect(document.body.style.overflow).toBe('hidden');
+      expect(document.activeElement).not.toBe(trigger);
+
+      fireReactAnimationEnd(sheet);
+
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
+      expect(document.body.style.overflow).toBe('auto');
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    });
+
+    it('ignores a stale exit completion after a rapid close/reopen', async () => {
+      mockMatchMedia({ compact: true, reducedMotion: false });
+      const { trigger } = openSheet();
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const sheet = portal.querySelector(
+        '.header-notifications-bottom-sheet',
+      ) as HTMLElement;
+      const backdrop = portal.querySelector(
+        '.header-notifications-backdrop',
+      ) as HTMLElement;
+
+      act(() => {
+        fireEvent.click(backdrop);
+      });
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+
+      // Reopen before the exit animation ever completes.
       act(() => {
         fireEvent.click(trigger);
       });
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('open'),
+      );
+
+      // The stale signal from the interrupted exit must not tear down the
+      // now-reopened sheet.
+      fireReactAnimationEnd(sheet);
+      expect(document.body.contains(portal)).toBe(true);
+      expect(document.body.style.overflow).toBe('hidden');
+
+      // A real close from here still completes normally.
+      act(() => {
+        fireEvent.click(backdrop);
+      });
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+      fireReactAnimationEnd(sheet);
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
+    });
+
+    it('moves focus into the modal sheet and contains Tab navigation', () => {
+      openSheet();
 
       const portal = screen.getByRole('dialog', {
         name: m5s5.notifications.previewTitle,
@@ -368,14 +500,9 @@ describe('HeaderNotificationsMenu', () => {
       expect(document.activeElement).toBe(notification);
     });
 
-    it('mobile bottom sheet dismisses on Escape and restores body scroll and focus', () => {
+    it('mobile bottom sheet dismisses on Escape and restores body scroll and focus once presence ends', async () => {
       document.body.style.overflow = 'visible';
-      renderNotificationMenu({ unreadCount: 1 });
-      const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
-
-      act(() => {
-        fireEvent.click(trigger);
-      });
+      const { trigger } = openSheet();
 
       expect(document.body.style.overflow).toBe('hidden');
 
@@ -384,14 +511,19 @@ describe('HeaderNotificationsMenu', () => {
       });
 
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
-      expect(
-        document.body.querySelector('.header-notifications-portal'),
-      ).toBeNull();
+      // Escape does not restore focus itself for the compact modal sheet;
+      // that stays owned by the shared modal-lifecycle contract so focus
+      // never jumps to the trigger while an exit is still visible.
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
       expect(document.body.style.overflow).toBe('visible');
-      expect(document.activeElement).toBe(trigger);
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
     });
 
-    it('clicking a notification in mobile bottom sheet navigates without restoring focus to the old route trigger', async () => {
+    it('clicking a notification navigates without restoring focus to the trigger once presence ends', async () => {
       document.body.style.overflow = '';
       const { getLocation } = renderNotificationMenu({
         unreadCount: 1,
@@ -412,18 +544,111 @@ describe('HeaderNotificationsMenu', () => {
       expect(document.body.style.overflow).toBe('hidden');
 
       const notifItem = screen.getByRole('button', { name: /Alex Partner/i });
-      await act(async () => {
+      act(() => {
         fireEvent.click(notifItem);
-        await Promise.resolve();
       });
 
-      expect(getLocation()).toBe('/plan/plans/plan-mobile-456');
+      await waitFor(() =>
+        expect(getLocation()).toBe('/plan/plans/plan-mobile-456'),
+      );
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
-      expect(
-        document.body.querySelector('.header-notifications-portal'),
-      ).toBeNull();
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
       expect(document.body.style.overflow).toBe('');
       expect(document.activeElement).not.toBe(trigger);
+    });
+
+    it('does not hand off focus to the destination while the sheet is still visibly exiting', async () => {
+      mockMatchMedia({ compact: true, reducedMotion: false });
+      const { getLocation } = renderNotificationMenu({
+        unreadCount: 1,
+        items: [
+          createSampleNotification({
+            id: 'notif-mobile-2',
+            targetType: 'PLAN',
+            targetId: 'plan-mobile-789',
+          }),
+        ],
+      });
+
+      const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
+      act(() => {
+        fireEvent.click(trigger);
+      });
+
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const sheet = portal.querySelector(
+        '.header-notifications-bottom-sheet',
+      ) as HTMLElement;
+
+      const notifItem = screen.getByRole('button', { name: /Alex Partner/i });
+      act(() => {
+        fireEvent.click(notifItem);
+      });
+
+      // Authoritative close/read-state happen immediately, but navigation is
+      // held back while the sheet is still visibly present/exiting.
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+      expect(getLocation()).toBe('/today');
+      expect(document.body.contains(portal)).toBe(true);
+
+      fireReactAnimationEnd(sheet);
+
+      await waitFor(() =>
+        expect(getLocation()).toBe('/plan/plans/plan-mobile-789'),
+      );
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
+    });
+
+    it('"Alle Benachrichtigungen anzeigen" navigates only after the compact sheet has fully exited', async () => {
+      mockMatchMedia({ compact: true, reducedMotion: false });
+      const { getLocation } = renderNotificationMenu({ unreadCount: 0 });
+
+      const trigger = screen.getByRole('button', {
+        name: navigation.notifications,
+      });
+      act(() => {
+        fireEvent.click(trigger);
+      });
+
+      const portal = document.body.querySelector(
+        '.header-notifications-portal',
+      ) as HTMLElement;
+      const sheet = portal.querySelector(
+        '.header-notifications-bottom-sheet',
+      ) as HTMLElement;
+      const allLink = screen.getByRole('link', {
+        name: m5s5.notifications.showAll,
+      });
+
+      act(() => {
+        fireEvent.click(allLink);
+      });
+
+      await waitFor(() =>
+        expect(portal.getAttribute('data-presence')).toBe('exiting'),
+      );
+      expect(getLocation()).toBe('/today');
+
+      fireReactAnimationEnd(sheet);
+
+      await waitFor(() => expect(getLocation()).toBe('/more/notifications'));
+      await waitFor(() =>
+        expect(
+          document.body.querySelector('.header-notifications-portal'),
+        ).toBeNull(),
+      );
     });
   });
 });

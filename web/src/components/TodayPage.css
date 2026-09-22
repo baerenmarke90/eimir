@@ -1210,9 +1210,17 @@
   color: var(--color-text-secondary);
 }
 
+.today-pinned-list-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .today-pinned-list-disclosure {
-  justify-self: start;
   min-height: 44px;
+  min-width: 0;
   border: 0;
   padding: 0 var(--space-1);
   background: transparent;
@@ -1231,31 +1239,84 @@
   outline-offset: 2px;
 }
 
-.today-pinned-list-add {
+.today-pinned-list-add-button {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 2.75rem;
-  align-items: center;
-  gap: var(--space-2);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-inline-start: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0;
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
-.today-pinned-list-add input {
+.today-pinned-list-add-button .button-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.today-pinned-list-add-button:hover {
+  background: var(--color-surface-raised);
+}
+
+.today-pinned-list-add-button:active {
+  transform: scale(0.97);
+}
+
+.today-pinned-list-add-sheet-form,
+.today-pinned-list-add-sheet-field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-add-sheet-field label {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.today-pinned-list-add-sheet-field input {
   min-width: 0;
   min-height: 44px;
 }
 
-.today-pinned-list-add-button {
+.today-pinned-list-add-error {
+  margin: 0;
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.today-pinned-list-discard {
   display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  border-radius: 50%;
-  padding: 0;
-  font-size: 1.35rem;
-  line-height: 1;
+  gap: var(--space-2);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  background: var(--color-error-surface);
+}
+
+.today-pinned-list-discard h3,
+.today-pinned-list-discard p {
+  margin: 0;
+}
+
+.today-pinned-list-discard p {
+  color: var(--color-text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .today-pinned-list-add-button {
     transition: none;
   }
+
+  .today-pinned-list-add-button:active {
+    transform: none;
+  }
+}
 }

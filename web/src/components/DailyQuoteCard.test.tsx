@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCatalogView';
@@ -79,6 +79,13 @@ beforeAll(() => {
   HTMLDialogElement.prototype.close = function close() {
     this.removeAttribute('open');
   };
+});
+
+afterEach(() => {
+  Object.defineProperty(window.navigator, 'onLine', {
+    configurable: true,
+    value: true,
+  });
 });
 
 function rawResponse<T>(value: T, etag = '"quote-pref:2"') {
@@ -266,6 +273,24 @@ describe('DailyQuoteCard', () => {
     expect(await screen.findByText(dailyQuote.unavailable)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: dailyQuote.retry }));
     expect(api.getDailyQuote).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not attempt a preference write while offline', async () => {
+    Object.defineProperty(window.navigator, 'onLine', {
+      configurable: true,
+      value: false,
+    });
+    const user = userEvent.setup();
+    const api = renderCard();
+
+    await user.click(
+      await screen.findByRole('button', { name: dailyQuote.settingsAria }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+
+    expect(await screen.findByText(dailyQuote.preferencesOffline)).toBeTruthy();
+    expect(api.updateDailyQuotePreferencesRaw).not.toHaveBeenCalled();
   });
 
   it('keeps the preference draft open on an optimistic concurrency conflict', async () => {

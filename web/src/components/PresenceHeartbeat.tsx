@@ -40,6 +40,7 @@ export function PresenceHeartbeat({
     let disposed = false;
     let intervalId: number | null = null;
     let lastTouchStartedAt = Number.NEGATIVE_INFINITY;
+    let touchGeneration = 0;
 
     const stopTimer = () => {
       if (intervalId !== null) {
@@ -55,13 +56,21 @@ export function PresenceHeartbeat({
       const startedAt = Date.now();
       if (startedAt - lastTouchStartedAt < PRESENCE_EVENT_DEDUPE_MS) return;
       lastTouchStartedAt = startedAt;
+      touchGeneration += 1;
+      const generation = touchGeneration;
       void api
         .touchPresence({ spaceId })
         .then((view) => {
-          if (!disposed) queryClient.setQueryData(queryKey, view);
+          if (
+            !disposed &&
+            generation === touchGeneration &&
+            appIsActivelyVisible()
+          ) {
+            queryClient.setQueryData(queryKey, view);
+          }
         })
         .catch(() => {
-          if (!disposed) clearClaim();
+          if (!disposed && generation === touchGeneration) clearClaim();
         });
     };
     const restart = () => {
@@ -74,6 +83,7 @@ export function PresenceHeartbeat({
       intervalId = window.setInterval(touch, PRESENCE_HEARTBEAT_INTERVAL_MS);
     };
     const suspend = () => {
+      touchGeneration += 1;
       stopTimer();
       clearClaim();
     };
@@ -91,6 +101,7 @@ export function PresenceHeartbeat({
 
     return () => {
       disposed = true;
+      touchGeneration += 1;
       stopTimer();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', restart);

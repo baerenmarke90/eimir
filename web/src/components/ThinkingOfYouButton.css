@@ -15,11 +15,11 @@
   cursor: pointer;
   user-select: none;
   transition:
-    transform var(--motion-fast),
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .thinking-of-you-btn:hover:not(:disabled) {
@@ -47,7 +47,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform var(--motion-fast);
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 /* State: Sending */
@@ -57,20 +57,8 @@
 }
 
 .thinking-of-you-btn.state-sending .heart-icon {
+  /* Continuous async indicator: this loop is not an interaction transition and reduced motion disables it below. */
   animation: heart-pulse 0.8s ease-in-out infinite alternate;
-}
-
-.thinking-of-you-btn:hover:not(:disabled) .heart-icon {
-  animation: heart-beat 0.6s ease-in-out infinite alternate;
-}
-
-@keyframes heart-beat {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(1.18);
-  }
 }
 
 @keyframes heart-pulse {
@@ -93,7 +81,7 @@
 }
 
 .thinking-of-you-btn.state-sent .sent-icon {
-  animation: sent-check 0.4s ease-out;
+  animation: sent-check var(--duration-context) var(--easing-enter);
 }
 
 @keyframes sent-check {
@@ -149,7 +137,7 @@
 }
 
 .thinking-of-you-btn.state-error .error-icon {
-  animation: error-shake 0.4s ease-out;
+  animation: error-shake var(--duration-transition) var(--easing-standard);
 }
 
 @keyframes error-shake {

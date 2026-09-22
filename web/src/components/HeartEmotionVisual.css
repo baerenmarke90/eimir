@@ -224,10 +224,10 @@
   background: var(--color-surface);
   color: var(--color-text);
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast),
-    box-shadow var(--motion-fast),
-    transform var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .heart-emotion-choice:hover .heart-emotion-choice-visual {
@@ -276,8 +276,8 @@
   opacity: 0;
   transform: scale(0.72);
   transition:
-    opacity var(--motion-fast),
-    transform var(--motion-fast);
+    opacity var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .heart-emotion-choice:has(.heart-emotion-choice-input:checked)
@@ -314,7 +314,7 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
-  animation: heart-emotion-settle 420ms var(--motion-easing-lift) both;
+  animation: heart-emotion-settle var(--duration-context) var(--easing-enter) both;
 }
 
 @keyframes heart-emotion-settle {

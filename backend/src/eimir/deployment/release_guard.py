@@ -191,6 +191,28 @@ def release_problems(
     return problems
 
 
+_ENCRYPTION_MODES = frozenset({"required", "migrating", "disabled"})
+
+
+def encryption_problems(environ: Mapping[str, str]) -> list[str]:
+    """Require an explicit application-encryption mode in Production.
+
+    The guard is deliberately given no secrets (its environment is asserted to
+    carry the release identity only), so it can judge the non-secret mode but
+    not the key material. ``Settings`` validates the keys when the API and
+    worker start and refuses to boot without them, which keeps a project that
+    lost its keys from ever running unencrypted; this check only makes the
+    missing *decision* fail at deploy time, before any service starts.
+    """
+    if _value(environ, "EIMIR_ENCRYPTION_AT_REST") not in _ENCRYPTION_MODES:
+        return [
+            "EIMIR_ENCRYPTION_AT_REST must be set explicitly to required, migrating or disabled "
+            "in Production; the key material is validated when the API and worker start "
+            "(docs/ENCRYPTION-AT-REST.md)"
+        ]
+    return []
+
+
 def _refuse(operation: str, problems: Sequence[str]) -> int:
     print(f"Production release guard refused {operation}:", file=sys.stderr)
     for problem in problems:
@@ -219,6 +241,7 @@ def verify(environ: Mapping[str, str], *, identity_path: Path = IDENTITY_PATH) -
     problems = release_problems(
         environ, identity_path=identity_path, require_deletion_authority=True
     )
+    problems.extend(encryption_problems(environ))
     if "bootstrap" in _profiles(environ):
         problems.append(
             "Compose profile bootstrap is active next to the runtime; run the bootstrap "

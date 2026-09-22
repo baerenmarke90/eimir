@@ -21,7 +21,7 @@ Person/author projections use the **current Account presentation identity** unle
 
 `partner_profiles` is the visible profile aggregate root of an Account in a Space. At most one row exists per `(space_id, owner_id)` and the database enforces `SPACE_SHARED`.
 
-`profile_preferences` stores structured preferences. Metadata such as category, topic, sentiment, ownership, and visibility remain separate from the protected `value`. The value is stored in a `ProtectedPayloadJSON` column with `crypto_version = 0`; this is plaintext and **not E2EE**. The separation keeps the later migration to client-side sealed payloads possible.
+`profile_preferences` stores structured preferences. Metadata such as category, topic, sentiment, ownership, and visibility remain separate from the protected `value`. The value is stored in a `ProtectedPayloadJSON` column: legacy rows have `crypto_version = 0` (plaintext), current writes are application-encrypted (`crypto_version = 2`, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)); this is encryption at rest and **not E2EE**. The `topic` column beside it is not part of the protected payload. The separation keeps the later migration to client-side sealed payloads possible.
 
 The database additionally enforces:
 

@@ -19,8 +19,16 @@ import pytest
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.support.encryption import EncryptionConfigurator
+
 # Never accidentally run against a real instance.
 os.environ.setdefault("EIMIR_ENVIRONMENT", "test")
+
+# Encryption at rest has no default in production. Tests that construct
+# production settings for unrelated reasons inherit an explicit "disabled" here;
+# tests of the encryption behavior itself use the ``encryption`` fixture, which
+# replaces this value.
+os.environ.setdefault("EIMIR_ENCRYPTION_AT_REST", "disabled")
 
 TEST_BOOTSTRAP_TOKEN = "test-bootstrap-token-with-at-least-32-characters"
 os.environ.setdefault("EIMIR_BOOTSTRAP_TOKEN", TEST_BOOTSTRAP_TOKEN)
@@ -31,6 +39,21 @@ os.environ.setdefault("EIMIR_BOOTSTRAP_TOKEN", TEST_BOOTSTRAP_TOKEN)
 MEDIA_ROOT = os.environ.setdefault("EIMIR_MEDIA_ROOT", tempfile.mkdtemp(prefix="eimir-test-media-"))
 
 INTEGRATION_DATABASE_URL = os.environ.get("EIMIR_TEST_DATABASE_URL", "")
+
+
+@pytest.fixture
+def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurator]:
+    """Configure application-controlled encryption for one test.
+
+    Restores the settings caches afterwards so no test inherits another test's
+    key ring or mode.
+    """
+    from tests.support.encryption import reset_encryption_caches
+
+    reset_encryption_caches()
+    yield EncryptionConfigurator(monkeypatch)
+    monkeypatch.undo()
+    reset_encryption_caches()
 
 
 @pytest.fixture(scope="session", autouse=True)

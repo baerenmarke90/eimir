@@ -377,6 +377,67 @@ wheels = [
 ]
 
 [[package]]
+name = "eimir"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "argon2-cffi" },
+    { name = "cryptography" },
+    { name = "fastapi" },
+    { name = "httpx" },
+    { name = "pillow" },
+    { name = "pillow-heif" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pyjwt", extra = ["crypto"] },
+    { name = "sqlalchemy" },
+    { name = "uuid6" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "webauthn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "cbor2" },
+    { name = "httpx2" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.19" },
+    { name = "argon2-cffi", specifier = ">=25.1" },
+    { name = "cryptography", specifier = ">=46.0" },
+    { name = "fastapi", specifier = ">=0.141" },
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pillow", specifier = ">=12.0" },
+    { name = "pillow-heif", specifier = ">=1.1" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.3" },
+    { name = "pydantic", specifier = ">=2.13" },
+    { name = "pydantic-settings", specifier = ">=2.15" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
+    { name = "sqlalchemy", specifier = ">=2.0" },
+    { name = "uuid6", specifier = ">=2025.0.1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.52" },
+    { name = "webauthn", specifier = ">=2.5" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "cbor2", specifier = ">=5.6" },
+    { name = "httpx2", specifier = ">=0.1" },
+    { name = "mypy", specifier = "==2.3.1" },
+    { name = "pytest", specifier = ">=9.1" },
+    { name = "pytest-asyncio", specifier = ">=1.4" },
+    { name = "ruff", specifier = "==0.16.4" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1292,65 +1353,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/28/0c6dd865859c6d17bc8ccc34cb72b0e02d6c7eb25e8a1e22b5bea681e2c0/ruff-0.16.4-py3-none-win32.whl", hash = "sha256:312769988007aaeb8e189b443ccdd03c0e6374489e053467be6d96518ebff76e", size = 10021687, upload-time = "2026-08-20T17:43:52.281Z" },
     { url = "https://files.pythonhosted.org/packages/a3/03/e724450f621698117f9aa6dd241c94d0274ae96781378dc86745ae29f0e7/ruff-0.16.4-py3-none-win_amd64.whl", hash = "sha256:05d9d27a18c4bcbefada602480ec9e01e0bc949d432e0ced5df77edac195919c", size = 10567657, upload-time = "2026-08-20T17:43:54.78Z" },
     { url = "https://files.pythonhosted.org/packages/0e/fe/da8b9e1347696bb22120b77280ec5ce25d500ca5cb39d5ad6e5c18de19c1/ruff-0.16.4-py3-none-win_arm64.whl", hash = "sha256:a3a61621c9b6f6a89573e938a080e648f1695baa3f58570a3a707bc51ff65a21", size = 10451579, upload-time = "2026-08-20T17:43:57.135Z" },
-]
-
-[[package]]
-name = "eimir"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "argon2-cffi" },
-    { name = "fastapi" },
-    { name = "httpx" },
-    { name = "pillow" },
-    { name = "pillow-heif" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pyjwt", extra = ["crypto"] },
-    { name = "sqlalchemy" },
-    { name = "uuid6" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "webauthn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "cbor2" },
-    { name = "httpx2" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.19" },
-    { name = "argon2-cffi", specifier = ">=25.1" },
-    { name = "fastapi", specifier = ">=0.141" },
-    { name = "httpx", specifier = ">=0.28" },
-    { name = "pillow", specifier = ">=12.0" },
-    { name = "pillow-heif", specifier = ">=1.1" },
-    { name = "psycopg", extras = ["binary"], specifier = ">=3.3" },
-    { name = "pydantic", specifier = ">=2.13" },
-    { name = "pydantic-settings", specifier = ">=2.15" },
-    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10" },
-    { name = "sqlalchemy", specifier = ">=2.0" },
-    { name = "uuid6", specifier = ">=2025.0.1" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.52" },
-    { name = "webauthn", specifier = ">=2.5" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "cbor2", specifier = ">=5.6" },
-    { name = "httpx2", specifier = ">=0.1" },
-    { name = "mypy", specifier = "==2.3.1" },
-    { name = "pytest", specifier = ">=9.1" },
-    { name = "pytest-asyncio", specifier = ">=1.4" },
-    { name = "ruff", specifier = "==0.16.4" },
 ]
 
 [[package]]

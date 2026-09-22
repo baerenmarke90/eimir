@@ -216,6 +216,10 @@ require (Development, Demo, Production), with independent values for at least:
   `EIMIR_S3_SECRET_ACCESS_KEY` / `EIMIR_S3_SESSION_TOKEN` / `EIMIR_S3_BUCKET` /
   `EIMIR_S3_ENDPOINT`;
 - `EIMIR_CURSOR_SIGNING_KEY`;
+- `EIMIR_ENCRYPTION_AT_REST=required`, `EIMIR_ENCRYPTION_KEYS`, and
+  `EIMIR_ENCRYPTION_ACTIVE_KEY_ID` (application-controlled encryption at rest, mandatory in
+  Cloud Production; keys held apart from database and object-storage backups; see
+  [ENCRYPTION-AT-REST.md](../ENCRYPTION-AT-REST.md));
 - `EIMIR_BOOTSTRAP_TOKEN` (removed after first ServerAdmin bootstrap, as today);
 - `EIMIR_SMTP_*` mail credentials;
 - push credentials (existing engagement/push provider configuration);

@@ -4,7 +4,7 @@
 **Method:** data-flow- and abuse-case-oriented threat analysis  
 **As of:** August 24, 2026
 
-This model supplements the [Security Test Matrix](./SECURITY-TEST-MATRIX.md) with attackers, trust boundaries, data flows, and concrete controls. It does not claim that M2 provides real end-to-end encryption.
+This model supplements the [Security Test Matrix](./SECURITY-TEST-MATRIX.md) with attackers, trust boundaries, data flows, and concrete controls. It does not claim that M2 provides real end-to-end encryption. Encryption at rest under operator-held keys (#797) adds a separate layer for stolen dumps, replicas and buckets; its threat model is [ENCRYPTION-AT-REST.md](../ENCRYPTION-AT-REST.md).
 
 ![M2 Privacy Flow](./m2-privacy-flow.svg)
 

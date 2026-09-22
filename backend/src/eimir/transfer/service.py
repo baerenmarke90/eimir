@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import logging
-import tempfile
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -43,6 +44,7 @@ from eimir.transfer.models import (
     TransferImport,
     TransferScope,
 )
+from eimir.transfer.payload_boundary import protect_values, reveal_row
 
 _log = logging.getLogger(__name__)
 RETENTION = timedelta(hours=24)
@@ -240,7 +242,7 @@ def _load_root_rows(
             return []
         predicate = and_(predicate, columns.owner_id == authorization.account_id)
     result = session.execute(select(table).where(predicate)).mappings()
-    return [dict(row) for row in result]
+    return [reveal_row(table.name, dict(row)) for row in result]
 
 
 def _load_child_rows(
@@ -253,7 +255,7 @@ def _load_child_rows(
     if not parent_ids:
         return []
     return [
-        dict(row)
+        reveal_row(table.name, dict(row))
         for row in session.execute(
             select(table).where(table.c[parent_column].in_(parent_ids))
         ).mappings()
@@ -410,7 +412,7 @@ def _media_rows(
     table = _table(session, "attachments", metadata)
     result: list[dict[str, Any]] = []
     for row in session.execute(select(table).where(table.c.id.in_(attachment_ids))).mappings():
-        item = dict(row)
+        item = reveal_row("attachments", dict(row))
         if item.get("status") != AttachmentStatus.READY.value:
             continue
         result.append(
@@ -437,18 +439,35 @@ def _media_rows(
     return sorted(result, key=lambda item: item["sourceId"])
 
 
+def _new_plaintext_export_buffer() -> IO[bytes]:
+    """Return a seekable plaintext buffer without a filesystem-backed temp file.
+
+    Linux production workers use an anonymous memfd so large exports do not
+    consume Python heap while the archive is assembled. Platforms without
+    memfd support fall back to BytesIO. In either case plaintext never spills
+    into a worker filesystem path before the completed archive enters the
+    encrypted MediaStore.
+    """
+    memfd_create = getattr(os, "memfd_create", None)
+    if callable(memfd_create):
+        descriptor = memfd_create(
+            "eimir-transfer-export",
+            flags=getattr(os, "MFD_CLOEXEC", 0),
+        )
+        return os.fdopen(descriptor, "w+b")
+    return io.BytesIO()
+
+
 def build_export_archive(
     session: Session,
     authorization: AuthorizationContext,
     scope: TransferScope,
 ) -> IO[bytes]:
-    """Build one deterministic snapshot archive in a spooled temporary file."""
+    """Build one deterministic snapshot archive in an anonymous memory buffer."""
     rows = _portable_rows(session, authorization, scope)
     media = _media_rows(session, rows)
     accounts = _source_accounts(session, authorization.space_id)
-    output = tempfile.SpooledTemporaryFile(  # noqa: SIM115
-        max_size=16 * 1024 * 1024, mode="w+b"
-    )
+    output = _new_plaintext_export_buffer()
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
@@ -1444,7 +1463,6 @@ def apply_import_bundle(
                     "ready_at": moment,
                     "failed_at": None,
                     "uploaded_at": moment,
-                    "crypto_version": 0,
                     "payload": {
                         "original_name": "eimir-transfer",
                         "captured_at": item.get("capturedAt"),
@@ -1452,7 +1470,11 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
-                session.execute(attachment_table.insert().values(**attachment_values))
+                session.execute(
+                    attachment_table.insert().values(
+                        **protect_values("attachments", attachment_values)
+                    )
+                )
 
         for table_name in INSERT_ORDER:
             table = tables[table_name]
@@ -1476,7 +1498,7 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                session.execute(table.insert().values(**values))
+                session.execute(table.insert().values(**protect_values(table_name, values)))
     except Exception:
         for key in reversed(written_keys):
             try:

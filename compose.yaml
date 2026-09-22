@@ -33,6 +33,9 @@ x-self-hosted-database-environment: &self-hosted-database-environment
 x-shared-runtime-environment: &shared-runtime-environment
   EIMIR_CURSOR_SIGNING_KEY: "${EIMIR_CURSOR_SIGNING_KEY:-${SBS_CURSOR_SIGNING_KEY:-}}"
   EIMIR_SERVER_ADMIN_EMAILS: '${EIMIR_SERVER_ADMIN_EMAILS:-${SBS_SERVER_ADMIN_EMAILS:-[]}}'
+  EIMIR_ENCRYPTION_AT_REST: "${EIMIR_ENCRYPTION_AT_REST:-${SBS_ENCRYPTION_AT_REST:-}}"
+  EIMIR_ENCRYPTION_KEYS: "${EIMIR_ENCRYPTION_KEYS:-${SBS_ENCRYPTION_KEYS:-}}"
+  EIMIR_ENCRYPTION_ACTIVE_KEY_ID: "${EIMIR_ENCRYPTION_ACTIVE_KEY_ID:-${SBS_ENCRYPTION_ACTIVE_KEY_ID:-}}"
   EIMIR_MEDIA_STORE: "${EIMIR_MEDIA_STORE:-${SBS_MEDIA_STORE:-local}}"
   EIMIR_MEDIA_ROOT: /var/lib/eimir/media
   EIMIR_S3_ENDPOINT: "${EIMIR_S3_ENDPOINT:-${SBS_S3_ENDPOINT:-}}"
@@ -106,6 +109,9 @@ x-release-guard-environment: &release-guard-environment
   EIMIR_GUARD_WEB_IMAGE: *self-hosted-web-image-reference
   EIMIR_GUARD_PULL_POLICY: *self-hosted-pull-policy
   EIMIR_ACCOUNT_DELETION_INSTANCE_ID: "${EIMIR_ACCOUNT_DELETION_INSTANCE_ID:-${SBS_ACCOUNT_DELETION_INSTANCE_ID:-}}"
+  # The mode is a non-secret decision the guard may judge. The key material is
+  # deliberately NOT passed here: the guard receives no secrets.
+  EIMIR_ENCRYPTION_AT_REST: "${EIMIR_ENCRYPTION_AT_REST:-${SBS_ENCRYPTION_AT_REST:-}}"
 
 # The published identity of the selected immutable release: shipped in the Self-Hosted
 # operator bundle next to this file, read-only, and never created by Compose. A source

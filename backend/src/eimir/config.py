@@ -7,6 +7,7 @@ where a missing value would be security-relevant.
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import timedelta
 from enum import StrEnum
@@ -27,9 +28,13 @@ from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
     EnvSettingsSource,
+    NoDecode,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+
+from eimir.security.errors import EncryptionConfigurationError
+from eimir.security.keyring import EncryptionMode, build_key_ring
 
 
 class Deployment(StrEnum):
@@ -226,6 +231,20 @@ class Settings(IdentityCompatibleSettings):
     s3_secret_access_key: SecretStr | None = None
     s3_session_token: SecretStr | None = None
 
+    # Application-controlled encryption at rest (issue #797, docs/ENCRYPTION-AT-REST.md).
+    # Not end-to-end encryption: this process holds the keys.
+    #
+    # ``encryption_at_rest`` has NO default in production: an operator must choose
+    # ``required`` (or, Self-Hosted only, an explicit ``migrating``/``disabled``).
+    # Outside production an unset value means ``disabled`` unless keys are present,
+    # in which case the mode must be stated too, so keys can never sit next to a
+    # silently plaintext configuration.
+    encryption_at_rest: EncryptionMode | None = None
+    # ``{key_id: base64 32-byte key}``. Key material comes from the operator's
+    # secret store; nothing in the repository or image supplies it.
+    encryption_keys: Annotated[dict[str, SecretStr], NoDecode] = Field(default_factory=dict)
+    encryption_active_key_id: str | None = None
+
     # Keyset cursors leave the server as opaque HMAC-protected tokens. An
     # installation-specific key prevents manipulation and must not be derived
     # from the database password, bootstrap token, or other secrets.
@@ -280,11 +299,32 @@ class Settings(IdentityCompatibleSettings):
         "s3_access_key_id",
         "s3_secret_access_key",
         "s3_session_token",
+        "encryption_at_rest",
+        "encryption_active_key_id",
         mode="before",
     )
     @classmethod
     def empty_secret_is_unset(cls, value: object) -> object | None:
         return None if value == "" else value
+
+    @field_validator("encryption_keys", mode="before")
+    @classmethod
+    def encryption_keys_from_json(cls, value: object) -> object:
+        """Accept the JSON object from the environment; blank means no keys.
+
+        Compose passes an unset variable as an empty string, and pydantic-settings
+        would otherwise fail JSON-decoding it with a message that echoes the value.
+        """
+        if isinstance(value, str):
+            if not value.strip():
+                return {}
+            try:
+                return json.loads(value)
+            except ValueError:
+                raise ValueError(
+                    "EIMIR_ENCRYPTION_KEYS must be a JSON object of key id to base64 key."
+                ) from None
+        return value
 
     @field_validator("server_admin_emails")
     @classmethod
@@ -307,6 +347,13 @@ class Settings(IdentityCompatibleSettings):
                 normalized.append(address)
                 seen.add(address)
         return normalized
+
+    @property
+    def encryption_mode(self) -> EncryptionMode:
+        """The effective mode. Production never reaches the ``disabled`` default."""
+        if self.encryption_at_rest is not None:
+            return self.encryption_at_rest
+        return EncryptionMode.DISABLED
 
     @property
     def is_production(self) -> bool:
@@ -395,6 +442,56 @@ class Settings(IdentityCompatibleSettings):
             raise ValueError("Production and Demo require an https EIMIR_S3_ENDPOINT.")
         if "/" in self.s3_bucket:
             raise ValueError("EIMIR_S3_BUCKET must be a bucket name, not a path.")
+        return self
+
+    @model_validator(mode="after")
+    def encryption_at_rest_is_consistent(self) -> Self:
+        """Fail closed on every encryption misconfiguration, at startup."""
+        production = self.environment is Environment.PRODUCTION
+        if self.encryption_at_rest is None:
+            if production:
+                raise ValueError(
+                    "Production requires an explicit EIMIR_ENCRYPTION_AT_REST "
+                    "(required, or for Self-Hosted migrating/disabled)."
+                )
+            if self.encryption_keys:
+                raise ValueError(
+                    "EIMIR_ENCRYPTION_KEYS is set but EIMIR_ENCRYPTION_AT_REST is not; "
+                    "state the mode explicitly instead of running unencrypted."
+                )
+            return self
+
+        mode = self.encryption_at_rest
+        if (
+            production
+            and self.deployment is Deployment.CLOUD
+            and mode is not EncryptionMode.REQUIRED
+        ):
+            raise ValueError("Cloud Production requires EIMIR_ENCRYPTION_AT_REST=required.")
+        if mode is EncryptionMode.DISABLED:
+            if self.encryption_keys or self.encryption_active_key_id:
+                raise ValueError(
+                    "Encryption keys are configured but EIMIR_ENCRYPTION_AT_REST=disabled; "
+                    "remove the keys or enable encryption."
+                )
+            return self
+
+        if not self.encryption_keys or self.encryption_active_key_id is None:
+            raise ValueError(
+                f"EIMIR_ENCRYPTION_AT_REST={mode.value} requires EIMIR_ENCRYPTION_KEYS "
+                "and EIMIR_ENCRYPTION_ACTIVE_KEY_ID."
+            )
+        try:
+            build_key_ring(
+                {
+                    key_id: secret.get_secret_value()
+                    for key_id, secret in self.encryption_keys.items()
+                },
+                self.encryption_active_key_id,
+            )
+        except EncryptionConfigurationError as error:
+            # The message never contains key material.
+            raise ValueError(str(error)) from None
         return self
 
     @model_validator(mode="after")

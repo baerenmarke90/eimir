@@ -131,6 +131,30 @@ MEMORIES: tuple[MemoryStory, ...] = (
         days_ago=14,
         asset_ids=("memory-cabin", "memory-books"),
     ),
+    MemoryStory(
+        key="sunday-pancakes",
+        owner="lea",
+        title="Pfannkuchen am Sonntag",
+        body="Eigentlich nur ein schnelles Frühstück. Am Ende saßen wir bis mittags am Tisch.",
+        days_ago=9,
+        asset_ids=(),
+    ),
+    MemoryStory(
+        key="rain-walk",
+        owner="alex",
+        title="Abendrunde im Regen",
+        body="Ohne Plan los, komplett nass geworden und trotzdem mit bester Laune nach Hause.",
+        days_ago=5,
+        asset_ids=(),
+    ),
+    MemoryStory(
+        key="balcony-breakfast",
+        owner="lea",
+        title="Frühstück auf dem Balkon",
+        body="Kaffee, frische Brötchen und zehn Minuten länger sitzen geblieben als vernünftig.",
+        days_ago=1,
+        asset_ids=(),
+    ),
 )
 
 
@@ -151,7 +175,13 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         ),
         start_days_ago=200,
         end_days_ago=None,
-        memory_keys=("breakfast-saarbruecken", "movie-night", "sunset-after-work"),
+        memory_keys=(
+            "breakfast-saarbruecken",
+            "movie-night",
+            "sunset-after-work",
+            "sunday-pancakes",
+            "balcony-breakfast",
+        ),
     ),
     ChapterStory(
         title="Unterwegs am Wochenende",
@@ -172,7 +202,7 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         description="Spaziergänge, Waldwege, Picknick und Zeit am Wasser.",
         start_days_ago=190,
         end_days_ago=14,
-        memory_keys=("lake-walk", "picnic", "day-trip", "weekend-water"),
+        memory_keys=("lake-walk", "picnic", "day-trip", "weekend-water", "rain-walk"),
         place="lake",
     ),
 )

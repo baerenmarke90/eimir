@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { useModalLifecycle } from './useModalLifecycle';
+import { useOverlayPresence } from './useOverlayPresence';
 import './ShortTaskSheet.css';
 
 export interface ShortTaskSheetHandle {
@@ -55,7 +56,7 @@ export function ShortTaskSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const navigatingRef = useRef(false);
-  const dismissingRef = useRef(false);
+  const pendingNavigationRef = useRef<(() => void) | null>(null);
   const dragPointerRef = useRef<number | null>(null);
   const dragStartYRef = useRef(0);
   const dragMaxDistanceRef = useRef(0);
@@ -68,6 +69,7 @@ export function ShortTaskSheet({
     onClose,
   });
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
+  const { present, presenceState, completeExit } = useOverlayPresence(open);
 
   function updateDragOffset(offset: number): void {
     dialogRef.current?.style.setProperty(
@@ -88,21 +90,7 @@ export function ShortTaskSheet({
   }
 
   function commitDragDismiss(): void {
-    const dialog = dialogRef.current;
-    if (!dialog) {
-      closeSheet();
-      return;
-    }
-    const reducedMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) {
-      closeSheet();
-      return;
-    }
-    dismissingRef.current = true;
-    dialog.setAttribute('data-dismissing', 'true');
-    updateDragOffset(window.innerHeight);
+    closeSheet();
   }
 
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
@@ -177,59 +165,71 @@ export function ShortTaskSheet({
 
   useImperativeHandle(ref, () => ({
     closeForNavigation(navigate) {
-      navigatingRef.current = true;
       closeSheet(() => {
         // Auth/Space teardown may have ended this task during history removal.
         const dialog = dialogRef.current;
         if (!dialog?.isConnected) return;
-        // End native modality before the destination can assign its focus.
-        dialog.close();
+        navigatingRef.current = true;
+        pendingNavigationRef.current = navigate;
         onClose();
-        navigate();
       });
     },
   }));
 
   useEffect(() => {
-    if (!open) return;
+    if (!present) return;
     const dialog = dialogRef.current;
     if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      dragPointerRef.current = null;
+      dialog.removeAttribute('data-interacted');
+      dialog.removeAttribute('data-dragging');
+      dialog.style.removeProperty('--short-task-sheet-drag-offset');
+      dialog.close();
+    };
+  }, [present]);
+
+  useEffect(() => {
+    if (!open || !present) return;
     navigatingRef.current = false;
-    dismissingRef.current = false;
+    pendingNavigationRef.current = null;
     dragPointerRef.current = null;
     dragMaxDistanceRef.current = 0;
     dragPeakOffsetRef.current = 0;
     suppressNextClickRef.current = false;
-    dialog.removeAttribute('data-interacted');
-    dialog.removeAttribute('data-dragging');
-    dialog.removeAttribute('data-dismissing');
-    dialog.style.setProperty('--short-task-sheet-drag-offset', '0px');
-    dialog.showModal();
-    return () => {
-      dismissingRef.current = false;
-      dragPointerRef.current = null;
-      dialog.removeAttribute('data-interacted');
-      dialog.removeAttribute('data-dragging');
-      dialog.removeAttribute('data-dismissing');
-      dialog.style.removeProperty('--short-task-sheet-drag-offset');
-      dialog.close();
-    };
-  }, [open]);
+    const dialog = dialogRef.current;
+    dialog?.removeAttribute('data-interacted');
+    dialog?.removeAttribute('data-dragging');
+    dialog?.style.setProperty('--short-task-sheet-drag-offset', '0px');
+  }, [open, present]);
+
+  useEffect(() => {
+    if (present) return;
+    const navigate = pendingNavigationRef.current;
+    if (!navigate) return;
+    pendingNavigationRef.current = null;
+    // React runs passive cleanup for the prior presentation before setup
+    // effects for this closed state, so native modality and scroll ownership
+    // are already released before the destination can assign focus.
+    navigate();
+  }, [present]);
 
   useModalLifecycle({
-    active: open,
+    active: present,
     initialFocusRef: initialFocusRef ?? closeRef,
     restoreFocusRef,
     deferRestoreFocus: true,
     shouldRestoreFocus: () => !navigatingRef.current,
   });
 
-  if (!open || typeof document === 'undefined') return null;
+  if (!present || typeof document === 'undefined') return null;
   return createPortal(
     <dialog
       ref={dialogRef}
       id={id}
       className={`short-task-sheet ${className}`}
+      data-presence={presenceState}
       role={role}
       aria-modal="true"
       aria-labelledby={titleId}
@@ -242,15 +242,10 @@ export function ShortTaskSheet({
         event.preventDefault();
         closeSheet();
       }}
-      onTransitionEnd={(event) => {
-        if (
-          event.target !== event.currentTarget ||
-          event.propertyName !== 'transform' ||
-          !dismissingRef.current
-        )
+      onAnimationEnd={(event) => {
+        if (event.target !== event.currentTarget || presenceState !== 'exiting')
           return;
-        dismissingRef.current = false;
-        closeSheet();
+        completeExit();
       }}
       onClick={(event) => {
         if (event.target !== event.currentTarget) return;

@@ -14,8 +14,11 @@
   color: var(--color-text);
   box-shadow: var(--elevation-overlay);
   overflow: hidden;
+  opacity: 1;
   transform: translateY(var(--short-task-sheet-drag-offset, 0px));
-  transition: transform var(--duration-context) var(--easing-enter);
+  transition:
+    transform var(--duration-transition) var(--easing-standard),
+    opacity var(--duration-transition) var(--easing-standard);
 }
 
 .short-task-sheet[open] {
@@ -32,14 +35,22 @@
   transition: none;
 }
 
-.short-task-sheet[open][data-dismissing="true"] {
-  animation: none;
+.short-task-sheet[open][data-presence="exiting"] {
   pointer-events: none;
-  transition-timing-function: var(--easing-exit);
+  animation: short-task-sheet-exit var(--duration-transition) var(--easing-exit)
+    forwards;
+  transition: none;
 }
 
 .short-task-sheet::backdrop {
-  background: var(--color-scrim);
+  background-color: var(--color-scrim);
+  animation: short-task-sheet-backdrop-enter var(--duration-context)
+    var(--easing-enter);
+}
+
+.short-task-sheet[open][data-presence="exiting"]::backdrop {
+  animation: short-task-sheet-backdrop-exit var(--duration-transition)
+    var(--easing-exit) forwards;
 }
 
 .short-task-sheet-header {
@@ -147,6 +158,35 @@
   }
 }
 
+@keyframes short-task-sheet-backdrop-enter {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--color-scrim);
+  }
+}
+
+@keyframes short-task-sheet-exit {
+  to {
+    opacity: 0;
+    transform: translateY(100dvh);
+  }
+}
+
+@keyframes short-task-sheet-exit-expanded {
+  to {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@keyframes short-task-sheet-backdrop-exit {
+  to {
+    background-color: transparent;
+  }
+}
+
 @media (min-width: 840px) {
   .short-task-sheet {
     inset: 0;
@@ -154,6 +194,10 @@
     height: fit-content;
     max-height: calc(100dvh - var(--space-8));
     border-radius: var(--radius-content);
+  }
+
+  .short-task-sheet[open][data-presence="exiting"] {
+    animation-name: short-task-sheet-exit-expanded;
   }
 
   .short-task-sheet-header {
@@ -202,7 +246,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .short-task-sheet,
-  .short-task-sheet[open] {
+  .short-task-sheet[open],
+  .short-task-sheet::backdrop {
     animation: none;
     transition: none;
   }

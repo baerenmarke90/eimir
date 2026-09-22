@@ -34,7 +34,6 @@ export interface ModalLifecycleOptions {
   initialFocusRef?: RefObject<HTMLElement | null>;
   restoreFocusRef?: RefObject<HTMLElement | null>;
   restoreFocus?: boolean;
-  focusDelayMs?: number;
   deferRestoreFocus?: boolean;
   shouldRestoreFocus?: () => boolean;
 }
@@ -48,7 +47,6 @@ export function useModalLifecycle({
   initialFocusRef,
   restoreFocusRef,
   restoreFocus = true,
-  focusDelayMs = 0,
   deferRestoreFocus = false,
   shouldRestoreFocus,
 }: ModalLifecycleOptions): void {
@@ -64,22 +62,9 @@ export function useModalLifecycle({
         ? document.activeElement
         : null);
     const releaseScroll = acquireBodyScrollLock();
-    let focusTimer: number | null = null;
-
-    const focusInitial = () => {
-      initialFocusRef?.current?.focus({ preventScroll: true });
-    };
-
-    if (initialFocusRef) {
-      if (focusDelayMs > 0) {
-        focusTimer = window.setTimeout(focusInitial, focusDelayMs);
-      } else {
-        focusInitial();
-      }
-    }
+    initialFocusRef?.current?.focus({ preventScroll: true });
 
     return () => {
-      if (focusTimer !== null) window.clearTimeout(focusTimer);
       releaseScroll();
 
       const mayRestore =
@@ -100,7 +85,6 @@ export function useModalLifecycle({
   }, [
     active,
     deferRestoreFocus,
-    focusDelayMs,
     initialFocusRef,
     restoreFocus,
     restoreFocusRef,

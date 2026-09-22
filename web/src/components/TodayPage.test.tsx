@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { M4ProductApis } from '../client/m4Product';
 import {
   DASHBOARD_MODULE_KEYS,
@@ -2362,7 +2363,7 @@ describe('formatRelationshipDuration', () => {
         },
       );
       queryClient.setQueryData(
-        ['today-pinned-collection', 'account-1', 'space-1', 'collection-1'],
+        authorSummaryQueryKeys.collectionDetail('space-1', 'collection-1'),
         {
           id: 'collection-1',
           spaceId: 'space-1',

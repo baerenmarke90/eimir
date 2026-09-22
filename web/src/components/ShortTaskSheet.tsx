@@ -323,8 +323,7 @@ export function ShortTaskSheet({
       if (
         deltaY <= 0 ||
         absoluteY < absoluteX * COMPACT_DRAG_AXIS_DOMINANCE ||
-        (dragScrollOwnerRef.current &&
-          dragScrollOwnerRef.current.scrollTop > 0)
+        (dragScrollOwnerRef.current && dragScrollOwnerRef.current.scrollTop > 0)
       ) {
         abandonPendingDrag();
         return 'cancelled';
@@ -441,10 +440,7 @@ export function ShortTaskSheet({
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    function findTouch(
-      list: TouchList,
-      identifier: number,
-    ): Touch | undefined {
+    function findTouch(list: TouchList, identifier: number): Touch | undefined {
       return Array.from(list).find((touch) => touch.identifier === identifier);
     }
 

@@ -288,7 +288,7 @@ describe('HeaderNotificationsMenu', () => {
       document.body.style.overflow = '';
     });
 
-    it('renders viewport-level bottom sheet into document.body and locks body scroll', () => {
+    it('renders viewport-level bottom sheet into document.body and locks body scroll', async () => {
       document.body.style.overflow = 'auto';
       renderNotificationMenu({ unreadCount: 1 });
       const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
@@ -319,8 +319,9 @@ describe('HeaderNotificationsMenu', () => {
       // Clicking backdrop dismisses sheet and restores body scroll
       const backdrop = portal?.querySelector('.header-notifications-backdrop');
       expect(backdrop).not.toBeNull();
-      act(() => {
+      await act(async () => {
         fireEvent.click(backdrop as HTMLElement);
+        await Promise.resolve();
       });
 
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
@@ -328,6 +329,43 @@ describe('HeaderNotificationsMenu', () => {
         document.body.querySelector('.header-notifications-portal'),
       ).toBeNull();
       expect(document.body.style.overflow).toBe('auto');
+      expect(document.activeElement).toBe(trigger);
+    });
+
+    it('moves focus into the modal sheet and contains Tab navigation', () => {
+      renderNotificationMenu({ unreadCount: 1 });
+      const trigger = screen.getByRole('button', { name: /1 ungelesen/i });
+
+      act(() => {
+        fireEvent.click(trigger);
+      });
+
+      const portal = screen.getByRole('dialog', {
+        name: m5s5.notifications.previewTitle,
+      });
+      const notification = screen.getByRole('button', {
+        name: /Alex Partner/i,
+      });
+      const allLink = screen.getByRole('link', {
+        name: m5s5.notifications.showAll,
+      });
+
+      expect(document.activeElement).toBe(portal);
+
+      act(() => {
+        fireEvent.keyDown(portal, { key: 'Tab' });
+      });
+      expect(document.activeElement).toBe(notification);
+
+      act(() => {
+        fireEvent.keyDown(notification, { key: 'Tab', shiftKey: true });
+      });
+      expect(document.activeElement).toBe(allLink);
+
+      act(() => {
+        fireEvent.keyDown(allLink, { key: 'Tab' });
+      });
+      expect(document.activeElement).toBe(notification);
     });
 
     it('mobile bottom sheet dismisses on Escape and restores body scroll and focus', () => {
@@ -353,7 +391,7 @@ describe('HeaderNotificationsMenu', () => {
       expect(document.activeElement).toBe(trigger);
     });
 
-    it('clicking a notification in mobile bottom sheet navigates, closes sheet, and restores body scroll', () => {
+    it('clicking a notification in mobile bottom sheet navigates without restoring focus to the old route trigger', async () => {
       document.body.style.overflow = '';
       const { getLocation } = renderNotificationMenu({
         unreadCount: 1,
@@ -374,8 +412,9 @@ describe('HeaderNotificationsMenu', () => {
       expect(document.body.style.overflow).toBe('hidden');
 
       const notifItem = screen.getByRole('button', { name: /Alex Partner/i });
-      act(() => {
+      await act(async () => {
         fireEvent.click(notifItem);
+        await Promise.resolve();
       });
 
       expect(getLocation()).toBe('/plan/plans/plan-mobile-456');
@@ -384,6 +423,7 @@ describe('HeaderNotificationsMenu', () => {
         document.body.querySelector('.header-notifications-portal'),
       ).toBeNull();
       expect(document.body.style.overflow).toBe('');
+      expect(document.activeElement).not.toBe(trigger);
     });
   });
 });

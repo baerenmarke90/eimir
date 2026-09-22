@@ -398,11 +398,15 @@ exceptions.
 The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
 continues to use the same entitlement model as for ordinary users.
 
-The canonical dataset currently records one normalized `TEST_FIXTURE` grant through the ordinary
-entitlement service so the Demo can exercise Couple Games. That grant is limited to the
-`games.couple` capability and is evaluated through the same tenant-scoped entitlement endpoint and
-server-side capability checks as any other grant. Production forbids creating `TEST_FIXTURE` grants
-and excludes restored fixture grants from effective Production entitlement evaluation.
+The canonical dataset records purpose-scoped normalized `TEST_FIXTURE` grants through the ordinary
+entitlement service. One grant exposes `games.couple` for Couple Games; a second exposes
+`daily.insights` and `daily.quote` for the implemented Today Pro capability boundary. The Daily
+Quote preferences are deterministic for both personas and use the same entitlement and preference
+contracts as ordinary Accounts.
+
+All fixture grants are evaluated through the same tenant-scoped entitlement endpoint and server-side
+capability checks as ordinary grants. Production forbids creating `TEST_FIXTURE` grants and excludes
+restored fixture grants from effective Production entitlement evaluation.
 
 Curated media, richer seed content, and reset behavior do not themselves change paywall,
 storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use

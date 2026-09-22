@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,7 +18,10 @@ import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
-import { useModalLifecycle } from './useModalLifecycle';
+import {
+  containModalTabFocus,
+  useModalLifecycle,
+} from './useModalLifecycle';
 
 function useIsCompact(query = '(max-width: 640px)'): boolean {
   const [isCompact, setIsCompact] = useState(() => {
@@ -78,6 +81,8 @@ export function HeaderNotificationsMenu({
   const queryClient = useQueryClient();
   const { isOpen, close, toggle, triggerRef, panelRef } =
     useDismissiblePopover();
+  const compactDialogRef = useRef<HTMLDivElement>(null);
+  const compactNavigatingRef = useRef(false);
 
   const configuration = useMemo(
     () =>
@@ -124,6 +129,8 @@ export function HeaderNotificationsMenu({
       ? t('navigation.notificationsWithUnread', { count: unreadCount })
       : t('navigation.notifications');
 
+  const isCompact = useIsCompact();
+
   async function handleNotificationClick(item: NotificationItem) {
     const path = engagementTargetPath(item.targetType, item.targetId);
 
@@ -160,6 +167,7 @@ export function HeaderNotificationsMenu({
         });
     }
 
+    if (isCompact && path) compactNavigatingRef.current = true;
     close();
 
     if (path) {
@@ -167,11 +175,16 @@ export function HeaderNotificationsMenu({
     }
   }
 
-  const isCompact = useIsCompact();
+  useEffect(() => {
+    if (isOpen && isCompact) compactNavigatingRef.current = false;
+  }, [isCompact, isOpen]);
 
   useModalLifecycle({
     active: isOpen && isCompact,
-    restoreFocus: false,
+    initialFocusRef: compactDialogRef,
+    restoreFocusRef: triggerRef,
+    deferRestoreFocus: true,
+    shouldRestoreFocus: () => !compactNavigatingRef.current,
   });
 
   const popoverContent = (
@@ -275,7 +288,10 @@ export function HeaderNotificationsMenu({
         <Link
           to={MORE_NOTIFICATIONS_ROUTE}
           className="header-notifications-all-link"
-          onClick={() => close()}
+          onClick={() => {
+            if (isCompact) compactNavigatingRef.current = true;
+            close();
+          }}
         >
           {t('m5s5.notifications.showAll')}
         </Link>
@@ -310,11 +326,18 @@ export function HeaderNotificationsMenu({
       {isCompact && isOpen && typeof document !== 'undefined'
         ? createPortal(
             <div
+              ref={compactDialogRef}
               className="header-notifications-portal"
               data-testid="header-notifications-portal"
               role="dialog"
               aria-modal="true"
               aria-label={t('m5s5.notifications.previewTitle')}
+              tabIndex={-1}
+              onKeyDown={(event) => {
+                containModalTabFocus(event, panelRef.current, {
+                  wrapFromOutside: true,
+                });
+              }}
             >
               <div
                 className="header-notifications-backdrop"

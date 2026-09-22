@@ -94,18 +94,24 @@ function renderCard({
   capabilities = ['daily.quote'],
   quoteResult = quote,
   quoteError,
+  entitlementError,
+  saveError,
 }: {
   capabilities?: string[];
   quoteResult?: DailyQuoteResponse;
   quoteError?: unknown;
+  entitlementError?: unknown;
+  saveError?: unknown;
 } = {}) {
-  const getEntitlements = vi.fn().mockResolvedValue({
-    spaceId: SPACE_ID,
-    status: capabilities.length > 0 ? 'ACTIVE' : 'FREE',
-    tier: capabilities.length > 0 ? 'PREMIUM' : 'FREE',
-    capabilities,
-    isInGracePeriod: false,
-  });
+  const getEntitlements = entitlementError
+    ? vi.fn().mockRejectedValue(entitlementError)
+    : vi.fn().mockResolvedValue({
+        spaceId: SPACE_ID,
+        status: capabilities.length > 0 ? 'ACTIVE' : 'FREE',
+        tier: capabilities.length > 0 ? 'PREMIUM' : 'FREE',
+        capabilities,
+        isInGracePeriod: false,
+      });
   const getDailyQuote = quoteError
     ? vi.fn().mockRejectedValue(quoteError)
     : vi.fn().mockResolvedValue(quoteResult);
@@ -113,29 +119,31 @@ function renderCard({
   const getDailyQuotePreferencesRaw = vi
     .fn()
     .mockResolvedValue(rawResponse(preference));
-  const updateDailyQuotePreferencesRaw = vi.fn().mockImplementation(
-    async ({
-      dailyQuotePreferencePatch,
-    }: {
-      dailyQuotePreferencePatch: {
-        selectedCategoryIds?: string[] | null;
-        selectedSourceIds?: string[] | null;
-      };
-    }) =>
-      rawResponse(
-        {
-          ...preference,
-          selectedCategoryIds:
-            dailyQuotePreferencePatch.selectedCategoryIds ??
-            preference.selectedCategoryIds,
-          selectedSourceIds:
-            dailyQuotePreferencePatch.selectedSourceIds ??
-            preference.selectedSourceIds,
-          version: preference.version + 1,
-        },
-        '"quote-pref:3"',
-      ),
-  );
+  const updateDailyQuotePreferencesRaw = saveError
+    ? vi.fn().mockRejectedValue(saveError)
+    : vi.fn().mockImplementation(
+        async ({
+          dailyQuotePreferencePatch,
+        }: {
+          dailyQuotePreferencePatch: {
+            selectedCategoryIds?: string[] | null;
+            selectedSourceIds?: string[] | null;
+          };
+        }) =>
+          rawResponse(
+            {
+              ...preference,
+              selectedCategoryIds:
+                dailyQuotePreferencePatch.selectedCategoryIds ??
+                preference.selectedCategoryIds,
+              selectedSourceIds:
+                dailyQuotePreferencePatch.selectedSourceIds ??
+                preference.selectedSourceIds,
+              version: preference.version + 1,
+            },
+            '"quote-pref:3"',
+          ),
+      );
 
   const quoteApi = {
     getDailyQuote,
@@ -235,6 +243,51 @@ describe('DailyQuoteCard', () => {
     expect(
       screen.queryByRole('button', { name: dailyQuote.retry }),
     ).not.toBeTruthy();
+  });
+
+  it('keeps an offline entitlement failure local to the card and retries it', async () => {
+    const user = userEvent.setup();
+    const api = renderCard({
+      entitlementError: new ClientProblemError('offline', null, null),
+    });
+
+    expect(await screen.findByText(dailyQuote.unavailableOffline)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: dailyQuote.retry }));
+    expect(api.getEntitlements).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a quote read failure local to the card and offers retry', async () => {
+    const user = userEvent.setup();
+    const api = renderCard({
+      quoteError: new ClientProblemError('server', 500, 'QUOTE_UNAVAILABLE'),
+    });
+
+    expect(await screen.findByText(dailyQuote.unavailable)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: dailyQuote.retry }));
+    expect(api.getDailyQuote).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the preference draft open on an optimistic concurrency conflict', async () => {
+    const user = userEvent.setup();
+    const api = renderCard({
+      saveError: new ClientProblemError(
+        'conflict',
+        409,
+        'RESOURCE_VERSION_CONFLICT',
+      ),
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: dailyQuote.settingsAria }),
+    );
+    await user.click(screen.getByRole('checkbox', { name: /Mindfulness/u }));
+    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+
+    expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
+    expect(
+      screen.getByRole('checkbox', { name: /Mindfulness/u }),
+    ).toBeTruthy();
+    expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1);
   });
 
   it('edits only the caller preference and round-trips the server ETag', async () => {

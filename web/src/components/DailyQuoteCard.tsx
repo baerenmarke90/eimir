@@ -55,7 +55,6 @@ function QuoteStateMessage({
 }
 
 function PreferencesContent({
-  snapshot,
   catalog,
   draft,
   partnerName,
@@ -66,7 +65,6 @@ function PreferencesContent({
   onCancel,
   onSave,
 }: {
-  snapshot: DailyQuotePreferenceSnapshot;
   catalog: Awaited<ReturnType<typeof loadDailyQuoteCatalog>>;
   draft: DailyQuoteDraft;
   partnerName?: string;
@@ -187,9 +185,6 @@ function PreferencesContent({
         </button>
       </div>
 
-      <span className="sr-only">
-        {snapshot.preference.enabled ? '' : t('dailyQuote.empty')}
-      </span>
     </div>
   );
 }
@@ -520,7 +515,6 @@ export function DailyQuoteCard({
           </div>
         ) : preferenceReady ? (
           <PreferencesContent
-            snapshot={preferenceReady.snapshot}
             catalog={preferenceReady.catalog}
             draft={preferenceReady.draft}
             partnerName={partnerName}

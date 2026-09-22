@@ -6,7 +6,6 @@ import { PersonIdentity } from './PersonIdentity';
 import { ProMark as SharedProMark } from './ProMark';
 
 export type InsightIconName =
-  | 'crown'
   | 'calendar'
   | 'bars'
   | 'hearts'
@@ -20,7 +19,6 @@ export type InsightIconName =
   | 'sparkle';
 
 const ICON_PATHS: Record<InsightIconName, ReactNode> = {
-  crown: <path d="M3.5 8.5 8 12l4-6.5 4 6.5 4.5-3.5-1.7 10H5.2z" />,
   calendar: (
     <>
       <rect x="4" y="5" width="16" height="15" rx="3.5" />

@@ -384,6 +384,7 @@
 @media (min-width: 840px) {
   .daily-quote-card {
     width: min(100%, 46rem);
+    margin-inline: auto;
   }
 
   .daily-quote-block p {

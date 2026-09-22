@@ -10,6 +10,13 @@ import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { ProfilePreferenceView } from '../api/generated/models/ProfilePreferenceView';
 
+function fireReactAnimationEnd(element: Element): void {
+  fireEvent.animationEnd(element);
+  if (element.isConnected) {
+    fireEvent(element, new Event('webkitAnimationEnd', { bubbles: true }));
+  }
+}
+
 function mockMatchMedia(reducedMotion: boolean): void {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -112,7 +119,7 @@ describe('PreferenceDialog accessibility, focus, and scroll locking', () => {
     expect(document.body.style.overflow).toBe('hidden');
     expect(screen.getByRole('dialog')).toBe(dialog);
 
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

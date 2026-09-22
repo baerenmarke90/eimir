@@ -290,6 +290,10 @@ export function TodayPinnedCollection({
         };
       });
       void queryClient.invalidateQueries({
+        queryKey: collectionKey,
+        exact: true,
+      });
+      void queryClient.invalidateQueries({
         queryKey: authorSummaryQueryKeys.collections(spaceId),
       });
       setExpanded(true);

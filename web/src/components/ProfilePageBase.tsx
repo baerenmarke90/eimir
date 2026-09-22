@@ -516,13 +516,7 @@ export function PreferenceDialog({
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
         onAnimationEnd={(event) => {
-          if (
-            event.target !== event.currentTarget ||
-            !['preference-modal-exit', 'preference-modal-sheet-exit'].includes(
-              event.animationName,
-            ) ||
-            presenceState !== 'exiting'
-          )
+          if (event.target !== event.currentTarget || presenceState !== 'exiting')
             return;
           completeExit();
         }}

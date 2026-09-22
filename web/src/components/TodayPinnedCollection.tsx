@@ -67,7 +67,10 @@ export function TodayPinnedCollection({
   useEffect(() => {
     if (!showSharedAchievement) return;
     const timer = setTimeout(
-      () => setCelebratedScope((scope) => (scope === celebrationScope ? null : scope)),
+      () =>
+        setCelebratedScope((scope) =>
+          scope === celebrationScope ? null : scope,
+        ),
       CELEBRATION_DISMISS_MS,
     );
     return () => clearTimeout(timer);

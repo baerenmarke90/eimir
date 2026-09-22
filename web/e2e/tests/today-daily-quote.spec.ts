@@ -399,7 +399,7 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
     await page.setViewportSize({ width, height: 844 });
     await expectQuoteSurfaceAccessible(page);
     await page.screenshot({
-      path: testInfo.outputPath(`daily-quote-today-${width}-light.png`),
+      path: testInfo.outputPath(`today-daily-quote-${width}-light.png`),
       fullPage: true,
     });
   }
@@ -428,7 +428,7 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   await expect(mindfulness).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
-    path: testInfo.outputPath('daily-quote-preferences-390-light.png'),
+    path: testInfo.outputPath('today-daily-quote-preferences-390-light.png'),
     fullPage: true,
   });
   await page.getByRole('button', { name: dailyQuote.done }).click();
@@ -461,7 +461,7 @@ test('Free Spaces see quiet discovery without quote or preference reads', async 
   expect(requests.preferences).toBe(0);
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
-    path: testInfo.outputPath('daily-quote-free-390-light.png'),
+    path: testInfo.outputPath('today-daily-quote-free-390-light.png'),
     fullPage: true,
   });
 });
@@ -480,7 +480,7 @@ test('Pro no-quote response is neutral and does not become an error prompt', asy
   ).toHaveCount(0);
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
-    path: testInfo.outputPath('daily-quote-empty-390-light.png'),
+    path: testInfo.outputPath('today-daily-quote-empty-390-light.png'),
     fullPage: true,
   });
 });
@@ -499,7 +499,7 @@ test('Daily Quote reflows at 320px large text and adapts to Expanded', async ({
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
   await expectQuoteSurfaceAccessible(page, { wholeDocument: false });
   await page.screenshot({
-    path: testInfo.outputPath('daily-quote-320-dark-200pct-reduced.png'),
+    path: testInfo.outputPath('today-daily-quote-320-dark-200pct-reduced.png'),
     fullPage: true,
   });
 
@@ -513,7 +513,7 @@ test('Daily Quote reflows at 320px large text and adapts to Expanded', async ({
   });
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
-    path: testInfo.outputPath('daily-quote-1280-light.png'),
+    path: testInfo.outputPath('today-daily-quote-1280-light.png'),
     fullPage: true,
   });
 });

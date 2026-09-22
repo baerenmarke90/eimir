@@ -326,7 +326,10 @@ The canonical dataset is created through normal domain services and currently in
 - Plans in IDEA, PLANNED, and COMPLETED states, including scheduled examples;
 - Places used by the canonical planning and Chapter examples;
 - Chapters, including Place-linked content;
-- shared Collections/items;
+- shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
+- recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
+  and Mutual Reveal enabled so the current privacy interaction is demonstrable;
+- a recent completed shared Plan so completion/achievement surfaces have current content;
 - independent PrivateNote, GiftIdea, and PrivateCollection content for both Accounts;
 - Search-visible shared/private material;
 - Activity and in-app Notification projections;

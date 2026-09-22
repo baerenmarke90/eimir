@@ -29,6 +29,7 @@ PINNED_CONTEXTS = {
     "collection_items": "CollectionItemPayload",
     "collections": "CollectionPayload",
     "comments": "CommentPayload",
+    "daily_check_in_vibe_notes": "DailyVibeNotePayload",
     "gift_ideas": "GiftIdeaPayload",
     "heart_moments": "HeartMomentPayload",
     "important_dates": "ImportantDatePayload",

@@ -241,10 +241,10 @@ export function ShortTaskSheet({
         event.preventDefault();
         closeSheet();
       }}
-      onTransitionEnd={(event) => {
+      onAnimationEnd={(event) => {
         if (
           event.target !== event.currentTarget ||
-          event.propertyName !== 'transform' ||
+          !event.animationName.startsWith('short-task-sheet-exit') ||
           presenceState !== 'exiting'
         )
           return;

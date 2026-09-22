@@ -220,6 +220,18 @@
   font-size: 0.8rem;
 }
 
+.daily-quote-preferences > .preference-switch-row {
+  border-block: 1px solid var(--color-border-subtle);
+}
+
+.daily-quote-choice-group:disabled {
+  opacity: var(--opacity-disabled);
+}
+
+.daily-quote-choice-group:disabled label {
+  cursor: default;
+}
+
 .daily-quote-choice-group {
   display: grid;
   min-width: 0;

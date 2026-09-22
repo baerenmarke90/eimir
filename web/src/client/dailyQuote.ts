@@ -124,6 +124,9 @@ export async function saveDailyQuotePreferences(
   signal?: AbortSignal,
 ): Promise<DailyQuotePreferenceSnapshot> {
   try {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new ClientProblemError('offline');
+    }
     const response = await api.updateDailyQuotePreferencesRaw(
       {
         spaceId,

@@ -11,6 +11,16 @@ const dailyQuote = {
     'Offline – dein Zitat des Tages wird nach dem Verbinden wieder angezeigt.',
   retry: 'Erneut versuchen',
   settingsAria: 'Deine Einstellungen für das Zitat des Tages öffnen',
+  settingsTitle: 'Zitat des Tages',
+  settingsIntro:
+    'Blende deinen persönlichen täglichen Impuls auf „Wir“ ein oder aus. Rubriken und Quellen bleiben gespeichert.',
+  settingsLoading: 'Deine Zitat-Einstellung wird geladen …',
+  settingsSaved: 'Gespeichert.',
+  enabledLabel: 'Zitat des Tages anzeigen',
+  enabledDescription:
+    'Wenn du es ausschaltest, verschwindet die Karte auf „Wir“. Deine Auswahl bleibt gespeichert.',
+  enabledSettingsDescription:
+    'Gilt nur für dich. Dein Partner hat seine eigene Einstellung; Rubriken und Quellen bleiben gespeichert.',
   sheetTitle: 'Dein Zitat des Tages',
   close: 'Zitat-Einstellungen schließen',
   privacy: 'Nur für dich – {{name, firstName}} sieht deine Auswahl nicht.',

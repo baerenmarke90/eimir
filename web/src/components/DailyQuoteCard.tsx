@@ -17,16 +17,15 @@ import {
   saveDailyQuotePreferences,
   type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
-import {
-  ClientProblemError,
-  clientProblemKind,
-} from '../client/problemDetails';
+import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
+import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
 import './DailyQuoteCard.css';
 
 interface DailyQuoteDraft {
+  enabled: boolean;
   categoryIds: string[];
   sourceIds: string[];
 }
@@ -90,7 +89,23 @@ function PreferencesContent({
           : t('dailyQuote.privacyFallback')}
       </p>
 
-      <fieldset className="daily-quote-choice-group">
+      <PreferenceSwitch
+        label={t('dailyQuote.enabledLabel')}
+        description={t('dailyQuote.enabledDescription')}
+        checked={draft.enabled}
+        disabled={pending}
+        onCheckedChange={(enabled) =>
+          onDraftChange({
+            ...draft,
+            enabled,
+          })
+        }
+      />
+
+      <fieldset
+        className="daily-quote-choice-group"
+        disabled={pending || !draft.enabled}
+      >
         <legend>{t('dailyQuote.categories')}</legend>
         <div className="daily-quote-category-grid">
           {catalog.categories.map((category) => {
@@ -124,7 +139,10 @@ function PreferencesContent({
         </div>
       </fieldset>
 
-      <fieldset className="daily-quote-choice-group daily-quote-source-group">
+      <fieldset
+        className="daily-quote-choice-group daily-quote-source-group"
+        disabled={pending || !draft.enabled}
+      >
         <legend>{t('dailyQuote.sources')}</legend>
         <div className="daily-quote-source-list">
           {catalog.sources.map((source) => {
@@ -265,6 +283,7 @@ export function DailyQuoteCard({
   useEffect(() => {
     if (!settingsOpen || !preferencesQuery.data) return;
     setDraft({
+      enabled: preferencesQuery.data.preference.enabled,
       categoryIds: [...preferencesQuery.data.preference.selectedCategoryIds],
       sourceIds: [...preferencesQuery.data.preference.selectedSourceIds],
     });
@@ -299,10 +318,8 @@ export function DailyQuoteCard({
       snapshot: DailyQuotePreferenceSnapshot;
       nextDraft: DailyQuoteDraft;
     }) => {
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        throw new ClientProblemError('offline');
-      }
       const patch: DailyQuotePreferencePatch = {
+        enabled: nextDraft.enabled,
         selectedCategoryIds: nextDraft.categoryIds,
         selectedSourceIds: nextDraft.sourceIds,
       };
@@ -353,6 +370,7 @@ export function DailyQuoteCard({
     const result = await preferencesQuery.refetch();
     if (result.data) {
       setDraft({
+        enabled: result.data.preference.enabled,
         categoryIds: [...result.data.preference.selectedCategoryIds],
         sourceIds: [...result.data.preference.selectedSourceIds],
       });
@@ -361,6 +379,10 @@ export function DailyQuoteCard({
 
   const retryEntitlement = () => void entitlementQuery.refetch();
   const retryQuote = () => void quoteQuery.refetch();
+
+  if (hasCapability && quoteQuery.data?.enabled === false) {
+    return null;
+  }
 
   let body: React.ReactNode;
   let settingsAvailable = false;

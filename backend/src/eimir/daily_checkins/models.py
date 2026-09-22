@@ -109,6 +109,7 @@ class DailyCheckInVibeNote(IdMixin, TimestampMixin, Base):
         ForeignKey("daily_check_ins.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
+        index=True,
     )
     crypto_version: Mapped[int] = mapped_column(
         SmallInteger,

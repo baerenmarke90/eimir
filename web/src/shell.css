@@ -79,7 +79,10 @@
   cursor: pointer;
 }
 
-/* Global utilities live in the app bar and stay icon-only in persistent chrome. */
+/* Global utilities live in the app bar and stay icon-only in persistent chrome.
+   The border is transparent by default: it keeps the box model shared with
+   the brand-colored primary action below, without drawing a visible ring
+   around the neutral utility icons at rest. */
 .shell-utility-link,
 .header-profile-trigger,
 .shell-primary-action .quick-create-trigger {
@@ -89,7 +92,7 @@
   height: 44px;
   min-height: 44px;
   place-items: center;
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   padding: 0;
   background: transparent;

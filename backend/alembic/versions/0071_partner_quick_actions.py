@@ -93,10 +93,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.execute(
-        sa.text(
-            "DELETE FROM notifications "
-            "WHERE kind IN ('PARTNER_KISS', 'PARTNER_CHECK_IN')"
-        )
+        sa.text("DELETE FROM notifications WHERE kind IN ('PARTNER_KISS', 'PARTNER_CHECK_IN')")
     )
     op.drop_constraint(
         "notification_kind_allowed",

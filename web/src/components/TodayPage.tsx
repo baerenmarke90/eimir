@@ -57,7 +57,6 @@ import { usePartnerPresence } from '../client/presence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
-import { DailyInsightsEntry } from './DailyInsightsEntry';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { MemoryPreview } from './MemoryPreview';
@@ -1240,10 +1239,6 @@ export function TodayPage({
               partnerName={partner.displayName}
               configuredEnabled
             />
-          ) : null}
-
-          {(vibeCheckEnabled || energyCheckInEnabled) && partner ? (
-            <DailyInsightsEntry />
           ) : null}
 
           {account?.id && dailyQuoteApi && entitlementApi ? (

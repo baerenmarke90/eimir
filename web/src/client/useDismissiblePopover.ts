@@ -83,10 +83,7 @@ export function useDismissiblePopover(
   useLayoutEffect(() => {
     const previousLocationSignature = previousLocationSignatureRef.current;
     previousLocationSignatureRef.current = locationSignature;
-    if (
-      closeOnRouteChange &&
-      previousLocationSignature !== locationSignature
-    ) {
+    if (closeOnRouteChange && previousLocationSignature !== locationSignature) {
       setIsOpen(false);
     }
   }, [closeOnRouteChange, locationSignature]);

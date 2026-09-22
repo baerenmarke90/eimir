@@ -574,7 +574,9 @@ describe('TodayPinnedCollection', () => {
   it('opens the add task from the plus, saves locally, then reconciles the canonical Collection detail', async () => {
     const request = deferred<CollectionItemDetail>();
     const createCollectionItem = vi.fn().mockReturnValue(request.promise);
-    const { queryClient, queryFn, key } = renderPinned({ createCollectionItem });
+    const { queryClient, queryFn, key } = renderPinned({
+      createCollectionItem,
+    });
     const refreshed = collection();
     refreshed.version = 4;
     refreshed.items = [
@@ -617,9 +619,7 @@ describe('TodayPinnedCollection', () => {
     expect(screen.getByText('Butter')).toBeDefined();
     await waitFor(() => expect(document.activeElement).toBe(add));
     await waitFor(() => expect(queryFn).toHaveBeenCalledTimes(1));
-    expect(
-      queryClient.getQueryData<CollectionDetail>(key)?.version,
-    ).toBe(4);
+    expect(queryClient.getQueryData<CollectionDetail>(key)?.version).toBe(4);
   });
 
   it('keeps a failed add task open and returns focus to the editable field', async () => {

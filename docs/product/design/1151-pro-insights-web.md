@@ -1,7 +1,8 @@
 # #1151 Pro Vibe/Energy insights — Web implementation notes
 
 **Status:** implementation record for the Web slice of [#1151](https://github.com/baerenmarke90/eimir/issues/1151). It is not a new design authority.<br/>
-**Authority:** the approved references in [`references/1151/`](references/1151/), [Product Reference v1](product-reference-v1.md) and the current Today/More information architecture. Historical #1151 screenshots remain delivery evidence, not current placement authority.<br/>\n**Placement update:** [#1196](https://github.com/baerenmarke90/eimir/issues/1196) supersedes the historical Today entry. Weekly insights are discovered only from **More**.
+**Authority:** the approved references in [`references/1151/`](references/1151/), [Product Reference v1](product-reference-v1.md) and the current Today/More information architecture. Historical #1151 screenshots remain delivery evidence, not current placement authority.<br/>
+**Placement update:** [#1196](https://github.com/baerenmarke90/eimir/issues/1196) supersedes the historical Today entry. Weekly insights are discovered only from **More**.
 
 ## Contract used
 

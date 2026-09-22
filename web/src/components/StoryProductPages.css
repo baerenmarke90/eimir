@@ -148,8 +148,8 @@
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-duration-medium) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -358,8 +358,8 @@
   font-family: inherit;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-group select:focus-visible {
@@ -380,7 +380,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   border-radius: var(--radius-medium);
-  transition: color 0.15s ease;
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-reset-header-action:hover {
@@ -413,8 +413,8 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .active-chip:hover {
@@ -576,7 +576,10 @@
   font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;
-  transition: all var(--motion-duration-short) ease;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-tab-btn:hover {
@@ -613,7 +616,7 @@
   );
   border: 1px solid var(--color-brand-glow);
   box-shadow: var(--shadow-card);
-  transition: transform var(--motion-duration-medium) ease;
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-hero-highlight:hover {
@@ -826,8 +829,8 @@
   text-decoration: none;
   overflow: hidden;
   transition:
-    transform var(--motion-duration-medium) ease,
-    box-shadow var(--motion-duration-medium) ease;
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-tapestry-item:focus-visible {
@@ -1044,8 +1047,8 @@
   text-align: center;
   text-decoration: none;
   transition:
-    background-color var(--motion-duration-short) ease,
-    color var(--motion-duration-short) ease;
+    background-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-browse-link:hover {

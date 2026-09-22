@@ -3,7 +3,7 @@
  * but unrevealed card otherwise reserves compositor resources off-screen. */
 .story-timeline-progressive-reveal {
   opacity: 0;
-  transition: opacity 210ms var(--motion-easing-lift);
+  transition: opacity var(--duration-transition) var(--easing-enter);
 }
 
 /* Keep the task/navigation anchor itself geometrically stable while the
@@ -12,16 +12,16 @@
 .story-timeline-item.story-timeline-progressive-reveal .story-card {
   translate: 0 14px;
   transition:
-    translate 210ms var(--motion-easing-lift),
-    transform var(--motion-duration-medium) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+    translate var(--duration-transition) var(--easing-enter),
+    transform var(--duration-transition) var(--easing-enter),
+    box-shadow var(--duration-transition) var(--easing-enter);
 }
 
 .story-timeline-heading-reveal {
   transform: translateY(10px);
   transition:
-    opacity 210ms var(--motion-easing-lift),
-    transform 210ms var(--motion-easing-lift);
+    opacity var(--duration-transition) var(--easing-enter),
+    transform var(--duration-transition) var(--easing-enter);
 }
 
 .story-timeline-progressive-reveal[data-timeline-revealed="true"],

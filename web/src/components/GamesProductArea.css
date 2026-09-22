@@ -314,8 +314,8 @@
   border-radius: 50%;
   background: var(--who-of-us-outcome-accent, var(--color-text-secondary));
   transform: translate(-50%, -50%) scale(0);
-  animation: who-of-us-connector-same var(--motion-duration-long)
-    var(--motion-easing-settle) 90ms forwards;
+  animation: who-of-us-connector-same var(--duration-context)
+    var(--easing-enter) forwards;
 }
 
 .who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-answers::before {
@@ -330,8 +330,8 @@
   justify-items: center;
   gap: var(--space-2);
   text-align: center;
-  animation-duration: var(--motion-duration-medium);
-  animation-timing-function: var(--motion-easing-settle);
+  animation-duration: var(--duration-transition);
+  animation-timing-function: var(--easing-enter);
   animation-fill-mode: both;
 }
 
@@ -347,7 +347,6 @@
 
 .who-of-us-reveal-person:last-child {
   animation-name: who-of-us-person-in-right;
-  animation-delay: 60ms;
 }
 
 .who-of-us-reveal[data-outcome="different"]
@@ -358,6 +357,10 @@
 .who-of-us-reveal[data-outcome="different"]
   .who-of-us-reveal-person:last-child {
   animation-name: who-of-us-person-out-right;
+}
+
+.who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-person {
+  animation-timing-function: var(--easing-exit);
 }
 
 .who-of-us-reveal-avatar {

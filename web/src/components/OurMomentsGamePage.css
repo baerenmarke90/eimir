@@ -83,9 +83,9 @@
   color: var(--color-text);
   cursor: pointer;
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease;
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .our-moments-card:not(:disabled):active {

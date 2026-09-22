@@ -104,9 +104,9 @@ body.theme-vault
   color: inherit;
   text-decoration: none;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .private-area-destination-card:hover {

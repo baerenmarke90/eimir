@@ -72,9 +72,9 @@ button.daily-vibe-person {
   font: inherit;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    background var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 button.daily-vibe-person:hover {
@@ -130,20 +130,17 @@ button.daily-vibe-person:focus-visible {
 }
 
 .daily-vibe-person.is-startup-reveal {
-  animation: daily-vibe-startup 640ms var(--easing-enter) both;
-}
-
-.daily-vibe-person.is-startup-reveal + .daily-vibe-person.is-startup-reveal {
-  animation-delay: 90ms;
+  animation: daily-vibe-startup var(--duration-context) var(--easing-enter) both;
 }
 
 .daily-vibe-partner.is-revealed {
-  animation: daily-vibe-reveal 520ms var(--easing-enter) both;
+  animation: daily-vibe-reveal var(--duration-context) var(--easing-enter) both;
 }
 
 .daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
 .daily-vibe-partner.is-revealed .daily-vibe-glyph {
-  animation: daily-vibe-glyph-pop 640ms var(--easing-enter) both;
+  animation: daily-vibe-glyph-pop var(--duration-context) var(--easing-enter)
+    both;
 }
 
 .daily-vibe-share {
@@ -226,9 +223,9 @@ button.daily-vibe-person:focus-visible {
   cursor: pointer;
   overflow-wrap: anywhere;
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast),
-    transform var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .daily-vibe-option:hover:not(:disabled) {

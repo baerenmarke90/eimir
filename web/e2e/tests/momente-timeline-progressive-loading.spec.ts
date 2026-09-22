@@ -273,7 +273,7 @@ test.describe('Momente Timeline progressive loading (#975)', () => {
     const transitionDuration = await firstEntry.evaluate(
       (element) => getComputedStyle(element).transitionDuration,
     );
-    expect(transitionDuration).toContain('0.21s');
+    expect(transitionDuration).toContain('0.18s');
     await expect
       .poll(() =>
         firstEntry.evaluate((element) => {

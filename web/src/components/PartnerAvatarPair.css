@@ -42,8 +42,8 @@
   color: var(--color-brand-text);
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    background var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .partner-avatar-waiting:hover:not(:disabled) {

@@ -123,7 +123,7 @@
   color: var(--color-text-secondary);
   font-weight: 600;
   text-decoration: none;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 /*
@@ -209,10 +209,10 @@
   font-weight: 700;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    background var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .today-hero-action:hover {
@@ -229,7 +229,7 @@
   );
   color: var(--color-on-accent);
   border-color: transparent;
-  animation: heart-sparkle 0.6s ease-out;
+  animation: heart-sparkle var(--duration-context) var(--easing-enter);
 }
 
 .today-section {
@@ -283,7 +283,7 @@
   overflow-wrap: anywhere;
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-section-link:hover {
@@ -408,9 +408,9 @@
 
 .today-agenda-row-link {
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-agenda-row-link:hover {
@@ -519,9 +519,9 @@
   text-decoration: none;
   box-sizing: border-box;
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .today-recent-tile-static {
@@ -685,8 +685,8 @@
   background: var(--color-surface-subtle);
   box-shadow: var(--shadow-raised);
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .today-moment-link:hover .today-moment-figure {
@@ -937,8 +937,8 @@
   font-weight: 700;
   text-decoration: none;
   transition:
-    filter var(--motion-fast),
-    transform var(--motion-fast);
+    filter var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .today-living-action:hover {
@@ -1021,8 +1021,8 @@
   overflow: hidden;
   box-shadow: var(--shadow-raised);
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .today-monthly-tile:hover {

@@ -4,8 +4,8 @@
   border: 1px solid transparent;
   border-radius: var(--radius-medium);
   transition:
-    background var(--motion-fast),
-    color var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .story-detail-edit-link:hover {

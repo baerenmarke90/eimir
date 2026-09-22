@@ -232,7 +232,7 @@
   font-size: 1rem;
   line-height: 1.5;
   padding: var(--space-3) var(--space-4);
-  transition: border-color var(--motion-fast);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .create-page
@@ -264,7 +264,7 @@
   font-size: 0.95rem;
   padding: var(--space-2) var(--space-3);
   min-height: 44px;
-  transition: border-color var(--motion-fast);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .create-page
@@ -302,8 +302,8 @@
   font-size: 0.92rem;
   cursor: pointer;
   transition:
-    background-color var(--motion-fast),
-    border-color var(--motion-fast);
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .create-page

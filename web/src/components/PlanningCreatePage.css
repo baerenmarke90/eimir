@@ -48,8 +48,7 @@
   display: grid;
   gap: var(--space-3);
   padding: var(--space-3) 0 var(--space-4);
-  animation: eimir-reveal var(--motion-duration-medium)
-    var(--motion-easing-reveal);
+  animation: eimir-reveal var(--duration-transition) var(--easing-enter);
 }
 
 .planning-add-place {

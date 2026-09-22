@@ -81,6 +81,16 @@ describe('PresenceHeartbeat', () => {
     expect(mocks.touchPresence).toHaveBeenCalledTimes(3);
   });
 
+  it('resumes immediately after a short suspension even inside the event dedupe window', async () => {
+    renderHeartbeat();
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event('blur')));
+    act(() => window.dispatchEvent(new Event('focus')));
+
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(2);
+  });
+
   it('ignores a heartbeat response that settles after presence is suspended', async () => {
     let resolveTouch!: (value: { state: string }) => void;
     const pendingTouch = new Promise<{ state: string }>((resolve) => {

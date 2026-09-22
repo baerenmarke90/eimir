@@ -41,6 +41,9 @@ export interface PartnerQuickActionCreate {
     clientRequestId: string;
 }
 
+/**
+ * Check if a given object implements the PartnerQuickActionCreate interface.
+ */
 export function instanceOfPartnerQuickActionCreate(value: object): value is PartnerQuickActionCreate {
     if (!('kind' in value) || value['kind'] === undefined) return false;
     if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;

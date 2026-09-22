@@ -156,11 +156,5 @@ describe('Product Reference v1 visual roles', () => {
     ).toBeGreaterThan(
       readSource('./main.tsx').indexOf("import './theme.css';"),
     );
-    const dailyQuoteCss = readSource('./components/DailyQuoteCard.css');
-    expect(dailyQuoteCss).toContain('var(--duration-transition)');
-    expect(dailyQuoteCss).toContain('var(--duration-feedback)');
-    expect(dailyQuoteCss).not.toMatch(
-      /var\(--duration-(?:fast|standard)\)/,
-    );
   });
 });

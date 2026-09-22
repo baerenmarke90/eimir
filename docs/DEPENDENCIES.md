@@ -4,7 +4,7 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-01
+As of: 2026-09-22
 
 ## Reproducibility and verification
 
@@ -72,12 +72,17 @@ tokens use `secrets` and `hashlib` from the standard library; for a value with
 full entropy, an intentionally slow algorithm would only impose unnecessary
 cost on every request.
 
-OIDC adds `pyjwt[crypto]` and therefore `cryptography`: the signature of an
-external ID Token cannot be verified with `hashlib`, and a custom RSA/ECDSA
-verifier would be exactly the wrong kind of in-house implementation in the
-Auth path. `httpx` moves from a development dependency to a runtime dependency
-because Discovery, JWKS retrieval, and the Token endpoint require outbound
-HTTP.
+`cryptography` is a direct runtime dependency for the application-controlled
+encryption-at-rest boundary. eimir. uses its established AES-256-GCM primitive
+for authenticated encryption and does not implement a cryptographic primitive
+itself. The package was already present transitively through `pyjwt[crypto]`,
+but is declared directly now that application code imports it.
+
+OIDC uses `pyjwt[crypto]`: the signature of an external ID Token cannot be
+verified with `hashlib`, and a custom RSA/ECDSA verifier would be exactly the
+wrong kind of in-house implementation in the Auth path. `httpx` is a runtime
+dependency because Discovery, JWKS retrieval, and the Token endpoint require
+outbound HTTP.
 
 `webauthn` (py_webauthn) is added for the same reason: Passkey registration
 involves CBOR, COSE keys, and Attestation, and reading these formats by hand
@@ -120,6 +125,7 @@ in a background job under resource limits — never in the request path.
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
 | pyjwt[crypto] | 2.13.0 | PyPI | MIT |
+| cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 12.3.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |

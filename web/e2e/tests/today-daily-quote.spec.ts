@@ -402,6 +402,16 @@ test('Pro Daily Quote follows the approved Today composition across Compact widt
   expect(upcomingBox).not.toBeNull();
   expect(quoteBox?.y ?? 0).toBeLessThan(upcomingBox?.y ?? Number.MAX_VALUE);
 
+  // Regression guard for #1200: the agenda tile clips its own content to its
+  // rounded corners, so an icon/text box reaching the padding edge cannot
+  // show a square corner outside the rounded silhouette.
+  expect(
+    await page
+      .locator('.today-agenda-row')
+      .first()
+      .evaluate((element) => getComputedStyle(element).overflow),
+  ).toBe('hidden');
+
   for (const width of [360, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     await expectQuoteSurfaceAccessible(page);

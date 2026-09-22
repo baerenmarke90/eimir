@@ -307,8 +307,7 @@ export function PartnerQuickActions({
       resolvedThinkingCooldown.getTime() > cooldownNow,
   );
   const kissCoolingDown = Boolean(
-    extendedCooldowns.KISS &&
-      extendedCooldowns.KISS.getTime() > cooldownNow,
+    extendedCooldowns.KISS && extendedCooldowns.KISS.getTime() > cooldownNow,
   );
   const checkInCoolingDown = Boolean(
     extendedCooldowns.CHECK_IN &&

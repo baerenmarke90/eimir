@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <rect width="390" height="844" fill="#ffffff"/>
+  <text x="20" y="54" font-family="sans-serif" font-size="30" font-weight="700" fill="#2b2130">Your vibe today</text>
+  <text x="20" y="84" font-family="sans-serif" font-size="16" fill="#6d5a69">What fits best right now?</text>
+  <g font-family="sans-serif" font-size="17" font-weight="700" fill="#2b2130" stroke="#c52548" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="20" y="112" width="168" height="90" rx="20" fill="#fff7f5" stroke="#e7cfc7"/><circle cx="54" cy="157" r="15" fill="#fff0f2" stroke="none"/><circle cx="54" cy="157" r="5" fill="none"/><path d="M54 143v5M54 166v5M40 157h5M63 157h5M44 147l4 4M60 163l4 4M64 147l-4 4M48 163l-4 4"/><text x="78" y="151" stroke="none">Good &amp;</text><text x="78" y="177" stroke="none">relaxed</text>
+    <rect x="202" y="112" width="168" height="90" rx="20" fill="#fffaf7" stroke="#e7cfc7"/><circle cx="236" cy="157" r="15" fill="#fff0f2" stroke="none"/><path d="M229 157h14" fill="none"/><text x="260" y="164" stroke="none">Doing okay</text>
+    <rect x="20" y="220" width="168" height="90" rx="20" fill="#fffaf7" stroke="#e7cfc7"/><circle cx="54" cy="265" r="15" fill="#fff0f2" stroke="none"/><path d="M45 267c5-12 13 12 18 0" fill="none"/><text x="78" y="258" stroke="none">Demanding</text><text x="78" y="284" stroke="none">day</text>
+    <rect x="202" y="220" width="168" height="90" rx="20" fill="#fffaf7" stroke="#e7cfc7"/><circle cx="236" cy="265" r="15" fill="#fff0f2" stroke="none"/><path d="M227 258c4-6 14-6 18 0M232 273c3-3 5-3 8 0" fill="none"/><text x="260" y="272" stroke="none">Not so good</text>
+    <rect x="20" y="328" width="168" height="90" rx="20" fill="#fffaf7" stroke="#e7cfc7"/><circle cx="54" cy="373" r="15" fill="#fff0f2" stroke="none"/><path d="M45 370c0-8 9-10 9-2 0-8 9-6 9 2 0 7-9 12-9 12s-9-5-9-12z" fill="none"/><text x="78" y="366" stroke="none">Connection</text><text x="78" y="392" stroke="none">would help</text>
+    <rect x="202" y="328" width="168" height="90" rx="20" fill="#fffaf7" stroke="#e7cfc7"/><circle cx="236" cy="373" r="15" fill="#fff0f2" stroke="none"/><circle cx="236" cy="373" r="8" fill="none"/><path d="M236 349v5M236 392v5" fill="none"/><text x="260" y="380" stroke="none">Some space</text>
+  </g>
+  <text x="20" y="470" font-family="sans-serif" font-size="13" fill="#6d5a69">One coherent SVG stroke language; labels remain the semantic source of truth.</text>
+</svg>

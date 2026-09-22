@@ -6,7 +6,9 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom';
+import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RulesApi } from '../api/generated/apis/RulesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -28,6 +30,7 @@ import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
+import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
@@ -67,6 +70,14 @@ export function SettingsPage(props: SettingsPageProps) {
   const rulesApi = useMemo(() => new RulesApi(configuration), [configuration]);
   const dashboardApi = useMemo(
     () => new DashboardApi(configuration),
+    [configuration],
+  );
+  const dailyQuoteApi = useMemo(
+    () => new DailyQuoteApi(configuration),
+    [configuration],
+  );
+  const entitlementsApi = useMemo(
+    () => new EntitlementsApi(configuration),
     [configuration],
   );
   const demoMode = isDemoModeConfigured();
@@ -145,6 +156,12 @@ export function SettingsPage(props: SettingsPageProps) {
       <div className="settings-category-content">
         <DashboardSettingsPanel
           dashboardApi={dashboardApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <DailyQuoteSettingsPanel
+          quoteApi={dailyQuoteApi}
+          entitlementsApi={entitlementsApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />

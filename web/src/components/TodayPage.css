@@ -44,10 +44,10 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
   border: none;
   border-radius: 0;
-  padding: var(--space-2) 0 var(--space-5);
+  padding: var(--space-2) 0 0;
   background: transparent;
   box-shadow: none;
   gap: var(--space-4);
@@ -233,7 +233,7 @@
 }
 
 .today-section {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-section);
 }
 
 /* A pinned checklist is intentionally a focused Today utility, not a
@@ -244,12 +244,12 @@
 }
 
 /*
- * `Euer Moment` is the page's dominant surface, so it gets the one deliberate
- * pause in the rhythm - before it, to set it apart, and after it, so the
- * contextual module below is read as a new thought rather than a caption.
+ * Personal content is distinguished by its image/prose composition rather
+ * than an exceptional whitespace island. Keep the same section rhythm as the
+ * rest of the root product surfaces.
  */
 .today-section-moment {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-section);
 }
 
 .today-section-header {
@@ -1189,36 +1189,10 @@
 
 .today-pinned-list-items li {
   display: grid;
-  grid-template-columns: 2.5rem minmax(0, 1fr);
+  grid-template-columns: 2.75rem minmax(0, 1fr);
   align-items: center;
   min-height: 48px;
   gap: var(--space-2);
-}
-
-.today-pinned-list-check {
-  display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  place-items: center;
-  border: 2px solid var(--color-border);
-  border-radius: 50%;
-  padding: 0;
-  background: var(--color-surface);
-  color: transparent;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.today-pinned-list-check[aria-pressed="true"] {
-  border-color: var(--color-brand);
-  background: var(--color-brand);
-  color: var(--color-surface);
-}
-
-.today-pinned-list-check:focus-visible,
-.today-pinned-list-add-button:focus-visible {
-  outline: 3px solid var(--color-focus);
-  outline-offset: 2px;
 }
 
 .today-pinned-list-title {
@@ -1232,14 +1206,30 @@
   text-decoration: line-through;
 }
 
-.today-pinned-list-empty,
-.today-pinned-list-more {
+.today-pinned-list-empty {
   margin: 0;
   color: var(--color-text-secondary);
 }
 
-.today-pinned-list-more {
-  font-size: 0.88rem;
+.today-pinned-list-disclosure {
+  justify-self: start;
+  min-height: 44px;
+  border: 0;
+  padding: 0 var(--space-1);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-align: start;
+}
+
+.today-pinned-list-disclosure:hover {
+  color: var(--color-link-text);
+}
+
+.today-pinned-list-disclosure:focus-visible,
+.today-pinned-list-add-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .today-pinned-list-add {
@@ -1266,7 +1256,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .today-pinned-list-check,
   .today-pinned-list-add-button {
     transition: none;
   }

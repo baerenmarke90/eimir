@@ -35,6 +35,8 @@ export function SharedAchievementCelebration({
       data-presence={presenceState}
       role="status"
       aria-atomic="true"
+      aria-hidden={presenceState === 'exiting' ? true : undefined}
+      inert={presenceState === 'exiting' ? true : undefined}
       onAnimationEnd={(event) => {
         if (
           event.target !== event.currentTarget ||

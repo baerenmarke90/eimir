@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="920" viewBox="0 0 1400 920" role="img" aria-labelledby="title desc">
+  <title id="title">Issue 1206 partner quick actions visual preflight</title>
+  <desc id="desc">Directional Compact reference based on main 911d3061b36a25140fa8cc72f1409da42dca16d0. It keeps the current Today composition, including daily check-in, quote, pinned shared list, and notification-aware shell, while moving partner actions into the couple avatar group.</desc>
+  <rect width="1400" height="920" fill="#f5efe9"/>
+  <text x="54" y="56" font-family="system-ui, sans-serif" font-size="28" font-weight="750" fill="#231e28">#1206 · Partner Quick Actions</text>
+  <text x="54" y="89" font-family="system-ui, sans-serif" font-size="16" fill="#5e5466">Visual preflight · Compact normative · baseline main 911d3061 · whole Today composition preserved</text>
+
+  <!-- Closed Today composition -->
+  <g transform="translate(70 125)">
+    <rect width="430" height="735" rx="38" fill="#fffaf7" stroke="#ded1c8" stroke-width="2"/>
+    <g transform="translate(26 27)" font-family="system-ui, sans-serif">
+      <text x="0" y="24" font-size="24" font-weight="760" fill="#231e28">Wir</text>
+      <text x="0" y="48" font-size="14" fill="#776c7e">Di, 22. September 2026</text>
+      <circle cx="355" cy="24" r="20" fill="#fff" stroke="#ded1c8"/>
+      <path d="M348 20a7 7 0 0 1 14 0v7l3 4h-20l3-4z" fill="none" stroke="#5e5466" stroke-width="1.7"/>
+      <circle cx="365" cy="12" r="5" fill="#d93d59"/>
+
+      <!-- Hero -->
+      <g transform="translate(0 78)">
+        <rect width="378" height="194" rx="28" fill="#fff" stroke="#eadfd8"/>
+        <g transform="translate(111 24)">
+          <circle cx="55" cy="48" r="45" fill="#ecd8cf"/>
+          <circle cx="105" cy="48" r="45" fill="#dcd1e8"/>
+          <circle cx="55" cy="48" r="41" fill="#f5cabb"/>
+          <text x="55" y="56" text-anchor="middle" font-size="22" font-weight="700" fill="#5f3b46">P</text>
+          <circle cx="105" cy="48" r="41" fill="#d8c5e7"/>
+          <text x="105" y="56" text-anchor="middle" font-size="22" font-weight="700" fill="#4e3b62">L</text>
+          <circle cx="141" cy="78" r="8" fill="#207266" stroke="#fff" stroke-width="3"/>
+        </g>
+        <text x="189" y="132" text-anchor="middle" font-size="23" font-weight="760" fill="#231e28">Philipp &amp; Lea</text>
+        <text x="189" y="158" text-anchor="middle" font-size="14" font-weight="650" fill="#d93d59">4 Jahre, 7 Monate zusammen</text>
+        <text x="189" y="180" text-anchor="middle" font-size="12.5" fill="#776c7e">Tippe auf euch für Partneraktionen</text>
+      </g>
+
+      <!-- Vibe -->
+      <g transform="translate(0 292)">
+        <text x="0" y="16" font-size="13" font-weight="750" fill="#776c7e">WIE GEHT ES EUCH HEUTE?</text>
+        <rect y="30" width="378" height="82" rx="22" fill="#f8f1ee"/>
+        <circle cx="36" cy="71" r="18" fill="#fff"/>
+        <text x="36" y="77" text-anchor="middle" font-size="18">♡</text>
+        <text x="68" y="65" font-size="16" font-weight="700" fill="#231e28">Dein Vibe</text>
+        <text x="68" y="87" font-size="13" fill="#776c7e">Wie fühlst du dich heute?</text>
+        <text x="329" y="78" font-size="14" font-weight="700" fill="#d93d59">Öffnen</text>
+      </g>
+
+      <!-- Quote -->
+      <g transform="translate(0 425)">
+        <text x="0" y="16" font-size="13" font-weight="750" fill="#776c7e">ZITAT DES TAGES</text>
+        <rect y="30" width="378" height="82" rx="22" fill="#fff4ef"/>
+        <text x="22" y="63" font-size="15" font-family="Georgia, serif" font-style="italic" fill="#493e50">„Gemeinsam wird Alltag zu Geschichte.“</text>
+        <text x="22" y="88" font-size="12.5" fill="#776c7e">Kuratiertes Tageszitat · Pro</text>
+      </g>
+
+      <!-- Pinned list reflects #1201 -->
+      <g transform="translate(0 558)">
+        <text x="0" y="16" font-size="13" font-weight="750" fill="#776c7e">GEMEINSAME LISTE</text>
+        <rect y="30" width="378" height="116" rx="22" fill="#fff" stroke="#eadfd8"/>
+        <text x="20" y="58" font-size="17" font-weight="750" fill="#231e28">Einkauf</text>
+        <circle cx="27" cy="84" r="10" fill="#edf7f5" stroke="#207266"/>
+        <text x="48" y="89" font-size="13.5" fill="#231e28">Milch</text>
+        <circle cx="27" cy="112" r="10" fill="#207266"/>
+        <path d="M22 112l4 4 7-8" fill="none" stroke="#fff" stroke-width="2"/>
+        <text x="48" y="117" font-size="13.5" fill="#776c7e">Brot</text>
+        <text x="20" y="139" font-size="12.5" font-weight="650" fill="#776c7e">2 weitere anzeigen</text>
+        <circle cx="344" cy="124" r="17" fill="#fff" stroke="#ded1c8"/>
+        <path d="M344 117v14M337 124h14" stroke="#231e28" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- Action sheet over same Today composition -->
+  <g transform="translate(555 125)">
+    <rect width="430" height="735" rx="38" fill="#fffaf7" stroke="#ded1c8" stroke-width="2"/>
+    <text x="26" y="52" font-family="system-ui, sans-serif" font-size="24" font-weight="760" fill="#231e28">Wir</text>
+    <g opacity=".28">
+      <rect x="26" y="88" width="378" height="194" rx="28" fill="#fff" stroke="#eadfd8"/>
+      <circle cx="191" cy="151" r="45" fill="#f5cabb"/>
+      <circle cx="241" cy="151" r="45" fill="#d8c5e7"/>
+      <text x="216" y="230" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" font-weight="760" fill="#231e28">Philipp &amp; Lea</text>
+      <rect x="26" y="320" width="378" height="82" rx="22" fill="#f8f1ee"/>
+      <rect x="26" y="434" width="378" height="82" rx="22" fill="#fff4ef"/>
+      <rect x="26" y="548" width="378" height="116" rx="22" fill="#fff" stroke="#eadfd8"/>
+    </g>
+    <rect width="430" height="735" rx="38" fill="#231e28" opacity=".16"/>
+    <path d="M0 350Q0 320 30 320H400Q430 320 430 350V735H0Z" fill="#fff"/>
+    <rect x="180" y="337" width="70" height="5" rx="3" fill="#8c8094"/>
+    <text x="28" y="390" font-family="system-ui, sans-serif" font-size="23" font-weight="760" fill="#231e28">Für Lea</text>
+    <text x="28" y="414" font-family="system-ui, sans-serif" font-size="13.5" fill="#776c7e">Kleine Gesten direkt an deinen Partner.</text>
+
+    <g transform="translate(28 443)" font-family="system-ui, sans-serif">
+      <rect width="374" height="64" rx="18" fill="#fff" stroke="#eadfd8"/>
+      <circle cx="30" cy="32" r="19" fill="#fff0f2"/>
+      <text x="30" y="39" text-anchor="middle" font-size="21" fill="#d93d59">♥</text>
+      <text x="62" y="28" font-size="16.5" font-weight="720" fill="#231e28">Ich denke an dich</text>
+      <text x="62" y="48" font-size="12.5" fill="#776c7e">Kostenlos · bestehender 30-Min.-Cooldown</text>
+
+      <g transform="translate(0 76)">
+        <rect width="374" height="64" rx="18" fill="#fff" stroke="#eadfd8"/>
+        <circle cx="30" cy="32" r="19" fill="#fff4ef"/>
+        <text x="30" y="39" text-anchor="middle" font-size="20">♡</text>
+        <text x="62" y="28" font-size="16.5" font-weight="720" fill="#231e28">Kuss schicken</text>
+        <text x="62" y="48" font-size="12.5" fill="#776c7e">Kurze liebevolle Geste</text>
+        <rect x="305" y="18" width="54" height="26" rx="13" fill="#f1e8f6"/>
+        <text x="332" y="36" text-anchor="middle" font-size="11.5" font-weight="750" fill="#684b79">PRO</text>
+      </g>
+
+      <g transform="translate(0 152)">
+        <rect width="374" height="64" rx="18" fill="#fff" stroke="#eadfd8"/>
+        <circle cx="30" cy="32" r="19" fill="#edf7f5"/>
+        <text x="30" y="39" text-anchor="middle" font-size="19" fill="#207266">?</text>
+        <text x="62" y="28" font-size="16.5" font-weight="720" fill="#231e28">Wie geht’s dir?</text>
+        <text x="62" y="48" font-size="12.5" fill="#776c7e">Sanfter Check-in · kein Vibe wird offengelegt</text>
+        <rect x="305" y="18" width="54" height="26" rx="13" fill="#f1e8f6"/>
+        <text x="332" y="36" text-anchor="middle" font-size="11.5" font-weight="750" fill="#684b79">PRO</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Expanded adaptation -->
+  <g transform="translate(1035 150)" font-family="system-ui, sans-serif">
+    <text x="0" y="0" font-size="16" font-weight="750" fill="#231e28">Expanded adaptation</text>
+    <text x="0" y="28" font-size="14" fill="#776c7e">Same trigger, same action order, non-modal popover.</text>
+    <rect x="0" y="55" width="300" height="260" rx="24" fill="#fff" stroke="#ded1c8" stroke-width="2"/>
+    <text x="22" y="90" font-size="18" font-weight="760" fill="#231e28">Für Lea</text>
+    <g transform="translate(20 110)">
+      <rect width="260" height="46" rx="14" fill="#fff8f5"/>
+      <text x="16" y="29" font-size="14.5" font-weight="680" fill="#231e28">♥  Ich denke an dich</text>
+      <rect y="56" width="260" height="46" rx="14" fill="#fff8f5"/>
+      <text x="16" y="85" font-size="14.5" font-weight="680" fill="#231e28">♡  Kuss schicken</text>
+      <text x="218" y="85" font-size="10.5" font-weight="750" fill="#684b79">PRO</text>
+      <rect y="112" width="260" height="46" rx="14" fill="#fff8f5"/>
+      <text x="16" y="141" font-size="14.5" font-weight="680" fill="#231e28">?  Wie geht’s dir?</text>
+      <text x="218" y="141" font-size="10.5" font-weight="750" fill="#684b79">PRO</text>
+    </g>
+    <text x="0" y="354" font-size="13" fill="#5e5466">Decision: omit “Umarmung” in v1; it duplicates the</text>
+    <text x="0" y="374" font-size="13" fill="#5e5466">same affectionate intent as “Kuss” without adding</text>
+    <text x="0" y="394" font-size="13" fill="#5e5466">a distinct task. Keep the set deliberately small.</text>
+
+    <text x="0" y="450" font-size="14" font-weight="750" fill="#231e28">Acceptance intent</text>
+    <text x="0" y="476" font-size="12.5" fill="#5e5466">• larger overlapping avatars; no overlap halo</text>
+    <text x="0" y="498" font-size="12.5" fill="#5e5466">• names → duration below the pair</text>
+    <text x="0" y="520" font-size="12.5" fill="#5e5466">• whole pair is one discoverable 44px+ trigger</text>
+    <text x="0" y="542" font-size="12.5" fill="#5e5466">• Compact sheet / Expanded popover</text>
+    <text x="0" y="564" font-size="12.5" fill="#5e5466">• no old standalone Thinking-of-you module</text>
+    <text x="0" y="586" font-size="12.5" fill="#5e5466">• Today neighbors remain in current order</text>
+  </g>
+</svg>

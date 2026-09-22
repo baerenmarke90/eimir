@@ -227,7 +227,9 @@ describe('TodayPinnedCollection', () => {
     expect(queryFn).not.toHaveBeenCalled();
 
     await act(async () => {
-      request.resolve(rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null));
+      request.resolve(
+        rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+      );
       await request.promise;
     });
 
@@ -304,11 +306,15 @@ describe('TodayPinnedCollection', () => {
     ).toBe('false');
 
     await act(async () => {
-      first.resolve(rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null));
+      first.resolve(
+        rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+      );
       await first.promise;
     });
 
-    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2),
+    );
     expect(updateCollectionItemRaw.mock.calls[1][0]).toMatchObject({
       itemId: 'item-1',
       ifMatch: '2',
@@ -323,7 +329,9 @@ describe('TodayPinnedCollection', () => {
     ).toBe('false');
 
     await act(async () => {
-      second.resolve(rawUpdateResponse(item('item-1', 'Milch', false, 0, 3), null));
+      second.resolve(
+        rawUpdateResponse(item('item-1', 'Milch', false, 0, 3), null),
+      );
       await second.promise;
     });
   });
@@ -363,7 +371,9 @@ describe('TodayPinnedCollection', () => {
     ).toBe('false');
 
     await act(async () => {
-      second.resolve(rawUpdateResponse(item('item-1', 'Milch', false, 0, 2), null));
+      second.resolve(
+        rawUpdateResponse(item('item-1', 'Milch', false, 0, 2), null),
+      );
       await second.promise;
     });
   });
@@ -371,9 +381,11 @@ describe('TodayPinnedCollection', () => {
   it('lets different items update independently instead of globally disabling the list', async () => {
     const milk = deferred<ReturnType<typeof rawUpdateResponse>>();
     const apples = deferred<ReturnType<typeof rawUpdateResponse>>();
-    const updateCollectionItemRaw = vi.fn().mockImplementation(({ itemId }) =>
-      itemId === 'item-1' ? milk.promise : apples.promise,
-    );
+    const updateCollectionItemRaw = vi
+      .fn()
+      .mockImplementation(({ itemId }) =>
+        itemId === 'item-1' ? milk.promise : apples.promise,
+      );
     renderPinned({ updateCollectionItemRaw });
 
     fireEvent.click(
@@ -400,8 +412,12 @@ describe('TodayPinnedCollection', () => {
     ).toBeDefined();
 
     await act(async () => {
-      milk.resolve(rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null));
-      apples.resolve(rawUpdateResponse(item('item-3', 'Äpfel', true, 2, 2), null));
+      milk.resolve(
+        rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+      );
+      apples.resolve(
+        rawUpdateResponse(item('item-3', 'Äpfel', true, 2, 2), null),
+      );
       await Promise.all([milk.promise, apples.promise]);
     });
   });
@@ -410,9 +426,7 @@ describe('TodayPinnedCollection', () => {
     mockMatchMedia(false);
     const value = collection();
     value.items = value.items.map((entry) =>
-      entry.id === 'item-1'
-        ? entry
-        : { ...entry, completed: true },
+      entry.id === 'item-1' ? entry : { ...entry, completed: true },
     );
     const updateCollectionItemRaw = vi
       .fn()
@@ -455,9 +469,13 @@ describe('TodayPinnedCollection', () => {
     ).toBe('false');
     expect(celebration?.getAttribute('data-presence')).toBe('exiting');
     if (celebration) fireReactAnimationEnd(celebration);
-    await waitFor(() => expect(screen.queryByText(i18n.t(
-      'm5s5.today.pinnedCollection.sharedAchievementTitle',
-    ))).toBeNull());
+    await waitFor(() =>
+      expect(
+        screen.queryByText(
+          i18n.t('m5s5.today.pinnedCollection.sharedAchievementTitle'),
+        ),
+      ).toBeNull(),
+    );
   });
 
   it('removes completion presentation immediately for reduced motion', async () => {
@@ -518,9 +536,9 @@ describe('TodayPinnedCollection', () => {
 
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
-    expect(
-      screen.getByRole('alert').textContent,
-    ).toBe(i18n.t('m5s5.today.pinnedCollection.addRequired'));
+    expect(screen.getByRole('alert').textContent).toBe(
+      i18n.t('m5s5.today.pinnedCollection.addRequired'),
+    );
     expect(createCollectionItem).not.toHaveBeenCalled();
 
     fireEvent.change(input, { target: { value: 'Butter' } });

@@ -85,7 +85,7 @@ export function DailyCheckInUpdateFromJSONTyped(json: any, ignoreDiscriminator: 
         
         'energyLevel': json['energyLevel'] === undefined ? undefined : json['energyLevel'] === null ? null : json['energyLevel'],
         'vibe': json['vibe'] === undefined ? undefined : json['vibe'] === null ? null : DailyVibeFromJSON(json['vibe']),
-        'vibeNote': json['vibeNote'] === undefined ? undefined : json['vibeNote'],
+        'vibeNote': json['vibeNote'] === undefined ? undefined : json['vibeNote'] === null ? null : json['vibeNote'],
     };
 }
 

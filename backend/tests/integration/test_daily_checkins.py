@@ -591,6 +591,16 @@ class TestVibeContract:
             vibe_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
             energy_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
         )
+        hidden_without_partner_check_in = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        assert hidden_without_partner_check_in.json()["vibe"]["partner"] == {
+            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
+        }
+        assert hidden_without_partner_check_in.json()["energy"]["partner"] == {
+            "state": "HIDDEN_UNTIL_SELF_CHECK_IN"
+        }
+
         partner_initial = client.get(
             path(couple["space"].id), headers=auth(couple["partner_token"])
         )
@@ -602,8 +612,14 @@ class TestVibeContract:
         assert partner_saved.status_code == 200
 
         hidden = client.get(path(couple["space"].id), headers=auth(couple["manager_token"]))
-        assert hidden.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
-        assert hidden.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert (
+            hidden.json()["vibe"]["partner"]
+            == hidden_without_partner_check_in.json()["vibe"]["partner"]
+        )
+        assert (
+            hidden.json()["energy"]["partner"]
+            == hidden_without_partner_check_in.json()["energy"]["partner"]
+        )
         hidden_json = hidden.text
         assert str(couple["partner"].id) not in hidden_json
         assert '"value"' not in hidden_json
@@ -642,6 +658,15 @@ class TestVibeContract:
             "state": "VISIBLE",
             "value": DailyVibe.SAD.value,
         }
+
+        vibe_cleared = client.patch(
+            path(couple["space"].id),
+            json={"vibe": None},
+            headers={**auth(couple["manager_token"]), **if_match(energy_cleared.headers["etag"])},
+        )
+        assert vibe_cleared.status_code == 200
+        assert vibe_cleared.json()["vibe"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
+        assert vibe_cleared.json()["energy"]["partner"] == {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"}
 
     def test_vibe_immediate_exposes_only_eligible_partner_state_and_keeps_owner_isolated(
         self, client, session: Session, couple

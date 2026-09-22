@@ -24,6 +24,7 @@ export interface PartnerAvatarPairProps {
   actionRef?: Ref<HTMLButtonElement>;
   actionExpanded?: boolean;
   actionControls?: string;
+  actionHasPopup?: 'dialog' | 'menu';
 }
 
 function SingleAvatar({
@@ -77,6 +78,7 @@ export function PartnerAvatarPair({
   actionRef,
   actionExpanded,
   actionControls,
+  actionHasPopup,
 }: PartnerAvatarPairProps) {
   const { t } = useTranslation();
   const groupLabel = useMemo(() => {
@@ -152,6 +154,7 @@ export function PartnerAvatarPair({
         aria-label={actionLabel || accessibleGroupLabel}
         aria-expanded={actionExpanded}
         aria-controls={actionControls}
+        aria-haspopup={actionHasPopup}
         onClick={onActivate}
       >
         {content}

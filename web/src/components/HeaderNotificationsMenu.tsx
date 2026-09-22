@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,47 +15,12 @@ import {
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import { useOverlayPresence } from './useOverlayPresence';
-
-function useIsCompact(query = '(max-width: 640px)'): boolean {
-  const [isCompact, setIsCompact] = useState(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return false;
-    }
-    return window.matchMedia(query).matches;
-  });
-
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return;
-    }
-    const media = window.matchMedia(query);
-    setIsCompact(media.matches);
-
-    const listener = (event: MediaQueryListEvent) => {
-      setIsCompact(event.matches);
-    };
-
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', listener);
-      return () => media.removeEventListener('change', listener);
-    }
-    media.addListener?.(listener);
-    return () => media.removeListener?.(listener);
-  }, [query]);
-
-  return isCompact;
-}
 
 export interface HeaderNotificationsMenuProps {
   apiBaseUrl: string;
@@ -77,7 +42,7 @@ export function HeaderNotificationsMenu({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isCompact = useIsCompact();
+  const isCompact = useMediaQuery('(max-width: 640px)');
   const { isOpen, close, toggle, triggerRef, panelRef } = useDismissiblePopover(
     { restoreFocusOnEscape: !isCompact },
   );

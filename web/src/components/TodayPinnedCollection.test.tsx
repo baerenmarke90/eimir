@@ -217,13 +217,15 @@ describe('TodayPinnedCollection', () => {
       }),
     );
 
-    expect(
-      screen
-        .getByRole('button', {
-          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
-        })
-        .getAttribute('aria-pressed'),
-    ).toBe('true');
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {
+            name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+          })
+          .getAttribute('aria-pressed'),
+      ).toBe('true'),
+    );
     expect(queryFn).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -255,11 +257,14 @@ describe('TodayPinnedCollection', () => {
         name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
       }),
     );
-    expect(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
-      }),
-    ).toBeDefined();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      ).toBeDefined(),
+    );
+    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1));
 
     await act(async () => {
       request.reject(new Error('request failed'));
@@ -290,20 +295,29 @@ describe('TodayPinnedCollection', () => {
         name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
       }),
     );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      ).toBeDefined(),
+    );
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
       }),
     );
 
-    expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1);
-    expect(
-      screen
-        .getByRole('button', {
-          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
-        })
-        .getAttribute('aria-pressed'),
-    ).toBe('false');
+    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {
+            name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+          })
+          .getAttribute('aria-pressed'),
+      ).toBe('false'),
+    );
 
     await act(async () => {
       first.resolve(
@@ -350,10 +364,24 @@ describe('TodayPinnedCollection', () => {
         name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
       }),
     );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      ).toBeDefined(),
+    );
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
       }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        }),
+      ).toBeDefined(),
     );
 
     await act(async () => {
@@ -395,23 +423,32 @@ describe('TodayPinnedCollection', () => {
         name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
       }),
     );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      ).toBeDefined(),
+    );
     fireEvent.click(
       screen.getByRole('button', {
         name: i18n.t('m5s3.collection.markDone', { title: 'Äpfel' }),
       }),
     );
 
-    expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2));
     expect(
       screen.getByRole('button', {
         name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
       }),
     ).toBeDefined();
-    expect(
-      screen.getByRole('button', {
-        name: i18n.t('m5s3.collection.markOpen', { title: 'Äpfel' }),
-      }),
-    ).toBeDefined();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Äpfel' }),
+        }),
+      ).toBeDefined(),
+    );
 
     await act(async () => {
       milk.resolve(
@@ -462,14 +499,18 @@ describe('TodayPinnedCollection', () => {
       }),
     );
 
-    expect(
-      screen
-        .getByRole('button', {
-          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
-        })
-        .getAttribute('aria-pressed'),
-    ).toBe('false');
-    expect(celebration?.getAttribute('data-presence')).toBe('exiting');
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {
+            name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+          })
+          .getAttribute('aria-pressed'),
+      ).toBe('false'),
+    );
+    await waitFor(() =>
+      expect(celebration?.getAttribute('data-presence')).toBe('exiting'),
+    );
     if (celebration) fireReactAnimationEnd(celebration);
     await waitFor(() =>
       expect(
@@ -545,11 +586,13 @@ describe('TodayPinnedCollection', () => {
 
     fireEvent.change(input, { target: { value: 'Butter' } });
     fireEvent.submit(input.closest('form') as HTMLFormElement);
-    expect(createCollectionItem).toHaveBeenCalledWith({
+    await waitFor(() =>
+      expect(createCollectionItem).toHaveBeenCalledWith({
       spaceId: 'space-1',
       collectionId: 'collection-1',
-      collectionItemCreate: { title: 'Butter' },
-    });
+        collectionItemCreate: { title: 'Butter' },
+      }),
+    );
 
     await act(async () => {
       request.resolve(item('item-6', 'Butter', false, 5, 1));

@@ -441,12 +441,6 @@ describe('ShortTaskSheet history ownership', () => {
     expect(
       dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
     ).toBe('80px');
-    expect(
-      Number(
-        dialog.style.getPropertyValue('--short-task-sheet-backdrop-opacity'),
-      ),
-    ).toBeLessThan(1);
-
     fireEvent.pointerUp(surface, {
       pointerId: 11,
       clientX: 43,

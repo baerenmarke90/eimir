@@ -69,6 +69,7 @@ async function installMocks(
     collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
   ];
   let finalCompletionFailed = false;
+  let collectionGetCount = 0;
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -306,6 +307,7 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
     ) {
+      collectionGetCount += 1;
       await json(collection(), 200, { ETag: '"1"' });
       return;
     }
@@ -400,6 +402,10 @@ async function installMocks(
       500,
     );
   });
+
+  return {
+    collectionGetCount: () => collectionGetCount,
+  };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -429,7 +435,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await installMocks(page);
+  const network = await installMocks(page);
   await signIn(page);
 
   await page.goto(`/plan/collections/${COLLECTION_ID}`);
@@ -464,14 +470,29 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
     pinnedSection.getByRole('button', { name: milkOpenName }),
   ).toHaveAttribute('aria-pressed', 'true');
 
-  const addInput = pinnedSection.getByPlaceholder(
-    m5s5.today.pinnedCollection.addPlaceholder,
+  const collectionGetsAfterLoad = network.collectionGetCount();
+  await expect.poll(() => network.collectionGetCount()).toBe(
+    collectionGetsAfterLoad,
   );
+
+  const addButton = pinnedSection.getByRole('button', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await addButton.click();
+  const addDialog = page.getByRole('dialog', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await expect(addDialog).toBeVisible();
+  const addInput = addDialog.getByLabel(m5s3.collection.itemTitle);
+  await expect(addInput).toBeFocused();
   await addInput.fill('Butter');
-  await pinnedSection
-    .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+  await addDialog
+    .getByRole('button', { name: m5s3.collection.addItem })
     .click();
+  await expect(addDialog).toHaveCount(0);
+  await expect(addButton).toBeFocused();
   await expect(pinnedSection.getByText('Butter')).toBeVisible();
+  expect(network.collectionGetCount()).toBe(collectionGetsAfterLoad);
 
   const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
     '{{title}}',

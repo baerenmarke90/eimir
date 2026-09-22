@@ -49,7 +49,7 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint(
             "crypto_version >= 0",
-            name="ck_daily_check_in_vibe_notes_daily_check_in_vibe_note_crypto_version_is_non_negative",
+            name="daily_check_in_vibe_note_crypto_version_is_non_negative",
         ),
         sa.ForeignKeyConstraint(
             ["daily_check_in_id"],

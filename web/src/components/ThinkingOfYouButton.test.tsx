@@ -94,10 +94,7 @@ describe('ThinkingOfYouButton', () => {
         resolveSend = resolve;
       });
       const { unmount } = render(
-        <ThinkingOfYouButton
-          partnerName="Lea"
-          onSend={() => sendPromise}
-        />,
+        <ThinkingOfYouButton partnerName="Lea" onSend={() => sendPromise} />,
       );
 
       fireEvent.click(

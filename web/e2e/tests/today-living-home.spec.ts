@@ -583,7 +583,9 @@ test.describe('Today R4: the living home of a relationship', () => {
     for (const width of [320, 360, 430]) {
       await page.setViewportSize({ width, height: 844 });
       await settleMotion(page);
-      await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+      await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(
+        0,
+      );
       await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     }

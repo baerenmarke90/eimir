@@ -26,14 +26,15 @@ export function useOverlayPresence(open: boolean): {
   completeExit: () => void;
 } {
   const [retained, setRetained] = useState(open);
-  const [motionEnabled, setMotionEnabled] = useState(
-    motionEnabledByPreference,
-  );
+  const [motionEnabled, setMotionEnabled] = useState(motionEnabledByPreference);
   const openRef = useRef(open);
   openRef.current = open;
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function')
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    )
       return;
 
     const mediaQuery = window.matchMedia(REDUCED_MOTION_QUERY);

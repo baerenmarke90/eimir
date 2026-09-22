@@ -70,6 +70,7 @@ async function installMocks(
   ];
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
+  let dashboardGetCount = 0;
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -259,6 +260,7 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
+      dashboardGetCount += 1;
       await json({
         space: {
           spaceId: SPACE_ID,
@@ -405,6 +407,7 @@ async function installMocks(
 
   return {
     collectionGetCount: () => collectionGetCount,
+    dashboardGetCount: () => dashboardGetCount,
   };
 }
 
@@ -466,6 +469,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
   const milkOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
   const collectionGetsBeforeToggle = network.collectionGetCount();
+  const dashboardGetsBeforeToggle = network.dashboardGetCount();
   await pinnedSection.getByRole('button', { name: milkDoneName }).click();
   await expect(
     pinnedSection.getByRole('button', { name: milkOpenName }),
@@ -473,6 +477,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   await expect.poll(() => network.collectionGetCount()).toBe(
     collectionGetsBeforeToggle,
   );
+  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
   const addButton = pinnedSection.getByRole('button', {
     name: m5s5.today.pinnedCollection.addAction,
@@ -492,6 +497,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   await expect(addButton).toBeFocused();
   await expect(pinnedSection.getByText('Butter')).toBeVisible();
   expect(network.collectionGetCount()).toBe(collectionGetsBeforeToggle);
+  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
   const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
     '{{title}}',

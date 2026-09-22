@@ -165,7 +165,7 @@ contract this issue extends.
 | Validation worker | Opens the object (decrypting), validates and sanitizes, writes the sanitized original and the thumbnail back encrypted. No plaintext temporary file is created; the pipeline works on memory buffers. |
 | Read | The client is given the authorized application route. Presigned GET URLs are **not** issued. The first block is authenticated before the response starts, so a wrong key or a tampered object is an error rather than a truncated `200`. |
 | A presigned upload issued before the cutover | May still land as plaintext at the provider. The worker rejects it, deletes the object, and fails the attachment. |
-| Transfer export | User-authorized and plaintext by definition: stored payloads are decrypted into the bundle for the requester's own authorized rows, and the bundle is held in storage encrypted until it expires. |
+| Transfer export | User-authorized and plaintext by definition: stored payloads are decrypted into the bundle for the requester's own authorized rows. Archive assembly uses an anonymous Linux `memfd` in Production (or an in-memory `BytesIO` fallback), never a filesystem-backed plaintext temp file; the completed bundle is then held in storage encrypted until it expires. |
 | Transfer import | Bundle payloads are encrypted before insert; `crypto_version` is set from the active mode regardless of what the bundle claims. |
 | Adoption/relocation | Decrypt with the old key context, encrypt under the new one. |
 | Deletion / offboarding | Deleting an object deletes its wrapped key with it. Existing retention, offboarding and Account-deletion flows are unchanged. |
@@ -343,9 +343,6 @@ Known limits and follow-ups (deliberately not implemented here):
 - Search is an in-application scan (section 7).
 - Columns outside the `ProtectedPayload` contract (`profile_preferences.topic`,
   names, emails) remain plaintext.
-- The Transfer export builder spools the bundle through a temporary file once it
-  exceeds 16 MiB; that is a plaintext, transient file on the worker. Point the
-  worker's temporary directory at memory-backed storage (tmpfs) where that matters.
 - Object listing is not part of `MediaStore`, so orphaned pre-cutover objects
   without an attachment row cannot be found and migrated.
 - S3 puts and gets still buffer a whole object in memory (existing adapter

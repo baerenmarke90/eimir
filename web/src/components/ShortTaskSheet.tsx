@@ -180,6 +180,10 @@ export function ShortTaskSheet({
       '--short-task-sheet-drag-progress',
       String(progress),
     );
+    dialogRef.current?.style.setProperty(
+      '--short-task-sheet-backdrop-opacity',
+      String(1 - progress * 0.45),
+    );
   }
 
   function compactDragDismissThreshold(): number {
@@ -447,6 +451,7 @@ export function ShortTaskSheet({
       dialog.removeAttribute('data-dragging');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
       dialog.style.removeProperty('--short-task-sheet-drag-progress');
+      dialog.style.removeProperty('--short-task-sheet-backdrop-opacity');
       dialog.close();
     };
   }, [present]);
@@ -558,6 +563,7 @@ export function ShortTaskSheet({
     dialog?.removeAttribute('data-dragging');
     dialog?.style.setProperty('--short-task-sheet-drag-offset', '0px');
     dialog?.style.setProperty('--short-task-sheet-drag-progress', '0');
+    dialog?.style.setProperty('--short-task-sheet-backdrop-opacity', '1');
   }, [open, present]);
 
   useEffect(() => {

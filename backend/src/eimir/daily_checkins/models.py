@@ -125,6 +125,6 @@ class DailyCheckInVibeNote(IdMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint(
             "crypto_version >= 0",
-            name="daily_check_in_vibe_note_crypto_version_is_non_negative",
+            name="crypto_version_is_non_negative",
         ),
     )

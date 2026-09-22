@@ -240,11 +240,11 @@ describe('ShortTaskSheet history ownership', () => {
         this.querySelector<HTMLElement>('button')?.focus();
       });
 
-    try {
-      const trigger = document.createElement('button');
-      trigger.textContent = 'Implicit trigger';
-      document.body.append(trigger);
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Implicit trigger';
+    document.body.append(trigger);
 
+    try {
       const sheetProps = {
         title: 'Implicit restore',
         onClose: vi.fn(),
@@ -274,8 +274,8 @@ describe('ShortTaskSheet history ownership', () => {
 
       await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
       await waitFor(() => expect(document.activeElement).toBe(trigger));
-      trigger.remove();
     } finally {
+      trigger.remove();
       nativeLikeShowModal.mockRestore();
     }
   });

@@ -273,11 +273,25 @@ export function DailyQuoteCard({
   }, [entitlementKey, quoteQuery.error, queryClient]);
 
   useEffect(() => {
+    if (!isDailyQuoteEntitlementRequired(catalogQuery.error)) return;
+    setSettingsOpen(false);
+    setDraft(null);
+    queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
+    queryClient.setQueryData(entitlementKey, false);
+  }, [
+    catalogQuery.error,
+    entitlementKey,
+    preferencesKey,
+    queryClient,
+  ]);
+
+  useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;
     setSettingsOpen(false);
     setDraft(null);
+    queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     queryClient.setQueryData(entitlementKey, false);
-  }, [entitlementKey, preferencesQuery.error, queryClient]);
+  }, [entitlementKey, preferencesKey, preferencesQuery.error, queryClient]);
 
   const saveMutation = useMutation({
     mutationFn: ({
@@ -293,14 +307,15 @@ export function DailyQuoteCard({
       };
       return saveDailyQuotePreferences(quoteApi, spaceId, snapshot, patch);
     },
-    onSuccess: (snapshot) => {
-      queryClient.setQueryData(preferencesKey, snapshot);
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
       void queryClient.invalidateQueries({ queryKey: quoteKey });
       setSettingsOpen(false);
       setDraft(null);
     },
     onError: (error) => {
       if (!isDailyQuoteEntitlementRequired(error)) return;
+      queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
       queryClient.setQueryData(entitlementKey, false);
       setSettingsOpen(false);
       setDraft(null);
@@ -327,6 +342,7 @@ export function DailyQuoteCard({
   const closeSettings = () => {
     if (saveMutation.isPending) return;
     saveMutation.reset();
+    queryClient.removeQueries({ queryKey: preferencesKey, exact: true });
     setDraft(null);
     setSettingsOpen(false);
   };

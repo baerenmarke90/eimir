@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import dailyInsights from '../../src/i18n/locales/dailyInsights';
+import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -289,19 +290,15 @@ async function signIn(page: Page) {
 }
 
 /**
- * Only elements of the insights surface and the Today entry are asserted.
- * `wholeDocument: false` skips the document-level scroll width, which on Today
- * also reflects unrelated, still-settling modules after a text-size change.
+ * The insights surfaces and More destination rows must stay within the viewport
+ * without introducing document-level horizontal scrolling.
  */
-async function expectNoHorizontalOverflow(
-  page: Page,
-  { wholeDocument = true }: { wholeDocument?: boolean } = {},
-): Promise<void> {
+async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const result = await page.evaluate(() => {
     const root = document.documentElement;
     const overflowing = Array.from(
       document.querySelectorAll<HTMLElement>(
-        '.daily-insights *, .insight-entry *',
+        '.daily-insights *, .more-destination *',
       ),
     )
       .filter((element) => !(element instanceof SVGElement))
@@ -330,13 +327,38 @@ async function expectNoHorizontalOverflow(
     result.overflowing,
     `Elements outside viewport: ${JSON.stringify(result.overflowing, null, 2)}`,
   ).toEqual([]);
-  if (wholeDocument) {
-    expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
-  }
+  expect(result.scrollWidth).toBeLessThanOrEqual(result.clientWidth);
 }
 
-async function openInsightsFromToday(page: Page) {
-  await page.getByRole('link', { name: dailyInsights.entry.aria }).click();
+async function openInsightsFromMore(
+  page: Page,
+  testInfo?: import('@playwright/test').TestInfo,
+  label?: string,
+) {
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
+  await expect(
+    page.getByRole('heading', { level: 1, name: de.more.title }),
+  ).toBeVisible();
+
+  const entry = page.getByRole('link', {
+    name: `${dailyInsights.week.title} ${dailyInsights.pro}`,
+  });
+  await expect(entry).toBeVisible();
+  await expect(
+    page.getByText(dailyInsights.week.subtitle, { exact: true }),
+  ).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  if (testInfo && label) {
+    await page.screenshot({
+      path: testInfo.outputPath(`more-insights-entry-${label}.png`),
+      fullPage: true,
+    });
+  }
+
+  await entry.click();
   await expect(page).toHaveURL(/\/more\/insights$/);
   await expect(
     page.getByRole('heading', { level: 1, name: dailyInsights.week.title }),
@@ -356,7 +378,7 @@ async function visitViews(
   testInfo: import('@playwright/test').TestInfo,
   label: string,
 ) {
-  await openInsightsFromToday(page);
+  await openInsightsFromMore(page, testInfo, label);
   await goToPreviousWeek(page);
   await expectNoHorizontalOverflow(page);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
@@ -392,7 +414,7 @@ async function visitViews(
   });
 }
 
-test('Pro insights open from Today on Compact and keep the daily ritual', async ({
+test('Pro insights are absent from Today and open from More on Compact', async ({
   page,
 }, testInfo) => {
   await installMocks(page);
@@ -402,16 +424,21 @@ test('Pro insights open from Today on Compact and keep the daily ritual', async 
     reducedMotion: 'no-preference',
   });
   await signIn(page);
+
+  // The free daily ritual stays on Today, but weekly insights do not.
+  await expect(page.getByTestId('daily-vibe-checkin')).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: dailyInsights.week.title }),
+  ).toHaveCount(0);
   await page.screenshot({
-    path: testInfo.outputPath('today-entry-390-light.png'),
+    path: testInfo.outputPath('today-without-weekly-insights-390-light.png'),
     fullPage: true,
   });
-  // The free daily ritual stays where it was.
-  await expect(page.getByTestId('daily-vibe-checkin')).toBeVisible();
+
   await visitViews(page, testInfo, '390-light');
 });
 
-test('Pro insights reflow at 320px with large text, Dark and Reduced Motion', async ({
+test('Pro insights reflow from More at 320px with large text, Dark and Reduced Motion', async ({
   page,
 }, testInfo) => {
   await installMocks(page);
@@ -421,11 +448,15 @@ test('Pro insights reflow at 320px with large text, Dark and Reduced Motion', as
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
-  await expectNoHorizontalOverflow(page, { wholeDocument: false });
+  await expect(
+    page.getByRole('link', { name: dailyInsights.week.title }),
+  ).toHaveCount(0);
   await visitViews(page, testInfo, '320-dark-200pct');
 });
 
-test('Pro insights adapt to Expanded Web', async ({ page }, testInfo) => {
+test('Pro insights adapt to Expanded Web from More', async ({
+  page,
+}, testInfo) => {
   await installMocks(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({
@@ -442,7 +473,7 @@ test('Free Spaces see a calm gated state and never request insights', async ({
   const requests = await installMocks(page, { capabilities: [] });
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
-  await openInsightsFromToday(page);
+  await openInsightsFromMore(page, testInfo, '390-free');
   await expect(
     page.getByRole('heading', { name: dailyInsights.gate.title }),
   ).toBeVisible();

@@ -21,7 +21,7 @@ const de = {
       'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
     groups: {
       personal: 'Für dich',
-      shared: 'Gemeinsam organisieren',
+      shared: 'Gemeinsam',
       utility: 'App und Konto',
     },
     people: {

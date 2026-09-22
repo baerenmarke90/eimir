@@ -6,7 +6,6 @@ import type { M4ProductApis } from '../client/m4Product';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import '../i18n';
-import { DailyInsightsEntry } from './DailyInsightsEntry';
 import { TodayPage } from './TodayPage';
 
 function renderToday(options: {
@@ -54,54 +53,37 @@ function renderToday(options: {
   );
 }
 
-describe('Today insights entry', () => {
-  it('is one quiet link with a Pro mark and no capability read or dialog', () => {
-    const html = renderToStaticMarkup(
-      <MemoryRouter>
-        <DailyInsightsEntry />
-      </MemoryRouter>,
-    );
-    expect(html).toContain('href="/more/insights"');
-    expect(html).toContain('Eure Woche');
-    expect(html).toContain('Pro');
-    expect(html).not.toMatch(/dialog|modal|upgrade|jetzt/i);
-  });
-
-  it('appears on Today when Vibe is enabled and a partner is connected', () => {
+describe('Today weekly insights placement', () => {
+  it('keeps weekly insights off Today while the daily rituals remain available', () => {
     const html = renderToday({
       vibeCheckEnabled: true,
-      energyCheckInEnabled: false,
-      partner: true,
-    });
-    expect(html).toContain('href="/more/insights"');
-  });
-
-  it('appears on Today when only Energy is enabled', () => {
-    const html = renderToday({
-      vibeCheckEnabled: false,
       energyCheckInEnabled: true,
       partner: true,
     });
-    expect(html).toContain('href="/more/insights"');
-    // The free daily Energy ritual on the avatars stays where it was.
+
+    expect(html).not.toContain('/more/insights');
     expect(html).toContain('daily-energy-checkin');
   });
 
-  it('is absent when both daily modules are disabled', () => {
-    const html = renderToday({
-      vibeCheckEnabled: false,
-      energyCheckInEnabled: false,
-      partner: true,
-    });
-    expect(html).not.toContain('/more/insights');
-  });
-
-  it('is absent without a connected partner', () => {
-    const html = renderToday({
-      vibeCheckEnabled: true,
-      energyCheckInEnabled: true,
-      partner: false,
-    });
-    expect(html).not.toContain('/more/insights');
+  it('does not reintroduce the More destination for partial or partnerless daily states', () => {
+    for (const options of [
+      {
+        vibeCheckEnabled: true,
+        energyCheckInEnabled: false,
+        partner: true,
+      },
+      {
+        vibeCheckEnabled: false,
+        energyCheckInEnabled: true,
+        partner: true,
+      },
+      {
+        vibeCheckEnabled: true,
+        energyCheckInEnabled: true,
+        partner: false,
+      },
+    ]) {
+      expect(renderToday(options)).not.toContain('/more/insights');
+    }
   });
 });

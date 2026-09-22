@@ -327,9 +327,9 @@ export function collectionDetailPath(collectionId: string): string {
 }
 
 /**
- * Pro Vibe/Energy insights (#1151). The three views live under More so the
- * Mehr destination stays active, matching the approved reference; the Today
- * (Wir) surface links here only from a deliberate, quiet entry.
+ * Pro Vibe/Energy insights (#1151, placement updated by #1196). Discovery and
+ * all three views live under More so the Mehr destination stays active while
+ * people move between week, patterns and recap.
  */
 export const MORE_INSIGHTS_ROUTE = '/more/insights';
 export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;

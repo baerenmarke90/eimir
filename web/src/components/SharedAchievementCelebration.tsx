@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react';
+import { usePresentationPresence } from './useOverlayPresence';
 import './SharedAchievementCelebration.css';
 
 export function SharedAchievementCelebration({
@@ -10,6 +11,7 @@ export function SharedAchievementCelebration({
   headingTabIndex,
   centered = false,
   action,
+  visible = true,
 }: {
   title: string;
   body: string;
@@ -19,14 +21,28 @@ export function SharedAchievementCelebration({
   headingTabIndex?: number;
   centered?: boolean;
   action?: ReactNode;
+  visible?: boolean;
 }) {
   const Heading = headingLevel === 3 ? 'h3' : 'h2';
+  const { present, presenceState, completeExit } =
+    usePresentationPresence(visible);
+
+  if (!present) return null;
 
   return (
     <div
       className={`shared-achievement-confirmation${centered ? ' shared-achievement-confirmation-centered' : ''}`}
+      data-presence={presenceState}
       role="status"
       aria-atomic="true"
+      onAnimationEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          presenceState !== 'exiting'
+        )
+          return;
+        completeExit();
+      }}
     >
       <span className="shared-achievement-mark" aria-hidden="true">
         <svg

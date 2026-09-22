@@ -8,7 +8,7 @@ before a value reaches a client.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from uuid import UUID
 
@@ -20,7 +20,12 @@ from sqlalchemy.orm.exc import StaleDataError
 from eimir.authorization import AuthorizationContext
 from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
 from eimir.daily_checkins.context import DailyCheckInErrorCode, resolve_space_day
-from eimir.daily_checkins.models import DailyCheckIn, DailyVibe
+from eimir.daily_checkins.models import (
+    DailyCheckIn,
+    DailyCheckInVibeNote,
+    DailyVibe,
+    DailyVibeNotePayload,
+)
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship.models import (
     DailyCheckInVisibilityMode,
@@ -32,6 +37,7 @@ from eimir.relationship.models import (
 
 ABSENT_CONCURRENCY_TOKEN = "absent"
 ENERGY_LEVELS = frozenset(range(10, 101, 10))
+VIBE_NOTE_MAX_LENGTH = 200
 
 DimensionValue = int | str
 
@@ -59,6 +65,7 @@ class DimensionUpdate[DimensionUpdateValue]:
 class PartnerDimensionProjection:
     state: PartnerRevealState
     value: DimensionValue | None = None
+    check_in_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -66,9 +73,11 @@ class TodayProjection:
     checked_on: date
     daily_context_timezone: str
     own: DailyCheckIn | None
+    own_vibe_note: str | None
     vibe_enabled: bool
     vibe_visibility_mode: DailyCheckInVisibilityMode
     partner_vibe: PartnerDimensionProjection | None
+    partner_vibe_note: str | None
     energy_enabled: bool
     energy_visibility_mode: DailyCheckInVisibilityMode
     partner_energy: PartnerDimensionProjection | None
@@ -126,6 +135,22 @@ def _own_for_day(
     return session.execute(statement).scalar_one_or_none()
 
 
+def _vibe_note_row(
+    session: Session,
+    check_in_id: UUID,
+) -> DailyCheckInVibeNote | None:
+    return session.execute(
+        select(DailyCheckInVibeNote).where(
+            DailyCheckInVibeNote.daily_check_in_id == check_in_id
+        )
+    ).scalar_one_or_none()
+
+
+def _vibe_note_value(session: Session, check_in_id: UUID) -> str | None:
+    row = _vibe_note_row(session, check_in_id)
+    return row.payload.note if row is not None else None
+
+
 def _active_partner_account_id(
     session: Session,
     authorization: AuthorizationContext,
@@ -179,20 +204,21 @@ def _partner_dimension(
         DailyCheckIn.account_id == partner_account_id,
         DailyCheckIn.checked_on == checked_on,
     )
-    if dimension is DailyCheckInDimension.VIBE:
-        partner_value: DimensionValue | None = session.execute(
-            select(DailyCheckIn.vibe).where(*filters)
-        ).scalar_one_or_none()
-    else:
-        partner_value = session.execute(
-            select(DailyCheckIn.energy_level).where(*filters)
-        ).scalar_one_or_none()
+    selected_dimension = (
+        DailyCheckIn.vibe
+        if dimension is DailyCheckInDimension.VIBE
+        else DailyCheckIn.energy_level
+    )
+    partner_row = session.execute(
+        select(DailyCheckIn.id, selected_dimension).where(*filters)
+    ).one_or_none()
 
-    if partner_value is None:
+    if partner_row is None or partner_row[1] is None:
         return PartnerDimensionProjection(state=PartnerRevealState.NO_CHECK_IN)
     return PartnerDimensionProjection(
         state=PartnerRevealState.VISIBLE,
-        value=partner_value,
+        value=partner_row[1],
+        check_in_id=partner_row[0],
     )
 
 
@@ -225,6 +251,19 @@ def _project(
         else None
     )
 
+    own_vibe_note = (
+        _vibe_note_value(session, own.id)
+        if own is not None and own.vibe is not None
+        else None
+    )
+    partner_vibe_note = (
+        _vibe_note_value(session, partner_vibe.check_in_id)
+        if partner_vibe is not None
+        and partner_vibe.state is PartnerRevealState.VISIBLE
+        and partner_vibe.check_in_id is not None
+        else None
+    )
+
     energy_enabled = configuration_service.module_enabled(
         configuration,
         configuration_service.SpaceModule.ENERGY_CHECK_IN,
@@ -246,9 +285,11 @@ def _project(
         checked_on=checked_on,
         daily_context_timezone=timezone_name,
         own=own,
+        own_vibe_note=own_vibe_note,
         vibe_enabled=vibe_enabled,
         vibe_visibility_mode=vibe_mode,
         partner_vibe=partner_vibe,
+        partner_vibe_note=partner_vibe_note,
         energy_enabled=energy_enabled,
         energy_visibility_mode=energy_mode,
         partner_energy=partner_energy,
@@ -297,6 +338,20 @@ def _validate_energy(value: int) -> int:
     return value
 
 
+def _normalize_vibe_note(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    if len(normalized) > VIBE_NOTE_MAX_LENGTH:
+        raise ValidationError(
+            f"Vibe context must be at most {VIBE_NOTE_MAX_LENGTH} characters.",
+            ErrorCode.VALIDATION_FAILED,
+        )
+    return normalized
+
+
 def _require_dimension_enabled(
     configuration: SpaceConfiguration,
     module: configuration_service.SpaceModule,
@@ -325,6 +380,7 @@ def update_today(
     expected_token: str,
     energy: DimensionUpdate[int],
     vibe: DimensionUpdate[DailyVibe],
+    vibe_note: DimensionUpdate[str] = DimensionUpdate[str](supplied=False),
     at: datetime | None = None,
 ) -> TodayProjection:
     """Apply a partial owner mutation to the shared current-day record.
@@ -358,13 +414,35 @@ def update_today(
             configuration_service.SpaceModule.VIBE_CHECK,
         )
 
+    current_note_row = _vibe_note_row(session, own.id) if own is not None else None
+    current_vibe_note = (
+        current_note_row.payload.note if current_note_row is not None else None
+    )
+
     next_energy = own.energy_level if own is not None else None
     next_vibe = own.vibe if own is not None else None
+    next_vibe_note = current_vibe_note
     if energy.supplied:
         next_energy = energy.value
     if vibe.supplied:
         next_vibe = vibe.value.value if vibe.value is not None else None
+        if vibe.value is None:
+            next_vibe_note = None
+    if vibe_note.supplied:
+        next_vibe_note = _normalize_vibe_note(vibe_note.value)
 
+    if next_vibe_note is not None and next_vibe is None:
+        raise ValidationError(
+            "Vibe context requires a Vibe for the same current-day check-in.",
+            DailyCheckInErrorCode.VIBE_NOTE_REQUIRES_VIBE,
+        )
+    if vibe_note.supplied and next_vibe_note is not None:
+        _require_dimension_enabled(
+            configuration,
+            configuration_service.SpaceModule.VIBE_CHECK,
+        )
+
+    existing_owner = own is not None
     if own is None:
         if next_energy is not None or next_vibe is not None:
             own = DailyCheckIn(
@@ -390,6 +468,28 @@ def update_today(
     else:
         own.energy_level = next_energy
         own.vibe = next_vibe
+
+    if own is not None:
+        note_changed = next_vibe_note != current_vibe_note
+        if note_changed:
+            if next_vibe_note is None:
+                if current_note_row is not None:
+                    session.delete(current_note_row)
+            elif current_note_row is None:
+                session.add(
+                    DailyCheckInVibeNote(
+                        daily_check_in_id=own.id,
+                        payload=DailyVibeNotePayload(note=next_vibe_note),
+                    )
+                )
+            else:
+                current_note_row.payload = DailyVibeNotePayload(note=next_vibe_note)
+
+            # The DailyCheckIn ETag owns concurrency for the complete aggregate.
+            # A child-only note edit must therefore advance the parent version.
+            if existing_owner:
+                own.updated_at = datetime.now(UTC)
+
         _flush(session)
 
     return _project(

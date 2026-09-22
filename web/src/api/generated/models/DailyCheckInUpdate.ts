@@ -39,6 +39,12 @@ export interface DailyCheckInUpdate {
      * @memberof DailyCheckInUpdate
      */
     vibe?: DailyVibe | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof DailyCheckInUpdate
+     */
+    vibeNote?: string | null;
 }
 
 
@@ -79,6 +85,7 @@ export function DailyCheckInUpdateFromJSONTyped(json: any, ignoreDiscriminator: 
         
         'energyLevel': json['energyLevel'] === undefined ? undefined : json['energyLevel'] === null ? null : json['energyLevel'],
         'vibe': json['vibe'] === undefined ? undefined : json['vibe'] === null ? null : DailyVibeFromJSON(json['vibe']),
+        'vibeNote': json['vibeNote'] === undefined ? undefined : json['vibeNote'],
     };
 }
 
@@ -95,6 +102,7 @@ export function DailyCheckInUpdateToJSONTyped(value?: DailyCheckInUpdate | null,
         
         'energyLevel': value['energyLevel'],
         'vibe': DailyVibeToJSON(value['vibe']),
+        'vibeNote': value['vibeNote'],
     };
 }
 

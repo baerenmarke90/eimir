@@ -84,6 +84,7 @@ export function PresenceHeartbeat({
     };
     const suspend = () => {
       touchGeneration += 1;
+      lastTouchStartedAt = Number.NEGATIVE_INFINITY;
       stopTimer();
       clearClaim();
     };

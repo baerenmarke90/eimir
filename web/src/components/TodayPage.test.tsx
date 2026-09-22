@@ -137,8 +137,8 @@ describe('TodayPage', () => {
     // The full R4 order when every eligible role is present, top to bottom.
     const order = [
       'today-hero',
-      'today-section-upcoming',
       'today-section-moment',
+      'today-section-upcoming',
       'today-section-living',
       'today-section-recent',
     ].map((section) => html.indexOf(section));
@@ -625,14 +625,16 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // A genuinely current/upcoming signal exists, so the Shared Planning
-    // Horizon precedes the merely generic (non-retrospective) Keepsake.
+    // #1189 deliberately surfaces personal shared content before the practical
+    // planning horizon so Today does not read as a utility stack. The upcoming
+    // signal remains present and authoritative; only presentation order changes.
     const planningIndex = html.indexOf('today-section-upcoming');
     const keepsakeIndex = html.indexOf('today-section-moment');
     expect(planningIndex).toBeGreaterThan(-1);
-    expect(keepsakeIndex).toBeGreaterThan(planningIndex);
+    expect(keepsakeIndex).toBeGreaterThan(-1);
+    expect(keepsakeIndex).toBeLessThan(planningIndex);
 
-    // The Keepsake still appears, still warm/editorial, just not first.
+    // The planning signal remains available after the personal focal content.
     expect(html).toContain('Beach Day');
     expect(html).toContain('Weekend trip');
     expect(html.split('Beach Day').length - 1).toBe(1);
@@ -763,17 +765,16 @@ describe('TodayPage', () => {
       </QueryClientProvider>,
     );
 
-    // #850 replaced the shared two-zone planning area with the normative
-    // section order, which keeps #840's invariant structurally rather than
-    // conditionally: the upcoming agenda always precedes the Keepsake, and
-    // the partner signal is now the `Gerade bei euch` module below it.
+    // #1189 changes only the outer Today composition: the personal moment
+    // precedes the practical horizon, while the planning area's own
+    // upcoming-before-contextual-signal sequence remains intact.
     expect(html).not.toContain('today-planning-dual');
     const agendaIndex = html.indexOf('today-agenda-row');
     const momentIndex = html.indexOf('today-section-moment');
     const signalIndex = html.indexOf('today-living');
-    expect(agendaIndex).toBeGreaterThan(-1);
-    expect(momentIndex).toBeGreaterThan(agendaIndex);
-    expect(signalIndex).toBeGreaterThan(momentIndex);
+    expect(momentIndex).toBeGreaterThan(-1);
+    expect(agendaIndex).toBeGreaterThan(momentIndex);
+    expect(signalIndex).toBeGreaterThan(agendaIndex);
   });
 
   it('places a genuine date-specific retrospective in the single `Gerade bei euch` slot (#850 supersedes #840 ordering)', () => {

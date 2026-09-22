@@ -244,13 +244,13 @@ const baseSpace = {
 };
 
 /*
- * Product Reference v1 R4 retains the useful #840/#850 regression invariant:
- * a generic Keepsake never outranks genuinely current/upcoming context. The
- * roles are now availability-driven rather than a promise that every section
- * permanently exists.
+ * #1189 deliberately changes the outer Today composition: personal shared
+ * content appears before the practical planning horizon so the page does not
+ * read as a stack of utilities. Upcoming context remains present and
+ * authoritative; this suite locks that new presentation contract.
  */
-test.describe('Today R4: current/upcoming context outranks a generic Keepsake', () => {
-  test('a genuinely current/upcoming signal precedes the Keepsake on Compact', async ({
+test.describe('Today R4: personal content precedes the practical horizon', () => {
+  test('a generic Keepsake precedes the practical horizon on Compact', async ({
     page,
   }, testInfo) => {
     test.setTimeout(120_000);
@@ -285,18 +285,18 @@ test.describe('Today R4: current/upcoming context outranks a generic Keepsake', 
         ? 'planning-first'
         : 'keepsake-first';
     });
-    expect(order).toBe('planning-first');
+    expect(order).toBe('keepsake-first');
 
     await expectHorizontalReflow(page);
     // #841 corrected the shared-kind badge text token (was
     // `--color-shared-accent`, now `--color-shared`), so the generic
     // Keepsake card's color-contrast is asserted here again.
     await expectNoWcagViolations(page);
-    await capture(page, testInfo, 'signal-before-keepsake-390-light');
+    await capture(page, testInfo, 'keepsake-before-signal-390-light');
 
     await page.setViewportSize({ width: 320, height: 844 });
     await expectHorizontalReflow(page);
-    await capture(page, testInfo, 'signal-before-keepsake-320-reflow');
+    await capture(page, testInfo, 'keepsake-before-signal-320-reflow');
   });
 
   test('the Keepsake becomes the first content section when no current/upcoming signal exists', async ({
@@ -388,7 +388,7 @@ test.describe('Today R4: current/upcoming context outranks a generic Keepsake', 
     await capture(page, testInfo, 'retrospective-before-planning-390-dark');
   });
 
-  test('Expanded (1440) preserves the corrected precedence as adaptation, not redesign', async ({
+  test('Expanded (1440) preserves the personal-first precedence as adaptation, not redesign', async ({
     page,
   }, testInfo) => {
     await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
@@ -417,9 +417,9 @@ test.describe('Today R4: current/upcoming context outranks a generic Keepsake', 
         ? 'planning-first'
         : 'keepsake-first';
     });
-    expect(order).toBe('planning-first');
+    expect(order).toBe('keepsake-first');
 
-    await capture(page, testInfo, 'signal-before-keepsake-1440-expanded');
+    await capture(page, testInfo, 'keepsake-before-signal-1440-expanded');
   });
 
   test('sparse space (no upcoming, no keepsake, no retrospective) remains coherent', async ({

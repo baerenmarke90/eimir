@@ -24,10 +24,21 @@ describe('CouplePresence', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Philipp & Lea' }),
     ).toBeDefined();
-    const activeStatus = screen.getByText(
-      relationshipComponents.couplePresenceActive,
-    );
-    expect(activeStatus.closest('.partner-presence-badge')).not.toBeNull();
+    const activeStatus =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
+    expect(
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${activeStatus}`,
+      ),
+    ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-active'),
+    ).not.toBeNull();
     expect(screen.getByText('3y')).toBeDefined();
     expect(document.querySelector('.couple-presence-meta')?.textContent).toBe(
       '3y',
@@ -61,12 +72,20 @@ describe('CouplePresence', () => {
       />,
     );
 
-    const recentStatus = screen.getByText(
-      relationshipComponents.couplePresenceRecent,
-    );
-    expect(recentStatus.closest('.partner-presence-badge')).not.toBeNull();
+    const recentStatus =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
     expect(
-      document.querySelector('.partner-presence-badge.status-recent'),
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${recentStatus}`,
+      ),
+    ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-recent'),
     ).not.toBeNull();
     expect(document.querySelector('.couple-presence-dot')).toBeNull();
 
@@ -78,9 +97,7 @@ describe('CouplePresence', () => {
         status="unknown"
       />,
     );
-    expect(
-      screen.queryByText(relationshipComponents.couplePresenceRecent),
-    ).toBeNull();
+    expect(document.querySelector('.partner-presence-avatar-state')).toBeNull();
     expect(document.querySelector('.partner-presence-badge')).toBeNull();
     expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });

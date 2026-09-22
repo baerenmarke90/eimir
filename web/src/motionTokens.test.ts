@@ -1,9 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
-const productionStylesheets = import.meta.glob(
-  ['./**/*.css', '!./design/product-roles.css'],
-  { eager: true, import: 'default', query: '?raw' },
-) as Record<string, string>;
+type NodeDirent = {
+  name: string;
+  isDirectory(): boolean;
+  isFile(): boolean;
+};
+
+type NodeFs = {
+  readdirSync(path: URL, options: { withFileTypes: true }): NodeDirent[];
+  readFileSync(path: URL, encoding: 'utf8'): string;
+};
+
+type NodeProcess = {
+  getBuiltinModule(name: 'fs'): NodeFs;
+};
+
+function readProductionStylesheets(): Record<string, string> {
+  const processRef = (
+    globalThis as typeof globalThis & { process?: NodeProcess }
+  ).process;
+  if (!processRef) throw new Error('Node process API is unavailable.');
+
+  const fs = processRef.getBuiltinModule('fs');
+  const stylesheets: Record<string, string> = {};
+
+  function visit(directory: URL, prefix: string): void {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        visit(new URL(`${entry.name}/`, directory), `${prefix}${entry.name}/`);
+        continue;
+      }
+      if (!entry.isFile() || !entry.name.endsWith('.css')) continue;
+
+      const path = `${prefix}${entry.name}`;
+      if (path === './design/product-roles.css') continue;
+      stylesheets[path] = fs.readFileSync(new URL(entry.name, directory), 'utf8');
+    }
+  }
+
+  visit(new URL('./', import.meta.url), './');
+  return stylesheets;
+}
+
+const productionStylesheets = readProductionStylesheets();
 
 const LEGACY_MOTION_ROLE =
   /--motion-fast\b|--motion-duration-|--motion-easing-|--duration-fast\b|--duration-standard\b/;

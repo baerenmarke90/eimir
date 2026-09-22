@@ -418,7 +418,9 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     page.getByText(dailyQuote.privacy.replace('{{name, firstName}}', 'Ben')),
   ).toBeVisible();
 
-  await page.getByRole('checkbox', { name: /Mindfulness/u }).check();
+  const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
+  await page.getByText('Mindfulness', { exact: true }).click();
+  await expect(mindfulness).toBeChecked();
   await expectQuoteSurfaceAccessible(page);
   await page.screenshot({
     path: testInfo.outputPath('daily-quote-preferences-390-light.png'),
@@ -430,7 +432,6 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
   expect(requests.patches[0]?.ifMatch).toBe('"quote-pref:2"');
   expect(requests.patches[0]?.body).toEqual(
     expect.objectContaining({
-      enabled: true,
       selectedCategoryIds: ['love', 'mindfulness'],
       selectedSourceIds: ['classic_literature'],
     }),

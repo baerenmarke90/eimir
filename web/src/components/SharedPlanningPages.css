@@ -273,12 +273,12 @@
 
 /*
  * Rendered in a document-body portal (see PlacePicker in
- * SharedPlanningOverviewPage.tsx) so it is never confined to the create
- * form's own stacking context — the section it lives in gets one from its
- * `eimir-motion-reveal` transform animation, which would otherwise force the
- * menu to paint underneath a later sibling section regardless of z-index.
- * `position`, `top`, `left`, and `width` are set inline from the trigger's
- * viewport rect; this rule only styles the panel itself.
+ * SharedPlanningOverviewPage.tsx) because the anchored popover is positioned
+ * against the viewport and must stay clear of local clipping/stacking
+ * boundaries. Planen panels no longer create a stacking context merely for
+ * mount motion; the portal is owned by popover positioning, not by a reveal
+ * workaround. `position`, `top`, `left`, and `width` are set inline from
+ * the trigger's viewport rect; this rule only styles the panel itself.
  */
 .place-picker-menu {
   z-index: 200;

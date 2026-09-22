@@ -995,11 +995,9 @@
  * swipe invitation. A single photo has nothing to peek at, so
  * `today-monthly-strip-1` stays the plain, non-scrolling wide band above.
  *
- * `contain: paint` makes the scroll boundary airtight: without it, the
- * section's own `eimir-motion-reveal` transform (elsewhere purely cosmetic)
- * lets the swiped-off photos leak into the section's own scrollable
- * overflow and widen the document horizontally, even though the strip's
- * `overflow-x: auto` already clips them visually.
+ * `contain: paint` keeps the native horizontal strip's paint/scroll
+ * boundary local so off-canvas photos cannot widen the document while
+ * swiping.
  */
 .today-monthly-strip-2,
 .today-monthly-strip-3 {

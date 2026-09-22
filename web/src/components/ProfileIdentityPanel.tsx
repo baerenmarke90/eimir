@@ -313,7 +313,7 @@ export function ProfileIdentityPanel({
             </div>
 
             {editingIdentity ? (
-              <div className="profile-identity-actions-row eimir-motion-reveal">
+              <div className="profile-identity-actions-row eimir-motion-disclosure">
                 <button
                   type="button"
                   className="secondary compact-action"
@@ -408,7 +408,7 @@ export function ProfileIdentityPanel({
       {editingIdentity && editingName && profile ? (
         <form
           key={`name-${profile.displayName}`}
-          className="profile-name-inline-form form-grid eimir-motion-reveal"
+          className="profile-name-inline-form form-grid eimir-motion-disclosure"
           onSubmit={submitDisplayName}
         >
           <div className="field-group">
@@ -455,7 +455,7 @@ export function ProfileIdentityPanel({
       {editingIdentity && editingBirthday && profile ? (
         <form
           key={`birthday-${dateInputValue(profile.birthday) || 'none'}`}
-          className="profile-birthday-inline-form form-grid eimir-motion-reveal"
+          className="profile-birthday-inline-form form-grid eimir-motion-disclosure"
           onSubmit={submitBirthday}
         >
           <NativeDateField

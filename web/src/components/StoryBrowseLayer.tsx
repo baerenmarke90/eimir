@@ -8,10 +8,7 @@ export function StoryBrowseLayer() {
   const { t } = useTranslation();
 
   return (
-    <nav
-      className="momente-browse-layer eimir-motion-reveal"
-      aria-label={t('story.browseTitle')}
-    >
+    <nav className="momente-browse-layer" aria-label={t('story.browseTitle')}>
       <p className="momente-browse-heading">{t('story.browseTitle')}</p>
       <div className="momente-browse-links">
         <Link to={MILESTONES_BROWSE_ROUTE} className="momente-browse-link">

@@ -313,7 +313,7 @@ export function WishProductPage({
       <div className="planning-detail-grid">
         {wish.status === 'COMPLETED' && showCompletionContinuation ? (
           <section
-            className="planning-subsection eimir-motion-reveal"
+            className="planning-subsection eimir-motion-success"
             aria-labelledby="wish-completion-heading"
           >
             <h2

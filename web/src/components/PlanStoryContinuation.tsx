@@ -60,7 +60,7 @@ export function PlanStoryContinuation({
 
   return (
     <section
-      className="plan-completed-celebration plan-story-continuation eimir-motion-reveal"
+      className="plan-completed-celebration plan-story-continuation"
       aria-labelledby="plan-completed-heading"
     >
       {sharedAchievementEnabled ? (

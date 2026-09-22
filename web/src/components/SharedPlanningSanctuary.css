@@ -299,10 +299,4 @@
     > summary:hover {
     transform: none;
   }
-
-  :where(.planning-page.planning-sanctuary) .eimir-motion-reveal {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
 }

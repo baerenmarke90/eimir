@@ -299,10 +299,9 @@
 
 /*
  * Decorative connector between the two perspectives: a converging dot for
- * agreement, a calm dividing line for difference. Transform-only (no
- * opacity) so it never risks the mid-animation text-contrast regression
- * documented for `.eimir-motion-reveal` (#790/#791) - not that this element
- * carries text, but it keeps the same house rule everywhere in this file.
+ * agreement, a calm dividing line for difference. Transform-only motion
+ * avoids opacity compositing around text-bearing outcome content (#790/#791)
+ * and keeps the same contrast-safe house rule throughout this file.
  */
 .who-of-us-reveal-answers::before {
   content: "";

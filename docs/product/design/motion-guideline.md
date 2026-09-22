@@ -146,6 +146,8 @@ The audit found useful primitives that new work should reuse rather than duplica
 - `ShortTaskSheet`: native dialog modality, Compact drag dismissal, history/back ownership and shared modal lifecycle for bounded contextual tasks.
 - `useModalLifecycle`: ref-counted body scroll lock, initial focus and focus restoration for modal-like layers.
 - `useDismissiblePopover`: outside-pointer, Escape, route-change and trigger-focus behavior for non-modal anchored popovers.
+- `.eimir-motion-disclosure`: transform-only local reveal for content opened by a known control or local state transition; never a route/page/section/query-result mount effect.
+- `.eimir-motion-success`: concise one-shot feedback for confirmed successful results; never pending, failed or neutral states.
 - `ChecklistToggle`: tokenized local completion feedback.
 - `SharedAchievementCelebration`: existing shared-completion presentation.
 - `Snackbar`: decoupled non-critical acknowledgement independent of mutation ownership.

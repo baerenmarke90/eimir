@@ -478,9 +478,7 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
     .getByRole('link', { name: navigation.settings, exact: true })
     .click();
   await expect(page).toHaveURL(/\/more\/settings$/);
-  await page
-    .locator('.settings-index a[href="/more/settings/today"]')
-    .click();
+  await page.locator('.settings-index a[href="/more/settings/today"]').click();
   await expect(page).toHaveURL(/\/more\/settings\/today$/);
 
   const settingsToggle = page

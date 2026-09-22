@@ -37,7 +37,8 @@
   gap: var(--space-3);
   padding-left: var(--space-4);
   border-left: 2px solid var(--color-brand-glow);
-  animation: planning-schedule-reveal var(--duration-transition) var(--easing-enter);
+  animation: planning-schedule-reveal var(--duration-transition)
+    var(--easing-enter);
 }
 
 .planning-schedule-end-fields[hidden] {

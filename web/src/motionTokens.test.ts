@@ -12,22 +12,13 @@ const RAW_MOTION_VALUE =
   /\b\d+(?:\.\d+)?(?:ms|s)\b|\bease(?:-in|-out|-in-out)?\b|\blinear\b/;
 
 const allowedContinuousLoops = new Map<string, string>([
-  [
-    './styles.css',
-    'animation: story-shimmer 1.6s linear infinite;',
-  ],
-  [
-    './story-media.css',
-    'animation: story-shimmer 1.6s linear infinite;',
-  ],
+  ['./styles.css', 'animation: story-shimmer 1.6s linear infinite;'],
+  ['./story-media.css', 'animation: story-shimmer 1.6s linear infinite;'],
   [
     './components/MediaGallery.css',
     'animation: gallery-pulse 1.4s ease-in-out infinite;',
   ],
-  [
-    './shell.css',
-    'animation: app-pull-refresh-spin 0.8s linear infinite;',
-  ],
+  ['./shell.css', 'animation: app-pull-refresh-spin 0.8s linear infinite;'],
   [
     './components/ThinkingOfYouButton.css',
     'animation: heart-pulse 0.8s ease-in-out infinite alternate;',

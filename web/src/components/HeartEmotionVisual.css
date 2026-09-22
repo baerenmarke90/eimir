@@ -314,7 +314,8 @@
 }
 
 .heart-emotion-badge--detail .heart-emotion-icon {
-  animation: heart-emotion-settle var(--duration-context) var(--easing-enter) both;
+  animation: heart-emotion-settle var(--duration-context) var(--easing-enter)
+    both;
 }
 
 @keyframes heart-emotion-settle {

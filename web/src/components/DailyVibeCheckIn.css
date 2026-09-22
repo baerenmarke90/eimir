@@ -133,16 +133,14 @@ button.daily-vibe-person:focus-visible {
   animation: daily-vibe-startup var(--duration-context) var(--easing-enter) both;
 }
 
-.daily-vibe-person.is-startup-reveal + .daily-vibe-person.is-startup-reveal {
-}
-
 .daily-vibe-partner.is-revealed {
   animation: daily-vibe-reveal var(--duration-context) var(--easing-enter) both;
 }
 
 .daily-vibe-person.is-startup-reveal .daily-vibe-glyph,
 .daily-vibe-partner.is-revealed .daily-vibe-glyph {
-  animation: daily-vibe-glyph-pop var(--duration-context) var(--easing-enter) both;
+  animation: daily-vibe-glyph-pop var(--duration-context) var(--easing-enter)
+    both;
 }
 
 .daily-vibe-share {

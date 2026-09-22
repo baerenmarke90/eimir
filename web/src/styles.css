@@ -1053,7 +1053,8 @@ code {
 }
 
 .eimir-motion-reveal {
-  animation: eimir-reveal var(--duration-transition) var(--easing-enter) forwards;
+  animation: eimir-reveal var(--duration-transition) var(--easing-enter)
+    forwards;
 }
 
 @keyframes eimir-lift {
@@ -1103,7 +1104,8 @@ code {
 }
 
 .eimir-motion-pulse {
-  animation: eimir-affectionate-pulse var(--duration-context) var(--easing-standard);
+  animation: eimir-affectionate-pulse var(--duration-context)
+    var(--easing-standard);
 }
 
 @keyframes eimir-context-change {
@@ -1118,7 +1120,8 @@ code {
 }
 
 .eimir-motion-context-change {
-  animation: eimir-context-change var(--duration-transition) var(--easing-standard) forwards;
+  animation: eimir-context-change var(--duration-transition)
+    var(--easing-standard) forwards;
 }
 
 /* Immersive Creation Canvas (Direction B Sanctuary) */

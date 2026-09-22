@@ -314,7 +314,8 @@
   border-radius: 50%;
   background: var(--who-of-us-outcome-accent, var(--color-text-secondary));
   transform: translate(-50%, -50%) scale(0);
-  animation: who-of-us-connector-same var(--duration-context) var(--easing-enter) forwards;
+  animation: who-of-us-connector-same var(--duration-context)
+    var(--easing-enter) forwards;
 }
 
 .who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-answers::before {

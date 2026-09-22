@@ -90,7 +90,8 @@
   fill: var(--color-shared);
   transform-box: fill-box;
   transform-origin: left center;
-  animation: daily-energy-battery-fill var(--duration-context) var(--easing-enter) both;
+  animation: daily-energy-battery-fill var(--duration-context)
+    var(--easing-enter) both;
 }
 
 .daily-energy-battery-icon[data-level="low"] .daily-energy-battery-fill {

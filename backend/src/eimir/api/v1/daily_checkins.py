@@ -36,6 +36,7 @@ class DailyCheckInOwnView(ApiModel):
 
     version: int
     vibe: DailyVibe | None
+    vibe_note: str | None
     energy_level: int | None
 
 
@@ -101,6 +102,7 @@ class PartnerVibeProjection(RootModel[PartnerVibeVariant]):
 class DailyCheckInVibeView(ApiModel):
     visibility_mode: DailyCheckInVisibilityMode
     partner: PartnerVibeProjection
+    partner_note: str | None = None
 
 
 class DailyCheckInTodayView(ApiModel):
@@ -121,11 +123,19 @@ class DailyCheckInUpdate(ApiModel):
 
     energy_level: EnergyLevel | None = None
     vibe: DailyVibe | None = None
+    vibe_note: str | None = Field(default=None, max_length=200)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
         if not self.model_fields_set:
             raise ValueError("at least one Daily Check-in dimension must be supplied")
+        if (
+            "vibe_note" in self.model_fields_set
+            and self.vibe_note is not None
+            and "vibe" in self.model_fields_set
+            and self.vibe is None
+        ):
+            raise ValueError("Vibe context cannot be supplied while removing the Vibe")
         return self
 
 
@@ -177,6 +187,7 @@ def _view(projection: service.TodayProjection) -> DailyCheckInTodayView:
         vibe = DailyCheckInVibeView(
             visibility_mode=projection.vibe_visibility_mode,
             partner=_partner_vibe_view(partner),
+            partner_note=projection.partner_vibe_note,
         )
 
     return DailyCheckInTodayView(
@@ -185,6 +196,7 @@ def _view(projection: service.TodayProjection) -> DailyCheckInTodayView:
         own=DailyCheckInOwnView(
             version=own.version if own is not None else 0,
             vibe=DailyVibe(own.vibe) if own is not None and own.vibe is not None else None,
+            vibe_note=projection.own_vibe_note,
             energy_level=own.energy_level if own is not None else None,
         ),
         energy=energy,
@@ -242,6 +254,10 @@ def get_daily_check_in_today(
             422,
             descriptions={
                 403: "`SPACE_MODULE_DISABLED`: new Vibe/Energy participation is disabled.",
+                422: (
+                    f"`{DailyCheckInErrorCode.VIBE_NOTE_REQUIRES_VIBE}`: "
+                    "Vibe context requires a current-day Vibe."
+                ),
                 409: (
                     "`RESOURCE_VERSION_CONFLICT`: the owner state changed, or "
                     f"`{DailyCheckInErrorCode.CONTEXT_UNAVAILABLE}`: the shared day "
@@ -269,6 +285,10 @@ def update_daily_check_in_today(
         vibe=service.DimensionUpdate[DailyVibe](
             supplied="vibe" in body.model_fields_set,
             value=body.vibe,
+        ),
+        vibe_note=service.DimensionUpdate[str](
+            supplied="vibe_note" in body.model_fields_set,
+            value=body.vibe_note,
         ),
     )
     _headers(response, projection)

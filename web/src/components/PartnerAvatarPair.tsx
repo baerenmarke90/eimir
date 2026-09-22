@@ -80,11 +80,14 @@ export function PartnerAvatarPair({
       primaryPerson.displayName,
     );
   }, [primaryPerson.displayName, secondaryPerson, t]);
+  const accessibleGroupLabel = statusLabel
+    ? `${groupLabel}. ${statusLabel}`
+    : groupLabel;
 
   return (
     <section
       className={`partner-avatar-pair partner-avatar-pair-${size} status-${status} ${className}`}
-      aria-label={groupLabel}
+      aria-label={accessibleGroupLabel}
     >
       <div className="partner-avatar-stack">
         <SingleAvatar
@@ -115,19 +118,14 @@ export function PartnerAvatarPair({
         )}
       </div>
 
-      {secondaryPerson && statusLabel ? (
+      {secondaryPerson &&
+      statusLabel &&
+      (status === 'active' || status === 'recent') ? (
         <span
-          className={`partner-presence-badge status-${status}`}
+          className={`partner-presence-avatar-state status-${status}`}
+          aria-hidden="true"
           title={statusLabel}
-        >
-          {status === 'active' ? (
-            <span
-              className="partner-presence-pip partner-presence-badge-dot"
-              aria-hidden="true"
-            />
-          ) : null}
-          <span className="partner-presence-badge-label">{statusLabel}</span>
-        </span>
+        />
       ) : status === 'active' ? (
         <span
           className="partner-presence-pip"

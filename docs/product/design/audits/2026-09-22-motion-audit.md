@@ -17,7 +17,6 @@ This is a source-level repository audit, not a claim that every interaction was 
 - `LIFECYCLE_PROBLEM`: mount/unmount, focus, history or presence prevents a correct Enter/Exit contract.
 - `PERFORMANCE_RISK`: motion can cause avoidable layout/compositor/scroll work.
 - `REDUCED_MOTION_GAP`: reduced motion does not preserve the required contract cleanly.
-- `FIXED_IN_1204`: a small central defect was safe and necessary to correct in the #1204 foundation slice.
 
 ## 2. Token inventory
 
@@ -75,16 +74,9 @@ Representative production examples:
 
 The Today/HeartEmotion values above 320 ms are outside the accepted interaction-transition guardrail and require semantic reconciliation, not mechanical shortening.
 
-### Small defect corrected in #1204
+### Concrete token defect deferred to the migration slice
 
-`DailyQuoteCard.css` referenced undefined `--duration-standard` and `--duration-fast` variables. The declarations therefore could not resolve to the intended tokenized motion.
-
-#1204 changes them to:
-
-- `--duration-transition`;
-- `--duration-feedback`;
-
-and adds a source-level guard in `productRoles.test.ts`.
+`DailyQuoteCard.css` references undefined `--duration-standard` and `--duration-fast` variables. The declarations therefore cannot resolve to the intended tokenized motion. The defect is deliberately not repaired in #1204 so this audit/guideline PR remains free of user-facing runtime changes and does not bypass the repository's exact-build visual-evidence gate. #1213 owns the correction together with the token migration and an appropriate regression guard.
 
 ## 3. Primitive and lifecycle inventory
 
@@ -187,7 +179,7 @@ This is RC-02. #1214 must replace default mount animation with scoped semantic o
 | Hero | `INCONSISTENT` | direct gesture feedback exists, but Thinking-of-you uses raw long effects; future location/action hub is product-owned | #1206, #1213 |
 | Vibe | `INCONSISTENT` | domain-specific reveal is reasonable; 520/640 ms timings and staged delay exceed shared interaction semantics | #1213 |
 | Energy | `INCONSISTENT` | battery-fill emphasis is transform-based and reduced-motion-aware, but 440 ms exceeds the normal guardrail | #1213 |
-| Daily Quote | `FIXED_IN_1204` | intended canonical motion referenced undefined duration aliases | #1204 fix |
+| Daily Quote | `INCONSISTENT` | intended canonical motion references undefined duration aliases; source-level defect is confirmed but intentionally deferred from this documentation-only slice | #1213 |
 | Demnächst / Upcoming | `OK_NO_MOTION` | content/clip correctness is the relevant contract; #1210 already fixed tile clipping | none |
 | Euer Moment | `OK_NO_MOTION` | no separate animation is needed for content meaning; generic section mount reveal is the cross-cutting issue | #1214 |
 | pinned shared list | `OK_EXISTING_PATTERN` | `ChecklistToggle` is a good canonical micro-feedback primitive | #1201 for mutation/flow behavior |
@@ -279,11 +271,11 @@ The audit does **not** absorb product behavior that already has an owner:
 
 These issues must apply the guideline rather than invent parallel timing/lifecycle rules.
 
-### RC-05 — Daily Quote referenced non-existent motion aliases
+### RC-05 — Daily Quote references non-existent motion aliases
 
-**Evidence:** `DailyQuoteCard.css` used `--duration-fast` and `--duration-standard`, neither of which exists in generated product roles.
+**Evidence:** `DailyQuoteCard.css` uses `--duration-fast` and `--duration-standard`, neither of which exists in generated product roles.
 
-**Owner:** fixed directly in #1204 because the change is small, central and required to make the documented token language real.
+**Owner:** #1213. Keeping this fix out of #1204 preserves the documentation/audit boundary and ensures the visible runtime correction receives the normal implementation and visual-evidence gates.
 
 ## 8. Already-clean patterns worth preserving
 
@@ -334,8 +326,8 @@ No separate issues were created for each affected component because those compon
 
 - The guideline elaborates the already accepted Product Reference v1 motion direction.
 - No new visual concept, route, feature, entitlement or content hierarchy is introduced.
-- The only runtime style correction restores the motion Daily Quote was already intended to use.
-- New visual evidence is not required for the documentation/token-reference fix because it does not introduce a new visual design; runtime follow-ups must provide evidence when their actual UI changes require it.
+- No production runtime, product copy, route, hierarchy or visual presentation is changed by #1204.
+- New visual evidence is not required for this documentation-only slice. Runtime follow-ups, including #1213's Daily Quote correction, must provide evidence when their actual UI changes require it.
 
 ### Reuse-before-build
 
@@ -351,7 +343,7 @@ No capability, entitlement, quota, downgrade, Cloud/Self-hosted or Premium class
 - accessibility: reduced motion, focus, modal lifecycle and information parity are explicit contracts;
 - performance: transform/opacity preferred; layout motion and persistent compositor hints are explicitly constrained;
 - i18n/reflow: no new product copy or fixed geometry introduced by #1204;
-- testing: only the real Daily Quote token regression receives a source-level guard; no synthetic UI tests are added for documentation alone.
+- testing: no synthetic UI tests are added for documentation alone; each runtime follow-up must add or adjust the smallest test level that protects its actual behavior.
 
 ## 13. Acceptance status
 
@@ -366,6 +358,5 @@ No capability, entitlement, quota, downgrade, Cloud/Self-hosted or Premium class
 - [x] obsolete/duplicate local mechanisms identified;
 - [x] existing issue ownership reconciled;
 - [x] only necessary new root-cause follow-up issues created;
-- [x] small Daily Quote foundation defect corrected with a regression guard;
 - [x] final branch-vs-current-main reconciliation immediately before PR (branch is 0 behind current main at `a9749f3`);
 - [ ] branch checks / PR CI.

@@ -7,7 +7,7 @@ import io
 from eimir.transfer import service
 
 
-def test_plaintext_export_buffer_falls_back_to_memory_without_memfd(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+def test_plaintext_export_buffer_falls_back_to_memory_without_memfd(monkeypatch) -> None:
     monkeypatch.setattr(service.os, "memfd_create", None, raising=False)
 
     with service._new_plaintext_export_buffer() as output:

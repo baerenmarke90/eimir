@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { firstNameFromDisplayName } from '../client/personalName';
 import { useTranslation } from 'react-i18next';
 import './ThinkingOfYouButton.css';
@@ -40,6 +40,29 @@ export function ThinkingOfYouButton({
     'idle',
   );
   const [now, setNow] = useState(() => Date.now());
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (resetTimerRef.current !== null) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const scheduleIdleReset = useCallback((delayMs: number) => {
+    if (resetTimerRef.current !== null) {
+      clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = setTimeout(() => {
+      resetTimerRef.current = null;
+      if (mountedRef.current) setState('idle');
+    }, delayMs);
+  }, []);
 
   const isCoolingDown = cooldownUntil != null && cooldownUntil.getTime() > now;
 
@@ -59,17 +82,15 @@ export function ThinkingOfYouButton({
       if (onSend) {
         await onSend();
       }
+      if (!mountedRef.current) return;
       setState('sent');
-      setTimeout(() => {
-        setState('idle');
-      }, CONFIRMATION_MS);
+      scheduleIdleReset(CONFIRMATION_MS);
     } catch {
+      if (!mountedRef.current) return;
       setState('error');
-      setTimeout(() => {
-        setState('idle');
-      }, 4000);
+      scheduleIdleReset(4000);
     }
-  }, [state, disabled, isCoolingDown, onSend]);
+  }, [state, disabled, isCoolingDown, onSend, scheduleIdleReset]);
 
   const personalPartnerName = partnerName
     ? firstNameFromDisplayName(partnerName, '')

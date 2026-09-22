@@ -26,11 +26,11 @@ from eimir.collections import service as collection_service
 from eimir.comments import service as comment_service
 from eimir.comments.models import CommentTarget
 from eimir.config import Environment
-from eimir.db.locks import lock_subject
-from eimir.db.mixins import INITIAL_VERSION
 from eimir.daily_checkins import service as daily_checkin_service
 from eimir.daily_checkins.models import DailyVibe
 from eimir.dashboard import preferences as dashboard_preferences
+from eimir.db.locks import lock_subject
+from eimir.db.mixins import INITIAL_VERSION
 from eimir.demo.assets import (
     DemoAssetCatalog,
     import_demo_asset,
@@ -794,7 +794,9 @@ def _seed_planning(
         session,
         alex_context,
         title="Sonntag am See",
-        description="Picknick einpacken, eine große Runde laufen und den Nachmittag draußen lassen.",
+        description=(
+            "Picknick einpacken, eine große Runde laufen und den Nachmittag draußen lassen."
+        ),
         place_id=lake.id,
     )
     plan_service.complete_plan(

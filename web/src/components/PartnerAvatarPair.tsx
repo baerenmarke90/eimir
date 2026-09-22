@@ -151,7 +151,13 @@ export function PartnerAvatarPair({
         ref={actionRef}
         type="button"
         className={`partner-avatar-pair partner-avatar-pair-action partner-avatar-pair-${size} status-${status} ${className}`}
-        aria-label={actionLabel || accessibleGroupLabel}
+        aria-label={
+          actionLabel
+            ? statusLabel
+              ? `${actionLabel}. ${statusLabel}`
+              : actionLabel
+            : accessibleGroupLabel
+        }
         aria-expanded={actionExpanded}
         aria-controls={actionControls}
         aria-haspopup={actionHasPopup}

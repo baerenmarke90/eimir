@@ -288,7 +288,6 @@ export function DailyQuoteCard({
       nextDraft: DailyQuoteDraft;
     }) => {
       const patch: DailyQuotePreferencePatch = {
-        enabled: true,
         selectedCategoryIds: nextDraft.categoryIds,
         selectedSourceIds: nextDraft.sourceIds,
       };

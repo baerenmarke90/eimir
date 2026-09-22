@@ -474,9 +474,9 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   await expect(
     pinnedSection.getByRole('button', { name: milkOpenName }),
   ).toHaveAttribute('aria-pressed', 'true');
-  await expect.poll(() => network.collectionGetCount()).toBe(
-    collectionGetsBeforeToggle,
-  );
+  await expect
+    .poll(() => network.collectionGetCount())
+    .toBe(collectionGetsBeforeToggle);
   expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
   const addButton = pinnedSection.getByRole('button', {
@@ -577,10 +577,7 @@ test('celebrates only the confirmed final pinned Collection completion and stays
     animations: 'disabled',
   });
 
-  const appleOpenName = m5s3.collection.markOpen.replace(
-    '{{title}}',
-    'Äpfel',
-  );
+  const appleOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Äpfel');
   await pinnedSection.getByRole('button', { name: appleOpenName }).click();
   await expect(
     pinnedSection.locator('.shared-achievement-confirmation'),
@@ -689,4 +686,3 @@ test('keeps the add task and plus usable across Compact widths and 320px 200-per
     animations: 'disabled',
   });
 });
-

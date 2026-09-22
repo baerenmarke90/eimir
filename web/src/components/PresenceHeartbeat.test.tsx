@@ -81,6 +81,73 @@ describe('PresenceHeartbeat', () => {
     expect(mocks.touchPresence).toHaveBeenCalledTimes(3);
   });
 
+  it('resumes immediately after a short suspension even inside the event dedupe window', async () => {
+    renderHeartbeat();
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event('blur')));
+    act(() => window.dispatchEvent(new Event('focus')));
+
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a heartbeat response that settles after presence is suspended', async () => {
+    let resolveTouch!: (value: { state: string }) => void;
+    const pendingTouch = new Promise<{ state: string }>((resolve) => {
+      resolveTouch = resolve;
+    });
+    mocks.touchPresence.mockReturnValueOnce(pendingTouch);
+
+    const { queryClient } = renderHeartbeat();
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event('blur')));
+    expect(
+      queryClient.getQueryData(partnerPresenceQueryKey('account-1', 'space-1')),
+    ).toEqual({ state: null });
+
+    await act(async () => {
+      resolveTouch({ state: 'ACTIVE' });
+      await Promise.resolve();
+    });
+
+    expect(
+      queryClient.getQueryData(partnerPresenceQueryKey('account-1', 'space-1')),
+    ).toEqual({ state: null });
+  });
+
+  it('does not let an older heartbeat failure clear a newer successful generation', async () => {
+    let rejectFirstTouch!: (reason?: unknown) => void;
+    const firstTouch = new Promise<{ state: string }>((_resolve, reject) => {
+      rejectFirstTouch = reject;
+    });
+    mocks.touchPresence
+      .mockReturnValueOnce(firstTouch)
+      .mockResolvedValueOnce({ state: 'ACTIVE' });
+
+    const { queryClient } = renderHeartbeat();
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(PRESENCE_HEARTBEAT_INTERVAL_MS);
+      await Promise.resolve();
+    });
+
+    expect(mocks.touchPresence).toHaveBeenCalledTimes(2);
+    expect(
+      queryClient.getQueryData(partnerPresenceQueryKey('account-1', 'space-1')),
+    ).toEqual({ state: 'ACTIVE' });
+
+    await act(async () => {
+      rejectFirstTouch(new Error('late failure'));
+      await Promise.resolve();
+    });
+
+    expect(
+      queryClient.getQueryData(partnerPresenceQueryKey('account-1', 'space-1')),
+    ).toEqual({ state: 'ACTIVE' });
+  });
+
   it('fails closed and removes the old Account+Space scope on unmount', async () => {
     mocks.touchPresence.mockRejectedValueOnce(new Error('network'));
     const { queryClient, unmount } = renderHeartbeat();

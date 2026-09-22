@@ -280,7 +280,6 @@
   backdrop-filter: blur(4px);
   animation: preference-modal-backdrop-enter var(--duration-transition)
     var(--easing-enter);
-  transition: background-color var(--duration-transition) var(--easing-exit);
 }
 
 .preference-modal-dialog {
@@ -297,21 +296,17 @@
   transform: scale(1);
   animation: preference-modal-enter var(--duration-transition)
     var(--easing-enter);
-  transition:
-    opacity var(--duration-transition) var(--easing-exit),
-    transform var(--duration-transition) var(--easing-exit);
 }
 
 .preference-modal-backdrop[data-presence="exiting"] {
   pointer-events: none;
-  background-color: transparent;
-  animation: none;
+  animation: preference-modal-backdrop-exit var(--duration-transition)
+    var(--easing-exit) forwards;
 }
 
 .preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
-  opacity: 0;
-  transform: scale(0.985);
-  animation: none;
+  animation: preference-modal-exit var(--duration-transition) var(--easing-exit)
+    forwards;
 }
 
 @keyframes preference-modal-backdrop-enter {
@@ -331,6 +326,26 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes preference-modal-backdrop-exit {
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes preference-modal-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes preference-modal-sheet-exit {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
   }
 }
 
@@ -364,7 +379,8 @@
   }
 
   .preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
-    transform: translateY(100%);
+    animation-name: preference-modal-sheet-exit;
+    animation-duration: var(--duration-transition);
   }
 }
 

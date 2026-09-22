@@ -13,6 +13,7 @@ import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/Atta
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
+import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
 import { ProfilesApi } from './api/generated/apis/ProfilesApi';
 import { SpacesApi } from './api/generated/apis/SpacesApi';
@@ -291,6 +292,17 @@ function AuthenticatedApp({
     [apiBaseUrl, tokens.accessToken],
   );
 
+  const dailyQuoteApi = useMemo(
+    () =>
+      new DailyQuoteApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+
   const entitlementApi = useMemo(
     () =>
       new EntitlementsApi(
@@ -528,6 +540,8 @@ function AuthenticatedApp({
                 spaceId={spaceId}
                 spacesApi={spacesApi}
                 dailyCheckInsApi={dailyCheckInsApi}
+                dailyQuoteApi={dailyQuoteApi}
+                entitlementApi={entitlementApi}
                 collectionsApi={planningApis.collections}
                 loadMemoryImage={loadMemoryImage}
                 profilesApi={profilesApi}

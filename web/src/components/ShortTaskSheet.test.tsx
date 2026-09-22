@@ -232,6 +232,54 @@ describe('ShortTaskSheet history ownership', () => {
     expect(onExit).not.toHaveBeenCalled();
   });
 
+  it('captures implicit focus return before native showModal moves focus', async () => {
+    const nativeLikeShowModal = vi
+      .spyOn(HTMLDialogElement.prototype, 'showModal')
+      .mockImplementation(function (this: HTMLDialogElement) {
+        this.setAttribute('open', '');
+        this.querySelector<HTMLElement>('button')?.focus();
+      });
+
+    try {
+      const trigger = document.createElement('button');
+      trigger.textContent = 'Implicit trigger';
+      document.body.append(trigger);
+
+      const sheetProps = {
+        title: 'Implicit restore',
+        onClose: vi.fn(),
+      };
+      const { rerender } = render(
+        <ShortTaskSheet open={false} {...sheetProps}>
+          <button type="button">Inside</button>
+        </ShortTaskSheet>,
+      );
+
+      trigger.focus();
+      expect(document.activeElement).toBe(trigger);
+
+      rerender(
+        <ShortTaskSheet open={true} {...sheetProps}>
+          <button type="button">Inside</button>
+        </ShortTaskSheet>,
+      );
+      expect(screen.getByRole('dialog')).toBeDefined();
+      expect(document.activeElement).not.toBe(trigger);
+
+      rerender(
+        <ShortTaskSheet open={false} {...sheetProps}>
+          <button type="button">Inside</button>
+        </ShortTaskSheet>,
+      );
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+      trigger.remove();
+    } finally {
+      nativeLikeShowModal.mockRestore();
+    }
+  });
+
   it('restores trigger focus and the preexisting scroll policy on cancellation', async () => {
     document.body.style.overflow = 'auto';
     render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);

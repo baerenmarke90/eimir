@@ -361,7 +361,9 @@ describe('TodayPinnedCollection', () => {
       await first.promise.catch(() => undefined);
     });
 
-    await waitFor(() => expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(updateCollectionItemRaw).toHaveBeenCalledTimes(2),
+    );
     expect(
       screen
         .getByRole('button', {

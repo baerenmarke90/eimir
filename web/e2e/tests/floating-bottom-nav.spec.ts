@@ -563,10 +563,17 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await settleDialogMotion();
     expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
 
-    // A fresh, steadily downward pull still dismisses the Compact sheet.
-    await page.mouse.move(dragCenterX, dragCenterY);
+    // Surface-wide direct manipulation is not limited to the visible handle.
+    // A fresh downward pull that starts on plain sheet content dismisses too.
+    const surface = dialog.locator('.short-task-sheet-title');
+    const surfaceBox = await surface.boundingBox();
+    expect(surfaceBox).not.toBeNull();
+    if (!surfaceBox) throw new Error('Missing sheet surface bounds');
+    const surfaceCenterX = surfaceBox.x + surfaceBox.width / 2;
+    const surfaceCenterY = surfaceBox.y + surfaceBox.height / 2;
+    await page.mouse.move(surfaceCenterX, surfaceCenterY);
     await page.mouse.down();
-    await page.mouse.move(dragCenterX, dragCenterY + 220, { steps: 6 });
+    await page.mouse.move(surfaceCenterX, surfaceCenterY + 220, { steps: 6 });
     await page.mouse.up();
 
     await expect(dialog).toHaveCount(0);

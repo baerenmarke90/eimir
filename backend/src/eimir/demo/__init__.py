@@ -63,6 +63,7 @@ def _ensure_today_pro_entitlement(session: Session, result: DemoSeedResult) -> N
         capabilities=[
             Capability.DAILY_INSIGHTS.value,
             Capability.DAILY_QUOTE.value,
+            Capability.PARTNER_QUICK_ACTIONS_EXTENDED.value,
         ],
         metadata={"fixture": "canonical_demo_today_pro"},
     )

@@ -471,7 +471,13 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
     expect.objectContaining({ enabled: false }),
   );
 
-  await page.goto('/more/settings/today');
+  await page.locator('a[href="/more"]').first().click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page.locator('a[href="/more/settings"]').first().click();
+  await expect(page).toHaveURL(/\/more\/settings$/);
+  await page.locator('a[href="/more/settings/today"]').first().click();
+  await expect(page).toHaveURL(/\/more\/settings\/today$/);
+
   const settingsToggle = page
     .locator('#settings-daily-quote')
     .getByRole('switch', { name: dailyQuote.enabledLabel });
@@ -480,7 +486,8 @@ test('personal visibility hides the Wir card and Settings -> Wir restores it', a
   await expect(settingsToggle).toHaveAttribute('aria-checked', 'true');
   expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
 
-  await page.goto('/today');
+  await page.locator('a[href="/today"]').first().click();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByText('A calm thought for today.')).toBeVisible();
 });
 

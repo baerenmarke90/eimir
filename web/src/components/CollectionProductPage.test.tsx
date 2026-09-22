@@ -183,7 +183,7 @@ describe('CollectionProductPage', () => {
     expect(html).toContain('planning-inline-create');
     // Item row has item title, checkbox, reorder, delete, but no per-item save button
     expect(html).toContain('Passport');
-    expect(html).toContain('planning-check');
+    expect(html).toContain('checklist-toggle');
     // Check that there is no submit button inside the items list
     expect(html).not.toContain('planning-item-title-form button');
   });

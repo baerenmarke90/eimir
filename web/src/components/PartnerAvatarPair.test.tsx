@@ -69,39 +69,50 @@ describe('PartnerAvatarPair', () => {
     expect(document.querySelector('.partner-presence-pip')).toBeNull();
   });
 
-  it('attaches readable presence copy to the secondary partner avatar', () => {
+  it('attaches quiet presence state to the secondary partner avatar', () => {
+    const activeCopy =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
+    const recentCopy =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
     const { rerender } = render(
       <PartnerAvatarPair
         primaryPerson={{ displayName: 'Philipp' }}
         secondaryPerson={{ displayName: 'Lea' }}
         status="active"
-        statusLabel={relationshipComponents.couplePresenceActive}
+        statusLabel={activeCopy}
       />,
     );
 
-    const activeLabel = screen.getByText(
-      relationshipComponents.couplePresenceActive,
-    );
-    expect(activeLabel.closest('.partner-presence-badge')).not.toBeNull();
     expect(
-      document.querySelector('.partner-presence-badge-dot'),
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${activeCopy}`,
+      ),
+    ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-active'),
     ).not.toBeNull();
-    expect(document.querySelectorAll('.partner-presence-pip')).toHaveLength(1);
+    expect(document.querySelector('.partner-presence-badge')).toBeNull();
 
     rerender(
       <PartnerAvatarPair
         primaryPerson={{ displayName: 'Philipp' }}
         secondaryPerson={{ displayName: 'Lea' }}
         status="recent"
-        statusLabel={relationshipComponents.couplePresenceRecent}
+        statusLabel={recentCopy}
       />,
     );
 
-    const recentLabel = screen.getByText(
-      relationshipComponents.couplePresenceRecent,
-    );
-    expect(recentLabel.closest('.partner-presence-badge')).not.toBeNull();
-    expect(document.querySelector('.partner-presence-badge-dot')).toBeNull();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-recent'),
+    ).not.toBeNull();
     expect(document.querySelector('.partner-presence-pip')).toBeNull();
   });
 

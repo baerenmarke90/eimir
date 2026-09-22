@@ -46,16 +46,6 @@ export function CouplePresence({
   const generatedId = useId();
   const titleId = `couple-presence-title-${generatedId}`;
 
-  const defaultStatusText =
-    status === 'active'
-      ? t('couplePresenceActive')
-      : status === 'recent'
-        ? t('couplePresenceRecent')
-        : status === 'waiting'
-          ? t('couplePresenceWaiting')
-          : null;
-  const resolvedStatusText = statusText ?? defaultStatusText;
-
   const primaryFirstName = firstNameFromDisplayName(
     primaryPerson.displayName,
     t('couplePresenceYouFallback'),
@@ -66,6 +56,20 @@ export function CouplePresence({
         t('couplePresencePartnerFallback'),
       )
     : null;
+
+  const defaultStatusText =
+    status === 'active'
+      ? secondaryFirstName
+        ? t('couplePresencePartnerActive', { name: secondaryFirstName })
+        : t('couplePresenceActive')
+      : status === 'recent'
+        ? secondaryFirstName
+          ? t('couplePresencePartnerRecent', { name: secondaryFirstName })
+          : t('couplePresenceRecent')
+        : status === 'waiting'
+          ? t('couplePresenceWaiting')
+          : null;
+  const resolvedStatusText = statusText ?? defaultStatusText;
   const presenceTitle = secondaryFirstName
     ? `${primaryFirstName} & ${secondaryFirstName}`
     : spaceTitle;

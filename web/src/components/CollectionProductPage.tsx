@@ -28,6 +28,7 @@ import {
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
 import { useTranslation } from '../i18n';
+import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
 import {
@@ -94,20 +95,16 @@ function CollectionItemRow({
         .filter(Boolean)
         .join(' ')}
     >
-      <button
-        type="button"
-        className="planning-check"
-        aria-pressed={item.completed}
-        aria-label={
+      <ChecklistToggle
+        completed={item.completed}
+        label={
           item.completed
             ? t('m5s3.collection.markOpen', { title: item.title })
             : t('m5s3.collection.markDone', { title: item.title })
         }
-        onClick={() => onToggleComplete(item)}
+        onToggle={() => onToggleComplete(item)}
         disabled={!item.capabilities.canEdit || isUpdating}
-      >
-        {item.completed ? '✓' : ''}
-      </button>
+      />
       <div className="planning-item-title-form">
         <label className="sr-only" htmlFor={`collection-item-${item.id}`}>
           {t('m5s3.collection.itemTitle')}

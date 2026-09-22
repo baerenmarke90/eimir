@@ -101,17 +101,26 @@ function renderPinned(
 }
 
 describe('TodayPinnedCollection', () => {
-  it('keeps the projection compact while preserving completion state', () => {
+  it('keeps open work visible and progressively discloses the rest', () => {
     renderPinned({});
 
     expect(screen.getByText('Milch')).toBeDefined();
-    expect(screen.getByText('Brot')).toBeDefined();
+    expect(screen.getByText('Äpfel')).toBeDefined();
     expect(screen.getByText('Kaffee')).toBeDefined();
-    expect(screen.queryByText('Haferflocken')).toBeNull();
+    expect(screen.getByText('Haferflocken')).toBeDefined();
+    expect(screen.queryByText('Brot')).toBeNull();
+
+    const disclosure = screen.getByRole('button', {
+      name: i18n.t('m5s5.today.pinnedCollection.showMore', { count: 1 }),
+    });
+    expect(disclosure.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(disclosure);
+
+    expect(screen.getByText('Brot')).toBeDefined();
     expect(
-      screen.getByText(
-        i18n.t('m5s5.today.pinnedCollection.more', { count: 1 }),
-      ),
+      screen.getByRole('button', {
+        name: i18n.t('m5s5.today.pinnedCollection.showLess'),
+      }),
     ).toBeDefined();
     expect(
       screen
@@ -198,6 +207,14 @@ describe('TodayPinnedCollection', () => {
         .getByRole('status')
         .classList.contains('shared-achievement-confirmation'),
     ).toBe(true);
+    expect(screen.getByText('Milch')).toBeDefined();
+    expect(
+      screen
+        .getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        })
+        .getAttribute('aria-pressed'),
+    ).toBe('false');
     expect(
       screen
         .getByRole('link', {

@@ -533,11 +533,18 @@ test('celebrates only the confirmed final pinned Collection completion and stays
   await expect(
     pinnedSection.locator('.shared-achievement-confirmation'),
   ).toHaveCount(1);
+  await expect(pinnedSection.getByText('Milch')).toBeVisible();
+  await expect(pinnedSection.getByText('Äpfel')).toBeVisible();
   await expect(
     pinnedSection.getByRole('link', {
       name: m5s5.today.pinnedCollection.sharedAchievementAction,
     }),
   ).toBeVisible();
+
+  await expect(
+    pinnedSection.locator('.shared-achievement-confirmation'),
+  ).toHaveCount(0, { timeout: 5_000 });
+  await expect(pinnedSection.getByText('Milch')).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);

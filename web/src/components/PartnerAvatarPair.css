@@ -115,71 +115,45 @@
 }
 
 /*
- * When a consumer has human-readable presence copy, attach it directly to the
- * partner avatar instead of rendering another metadata row beside the couple.
- * Right anchoring means long translated labels grow inward over the avatar pair
- * rather than widening the document.
+ * Connected presence belongs to the partner identity, not to the avatar pair.
+ * Keep the signal intentionally quiet: the right-most avatar is the partner,
+ * so a small state mark in that corner is unambiguous without another badge.
  */
-.partner-presence-badge {
+.partner-presence-avatar-state {
   position: absolute;
-  top: -0.4rem;
-  right: -0.5rem;
+  right: 1px;
+  bottom: 1px;
   z-index: 5;
-  display: inline-flex;
   box-sizing: border-box;
-  max-width: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0.18rem 0.42rem;
-  border: 1px solid var(--color-border-subtle);
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--color-surface);
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  box-shadow: 0 2px 8px var(--color-shadow-card);
-  font-family: var(--font-ui);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1.1;
-  text-align: center;
-  white-space: normal;
   pointer-events: none;
 }
 
-.partner-avatar-pair-medium .partner-presence-badge {
-  top: -0.35rem;
-  font-size: 0.58rem;
-}
-
-.partner-avatar-pair-small .partner-presence-badge {
-  top: -0.3rem;
-  font-size: 0.55rem;
-}
-
-.partner-presence-badge.status-recent {
-  color: var(--color-text-muted);
-}
-
-.partner-presence-badge-label {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.partner-presence-badge-dot {
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  border-radius: var(--radius-pill);
+.partner-presence-avatar-state.status-active {
   background: var(--color-shared);
 }
 
-/* Keep the existing active-presence hook, but make the pip part of the badge. */
-.partner-presence-badge .partner-presence-pip {
-  position: static;
-  width: 6px;
-  height: 6px;
-  flex: 0 0 auto;
-  box-shadow: none;
+.partner-presence-avatar-state.status-recent {
+  border-color: var(--color-surface);
+  background: var(--color-text-muted);
+  opacity: 0.62;
+}
+
+.partner-avatar-pair-large .partner-presence-avatar-state {
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  border-width: 3px;
+}
+
+.partner-avatar-pair-small .partner-presence-avatar-state {
+  width: 8px;
+  height: 8px;
+  border-width: 2px;
 }
 
 /* Touch target for WCAG 2.1 44x44 rule without breaking visual layout */

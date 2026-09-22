@@ -5,6 +5,8 @@ const relationshipComponents = {
 
   couplePresenceActive: 'Gerade hier',
   couplePresenceRecent: 'Vor Kurzem hier',
+  couplePresencePartnerActive: '{{name}} ist gerade hier',
+  couplePresencePartnerRecent: '{{name}} war vor Kurzem hier',
   couplePresenceWaiting: 'Wartet auf Partner',
   couplePresenceDurationAction: 'Beziehungsdetails ansehen',
   couplePresenceYouFallback: 'Du',

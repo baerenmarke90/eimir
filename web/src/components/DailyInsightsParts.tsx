@@ -3,9 +3,9 @@ import type { PersonKey } from '../client/dailyInsightsModel';
 import { isoToDate, type IsoDate } from '../client/dailyInsightsModel';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PersonIdentity } from './PersonIdentity';
+import { ProMark as SharedProMark } from './ProMark';
 
 export type InsightIconName =
-  | 'crown'
   | 'calendar'
   | 'bars'
   | 'hearts'
@@ -19,7 +19,6 @@ export type InsightIconName =
   | 'sparkle';
 
 const ICON_PATHS: Record<InsightIconName, ReactNode> = {
-  crown: <path d="M3.5 8.5 8 12l4-6.5 4 6.5 4.5-3.5-1.7 10H5.2z" />,
   calendar: (
     <>
       <rect x="4" y="5" width="16" height="15" rx="3.5" />
@@ -87,12 +86,7 @@ export function InsightIcon({
 /** A quiet quality mark, never an upgrade prompt. */
 export function ProMark({ label }: { label?: string }) {
   const { t } = useTranslation();
-  return (
-    <span className="insight-pro-mark">
-      <InsightIcon name="crown" className="insight-pro-crown" />
-      {label ?? t('dailyInsights.pro')}
-    </span>
-  );
+  return <SharedProMark label={label ?? t('dailyInsights.pro')} />;
 }
 
 /** Decorative handwritten accent; the same meaning is never carried only here. */

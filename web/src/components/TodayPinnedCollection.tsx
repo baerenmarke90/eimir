@@ -188,9 +188,7 @@ export function TodayPinnedCollection({
 
       const current =
         queryClient.getQueryData<CollectionDetail>(collectionKey) ?? collection;
-      const target = current.items.find(
-        (item) => item.id === variables.itemId,
-      );
+      const target = current.items.find((item) => item.id === variables.itemId);
       if (!target) return;
       if (!confirmedItemsRef.current.has(target.id)) {
         confirmedItemsRef.current.set(target.id, target);
@@ -208,9 +206,8 @@ export function TodayPinnedCollection({
       const isLatest =
         latestToggleByItemRef.current.get(variables.itemId) ===
         variables.operationId;
-      let reconciled:
-        | CollectionDetail
-        | undefined = queryClient.getQueryData<CollectionDetail>(collectionKey);
+      let reconciled: CollectionDetail | undefined =
+        queryClient.getQueryData<CollectionDetail>(collectionKey);
 
       queryClient.setQueryData<CollectionDetail>(collectionKey, (current) => {
         const base = current ?? collection;
@@ -438,7 +435,10 @@ export function TodayPinnedCollection({
         isCloseBlocked={createItem.isPending}
         onDiscardRequested={() => setShowDiscardConfirm(true)}
       >
-        <form className="today-pinned-list-add-sheet-form" onSubmit={submitItem}>
+        <form
+          className="today-pinned-list-add-sheet-form"
+          onSubmit={submitItem}
+        >
           <div className="today-pinned-list-add-sheet-field">
             <label htmlFor="today-pinned-list-new-item">
               {t('m5s3.collection.itemTitle')}

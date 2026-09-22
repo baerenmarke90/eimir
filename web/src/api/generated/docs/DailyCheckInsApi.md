@@ -83,7 +83,7 @@ No authorization required
 | **403** | &#x60;PREMIUM_ENTITLEMENT_REQUIRED&#x60;: Pro capability &#x60;daily.insights&#x60; required. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | &#x60;DAILY_CHECK_IN_CONTEXT_UNAVAILABLE&#x60;: the Space has no valid authoritative Daily Check-in time zone. |  -  |
-| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **422** | &#x60;DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE&#x60;: Vibe context requires a current-day Vibe. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

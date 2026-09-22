@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
   <rect width="390" height="844" fill="#fbf3ef"/>
-  <text x="20" y="52" font-family="sans-serif" font-size="14" fill="#6d5a69">Compact · Today / Wir</text>
-  <text x="20" y="96" font-family="Georgia,serif" font-size="42" font-weight="700" fill="#2b2130">Heute</text>
-  <text x="20" y="120" font-family="sans-serif" font-size="15" fill="#6d5a69">Di, 22. September 2026</text>
+  <text x="20" y="52" font-family="sans-serif" font-size="14" fill="#6d5a69">Compact · Today / We</text>
+  <text x="20" y="96" font-family="Georgia,serif" font-size="42" font-weight="700" fill="#2b2130">Today</text>
+  <text x="20" y="120" font-family="sans-serif" font-size="15" fill="#6d5a69">Tue, 22 September 2026</text>
   <g transform="translate(20 150)">
     <circle cx="44" cy="44" r="36" fill="#fff8f5" stroke="#ffffff" stroke-width="2"/><text x="25" y="52" font-family="sans-serif" font-size="20" font-weight="700" fill="#cf2d4b">LE</text>
     <circle cx="83" cy="44" r="36" fill="#fff8f5" stroke="#ffffff" stroke-width="2"/><text x="65" y="52" font-family="sans-serif" font-size="20" font-weight="700" fill="#cf2d4b">AL</text>
     <circle cx="105" cy="67" r="6" fill="#2a8b79" stroke="#fbf3ef" stroke-width="3"/>
     <text x="132" y="28" font-family="Georgia,serif" font-size="28" font-weight="700" fill="#2b2130">Lea &amp; Alex</text>
-    <text x="132" y="58" font-family="sans-serif" font-size="15" font-weight="600" fill="#6d5a69">★ 3 Jahre, 2 Monate zusammen</text>
-    <text x="132" y="88" font-family="sans-serif" font-size="15" font-weight="700" fill="#c52548">♥  Ich denke an dich</text>
+    <text x="132" y="58" font-family="sans-serif" font-size="15" font-weight="600" fill="#6d5a69">★ Together for 3 years, 2 months</text>
+    <text x="132" y="88" font-family="sans-serif" font-size="15" font-weight="700" fill="#c52548">♥  Thinking of you</text>
   </g>
-  <text x="20" y="300" font-family="sans-serif" font-size="22" font-weight="700" fill="#2b2130">Wie geht es euch heute?</text>
-  <rect x="20" y="322" width="168" height="76" rx="20" fill="#fffaf7" stroke="#eadbd3"/><text x="44" y="352" font-family="sans-serif" font-size="13" fill="#6d5a69">Du</text><text x="44" y="378" font-family="sans-serif" font-size="18" font-weight="700" fill="#2b2130">Gut &amp; entspannt</text>
-  <rect x="202" y="322" width="168" height="76" rx="20" fill="#fffaf7" stroke="#eadbd3"/><text x="226" y="352" font-family="sans-serif" font-size="13" fill="#6d5a69">Alex</text><text x="226" y="378" font-family="sans-serif" font-size="18" font-weight="700" fill="#2b2130">Ganz okay</text>
-  <rect x="20" y="430" width="350" height="62" rx="18" fill="#fffaf7" stroke="#eadbd3"/><text x="42" y="457" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#2b2130">Eure Woche</text><text x="42" y="478" font-family="sans-serif" font-size="13" fill="#6d5a69">Vibe &amp; Energie im Überblick</text>
-  <text x="20" y="548" font-family="sans-serif" font-size="12" font-weight="700" fill="#c52548">EUER MOMENT</text>
-  <text x="20" y="579" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#2b2130">Zuletzt gemeinsam festgehalten</text>
-  <rect x="20" y="596" width="350" height="150" rx="22" fill="#d8c5b8"/><text x="195" y="676" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#4b3d45">persönlicher gemeinsamer Inhalt</text>
+  <text x="20" y="300" font-family="sans-serif" font-size="22" font-weight="700" fill="#2b2130">How are you both today?</text>
+  <rect x="20" y="322" width="168" height="76" rx="20" fill="#fffaf7" stroke="#eadbd3"/><text x="44" y="352" font-family="sans-serif" font-size="13" fill="#6d5a69">You</text><text x="44" y="378" font-family="sans-serif" font-size="18" font-weight="700" fill="#2b2130">Good &amp; relaxed</text>
+  <rect x="202" y="322" width="168" height="76" rx="20" fill="#fffaf7" stroke="#eadbd3"/><text x="226" y="352" font-family="sans-serif" font-size="13" fill="#6d5a69">Alex</text><text x="226" y="378" font-family="sans-serif" font-size="18" font-weight="700" fill="#2b2130">Doing okay</text>
+  <rect x="20" y="430" width="350" height="62" rx="18" fill="#fffaf7" stroke="#eadbd3"/><text x="42" y="457" font-family="Georgia,serif" font-size="18" font-weight="700" fill="#2b2130">Your week</text><text x="42" y="478" font-family="sans-serif" font-size="13" fill="#6d5a69">Vibe &amp; energy overview</text>
+  <text x="20" y="548" font-family="sans-serif" font-size="12" font-weight="700" fill="#c52548">YOUR MOMENT</text>
+  <text x="20" y="579" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#2b2130">Recently captured together</text>
+  <rect x="20" y="596" width="350" height="150" rx="22" fill="#d8c5b8"/><text x="195" y="676" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#4b3d45">personal shared content</text>
   <text x="20" y="792" font-family="sans-serif" font-size="12" fill="#6d5a69">Rhythm: section = 32px · content-group = 12px · no extra divider chrome</text>
 </svg>

@@ -268,7 +268,7 @@ describe('DailyVibeCheckIn', () => {
   });
 
   it('shares an optional context note atomically with the selected Vibe', async () => {
-    const note = 'Today's appointment finally went better than expected.';
+    const note = "Today's appointment finally went better than expected.";
     const update = vi.fn().mockResolvedValue(
       rawResponse(
         projection({

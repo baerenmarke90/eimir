@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export interface UseDismissiblePopoverOptions {
@@ -44,8 +38,6 @@ export function useDismissiblePopover(
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const location = useLocation();
-  const locationSignature = `${location.pathname}\u0000${location.search}\u0000${location.hash}`;
-  const previousLocationSignatureRef = useRef(locationSignature);
 
   const close = useCallback(
     (restoreFocus = false) => {
@@ -77,16 +69,15 @@ export function useDismissiblePopover(
     });
   }, [onClose]);
 
-  // Route transitions must dismiss before the browser can accept input on the
-  // newly committed route. A passive effect can otherwise race with a user who
-  // immediately reopens the popover after navigation and close that fresh UI.
-  useLayoutEffect(() => {
-    const previousLocationSignature = previousLocationSignatureRef.current;
-    previousLocationSignatureRef.current = locationSignature;
-    if (closeOnRouteChange && previousLocationSignature !== locationSignature) {
+  // Route change auto-dismiss
+  useEffect(() => {
+    if (
+      closeOnRouteChange &&
+      (location.pathname || location.search || location.hash)
+    ) {
       setIsOpen(false);
     }
-  }, [closeOnRouteChange, locationSignature]);
+  }, [location.pathname, location.search, location.hash, closeOnRouteChange]);
 
   // Outside pointerdown and Escape key listeners
   useEffect(() => {

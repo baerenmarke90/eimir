@@ -47,6 +47,9 @@ export interface PartnerQuickActionAccepted {
     availableAt: Date;
 }
 
+/**
+ * Check if a given object implements the PartnerQuickActionAccepted interface.
+ */
 export function instanceOfPartnerQuickActionAccepted(value: object): value is PartnerQuickActionAccepted {
     if (!('kind' in value) || value['kind'] === undefined) return false;
     if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;

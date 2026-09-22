@@ -70,14 +70,16 @@ describe('PartnerAvatarPair', () => {
   });
 
   it('attaches quiet presence state to the secondary partner avatar', () => {
-    const activeCopy = relationshipComponents.couplePresencePartnerActive.replace(
-      '{{name}}',
-      'Lea',
-    );
-    const recentCopy = relationshipComponents.couplePresencePartnerRecent.replace(
-      '{{name}}',
-      'Lea',
-    );
+    const activeCopy =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
+    const recentCopy =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
     const { rerender } = render(
       <PartnerAvatarPair
         primaryPerson={{ displayName: 'Philipp' }}

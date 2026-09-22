@@ -554,7 +554,7 @@
             "type": "string"
           },
           "expectedSize": {
-            "exclusiveMinimum": 0.0,
+            "exclusiveMinimum": 0,
             "title": "Expectedsize",
             "type": "integer"
           },
@@ -2274,7 +2274,7 @@
             "type": "string"
           },
           "yearsAgo": {
-            "minimum": 1.0,
+            "minimum": 1,
             "title": "Yearsago",
             "type": "integer"
           }
@@ -3416,7 +3416,7 @@
             "type": "string"
           },
           "position": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Position",
             "type": "integer"
           }
@@ -4070,6 +4070,8 @@
         "enum": [
           "COMMENT_CREATED",
           "THINKING_OF_YOU",
+          "PARTNER_KISS",
+          "PARTNER_CHECK_IN",
           "REMINDER_DUE"
         ],
         "title": "NotificationKind",
@@ -9660,6 +9662,57 @@
           "state"
         ],
         "title": "OidcCallbackRequest",
+        "type": "object"
+      },
+      "SupportGestureKind": {
+        "enum": [
+          "KISS",
+          "CHECK_IN"
+        ],
+        "title": "SupportGestureKind",
+        "type": "string"
+      },
+      "PartnerQuickActionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId"
+        ],
+        "title": "PartnerQuickActionCreate",
+        "type": "object"
+      },
+      "PartnerQuickActionAccepted": {
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "availableAt": {
+            "format": "date-time",
+            "title": "Availableat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId",
+          "availableAt"
+        ],
+        "title": "PartnerQuickActionAccepted",
         "type": "object"
       }
     }
@@ -28507,6 +28560,98 @@
         "summary": "Convert Wish To Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-quick-actions": {
+      "post": {
+        "operationId": "sendPartnerQuickAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerQuickActionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThinkingOfYouAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Send Partner Quick Action",
+        "tags": [
+          "notifications"
         ]
       }
     }

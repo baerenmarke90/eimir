@@ -30,6 +30,7 @@ export interface CouplePresenceProps {
   onDurationClick?: () => void;
   onInviteClick?: () => void;
   avatarAdornment?: ReactNode;
+  avatarOverlay?: ReactNode;
   avatarSize?: PartnerAvatarSize;
   avatarAction?: CouplePresenceAvatarAction;
   actions?: ReactNode;
@@ -49,6 +50,7 @@ export function CouplePresence({
   onDurationClick,
   onInviteClick,
   avatarAdornment,
+  avatarOverlay,
   avatarSize = 'large',
   avatarAction,
   actions,
@@ -129,6 +131,7 @@ export function CouplePresence({
               {avatarAdornment}
             </div>
           ) : null}
+          {avatarOverlay}
         </div>
 
         <div className="couple-presence-details">

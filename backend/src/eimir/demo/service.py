@@ -28,6 +28,9 @@ from eimir.comments.models import CommentTarget
 from eimir.config import Environment
 from eimir.db.locks import lock_subject
 from eimir.db.mixins import INITIAL_VERSION
+from eimir.daily_checkins import service as daily_checkin_service
+from eimir.daily_checkins.models import DailyVibe
+from eimir.dashboard import preferences as dashboard_preferences
 from eimir.demo.assets import (
     DemoAssetCatalog,
     import_demo_asset,
@@ -370,8 +373,8 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         and configuration.shared_achievements_enabled
         and configuration.daily_questions_enabled
         and configuration.daily_context_timezone == _DEMO_DAILY_CONTEXT_TIMEZONE
-        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
-        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.IMMEDIATE.value
+        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
+        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
     ):
         return
 
@@ -390,13 +393,77 @@ def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> 
         shared_achievements_enabled=True,
         daily_questions_enabled=True,
         daily_context_timezone=_DEMO_DAILY_CONTEXT_TIMEZONE,
-        vibe_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
-        energy_visibility_mode=DailyCheckInVisibilityMode.IMMEDIATE,
+        vibe_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        energy_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
     )
 
 
 def _instant(day: date, hour: int) -> datetime:
     return datetime.combine(day, time(hour=hour, tzinfo=UTC))
+
+
+def _seed_daily_check_ins(
+    session: Session,
+    lea_context: AuthorizationContext,
+    alex_context: AuthorizationContext,
+    *,
+    reference_date: date,
+) -> None:
+    """Seed recent Daily Check-in history through the normal write boundary.
+
+    The deliberately uneven rows make the Pro insights and Mutual Reveal
+    states representative without turning the demo into a wall of perfect
+    daily participation. Today's values exist for both personas so the public
+    entry point opens with a useful, fully revealed example.
+    """
+    history: tuple[
+        tuple[int, DailyVibe | None, int | None, DailyVibe | None, int | None],
+        ...,
+    ] = (
+        (0, DailyVibe.GOOD, 80, DailyVibe.OKAY, 70),
+        (1, DailyVibe.OKAY, 70, DailyVibe.GOOD, 80),
+        (2, DailyVibe.STRESSED, 50, DailyVibe.OKAY, 60),
+        (3, DailyVibe.GOOD, 90, DailyVibe.GOOD, 80),
+        (4, DailyVibe.NEEDS_CONNECTION, 40, DailyVibe.OKAY, 60),
+        (5, DailyVibe.GOOD, 60, None, 70),
+        (6, DailyVibe.OKAY, 70, DailyVibe.STRESSED, 50),
+        (7, DailyVibe.GOOD, 80, DailyVibe.GOOD, 90),
+        (8, DailyVibe.NEEDS_SPACE, 40, DailyVibe.OKAY, 70),
+        (9, None, None, DailyVibe.GOOD, 80),
+        (10, DailyVibe.SAD, 40, None, None),
+        (11, DailyVibe.OKAY, 60, DailyVibe.OKAY, 60),
+        (12, DailyVibe.GOOD, 90, DailyVibe.NEEDS_CONNECTION, 50),
+        (13, DailyVibe.GOOD, 80, DailyVibe.GOOD, 80),
+    )
+
+    def write(
+        context: AuthorizationContext,
+        checked_on: date,
+        *,
+        vibe: DailyVibe | None,
+        energy: int | None,
+    ) -> None:
+        if vibe is None and energy is None:
+            return
+        daily_checkin_service.update_today(
+            session,
+            context,
+            expected_token=daily_checkin_service.concurrency_token(None, checked_on),
+            vibe=daily_checkin_service.DimensionUpdate(
+                supplied=vibe is not None,
+                value=vibe,
+            ),
+            energy=daily_checkin_service.DimensionUpdate(
+                supplied=energy is not None,
+                value=energy,
+            ),
+            at=_instant(checked_on, 12),
+        )
+
+    for days_ago, lea_vibe, lea_energy, alex_vibe, alex_energy in history:
+        checked_on = reference_date - timedelta(days=days_ago)
+        write(lea_context, checked_on, vibe=lea_vibe, energy=lea_energy)
+        write(alex_context, checked_on, vibe=alex_vibe, energy=alex_energy)
 
 
 def _seed_relationship(
@@ -723,6 +790,21 @@ def _seed_planning(
         experienced_on=reference_date - timedelta(days=43),
     )
 
+    recent_completed = plan_service.create_plan(
+        session,
+        alex_context,
+        title="Sonntag am See",
+        description="Picknick einpacken, eine große Runde laufen und den Nachmittag draußen lassen.",
+        place_id=lake.id,
+    )
+    plan_service.complete_plan(
+        session,
+        alex_context,
+        recent_completed.id,
+        expected_version=recent_completed.version,
+        experienced_on=reference_date - timedelta(days=6),
+    )
+
     plan_service.create_plan(
         session,
         alex_context,
@@ -804,6 +886,37 @@ def _seed_planning(
         title="Eine neue Komödie aussuchen",
         completed=False,
     )
+    weekend = collection_service.create_collection(
+        session,
+        lea_context,
+        title="Fürs Wochenende am See",
+    )
+    for title, completed in (
+        ("Picknickdecke einpacken", True),
+        ("Thermoskanne mitnehmen", True),
+        ("Obst und Snacks vorbereiten", False),
+        ("Kartenspiel einstecken", False),
+        ("Powerbank laden", False),
+    ):
+        collection_service.create_item(
+            session,
+            lea_context,
+            weekend.id,
+            title=title,
+            completed=completed,
+        )
+    for account_id in (lea_context.account_id, alex_context.account_id):
+        dashboard_preferences.set_module_preference(
+            session,
+            account_id=account_id,
+            space_id=lea_context.space_id,
+            module_key=dashboard_preferences.DashboardModuleKey.PINNED_COLLECTION.value,
+            visible=True,
+            item_limit=None,
+            selected_collection_id=weekend.id,
+            selected_collection_id_changed=True,
+        )
+
     recipes = collection_service.create_collection(
         session,
         alex_context,
@@ -973,6 +1086,12 @@ def _seed(
     alex_context = _context(alex, space)
     _ensure_demo_configuration(session, space, lea)
     _seed_relationship(session, space, reference_date=reference_date)
+    _seed_daily_check_ins(
+        session,
+        lea_context,
+        alex_context,
+        reference_date=reference_date,
+    )
     _seed_profiles(session, lea, alex, lea_context, alex_context)
     _seed_people(
         session,

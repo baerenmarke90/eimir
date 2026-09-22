@@ -118,6 +118,8 @@ Use a repeatable rhythm: **focal content → compact support → natural content
 
 ## 8. Motion language
 
+The detailed Web engineering contract is the [Web Motion Guideline](motion-guideline.md). It operationalizes this section without creating a second product-design authority.
+
 Motion explains causality and preserves orientation. Reuse the existing 120 / 180 / 280 ms duration roles and easing, with 320 ms as the normal upper limit. Semantic state, focus and result ownership must work independently of animation.
 
 | Interaction | Required feedback / restrained motion |

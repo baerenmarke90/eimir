@@ -194,9 +194,7 @@ def send_support_gesture(
     domain command. This command remains authoritative for Space ownership,
     module configuration, recipient derivation, pacing and idempotency.
     """
-    existing = _existing_support_gesture_request(
-        session, context, kind, client_request_id
-    )
+    existing = _existing_support_gesture_request(session, context, kind, client_request_id)
     if existing is not None:
         return existing
 
@@ -212,9 +210,7 @@ def send_support_gesture(
     if sender_membership is None:
         raise NotFoundError("Partner space not available.", PARTNER_NOT_AVAILABLE)
 
-    existing = _existing_support_gesture_request(
-        session, context, kind, client_request_id
-    )
+    existing = _existing_support_gesture_request(session, context, kind, client_request_id)
     if existing is not None:
         return existing
 
@@ -249,13 +245,9 @@ def send_support_gesture(
         .limit(1)
     ).scalar_one_or_none()
     if last_sent is not None:
-        cooldown_until = last_sent + timedelta(
-            seconds=SUPPORT_GESTURE_COOLDOWN_SECONDS
-        )
+        cooldown_until = last_sent + timedelta(seconds=SUPPORT_GESTURE_COOLDOWN_SECONDS)
         if cooldown_until > current_time:
-            retry_after = max(
-                1, int((cooldown_until - current_time).total_seconds())
-            )
+            retry_after = max(1, int((cooldown_until - current_time).total_seconds()))
             raise RateLimitedError(
                 "Partner gesture is temporarily rate limited.",
                 SUPPORT_GESTURE_COOLDOWN,
@@ -348,9 +340,7 @@ def _project_partner_signal_notification(
             target_id=None,
             created_at=event.created_at,
         )
-        .on_conflict_do_nothing(
-            index_elements=["recipient_account_id", "source_event_id", "kind"]
-        )
+        .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
     )
     session.execute(statement)
 

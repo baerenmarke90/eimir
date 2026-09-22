@@ -518,7 +518,9 @@ export function PreferenceDialog({
         onAnimationEnd={(event) => {
           if (
             event.target !== event.currentTarget ||
-            !event.animationName.startsWith('preference-modal-') ||
+            !['preference-modal-exit', 'preference-modal-sheet-exit'].includes(
+              event.animationName,
+            ) ||
             presenceState !== 'exiting'
           )
             return;

@@ -12,7 +12,7 @@ import {
 } from '../api/generated/models/MediaType';
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
-import { useModalLifecycle } from './useModalLifecycle';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
 export interface GalleryMediaItem {
   id: string;
@@ -45,6 +45,7 @@ export function MediaGallery({
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
+  const lightboxDialog = useRef<HTMLDivElement | null>(null);
   const carouselTrack = useRef<HTMLDivElement | null>(null);
   const carouselSlides = useRef<Array<HTMLButtonElement | null>>([]);
   const carouselScrollFrame = useRef<number | null>(null);
@@ -491,10 +492,14 @@ export function MediaGallery({
       {activeItem && activeIndex !== null && typeof document !== 'undefined'
         ? createPortal(
             <div
+              ref={lightboxDialog}
               className="media-lightbox-backdrop"
               role="dialog"
               aria-modal="true"
               aria-label={t('gallery.dialogAria')}
+              onKeyDown={(event) => {
+                containModalTabFocus(event, lightboxDialog.current);
+              }}
             >
               <div className="media-lightbox">
                 <div className="media-lightbox-stage">

@@ -398,6 +398,7 @@ jobs:
           for unsafe_setting in "EIMIR_MAIL_TRANSPORT=log" "EIMIR_PUBLIC_BASE_URL=http://insecure.invalid" "EIMIR_CURSOR_SIGNING_KEY="; do
             output=$(docker compose run --rm --no-deps \
               -e EIMIR_ENVIRONMENT=production \
+              -e EIMIR_ENCRYPTION_AT_REST=disabled \
               -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
               -e EIMIR_MAIL_TRANSPORT=smtp \
               -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
@@ -417,6 +418,7 @@ jobs:
         run: |
           docker compose run --rm --no-deps \
             -e EIMIR_ENVIRONMENT=production \
+            -e EIMIR_ENCRYPTION_AT_REST=disabled \
             -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
             -e EIMIR_MAIL_TRANSPORT=none \
             -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \

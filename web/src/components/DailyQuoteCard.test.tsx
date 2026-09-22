@@ -9,6 +9,8 @@ import type { DailyQuoteCatalogView } from '../api/generated/models/DailyQuoteCa
 import type { DailyQuotePreferenceView } from '../api/generated/models/DailyQuotePreferenceView';
 import type { DailyQuoteResponse } from '../api/generated/models/DailyQuoteResponse';
 import { ClientProblemError } from '../client/problemDetails';
+import { i18n } from '../i18n';
+import dailyQuote from '../i18n/locales/dailyQuote';
 import { DailyQuoteCard } from './DailyQuoteCard';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -19,26 +21,26 @@ const catalog: DailyQuoteCatalogView = {
   categories: [
     {
       id: 'love',
-      name: 'Liebe & Beziehung',
-      description: 'Gedanken über Nähe.',
+      name: 'Love',
+      description: 'Relationship thoughts.',
     },
     {
       id: 'mindfulness',
-      name: 'Achtsamkeit',
-      description: 'Gedanken über den Moment.',
+      name: 'Mindfulness',
+      description: 'Present-moment thoughts.',
     },
   ],
   sources: [
     {
       id: 'classic_literature',
-      name: 'Klassische Literatur',
-      description: 'Werke der klassischen Weltliteratur',
+      name: 'Classic literature',
+      description: 'Curated classic literature',
       rightsClassification: 'PUBLIC_DOMAIN',
     },
     {
       id: 'poetic_wisdom',
-      name: 'Poesie & Lebensweisheiten',
-      description: 'Klassische Aphorismen',
+      name: 'Poetry and wisdom',
+      description: 'Curated aphorisms',
       rightsClassification: 'PUBLIC_DOMAIN',
     },
   ],
@@ -49,14 +51,14 @@ const quote: DailyQuoteResponse = {
   enabled: true,
   quote: {
     attributionRequired: true,
-    authorDisplay: 'Johann Wolfgang von Goethe',
+    authorDisplay: 'Example Author',
     categoryIds: ['love', 'mindfulness'],
     id: 'quote-de-love-002',
     locale: 'de',
     rightsClassification: 'PUBLIC_DOMAIN',
-    sourceDisplay: 'Faust I',
+    sourceDisplay: 'Example Source',
     sourceId: 'classic_literature',
-    text: 'Es muss von Herzen gehen, was auf Herzen wirken soll.',
+    text: 'A server-resolved quote.',
   },
 };
 
@@ -176,16 +178,16 @@ describe('DailyQuoteCard', () => {
     const api = renderCard({ capabilities: [] });
 
     expect(
-      await screen.findByText('Ein kleiner täglicher Impuls, der zu dir passt.'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Mit eimir. Pro verfügbar.')).toBeInTheDocument();
+      await screen.findByText(dailyQuote.discovery),
+    ).toBeTruthy();
+    expect(screen.getByText(dailyQuote.discoveryMeta)).toBeTruthy();
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
     expect(
       screen.queryByRole('button', {
-        name: 'Deine Einstellungen für das Zitat des Tages öffnen',
+        name: dailyQuote.settingsAria,
       }),
-    ).not.toBeInTheDocument();
+    ).not.toBeTruthy();
   });
 
   it('renders the server-resolved Pro quote with attribution and catalog labels', async () => {
@@ -193,19 +195,24 @@ describe('DailyQuoteCard', () => {
 
     expect(
       await screen.findByText(
-        '„Es muss von Herzen gehen, was auf Herzen wirken soll.“',
+        '„A server-resolved quote.“',
       ),
-    ).toBeInTheDocument();
+    ).toBeTruthy();
     expect(
-      screen.getByText('— Johann Wolfgang von Goethe, Faust I'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Liebe & Beziehung')).toBeInTheDocument();
-    expect(screen.getByText('Achtsamkeit')).toBeInTheDocument();
+      screen.getByText(
+        i18n.t('dailyQuote.quoteAttribution', {
+          author: 'Example Author',
+          source: 'Example Source',
+        }),
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('Love')).toBeTruthy();
+    expect(screen.getByText('Mindfulness')).toBeTruthy();
     expect(
       screen.getByRole('button', {
-        name: 'Deine Einstellungen für das Zitat des Tages öffnen',
+        name: dailyQuote.settingsAria,
       }),
-    ).toBeInTheDocument();
+    ).toBeTruthy();
   });
 
   it('falls back to quiet discovery when Pro is removed between entitlement and quote reads', async () => {
@@ -217,9 +224,9 @@ describe('DailyQuoteCard', () => {
     renderCard({ quoteError: entitlementError });
 
     expect(
-      await screen.findByText('Ein kleiner täglicher Impuls, der zu dir passt.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Heute ist kein Zitat verfügbar.')).not.toBeInTheDocument();
+      await screen.findByText(dailyQuote.discovery),
+    ).toBeTruthy();
+    expect(screen.queryByText(dailyQuote.empty)).toBeNull();
   });
 
   it('renders the neutral no-quote state without error styling or retry', async () => {
@@ -232,14 +239,14 @@ describe('DailyQuoteCard', () => {
     });
 
     expect(
-      await screen.findByText('Heute ist kein Zitat verfügbar.'),
-    ).toBeInTheDocument();
+      await screen.findByText(dailyQuote.empty),
+    ).toBeTruthy();
     expect(
-      screen.getByText('Morgen gibt es wieder einen neuen Impuls.'),
-    ).toBeInTheDocument();
+      screen.getByText(dailyQuote.emptyMeta),
+    ).toBeTruthy();
     expect(
-      screen.queryByRole('button', { name: 'Erneut versuchen' }),
-    ).not.toBeInTheDocument();
+      screen.queryByRole('button', { name: dailyQuote.retry }),
+    ).not.toBeTruthy();
   });
 
   it('edits only the caller preference and round-trips the server ETag', async () => {
@@ -247,19 +254,21 @@ describe('DailyQuoteCard', () => {
     const api = renderCard();
 
     const settings = await screen.findByRole('button', {
-      name: 'Deine Einstellungen für das Zitat des Tages öffnen',
+      name: dailyQuote.settingsAria,
     });
     await user.click(settings);
 
     expect(
-      await screen.findByText('Nur für dich – Ben sieht deine Auswahl nicht.'),
-    ).toBeInTheDocument();
+      await screen.findByText(
+        i18n.t('dailyQuote.privacy', { name: 'Ben' }),
+      ),
+    ).toBeTruthy();
 
     const mindfulness = screen.getByRole('checkbox', {
-      name: /Achtsamkeit/u,
+      name: /Mindfulness/u,
     });
     await user.click(mindfulness);
-    await user.click(screen.getByRole('button', { name: 'Fertig' }));
+    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     await waitFor(() =>
       expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1),

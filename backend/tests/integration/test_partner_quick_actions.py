@@ -93,9 +93,7 @@ def _set_support_gestures(client, couple, *, enabled: bool) -> None:  # type: ig
     assert response.status_code == 200
 
 
-def test_free_space_cannot_send_extended_action(
-    client, session: Session, couple
-) -> None:  # type: ignore[no-untyped-def]
+def test_free_space_cannot_send_extended_action(client, session: Session, couple) -> None:  # type: ignore[no-untyped-def]
     response = client.post(
         _url(couple),
         json={"kind": "KISS", "clientRequestId": str(uuid4())},
@@ -104,10 +102,7 @@ def test_free_space_cannot_send_extended_action(
 
     assert response.status_code == 403
     assert response.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
-    assert (
-        session.execute(select(func.count(SupportGestureRequest.id))).scalar_one()
-        == 0
-    )
+    assert session.execute(select(func.count(SupportGestureRequest.id))).scalar_one() == 0
 
 
 def test_extended_action_is_idempotent_and_projects_notification_only(
@@ -134,11 +129,15 @@ def test_extended_action_is_idempotent_and_projects_notification_only(
         .isoformat()
         .replace("+00:00", "Z")
     )
-    assert first.json() == replay.json() == {
-        "kind": "KISS",
-        "clientRequestId": str(request_id),
-        "availableAt": expected_available_at,
-    }
+    assert (
+        first.json()
+        == replay.json()
+        == {
+            "kind": "KISS",
+            "clientRequestId": str(request_id),
+            "availableAt": expected_available_at,
+        }
+    )
 
     requests = session.execute(select(SupportGestureRequest)).scalars().all()
     assert len(requests) == 1
@@ -154,9 +153,7 @@ def test_extended_action_is_idempotent_and_projects_notification_only(
     session.flush()
 
     notifications = (
-        session.execute(
-            select(Notification).where(Notification.source_event_id == event.id)
-        )
+        session.execute(select(Notification).where(Notification.source_event_id == event.id))
         .scalars()
         .all()
     )
@@ -221,9 +218,7 @@ def test_check_in_is_content_free_and_does_not_disclose_vibe_or_presence(
     event = session.get(OutboxEvent, request.source_event_id)
     assert event is not None
     assert event.event_type == "PARTNER_CHECK_IN"
-    assert event.payload.model_dump(exclude_none=True) == {
-        "recipient_id": couple["ben"].id
-    }
+    assert event.payload.model_dump(exclude_none=True) == {"recipient_id": couple["ben"].id}
 
     service.project_event(session, event)
     session.flush()
@@ -250,13 +245,9 @@ def test_module_disable_blocks_extended_action_even_with_capability(
 
     assert response.status_code == 403
     assert (
-        response.json()["code"]
-        == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
+        response.json()["code"] == space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED
     )
-    assert (
-        session.execute(select(func.count(SupportGestureRequest.id))).scalar_one()
-        == 0
-    )
+    assert session.execute(select(func.count(SupportGestureRequest.id))).scalar_one() == 0
 
 
 def test_foreign_space_is_not_exposed_by_entitlement_check(

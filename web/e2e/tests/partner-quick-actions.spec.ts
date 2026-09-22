@@ -416,8 +416,7 @@ test('preserves the pair composition with one real avatar, one fallback, and lon
   await installMocks(page, {
     accountName,
     partnerName,
-    accountProfileAttachmentId:
-      '00000000-0000-0000-0000-000000000101',
+    accountProfileAttachmentId: '00000000-0000-0000-0000-000000000101',
   });
   await signIn(page);
 
@@ -449,10 +448,8 @@ test('keeps two differently cropped real avatars readable as one overlapping pai
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await installMocks(page, {
-    accountProfileAttachmentId:
-      '00000000-0000-0000-0000-000000000101',
-    partnerProfileAttachmentId:
-      '00000000-0000-0000-0000-000000000102',
+    accountProfileAttachmentId: '00000000-0000-0000-0000-000000000101',
+    partnerProfileAttachmentId: '00000000-0000-0000-0000-000000000102',
   });
   await signIn(page);
 
@@ -622,7 +619,9 @@ test('presents a non-modal, dismissible popover on Expanded Web instead of the C
   });
 
   await page.keyboard.press('Tab');
-  await expect(popover.getByRole('button', { name: copy.thinking })).toBeFocused();
+  await expect(
+    popover.getByRole('button', { name: copy.thinking }),
+  ).toBeFocused();
 
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();

@@ -37,9 +37,9 @@
   text-align: center;
   cursor: pointer;
   transition:
-    background var(--motion-fast),
-    color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .planen-segment:hover {
@@ -113,9 +113,9 @@
   color: inherit;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -464,8 +464,8 @@
   text-decoration: none;
   box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-duration-short) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-short) var(--motion-easing-lift);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .planen-next-schedule {

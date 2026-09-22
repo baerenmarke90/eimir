@@ -68,8 +68,8 @@
   list-style: none;
   color: var(--color-text-secondary);
   transition:
-    background var(--motion-fast),
-    color var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .comment-menu-trigger::-webkit-details-marker {
@@ -110,7 +110,7 @@
   font-weight: 500;
   border-radius: var(--radius-small);
   cursor: pointer;
-  transition: background var(--motion-fast);
+  transition: background var(--duration-feedback) var(--easing-standard);
 }
 
 .comment-menu-item:hover,
@@ -141,9 +141,9 @@
   color: var(--color-text-secondary);
   cursor: pointer;
   transition:
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    color var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 @media (pointer: coarse), (max-width: 768px) {

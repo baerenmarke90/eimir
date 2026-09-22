@@ -144,9 +144,9 @@
   background: var(--color-surface-panel);
   box-shadow: var(--shadow-soft);
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    transform var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .m4-item-unread {
@@ -391,9 +391,9 @@
   background: var(--color-surface-panel);
   box-shadow: var(--shadow-soft);
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    transform var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .activity-result-link:hover .activity-card {
@@ -424,8 +424,8 @@
   font-weight: 300;
   line-height: 1;
   transition:
-    transform var(--motion-fast),
-    color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .activity-result-link:hover .activity-card-chevron {

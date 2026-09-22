@@ -46,8 +46,8 @@
   color: var(--color-text);
   text-decoration: none;
   transition:
-    color var(--motion-fast),
-    background var(--motion-fast);
+    color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .more-destination:focus-visible {

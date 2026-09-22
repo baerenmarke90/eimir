@@ -47,8 +47,8 @@
   border-radius: var(--radius-pill);
   background: var(--color-surface-subtle);
   transition:
-    border-color var(--motion-duration-short),
-    background var(--motion-duration-short);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .preference-switch-thumb {
@@ -60,7 +60,7 @@
   border-radius: 50%;
   background: var(--color-surface);
   transform: translateY(-50%);
-  transition: transform var(--motion-duration-short);
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .preference-switch-control[aria-checked="true"] .preference-switch-track {

@@ -7,7 +7,7 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
-  transition: border-color var(--motion-fast);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 @media (min-width: 600px) {
@@ -117,8 +117,8 @@
   text-underline-offset: 3px;
   text-decoration-color: var(--color-border);
   transition:
-    color var(--motion-fast),
-    text-decoration-color var(--motion-fast);
+    color var(--duration-feedback) var(--easing-standard),
+    text-decoration-color var(--duration-feedback) var(--easing-standard);
 }
 
 .couple-presence-duration-btn:hover {

@@ -251,11 +251,17 @@ supportGesturesEnabled = true
 sharedAchievementsEnabled = true
 dailyQuestionsEnabled = true
 dailyContextTimezone = Europe/Berlin
-vibeVisibilityMode = IMMEDIATE
-energyVisibilityMode = IMMEDIATE
+vibeVisibilityMode = MUTUAL_REVEAL
+energyVisibilityMode = MUTUAL_REVEAL
 ```
 
-This is seed/reference configuration only. It creates no synthetic user action, check-in, answer, note, support gesture or achievement by itself.
+The generic product default remains `IMMEDIATE`; the canonical Demo deliberately opts into
+`MUTUAL_REVEAL` for both dimensions so the current privacy interaction is directly demonstrable.
+
+The canonical Demo also seeds bounded recent DailyCheckIn history and a shared Collection pinned to
+Today for both personas through their owning domain contracts. Those examples make the implemented
+daily-insight, Today-composition, and shared-completion surfaces useful without changing the Space
+configuration contract or inventing data for unfinished modules.
 
 ## 10. Enforcement boundaries
 

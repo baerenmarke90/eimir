@@ -144,7 +144,7 @@
  * is deliberately just icon + copy beneath the relationship duration.
  */
 .today-hero.couple-presence-card .couple-presence-actions {
-  margin-top: calc(-1 * var(--space-1));
+  margin-top: calc(-1 * var(--space-2));
 }
 
 .today-hero.couple-presence-card .today-hero-action-container {

@@ -171,6 +171,35 @@ describe('ShortTaskSheet history ownership', () => {
     expect(onDiscard).not.toHaveBeenCalled();
   });
 
+  it('waits for animated exit before handing off deliberate navigation', async () => {
+    mockMatchMedia(false);
+    document.body.style.overflow = 'auto';
+    const onExit = vi.fn(() => {
+      expect(document.querySelector('dialog[open]')).toBeNull();
+    });
+    render(<Task onExit={onExit} onDiscard={vi.fn()} />);
+    await waitFor(() =>
+      expect(window.history.state[EDITOR_HISTORY_STATE_KEY]).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByText('Task choices'));
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+
+    fireEvent.click(screen.getByText('Continue to result'));
+
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
+    expect(onExit).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
+    expect(document.body.style.overflow).toBe('auto');
+  });
+
   it('retains a pending task and signals why Back is blocked', async () => {
     const onExit = vi.fn();
     const onDiscard = vi.fn();

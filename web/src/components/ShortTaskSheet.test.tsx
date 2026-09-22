@@ -193,7 +193,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(screen.getByRole('dialog')).toBe(dialog);
     expect(document.body.style.overflow).toBe('hidden');
 
-    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    fireEvent.animationEnd(dialog, { animationName: 'short-task-sheet-exit' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
@@ -271,7 +271,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.activeElement).not.toBe(trigger);
 
-    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    fireEvent.animationEnd(dialog, { animationName: 'short-task-sheet-exit' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
@@ -319,7 +319,7 @@ describe('ShortTaskSheet history ownership', () => {
     );
     expect(dialog.getAttribute('data-presence')).toBe('open');
 
-    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    fireEvent.animationEnd(dialog, { animationName: 'short-task-sheet-exit' });
     expect(screen.getByRole('dialog')).toBe(dialog);
     expect(document.body.style.overflow).toBe('hidden');
 
@@ -334,7 +334,7 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
     expect(dialog.getAttribute('data-presence')).toBe('exiting');
-    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    fireEvent.animationEnd(dialog, { animationName: 'short-task-sheet-exit' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.body.style.overflow).toBe('auto');
@@ -402,7 +402,7 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() =>
       expect(dialog.getAttribute('data-presence')).toBe('exiting'),
     );
-    fireEvent.transitionEnd(dialog, { propertyName: 'transform' });
+    fireEvent.animationEnd(dialog, { animationName: 'short-task-sheet-exit' });
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

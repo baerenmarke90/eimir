@@ -2,9 +2,9 @@
   "version": 1,
   "baseline": {
     "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
-    "specFiles": 47,
-    "tests": 322,
-    "prCriticalTests": 158
+    "specFiles": 48,
+    "tests": 328,
+    "prCriticalTests": 164
   },
   "dispositions": {
     "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
@@ -223,6 +223,10 @@
     "today-daily-energy.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
+    },
+    "today-daily-quote.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",

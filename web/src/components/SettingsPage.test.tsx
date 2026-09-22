@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import accountSettings from '../i18n/locales/accountSettings';
+import dailyQuote from '../i18n/locales/dailyQuote';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
@@ -122,6 +123,8 @@ describe('SettingsPage', () => {
     const today = renderSettingsPageFixture('/more/settings/today');
     expect(today).toContain('name="dashboardUpcomingItemLimit"');
     expect(today).toContain(profileIdentity.dashboardUpcomingQuestion);
+    expect(today).toContain(dailyQuote.settingsTitle);
+    expect(today).toContain('settings-daily-quote');
     expect(today).not.toContain('anniversary-reminder-form');
     expect(today).not.toContain('id="data-transfer"');
 

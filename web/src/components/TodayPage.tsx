@@ -3,6 +3,8 @@ import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
+import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -56,6 +58,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyInsightsEntry } from './DailyInsightsEntry';
+import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
@@ -829,6 +832,8 @@ export function TodayPage({
   profilesApi,
   spacesApi,
   dailyCheckInsApi,
+  dailyQuoteApi,
+  entitlementApi,
   collectionsApi,
   account,
 }: {
@@ -836,6 +841,8 @@ export function TodayPage({
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
+  dailyQuoteApi?: DailyQuoteApi;
+  entitlementApi?: EntitlementsApi;
   collectionsApi?: CollectionsApi;
   loadMemoryImage?: (
     memoryId: string,
@@ -1237,6 +1244,17 @@ export function TodayPage({
 
           {(vibeCheckEnabled || energyCheckInEnabled) && partner ? (
             <DailyInsightsEntry />
+          ) : null}
+
+          {account?.id && dailyQuoteApi && entitlementApi ? (
+            <DailyQuoteCard
+              key={`${account.id}:${spaceId}`}
+              quoteApi={dailyQuoteApi}
+              entitlementsApi={entitlementApi}
+              accountId={account.id}
+              spaceId={spaceId}
+              partnerName={partner?.displayName}
+            />
           ) : null}
 
           {isSparse ? (

@@ -17,13 +17,17 @@ async function installMocks(
   page: Page,
   initial: {
     ownVibe?: string | null;
+    ownVibeNote?: string | null;
     partnerState?: VibePartnerState;
+    partnerVibeNote?: string | null;
   } = {},
 ) {
   let ownVibe: string | null = initial.ownVibe ?? null;
+  let ownVibeNote: string | null = initial.ownVibeNote ?? null;
   let partnerState: VibePartnerState = initial.partnerState ?? {
     state: 'HIDDEN_UNTIL_SELF_CHECK_IN',
   };
+  const partnerVibeNote = initial.partnerVibeNote ?? null;
   let etag = '"2026-09-21:check-in-1:1"';
   let lastPatch: Record<string, unknown> | null = null;
 
@@ -192,11 +196,18 @@ async function installMocks(
         {
           checkedOn: '2026-09-21',
           dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: 60, vibe: ownVibe, version: 1 },
+          own: {
+            energyLevel: 60,
+            vibe: ownVibe,
+            vibeNote: ownVibeNote,
+            version: 1,
+          },
           energy: null,
           vibe: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner: partnerState,
+            partnerNote:
+              partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
           },
         },
         200,
@@ -212,6 +223,11 @@ async function installMocks(
       ownVibe = Object.hasOwn(lastPatch, 'vibe')
         ? (lastPatch.vibe as string | null)
         : ownVibe;
+      if (ownVibe === null) {
+        ownVibeNote = null;
+      } else if (Object.hasOwn(lastPatch, 'vibeNote')) {
+        ownVibeNote = (lastPatch.vibeNote as string | null) ?? null;
+      }
       partnerState =
         ownVibe === null
           ? { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
@@ -221,11 +237,18 @@ async function installMocks(
         {
           checkedOn: '2026-09-21',
           dailyContextTimezone: 'Europe/Berlin',
-          own: { energyLevel: 60, vibe: ownVibe, version: 2 },
+          own: {
+            energyLevel: 60,
+            vibe: ownVibe,
+            vibeNote: ownVibeNote,
+            version: 2,
+          },
           energy: null,
           vibe: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner: partnerState,
+            partnerNote:
+              partnerState.state === 'VISIBLE' ? partnerVibeNote : null,
           },
         },
         200,
@@ -346,7 +369,10 @@ test('Daily Vibe lets one visible person fill the complete Vibe row', async ({
 test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves Energy', async ({
   page,
 }, testInfo) => {
-  const state = await installMocks(page);
+  const partnerNote =
+    'Mein Kopf ist heute etwas leer. Ein ruhiger Abend wäre schön.';
+  const ownNote = 'Der Termin heute lief endlich besser als gedacht.';
+  const state = await installMocks(page, { partnerVibeNote: partnerNote });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({
     colorScheme: 'light',
@@ -421,6 +447,9 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(sheet).toBeVisible();
 
   await sheet.getByRole('button', { name: dailyVibe.values.GOOD }).click();
+  await sheet.getByPlaceholder(dailyVibe.notePlaceholder).fill(ownNote);
+  await expect(sheet).toBeVisible();
+  await sheet.getByRole('button', { name: dailyVibe.share }).click();
   await expect(sheet).toHaveCount(0);
   const partnerCard = page.getByTestId('daily-vibe-partner');
   await expect(partnerCard.getByText(dailyVibe.values.STRESSED)).toBeVisible();
@@ -435,8 +464,27 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     }),
   ).toHaveClass(/is-startup-reveal/);
 
-  expect(state.lastPatch()).toEqual({ vibe: 'GOOD' });
+  expect(state.lastPatch()).toEqual({
+    vibe: 'GOOD',
+    vibeNote: ownNote,
+  });
   expect(state.lastPatch()).not.toHaveProperty('energyLevel');
+
+  await expect(page.getByText(partnerNote)).toHaveCount(0);
+  await partnerCard.click();
+  const partnerSheet = page.getByRole('dialog', {
+    name: dailyVibe.partnerNoteTitle.replace('{{name}}', 'Ben'),
+  });
+  await expect(partnerSheet).toBeVisible();
+  await expect(partnerSheet.getByText(partnerNote)).toBeVisible();
+  await expect(partnerSheet.getByText(dailyVibe.values.STRESSED)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  const partnerSheetAxe = await new AxeBuilder({ page }).analyze();
+  expect(partnerSheetAxe.violations).toEqual([]);
+  await partnerSheet
+    .getByRole('button', { name: dailyVibe.partnerNoteClose })
+    .click();
+  await expect(partnerSheet).toHaveCount(0);
 
   await expectNoHorizontalOverflow(page);
 

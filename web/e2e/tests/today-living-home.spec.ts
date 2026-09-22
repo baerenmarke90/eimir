@@ -9,8 +9,9 @@ import relationshipComponents from '../../src/i18n/locales/relationshipComponent
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
- * relationship: compact couple presence, restrained current context, one
- * focal item, and only relevant supporting relationship content.
+ * relationship. The later accepted #1189 product decision deliberately moves
+ * the personal focal moment ahead of the practical planning horizon so shared
+ * relationship content appears earlier without adding decorative chrome.
  *
  * These tests assert that composition against real rendered pixels with real
  * photographs (the repository's own demo assets), across the Compact,
@@ -51,11 +52,11 @@ const thisMonth = (day: number) =>
 const inDays = (days: number) =>
   new Date(NOW.getTime() + days * 86_400_000).toISOString();
 
-/** The R4 section order when every eligible role is present, top to bottom. */
-const NORMATIVE_ORDER = [
+/** The accepted Today section order after the #1189 product follow-up. */
+const ACCEPTED_ORDER = [
   '.today-hero',
-  '.today-section-upcoming',
   '.today-section-moment',
+  '.today-section-upcoming',
   '.today-section-living',
   '.today-section-monthly',
   '.today-section-recent',
@@ -240,20 +241,20 @@ async function expectNormativeOrder(page: Page): Promise<void> {
       }
       return present;
     },
-    NORMATIVE_ORDER as unknown as string[],
+    ACCEPTED_ORDER as unknown as string[],
   );
 
-  const expected = NORMATIVE_ORDER.filter((selector) =>
+  const expected = ACCEPTED_ORDER.filter((selector) =>
     order.includes(selector),
   );
   expect(
     order,
-    `Sections must appear in the R4 document order: ${expected.join(' -> ')}`,
+    `Sections must appear in the accepted Today document order: ${expected.join(' -> ')}`,
   ).toEqual(expected);
 }
 
 /**
- * On Compact the page is one column, so the normative order must also be the
+ * On Compact the page is one column, so the accepted order must also be the
  * order the eye reads. Motion is settled first, because the staggered 8 px
  * reveal would otherwise make two adjacent sections compare out of order.
  */
@@ -268,12 +269,12 @@ async function expectSingleColumnVisualOrder(page: Page): Promise<void> {
       }
       return values;
     },
-    NORMATIVE_ORDER as unknown as string[],
+    ACCEPTED_ORDER as unknown as string[],
   );
 
   expect(
     [...tops].sort((a, b) => a - b),
-    'Compact sections must read top to bottom in the R4 order',
+    'Compact sections must read top to bottom in the accepted Today order',
   ).toEqual(tops);
 }
 
@@ -621,8 +622,8 @@ test.describe('Today R4: the living home of a relationship', () => {
     await page.emulateMedia({ colorScheme: 'light' });
     await signInAndOpenToday(page);
 
-    // Every module of the composition is present, in the normative order.
-    for (const selector of NORMATIVE_ORDER) {
+    // Every module of the composition is present, in the accepted Today order.
+    for (const selector of ACCEPTED_ORDER) {
       await expect(page.locator(selector)).toBeVisible();
     }
     await expectNormativeOrder(page);
@@ -1283,7 +1284,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await installMocks(page, RICH_SPACE);
     await signInAndOpenToday(page);
 
-    for (const selector of NORMATIVE_ORDER) {
+    for (const selector of ACCEPTED_ORDER) {
       await expect(page.locator(selector)).toBeVisible();
     }
     await expectNormativeOrder(page);

@@ -262,7 +262,7 @@
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 9
     }
   }
 }

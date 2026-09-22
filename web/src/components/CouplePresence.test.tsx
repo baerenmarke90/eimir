@@ -24,10 +24,11 @@ describe('CouplePresence', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Philipp & Lea' }),
     ).toBeDefined();
-    const activeStatus = relationshipComponents.couplePresencePartnerActive.replace(
-      '{{name}}',
-      'Lea',
-    );
+    const activeStatus =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
     expect(
       screen.getByLabelText(
         relationshipComponents.partnerAvatarConnected
@@ -71,10 +72,11 @@ describe('CouplePresence', () => {
       />,
     );
 
-    const recentStatus = relationshipComponents.couplePresencePartnerRecent.replace(
-      '{{name}}',
-      'Lea',
-    );
+    const recentStatus =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
     expect(
       screen.getByLabelText(
         relationshipComponents.partnerAvatarConnected
@@ -95,9 +97,7 @@ describe('CouplePresence', () => {
         status="unknown"
       />,
     );
-    expect(
-      document.querySelector('.partner-presence-avatar-state'),
-    ).toBeNull();
+    expect(document.querySelector('.partner-presence-avatar-state')).toBeNull();
     expect(document.querySelector('.partner-presence-badge')).toBeNull();
     expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });

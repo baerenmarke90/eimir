@@ -24,6 +24,13 @@ import {
 import taskSheets from '../i18n/locales/taskSheets';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
+function fireReactAnimationEnd(element: Element): void {
+  fireEvent.animationEnd(element);
+  if (element.isConnected) {
+    fireEvent(element, new Event('webkitAnimationEnd', { bubbles: true }));
+  }
+}
+
 function mockMatchMedia(reducedMotion: boolean): void {
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
@@ -194,7 +201,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(screen.getByRole('dialog')).toBe(dialog);
     expect(document.body.style.overflow).toBe('hidden');
 
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(onExit).toHaveBeenCalledTimes(1));
@@ -272,7 +279,7 @@ describe('ShortTaskSheet history ownership', () => {
     expect(document.body.style.overflow).toBe('hidden');
     expect(document.activeElement).not.toBe(trigger);
 
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
@@ -320,7 +327,7 @@ describe('ShortTaskSheet history ownership', () => {
     );
     expect(dialog.getAttribute('data-presence')).toBe('open');
 
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
     expect(screen.getByRole('dialog')).toBe(dialog);
     expect(document.body.style.overflow).toBe('hidden');
 
@@ -335,7 +342,7 @@ describe('ShortTaskSheet history ownership', () => {
       </ShortTaskSheet>,
     );
     expect(dialog.getAttribute('data-presence')).toBe('exiting');
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(document.body.style.overflow).toBe('auto');
@@ -403,7 +410,7 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() =>
       expect(dialog.getAttribute('data-presence')).toBe('exiting'),
     );
-    fireEvent.animationEnd(dialog);
+    fireReactAnimationEnd(dialog);
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));

@@ -434,7 +434,15 @@ export function ShortTaskSheet({
     if (!dialog) return;
     if (!dialog.open) dialog.showModal();
     return () => {
-      resetPendingDrag();
+      dragIdentifierRef.current = null;
+      dragInputRef.current = null;
+      dragStartXRef.current = 0;
+      dragStartYRef.current = 0;
+      dragMaxDistanceRef.current = 0;
+      dragPeakOffsetRef.current = 0;
+      dragScrollOwnerRef.current = null;
+      dragClaimedRef.current = false;
+      dragStartedOnCloseRef.current = false;
       dialog.removeAttribute('data-interacted');
       dialog.removeAttribute('data-dragging');
       dialog.style.removeProperty('--short-task-sheet-drag-offset');
@@ -535,7 +543,15 @@ export function ShortTaskSheet({
     if (!open || !present) return;
     navigatingRef.current = false;
     pendingNavigationRef.current = null;
-    resetPendingDrag();
+    dragIdentifierRef.current = null;
+    dragInputRef.current = null;
+    dragStartXRef.current = 0;
+    dragStartYRef.current = 0;
+    dragMaxDistanceRef.current = 0;
+    dragPeakOffsetRef.current = 0;
+    dragScrollOwnerRef.current = null;
+    dragClaimedRef.current = false;
+    dragStartedOnCloseRef.current = false;
     suppressNextClickRef.current = false;
     const dialog = dialogRef.current;
     dialog?.removeAttribute('data-interacted');

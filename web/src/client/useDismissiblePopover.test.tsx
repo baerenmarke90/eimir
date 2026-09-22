@@ -18,10 +18,7 @@ function RouteTransitionReopenHarness() {
   const reopenAfterNavigationRef = useRef(false);
 
   useLayoutEffect(() => {
-    if (
-      !reopenAfterNavigationRef.current ||
-      location.pathname !== '/next'
-    ) {
+    if (!reopenAfterNavigationRef.current || location.pathname !== '/next') {
       return;
     }
     reopenAfterNavigationRef.current = false;
@@ -39,9 +36,7 @@ function RouteTransitionReopenHarness() {
       >
         Navigate and reopen
       </button>
-      <output data-testid="popover-state">
-        {isOpen ? 'open' : 'closed'}
-      </output>
+      <output data-testid="popover-state">{isOpen ? 'open' : 'closed'}</output>
     </>
   );
 }

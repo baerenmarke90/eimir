@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
@@ -10,7 +10,10 @@ import { planningIfMatch } from '../client/sharedPlanning';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
+import { ChecklistToggle } from './ChecklistToggle';
 import { SharedAchievementCelebration } from './SharedAchievementCelebration';
+
+const CELEBRATION_DISMISS_MS = 3_600;
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -38,12 +41,34 @@ export function TodayPinnedCollection({
   const { t } = useTranslation();
   const celebrationScope = `${accountId}:${spaceId}:${collection.id}`;
   const [celebratedScope, setCelebratedScope] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const showSharedAchievement =
     sharedAchievementsEnabled && celebratedScope === celebrationScope;
-  const items = [...collection.items]
-    .sort((left, right) => left.position - right.position)
-    .slice(0, 4);
-  const remaining = Math.max(0, collection.items.length - items.length);
+
+  const sortedItems = [...collection.items].sort(
+    (left, right) => left.position - right.position,
+  );
+  const todayItems = [
+    ...sortedItems.filter((item) => !item.completed),
+    ...sortedItems.filter((item) => item.completed),
+  ];
+  const items = expanded ? todayItems : todayItems.slice(0, 4);
+  const remaining = Math.max(0, todayItems.length - items.length);
+  const canExpand = todayItems.length > 4;
+
+  useEffect(() => {
+    setExpanded(false);
+    setCelebratedScope(null);
+  }, [celebrationScope]);
+
+  useEffect(() => {
+    if (!showSharedAchievement) return;
+    const timer = setTimeout(
+      () => setCelebratedScope((scope) => (scope === celebrationScope ? null : scope)),
+      CELEBRATION_DISMISS_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [celebrationScope, showSharedAchievement]);
 
   const toggleItem = useMutation({
     mutationFn: (item: CollectionItemDetail) =>
@@ -65,6 +90,8 @@ export function TodayPinnedCollection({
         postSnackbar('m5s5.today.pinnedCollection.sharedAchievementConfirmed', {
           title: collection.title,
         });
+      } else {
+        setCelebratedScope(null);
       }
     },
     onError: () => postSnackbar('m5s5.common.error'),
@@ -95,9 +122,9 @@ export function TodayPinnedCollection({
     });
   }
 
-  if (showSharedAchievement) {
-    return (
-      <div className="today-pinned-list">
+  return (
+    <div className="today-pinned-list">
+      {showSharedAchievement ? (
         <SharedAchievementCelebration
           centered
           headingLevel={3}
@@ -117,12 +144,8 @@ export function TodayPinnedCollection({
             </Link>
           }
         />
-      </div>
-    );
-  }
+      ) : null}
 
-  return (
-    <div className="today-pinned-list">
       {items.length > 0 ? (
         <ul className="today-pinned-list-items">
           {items.map((item) => (
@@ -130,20 +153,16 @@ export function TodayPinnedCollection({
               key={item.id}
               className={item.completed ? 'is-completed' : undefined}
             >
-              <button
-                type="button"
-                className="today-pinned-list-check"
-                aria-pressed={item.completed}
-                aria-label={
+              <ChecklistToggle
+                completed={item.completed}
+                label={
                   item.completed
                     ? t('m5s3.collection.markOpen', { title: item.title })
                     : t('m5s3.collection.markDone', { title: item.title })
                 }
                 disabled={!item.capabilities.canEdit || toggleItem.isPending}
-                onClick={() => toggleItem.mutate(item)}
-              >
-                {item.completed ? '✓' : ''}
-              </button>
+                onToggle={() => toggleItem.mutate(item)}
+              />
               <span className="today-pinned-list-title">{item.title}</span>
             </li>
           ))}
@@ -154,10 +173,17 @@ export function TodayPinnedCollection({
         </p>
       )}
 
-      {remaining > 0 ? (
-        <p className="today-pinned-list-more">
-          {t('m5s5.today.pinnedCollection.more', { count: remaining })}
-        </p>
+      {canExpand ? (
+        <button
+          type="button"
+          className="today-pinned-list-disclosure"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded
+            ? t('m5s5.today.pinnedCollection.showLess')
+            : t('m5s5.today.pinnedCollection.showMore', { count: remaining })}
+        </button>
       ) : null}
 
       {collection.capabilities.canEdit ? (

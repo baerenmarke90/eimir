@@ -409,8 +409,8 @@ test('opens the Compact avatar quick-actions hub as one overlapping-pair trigger
 test('preserves the pair composition with one real avatar, one fallback, and long names on Compact', async ({
   page,
 }, testInfo) => {
-  const accountName = 'Alexandra-Christina Example';
-  const partnerName = 'Maximilian-Alexander Example';
+  const accountName = 'Alexandra-Christina-Maximiliana';
+  const partnerName = 'Maximilian-Alexander-Benedikt';
 
   await page.setViewportSize({ width: 360, height: 780 });
   await installMocks(page, {
@@ -427,7 +427,7 @@ test('preserves the pair composition with one real avatar, one fallback, and lon
   ).toBeVisible();
   await expect(
     page.locator(
-      '.today-hero .partner-avatar-secondary .partner-avatar-fallback',
+      '.today-hero .partner-avatar-secondary .partner-avatar-initials',
     ),
   ).toBeVisible();
   await expect(page.locator('.today-hero .couple-presence-title')).toHaveText(

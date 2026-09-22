@@ -15,6 +15,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.wishes import service
 from eimir.wishes.models import Wish, WishStatus
@@ -128,17 +129,34 @@ def wish_detail(
     response_model=WishDetail,
     status_code=http_status.HTTP_201_CREATED,
     operation_id="createWish",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Wish in its "
+                "current state; no second Wish is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": WishDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_wish(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: WishCreate,
+    idempotency_key: IdempotencyKey,
 ) -> WishDetail:
-    wish = service.create_wish(session, authorization, title=body.title)
-    response.headers["ETag"] = etag_for(wish.version)
-    return wish_detail(session, authorization, wish)
+    result = service.create_wish_once(
+        session, authorization, idempotency_key=idempotency_key, title=body.title
+    )
+    if not result.created:
+        response.status_code = http_status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.wish.version)
+    return wish_detail(session, authorization, result.wish)
 
 
 @router.get(

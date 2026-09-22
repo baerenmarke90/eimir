@@ -86,6 +86,7 @@ export interface ConvertWishToPlanRequest {
 export interface CreatePlanRequest {
     spaceId: string;
     planCreate: PlanCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeletePlanRequest {
@@ -308,6 +309,10 @@ export class PlansApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/plans`;

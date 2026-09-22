@@ -13,6 +13,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentSummary
 from eimir.attachments.models import Attachment, MediaType
@@ -165,25 +166,41 @@ def _heart_moment_detail(
     response_model=HeartMomentDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createHeartMoment",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original HeartMoment "
+                "in its current state; no second HeartMoment is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": HeartMomentDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_heart_moment(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: HeartMomentCreate,
+    idempotency_key: IdempotencyKey,
 ) -> HeartMomentDetail:
-    heart_moment = service.create_heart_moment(
+    result = service.create_heart_moment_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         text=body.text,
         emotion=body.emotion,
         visibility=body.visibility,
         happened_on=body.happened_on,
         attachment_id=body.attachment_id,
     )
-    response.headers["ETag"] = etag_for(heart_moment.version)
-    return _heart_moment_detail(session, authorization, heart_moment)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.heart_moment.version)
+    return _heart_moment_detail(session, authorization, result.heart_moment)
 
 
 @router.get(

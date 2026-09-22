@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Response, status
@@ -13,6 +13,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary
 from eimir.comments import service
 from eimir.comments.models import Comment, CommentTarget
@@ -81,6 +82,21 @@ def _detail(
     )
 
 
+_CREATE_RESPONSES: dict[int | str, dict[str, Any]] = {
+    200: {
+        "description": (
+            "The request identity (`Idempotency-Key`) was already used for an equivalent "
+            "request. The response returns the original Comment in its current state; no "
+            "second Comment is created and the partner is not notified again."
+        ),
+        "headers": ETAG_HEADERS,
+        "model": CommentDetail,
+    },
+    201: {"headers": ETAG_HEADERS},
+    **problem_responses(401, 404, 409, 422),
+}
+
+
 def _create(
     session: DbSession,
     authorization: Authorization,
@@ -88,16 +104,20 @@ def _create(
     body: CommentCreate,
     target_type: CommentTarget,
     target_id: str,
+    idempotency_key: UUID | None,
 ) -> CommentDetail:
-    comment = service.create_comment(
+    result = service.create_comment_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         target_type=target_type,
         target_id=target_id,
         body=body.body,
     )
-    response.headers["ETag"] = etag_for(comment.version)
-    return _detail(session, comment)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.comment.version)
+    return _detail(session, result.comment)
 
 
 def _list(
@@ -132,7 +152,7 @@ def _list(
     response_model=CommentDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createMemoryComment",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses=_CREATE_RESPONSES,
 )
 def create_memory_comment(
     authorization: Authorization,
@@ -140,8 +160,11 @@ def create_memory_comment(
     response: Response,
     body: CommentCreate,
     memory_id: Annotated[str, Path(alias="memoryId")],
+    idempotency_key: IdempotencyKey,
 ) -> CommentDetail:
-    return _create(session, authorization, response, body, CommentTarget.MEMORY, memory_id)
+    return _create(
+        session, authorization, response, body, CommentTarget.MEMORY, memory_id, idempotency_key
+    )
 
 
 @router.get(
@@ -165,7 +188,7 @@ def list_memory_comments(
     response_model=CommentDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createHeartMomentComment",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses=_CREATE_RESPONSES,
 )
 def create_heart_moment_comment(
     authorization: Authorization,
@@ -173,6 +196,7 @@ def create_heart_moment_comment(
     response: Response,
     body: CommentCreate,
     heart_moment_id: Annotated[str, Path(alias="heartMomentId")],
+    idempotency_key: IdempotencyKey,
 ) -> CommentDetail:
     return _create(
         session,
@@ -181,6 +205,7 @@ def create_heart_moment_comment(
         body,
         CommentTarget.HEART_MOMENT,
         heart_moment_id,
+        idempotency_key,
     )
 
 
@@ -212,7 +237,7 @@ def list_heart_moment_comments(
     response_model=CommentDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createMilestoneComment",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses=_CREATE_RESPONSES,
 )
 def create_milestone_comment(
     authorization: Authorization,
@@ -220,6 +245,7 @@ def create_milestone_comment(
     response: Response,
     body: CommentCreate,
     milestone_id: Annotated[str, Path(alias="milestoneId")],
+    idempotency_key: IdempotencyKey,
 ) -> CommentDetail:
     return _create(
         session,
@@ -228,6 +254,7 @@ def create_milestone_comment(
         body,
         CommentTarget.MILESTONE,
         milestone_id,
+        idempotency_key,
     )
 
 

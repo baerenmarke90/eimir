@@ -7,8 +7,8 @@
 Name | Type
 ------------ | -------------
 `partner` | [PartnerVibeProjection](PartnerVibeProjection.md)
-`visibilityMode` | [DailyCheckInVisibilityMode](DailyCheckInVisibilityMode.md)
 `partnerNote` | string
+`visibilityMode` | [DailyCheckInVisibilityMode](DailyCheckInVisibilityMode.md)
 
 ## Example
 
@@ -18,8 +18,8 @@ import type { DailyCheckInVibeView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "partner": null,
-  "visibilityMode": null,
   "partnerNote": null,
+  "visibilityMode": null,
 } satisfies DailyCheckInVibeView
 
 console.log(example)

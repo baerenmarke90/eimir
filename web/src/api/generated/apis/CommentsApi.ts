@@ -43,18 +43,21 @@ export interface CreateHeartMomentCommentRequest {
     heartMomentId: string;
     spaceId: string;
     commentCreate: CommentCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface CreateMemoryCommentRequest {
     memoryId: string;
     spaceId: string;
     commentCreate: CommentCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface CreateMilestoneCommentRequest {
     milestoneId: string;
     spaceId: string;
     commentCreate: CommentCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteCommentRequest {
@@ -127,6 +130,10 @@ export class CommentsApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}/comments`;
         urlPath = urlPath.replace('{heartMomentId}', encodeURIComponent(String(requestParameters['heartMomentId'])));
@@ -190,6 +197,10 @@ export class CommentsApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/memories/{memoryId}/comments`;
         urlPath = urlPath.replace('{memoryId}', encodeURIComponent(String(requestParameters['memoryId'])));
@@ -252,6 +263,10 @@ export class CommentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/milestones/{milestoneId}/comments`;

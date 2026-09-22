@@ -29,10 +29,10 @@ import {
 export interface PartnerQuickActionAccepted {
     /**
      * 
-     * @type {SupportGestureKind}
+     * @type {Date}
      * @memberof PartnerQuickActionAccepted
      */
-    kind: SupportGestureKind;
+    availableAt: Date;
     /**
      * 
      * @type {string}
@@ -41,10 +41,10 @@ export interface PartnerQuickActionAccepted {
     clientRequestId: string;
     /**
      * 
-     * @type {Date}
+     * @type {SupportGestureKind}
      * @memberof PartnerQuickActionAccepted
      */
-    availableAt: Date;
+    kind: SupportGestureKind;
 }
 
 
@@ -53,9 +53,9 @@ export interface PartnerQuickActionAccepted {
  * Check if a given object implements the PartnerQuickActionAccepted interface.
  */
 export function instanceOfPartnerQuickActionAccepted(value: object): value is PartnerQuickActionAccepted {
-    if (!('kind' in value) || value['kind'] === undefined) return false;
-    if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;
     if (!('availableAt' in value) || value['availableAt'] === undefined) return false;
+    if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;
+    if (!('kind' in value) || value['kind'] === undefined) return false;
     return true;
 }
 
@@ -69,9 +69,9 @@ export function PartnerQuickActionAcceptedFromJSONTyped(json: any, ignoreDiscrim
     }
     return {
         
-        'kind': SupportGestureKindFromJSON(json['kind']),
-        'clientRequestId': json['clientRequestId'],
         'availableAt': (new Date(json['availableAt'])),
+        'clientRequestId': json['clientRequestId'],
+        'kind': SupportGestureKindFromJSON(json['kind']),
     };
 }
 
@@ -86,9 +86,9 @@ export function PartnerQuickActionAcceptedToJSONTyped(value?: PartnerQuickAction
 
     return {
         
-        'kind': SupportGestureKindToJSON(value['kind']),
-        'clientRequestId': value['clientRequestId'],
         'availableAt': value['availableAt'].toISOString(),
+        'clientRequestId': value['clientRequestId'],
+        'kind': SupportGestureKindToJSON(value['kind']),
     };
 }
 

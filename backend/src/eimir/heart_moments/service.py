@@ -35,12 +35,15 @@ from eimir.authorization import (
     visibility_of,
 )
 from eimir.core import cursor as cursor_codec
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.outbox import service as outbox_service
 
 _HEART_MOMENT_SUBJECT_TYPE = "heart_moment"
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.HEART_MOMENT.value
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,14 @@ class HeartMomentPageResult:
     items: list[HeartMoment]
     next_cursor: str | None
     has_more: bool
+
+
+@dataclass(frozen=True)
+class HeartMomentCreateResult:
+    heart_moment: HeartMoment
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new HeartMoment."""
 
 
 def _normalize_text(value: str) -> str:
@@ -133,6 +144,82 @@ def create_heart_moment(
     )
     _flush(session)
     return heart_moment
+
+
+def create_heart_moment_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    text: str,
+    emotion: HeartEmotion,
+    visibility: ContentVisibility,
+    happened_on: date,
+    attachment_id: UUID | None = None,
+) -> HeartMomentCreateResult:
+    """Create a HeartMoment, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the HeartMoment share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "save" or a
+    lost-response retry from adding the same heart moment twice.
+    """
+    if idempotency_key is None:
+        heart_moment = create_heart_moment(
+            session,
+            context,
+            text=text,
+            emotion=emotion,
+            visibility=visibility,
+            happened_on=happened_on,
+            attachment_id=attachment_id,
+        )
+        return HeartMomentCreateResult(heart_moment, created=True)
+
+    normalized_text = _normalize_text(text)
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "text": normalized_text,
+            "emotion": emotion.value,
+            "visibility": visibility.value,
+            "happened_on": happened_on.isoformat(),
+            "attachment_id": str(attachment_id) if attachment_id is not None else None,
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        heart_moment = create_receipts.replay(
+            session,
+            context,
+            HeartMoment,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The heart moment created by this request no longer exists.",
+                ErrorCode.HEART_MOMENT_CREATE_RESULT_DELETED,
+            ),
+        )
+        return HeartMomentCreateResult(heart_moment, created=False)
+
+    heart_moment = create_heart_moment(
+        session,
+        context,
+        text=normalized_text,
+        emotion=emotion,
+        visibility=visibility,
+        happened_on=happened_on,
+        attachment_id=attachment_id,
+    )
+    create_receipts.attach(session, receipt_id, heart_moment.id)
+    return HeartMomentCreateResult(heart_moment, created=True)
 
 
 def get_heart_moment(

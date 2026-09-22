@@ -357,6 +357,7 @@ def end_membership(
     Deleting it would make it impossible to determine later who created
     content.
     """
+    from eimir.create_receipts import service as shared_create_receipts
     from eimir.memories import create_receipts
     from eimir.story import view_service
 
@@ -366,6 +367,11 @@ def end_membership(
         viewer_account_id=membership.account_id,
     )
     create_receipts.purge_account_in_space(
+        session,
+        space_id=membership.space_id,
+        account_id=membership.account_id,
+    )
+    shared_create_receipts.purge_account_in_space(
         session,
         space_id=membership.space_id,
         account_id=membership.account_id,

@@ -25,12 +25,15 @@ from eimir.authorization import (
     require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.milestones.models import Milestone, MilestonePayload, shared_privacy
 from eimir.outbox import service as outbox_service
 
 _MILESTONE_SUBJECT_TYPE = "milestone"
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.MILESTONE.value
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,14 @@ class MilestonePageResult:
     items: list[Milestone]
     next_cursor: str | None
     has_more: bool
+
+
+@dataclass(frozen=True)
+class MilestoneCreateResult:
+    milestone: Milestone
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new Milestone."""
 
 
 def _normalize_title(value: str) -> str:
@@ -100,6 +111,66 @@ def create_milestone(
     _record(session, milestone, context.account_id, EventType.MILESTONE_CREATED)
     _flush(session)
     return milestone
+
+
+def create_milestone_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    title: str,
+    body: str | None,
+    happened_on: date,
+) -> MilestoneCreateResult:
+    """Create a Milestone, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the Milestone share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "save" or a
+    lost-response retry from adding the same milestone twice.
+    """
+    if idempotency_key is None:
+        milestone = create_milestone(
+            session, context, title=title, body=body, happened_on=happened_on
+        )
+        return MilestoneCreateResult(milestone, created=True)
+
+    normalized_title = _normalize_title(title)
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "title": normalized_title,
+            "body": body,
+            "happened_on": happened_on.isoformat(),
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        milestone = create_receipts.replay(
+            session,
+            context,
+            Milestone,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The milestone created by this request no longer exists.",
+                ErrorCode.MILESTONE_CREATE_RESULT_DELETED,
+            ),
+        )
+        return MilestoneCreateResult(milestone, created=False)
+
+    milestone = create_milestone(
+        session, context, title=normalized_title, body=body, happened_on=happened_on
+    )
+    create_receipts.attach(session, receipt_id, milestone.id)
+    return MilestoneCreateResult(milestone, created=True)
 
 
 def get_milestone(

@@ -6,9 +6,9 @@
 
 Name | Type
 ------------ | -------------
-`kind` | [SupportGestureKind](SupportGestureKind.md)
-`clientRequestId` | string
 `availableAt` | Date
+`clientRequestId` | string
+`kind` | [SupportGestureKind](SupportGestureKind.md)
 
 ## Example
 
@@ -17,9 +17,9 @@ import type { PartnerQuickActionAccepted } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "kind": null,
-  "clientRequestId": null,
   "availableAt": null,
+  "clientRequestId": null,
+  "kind": null,
 } satisfies PartnerQuickActionAccepted
 
 console.log(example)

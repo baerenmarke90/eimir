@@ -10,13 +10,13 @@ const profiles = {
     eyebrow: 'Premium',
     title: 'eimir.Pro',
     badge: 'Pro',
-    gamesTitle: 'Gemeinsam spielen gehört zu eimir.Pro.',
+    gamesTitle: 'Mehr gemeinsame Momente mit eimir.Pro.',
     gamesBody:
-      'Die Spiele machen aus eurer gemeinsamen Welt neue kleine Erlebnisse. Eure normalen Erinnerungen, Wünsche und Pläne bleiben davon unabhängig.',
+      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
     action: 'Premium ansehen',
     detailsTitle: 'Ein Premium-Bereich für euch beide',
     detailsBody:
-      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die Spiele für euch beide frei. Eure bestehenden Inhalte bleiben unabhängig davon erhalten.',
+      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
   },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:

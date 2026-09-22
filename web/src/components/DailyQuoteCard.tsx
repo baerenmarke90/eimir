@@ -207,10 +207,22 @@ export function DailyQuoteCard({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [draft, setDraft] = useState<DailyQuoteDraft | null>(null);
 
-  const entitlementKey = dailyQuoteEntitlementQueryKey(accountId, spaceId);
-  const quoteKey = dailyQuoteQueryKey(accountId, spaceId);
-  const catalogKey = dailyQuoteCatalogQueryKey(accountId, spaceId);
-  const preferencesKey = dailyQuotePreferencesQueryKey(accountId, spaceId);
+  const entitlementKey = useMemo(
+    () => dailyQuoteEntitlementQueryKey(accountId, spaceId),
+    [accountId, spaceId],
+  );
+  const quoteKey = useMemo(
+    () => dailyQuoteQueryKey(accountId, spaceId),
+    [accountId, spaceId],
+  );
+  const catalogKey = useMemo(
+    () => dailyQuoteCatalogQueryKey(accountId, spaceId),
+    [accountId, spaceId],
+  );
+  const preferencesKey = useMemo(
+    () => dailyQuotePreferencesQueryKey(accountId, spaceId),
+    [accountId, spaceId],
+  );
 
   const entitlementQuery = useQuery({
     queryKey: entitlementKey,
@@ -254,6 +266,11 @@ export function DailyQuoteCard({
       sourceIds: [...preferencesQuery.data.preference.selectedSourceIds],
     });
   }, [preferencesQuery.data, settingsOpen]);
+
+  useEffect(() => {
+    if (!isDailyQuoteEntitlementRequired(quoteQuery.error)) return;
+    queryClient.setQueryData(entitlementKey, false);
+  }, [entitlementKey, quoteQuery.error, queryClient]);
 
   useEffect(() => {
     if (!isDailyQuoteEntitlementRequired(preferencesQuery.error)) return;

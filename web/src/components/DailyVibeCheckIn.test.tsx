@@ -148,6 +148,16 @@ describe('DailyVibeCheckIn', () => {
     expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
     expect(screen.queryByText(dailyVibe.partnerHidden)).toBeNull();
     expect(screen.queryByText(dailyVibe.voluntary)).toBeNull();
+    expect(
+      screen
+        .getByRole('heading', { name: dailyVibe.question })
+        .classList.contains('today-section-title'),
+    ).toBe(true);
+    expect(
+      screen
+        .getByText(dailyVibe.kicker)
+        .classList.contains('today-section-kicker'),
+    ).toBe(true);
 
     const dialog = await openVibeSheet();
     for (const label of Object.values(dailyVibe.values)) {

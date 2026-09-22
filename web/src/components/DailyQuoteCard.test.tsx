@@ -197,6 +197,16 @@ describe('DailyQuoteCard', () => {
 
     expect(await screen.findByText(dailyQuote.discovery)).toBeTruthy();
     expect(screen.getByText(dailyQuote.discoveryMeta)).toBeTruthy();
+    expect(
+      screen
+        .getByRole('heading', { name: dailyQuote.title })
+        .classList.contains('today-section-title'),
+    ).toBe(true);
+    expect(
+      screen
+        .getByText(dailyQuote.kicker)
+        .classList.contains('today-section-kicker'),
+    ).toBe(true);
     expect(api.getDailyQuote).not.toHaveBeenCalled();
     expect(api.getDailyQuoteCatalog).not.toHaveBeenCalled();
     expect(

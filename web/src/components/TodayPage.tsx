@@ -1306,6 +1306,7 @@ export function TodayPage({
                 <TodayModuleSection
                   className="today-section-upcoming"
                   title={t('m5s5.dashboard.upcomingTitle')}
+                  kicker={t('m5s5.dashboard.upcomingKicker')}
                   animationDelay="80ms"
                   headerAction={
                     <Link

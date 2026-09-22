@@ -114,6 +114,7 @@ function Task({
         onClose={() => setSheet(false)}
         restoreFocusRef={triggerRef}
       >
+        <div data-testid="sheet-surface">Swipe surface</div>
         <button
           type="button"
           onClick={() =>
@@ -415,6 +416,219 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
+
+  it('lets direct manipulation start on plain sheet content, not only the handle', async () => {
+    mockMatchMedia(false);
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const surface = screen.getByTestId('sheet-surface');
+
+    fireEvent.pointerDown(surface, {
+      pointerId: 11,
+      button: 0,
+      clientX: 40,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 11,
+      clientX: 43,
+      clientY: 180,
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBe('true');
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('80px');
+    expect(
+      Number(
+        dialog.style.getPropertyValue('--short-task-sheet-drag-progress'),
+      ),
+    ).toBeGreaterThan(0);
+
+    fireEvent.pointerUp(surface, {
+      pointerId: 11,
+      clientX: 43,
+      clientY: 180,
+    });
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    fireEvent.pointerDown(surface, {
+      pointerId: 12,
+      button: 0,
+      clientX: 40,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 12,
+      clientX: 42,
+      clientY: 270,
+    });
+    fireEvent.pointerUp(surface, {
+      pointerId: 12,
+      clientX: 42,
+      clientY: 270,
+    });
+
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
+    fireReactAnimationEnd(dialog);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('does not claim controls or primarily horizontal gestures', () => {
+    mockMatchMedia(false);
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const control = screen.getByText('Continue to result');
+    const surface = screen.getByTestId('sheet-surface');
+
+    fireEvent.pointerDown(control, {
+      pointerId: 21,
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(control, {
+      pointerId: 21,
+      clientX: 102,
+      clientY: 180,
+    });
+    fireEvent.pointerUp(control, {
+      pointerId: 21,
+      clientX: 102,
+      clientY: 180,
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBeNull();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    fireEvent.pointerDown(surface, {
+      pointerId: 22,
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 22,
+      clientX: 180,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(surface, {
+      pointerId: 22,
+      clientX: 180,
+      clientY: 120,
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBeNull();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+  });
+
+  it('keeps scroll ownership until the sheet body is at its top boundary', () => {
+    mockMatchMedia(false);
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const body = dialog.querySelector<HTMLElement>('.short-task-sheet-body');
+    const surface = screen.getByTestId('sheet-surface');
+    expect(body).not.toBeNull();
+    if (!body) throw new Error('Missing short sheet body');
+
+    body.scrollTop = 32;
+    fireEvent.pointerDown(surface, {
+      pointerId: 31,
+      button: 0,
+      clientX: 50,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 31,
+      clientX: 50,
+      clientY: 180,
+    });
+    fireEvent.pointerUp(surface, {
+      pointerId: 31,
+      clientX: 50,
+      clientY: 180,
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBeNull();
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+
+    body.scrollTop = 0;
+    fireEvent.pointerDown(surface, {
+      pointerId: 32,
+      button: 0,
+      clientX: 50,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 32,
+      clientX: 50,
+      clientY: 180,
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBe('true');
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('80px');
+
+    fireEvent.pointerCancel(surface, {
+      pointerId: 32,
+      clientX: 50,
+      clientY: 180,
+    });
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
+  });
+
+  it('supports touch drag arbitration without taking ordinary touch taps', async () => {
+    mockMatchMedia(false);
+    render(<Task onExit={vi.fn()} onDiscard={vi.fn()} />);
+    fireEvent.click(screen.getByText('Task choices'));
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const surface = screen.getByTestId('sheet-surface');
+
+    fireEvent.touchStart(surface, {
+      touches: [{ identifier: 41, clientX: 20, clientY: 100 }],
+    });
+    fireEvent.touchMove(surface, {
+      touches: [{ identifier: 41, clientX: 22, clientY: 260 }],
+    });
+
+    expect(dialog.getAttribute('data-dragging')).toBe('true');
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('160px');
+
+    fireEvent.touchEnd(surface, {
+      changedTouches: [{ identifier: 41, clientX: 22, clientY: 260 }],
+      touches: [],
+    });
+
+    await waitFor(() =>
+      expect(dialog.getAttribute('data-presence')).toBe('exiting'),
+    );
+    fireReactAnimationEnd(dialog);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('routes Close through dirty and blocked guards before confirmed dismissal', () => {
     const onClose = vi.fn();
     const onDiscardRequested = vi.fn();
@@ -452,5 +666,49 @@ describe('ShortTaskSheet history ownership', () => {
     expect(onCloseBlocked).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog')).toBeDefined();
+  });
+
+  it('settles a blocked drag back instead of leaving the sheet displaced', () => {
+    mockMatchMedia(false);
+    const onClose = vi.fn();
+    const onCloseBlocked = vi.fn();
+    render(
+      <ShortTaskSheet
+        open={true}
+        title="Blocked"
+        onClose={onClose}
+        isCloseBlocked
+        onCloseBlocked={onCloseBlocked}
+      >
+        <div data-testid="blocked-surface">Swipe surface</div>
+      </ShortTaskSheet>,
+    );
+
+    const dialog = screen.getByRole('dialog') as HTMLDialogElement;
+    const surface = screen.getByTestId('blocked-surface');
+
+    fireEvent.pointerDown(surface, {
+      pointerId: 51,
+      button: 0,
+      clientX: 10,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(surface, {
+      pointerId: 51,
+      clientX: 10,
+      clientY: 280,
+    });
+    fireEvent.pointerUp(surface, {
+      pointerId: 51,
+      clientX: 10,
+      clientY: 280,
+    });
+
+    expect(onCloseBlocked).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(
+      dialog.style.getPropertyValue('--short-task-sheet-drag-offset'),
+    ).toBe('0px');
   });
 });

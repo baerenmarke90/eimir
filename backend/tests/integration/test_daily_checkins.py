@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from eimir.daily_checkins import context as daily_context
 from eimir.daily_checkins import retention
-from eimir.daily_checkins.models import DailyCheckIn, DailyVibe
+from eimir.daily_checkins.models import DailyCheckIn, DailyCheckInVibeNote, DailyVibe
 from eimir.relationship import configuration as configuration_service
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
@@ -1012,3 +1012,181 @@ class TestRetentionAndPortability:
             table for tables in transfer_service.FILE_TABLES.values() for table in tables
         }
         assert "daily_check_ins" not in portable_tables
+
+
+class TestVibeContextNote:
+    def test_note_requires_vibe_is_trimmed_and_participates_in_owner_etag(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+        )
+        initial = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+
+        without_vibe = client.patch(
+            path(couple["space"].id),
+            json={"vibeNote": "Needs a Vibe"},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(initial.headers["etag"]),
+            },
+        )
+        assert without_vibe.status_code == 422
+        assert without_vibe.json()["code"] == "DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE"
+
+        saved = client.patch(
+            path(couple["space"].id),
+            json={
+                "vibe": DailyVibe.GOOD.value,
+                "vibeNote": "  The appointment went better than expected.  ",
+            },
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(initial.headers["etag"]),
+            },
+        )
+        assert saved.status_code == 200
+        assert saved.json()["own"]["vibe"] == DailyVibe.GOOD.value
+        assert (
+            saved.json()["own"]["vibeNote"]
+            == "The appointment went better than expected."
+        )
+        first_etag = saved.headers["etag"]
+
+        note_only = client.patch(
+            path(couple["space"].id),
+            json={"vibeNote": "A quiet evening would be good."},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(first_etag),
+            },
+        )
+        assert note_only.status_code == 200
+        assert note_only.headers["etag"] != first_etag
+        assert (
+            note_only.json()["own"]["vibeNote"]
+            == "A quiet evening would be good."
+        )
+
+        stale = client.patch(
+            path(couple["space"].id),
+            json={"vibeNote": "This must not overwrite newer context."},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(first_etag),
+            },
+        )
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+
+        note_row = session.execute(select(DailyCheckInVibeNote)).scalar_one()
+        assert note_row.payload.note == "A quiet evening would be good."
+
+        cleared = client.patch(
+            path(couple["space"].id),
+            json={"vibe": None},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(note_only.headers["etag"]),
+            },
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["own"]["vibe"] is None
+        assert cleared.json()["own"]["vibeNote"] is None
+        assert (
+            session.execute(
+                select(func.count()).select_from(DailyCheckInVibeNote)
+            ).scalar_one()
+            == 0
+        )
+
+    def test_mutual_reveal_keeps_note_participation_indistinguishable_until_self_vibe(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+            vibe_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        )
+
+        manager_before = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        before_vibe = manager_before.json()["vibe"]
+        assert before_vibe == {
+            "visibilityMode": "MUTUAL_REVEAL",
+            "partner": {"state": "HIDDEN_UNTIL_SELF_CHECK_IN"},
+            "partnerNote": None,
+        }
+
+        partner_initial = client.get(
+            path(couple["space"].id), headers=auth(couple["partner_token"])
+        )
+        partner_saved = client.patch(
+            path(couple["space"].id),
+            json={
+                "vibe": DailyVibe.SAD.value,
+                "vibeNote": "My head is full today. A quiet evening would help.",
+            },
+            headers={
+                **auth(couple["partner_token"]),
+                **if_match(partner_initial.headers["etag"]),
+            },
+        )
+        assert partner_saved.status_code == 200
+
+        hidden = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        assert hidden.json()["vibe"] == before_vibe
+        assert "My head is full" not in hidden.text
+
+        revealed = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.GOOD.value},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(hidden.headers["etag"]),
+            },
+        )
+        assert revealed.status_code == 200
+        assert revealed.json()["vibe"]["partner"] == {
+            "state": "VISIBLE",
+            "value": DailyVibe.SAD.value,
+        }
+        assert (
+            revealed.json()["vibe"]["partnerNote"]
+            == "My head is full today. A quiet evening would help."
+        )
+
+    def test_vibe_context_has_a_hard_server_length_bound(
+        self, client, session: Session, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        configure_daily(
+            session,
+            space_id=couple["space"].id,
+            manager_id=couple["manager"].id,
+            vibe=True,
+            energy=False,
+        )
+        initial = client.get(
+            path(couple["space"].id), headers=auth(couple["manager_token"])
+        )
+        response = client.patch(
+            path(couple["space"].id),
+            json={"vibe": DailyVibe.OKAY.value, "vibeNote": "x" * 201},
+            headers={
+                **auth(couple["manager_token"]),
+                **if_match(initial.headers["etag"]),
+            },
+        )
+        assert response.status_code == 422

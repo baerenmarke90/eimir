@@ -445,8 +445,7 @@ export function PreferenceDialog({
   const renderedPreferenceRef = useRef(preference);
   if (isOpen) renderedPreferenceRef.current = preference;
   const renderedPreference = renderedPreferenceRef.current;
-  const { present, presenceState, completeExit } =
-    useOverlayPresence(isOpen);
+  const { present, presenceState, completeExit } = useOverlayPresence(isOpen);
 
   useModalLifecycle({
     active: present,
@@ -561,7 +560,9 @@ export function PreferenceDialog({
               ref={firstInputRef}
               id={`preference-category-${privateNote ? 'private' : 'self'}`}
               name="category"
-              defaultValue={renderedPreference?.category ?? PreferenceCategory.OTHER}
+              defaultValue={
+                renderedPreference?.category ?? PreferenceCategory.OTHER
+              }
             >
               {CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -580,7 +581,9 @@ export function PreferenceDialog({
             <select
               id={`preference-sentiment-${privateNote ? 'private' : 'self'}`}
               name="sentiment"
-              defaultValue={renderedPreference?.sentiment ?? PreferenceSentiment.LIKE}
+              defaultValue={
+                renderedPreference?.sentiment ?? PreferenceSentiment.LIKE
+              }
             >
               {SENTIMENTS.map((sentiment) => (
                 <option key={sentiment} value={sentiment}>

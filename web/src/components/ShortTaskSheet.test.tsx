@@ -415,4 +415,42 @@ describe('ShortTaskSheet history ownership', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
+  it('routes Close through dirty and blocked guards before confirmed dismissal', () => {
+    const onClose = vi.fn();
+    const onDiscardRequested = vi.fn();
+    const onCloseBlocked = vi.fn();
+    const { rerender } = render(
+      <ShortTaskSheet
+        open={true}
+        title="Guarded task"
+        onClose={onClose}
+        isDirty
+        onDiscardRequested={onDiscardRequested}
+      >
+        <input aria-label="Draft" defaultValue="unsaved" />
+      </ShortTaskSheet>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    expect(onDiscardRequested).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeDefined();
+
+    rerender(
+      <ShortTaskSheet
+        open={true}
+        title="Guarded task"
+        onClose={onClose}
+        isCloseBlocked
+        onCloseBlocked={onCloseBlocked}
+      >
+        <input aria-label="Draft" defaultValue="unsaved" />
+      </ShortTaskSheet>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: taskSheets.close }));
+    expect(onCloseBlocked).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toBeDefined();
+  });
 });

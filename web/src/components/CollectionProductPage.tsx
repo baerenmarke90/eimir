@@ -246,9 +246,6 @@ export function CollectionProductPage({
         queryKey: ['m5-s3', 'collections', spaceId],
       }),
       queryClient.invalidateQueries({ queryKey: key }),
-      queryClient.invalidateQueries({
-        queryKey: ['today-pinned-collection', accountId ?? '', spaceId],
-      }),
     ]);
   };
 

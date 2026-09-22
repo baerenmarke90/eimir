@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Issue 1201 pinned shared-list interaction reference</title>
+  <desc id="desc">Directional Compact reference showing the Today pinned shared list with an inline plus action and the add-item bottom sheet.</desc>
+  <rect width="1200" height="780" fill="#f5efe9"/>
+  <text x="60" y="64" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#231e28">#1201 · Pinned shared list interaction</text>
+  <text x="60" y="100" font-family="system-ui, sans-serif" font-size="18" fill="#5e5466">Directional reference · current Today composition stays authoritative</text>
+
+  <g transform="translate(90 145)">
+    <rect width="430" height="570" rx="34" fill="#fff" stroke="#ded1c8" stroke-width="2"/>
+    <text x="30" y="52" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#207266">GEMEINSAME LISTE</text>
+    <text x="30" y="88" font-family="system-ui, sans-serif" font-size="27" font-weight="750" fill="#231e28">Einkauf</text>
+    <text x="322" y="87" font-family="system-ui, sans-serif" font-size="15" font-weight="650" fill="#5e5466">Liste öffnen →</text>
+
+    <g font-family="system-ui, sans-serif" font-size="19" fill="#231e28">
+      <circle cx="52" cy="145" r="18" fill="#edf7f5" stroke="#207266" stroke-width="2"/>
+      <text x="84" y="152">Milch</text>
+      <circle cx="52" cy="201" r="18" fill="#207266"/>
+      <path d="M43 201l6 6 12-14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="84" y="208" fill="#5e5466" text-decoration="line-through">Brot</text>
+      <circle cx="52" cy="257" r="18" fill="#edf7f5" stroke="#207266" stroke-width="2"/>
+      <text x="84" y="264">Äpfel</text>
+    </g>
+
+    <g transform="translate(30 306)">
+      <text x="0" y="28" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#5e5466">2 weitere Einträge anzeigen</text>
+      <circle cx="354" cy="22" r="22" fill="#fff" stroke="#ded1c8" stroke-width="1.5"/>
+      <path d="M354 13v18M345 22h18" stroke="#231e28" stroke-width="2.4" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(30 392)">
+      <rect width="370" height="112" rx="22" fill="#edf7f5"/>
+      <circle cx="55" cy="56" r="24" fill="#fff"/>
+      <path d="M44 56l8 8 16-19" fill="none" stroke="#207266" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="92" y="49" font-family="system-ui, sans-serif" font-size="20" font-weight="750" fill="#207266">Gemeinsam geschafft!</text>
+      <text x="92" y="77" font-family="system-ui, sans-serif" font-size="15" fill="#5e5466">Kurzer, ruhiger Completion-Zustand</text>
+    </g>
+  </g>
+
+  <g transform="translate(680 145)">
+    <rect width="430" height="570" rx="34" fill="#fff" stroke="#ded1c8" stroke-width="2"/>
+    <rect x="0" y="0" width="430" height="570" rx="34" fill="#231e28" opacity=".18"/>
+    <path d="M0 240 Q0 210 30 210 H400 Q430 210 430 240 V570 H0Z" fill="#fff"/>
+    <rect x="180" y="226" width="70" height="5" rx="3" fill="#8c8094"/>
+    <text x="30" y="288" font-family="system-ui, sans-serif" font-size="24" font-weight="750" fill="#231e28">Eintrag hinzufügen</text>
+    <text x="30" y="338" font-family="system-ui, sans-serif" font-size="15" font-weight="650" fill="#5e5466">LISTENEINTRAG</text>
+    <rect x="30" y="355" width="370" height="52" rx="12" fill="#fff" stroke="#ded1c8" stroke-width="2"/>
+    <text x="46" y="388" font-family="system-ui, sans-serif" font-size="17" fill="#8c8094">z. B. Butter</text>
+    <g transform="translate(30 444)">
+      <rect width="178" height="48" rx="24" fill="#fff" stroke="#ded1c8" stroke-width="1.5"/>
+      <text x="62" y="31" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#231e28">Abbrechen</text>
+      <rect x="192" width="178" height="48" rx="24" fill="#d93d59"/>
+      <text x="246" y="31" font-family="system-ui, sans-serif" font-size="16" font-weight="700" fill="#fff">Hinzufügen</text>
+    </g>
+    <text x="30" y="535" font-family="system-ui, sans-serif" font-size="14" fill="#5e5466">Compact: Bottom Sheet · Expanded: centered dialog</text>
+  </g>
+</svg>

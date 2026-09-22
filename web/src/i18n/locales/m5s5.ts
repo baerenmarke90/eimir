@@ -84,6 +84,7 @@ const m5s5 = {
       openAriaLabel: '„{{title}}“ öffnen',
       addPlaceholder: 'Eintrag hinzufügen',
       addAction: 'Eintrag hinzufügen',
+      addRequired: 'Gib zuerst einen Eintrag ein.',
       empty: 'Noch nichts auf dieser Liste.',
       more_one: 'Noch {{count}} weiterer Eintrag',
       more_other: 'Noch {{count}} weitere Einträge',

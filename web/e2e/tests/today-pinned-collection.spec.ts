@@ -69,6 +69,9 @@ async function installMocks(
     collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
   ];
   let finalCompletionFailed = false;
+  let collectionGetCount = 0;
+  let dashboardGetCount = 0;
+  let collectionVersion = 1;
 
   const collection = () => ({
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -80,7 +83,7 @@ async function installMocks(
     spaceId: SPACE_ID,
     title: 'Einkauf',
     updatedAt: '2026-09-21T10:00:00Z',
-    version: 1,
+    version: collectionVersion,
   });
 
   await page.route('**/api/v1/**', async (route) => {
@@ -258,6 +261,7 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
+      dashboardGetCount += 1;
       await json({
         space: {
           spaceId: SPACE_ID,
@@ -306,7 +310,8 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`
     ) {
-      await json(collection(), 200, { ETag: '"1"' });
+      collectionGetCount += 1;
+      await json(collection(), 200, { ETag: `"${collectionVersion}"` });
       return;
     }
     if (
@@ -386,6 +391,7 @@ async function installMocks(
         items.length,
       );
       items.push(created);
+      collectionVersion += 1;
       await json(created, 201, { ETag: '"1"' });
       return;
     }
@@ -400,6 +406,11 @@ async function installMocks(
       500,
     );
   });
+
+  return {
+    collectionGetCount: () => collectionGetCount,
+    dashboardGetCount: () => dashboardGetCount,
+  };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -429,7 +440,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await installMocks(page);
+  const network = await installMocks(page);
   await signIn(page);
 
   await page.goto(`/plan/collections/${COLLECTION_ID}`);
@@ -459,19 +470,38 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
 
   const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
   const milkOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
+  const collectionGetsBeforeToggle = network.collectionGetCount();
+  const dashboardGetsBeforeToggle = network.dashboardGetCount();
   await pinnedSection.getByRole('button', { name: milkDoneName }).click();
   await expect(
     pinnedSection.getByRole('button', { name: milkOpenName }),
   ).toHaveAttribute('aria-pressed', 'true');
+  await expect
+    .poll(() => network.collectionGetCount())
+    .toBe(collectionGetsBeforeToggle);
+  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
-  const addInput = pinnedSection.getByPlaceholder(
-    m5s5.today.pinnedCollection.addPlaceholder,
-  );
+  const addButton = pinnedSection.getByRole('button', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await addButton.click();
+  const addDialog = page.getByRole('dialog', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await expect(addDialog).toBeVisible();
+  const addInput = addDialog.getByLabel(m5s3.collection.itemTitle);
+  await expect(addInput).toBeFocused();
   await addInput.fill('Butter');
-  await pinnedSection
-    .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+  await addDialog
+    .getByRole('button', { name: m5s3.collection.addItem })
     .click();
+  await expect(addDialog).toHaveCount(0);
+  await expect(addButton).toBeFocused();
   await expect(pinnedSection.getByText('Butter')).toBeVisible();
+  await expect
+    .poll(() => network.collectionGetCount())
+    .toBe(collectionGetsBeforeToggle + 1);
+  expect(network.dashboardGetCount()).toBe(dashboardGetsBeforeToggle);
 
   const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
     '{{title}}',
@@ -541,11 +571,6 @@ test('celebrates only the confirmed final pinned Collection completion and stays
     }),
   ).toBeVisible();
 
-  await expect(
-    pinnedSection.locator('.shared-achievement-confirmation'),
-  ).toHaveCount(0, { timeout: 5_000 });
-  await expect(pinnedSection.getByText('Milch')).toBeVisible();
-
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
@@ -555,6 +580,16 @@ test('celebrates only the confirmed final pinned Collection completion and stays
     fullPage: true,
     animations: 'disabled',
   });
+
+  const appleOpenName = m5s3.collection.markOpen.replace('{{title}}', 'Äpfel');
+  await pinnedSection.getByRole('button', { name: appleOpenName }).click();
+  await expect(
+    pinnedSection.locator('.shared-achievement-confirmation'),
+  ).toHaveAttribute('data-presence', 'exiting');
+  await expect(
+    pinnedSection.locator('.shared-achievement-confirmation'),
+  ).toHaveCount(0);
+  await expect(pinnedSection.getByText('Milch')).toBeVisible();
 });
 
 test('keeps the pinned Collection compact on Expanded Web without introducing a dashboard grid', async ({
@@ -577,10 +612,80 @@ test('keeps the pinned Collection compact on Expanded Web without introducing a 
   );
   expect(sectionWidth).toBeLessThan(900);
 
+  await pinnedSection
+    .getByRole('button', { name: m5s5.today.pinnedCollection.addAction })
+    .click();
+  const addDialog = page.getByRole('dialog', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await expect(addDialog).toBeVisible();
+  const dialogWidth = await addDialog.evaluate(
+    (element) => element.getBoundingClientRect().width,
+  );
+  expect(dialogWidth).toBeLessThan(700);
+  await page.keyboard.press('Escape');
+  await expect(addDialog).toHaveCount(0);
+  await expect(
+    pinnedSection.getByRole('button', {
+      name: m5s5.today.pinnedCollection.addAction,
+    }),
+  ).toBeFocused();
+
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
   await page.screenshot({
     path: testInfo.outputPath('today-pinned-collection-1280-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
+
+test('keeps the add task and plus usable across Compact widths and 320px 200-percent reflow', async ({
+  page,
+}, testInfo) => {
+  await installMocks(page, { initiallyPinned: true });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await signIn(page);
+
+  for (const width of [360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    const pinnedSection = page.locator('.today-section-pinned-collection');
+    const addButton = pinnedSection.getByRole('button', {
+      name: m5s5.today.pinnedCollection.addAction,
+    });
+    await expect(addButton).toBeVisible();
+    const target = await addButton.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return { width: rect.width, height: rect.height };
+    });
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+    await expectNoHorizontalOverflow(page);
+  }
+
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  const pinnedSection = page.locator('.today-section-pinned-collection');
+  const addButton = pinnedSection.getByRole('button', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await addButton.click();
+  const addDialog = page.getByRole('dialog', {
+    name: m5s5.today.pinnedCollection.addAction,
+  });
+  await expect(addDialog).toBeVisible();
+  await expect(addDialog.getByLabel(m5s3.collection.itemTitle)).toBeFocused();
+  await expect(
+    addDialog.getByRole('button', { name: m5s3.collection.addItem }),
+  ).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'today-pinned-collection-add-320-dark-200pct-reduced-motion.png',
+    ),
     fullPage: true,
     animations: 'disabled',
   });

@@ -3,6 +3,8 @@ import { type MouseEvent, type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
+import type { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
+import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
@@ -830,6 +832,8 @@ export function TodayPage({
   profilesApi,
   spacesApi,
   dailyCheckInsApi,
+  dailyQuoteApi,
+  entitlementApi,
   collectionsApi,
   account,
 }: {
@@ -837,6 +841,8 @@ export function TodayPage({
   spaceId: string;
   spacesApi?: SpacesApi;
   dailyCheckInsApi?: DailyCheckInsApi;
+  dailyQuoteApi?: DailyQuoteApi;
+  entitlementApi?: EntitlementsApi;
   collectionsApi?: CollectionsApi;
   loadMemoryImage?: (
     memoryId: string,
@@ -1240,11 +1246,11 @@ export function TodayPage({
             <DailyInsightsEntry />
           ) : null}
 
-          {account?.id && apis.dailyQuote && apis.entitlements ? (
+          {account?.id && dailyQuoteApi && entitlementApi ? (
             <DailyQuoteCard
               key={`${account.id}:${spaceId}`}
-              quoteApi={apis.dailyQuote}
-              entitlementsApi={apis.entitlements}
+              quoteApi={dailyQuoteApi}
+              entitlementsApi={entitlementApi}
               accountId={account.id}
               spaceId={spaceId}
               partnerName={partner?.displayName}

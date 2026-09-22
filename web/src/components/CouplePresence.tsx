@@ -16,6 +16,7 @@ export interface CouplePresenceAvatarAction {
   ref?: Ref<HTMLButtonElement>;
   expanded?: boolean;
   controls?: string;
+  hasPopup?: 'dialog' | 'menu';
 }
 
 export interface CouplePresenceProps {
@@ -125,6 +126,7 @@ export function CouplePresence({
             actionRef={avatarAction?.ref}
             actionExpanded={avatarAction?.expanded}
             actionControls={avatarAction?.controls}
+            actionHasPopup={avatarAction?.hasPopup}
           />
           {avatarAdornment ? (
             <div className="couple-presence-avatar-adornment">

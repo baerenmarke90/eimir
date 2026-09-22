@@ -12,10 +12,7 @@ const COLLECTION_ID = '00000000-0000-0000-0000-000000000050';
 const ITEM_ID = '00000000-0000-0000-0000-000000000051';
 const TEST_NOW = '2026-09-01T10:00:00Z';
 
-async function signIn(
-  page: Page,
-  email = 'anna@example.org',
-): Promise<void> {
+async function signIn(page: Page, email = 'anna@example.org'): Promise<void> {
   await page.getByLabel(de.login.email).fill(email);
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
@@ -506,9 +503,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
             : currentAccountId === SECOND_ACCOUNT_ID
               ? 'Bea'
               : 'Anna',
-          id: isPartner
-            ? '00000000-0000-0000-0000-000000000022'
-            : PROFILE_ID,
+          id: isPartner ? '00000000-0000-0000-0000-000000000022' : PROFILE_ID,
           preferences: [],
           profileAttachmentId: null,
           updatedAt: TEST_NOW,
@@ -614,7 +609,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     );
     await page.getByRole('button', { name: navigation.notifications }).click();
     const notificationsRequest = await notificationsRequestPromise;
-    expect(notificationsRequest.headers().authorization).toBe('Bearer access-b');
+    expect(notificationsRequest.headers().authorization).toBe(
+      'Bearer access-b',
+    );
 
     const storedSession = await page.evaluate(() => {
       const value = window.sessionStorage.getItem('eimir-session-v1');

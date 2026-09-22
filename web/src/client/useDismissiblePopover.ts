@@ -4,12 +4,24 @@ import { useLocation } from 'react-router-dom';
 export interface UseDismissiblePopoverOptions {
   onClose?: () => void;
   closeOnRouteChange?: boolean;
+  /**
+   * Whether Escape restores focus to the trigger immediately. A consumer that
+   * owns a retained exit presentation (e.g. via `useOverlayPresence`) sets
+   * this to `false` and restores focus itself once presence actually ends,
+   * so focus does not jump to the trigger while a modal layer is still
+   * visibly exiting.
+   */
+  restoreFocusOnEscape?: boolean;
 }
 
 export function useDismissiblePopover(
   options: UseDismissiblePopoverOptions = {},
 ) {
-  const { onClose, closeOnRouteChange = true } = options;
+  const {
+    onClose,
+    closeOnRouteChange = true,
+    restoreFocusOnEscape = true,
+  } = options;
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -73,7 +85,7 @@ export function useDismissiblePopover(
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        close(true);
+        close(restoreFocusOnEscape);
       }
     }
 
@@ -84,7 +96,7 @@ export function useDismissiblePopover(
       document.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen, close]);
+  }, [isOpen, close, restoreFocusOnEscape]);
 
   return {
     isOpen,

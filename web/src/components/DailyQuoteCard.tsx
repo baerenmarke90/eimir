@@ -184,7 +184,6 @@ function PreferencesContent({
           {t('dailyQuote.cancel')}
         </button>
       </div>
-
     </div>
   );
 }

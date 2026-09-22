@@ -32,6 +32,10 @@ export function ShortTaskSheet({
   onClose,
   children,
   initialFocusRef,
+  isDirty = false,
+  isCloseBlocked = false,
+  onDiscardRequested,
+  onCloseBlocked,
   restoreFocusRef,
   role = 'dialog',
   className = '',
@@ -44,6 +48,10 @@ export function ShortTaskSheet({
   onClose: () => void;
   children: ReactNode;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  isDirty?: boolean;
+  isCloseBlocked?: boolean;
+  onDiscardRequested?: () => void;
+  onCloseBlocked?: () => void;
   restoreFocusRef?: RefObject<HTMLElement | null>;
   role?: 'dialog' | 'alertdialog';
   className?: string;
@@ -64,8 +72,10 @@ export function ShortTaskSheet({
   const suppressNextClickRef = useRef(false);
   const closeSheet = useEditorHistoryEntry({
     isActive: open,
-    isDirty: false,
-    onDiscardRequested: onClose,
+    isDirty,
+    isCloseBlocked,
+    onDiscardRequested: onDiscardRequested ?? onClose,
+    onCloseBlocked,
     onClose,
   });
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');

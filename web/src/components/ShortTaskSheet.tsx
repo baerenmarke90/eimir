@@ -74,7 +74,6 @@ interface DragGestureHandlers {
   finish: (
     input: DragInput,
     identifier: number,
-    clientX: number,
     clientY: number,
     allowDismiss: boolean,
   ) => DragFinishResult;
@@ -350,7 +349,6 @@ export function ShortTaskSheet({
   function finishDragGesture(
     input: DragInput,
     identifier: number,
-    clientX: number,
     clientY: number,
     allowDismiss: boolean,
   ): DragFinishResult {
@@ -493,7 +491,6 @@ export function ShortTaskSheet({
       const result = gestureHandlersRef.current?.finish(
         'touch',
         identifier,
-        touch?.clientX ?? dragStartXRef.current,
         touch?.clientY ?? dragStartYRef.current,
         allowDismiss,
       );
@@ -623,7 +620,6 @@ export function ShortTaskSheet({
         const result = gestureHandlersRef.current?.finish(
           'pointer',
           event.pointerId,
-          event.clientX,
           event.clientY,
           true,
         );
@@ -640,7 +636,6 @@ export function ShortTaskSheet({
         const result = gestureHandlersRef.current?.finish(
           'pointer',
           event.pointerId,
-          event.clientX,
           event.clientY,
           false,
         );

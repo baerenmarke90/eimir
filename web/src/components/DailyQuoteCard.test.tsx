@@ -284,9 +284,7 @@ describe('DailyQuoteCard', () => {
     await user.click(screen.getByRole('button', { name: dailyQuote.done }));
 
     expect(await screen.findByText(dailyQuote.conflict)).toBeTruthy();
-    expect(
-      screen.getByRole('checkbox', { name: /Mindfulness/u }),
-    ).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Mindfulness/u })).toBeTruthy();
     expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1);
   });
 

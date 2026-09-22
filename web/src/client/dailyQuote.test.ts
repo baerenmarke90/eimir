@@ -40,11 +40,7 @@ describe('dailyQuote client ownership', () => {
     ).toBe(true);
     expect(
       isDailyQuoteConflict(
-        new ClientProblemError(
-          'conflict',
-          409,
-          'RESOURCE_VERSION_CONFLICT',
-        ),
+        new ClientProblemError('conflict', 409, 'RESOURCE_VERSION_CONFLICT'),
       ),
     ).toBe(true);
   });

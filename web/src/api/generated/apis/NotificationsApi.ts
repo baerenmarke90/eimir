@@ -34,6 +34,16 @@ import {
     NotificationsReadAllResultToJSON,
 } from '../models/NotificationsReadAllResult';
 import {
+    type PartnerQuickActionAccepted,
+    PartnerQuickActionAcceptedFromJSON,
+    PartnerQuickActionAcceptedToJSON,
+} from '../models/PartnerQuickActionAccepted';
+import {
+    type PartnerQuickActionCreate,
+    PartnerQuickActionCreateFromJSON,
+    PartnerQuickActionCreateToJSON,
+} from '../models/PartnerQuickActionCreate';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
@@ -66,6 +76,11 @@ export interface MarkAllNotificationsReadRequest {
 export interface MarkNotificationReadRequest {
     notificationId: string;
     spaceId: string;
+}
+
+export interface SendPartnerQuickActionRequest {
+    spaceId: string;
+    partnerQuickActionCreate: PartnerQuickActionCreate;
 }
 
 export interface SendThinkingOfYouRequest {
@@ -271,6 +286,61 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async markNotificationRead(requestParameters: MarkNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
         const response = await this.markNotificationReadRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for sendPartnerQuickAction without sending the request
+     */
+    async sendPartnerQuickActionRequestOpts(requestParameters: SendPartnerQuickActionRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling sendPartnerQuickAction().'
+            );
+        }
+
+        if (requestParameters['partnerQuickActionCreate'] == null) {
+            throw new runtime.RequiredError(
+                'partnerQuickActionCreate',
+                'Required parameter "partnerQuickActionCreate" was null or undefined when calling sendPartnerQuickAction().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-quick-actions`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PartnerQuickActionCreateToJSON(requestParameters['partnerQuickActionCreate']),
+        };
+    }
+
+    /**
+     * Send Partner Quick Action
+     */
+    async sendPartnerQuickActionRaw(requestParameters: SendPartnerQuickActionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerQuickActionAccepted>> {
+        const requestOptions = await this.sendPartnerQuickActionRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerQuickActionAcceptedFromJSON(jsonValue));
+    }
+
+    /**
+     * Send Partner Quick Action
+     */
+    async sendPartnerQuickAction(requestParameters: SendPartnerQuickActionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerQuickActionAccepted> {
+        const response = await this.sendPartnerQuickActionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

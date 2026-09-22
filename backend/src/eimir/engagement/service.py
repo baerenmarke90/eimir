@@ -174,6 +174,11 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         push.ensure_deliveries_for_source_event(session, event.id)
         return
 
+    if event_type in {EventType.PARTNER_KISS, EventType.PARTNER_CHECK_IN}:
+        thinking.project_support_gesture_notification(session, event)
+        push.ensure_deliveries_for_source_event(session, event.id)
+        return
+
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)

@@ -51,10 +51,6 @@ const m5s5 = {
     storySummaryMilestonesCount_one: '{{count}} Meilenstein',
     storySummaryMilestonesCount_other: '{{count}} Meilensteine',
     itemFallback: 'Gemeinsamer Eintrag',
-    thinkingOfYouButton: 'Ich denke an dich',
-    thinkingOfYouSent: 'Liebesgruß gesendet! ❤️',
-    thinkingOfYouCooldownBlocked:
-      'Du hast gerade schon ein Zeichen geschickt. In {{minutes}} Minuten kannst du wieder „Ich denke an dich“ senden.',
   },
   today: {
     headerTitle: 'Heute',
@@ -257,6 +253,8 @@ const m5s5 = {
   notificationKind: {
     COMMENT_CREATED: 'Neuer Kommentar',
     THINKING_OF_YOU: 'Denkt an dich',
+    PARTNER_KISS: 'Kuss',
+    PARTNER_CHECK_IN: 'Check-in',
     REMINDER_DUE: 'Erinnerung fällig',
     generic: 'Neue Benachrichtigung',
   },
@@ -265,6 +263,10 @@ const m5s5 = {
     COMMENT_CREATED: '{{name}} hat einen Kommentar hinterlassen',
     THINKING_OF_YOU: '{{name}} denkt an dich.',
     THINKING_OF_YOU_ANON: 'Jemand denkt an dich.',
+    PARTNER_KISS: '{{name}} schickt dir einen Kuss.',
+    PARTNER_KISS_ANON: 'Dein Partner schickt dir einen Kuss.',
+    PARTNER_CHECK_IN: '{{name}} fragt, wie es dir geht.',
+    PARTNER_CHECK_IN_ANON: 'Dein Partner fragt, wie es dir geht.',
     REMINDER_DUE_WITH_TARGET: 'Erinnerung: {{target}}',
     REMINDER_DUE: 'Eine Erinnerung steht an',
   },

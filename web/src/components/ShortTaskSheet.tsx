@@ -91,6 +91,7 @@ export function ShortTaskSheet({
   onDiscardRequested,
   onCloseBlocked,
   restoreFocusRef,
+  onPresenceChange,
   role = 'dialog',
   className = '',
   closeLabel,
@@ -107,6 +108,7 @@ export function ShortTaskSheet({
   onDiscardRequested?: () => void;
   onCloseBlocked?: () => void;
   restoreFocusRef?: RefObject<HTMLElement | null>;
+  onPresenceChange?: (present: boolean) => void;
   role?: 'dialog' | 'alertdialog';
   className?: string;
   closeLabel?: string;
@@ -156,6 +158,10 @@ export function ShortTaskSheet({
 
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
   const { present, presenceState, completeExit } = useOverlayPresence(open);
+
+  useEffect(() => {
+    onPresenceChange?.(present);
+  }, [onPresenceChange, present]);
 
   function isCompactPresentation(): boolean {
     return (

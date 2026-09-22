@@ -139,62 +139,71 @@
 }
 
 /*
- * Today treats the nudge as part of the partner identity, not as a standalone
- * card-level CTA. The 44px hit target remains intact while the visual surface
- * is deliberately just icon + copy beneath the relationship duration.
+ * #1206 Today hero: person-first hierarchy. The pair is the relationship
+ * action entry point, followed by names and the relationship duration.
+ * Keep the generic CouplePresence contract unchanged for other consumers.
  */
-.today-hero.couple-presence-card .couple-presence-actions {
-  margin-top: calc(-1 * var(--space-2));
+.today-hero.couple-presence-card {
+  overflow: visible;
 }
 
-.today-hero.couple-presence-card .today-hero-action-container {
-  justify-content: flex-start;
+.today-hero.couple-presence-card .couple-presence-main {
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
 }
 
-.today-hero.couple-presence-card .thinking-of-you-btn.today-hero-action {
-  justify-content: flex-start;
-  min-height: 44px;
-  padding: 0 var(--space-1);
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--color-brand-text);
-  box-shadow: none;
-  font-size: 0.9rem;
-  font-weight: 700;
+.today-hero.couple-presence-card .couple-presence-avatar-anchor {
+  align-self: center;
+  margin: var(--space-1) 0;
 }
 
-.today-hero.couple-presence-card
-  .thinking-of-you-btn.today-hero-action:hover:not(:disabled) {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-brand-strong);
-  box-shadow: none;
-  transform: translateX(2px);
+.today-hero.couple-presence-card .couple-presence-details {
+  width: 100%;
+  align-items: center;
+  gap: var(--space-1);
 }
 
-.today-hero.couple-presence-card
-  .thinking-of-you-btn.today-hero-action.state-sent {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-shared);
-  box-shadow: none;
-  transform: none;
+.today-hero.couple-presence-card .couple-presence-title {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
-.today-hero.couple-presence-card
-  .thinking-of-you-btn.today-hero-action.state-cooldown {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-text-secondary);
-  box-shadow: none;
+.today-hero.couple-presence-card .couple-presence-meta {
+  max-width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.today-hero.couple-presence-card .couple-presence-duration-btn,
+.today-hero.couple-presence-card .couple-presence-duration-text {
+  max-width: 100%;
+  justify-content: center;
+  white-space: normal;
+  text-align: center;
 }
 
 .today-hero.couple-presence-card
-  .thinking-of-you-btn.today-hero-action.state-error {
-  border-color: transparent;
-  background: transparent;
-  color: var(--color-error);
-  box-shadow: none;
-  transform: none;
+  .couple-presence-avatar-adornment
+  .daily-energy-avatar-control {
+  left: 40px;
+}
+
+.today-hero.couple-presence-card
+  .couple-presence-avatar-adornment
+  .daily-energy-partner-battery {
+  right: -8px;
+}
+
+@media (max-width: 359px) {
+  .today-hero.couple-presence-card {
+    padding-inline: var(--space-4);
+  }
+
+  .today-hero.couple-presence-card .couple-presence-title {
+    font-size: 1.25rem;
+  }
 }

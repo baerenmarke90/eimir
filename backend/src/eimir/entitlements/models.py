@@ -66,6 +66,7 @@ class Capability(StrEnum):
     GAMES_COUPLE = "games.couple"
     DAILY_INSIGHTS = "daily.insights"
     DAILY_QUOTE = "daily.quote"
+    PARTNER_QUICK_ACTIONS_EXTENDED = "partner.quick_actions.extended"
 
 
 class EntitlementGrant(IdMixin, TimestampMixin, Base):

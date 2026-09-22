@@ -82,6 +82,7 @@ jobs:
             web/e2e/test-results-pr-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/shell-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/partner-quick-actions-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/private-area-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/*story-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/wish-detective-*.png
@@ -186,6 +187,7 @@ jobs:
             web/e2e/test-results-changed-specs/**/planning-*.png
             web/e2e/test-results-changed-specs/**/shell-*.png
             web/e2e/test-results-changed-specs/**/today-*.png
+            web/e2e/test-results-changed-specs/**/partner-quick-actions-*.png
             web/e2e/test-results-changed-specs/**/private-area-*.png
             web/e2e/test-results-changed-specs/**/*story-*.png
             web/e2e/test-results-changed-specs/**/wish-detective-*.png
@@ -257,6 +259,7 @@ jobs:
             web/e2e/test-results-full-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/shell-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/partner-quick-actions-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/private-area-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/*story-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/wish-detective-*.png

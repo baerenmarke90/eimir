@@ -41,6 +41,18 @@ export function getNotificationItemTitle(
       : t('m5s5.notificationAction.THINKING_OF_YOU_ANON');
   }
 
+  if (item.kind === 'PARTNER_KISS') {
+    return actorName
+      ? t('m5s5.notificationAction.PARTNER_KISS', { name: actorName })
+      : t('m5s5.notificationAction.PARTNER_KISS_ANON');
+  }
+
+  if (item.kind === 'PARTNER_CHECK_IN') {
+    return actorName
+      ? t('m5s5.notificationAction.PARTNER_CHECK_IN', { name: actorName })
+      : t('m5s5.notificationAction.PARTNER_CHECK_IN_ANON');
+  }
+
   if (item.kind === 'REMINDER_DUE') {
     return targetTitle
       ? t('m5s5.notificationAction.REMINDER_DUE_WITH_TARGET', {

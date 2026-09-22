@@ -69,6 +69,35 @@ describe('useDismissiblePopover', () => {
     document.body.removeChild(outside);
   });
 
+  it('can hand outside and Escape dismissal to a modal consumer', () => {
+    const { result } = renderHook(
+      () =>
+        useDismissiblePopover({
+          dismissOnOutsidePointerDown: false,
+          dismissOnEscape: false,
+        }),
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    );
+
+    act(() => {
+      result.current.open();
+    });
+
+    act(() => {
+      document.body.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true }),
+      );
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      result.current.close();
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
   it('closes on Escape key and restores focus to trigger', () => {
     const { result } = renderHook(() => useDismissiblePopover(), {
       wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter>,

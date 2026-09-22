@@ -16,7 +16,6 @@ import { spaceConfigurationQueryKey } from '../client/spaceConfiguration';
 import { i18n } from '../i18n';
 import de from '../i18n/locales/de';
 import m5s5 from '../i18n/locales/m5s5';
-import relationshipComponents from '../i18n/locales/relationshipComponents';
 import {
   formatRelationshipDuration,
   formatTodayHeaderDate,
@@ -88,7 +87,7 @@ describe('TodayPage', () => {
     expect(label).toContain('21. September 2026');
   });
 
-  it('renders couple presence hero, days together, thinking-of-you button, and the composed modules', () => {
+  it('renders couple presence hero, days together, the partner quick-actions trigger, and the composed modules', () => {
     const html = renderTodayPage({
       space: {
         id: 'space-1',
@@ -130,7 +129,8 @@ describe('TodayPage', () => {
     expect(html).toContain('Heute');
     expect(html).toContain('Marie');
     expect(html).toContain('420');
-    expect(html).toContain('today-hero-action');
+    expect(html).toContain('partner-avatar-pair-action');
+    expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
     expect(html).toContain('Weekend trip to Paris');
     expect(html).toContain('Park Picnic');
     expect(html).toContain('Morning Smile');
@@ -311,44 +311,36 @@ describe('TodayPage', () => {
     ).not.toContain('daily-energy-checkin');
   });
 
-  it('reflects the server-authoritative Thinking-of-you cooldown from the Dashboard on load (regression #790/#791)', () => {
-    const html = renderTodayPage({
-      space: {
-        id: 'space-1',
-        partner: { id: 'partner-1', displayName: 'Marie' },
-      },
-      relationshipDuration: null,
-      upcoming: [],
-      recentShared: [],
-      retrospective: null,
-      thinkingOfYouAvailableAt: new Date(Date.now() + 29 * 60_000),
-    });
+  // The Thinking-of-you cooldown itself is rendered inside the avatar's
+  // Compact/Expanded quick-actions surface (PartnerQuickActions), which does
+  // not mount into the static markup below until the trigger is activated.
+  // Its cooldown reflection is unit-tested directly in
+  // PartnerQuickActions.test.tsx (regression #790/#791); this level only
+  // guards that Today keeps wiring the Dashboard-authoritative
+  // thinkingOfYouAvailableAt value through the trigger without crashing,
+  // whether it is set or null.
+  it.each([
+    ['a future cooldown', new Date(Date.now() + 29 * 60_000)],
+    ['no cooldown', null],
+  ])(
+    'renders the partner quick-actions trigger in the hero regardless of thinkingOfYouAvailableAt (%s)',
+    (_label, thinkingOfYouAvailableAt) => {
+      const html = renderTodayPage({
+        space: {
+          id: 'space-1',
+          partner: { id: 'partner-1', displayName: 'Marie' },
+        },
+        relationshipDuration: null,
+        upcoming: [],
+        recentShared: [],
+        retrospective: null,
+        thinkingOfYouAvailableAt,
+      });
 
-    const expectedLabel = relationshipComponents.thinkingOfYouCooldown.replace(
-      '{{minutes}}',
-      '29',
-    );
-    expect(html).toContain('state-cooldown');
-    expect(html).toContain(expectedLabel);
-    expect(html).toContain('disabled=""');
-  });
-
-  it('does not show a cooldown when Dashboard.thinkingOfYouAvailableAt is null', () => {
-    const html = renderTodayPage({
-      space: {
-        id: 'space-1',
-        partner: { id: 'partner-1', displayName: 'Marie' },
-      },
-      relationshipDuration: null,
-      upcoming: [],
-      recentShared: [],
-      retrospective: null,
-      thinkingOfYouAvailableAt: null,
-    });
-
-    expect(html).not.toContain('state-cooldown');
-    expect(html).toContain('today-hero-action');
-  });
+      expect(html).toContain('partner-avatar-pair-action');
+      expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
+    },
+  );
 
   it('renders welcoming new-space experience when there are no items yet, without hiding the couple presence hero', () => {
     const html = renderTodayPage({
@@ -2029,7 +2021,7 @@ it('never exposes the internal `keepsake` term to users', () => {
   expect(html).toContain(m5s5.today.keepsake.kicker);
 });
 
-it('keeps the Thinking-of-you action in the hero, unchanged by the recomposition', () => {
+it('keeps the partner quick-actions trigger in the hero, unchanged by the recomposition', () => {
   const html = renderTodayPage({
     space: { id: 'space-1', partner: { id: 'p-1', displayName: 'Sam' } },
     relationshipDuration: { daysTogether: 100 },
@@ -2046,11 +2038,11 @@ it('keeps the Thinking-of-you action in the hero, unchanged by the recomposition
   });
 
   const heroIndex = html.indexOf('today-hero');
-  const actionIndex = html.indexOf('today-hero-action');
+  const actionIndex = html.indexOf('partner-avatar-pair-action');
   const upcomingIndex = html.indexOf('today-section-upcoming');
   expect(actionIndex).toBeGreaterThan(heroIndex);
   expect(upcomingIndex).toBeGreaterThan(actionIndex);
-  expect(html).toContain(m5s5.dashboard.thinkingOfYouButton);
+  expect(html).toContain('aria-controls="partner-quick-actions-sheet"');
 });
 
 describe('formatRelationshipDuration', () => {

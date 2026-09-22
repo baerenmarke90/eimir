@@ -1,0 +1,540 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
+import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
+import type { DashboardView } from '../api/generated/models/DashboardView';
+import { dashboardQueryKey } from '../client/dashboardQueries';
+import {
+  loadPartnerQuickActionsCapability,
+  PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
+  partnerQuickActionsEntitlementQueryKey,
+} from '../client/partnerQuickActions';
+import {
+  ClientProblemError,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { MORE_PROFILE_ROUTE } from '../client/routes';
+import { postSnackbar } from '../client/snackbar';
+import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
+import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useMediaQuery } from '../client/useMediaQuery';
+import type { M4ProductApis } from '../client/m4Product';
+import { useTranslation } from '../i18n';
+import type { CouplePresenceAvatarAction } from './CouplePresence';
+import { ProMark } from './ProMark';
+import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { usePresentationPresence } from './useOverlayPresence';
+import './PartnerQuickActions.css';
+
+const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
+const SUPPORT_GESTURE_COOLDOWN_CODE = 'SUPPORT_GESTURE_COOLDOWN';
+const SPACE_MODULE_DISABLED_CODE = 'SPACE_MODULE_DISABLED';
+const EXPANDED_QUERY = '(min-width: 840px)';
+
+type PartnerAction = 'THINKING' | 'KISS' | 'CHECK_IN';
+
+type ActionResult =
+  | {
+      action: 'THINKING';
+      availableAt: Date;
+    }
+  | {
+      action: 'KISS' | 'CHECK_IN';
+      availableAt: Date;
+    };
+
+interface FeedbackState {
+  tone: 'success' | 'error';
+  text: string;
+}
+
+async function normalizeCall<T>(request: () => Promise<T>): Promise<T> {
+  try {
+    return await request();
+  } catch (error) {
+    throw await normalizeClientError(error);
+  }
+}
+
+export interface PartnerQuickActionsProps {
+  apis: M4ProductApis;
+  entitlementApi?: EntitlementsApi;
+  accountId: string;
+  spaceId: string;
+  partnerName: string;
+  thinkingOfYouAvailableAt: Date | null;
+  children: (
+    avatarAction: CouplePresenceAvatarAction,
+    avatarOverlay: ReactNode,
+  ) => ReactNode;
+}
+
+/**
+ * One relationship-native entry point for deliberate partner gestures.
+ *
+ * The avatar pair owns discovery. Compact presentation delegates modality and
+ * retained exit to ShortTaskSheet; Expanded presentation delegates outside /
+ * Escape dismissal to the existing dismissible-popover primitive.
+ */
+export function PartnerQuickActions({
+  apis,
+  entitlementApi,
+  accountId,
+  spaceId,
+  partnerName,
+  thinkingOfYouAvailableAt,
+  children,
+}: PartnerQuickActionsProps) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const isExpanded = useMediaQuery(EXPANDED_QUERY);
+  const firstActionRef = useRef<HTMLButtonElement>(null);
+  const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  const inFlightRef = useRef(false);
+  const titleId = useId();
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
+  const [compactPresent, setCompactPresent] = useState(false);
+  const [, setCooldownRevision] = useState(0);
+  const [localThinkingCooldown, setLocalThinkingCooldown] =
+    useState<Date | null>(null);
+  const [extendedCooldowns, setExtendedCooldowns] = useState<
+    Partial<Record<'KISS' | 'CHECK_IN', Date>>
+  >({});
+
+  const { isOpen, close, toggle, triggerRef, panelRef } = useDismissiblePopover(
+    {
+      restoreFocusOnEscape: isExpanded,
+      dismissOnOutsidePointerDown: isExpanded,
+      dismissOnEscape: isExpanded,
+    },
+  );
+  const desiredExpandedOpen = isOpen && isExpanded && !compactPresent;
+  const {
+    present: expandedPresent,
+    presenceState: expandedPresenceState,
+    completeExit: completeExpandedExit,
+  } = usePresentationPresence(desiredExpandedOpen);
+  const compactOpen = isOpen && !isExpanded && !expandedPresent;
+
+  const applyCooldown = (action: PartnerAction, availableAt: Date) => {
+    if (action === 'THINKING') {
+      setLocalThinkingCooldown(availableAt);
+      queryClient.setQueryData<DashboardView>(
+        dashboardQueryKey(spaceId),
+        (old) =>
+          old
+            ? {
+                ...old,
+                thinkingOfYouAvailableAt: availableAt,
+              }
+            : old,
+      );
+      return;
+    }
+
+    setExtendedCooldowns((current) => ({
+      ...current,
+      [action]: availableAt,
+    }));
+  };
+
+  const capabilityQuery = useQuery({
+    queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
+    queryFn: ({ signal }) => {
+      if (!entitlementApi) {
+        throw new ClientProblemError(
+          'server',
+          undefined,
+          'ENTITLEMENT_API_UNAVAILABLE',
+        );
+      }
+      return loadPartnerQuickActionsCapability(entitlementApi, spaceId, signal);
+    },
+    enabled: isOpen,
+    retry: false,
+    staleTime: 60_000,
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (action: PartnerAction): Promise<ActionResult> => {
+      if (action === 'THINKING') {
+        const accepted = await normalizeCall(() =>
+          apis.notifications.sendThinkingOfYou({
+            spaceId,
+            thinkingOfYouCreate: { clientRequestId: crypto.randomUUID() },
+          }),
+        );
+        return {
+          action,
+          availableAt: accepted.thinkingOfYouAvailableAt,
+        };
+      }
+
+      const accepted = await normalizeCall(() =>
+        apis.notifications.sendPartnerQuickAction({
+          spaceId,
+          partnerQuickActionCreate: {
+            kind:
+              action === 'KISS'
+                ? SupportGestureKind.KISS
+                : SupportGestureKind.CHECK_IN,
+            clientRequestId: crypto.randomUUID(),
+          },
+        }),
+      );
+      return { action, availableAt: accepted.availableAt };
+    },
+    onSuccess: (result) => {
+      applyCooldown(result.action, result.availableAt);
+      if (result.action === 'THINKING') {
+        setFeedback({
+          tone: 'success',
+          text: t('partnerQuickActions.sentThinking'),
+        });
+        postSnackbar('snackbar.partnerQuickActionThinkingSent');
+        return;
+      }
+
+      if (result.action === 'KISS') {
+        setFeedback({
+          tone: 'success',
+          text: t('partnerQuickActions.sentKiss'),
+        });
+        postSnackbar('snackbar.partnerQuickActionKissSent');
+      } else {
+        setFeedback({
+          tone: 'success',
+          text: t('partnerQuickActions.sentCheckIn'),
+        });
+        postSnackbar('snackbar.partnerQuickActionCheckInSent');
+      }
+    },
+    onError: (error, action) => {
+      if (
+        error instanceof ClientProblemError &&
+        error.code === SPACE_MODULE_DISABLED_CODE
+      ) {
+        postSnackbar('snackbar.supportGesturesModuleDisabled');
+        void refreshSpaceConfiguration(queryClient, accountId, spaceId);
+        close();
+        return;
+      }
+
+      if (
+        error instanceof ClientProblemError &&
+        (error.code === THINKING_OF_YOU_COOLDOWN_CODE ||
+          error.code === SUPPORT_GESTURE_COOLDOWN_CODE)
+      ) {
+        if (
+          error.retryAfterSeconds !== undefined &&
+          error.retryAfterSeconds > 0
+        ) {
+          applyCooldown(
+            action,
+            new Date(Date.now() + error.retryAfterSeconds * 1000),
+          );
+        }
+        setFeedback({
+          tone: 'error',
+          text: t('partnerQuickActions.cooldown'),
+        });
+        postSnackbar('snackbar.partnerQuickActionCooldown');
+        return;
+      }
+
+      if (
+        error instanceof ClientProblemError &&
+        error.code === PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED
+      ) {
+        void queryClient.invalidateQueries({
+          queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
+        });
+        setFeedback({
+          tone: 'error',
+          text: t('partnerQuickActions.premiumHint'),
+        });
+        return;
+      }
+
+      setFeedback({
+        tone: 'error',
+        text: t('partnerQuickActions.sendError'),
+      });
+    },
+  });
+
+  const resolvedThinkingCooldown =
+    localThinkingCooldown ?? thinkingOfYouAvailableAt;
+  const cooldownNow = Date.now();
+  const nextCooldownAt = [
+    resolvedThinkingCooldown?.getTime(),
+    extendedCooldowns.KISS?.getTime(),
+    extendedCooldowns.CHECK_IN?.getTime(),
+  ]
+    .filter(
+      (deadline): deadline is number =>
+        deadline !== undefined && deadline > cooldownNow,
+    )
+    .reduce<number | null>(
+      (earliest, deadline) =>
+        earliest === null ? deadline : Math.min(earliest, deadline),
+      null,
+    );
+
+  useEffect(() => {
+    if (!isOpen || nextCooldownAt === null) return;
+    // The server-owned absolute deadline remains the source of truth. This
+    // timeout only causes a presentation refresh when that deadline passes; it
+    // never delays domain state, sending, or overlay lifecycle.
+    const timeout = window.setTimeout(
+      () => setCooldownRevision((revision) => revision + 1),
+      Math.max(0, nextCooldownAt - Date.now() + 1),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [isOpen, nextCooldownAt]);
+
+  const thinkingCoolingDown = Boolean(
+    resolvedThinkingCooldown &&
+      resolvedThinkingCooldown.getTime() > cooldownNow,
+  );
+  const kissCoolingDown = Boolean(
+    extendedCooldowns.KISS && extendedCooldowns.KISS.getTime() > cooldownNow,
+  );
+  const checkInCoolingDown = Boolean(
+    extendedCooldowns.CHECK_IN &&
+      extendedCooldowns.CHECK_IN.getTime() > cooldownNow,
+  );
+
+  const submit = async (action: PartnerAction) => {
+    if (inFlightRef.current || mutation.isPending) return;
+    inFlightRef.current = true;
+    setFeedback(null);
+    try {
+      await mutation.mutateAsync(action);
+    } catch {
+      // Mutation callbacks own all user-visible error semantics.
+    } finally {
+      inFlightRef.current = false;
+    }
+  };
+
+  const navigateToPro = () => {
+    const destination = `${MORE_PROFILE_ROUTE}#profile-premium`;
+    if (!isExpanded && sheetRef.current) {
+      sheetRef.current.closeForNavigation(() => navigate(destination));
+      return;
+    }
+    close();
+    navigate(destination);
+  };
+
+  const hasExtendedCapability = capabilityQuery.data === true;
+  const capabilityReady = capabilityQuery.isSuccess;
+
+  const actionList = (
+    <div className="partner-quick-actions-content">
+      <p className="partner-quick-actions-intro">
+        {t('partnerQuickActions.intro')}
+      </p>
+      <div className="partner-quick-actions-list">
+        <button
+          ref={firstActionRef}
+          type="button"
+          className="partner-quick-action"
+          disabled={mutation.isPending || thinkingCoolingDown}
+          onClick={() => void submit('THINKING')}
+        >
+          <span className="partner-quick-action-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
+            </svg>
+          </span>
+          <span className="partner-quick-action-copy">
+            <strong>{t('partnerQuickActions.thinking')}</strong>
+            <span>
+              {thinkingCoolingDown
+                ? t('partnerQuickActions.cooldown')
+                : t('partnerQuickActions.thinkingHint')}
+            </span>
+          </span>
+        </button>
+
+        {capabilityQuery.isLoading ? (
+          <div className="partner-quick-actions-capability" role="status">
+            {t('partnerQuickActions.loadingPremium')}
+          </div>
+        ) : capabilityQuery.isError || !entitlementApi ? (
+          <div className="partner-quick-actions-capability" role="status">
+            <span>{t('partnerQuickActions.unavailablePremium')}</span>
+            <button
+              type="button"
+              className="partner-quick-actions-retry"
+              onClick={() => void capabilityQuery.refetch()}
+            >
+              {t('partnerQuickActions.retryPremium')}
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="partner-quick-action"
+              disabled={
+                mutation.isPending || (hasExtendedCapability && kissCoolingDown)
+              }
+              onClick={() =>
+                hasExtendedCapability ? void submit('KISS') : navigateToPro()
+              }
+            >
+              <span className="partner-quick-action-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 20.3 4.7 13A4.8 4.8 0 0 1 11.5 6.2l.5.6.5-.6A4.8 4.8 0 0 1 19.3 13Z" />
+                  <path d="m18.2 3 .5 1.3L20 4.8l-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5Z" />
+                </svg>
+              </span>
+              <span className="partner-quick-action-copy">
+                <strong>{t('partnerQuickActions.kiss')}</strong>
+                <span>
+                  {hasExtendedCapability && kissCoolingDown
+                    ? t('partnerQuickActions.cooldown')
+                    : t('partnerQuickActions.kissHint')}
+                </span>
+              </span>
+              {!hasExtendedCapability ? (
+                <ProMark label={t('partnerQuickActions.pro')} />
+              ) : null}
+            </button>
+
+            <button
+              type="button"
+              className="partner-quick-action"
+              disabled={
+                mutation.isPending ||
+                (hasExtendedCapability && checkInCoolingDown)
+              }
+              onClick={() =>
+                hasExtendedCapability
+                  ? void submit('CHECK_IN')
+                  : navigateToPro()
+              }
+            >
+              <span
+                className="partner-quick-action-icon partner-quick-action-icon-checkin"
+                aria-hidden="true"
+              >
+                ?
+              </span>
+              <span className="partner-quick-action-copy">
+                <strong>{t('partnerQuickActions.checkIn')}</strong>
+                <span>
+                  {hasExtendedCapability && checkInCoolingDown
+                    ? t('partnerQuickActions.cooldown')
+                    : t('partnerQuickActions.checkInHint')}
+                </span>
+              </span>
+              {!hasExtendedCapability ? (
+                <ProMark label={t('partnerQuickActions.pro')} />
+              ) : null}
+            </button>
+          </>
+        )}
+      </div>
+
+      {feedback ? (
+        <p
+          className={`partner-quick-actions-feedback is-${feedback.tone}${
+            feedback.tone === 'success' ? ' eimir-motion-success' : ''
+          }`}
+          role={feedback.tone === 'error' ? 'alert' : 'status'}
+          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
+        >
+          {feedback.text}
+        </p>
+      ) : null}
+
+      {capabilityReady && capabilityQuery.data === false ? (
+        <p className="partner-quick-actions-premium-note">
+          {t('partnerQuickActions.premiumHint')}{' '}
+          <button type="button" onClick={navigateToPro}>
+            {t('partnerQuickActions.premiumAction')}
+          </button>
+        </p>
+      ) : null}
+    </div>
+  );
+
+  // Keep retained presentation authoritative in both breakpoint directions.
+  // This mirrors the notification-sheet handoff from #1220: the two surfaces
+  // never coexist, and the currently presented surface keeps its stable id
+  // until its real completion signal releases ownership.
+  const surfaceId = compactPresent
+    ? 'partner-quick-actions-sheet'
+    : expandedPresent || isExpanded
+      ? 'partner-quick-actions-popover'
+      : 'partner-quick-actions-sheet';
+
+  const avatarAction: CouplePresenceAvatarAction = {
+    onActivate: () => {
+      setFeedback(null);
+      toggle();
+    },
+    label: t('partnerQuickActions.trigger', { partner: partnerName }),
+    ref: triggerRef as RefObject<HTMLButtonElement>,
+    expanded: isOpen,
+    controls: surfaceId,
+    hasPopup: 'dialog',
+  };
+
+  const expandedPopover = expandedPresent ? (
+    <section
+      ref={panelRef as RefObject<HTMLElement>}
+      id={surfaceId}
+      className="partner-quick-actions-popover"
+      data-presence={expandedPresenceState}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={titleId}
+      onAnimationEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          expandedPresenceState !== 'exiting'
+        )
+          return;
+        completeExpandedExit();
+      }}
+    >
+      <h2 id={titleId} className="partner-quick-actions-title">
+        {t('partnerQuickActions.title', { partner: partnerName })}
+      </h2>
+      {actionList}
+    </section>
+  ) : null;
+
+  return (
+    <>
+      {children(avatarAction, expandedPopover)}
+      <ShortTaskSheet
+        ref={sheetRef}
+        id={surfaceId}
+        open={compactOpen}
+        title={t('partnerQuickActions.title', { partner: partnerName })}
+        onClose={() => close()}
+        initialFocusRef={firstActionRef}
+        restoreFocusRef={triggerRef}
+        onPresenceChange={setCompactPresent}
+        className="partner-quick-actions-sheet"
+      >
+        {actionList}
+      </ShortTaskSheet>
+    </>
+  );
+}

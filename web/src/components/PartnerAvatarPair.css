@@ -9,6 +9,28 @@
   align-items: center;
 }
 
+.partner-avatar-pair-action {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+
+.partner-avatar-pair-action:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+.partner-avatar-pair-action:active {
+  transform: scale(0.98);
+}
+
 .partner-avatar {
   position: relative;
   display: inline-flex;
@@ -94,6 +116,18 @@
   margin-left: -0.85rem;
 }
 
+.partner-avatar-pair-hero .partner-avatar {
+  width: 80px;
+  height: 80px;
+  font-size: 1.55rem;
+  box-shadow: none;
+}
+
+.partner-avatar-pair-hero .partner-avatar-secondary,
+.partner-avatar-pair-hero .partner-avatar-waiting {
+  margin-left: -1.15rem;
+}
+
 /* Presence fallback for consumers that only provide a semantic status. */
 .partner-presence-pip {
   position: absolute;
@@ -150,6 +184,15 @@
   border-width: 3px;
 }
 
+.partner-avatar-pair-hero .partner-presence-avatar-state,
+.partner-avatar-pair-hero .partner-presence-pip {
+  right: 3px;
+  bottom: 3px;
+  width: 16px;
+  height: 16px;
+  border-width: 3px;
+}
+
 .partner-avatar-pair-small .partner-presence-avatar-state {
   width: 8px;
   height: 8px;
@@ -167,4 +210,14 @@
   min-height: 44px;
   width: 100%;
   height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-avatar-pair-action {
+    transition: none;
+  }
+
+  .partner-avatar-pair-action:active {
+    transform: none;
+  }
 }

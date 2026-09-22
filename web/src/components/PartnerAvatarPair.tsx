@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { type Ref, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { personInitials } from './PersonIdentity';
 import './PartnerAvatarPair.css';
@@ -8,7 +8,7 @@ export interface PartnerAvatarPerson {
   imageUrl?: string | null;
 }
 
-export type PartnerAvatarSize = 'small' | 'medium' | 'large';
+export type PartnerAvatarSize = 'small' | 'medium' | 'large' | 'hero';
 export type PartnerPresenceStatus = 'active' | 'recent' | 'waiting' | 'unknown';
 
 export interface PartnerAvatarPairProps {
@@ -19,6 +19,12 @@ export interface PartnerAvatarPairProps {
   statusLabel?: string;
   className?: string;
   onInviteClick?: () => void;
+  onActivate?: () => void;
+  actionLabel?: string;
+  actionRef?: Ref<HTMLButtonElement>;
+  actionExpanded?: boolean;
+  actionControls?: string;
+  actionHasPopup?: 'dialog' | 'menu';
 }
 
 function SingleAvatar({
@@ -67,6 +73,12 @@ export function PartnerAvatarPair({
   statusLabel,
   className = '',
   onInviteClick,
+  onActivate,
+  actionLabel,
+  actionRef,
+  actionExpanded,
+  actionControls,
+  actionHasPopup,
 }: PartnerAvatarPairProps) {
   const { t } = useTranslation();
   const groupLabel = useMemo(() => {
@@ -84,12 +96,9 @@ export function PartnerAvatarPair({
     ? `${groupLabel}. ${statusLabel}`
     : groupLabel;
 
-  return (
-    <section
-      className={`partner-avatar-pair partner-avatar-pair-${size} status-${status} ${className}`}
-      aria-label={accessibleGroupLabel}
-    >
-      <div className="partner-avatar-stack">
+  const content = (
+    <>
+      <span className="partner-avatar-stack">
         <SingleAvatar
           person={primaryPerson}
           size={size}
@@ -116,7 +125,7 @@ export function PartnerAvatarPair({
             </span>
           </button>
         )}
-      </div>
+      </span>
 
       {secondaryPerson &&
       statusLabel &&
@@ -133,6 +142,38 @@ export function PartnerAvatarPair({
           title={t('couplePresenceActive')}
         />
       ) : null}
+    </>
+  );
+
+  if (secondaryPerson && onActivate) {
+    return (
+      <button
+        ref={actionRef}
+        type="button"
+        className={`partner-avatar-pair partner-avatar-pair-action partner-avatar-pair-${size} status-${status} ${className}`}
+        aria-label={
+          actionLabel
+            ? statusLabel
+              ? `${actionLabel}. ${statusLabel}`
+              : actionLabel
+            : accessibleGroupLabel
+        }
+        aria-expanded={actionExpanded}
+        aria-controls={actionControls}
+        aria-haspopup={actionHasPopup}
+        onClick={onActivate}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <section
+      className={`partner-avatar-pair partner-avatar-pair-${size} status-${status} ${className}`}
+      aria-label={accessibleGroupLabel}
+    >
+      {content}
     </section>
   );
 }

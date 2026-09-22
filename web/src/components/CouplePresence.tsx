@@ -1,13 +1,23 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import {
   PartnerAvatarPair,
   type PartnerAvatarPerson,
+  type PartnerAvatarSize,
   type PartnerPresenceStatus,
 } from './PartnerAvatarPair';
 import { firstNameFromDisplayName } from '../client/personalName';
 import { useTranslation } from 'react-i18next';
 import './CouplePresence.css';
+
+export interface CouplePresenceAvatarAction {
+  onActivate: () => void;
+  label: string;
+  ref?: Ref<HTMLButtonElement>;
+  expanded?: boolean;
+  controls?: string;
+  hasPopup?: 'dialog' | 'menu';
+}
 
 export interface CouplePresenceProps {
   spaceTitle: string;
@@ -21,6 +31,9 @@ export interface CouplePresenceProps {
   onDurationClick?: () => void;
   onInviteClick?: () => void;
   avatarAdornment?: ReactNode;
+  avatarOverlay?: ReactNode;
+  avatarSize?: PartnerAvatarSize;
+  avatarAction?: CouplePresenceAvatarAction;
   actions?: ReactNode;
   headingLevel?: 'h1' | 'h2';
   className?: string;
@@ -38,6 +51,9 @@ export function CouplePresence({
   onDurationClick,
   onInviteClick,
   avatarAdornment,
+  avatarOverlay,
+  avatarSize = 'large',
+  avatarAction,
   actions,
   headingLevel = 'h2',
   className = '',
@@ -103,14 +119,21 @@ export function CouplePresence({
             statusLabel={
               secondaryPerson ? (resolvedStatusText ?? undefined) : undefined
             }
-            size="large"
+            size={avatarSize}
             onInviteClick={onInviteClick}
+            onActivate={avatarAction?.onActivate}
+            actionLabel={avatarAction?.label}
+            actionRef={avatarAction?.ref}
+            actionExpanded={avatarAction?.expanded}
+            actionControls={avatarAction?.controls}
+            actionHasPopup={avatarAction?.hasPopup}
           />
           {avatarAdornment ? (
             <div className="couple-presence-avatar-adornment">
               {avatarAdornment}
             </div>
           ) : null}
+          {avatarOverlay}
         </div>
 
         <div className="couple-presence-details">

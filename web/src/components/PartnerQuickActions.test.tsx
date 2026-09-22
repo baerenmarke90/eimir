@@ -422,7 +422,9 @@ describe('PartnerQuickActions', () => {
       .closest('button') as HTMLButtonElement;
     fireEvent.click(thinkingButton);
 
-    expect((await screen.findByRole('alert')).textContent).toContain(copy.cooldown);
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      copy.cooldown,
+    );
     expect(thinkingButton.disabled).toBe(true);
     fireEvent.click(thinkingButton);
     expect(sendThinkingOfYou).toHaveBeenCalledTimes(1);
@@ -458,7 +460,9 @@ describe('PartnerQuickActions', () => {
 
     fireEvent.click(kissButton);
 
-    expect((await screen.findByRole('alert')).textContent).toContain(copy.cooldown);
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      copy.cooldown,
+    );
     await waitFor(() => expect(kissButton.disabled).toBe(true));
     fireEvent.click(kissButton);
     expect(sendPartnerQuickAction).toHaveBeenCalledTimes(1);

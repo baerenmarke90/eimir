@@ -10,6 +10,7 @@ const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 interface DailyQuoteMockOptions {
   capabilities?: string[];
   quoteAvailable?: boolean;
+  preferenceEnabled?: boolean;
 }
 
 interface PreferencePatch {
@@ -20,6 +21,7 @@ interface PreferencePatch {
 async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   const capabilities = options.capabilities ?? ['daily.quote'];
   const quoteAvailable = options.quoteAvailable ?? true;
+  let preferenceEnabled = options.preferenceEnabled ?? true;
   const requests = {
     quote: 0,
     catalog: 0,
@@ -204,8 +206,8 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       requests.quote += 1;
       await json({
         checkedOn: '2026-09-22',
-        enabled: true,
-        quote: quoteAvailable
+        enabled: preferenceEnabled,
+        quote: preferenceEnabled && quoteAvailable
           ? {
               id: 'quote-browser-001',
               text: 'A calm thought for today.',
@@ -260,7 +262,7 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       await json(
         {
           accountId: ACCOUNT_ID,
-          enabled: true,
+          enabled: preferenceEnabled,
           selectedSourceIds: ['classic_literature'],
           selectedCategoryIds: ['love'],
           locale: null,
@@ -281,10 +283,13 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
         body,
         ifMatch: request.headers()['if-match'],
       });
+      if (typeof body.enabled === 'boolean') {
+        preferenceEnabled = body.enabled;
+      }
       await json(
         {
           accountId: ACCOUNT_ID,
-          enabled: true,
+          enabled: preferenceEnabled,
           selectedSourceIds: body.selectedSourceIds ?? ['classic_literature'],
           selectedCategoryIds: body.selectedCategoryIds ?? ['love'],
           locale: null,
@@ -442,6 +447,40 @@ test('personal Daily Quote preferences stay caller-only and round-trip If-Match'
     }),
   );
   expect(JSON.stringify(requests.patches)).not.toContain(PARTNER_ID);
+});
+
+test('personal visibility hides the Wir card and Settings -> Wir restores it', async ({
+  page,
+}) => {
+  const requests = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  const sheet = page.locator('.daily-quote-preferences-sheet');
+  const sheetToggle = sheet.getByRole('switch', {
+    name: dailyQuote.enabledLabel,
+  });
+  await expect(sheetToggle).toHaveAttribute('aria-checked', 'true');
+  await sheetToggle.click();
+  await page.getByRole('button', { name: dailyQuote.done }).click();
+
+  await expect(page.locator('.daily-quote-card')).toHaveCount(0);
+  expect(requests.patches.at(-1)?.body).toEqual(
+    expect.objectContaining({ enabled: false }),
+  );
+
+  await page.goto('/more/settings/today');
+  const settingsToggle = page
+    .locator('#settings-daily-quote')
+    .getByRole('switch', { name: dailyQuote.enabledLabel });
+  await expect(settingsToggle).toHaveAttribute('aria-checked', 'false');
+  await settingsToggle.click();
+  await expect(settingsToggle).toHaveAttribute('aria-checked', 'true');
+  expect(requests.patches.at(-1)?.body).toEqual({ enabled: true });
+
+  await page.goto('/today');
+  await expect(page.getByText('A calm thought for today.')).toBeVisible();
 });
 
 test('Free Spaces see quiet discovery without quote or preference reads', async ({

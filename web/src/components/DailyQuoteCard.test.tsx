@@ -134,6 +134,7 @@ function renderCard({
           dailyQuotePreferencePatch,
         }: {
           dailyQuotePreferencePatch: {
+            enabled?: boolean | null;
             selectedCategoryIds?: string[] | null;
             selectedSourceIds?: string[] | null;
           };
@@ -141,6 +142,8 @@ function renderCard({
           rawResponse(
             {
               ...preference,
+              enabled:
+                dailyQuotePreferencePatch.enabled ?? preference.enabled,
               selectedCategoryIds:
                 dailyQuotePreferencePatch.selectedCategoryIds ??
                 preference.selectedCategoryIds,
@@ -293,6 +296,39 @@ describe('DailyQuoteCard', () => {
     expect(api.updateDailyQuotePreferencesRaw).not.toHaveBeenCalled();
   });
 
+  it('disables the personal quote without dropping source/category selections', async () => {
+    const user = userEvent.setup();
+    const api = renderCard();
+
+    await user.click(
+      await screen.findByRole('button', { name: dailyQuote.settingsAria }),
+    );
+    const visibility = screen.getByRole('switch', {
+      name: dailyQuote.enabledLabel,
+    });
+    expect(visibility.getAttribute('aria-checked')).toBe('true');
+
+    await user.click(visibility);
+    expect(visibility.getAttribute('aria-checked')).toBe('false');
+    await user.click(screen.getByRole('button', { name: dailyQuote.done }));
+
+    await waitFor(() =>
+      expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledTimes(1),
+    );
+    expect(api.updateDailyQuotePreferencesRaw).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spaceId: SPACE_ID,
+        ifMatch: '"quote-pref:2"',
+        dailyQuotePreferencePatch: {
+          enabled: false,
+          selectedCategoryIds: ['love'],
+          selectedSourceIds: ['classic_literature'],
+        },
+      }),
+      undefined,
+    );
+  });
+
   it('keeps the preference draft open on an optimistic concurrency conflict', async () => {
     const user = userEvent.setup();
     const api = renderCard({
@@ -341,6 +377,7 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: expect.objectContaining({
+          enabled: true,
           selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         }),

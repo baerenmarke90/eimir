@@ -201,7 +201,7 @@ CHAPTERS: tuple[ChapterStory, ...] = (
         title="Draußen unterwegs",
         description="Spaziergänge, Waldwege, Picknick und Zeit am Wasser.",
         start_days_ago=190,
-        end_days_ago=14,
+        end_days_ago=5,
         memory_keys=("lake-walk", "picnic", "day-trip", "weekend-water", "rain-walk"),
         place="lake",
     ),

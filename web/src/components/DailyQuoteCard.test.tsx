@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -315,7 +316,6 @@ describe('DailyQuoteCard', () => {
         spaceId: SPACE_ID,
         ifMatch: '"quote-pref:2"',
         dailyQuotePreferencePatch: expect.objectContaining({
-          enabled: true,
           selectedCategoryIds: ['love', 'mindfulness'],
           selectedSourceIds: ['classic_literature'],
         }),

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import logging
-import tempfile
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -438,18 +439,35 @@ def _media_rows(
     return sorted(result, key=lambda item: item["sourceId"])
 
 
+def _new_plaintext_export_buffer() -> IO[bytes]:
+    """Return a seekable plaintext buffer without a filesystem-backed temp file.
+
+    Linux production workers use an anonymous memfd so large exports do not
+    consume Python heap while the archive is assembled. Platforms without
+    memfd support fall back to BytesIO. In either case plaintext never spills
+    into a worker filesystem path before the completed archive enters the
+    encrypted MediaStore.
+    """
+    memfd_create = getattr(os, "memfd_create", None)
+    if callable(memfd_create):
+        descriptor = memfd_create(
+            "eimir-transfer-export",
+            flags=getattr(os, "MFD_CLOEXEC", 0),
+        )
+        return os.fdopen(descriptor, "w+b")
+    return io.BytesIO()
+
+
 def build_export_archive(
     session: Session,
     authorization: AuthorizationContext,
     scope: TransferScope,
 ) -> IO[bytes]:
-    """Build one deterministic snapshot archive in a spooled temporary file."""
+    """Build one deterministic snapshot archive in an anonymous memory buffer."""
     rows = _portable_rows(session, authorization, scope)
     media = _media_rows(session, rows)
     accounts = _source_accounts(session, authorization.space_id)
-    output = tempfile.SpooledTemporaryFile(  # noqa: SIM115
-        max_size=16 * 1024 * 1024, mode="w+b"
-    )
+    output = _new_plaintext_export_buffer()
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:

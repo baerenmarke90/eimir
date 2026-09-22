@@ -36,25 +36,21 @@
 }
 
 .short-task-sheet[open][data-presence="exiting"] {
-  animation: none;
   pointer-events: none;
-  opacity: 0;
-  transform: translateY(100dvh);
-  transition:
-    transform var(--duration-transition) var(--easing-exit),
-    opacity var(--duration-transition) var(--easing-exit);
+  animation: short-task-sheet-exit var(--duration-transition) var(--easing-exit)
+    forwards;
+  transition: none;
 }
 
 .short-task-sheet::backdrop {
   background-color: var(--color-scrim);
   animation: short-task-sheet-backdrop-enter var(--duration-context)
     var(--easing-enter);
-  transition: background-color var(--duration-transition) var(--easing-exit);
 }
 
 .short-task-sheet[open][data-presence="exiting"]::backdrop {
-  background-color: transparent;
-  animation: none;
+  animation: short-task-sheet-backdrop-exit var(--duration-transition)
+    var(--easing-exit) forwards;
 }
 
 .short-task-sheet-header {
@@ -171,6 +167,26 @@
   }
 }
 
+@keyframes short-task-sheet-exit {
+  to {
+    opacity: 0;
+    transform: translateY(100dvh);
+  }
+}
+
+@keyframes short-task-sheet-exit-expanded {
+  to {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@keyframes short-task-sheet-backdrop-exit {
+  to {
+    background-color: transparent;
+  }
+}
+
 @media (min-width: 840px) {
   .short-task-sheet {
     inset: 0;
@@ -181,7 +197,7 @@
   }
 
   .short-task-sheet[open][data-presence="exiting"] {
-    transform: translateY(var(--space-2));
+    animation-name: short-task-sheet-exit-expanded;
   }
 
   .short-task-sheet-header {

@@ -129,9 +129,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
     }
     if (variant !== 'desktop' || !focusFirstItemOnOpenRef.current) return;
     focusFirstItemOnOpenRef.current = false;
-    panelRef.current
-      ?.querySelector<HTMLElement>('[role="menuitem"]')
-      ?.focus();
+    panelRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
   }, [open, panelRef, variant]);
 
   function openTarget(target: QuickCreateTarget): void {

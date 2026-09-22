@@ -17,7 +17,7 @@ import {
   saveDailyQuotePreferences,
   type DailyQuotePreferenceSnapshot,
 } from '../client/dailyQuote';
-import { clientProblemKind } from '../client/problemDetails';
+import { ClientProblemError, clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet } from './ShortTaskSheet';
@@ -296,6 +296,9 @@ export function DailyQuoteCard({
       snapshot: DailyQuotePreferenceSnapshot;
       nextDraft: DailyQuoteDraft;
     }) => {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        throw new ClientProblemError('offline');
+      }
       const patch: DailyQuotePreferencePatch = {
         selectedCategoryIds: nextDraft.categoryIds,
         selectedSourceIds: nextDraft.sourceIds,

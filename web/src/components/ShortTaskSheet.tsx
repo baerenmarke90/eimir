@@ -177,10 +177,6 @@ export function ShortTaskSheet({
       `${normalizedOffset}px`,
     );
     dialogRef.current?.style.setProperty(
-      '--short-task-sheet-drag-progress',
-      String(progress),
-    );
-    dialogRef.current?.style.setProperty(
       '--short-task-sheet-backdrop-opacity',
       String(1 - progress * 0.45),
     );
@@ -322,12 +318,6 @@ export function ShortTaskSheet({
     const deltaY = clientY - dragStartYRef.current;
     const absoluteX = Math.abs(deltaX);
     const absoluteY = Math.abs(deltaY);
-    dragMaxDistanceRef.current = Math.max(
-      dragMaxDistanceRef.current,
-      absoluteX,
-      absoluteY,
-    );
-
     if (!dragClaimedRef.current) {
       if (
         absoluteX <= COMPACT_DRAG_SLOP_PX &&
@@ -386,10 +376,6 @@ export function ShortTaskSheet({
 
     const deltaY = clientY - dragStartYRef.current;
     const offset = Math.max(0, deltaY);
-    dragMaxDistanceRef.current = Math.max(
-      dragMaxDistanceRef.current,
-      Math.abs(deltaY),
-    );
     dragPeakOffsetRef.current = Math.max(dragPeakOffsetRef.current, offset);
     const reversedUpward =
       dragPeakOffsetRef.current - offset >= COMPACT_DRAG_REVERSAL_CANCEL_PX;

@@ -70,7 +70,7 @@ export function ShortTaskSheet({
   const dragMaxDistanceRef = useRef(0);
   const dragPeakOffsetRef = useRef(0);
   const suppressNextClickRef = useRef(false);
-  const closeSheet = useEditorHistoryEntry({
+  const closeConfirmed = useEditorHistoryEntry({
     isActive: open,
     isDirty,
     isCloseBlocked,
@@ -78,6 +78,20 @@ export function ShortTaskSheet({
     onCloseBlocked,
     onClose,
   });
+  const requestDiscard = onDiscardRequested ?? onClose;
+
+  function requestClose(): void {
+    if (isCloseBlocked) {
+      onCloseBlocked?.();
+      return;
+    }
+    if (isDirty) {
+      requestDiscard();
+      return;
+    }
+    closeConfirmed();
+  }
+
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
   const { present, presenceState, completeExit } = useOverlayPresence(open);
 
@@ -100,7 +114,7 @@ export function ShortTaskSheet({
   }
 
   function commitDragDismiss(): void {
-    closeSheet();
+    requestClose();
   }
 
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>): void {
@@ -175,7 +189,7 @@ export function ShortTaskSheet({
 
   useImperativeHandle(ref, () => ({
     closeForNavigation(navigate) {
-      closeSheet(() => {
+      closeConfirmed(() => {
         // Auth/Space teardown may have ended this task during history removal.
         const dialog = dialogRef.current;
         if (!dialog?.isConnected) return;
@@ -250,7 +264,7 @@ export function ShortTaskSheet({
       }}
       onCancel={(event) => {
         event.preventDefault();
-        closeSheet();
+        requestClose();
       }}
       onAnimationEnd={(event) => {
         if (event.target !== event.currentTarget || presenceState !== 'exiting')
@@ -266,7 +280,7 @@ export function ShortTaskSheet({
           event.clientY < bounds.top ||
           event.clientY > bounds.bottom
         )
-          closeSheet();
+          requestClose();
       }}
     >
       <header className="short-task-sheet-header">
@@ -286,7 +300,7 @@ export function ShortTaskSheet({
               return;
             }
             suppressNextClickRef.current = false;
-            closeSheet();
+            requestClose();
           }}
         >
           <span className="short-task-sheet-drag-handle" aria-hidden="true" />

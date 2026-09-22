@@ -270,7 +270,7 @@ export function DailyEnergyCheckIn({
       return;
     }
     setOpen(false);
-  }, [dailyQuery.isError, online]);
+  }, [dailyQuery.isError, online, setOpen]);
 
   if (moduleDisabled || serverReportsModuleDisabled) return null;
 

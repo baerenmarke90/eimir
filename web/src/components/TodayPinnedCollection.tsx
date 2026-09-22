@@ -1,9 +1,4 @@
-import {
-  type FormEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';

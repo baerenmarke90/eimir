@@ -7,6 +7,7 @@ import taskSheets from './locales/taskSheets';
 import demo from './locales/demo';
 import dailyEnergy from './locales/dailyEnergy';
 import dailyInsights from './locales/dailyInsights';
+import dailyQuote from './locales/dailyQuote';
 import dailyVibe from './locales/dailyVibe';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
@@ -50,6 +51,7 @@ if (!i18n.isInitialized) {
           demo,
           dailyEnergy,
           dailyInsights,
+          dailyQuote,
           dailyVibe,
           games,
           importantDates,

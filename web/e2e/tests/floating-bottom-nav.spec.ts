@@ -580,6 +580,42 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('Quick Create sheet stays bounded at 360px and 430px Compact widths', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      const trigger = page.locator(
+        '.mobile-bottom-shell .quick-create-trigger',
+      );
+      await trigger.click();
+
+      const dialog = page.getByRole('dialog', {
+        name: navigation.quickCreateTitle,
+      });
+      await expect(dialog).toBeVisible();
+
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      if (!box) throw new Error(`Missing Quick Create bounds at ${width}px`);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      await expectNoHorizontalOverflow(page);
+
+      await dialog
+        .getByRole('button', { name: navigation.closeMenu })
+        .click();
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    }
+  });
+
   test('Quick Create floating panel in constrained height and 320px reflow maintains reachability and separation', async ({
     page,
   }) => {

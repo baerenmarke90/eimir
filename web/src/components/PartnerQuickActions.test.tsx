@@ -153,9 +153,11 @@ function mockResponsiveMatchMedia(): {
       addListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
         if (isExpandedQuery) expandedListeners.add(listener);
       }),
-      removeListener: vi.fn((listener: (event: MediaQueryListEvent) => void) => {
-        if (isExpandedQuery) expandedListeners.delete(listener);
-      }),
+      removeListener: vi.fn(
+        (listener: (event: MediaQueryListEvent) => void) => {
+          if (isExpandedQuery) expandedListeners.delete(listener);
+        },
+      ),
       addEventListener: vi.fn(
         (type: string, listener: (event: MediaQueryListEvent) => void) => {
           if (isExpandedQuery && type === 'change') {

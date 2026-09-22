@@ -33,7 +33,7 @@
     var(--easing-enter) both;
 }
 
-.partner-quick-actions-popover[data-presence='exiting'] {
+.partner-quick-actions-popover[data-presence="exiting"] {
   pointer-events: none;
   animation-name: partner-quick-actions-popover-exit;
   animation-timing-function: var(--easing-exit);

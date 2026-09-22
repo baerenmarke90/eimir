@@ -438,31 +438,30 @@ export function PartnerQuickActions({
     hasPopup: 'dialog',
   };
 
-  const expandedPopover =
-    expandedPresent ? (
-      <section
-        ref={panelRef as RefObject<HTMLElement>}
-        id={surfaceId}
-        className="partner-quick-actions-popover"
-        data-presence={expandedPresenceState}
-        role="dialog"
-        aria-modal="false"
-        aria-labelledby={titleId}
-        onAnimationEnd={(event) => {
-          if (
-            event.target !== event.currentTarget ||
-            expandedPresenceState !== 'exiting'
-          )
-            return;
-          completeExpandedExit();
-        }}
-      >
-        <h2 id={titleId} className="partner-quick-actions-title">
-          {t('partnerQuickActions.title', { partner: partnerName })}
-        </h2>
-        {actionList}
-      </section>
-    ) : null;
+  const expandedPopover = expandedPresent ? (
+    <section
+      ref={panelRef as RefObject<HTMLElement>}
+      id={surfaceId}
+      className="partner-quick-actions-popover"
+      data-presence={expandedPresenceState}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby={titleId}
+      onAnimationEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          expandedPresenceState !== 'exiting'
+        )
+          return;
+        completeExpandedExit();
+      }}
+    >
+      <h2 id={titleId} className="partner-quick-actions-title">
+        {t('partnerQuickActions.title', { partner: partnerName })}
+      </h2>
+      {actionList}
+    </section>
+  ) : null;
 
   return (
     <>

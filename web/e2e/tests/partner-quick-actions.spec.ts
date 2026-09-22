@@ -14,9 +14,17 @@ async function installMocks(
   {
     hasExtendedCapability = false,
     thinkingOfYouAvailableAt = null,
+    accountName = 'Anna',
+    partnerName = 'Ben',
+    accountProfileAttachmentId = null,
+    partnerProfileAttachmentId = null,
   }: {
     hasExtendedCapability?: boolean;
     thinkingOfYouAvailableAt?: string | null;
+    accountName?: string;
+    partnerName?: string;
+    accountProfileAttachmentId?: string | null;
+    partnerProfileAttachmentId?: string | null;
   } = {},
 ) {
   let entitlementGetCount = 0;
@@ -54,7 +62,7 @@ async function installMocks(
     }
     if (method === 'POST' && pathname === '/api/v1/auth/sign-in') {
       await json({
-        account: { displayName: 'Anna', id: ACCOUNT_ID },
+        account: { displayName: accountName, id: ACCOUNT_ID },
         tokens: {
           accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
           accessToken: 'quick-actions-access-token',
@@ -65,7 +73,7 @@ async function installMocks(
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/me') {
-      await json({ displayName: 'Anna', id: ACCOUNT_ID });
+      await json({ displayName: accountName, id: ACCOUNT_ID });
       return;
     }
     if (method === 'POST' && pathname === '/api/v1/auth/refresh') {
@@ -90,8 +98,8 @@ async function installMocks(
         id: SPACE_ID,
         createdAt: '2026-01-01T00:00:00Z',
         partners: [
-          { id: ACCOUNT_ID, displayName: 'Anna' },
-          { id: PARTNER_ID, displayName: 'Ben' },
+          { id: ACCOUNT_ID, displayName: accountName },
+          { id: PARTNER_ID, displayName: partnerName },
         ],
       });
       return;
@@ -139,14 +147,33 @@ async function installMocks(
       await json({
         accountId: isPartner ? PARTNER_ID : ACCOUNT_ID,
         createdAt: '2026-01-01T00:00:00Z',
-        displayName: isPartner ? 'Ben' : 'Anna',
+        displayName: isPartner ? partnerName : accountName,
         id: isPartner
           ? '00000000-0000-0000-0000-000000000022'
           : '00000000-0000-0000-0000-000000000020',
         preferences: [],
-        profileAttachmentId: null,
+        profileAttachmentId: isPartner
+          ? partnerProfileAttachmentId
+          : accountProfileAttachmentId,
         updatedAt: '2026-01-01T00:00:00Z',
         version: 1,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      (pathname ===
+        `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}/avatar/content` ||
+        pathname ===
+          `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}/avatar/content`)
+    ) {
+      const isPartner = pathname.includes(PARTNER_ID);
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/svg+xml',
+        body: isPartner
+          ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 160"><rect width="80" height="160" fill="#d8c5e7"/><circle cx="40" cy="52" r="22" fill="#7a5b95"/></svg>'
+          : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80"><rect width="160" height="80" fill="#f5cabb"/><circle cx="54" cy="40" r="22" fill="#8a4d5d"/></svg>',
       });
       return;
     }
@@ -164,7 +191,7 @@ async function installMocks(
       await json({
         space: {
           spaceId: SPACE_ID,
-          partner: { id: PARTNER_ID, displayName: 'Ben' },
+          partner: { id: PARTNER_ID, displayName: partnerName },
         },
         relationshipDuration: {
           daysTogether: 264,
@@ -299,9 +326,9 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
   expect(result.violations).toEqual([]);
 }
 
-function triggerLocator(page: Page) {
+function triggerLocator(page: Page, partnerName = 'Ben') {
   return page.getByRole('button', {
-    name: copy.trigger.replace('{{partner}}', 'Ben'),
+    name: copy.trigger.replace('{{partner}}', partnerName),
   });
 }
 
@@ -377,6 +404,69 @@ test('opens the Compact avatar quick-actions hub as one overlapping-pair trigger
   // restores focus to the avatar trigger (#1215 presence contract).
   await page.keyboard.press('Escape');
   await expect(sheet).toHaveCount(0);
+});
+
+test('preserves the pair composition with one real avatar, one fallback, and long names on Compact', async ({
+  page,
+}, testInfo) => {
+  const accountName = 'Alexandra-Christina Example';
+  const partnerName = 'Maximilian-Alexander Example';
+
+  await page.setViewportSize({ width: 360, height: 780 });
+  await installMocks(page, {
+    accountName,
+    partnerName,
+    accountProfileAttachmentId:
+      '00000000-0000-0000-0000-000000000101',
+  });
+  await signIn(page);
+
+  await expect(triggerLocator(page, partnerName)).toBeVisible();
+  await expect(
+    page.locator('.today-hero .partner-avatar-primary .partner-avatar-img'),
+  ).toBeVisible();
+  await expect(
+    page.locator(
+      '.today-hero .partner-avatar-secondary .partner-avatar-fallback',
+    ),
+  ).toBeVisible();
+  await expect(page.locator('.today-hero .couple-presence-title')).toHaveText(
+    `${accountName} & ${partnerName}`,
+  );
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'partner-quick-actions-360-long-names-mixed-avatars.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
+
+test('keeps two differently cropped real avatars readable as one overlapping pair', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page, {
+    accountProfileAttachmentId:
+      '00000000-0000-0000-0000-000000000101',
+    partnerProfileAttachmentId:
+      '00000000-0000-0000-0000-000000000102',
+  });
+  await signIn(page);
+
+  await expect(page.locator('.today-hero .partner-avatar-img')).toHaveCount(2);
+  await expect(triggerLocator(page)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'partner-quick-actions-390-real-avatars-different-crops.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
 });
 
 test('reflects a Dashboard-authoritative Thinking-of-you cooldown immediately on open (regression #790/#791)', async ({
@@ -526,8 +616,17 @@ test('presents a non-modal, dismissible popover on Expanded Web instead of the C
     animations: 'disabled',
   });
 
-  // Outside-pointer dismissal is the Expanded contract; Escape/backdrop are
-  // exercised on Compact above.
+  await page.keyboard.press('Tab');
+  await expect(popover.getByRole('button', { name: copy.thinking })).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(triggerLocator(page)).toBeFocused();
+  await expect(popover).toHaveCount(0);
+  await expect(triggerLocator(page)).toHaveAttribute('aria-expanded', 'false');
+
+  // Reopen to exercise outside-pointer dismissal independently of Escape.
+  await triggerLocator(page).click();
+  await expect(popover).toBeVisible();
   await page.mouse.click(20, 20);
   await expect(popover).toHaveCount(0);
   await expect(triggerLocator(page)).toHaveAttribute('aria-expanded', 'false');

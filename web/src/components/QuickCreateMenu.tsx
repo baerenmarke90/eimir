@@ -1,13 +1,13 @@
 import {
   type KeyboardEvent,
-  useCallback,
+  type RefObject,
   useEffect,
   useId,
   useRef,
-  useState,
 } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PRIVATE_GIFT_IDEAS_PATH } from '../client/privateArea';
+import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import {
   type AppRouteIcon,
   HEART_MOMENT_CREATE_ROUTE,
@@ -105,35 +105,34 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
   const menuId = useId();
   const navigate = useNavigate();
   const { captureOrigin } = useTaskOrigin();
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
+  const focusFirstItemOnOpenRef = useRef(false);
+  const {
+    isOpen: open,
+    open: openMenu,
+    close,
+    toggle,
+    triggerRef,
+    panelRef,
+  } = useDismissiblePopover({
+    // Desktop is a non-modal anchored menu. Compact hands dismissal and focus
+    // ownership to ShortTaskSheet so Escape/outside input has one owner.
+    dismissOnOutsidePointerDown: variant === 'desktop',
+    dismissOnEscape: variant === 'desktop',
+    restoreFocusOnEscape: variant === 'desktop',
+  });
 
-  const closeMenu = useCallback((): void => {
-    setOpen(false);
-    setTimeout(() => {
-      triggerRef.current?.focus();
-    }, 0);
-  }, []);
-
-  // The desktop menu remains a non-modal menu. Native modal dismissal belongs
-  // exclusively to ShortTaskSheet and cannot leak into a parent task.
   useEffect(() => {
-    if (!open || variant !== 'desktop') return;
-    function onPointerDown(event: MouseEvent): void {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    if (!open) {
+      focusFirstItemOnOpenRef.current = false;
+      return;
     }
-    function onKeyDown(event: globalThis.KeyboardEvent): void {
-      if (event.key === 'Escape') closeMenu();
-    }
-    document.addEventListener('mousedown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open, variant, closeMenu]);
+    if (variant !== 'desktop' || !focusFirstItemOnOpenRef.current) return;
+    focusFirstItemOnOpenRef.current = false;
+    panelRef.current
+      ?.querySelector<HTMLElement>('[role="menuitem"]')
+      ?.focus();
+  }, [open, panelRef, variant]);
 
   function openTarget(target: QuickCreateTarget): void {
     const handoff = () => {
@@ -154,7 +153,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
                   : undefined,
           })
         : null;
-      setOpen(false);
+      close();
       void navigate(target.to, {
         state: taskOriginKey ? { taskOriginKey } : undefined,
       });
@@ -165,7 +164,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
 
   function focusMenuItem(index: number): void {
     const items =
-      rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+      panelRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
     if (!items?.length) return;
     items[(index + items.length) % items.length]?.focus();
   }
@@ -173,13 +172,18 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
     if (event.key !== 'ArrowDown') return;
     event.preventDefault();
-    setOpen(true);
-    window.requestAnimationFrame(() => focusMenuItem(0));
+    if (open) {
+      focusMenuItem(0);
+      return;
+    }
+    focusFirstItemOnOpenRef.current = true;
+    openMenu();
   }
 
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
     const items = Array.from(
-      rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+      panelRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ??
+        [],
     );
     if (!items.length) return;
 
@@ -277,10 +281,10 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
   return (
     <div
       className={`quick-create quick-create-polished ${isMobile ? 'quick-create-mobile-variant' : 'quick-create-desktop-variant'}`}
-      ref={rootRef}
+      ref={panelRef as RefObject<HTMLDivElement>}
     >
       <button
-        ref={triggerRef}
+        ref={triggerRef as RefObject<HTMLButtonElement>}
         type="button"
         className={`button-link quick-create-trigger ${isMobile ? 'quick-create-fab' : ''}`}
         aria-haspopup={isMobile ? 'dialog' : 'menu'}
@@ -295,7 +299,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
         }
         aria-hidden={isMobile && open ? true : undefined}
         tabIndex={isMobile && open ? -1 : 0}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggle}
         onKeyDown={handleTriggerKeyDown}
       >
         <span className="shell-nav-icon" aria-hidden="true">
@@ -337,7 +341,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
           open={open}
           title={t('navigation.quickCreateTitle')}
           closeLabel={t('navigation.closeMenu')}
-          onClose={() => setOpen(false)}
+          onClose={() => close()}
           restoreFocusRef={triggerRef}
           className="quick-create-mobile-sheet"
         >

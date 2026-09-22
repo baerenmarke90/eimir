@@ -868,16 +868,19 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
   useEffect(() => {
     if (!tokens) return;
+    let cancelled = false;
+    const refreshToken = tokens.refreshToken;
     const expiresAtMs = new Date(tokens.accessExpiresAt).getTime();
     const timeUntilExpiry = expiresAtMs - Date.now();
     const refreshDelayMs = Math.max(0, timeUntilExpiry - 60_000);
 
     const timer = setTimeout(() => {
-      void refreshSessionTokens(config.apiBaseUrl, tokens.refreshToken)
+      void refreshSessionTokens(config.apiBaseUrl, refreshToken)
         .then((newTokens) => {
-          setTokens(newTokens);
+          if (!cancelled) setTokens(newTokens);
         })
         .catch((error: unknown) => {
+          if (cancelled) return;
           const status = (error as { status?: number })?.status;
           if (status === 401) {
             terminateSession();
@@ -885,7 +888,10 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         });
     }, refreshDelayMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [config.apiBaseUrl, terminateSession, tokens]);
 
   const serverAdminApis = useMemo(

@@ -1,5 +1,7 @@
 import { ActivityApi } from '../api/generated/apis/ActivityApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SearchApi } from '../api/generated/apis/SearchApi';
 import { Configuration } from '../api/generated/runtime';
@@ -27,6 +29,8 @@ import {
 export interface M4ProductApis {
   activity: ActivityApi;
   dashboard: DashboardApi;
+  dailyQuote: DailyQuoteApi;
+  entitlements: EntitlementsApi;
   notifications: NotificationsApi;
   search: SearchApi;
 }
@@ -43,6 +47,8 @@ export function createM4ProductApis(
   return {
     activity: new ActivityApi(configuration),
     dashboard: new DashboardApi(configuration),
+    dailyQuote: new DailyQuoteApi(configuration),
+    entitlements: new EntitlementsApi(configuration),
     notifications: new NotificationsApi(configuration),
     search: new SearchApi(configuration),
   };

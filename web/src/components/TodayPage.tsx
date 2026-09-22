@@ -56,6 +56,7 @@ import { resolvedLocale, useTranslation } from '../i18n';
 import { CouplePresence } from './CouplePresence';
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyInsightsEntry } from './DailyInsightsEntry';
+import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
 import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
@@ -1237,6 +1238,17 @@ export function TodayPage({
 
           {(vibeCheckEnabled || energyCheckInEnabled) && partner ? (
             <DailyInsightsEntry />
+          ) : null}
+
+          {account?.id && apis.dailyQuote && apis.entitlements ? (
+            <DailyQuoteCard
+              key={`${account.id}:${spaceId}`}
+              quoteApi={apis.dailyQuote}
+              entitlementsApi={apis.entitlements}
+              accountId={account.id}
+              spaceId={spaceId}
+              partnerName={partner?.displayName}
+            />
           ) : null}
 
           {isSparse ? (

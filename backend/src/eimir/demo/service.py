@@ -893,7 +893,7 @@ def _seed_planning(
         lea_context,
         title="Fürs Wochenende am See",
     )
-    for title, completed in (
+    for title, item_completed in (
         ("Picknickdecke einpacken", True),
         ("Thermoskanne mitnehmen", True),
         ("Obst und Snacks vorbereiten", False),
@@ -905,7 +905,7 @@ def _seed_planning(
             lea_context,
             weekend.id,
             title=title,
-            completed=completed,
+            completed=item_completed,
         )
     for account_id in (lea_context.account_id, alex_context.account_id):
         dashboard_preferences.set_module_preference(

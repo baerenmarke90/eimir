@@ -1508,11 +1508,23 @@
                 "type": "null"
               }
             ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibe Note"
           }
         },
         "required": [
           "version",
           "vibe",
+          "vibeNote",
           "energyLevel"
         ],
         "title": "DailyCheckInOwnView",
@@ -1599,6 +1611,18 @@
                 "type": "null"
               }
             ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibe Note"
           }
         },
         "title": "DailyCheckInUpdate",
@@ -1611,6 +1635,17 @@
           },
           "visibilityMode": {
             "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          },
+          "partnerNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Note"
           }
         },
         "required": [
@@ -17217,7 +17252,7 @@
                 }
               }
             },
-            "description": "Request parameters or domain inputs are invalid."
+            "description": "`DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE`: Vibe context requires a current-day Vibe."
           }
         },
         "summary": "Update Daily Check In Today",

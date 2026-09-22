@@ -29,6 +29,7 @@ import {
   usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
+import { useTransientFlag } from './useTransientFlag';
 import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
 const PAGE_SIZE = 20;
@@ -590,7 +591,8 @@ export function PrivateCollectionDetailPage({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [showTitleSaved, setShowTitleSaved] = useState(false);
+  const [showTitleSaved, showTitleSavedForFeedbackWindow] =
+    useTransientFlag(2000);
   const [itemOperationPending, setItemOperationPending] = useState(false);
 
   const collection = query.data;
@@ -625,8 +627,7 @@ export function PrivateCollectionDetailPage({
         setIsEditing(false);
         setConfirmDelete(false);
         setTitleDraft(updated.title);
-        setShowTitleSaved(true);
-        setTimeout(() => setShowTitleSaved(false), 2000);
+        showTitleSavedForFeedbackWindow();
       });
     },
   });

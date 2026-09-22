@@ -36,6 +36,7 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { useTransientFlag } from './useTransientFlag';
 import './SharedPlanningPages.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -172,7 +173,8 @@ export function CollectionProductPage({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [showTitleSaved, setShowTitleSaved] = useState(false);
+  const [showTitleSaved, showTitleSavedForFeedbackWindow] =
+    useTransientFlag(2500);
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
@@ -273,8 +275,7 @@ export function CollectionProductPage({
       await commitCollection(data);
       setIsEditing(false);
       setConfirmDelete(false);
-      setShowTitleSaved(true);
-      setTimeout(() => setShowTitleSaved(false), 2500);
+      showTitleSavedForFeedbackWindow();
     },
   });
 

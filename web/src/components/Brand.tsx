@@ -11,11 +11,20 @@ type BrandProps = {
 function BrandMark() {
   return (
     <span className="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 32 32" focusable="false">
-        <title>{PRODUCT_NAME}</title>
-        <circle cx="12" cy="16" r="6.75" />
-        <circle cx="20" cy="16" r="6.75" />
-      </svg>
+      <img
+        className="brand-logo-light"
+        src="/identity/logo-mark.svg"
+        alt=""
+        width="32"
+        height="32"
+      />
+      <img
+        className="brand-logo-dark"
+        src="/identity/logo-mark-dark.svg"
+        alt=""
+        width="32"
+        height="32"
+      />
     </span>
   );
 }

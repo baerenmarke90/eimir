@@ -514,7 +514,11 @@ export function DailyQuoteCard({
 
   return (
     <>
-      <section className="daily-quote-card" aria-labelledby="daily-quote-title">
+      <section
+        className="daily-quote-card"
+        data-color-world="warm"
+        aria-labelledby="daily-quote-title"
+      >
         <header className="daily-quote-header">
           <div className="daily-quote-heading-group">
             <span className="today-section-kicker">

@@ -3,8 +3,8 @@
   var legacyStorageKey = 'sidebyside.theme';
   var darkModeQuery = '(prefers-color-scheme: dark)';
   var themeColors = {
-    light: '#f6efea',
-    dark: '#18131d',
+    light: '#e6ebfa',
+    dark: '#171b2f',
   };
 
   var preference = 'system';

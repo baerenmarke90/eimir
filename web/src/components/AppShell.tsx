@@ -48,7 +48,10 @@ function NavigationLink({ route }: { route: AppRouteDefinition }) {
       aria-current={isActive ? 'page' : undefined}
     >
       <span className="shell-nav-icon">
-        <DestinationIcon icon={route.icon} />
+        <DestinationIcon
+          icon={route.icon}
+          variant={isActive ? 'filled' : 'outline'}
+        />
       </span>
       <span>{t(route.labelKey)}</span>
     </Link>

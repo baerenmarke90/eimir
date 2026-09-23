@@ -1,19 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <title>eimir. maskable app icon</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>eimir. maskable app icon</title><rect width="512" height="512" fill="#FAFBFF"/><g transform="translate(84 91) scale(1.32)">
+  <title id="title">eimir. mark: two overlapping color circles form an e with a white loop</title>
   <defs>
-    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#d93d59" />
-      <stop offset="100%" stop-color="#be2340" />
-    </linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFC788"/><stop offset=".53" stop-color="#FC9DA0"/><stop offset="1" stop-color="#ED7FAE"/></linearGradient>
+    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#75CCF2"/><stop offset=".5" stop-color="#668FE4"/><stop offset="1" stop-color="#8C6DCC"/></linearGradient>
+    <linearGradient id="join" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8F75D4"/><stop offset="1" stop-color="#5753B7"/></linearGradient>
   </defs>
-  <rect width="512" height="512" fill="url(#brandGrad)" />
-  <g
-    fill="none"
-    stroke="#ffffff"
-    stroke-width="34"
-    stroke-linecap="round"
-  >
-    <circle cx="196" cy="256" r="80" />
-    <circle cx="316" cy="256" r="80" />
-  </g>
-</svg>
+  <circle cx="94" cy="111" r="68" fill="url(#warm)"/>
+  <circle cx="154" cy="110" r="69" fill="url(#cool)"/>
+  <path d="M123.5 47.7A68 68 0 0 1 124.5 173.3A69 69 0 0 1 123.5 47.7Z" fill="url(#join)" opacity=".64"/>
+  <path d="M97 153C87 131 99 101 122 91C142 83 161 90 167 108C173 127 154 148 127 158C114 163 102 163 94 159" fill="none" stroke="#FFFEFD" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M94 158C104 184 133 192 159 169" fill="none" stroke="#2D3578" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="198" cy="181" r="14" fill="#44418D"/>
+</g></svg>

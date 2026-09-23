@@ -1,0 +1,64 @@
+/* Brand, icon and navigation composition for the selected #1225 identity. */
+.brand-mark {
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 0.9rem;
+  background: var(--color-surface-raised);
+  box-shadow: 0 4px 16px var(--color-shadow-soft);
+}
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.brand-mark .brand-logo-dark {
+  display: none;
+}
+.brand-inverse .brand-mark {
+  border-color: var(--color-entry-mark-border);
+  background: var(--color-entry-mark-surface);
+}
+.brand-inverse .brand-mark .brand-logo-light {
+  display: none;
+}
+.brand-inverse .brand-mark .brand-logo-dark {
+  display: block;
+}
+:root[data-theme="dark"] .brand-mark .brand-logo-light {
+  display: none;
+}
+:root[data-theme="dark"] .brand-mark .brand-logo-dark {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .brand-mark .brand-logo-light {
+    display: none;
+  }
+  :root:not([data-theme]) .brand-mark .brand-logo-dark {
+    display: block;
+  }
+}
+.brand-name strong {
+  letter-spacing: -0.045em;
+}
+.brand-dot {
+  color: var(--identity-icon-accent);
+}
+.shell-nav-icon svg.eimir-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+}
+.shell-nav-link-active .shell-nav-icon {
+  color: var(--color-brand-text);
+}
+.shell-nav-link-active::before {
+  background: var(--color-brand);
+}
+.eimir-icon .accent {
+  stroke: var(--identity-icon-accent);
+}
+.eimir-icon .cool {
+  stroke: var(--identity-icon-cool);
+}

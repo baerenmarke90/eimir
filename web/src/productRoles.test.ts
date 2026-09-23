@@ -99,11 +99,9 @@ describe('Product Reference v1 visual roles', () => {
 
   it('keeps links readable on actual base surfaces while preserving primary action colors', () => {
     const dark = css.match(/:root\[data-theme="dark"\] \{([^}]+)\}/)?.[1] ?? '';
-    expect(property('color-link-text')).toBe(
-      resolvedColor('light', 'brandStrong'),
-    );
+    expect(property('color-link-text')).toBe(resolvedColor('light', 'link'));
     expect(property('color-link-text', dark)).toBe(
-      resolvedColor('dark', 'brand'),
+      resolvedColor('dark', 'link'),
     );
     for (const scheme of ['light', 'dark'] as const) {
       const link = property(

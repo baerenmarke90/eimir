@@ -624,7 +624,11 @@ test('losing the quote capability shows discovery and restores personal preferen
 
   await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
   const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
-  await mindfulness.check();
+  await page
+    .locator('.daily-quote-preferences-sheet')
+    .getByText('Mindfulness', { exact: true })
+    .click();
+  await expect(mindfulness).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
   await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
@@ -660,7 +664,13 @@ test('signing into the partner account cannot reuse the previous account quote o
   await page.setViewportSize({ width: 390, height: 844 });
   await signIn(page);
   await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
-  await page.getByRole('checkbox', { name: /Mindfulness/u }).check();
+  await page
+    .locator('.daily-quote-preferences-sheet')
+    .getByText('Mindfulness', { exact: true })
+    .click();
+  await expect(
+    page.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
   await page.getByRole('button', { name: dailyQuote.done }).click();
   await expect.poll(() => requests.patches.length).toBe(1);
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, renderHook, waitFor } from '@testing-library/react';
-import { useRef } from 'react';
+import { StrictMode, useRef } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
@@ -30,6 +30,70 @@ describe('useModalLifecycle', () => {
 
     second.rerender({ active: false });
     expect(document.body.style.overflow).toBe('scroll');
+  });
+
+  it('ignores deferred StrictMode cleanup after a replayed modal activation', async () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'trigger';
+    document.body.append(trigger);
+    trigger.focus();
+
+    function Harness() {
+      const initialRef = useRef<HTMLButtonElement>(null);
+      const restoreRef = useRef<HTMLElement | null>(trigger);
+      useModalLifecycle({
+        active: true,
+        initialFocusRef: initialRef,
+        restoreFocusRef: restoreRef,
+        deferRestoreFocus: true,
+      });
+      return (
+        <button ref={initialRef} type="button">
+          inside
+        </button>
+      );
+    }
+
+    render(
+      <StrictMode>
+        <Harness />
+      </StrictMode>,
+    );
+
+    await Promise.resolve();
+    expect(document.activeElement?.textContent).toBe('inside');
+  });
+
+  it('does not let a deferred close restore steal focus after a rapid reopen', async () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'trigger';
+    document.body.append(trigger);
+    trigger.focus();
+
+    function Harness({ active }: { active: boolean }) {
+      const initialRef = useRef<HTMLButtonElement>(null);
+      const restoreRef = useRef<HTMLElement | null>(trigger);
+      useModalLifecycle({
+        active,
+        initialFocusRef: initialRef,
+        restoreFocusRef: restoreRef,
+        deferRestoreFocus: true,
+      });
+      return (
+        <button ref={initialRef} type="button">
+          inside
+        </button>
+      );
+    }
+
+    const view = render(<Harness active />);
+    expect(document.activeElement?.textContent).toBe('inside');
+
+    view.rerender(<Harness active={false} />);
+    view.rerender(<Harness active />);
+
+    await Promise.resolve();
+    expect(document.activeElement?.textContent).toBe('inside');
   });
 
   it('places initial focus and restores the connected previous element', async () => {

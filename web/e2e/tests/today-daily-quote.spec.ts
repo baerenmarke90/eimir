@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
 import dailyQuote from '../../src/i18n/locales/dailyQuote';
+import de from '../../src/i18n/locales/de';
 import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -12,6 +12,7 @@ interface DailyQuoteMockOptions {
   capabilities?: string[];
   quoteAvailable?: boolean;
   preferenceEnabled?: boolean;
+  quoteFailures?: number;
 }
 
 interface PreferencePatch {
@@ -23,10 +24,17 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
   const capabilities = options.capabilities ?? ['daily.quote'];
   const quoteAvailable = options.quoteAvailable ?? true;
   let preferenceEnabled = options.preferenceEnabled ?? true;
+  let currentAccountId = ACCOUNT_ID;
+  const selectedCategories = new Map<string, string[]>([
+    [ACCOUNT_ID, ['love']],
+    [PARTNER_ID, ['love']],
+  ]);
+  let remainingQuoteFailures = options.quoteFailures ?? 0;
   const requests = {
     quote: 0,
     catalog: 0,
     preferences: 0,
+    preferenceAccounts: [] as string[],
     patches: [] as PreferencePatch[],
   };
 
@@ -64,14 +72,37 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
     }
 
     if (method === 'POST' && pathname === '/api/v1/auth/sign-in') {
+      currentAccountId =
+        (request.postDataJSON() as { email: string }).email ===
+        'ben@example.org'
+          ? PARTNER_ID
+          : ACCOUNT_ID;
       await json({
-        account: { displayName: 'Anna Berger', id: ACCOUNT_ID },
+        account: {
+          displayName:
+            currentAccountId === ACCOUNT_ID ? 'Anna Berger' : 'Ben Winter',
+          id: currentAccountId,
+        },
         tokens: {
           accessExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
           accessToken: 'daily-quote-access-token',
           refreshExpiresAt: new Date(Date.now() + 86400_000).toISOString(),
           refreshToken: 'daily-quote-refresh-token',
         },
+      });
+      return;
+    }
+
+    if (method === 'POST' && pathname === '/api/v1/auth/sign-out') {
+      await route.fulfill({ status: 204 });
+      return;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/auth/me') {
+      await json({
+        displayName:
+          currentAccountId === ACCOUNT_ID ? 'Anna Berger' : 'Ben Winter',
+        id: currentAccountId,
       });
       return;
     }
@@ -205,6 +236,25 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
 
     if (method === 'GET' && pathname === `${space}/daily-quote`) {
       requests.quote += 1;
+      if (!capabilities.includes('daily.quote')) {
+        await json(
+          {
+            code: 'PREMIUM_ENTITLEMENT_REQUIRED',
+            status: 403,
+            title: 'Forbidden',
+          },
+          403,
+        );
+        return;
+      }
+      if (remainingQuoteFailures > 0) {
+        remainingQuoteFailures -= 1;
+        await json(
+          { code: 'QUOTE_UNAVAILABLE', status: 503, title: 'Unavailable' },
+          503,
+        );
+        return;
+      }
       await json({
         checkedOn: '2026-09-22',
         enabled: preferenceEnabled,
@@ -212,7 +262,10 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
           preferenceEnabled && quoteAvailable
             ? {
                 id: 'quote-browser-001',
-                text: 'A calm thought for today.',
+                text:
+                  currentAccountId === ACCOUNT_ID
+                    ? 'A calm thought for today.'
+                    : 'A different thought for Ben.',
                 authorDisplay: 'Example Author',
                 sourceDisplay: 'Example Source',
                 sourceId: 'classic_literature',
@@ -261,12 +314,13 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
 
     if (method === 'GET' && pathname === `${space}/daily-quote/preferences`) {
       requests.preferences += 1;
+      requests.preferenceAccounts.push(currentAccountId);
       await json(
         {
-          accountId: ACCOUNT_ID,
+          accountId: currentAccountId,
           enabled: preferenceEnabled,
           selectedSourceIds: ['classic_literature'],
-          selectedCategoryIds: ['love'],
+          selectedCategoryIds: selectedCategories.get(currentAccountId),
           locale: null,
           version: 2,
         },
@@ -288,12 +342,18 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       if (typeof body.enabled === 'boolean') {
         preferenceEnabled = body.enabled;
       }
+      if (Array.isArray(body.selectedCategoryIds)) {
+        selectedCategories.set(
+          currentAccountId,
+          body.selectedCategoryIds as string[],
+        );
+      }
       await json(
         {
-          accountId: ACCOUNT_ID,
+          accountId: currentAccountId,
           enabled: preferenceEnabled,
           selectedSourceIds: body.selectedSourceIds ?? ['classic_literature'],
-          selectedCategoryIds: body.selectedCategoryIds ?? ['love'],
+          selectedCategoryIds: selectedCategories.get(currentAccountId),
           locale: null,
           version: 3,
         },
@@ -317,12 +377,12 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
     );
   });
 
-  return requests;
+  return Object.assign(requests, { capabilities });
 }
 
-async function signIn(page: Page) {
+async function signIn(page: Page, email = 'anna@example.org') {
   await page.goto('/today');
-  await page.getByLabel(de.login.email).fill('anna@example.org');
+  await page.getByLabel(de.login.email).fill(email);
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
@@ -543,6 +603,99 @@ test('Pro no-quote response is neutral and does not become an error prompt', asy
     path: testInfo.outputPath('today-daily-quote-empty-390-light.png'),
     fullPage: true,
   });
+});
+
+test('a quote service failure keeps Today usable and a retry restores the quote', async ({
+  page,
+}) => {
+  const requests = await installMocks(page, { quoteFailures: 1 });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  await expect(page.getByText(dailyQuote.unavailable)).toBeVisible();
+  await expect(page.getByText('A calm thought for today.')).toHaveCount(0);
+  await expect(page.locator('.today-section-upcoming')).toBeVisible();
+  await expectQuoteSurfaceAccessible(page);
+  await page.getByRole('button', { name: dailyQuote.retry }).click();
+
+  await expect(page.getByText('A calm thought for today.')).toBeVisible();
+  expect(requests.quote).toBe(2);
+  await expectQuoteSurfaceAccessible(page);
+});
+
+test('losing the quote capability shows discovery and restores personal preferences on return', async ({
+  page,
+}) => {
+  const requests = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await expect(page.getByText('A calm thought for today.')).toBeVisible();
+
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  const mindfulness = page.getByRole('checkbox', { name: /Mindfulness/u });
+  await page
+    .locator('.daily-quote-preferences-sheet')
+    .getByText('Mindfulness', { exact: true })
+    .click();
+  await expect(mindfulness).toBeChecked();
+  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await expect.poll(() => requests.patches.length).toBe(1);
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await expect(
+    page.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
+  const personalReads = requests.preferences;
+
+  requests.capabilities.splice(0);
+  await page.reload();
+  await expect(page.getByText(dailyQuote.discovery)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: dailyQuote.settingsAria }),
+  ).toHaveCount(0);
+  expect(requests.preferences).toBe(personalReads);
+  expect(requests.patches).toHaveLength(1);
+  await expectQuoteSurfaceAccessible(page);
+
+  requests.capabilities.push('daily.quote');
+  await page.reload();
+  await expect(page.getByText('A calm thought for today.')).toBeVisible();
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await expect(
+    page.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
+  await expectQuoteSurfaceAccessible(page);
+});
+
+test('signing into the partner account cannot reuse the previous account quote or selection', async ({
+  page,
+}) => {
+  const requests = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await page
+    .locator('.daily-quote-preferences-sheet')
+    .getByText('Mindfulness', { exact: true })
+    .click();
+  await expect(
+    page.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).toBeChecked();
+  await page.getByRole('button', { name: dailyQuote.done }).click();
+  await expect.poll(() => requests.patches.length).toBe(1);
+
+  await page.getByRole('button', { name: navigation.profileMenu }).click();
+  await page.getByRole('button', { name: de.header.logout }).click();
+  await expect(page.getByLabel(de.login.email)).toBeVisible();
+  await signIn(page, 'ben@example.org');
+
+  await expect(page.getByText('A different thought for Ben.')).toBeVisible();
+  await expect(page.getByText('A calm thought for today.')).toHaveCount(0);
+  await page.getByRole('button', { name: dailyQuote.settingsAria }).click();
+  await expect(
+    page.getByRole('checkbox', { name: /Mindfulness/u }),
+  ).not.toBeChecked();
+  expect(requests.preferenceAccounts).toContain(PARTNER_ID);
+  await expectQuoteSurfaceAccessible(page);
 });
 
 test('Daily Quote reflows at 320px large text and adapts to Expanded', async ({

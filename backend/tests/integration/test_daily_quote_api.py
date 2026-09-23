@@ -17,6 +17,7 @@ Verifies:
 - Catalog endpoint exposes curated sources and categories.
 - Demo space seeds active `daily.quote` entitlement and distinct preferences for Lea & Alex.
 - Production environment ignores TEST_FIXTURE grants (fail-closed security).
+- Downgrade pauses resolution without deleting preferences; a new grant restores them.
 """
 
 from __future__ import annotations
@@ -114,6 +115,53 @@ def test_free_space_quote_endpoints_rejected_with_403(client, couple) -> None:
     res_catalog = client.get(f"/api/v1/spaces/{space_id}/daily-quote/catalog", headers=headers)
     assert res_catalog.status_code == 403
     assert res_catalog.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+
+
+def test_downgrade_preserves_personal_preferences_for_restored_pro(
+    client, session: Session, couple
+) -> None:
+    space_id = couple["space"].id
+    account_id = couple["anna"].id
+    headers = auth(couple["token_a"])
+    grant = entitlement_service.record_grant(
+        session,
+        space_id=space_id,
+        account_id=account_id,
+        source_type=EntitlementSourceType.TEST_FIXTURE,
+        status=EntitlementStatus.ACTIVE,
+        effective_from=now(),
+        capabilities=[Capability.DAILY_QUOTE.value],
+    )
+    session.flush()
+
+    original = client.get(f"/api/v1/spaces/{space_id}/daily-quote/preferences", headers=headers)
+    assert original.status_code == 200
+    saved = client.patch(
+        f"/api/v1/spaces/{space_id}/daily-quote/preferences",
+        headers={**headers, "If-Match": original.headers["ETag"]},
+        json={"selectedSourceIds": ["stoic_philosophy"], "selectedCategoryIds": ["serenity"]},
+    )
+    assert saved.status_code == 200
+
+    entitlement_service.revoke_grant(session, grant.id)
+    for path in ("daily-quote", "daily-quote/preferences"):
+        blocked = client.get(f"/api/v1/spaces/{space_id}/{path}", headers=headers)
+        assert blocked.status_code == 403
+        assert blocked.json()["code"] == "PREMIUM_ENTITLEMENT_REQUIRED"
+
+    persisted = preference_service.get_persisted_preference(session, account_id)
+    assert persisted is not None
+    assert persisted.selected_source_ids == ["stoic_philosophy"]
+    assert persisted.selected_category_ids == ["serenity"]
+
+    _grant_quote_capability(session, space_id, account_id)
+    restored = client.get(f"/api/v1/spaces/{space_id}/daily-quote/preferences", headers=headers)
+    assert restored.status_code == 200
+    assert restored.json()["selectedSourceIds"] == ["stoic_philosophy"]
+    assert restored.json()["selectedCategoryIds"] == ["serenity"]
+    quote = client.get(f"/api/v1/spaces/{space_id}/daily-quote", headers=headers)
+    assert quote.status_code == 200
+    assert quote.json()["quote"]["sourceId"] == "stoic_philosophy"
 
 
 def test_pro_space_receives_deterministic_daily_quote_and_metadata(

@@ -373,6 +373,44 @@ async function installMocks(
       return;
     }
 
+    // This fixture exercises the R4 relationship composition with the
+    // account's optional Daily Quote switched off. Mock its real entitlement
+    // and preference response explicitly: an unmatched 500 would otherwise
+    // insert a quote error card before the focal memory and obscure the
+    // viewport contract this suite is meant to verify. The quote's enabled,
+    // Free and error states have their own browser coverage.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'ACTIVE',
+        tier: 'PREMIUM',
+        capabilities: ['daily.quote'],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote`
+    ) {
+      await fulfillJson({
+        checkedOn: '2026-09-22',
+        enabled: false,
+        quote: null,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote/catalog`
+    ) {
+      await fulfillJson({ categories: [], sources: [] });
+      return;
+    }
+
     if (
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
@@ -521,9 +559,16 @@ async function signInAndOpenToday(page: Page): Promise<void> {
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  const quoteResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+        `/api/v1/spaces/${SPACE_ID}/daily-quote` && response.status() === 200,
+  );
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-hero')).toBeVisible();
+  await quoteResponse;
+  await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 }
 
 async function capture(
@@ -668,22 +713,27 @@ test.describe('Today R4: the living home of a relationship', () => {
       };
       return {
         dateTitle: top('.today-date-title'),
+        avatar: top('.partner-avatar-pair-action'),
         relationshipTitle: top('.couple-presence-title'),
         moment: top('.today-section-moment'),
         momentImage: top('.today-moment-media'),
       };
     });
 
-    // #1155 deliberately inserted the Today/date masthead before Couple
-    // Presence. The masthead now owns the old "close under shell chrome"
-    // invariant, while the relationship identity must still remain early in
-    // the first phone viewport rather than being pushed below a stacked band.
+    // #1155 put the date first; #1206 made the avatar pair the relationship
+    // action before the names. Keep both near the top, with the full identity
+    // visible in the first part of the phone viewport.
     expect(metrics.dateTitle).not.toBeNull();
     expect(metrics.dateTitle as number).toBeLessThan(120);
-    expect(metrics.relationshipTitle).not.toBeNull();
-    expect(metrics.relationshipTitle as number).toBeLessThan(260);
-    expect(metrics.relationshipTitle as number).toBeGreaterThan(
+    expect(metrics.avatar).not.toBeNull();
+    expect(metrics.avatar as number).toBeLessThan(260);
+    expect(metrics.avatar as number).toBeGreaterThan(
       metrics.dateTitle as number,
+    );
+    expect(metrics.relationshipTitle).not.toBeNull();
+    expect(metrics.relationshipTitle as number).toBeLessThan(320);
+    expect(metrics.relationshipTitle as number).toBeGreaterThan(
+      metrics.avatar as number,
     );
 
     // The page's emotional anchor, and its actual photograph, are both inside
@@ -1243,7 +1293,7 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     const reachable = new Set<string>();
     const wanted = [
-      'today-hero-action',
+      'partner-avatar-pair-action',
       'today-agenda-row',
       'today-moment',
       'today-living-action',
@@ -1265,12 +1315,20 @@ test.describe('Today R4: the living home of a relationship', () => {
       });
       if (!focused) continue;
       for (const name of wanted) {
-        if (focused.classes.includes(name)) reachable.add(name);
+        if (focused.classes.includes(name)) {
+          reachable.add(name);
+          if (name === 'partner-avatar-pair-action') {
+            expect(focused.outlineWidth).toBe('3px');
+          }
+        }
       }
       if (reachable.size === wanted.length) break;
     }
 
     expect([...reachable].sort()).toEqual([...wanted].sort());
+    await expect(
+      page.locator('.today-hero .partner-avatar-pair-action'),
+    ).toHaveAttribute('aria-label', /.+/);
 
     // No focus trap: focus keeps advancing out of the page content.
     await expect(page.locator('.today-section-recent')).toBeVisible();

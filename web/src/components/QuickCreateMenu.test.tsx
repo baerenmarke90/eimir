@@ -255,6 +255,47 @@ describe('QuickCreateMenu - Desktop Popover', () => {
     expect(screen.getByText(navigation.quickCreateForMe)).toBeDefined();
   });
 
+  it('dismisses the desktop menu on outside pointer input', () => {
+    render(
+      <MemoryRouter initialEntries={['/today']}>
+        <QuickCreateMenu variant="desktop" />
+      </MemoryRouter>,
+    );
+
+    const trigger = screen.getByRole('button', { name: navigation.newContent });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menu')).toBeDefined();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('does not let stale Escape focus restoration steal focus after a rapid reopen', async () => {
+    render(
+      <MemoryRouter initialEntries={['/today']}>
+        <QuickCreateMenu variant="desktop" />
+      </MemoryRouter>,
+    );
+
+    const trigger = screen.getByRole('button', { name: navigation.newContent });
+    fireEvent.click(trigger);
+    screen.getAllByRole('menuitem')[0].focus();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    fireEvent.click(trigger);
+    const reopenedFirstItem = screen.getAllByRole('menuitem')[0];
+    reopenedFirstItem.focus();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(document.activeElement).toBe(reopenedFirstItem);
+  });
+
   it('supports arrow key navigation on desktop', () => {
     render(
       <MemoryRouter initialEntries={['/today']}>

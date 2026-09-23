@@ -13667,7 +13667,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants": {
       "post": {
-        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.",
+        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.\n\nGranting unlimited Premium is as consequential as the other high-risk\nServerAdmin actions in this router (account deletion, email verification,\nrecovery issuance), so it requires the same step-up re-authentication.",
         "operationId": "grant_server_admin_space_entitlement_api_v1_server_admin_spaces__space_id__entitlement_grants_post",
         "parameters": [
           {
@@ -13751,7 +13751,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke": {
       "post": {
-        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).",
+        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).\n\nRevoking a paying customer's entitlement is as consequential as the other\nhigh-risk ServerAdmin actions in this router, so it requires the same\nstep-up re-authentication.",
         "operationId": "revoke_server_admin_space_entitlement_grant_api_v1_server_admin_spaces__space_id__entitlement_grants__grant_id__revoke_post",
         "parameters": [
           {

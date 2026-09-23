@@ -102,9 +102,4 @@ class CreateReceipt(IdMixin, Base):
             name="create_receipt_fingerprint_is_sha256_hex",
         ),
         Index("ix_create_receipts_created_at", "created_at"),
-        Index(
-            "ix_create_receipts_resource_type_resource_id",
-            "resource_type",
-            "resource_id",
-        ),
     )

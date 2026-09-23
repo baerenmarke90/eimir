@@ -3,8 +3,8 @@
 Generalizes ``memory_create_receipts`` (0058) for Comment, Wish, Plan,
 Milestone, and HeartMoment creation.
 
-Revision ID: 0072
-Revises: 0071
+Revision ID: 0073
+Revises: 0072
 Create Date: 2026-09-23
 """
 
@@ -14,8 +14,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision = "0072"
-down_revision = "0071"
+revision = "0073"
+down_revision = "0072"
 branch_labels = None
 depends_on = None
 
@@ -74,14 +74,8 @@ def upgrade() -> None:
         "create_receipts",
         ["created_at"],
     )
-    op.create_index(
-        "ix_create_receipts_resource_type_resource_id",
-        "create_receipts",
-        ["resource_type", "resource_id"],
-    )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_create_receipts_resource_type_resource_id", table_name="create_receipts")
     op.drop_index("ix_create_receipts_created_at", table_name="create_receipts")
     op.drop_table("create_receipts")

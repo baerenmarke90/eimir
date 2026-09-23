@@ -705,7 +705,7 @@ No authorization required
 
 Grant Server Admin Space Entitlement
 
-Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.
+Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
 
 ### Example
 
@@ -1378,7 +1378,7 @@ No authorization required
 
 Revoke Server Admin Space Entitlement Grant
 
-Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\&#39;s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
 
 ### Example
 

@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInTodayView } from '../api/generated/models/DailyCheckInTodayView';
@@ -72,12 +73,14 @@ function renderEnergy(api: DailyCheckInsApi, spaceId = 'space-1') {
   });
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <DailyEnergyCheckIn
-        api={api}
-        accountId="account-1"
-        spaceId={spaceId}
-        partnerName="Marie"
-      />
+      <MemoryRouter>
+        <DailyEnergyCheckIn
+          api={api}
+          accountId="account-1"
+          spaceId={spaceId}
+          partnerName="Marie"
+        />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
   return { ...view, queryClient };
@@ -142,6 +145,43 @@ describe('DailyEnergyCheckIn', () => {
     expect(within(popover).getByText(dailyEnergy.scaleHigh)).not.toBeNull();
     expect(within(popover).queryByText(/\d+\s*%/)).toBeNull();
     expect(screen.queryByTestId('daily-energy-partner')).toBeNull();
+  });
+
+  it('uses the shared dismiss contract for Escape and outside pointer input', async () => {
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(rawResponse(projection(), '"2026-09-21:absent"')),
+    } as unknown as DailyCheckInsApi;
+
+    renderEnergy(api);
+
+    const badge = await screen.findByRole('button', {
+      name: dailyEnergy.badgeAriaEmpty,
+    });
+    expect(badge.getAttribute('aria-haspopup')).toBe('dialog');
+
+    fireEvent.click(badge);
+    const slider = screen.getByRole('slider', {
+      name: dailyEnergy.selectLegend,
+    });
+    slider.focus();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('daily-energy-popover')).toBeNull(),
+    );
+    expect(document.activeElement).toBe(badge);
+
+    fireEvent.click(badge);
+    expect(screen.getByTestId('daily-energy-popover')).not.toBeNull();
+
+    fireEvent.pointerDown(document.body);
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('daily-energy-popover')).toBeNull(),
+    );
   });
 
   it('keeps the open Energy control stable while partner sync refetches in the background', async () => {

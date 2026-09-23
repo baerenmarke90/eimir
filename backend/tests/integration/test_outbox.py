@@ -165,6 +165,67 @@ class TestFailure:
         assert row.last_error is not None
         assert len(row.last_error) == 2000
 
+    def test_mark_failed_reports_whether_this_attempt_became_terminal(
+        self, session: Session
+    ) -> None:
+        row = service.record(session, _event())
+        session.flush()
+
+        for _ in range(service.MAX_ATTEMPTS - 1):
+            assert service.mark_failed(row, "Empfaenger nicht erreichbar") is False
+        assert service.mark_failed(row, "Empfaenger nicht erreichbar") is True
+
+        assert row.attempts == service.MAX_ATTEMPTS
+
+    def test_a_poison_event_is_marked_terminally_failed_after_max_attempts(
+        self, session: Session
+    ) -> None:
+        """A permanently-broken event must eventually stop retrying and
+        surface as a distinct, operator-visible terminal state -- not retry
+        forever at the one-hour-capped cadence."""
+        row = service.record(session, _event())
+        session.flush()
+
+        for _ in range(service.MAX_ATTEMPTS):
+            service.mark_failed(row, "immer kaputt")
+        session.flush()
+
+        assert row.failed_at is not None
+        assert row.processed_at is None
+        assert row.attempts == service.MAX_ATTEMPTS
+
+    def test_a_terminally_failed_event_is_never_reclaimed_even_once_its_backoff_elapses(
+        self, session: Session
+    ) -> None:
+        row = service.record(session, _event())
+        session.flush()
+        for _ in range(service.MAX_ATTEMPTS):
+            service.mark_failed(row, "immer kaputt")
+        session.flush()
+
+        # A retry-scheduled row would become claimable again once
+        # next_attempt_at is in the past; a terminal one must not, regardless.
+        row.next_attempt_at = now() - timedelta(seconds=1)
+        session.flush()
+
+        assert row.id not in {candidate.id for candidate in service.claim_unprocessed(session)}
+
+    def test_a_terminally_failed_event_does_not_starve_a_newer_eligible_event(
+        self, session: Session
+    ) -> None:
+        poison = service.record(session, _event())
+        session.flush()
+        for _ in range(service.MAX_ATTEMPTS):
+            service.mark_failed(poison, "immer kaputt")
+        session.flush()
+
+        newer = service.record(session, _event())
+        session.flush()
+
+        claimed_ids = {candidate.id for candidate in service.claim_unprocessed(session)}
+        assert poison.id not in claimed_ids
+        assert newer.id in claimed_ids
+
 
 class TestPayload:
     def test_carries_no_contents(self, session: Session) -> None:

@@ -137,4 +137,14 @@ describe('canonical Web motion roles', () => {
     expect(css).not.toContain('--duration-standard');
     expect(css).not.toContain('--duration-fast');
   });
+
+  it('keeps Daily Quote text legible throughout its entrance motion', () => {
+    const css = productionStylesheets['./components/DailyQuoteCard.css'];
+    const reveal = css.match(
+      /@keyframes daily-quote-reveal\s*\{([\s\S]*?)\n\}/,
+    )?.[1];
+
+    expect(reveal).toContain('transform:');
+    expect(reveal).not.toMatch(/\bopacity\s*:/);
+  });
 });

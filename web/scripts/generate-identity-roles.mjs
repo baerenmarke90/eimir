@@ -98,7 +98,11 @@ const biome = fileURLToPath(
 );
 const output = execFileSync(
   biome,
-  ['format', '--stdin-file-path=src/design/identity-roles.css'],
+  [
+    'format',
+    '--vcs-enabled=false',
+    '--stdin-file-path=src/design/identity-roles.css',
+  ],
   {
     input: rawOutput,
     encoding: 'utf8',

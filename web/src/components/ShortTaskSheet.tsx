@@ -6,6 +6,7 @@ import {
   useEffect,
   useId,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
 } from 'react';
 import { createPortal } from 'react-dom';
@@ -121,6 +122,8 @@ export function ShortTaskSheet({
   const closeRef = useRef<HTMLButtonElement>(null);
   const navigatingRef = useRef(false);
   const pendingNavigationRef = useRef<(() => void) | null>(null);
+  const implicitRestoreFocusRef = useRef<HTMLElement | null>(null);
+  const wasPresentRef = useRef(false);
   const dragIdentifierRef = useRef<number | null>(null);
   const dragInputRef = useRef<DragInput | null>(null);
   const dragStartXRef = useRef(0);
@@ -158,6 +161,15 @@ export function ShortTaskSheet({
 
   const resolvedCloseLabel = closeLabel?.trim() || t('taskSheets.close');
   const { present, presenceState, completeExit } = useOverlayPresence(open);
+
+  useLayoutEffect(() => {
+    if (present && !wasPresentRef.current && typeof document !== 'undefined') {
+      const activeElement = restoreFocusRef?.current ?? document.activeElement;
+      implicitRestoreFocusRef.current =
+        activeElement instanceof HTMLElement ? activeElement : null;
+    }
+    wasPresentRef.current = present;
+  }, [present, restoreFocusRef]);
 
   useEffect(() => {
     onPresenceChange?.(present);
@@ -559,7 +571,7 @@ export function ShortTaskSheet({
   useModalLifecycle({
     active: present,
     initialFocusRef: initialFocusRef ?? closeRef,
-    restoreFocusRef,
+    restoreFocusRef: implicitRestoreFocusRef,
     deferRestoreFocus: true,
     shouldRestoreFocus: () => !navigatingRef.current,
   });

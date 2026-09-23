@@ -30,7 +30,6 @@ body.theme-vault
   width: 1.75rem;
   height: 1.75rem;
   flex: 0 0 auto;
-  fill: currentColor;
   color: var(--color-brand-text);
 }
 
@@ -68,7 +67,6 @@ body.theme-vault
 .private-area-privacy-banner-icon svg {
   width: 1.25rem;
   height: 1.25rem;
-  fill: currentColor;
 }
 
 .private-area-privacy-banner strong {
@@ -131,11 +129,6 @@ body.theme-vault
 .private-area-destination-icon svg {
   width: 1.45rem;
   height: 1.45rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .private-area-destination-copy {

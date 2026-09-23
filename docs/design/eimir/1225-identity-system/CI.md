@@ -50,11 +50,11 @@ All product icons use a **24 px drawing grid**, about **20 px optical content**,
 | Communication | Benachrichtigungen, Nachrichten, Suche, Einstellungen, Neu/Hinzufügen |
 | Other | Privatsphäre, Statistiken, eimir. Pro, Hilfe, Logout |
 
-The existing routes and content also need eight symbols absent from the board: Spiele, Orte, Kapitel, Geburtstag, Profil, Geschenk, Aktivität and a compact add glyph. They use the same registry, grid and semantic colors. **Neu** is the circled add symbol from the owner board; **Hinzufügen** is the simple plus used inside the established central action. `Planen` and `Kalender` are both named entries because their contexts differ while sharing a related calendar silhouette.
+The existing routes and content also need nine symbols absent from the board: Spiele, Orte, Kapitel, Geburtstag, Profil, Geschenk, Aktivität, Notizen and a compact add glyph. They use the same registry, grid and semantic colors. The private-area header and privacy banner use the owner lock, and its Notes, Gift Ideas and Collections links use the registry rather than separate local SVGs. **Neu** is the circled add symbol from the owner board; **Hinzufügen** is the simple plus used inside the established central action. `Planen` and `Kalender` are both named entries because their contexts differ while sharing a related calendar silhouette.
 
 | Variant | Rule and implemented examples |
 | --- | --- |
-| Outline | Default navigation and ordinary content; all 30 board icons and the eight existing-route additions are covered. |
+| Outline | Default navigation and ordinary content; all 30 board icons and the nine existing-function additions are covered. |
 | Filled | Active navigation or a strong semantic motif. The owner examples Wir, heart, calendar, plane, star and lock are implemented; Planen and Mehr also have active variants for the current shell. The heart has a continuous cool-to-warm fill. |
 | Duotone | Deliberate warm/cool emphasis only where it helps meaning. The six owner examples (including the private plus-lock) have separate duotone drawings; the heart uses a cool-to-warm transition rather than two hard halves. |
 

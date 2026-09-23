@@ -40,6 +40,7 @@ export const EIMIR_ICON_NAMES = [
   'geschenk',
   'aktivitaet',
   'hinzufuegen',
+  'notes',
 ] as const;
 export type EimirIconName = (typeof EIMIR_ICON_NAMES)[number];
 export type EimirIconVariant = 'outline' | 'filled' | 'duotone';
@@ -313,6 +314,13 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   hinzufuegen: (
     <>
       <path d="M12 5v14M5 12h14" />
+    </>
+  ),
+  notes: (
+    <>
+      <rect x="4.5" y="3.5" width="15" height="17" rx="2.5" />
+      <path className="accent" d="M8 8h8" />
+      <path d="M8 12h8M8 16h5" />
     </>
   ),
 };

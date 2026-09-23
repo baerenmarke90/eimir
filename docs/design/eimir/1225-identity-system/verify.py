@@ -56,7 +56,7 @@ symbols = re.findall(r'^  ([a-z]+):', (BASE / 'icons.js').read_text().split('con
 assert len(symbols) == len(set(symbols)) == 30, symbols
 registry = (WEB / 'src/components/EimirIcon.tsx').read_text()
 names = re.findall(r"^  '([a-z]+)',", registry.split('] as const', 1)[0], re.M)
-assert len(names) == len(set(names)) == 38 and set(symbols) <= set(names), (symbols, names)
+assert len(names) == len(set(names)) == 39 and set(symbols) <= set(names), (symbols, names)
 svgs = list((BASE / 'assets').glob('*.svg'))
 assert len(svgs) == 10, len(svgs)
 for svg in svgs:

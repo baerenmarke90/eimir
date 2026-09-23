@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 164" role="img" aria-labelledby="title">
+  <title id="title">Zwei weich gefüllte Kreise mit violetter Schnittfläche</title>
+  <defs>
+    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8CEA3"/><stop offset="1" stop-color="#E9B6AC"/></linearGradient>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F4AFB8"/><stop offset="1" stop-color="#DF94A9"/></linearGradient>
+    <linearGradient id="together" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E6A6AA"/><stop offset="1" stop-color="#D995A3"/></linearGradient>
+  </defs>
+  <circle cx="67" cy="82" r="52" fill="url(#cool)"/>
+  <circle cx="113" cy="82" r="52" fill="url(#warm)"/>
+  <path d="M90 35.4A52 52 0 0 1 90 128.6A52 52 0 0 1 90 35.4Z" fill="url(#together)"/>
+</svg>

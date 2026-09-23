@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 164" role="img" aria-labelledby="title">
+  <title id="title">Zwei verschiedenfarbige Blätter wachsen aus einem gemeinsamen Ansatz</title>
+  <defs>
+    <linearGradient id="warmleaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E8C39E"/><stop offset=".52" stop-color="#D99B8E"/><stop offset="1" stop-color="#B97D91"/></linearGradient>
+    <linearGradient id="coolleaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#B8DDD3"/><stop offset=".52" stop-color="#8FBDB0"/><stop offset="1" stop-color="#729B95"/></linearGradient>
+    <linearGradient id="bud" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E8D4AB"/><stop offset="1" stop-color="#D5AC9E"/></linearGradient>
+  </defs>
+  <path d="M90 139C40 124 24 92 32 47C62 47 83 61 92 88C100 109 96 127 90 139Z" fill="url(#warmleaf)"/>
+  <path d="M90 139C142 124 160 93 149 42C118 47 98 64 90 91C84 110 86 127 90 139Z" fill="url(#coolleaf)"/>
+  <path d="M91 80C82 65 83 47 95 26C109 39 113 57 104 72C100 79 95 82 91 80Z" fill="url(#bud)"/>
+  <path d="M90 139C76 103 61 80 46 66M90 139C104 105 120 78 138 59" fill="none" stroke="#FFF7F4" stroke-opacity=".48" stroke-width="2.7" stroke-linecap="round"/>
+</svg>

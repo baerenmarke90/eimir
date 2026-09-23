@@ -121,6 +121,72 @@ function renderDetail(taskOriginKey?: unknown) {
   );
 }
 
+function renderCreate() {
+  const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/story/heart-moments/new']}>
+        <Routes>
+          <Route
+            path="/story/heart-moments/new"
+            element={
+              <HeartMomentProductPage
+                mode="create"
+                apis={
+                  {
+                    heartMoments: { createHeartMoment },
+                  } as unknown as ReferenceApis
+                }
+                apiBaseUrl="https://example.test"
+                accessToken="token"
+                spaceId="space-1"
+                currentAccountId="account-1"
+                loadAttachment={async () => 'blob:test-image'}
+              />
+            }
+          />
+          <Route
+            path="/story/heart-moments/:heartMomentId"
+            element={<p>Heart Moment result</p>}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return createHeartMoment;
+}
+
+describe('Heart Moment create request identity', () => {
+  it('sends an idempotency key with the submitted snapshot', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+      'A quiet, wonderful evening',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+
+    expect(createHeartMoment).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      idempotencyKey: expect.any(String),
+      heartMomentCreate: {
+        text: 'A quiet, wonderful evening',
+        emotion: HeartEmotion.LOVED,
+        happenedOn: expect.any(Date),
+        visibility: ContentVisibility.SHARED,
+        attachmentId: undefined,
+      },
+    });
+  });
+});
+
 describe('HeartMomentProductPage Back restores origin (#966)', () => {
   it('falls back to the generic Story link when opened without a task origin', async () => {
     renderDetail();

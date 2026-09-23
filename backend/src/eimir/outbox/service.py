@@ -15,10 +15,10 @@ from eimir.outbox.models import OutboxEvent
 MAX_ATTEMPTS = 20
 """Cap retries before a poison event is marked terminally failed instead of
 retried forever, mirroring `jobs.queue`'s `max_attempts`/`JobStatus.FAILED`.
-Backoff is capped at one hour (`_backoff_for`), so exhausting this budget
-takes roughly a day -- long enough to outlast a typical provider outage,
-bounded enough that a truly broken event surfaces to an operator instead of
-occupying a claim slot on every poll indefinitely."""
+With the existing backoff capped at one hour (`_backoff_for`), twenty
+consecutive failures span more than eleven hours. This leaves a substantial
+transient-recovery window while ensuring a persistently broken projector
+eventually surfaces to an operator instead of occupying a claim slot forever."""
 
 
 def record(session: Session, event: DomainEvent) -> OutboxEvent:
@@ -52,8 +52,8 @@ def claim_unprocessed(session: Session, limit: int = 50) -> Sequence[OutboxEvent
     failing event -- always the oldest unprocessed row -- would occupy a
     claim slot on every poll, starving newer events out of this batch once
     enough such rows accumulate. A terminally failed row (`failed_at` set)
-    is excluded the same way, permanently: `MAX_ATTEMPTS` decided it will
-    never succeed, so reclaiming it would only repeat that decision forever.
+    is excluded the same way, permanently: its retry budget is exhausted, so
+    reclaiming it indefinitely would only repeat the same failure.
     """
     current_time = now()
     stmt = (

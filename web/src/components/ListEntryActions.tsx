@@ -144,7 +144,7 @@ export function useListItemReorder({
         { duration: Number.isFinite(duration) ? duration : 180, easing },
       );
     }
-  }, [itemIds, previewOrder, animatePreview]);
+  });
 
   useEffect(
     () => () => {

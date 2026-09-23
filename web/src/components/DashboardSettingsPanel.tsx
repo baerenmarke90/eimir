@@ -111,6 +111,7 @@ export function DashboardSettingsPanel({
     }: {
       moduleKey: DashboardModuleKey;
       visible: boolean;
+      previousVisible: boolean;
     }) => {
       try {
         return await dashboardApi.updateDashboardModulePreference({
@@ -122,33 +123,16 @@ export function DashboardSettingsPanel({
         throw await normalizeClientError(error);
       }
     },
-    onMutate: ({ moduleKey, visible }) => {
-      const previousVisible = isDashboardModuleVisible(
-        queryClient.getQueryData<DashboardModulePreferenceList>(queryKey),
-        moduleKey,
-      );
-      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        patchPreference(old, moduleKey, { visible }),
-      );
-      setSavedModuleKey(null);
-      return { previousVisible };
-    },
     onSuccess: (updated) => {
       queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
         patchPreference(old, updated.moduleKey, { visible: updated.visible }),
       );
       setSavedModuleKey(updated.moduleKey as DashboardModuleKey);
     },
-    onError: (_error, { moduleKey }, context) => {
-      if (context) {
-        queryClient.setQueryData<DashboardModulePreferenceList>(
-          queryKey,
-          (old) =>
-            patchPreference(old, moduleKey, {
-              visible: context.previousVisible,
-            }),
-        );
-      }
+    onError: (_error, { moduleKey, previousVisible }) => {
+      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
+        patchPreference(old, moduleKey, { visible: previousVisible }),
+      );
       setSavedModuleKey(null);
     },
   });
@@ -288,12 +272,25 @@ export function DashboardSettingsPanel({
                   type="checkbox"
                   checked={visible}
                   disabled={isRowPending || preferencesQuery.isPending}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const visible = event.target.checked;
+                    const previousVisible = isDashboardModuleVisible(
+                      queryClient.getQueryData<DashboardModulePreferenceList>(
+                        queryKey,
+                      ),
+                      entry.key,
+                    );
+                    queryClient.setQueryData<DashboardModulePreferenceList>(
+                      queryKey,
+                      (old) => patchPreference(old, entry.key, { visible }),
+                    );
+                    setSavedModuleKey(null);
                     visibilityMutation.mutate({
                       moduleKey: entry.key,
-                      visible: event.target.checked,
-                    })
-                  }
+                      visible,
+                      previousVisible,
+                    });
+                  }}
                 />
                 <ListEntryIconButton
                   icon="reorder"

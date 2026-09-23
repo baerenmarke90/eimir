@@ -59,7 +59,11 @@ const UPCOMING_ITEMS = [
 async function installMocks(
   page: Page,
   initialPreference: 1 | 2 | 3 = 2,
-): Promise<{ currentPreference: () => number; currentOrder: () => string[] }> {
+): Promise<{
+  currentPreference: () => number;
+  currentOrder: () => string[];
+  upcomingVisible: () => boolean;
+}> {
   let preference = initialPreference;
   let moduleOrder = [...MODULE_KEYS];
   let upcomingVisible = true;
@@ -258,6 +262,7 @@ async function installMocks(
   return {
     currentPreference: () => preference,
     currentOrder: () => moduleOrder,
+    upcomingVisible: () => upcomingVisible,
   };
 }
 
@@ -479,6 +484,7 @@ test('personal module reorder persists across reload and separates the visibilit
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
     .uncheck();
+  await expect.poll(() => preferences.upcomingVisible()).toBe(false);
   await page.reload();
   await expect(page.locator('.dashboard-module-option').first()).toContainText(
     m5s5.dashboard.upcomingTitle,
@@ -489,6 +495,7 @@ test('personal module reorder persists across reload and separates the visibilit
   await page
     .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
     .check();
+  await expect.poll(() => preferences.upcomingVisible()).toBe(true);
   await page.goto('/today');
   await expect(page.locator('.today-section-upcoming')).toBeVisible();
   const orderedSections = await page
@@ -522,6 +529,47 @@ test('personal module reorder persists across reload and separates the visibilit
     scrollWidth: document.documentElement.scrollWidth,
   }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
+});
+
+test('drag handle moves a module by mouse while the rest of the row remains scrollable', async ({
+  page,
+}) => {
+  const preferences = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto(settingsCategoryPath('today'));
+
+  const handle = page.getByRole('button', {
+    name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+  });
+  const firstRow = page.locator('.dashboard-module-option').first();
+  await firstRow.scrollIntoViewIfNeeded();
+  const firstBounds = await firstRow.boundingBox();
+  const handleBounds = await handle.boundingBox();
+  expect(firstBounds).not.toBeNull();
+  expect(handleBounds).not.toBeNull();
+  if (!firstBounds || !handleBounds) return;
+
+  await page.mouse.move(
+    handleBounds.x + handleBounds.width / 2,
+    handleBounds.y + handleBounds.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    firstBounds.x + firstBounds.width / 2,
+    firstBounds.y + 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(firstBounds.x + 12, firstBounds.y + 15);
+  await page.mouse.wheel(0, 300);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(scrollBefore);
 });
 
 test('expanded Dashboard settings remain clear in light mode and at 200 percent layout zoom', async ({

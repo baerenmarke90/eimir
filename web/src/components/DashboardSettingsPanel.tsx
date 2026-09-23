@@ -58,6 +58,9 @@ export function DashboardSettingsPanel({
   const [saved, setSaved] = useState(false);
   const [savedModuleKey, setSavedModuleKey] =
     useState<DashboardModuleKey | null>(null);
+  const [pendingVisibility, setPendingVisibility] = useState<
+    Partial<Record<DashboardModuleKey, boolean>>
+  >({});
   const [orderAnnouncement, setOrderAnnouncement] = useState('');
   const latestOrderRequest = useRef(0);
 
@@ -127,12 +130,22 @@ export function DashboardSettingsPanel({
       queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
         patchPreference(old, updated.moduleKey, { visible: updated.visible }),
       );
+      setPendingVisibility((old) => {
+        const next = { ...old };
+        delete next[updated.moduleKey as DashboardModuleKey];
+        return next;
+      });
       setSavedModuleKey(updated.moduleKey as DashboardModuleKey);
     },
     onError: (_error, { moduleKey, previousVisible }) => {
       queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
         patchPreference(old, moduleKey, { visible: previousVisible }),
       );
+      setPendingVisibility((old) => {
+        const next = { ...old };
+        delete next[moduleKey];
+        return next;
+      });
       setSavedModuleKey(null);
     },
   });
@@ -270,7 +283,7 @@ export function DashboardSettingsPanel({
                   id={`dashboard-visible-${entry.key}`}
                   aria-label={t(entry.labelKey)}
                   type="checkbox"
-                  checked={visible}
+                  checked={pendingVisibility[entry.key] ?? visible}
                   disabled={isRowPending || preferencesQuery.isPending}
                   onChange={(event) => {
                     const visible = event.target.checked;
@@ -284,6 +297,10 @@ export function DashboardSettingsPanel({
                       queryKey,
                       (old) => patchPreference(old, entry.key, { visible }),
                     );
+                    setPendingVisibility((old) => ({
+                      ...old,
+                      [entry.key]: visible,
+                    }));
                     setSavedModuleKey(null);
                     visibilityMutation.mutate({
                       moduleKey: entry.key,

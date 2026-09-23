@@ -85,12 +85,11 @@ class DashboardModuleState:
     selected_collection_id: UUID | None
 
 
-# Deterministic Settings/Today order, matching the accepted #850 Today
-# composition (`web/src/components/TodayPage.tsx`): relationship_presence
-# (the Couple Presence hero), then upcoming, pinned_collection, keepsake,
-# relationship_signal, monthly_highlights, recent_shared. #848 established `UPCOMING` with an
-# item-limit facet; #817 adds mandatory visibility to every module,
-# including `UPCOMING` itself.
+# Default Settings/Today order, matching the current Today composition
+# (`web/src/components/TodayPage.tsx`): relationship_presence (the Couple
+# Presence hero), keepsake, upcoming, pinned_collection, relationship_signal,
+# monthly_highlights, recent_shared. #848 established `UPCOMING` with an
+# item-limit facet; #817 added visibility to every module.
 #
 # #809 appends the quiet shared-story epilogue after the existing Today
 # composition. It is a normal registered module and therefore inherits the

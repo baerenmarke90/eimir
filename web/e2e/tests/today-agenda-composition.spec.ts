@@ -544,7 +544,7 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
     name: `${m5s5.dashboard.upcomingTitle} verschieben`,
   });
   const firstRow = page.locator('.dashboard-module-option').first();
-  await firstRow.scrollIntoViewIfNeeded();
+  await handle.scrollIntoViewIfNeeded();
   const firstBounds = await firstRow.boundingBox();
   const handleBounds = await handle.boundingBox();
   expect(firstBounds).not.toBeNull();
@@ -570,6 +570,81 @@ test('drag handle moves a module by mouse while the rest of the row remains scro
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(scrollBefore);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await handle.scrollIntoViewIfNeeded();
+  const movedHandle = await handle.boundingBox();
+  expect(movedHandle).not.toBeNull();
+  if (!movedHandle) return;
+  const beforeDragScroll = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(
+    movedHandle.x + movedHandle.width / 2,
+    movedHandle.y + movedHandle.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(movedHandle.x + movedHandle.width / 2, 595);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(beforeDragScroll);
+  await page.mouse.up();
+});
+
+test('touch dragging starts on the handle and keeps normal row scrolling available', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const page = await context.newPage();
+    const preferences = await installMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto(settingsCategoryPath('today'));
+
+    const handle = page.getByRole('button', {
+      name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+    });
+    await handle.scrollIntoViewIfNeeded();
+    const bounds = await handle.boundingBox();
+    const target = await page
+      .locator('.dashboard-module-option')
+      .nth(1)
+      .boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(target).not.toBeNull();
+    if (!bounds || !target) return;
+    expect(
+      await handle.evaluate((element) => getComputedStyle(element).touchAction),
+    ).toBe('none');
+    expect(
+      await page
+        .locator('.dashboard-module-option-label')
+        .first()
+        .evaluate((element) => getComputedStyle(element).touchAction),
+    ).not.toBe('none');
+
+    const session = await context.newCDPSession(page);
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y, id: 1 }],
+    });
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x, y: target.y + 2, id: 1 }],
+    });
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
+  } finally {
+    await context.close();
+  }
 });
 
 test('expanded Dashboard settings remain clear in light mode and at 200 percent layout zoom', async ({

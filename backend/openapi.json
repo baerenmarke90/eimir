@@ -9769,16 +9769,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -9830,16 +9820,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Account Capabilities",
@@ -9865,16 +9845,6 @@
         "responses": {
           "204": {
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -9910,16 +9880,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "429": {
             "content": {
@@ -9972,16 +9932,6 @@
             },
             "description": "Successful Response"
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10016,16 +9966,6 @@
         "responses": {
           "202": {
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -10087,16 +10027,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Me",
@@ -10133,16 +10063,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Account Memberships",
@@ -10207,16 +10127,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10269,16 +10179,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -10350,16 +10250,6 @@
             },
             "description": "Successful Response"
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10421,16 +10311,6 @@
             },
             "description": "Authentication is missing, invalid, or the session has expired."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10464,16 +10344,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -10536,16 +10406,6 @@
             },
             "description": "Authentication is missing, invalid, or the session has expired."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10589,16 +10449,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Start Passkey Registration",
@@ -10644,16 +10494,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -10716,16 +10556,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Capabilities",
@@ -10788,16 +10618,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -10870,16 +10690,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -10951,16 +10761,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -11013,16 +10813,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -11095,16 +10885,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "429": {
             "content": {
               "application/json": {
@@ -11166,16 +10946,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Server Admin Capabilities",
@@ -11228,16 +10998,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Server Admin Capabilities",
@@ -11300,16 +11060,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -11382,16 +11132,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -11463,16 +11203,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -11525,16 +11255,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -11607,16 +11327,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "429": {
             "content": {
               "application/json": {
@@ -11669,16 +11379,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -11723,16 +11423,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -11804,16 +11494,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -11887,16 +11567,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -11968,16 +11638,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -12022,16 +11682,6 @@
               }
             },
             "description": "Authentication is missing, invalid, or the session has expired."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Sign Out",
@@ -12074,16 +11724,6 @@
               }
             },
             "description": "`AUTH_METHOD_DISABLED` on deployments without self-service signup, or `REGISTRATION_DISABLED` when the proof would create a new Account while the administrator does not admit new Accounts. Nothing was created."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -12150,16 +11790,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -12210,16 +11840,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Health",
@@ -12241,16 +11861,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "503": {
             "content": {
@@ -12283,16 +11893,6 @@
               }
             },
             "description": "Successful Response"
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Instance Status",
@@ -12345,16 +11945,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -12480,16 +12070,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -12561,16 +12141,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Account",
@@ -12643,16 +12213,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -12728,16 +12288,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -12850,16 +12400,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -12931,16 +12471,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -13024,16 +12554,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -13105,16 +12625,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Revoke Server Admin Account Sessions",
@@ -13188,16 +12698,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -13252,16 +12752,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Activity",
@@ -13307,16 +12797,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Action Activity",
@@ -13485,16 +12965,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Privileged Activity",
@@ -13640,16 +13110,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -13701,16 +13161,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Overview",
@@ -13752,16 +13202,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Settings",
@@ -13813,16 +13253,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -13884,16 +13314,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -14006,16 +13426,6 @@
             },
             "description": "The caller is authenticated but is not authorized for this operation."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -14089,16 +13499,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Space",
@@ -14184,16 +13584,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -14267,16 +13657,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Space Entitlement",
@@ -14351,16 +13731,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -14456,16 +13826,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -14517,16 +13877,6 @@
               }
             },
             "description": "The caller is authenticated but is not authorized for this operation."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Server Admin Storage",
@@ -14569,16 +13919,6 @@
               }
             },
             "description": "`ACCOUNT_HAS_ACTIVE_SPACE`: the Account already has an active Membership. Nothing was created; select the existing Space through `GET /auth/memberships`."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Create the authenticated Account's own private Space",
@@ -14631,16 +13971,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Space",
@@ -14731,16 +14061,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -14929,16 +14249,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15014,16 +14324,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Attachment",
@@ -15113,16 +14413,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Attachment Content",
@@ -15308,16 +14598,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15419,16 +14699,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15529,16 +14799,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15616,16 +14876,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -15712,16 +14962,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15798,16 +15038,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Chapter",
@@ -15907,16 +15137,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -15987,16 +15207,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Chapter Content",
@@ -16058,16 +15268,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Chapter Heart-Moments",
@@ -16131,16 +15331,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Chapter Heart-Moments",
@@ -16202,16 +15392,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Chapter Heart-Moments",
@@ -16273,16 +15453,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Chapter Memories",
@@ -16346,16 +15516,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Chapter Memories",
@@ -16417,16 +15577,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Chapter Memories",
@@ -16488,16 +15638,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Chapter Milestones",
@@ -16561,16 +15701,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Chapter Milestones",
@@ -16632,16 +15762,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Chapter Milestones",
@@ -16733,16 +15853,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -16820,16 +15930,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -16916,16 +16016,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -17002,16 +16092,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Collection",
@@ -17111,16 +16191,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -17209,16 +16279,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -17313,16 +16373,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -17457,16 +16507,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -17577,16 +16617,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -17681,16 +16711,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -17810,16 +16830,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -17890,16 +16900,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Space Configuration",
@@ -18000,16 +17000,6 @@
               }
             },
             "description": "The supplied version is no longer current. Nothing was changed; reload the latest configuration before retrying."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -18128,16 +17118,6 @@
             },
             "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -18217,16 +17197,6 @@
               }
             },
             "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Daily Check In Today",
@@ -18327,16 +17297,6 @@
             },
             "description": "`RESOURCE_VERSION_CONFLICT`: the owner state changed, or `DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the shared day cannot be resolved."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -18409,16 +17369,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Daily Quote",
@@ -18482,16 +17432,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Daily Quote Catalog",
@@ -18563,16 +17503,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Daily Quote Preferences",
@@ -18674,16 +17604,6 @@
             },
             "description": "`RESOURCE_VERSION_CONFLICT`: preferences changed since they were read."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -18747,16 +17667,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -18819,16 +17729,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Dashboard Module Preferences",
@@ -18902,16 +17802,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -18974,16 +17864,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Story Discover",
@@ -19037,16 +17917,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Space Entitlements",
@@ -19110,16 +17980,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Game Moment Candidates",
@@ -19183,16 +18043,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Game Wish Candidates",
@@ -19299,16 +18149,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -19434,16 +18274,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -19539,16 +18369,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -19625,16 +18445,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Heart Moment",
@@ -19744,16 +18554,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -19862,16 +18662,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -20006,16 +18796,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -20136,16 +18916,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -20227,16 +18997,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Important Dates",
@@ -20305,16 +19065,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -20411,16 +19161,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -20497,16 +19237,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Important Date",
@@ -20616,16 +19346,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -20692,16 +19412,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Invitations",
@@ -20762,16 +19472,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Create Invitation",
@@ -20826,16 +19526,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Revoke Invitation",
@@ -20899,16 +19589,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Leave the authenticated Account's Membership in this Space",
@@ -21017,16 +19697,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -21153,16 +19823,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -21258,16 +19918,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -21344,16 +19994,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Memory",
@@ -21462,16 +20102,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -21594,16 +20224,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -21712,16 +20332,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -21856,16 +20466,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -21983,16 +20583,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -22118,16 +20708,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22223,16 +20803,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22309,16 +20879,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Milestone",
@@ -22428,16 +20988,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22546,16 +21096,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -22690,16 +21230,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22800,16 +21330,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22872,16 +21392,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -22943,16 +21453,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -23024,16 +21524,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -23116,16 +21606,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -23237,16 +21717,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -23324,16 +21794,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -23420,16 +21880,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -23506,16 +21956,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Place",
@@ -23615,16 +22055,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -23695,16 +22125,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Place Heart-Moments",
@@ -23768,16 +22188,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Place Heart-Moments",
@@ -23839,16 +22249,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Place Heart-Moments",
@@ -23910,16 +22310,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Place Memories",
@@ -23983,16 +22373,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Place Memories",
@@ -24054,16 +22434,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Place Memories",
@@ -24125,16 +22495,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Place Milestones",
@@ -24198,16 +22558,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Unlink Place Milestones",
@@ -24269,16 +22619,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Link Place Milestones",
@@ -24385,16 +22725,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -24520,16 +22850,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -24615,16 +22935,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -24701,16 +23011,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Plan",
@@ -24809,16 +23109,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -24940,16 +23230,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25049,16 +23329,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -25170,16 +23440,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25280,16 +23540,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25352,16 +23602,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Partner Presence",
@@ -25413,16 +23653,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Touch Presence",
@@ -25514,16 +23744,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25601,16 +23821,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -25697,16 +23907,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25783,16 +23983,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Private Collection",
@@ -25892,16 +24082,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -25990,16 +24170,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -26095,16 +24265,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -26190,16 +24350,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Private Collection Item",
@@ -26307,16 +24457,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -26428,16 +24568,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -26538,16 +24668,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -26625,16 +24745,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -26721,16 +24831,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -26807,16 +24907,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Gift Idea",
@@ -26915,16 +25005,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -27026,16 +25106,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -27113,16 +25183,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -27209,16 +25269,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -27295,16 +25345,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Private Note",
@@ -27404,16 +25444,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -27483,16 +25513,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Space Profile",
@@ -27584,16 +25604,6 @@
             },
             "description": "The supplied version is no longer current. Nothing was changed; reload the latest state before retrying."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -27659,16 +25669,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Profile Preferences",
@@ -27747,16 +25747,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -27853,16 +25843,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -27939,16 +25919,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Profile Preference",
@@ -28058,16 +26028,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -28146,16 +26106,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Partner Profile",
@@ -28266,16 +26216,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -28340,16 +26280,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Profile Avatar Content",
@@ -28406,16 +26336,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Related Persons",
@@ -28484,16 +26404,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -28600,16 +26510,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -28686,16 +26586,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Related Person",
@@ -28805,16 +26695,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -28876,16 +26756,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -28964,16 +26834,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -29060,16 +26920,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -29146,16 +26996,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Reminder",
@@ -29255,16 +27095,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -29346,16 +27176,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -29417,16 +27237,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "List Rules",
@@ -29488,16 +27298,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -29577,16 +27377,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -29717,16 +27507,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -29792,16 +27572,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -29874,16 +27644,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -30042,16 +27802,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -30124,16 +27874,6 @@
             },
             "description": "The resource does not exist or is not visible to the caller."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -30204,16 +27944,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Transfer Export",
@@ -30286,16 +28016,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Download Transfer Export",
@@ -30450,16 +28170,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Transfer Import",
@@ -30531,16 +28241,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Apply Transfer Import",
@@ -30647,16 +28347,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -30782,16 +28472,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -30877,16 +28557,6 @@
             },
             "description": "The request conflicts with the current state of the resource."
           },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
-          },
           "422": {
             "content": {
               "application/json": {
@@ -30963,16 +28633,6 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           }
         },
         "summary": "Get Wish",
@@ -31071,16 +28731,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -31181,16 +28831,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {
@@ -31319,16 +28959,6 @@
               }
             },
             "description": "The request conflicts with the current state of the resource."
-          },
-          "413": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            },
-            "description": "The content exceeds the server-side size limit."
           },
           "422": {
             "content": {

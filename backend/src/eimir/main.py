@@ -9,7 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from eimir.api.errors import problem_responses, register_error_handlers
+from eimir.api.errors import register_error_handlers
 from eimir.api.openapi import EimirFastAPI
 from eimir.api.transport import RequestBodyLimitMiddleware, RequireHttpsForExternalHostsMiddleware
 from eimir.api.v1 import router as v1_router
@@ -76,7 +76,6 @@ def create_app() -> FastAPI:
         docs_url=None if settings.is_production else "/docs",
         redoc_url=None,
         openapi_url=None if settings.is_production else "/openapi.json",
-        responses=problem_responses(413),
         lifespan=_lifespan,
     )
 

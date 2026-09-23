@@ -1,45 +1,24 @@
-# eimir. identity system — issue #1225 design proposal
+# eimir. identity system — issue #1225
 
-**Status:** Owner-selected direction, documented in [issue #1225](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5797850494), with a Web identity migration in this branch.
+**Status:** The owner-selected Web identity was merged in [PR #1244](https://github.com/baerenmarke90/eimir/pull/1244). [#1245](https://github.com/baerenmarke90/eimir/issues/1245) continues the visual fidelity review. Final Product Design acceptance remains with Philipp.
 
-## Provenance and decision
+The [corporate identity document](CI.md) is the complete contract for the selected app logo, the owner icon set, its variants and states, the three color worlds, Light/Dark treatment, and the existing product-design rules inherited from Product Reference v1. It maps each rule to its delivered asset or runtime implementation.
 
-Philipp selected the **second app-logo reference**: two overlapping warm and cool circles, a white lowercase `e` loop and a lower-right dot. The icon geometry, icon categories, outline/filled/duotone behavior, states, three color worlds and gentle app language come from the **third owner reference** in [issue comment #5784651622](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5784651622). These two owner images, rather than earlier assistant explorations, are the sources for this proposal.
+## Owner originals
 
-The app logo is the brand mark. The simpler two-circle motif is the small **Wir** navigation icon, as in the owner icon board. The root shell keeps the current four destinations (Wir, Momente, Planen, Mehr) and the central add action. Listen has its own icon and is shown under **Mehr › Gemeinsame Listen**, matching the current `/more/collections` route. This distinction preserves the existing app structure while carrying the owner's icon language.
+The four supplied PNGs are preserved unchanged and are the visual authority for this issue:
 
-## Review artifacts
+- [App logo and logo variants](references/owner-app-logo.png)
+- [Thirty-icon overview](references/owner-icon-overview.png)
+- [Outline, Filled and Duotone examples plus worlds](references/owner-icon-variants.png)
+- [Icon states](references/owner-icon-states.png)
 
-| Board | Contents | Export |
-| --- | --- | --- |
-| Identity | App icon, wordmark, light/dark/mono, sizes, color-world marks | [identity.png](exports/identity.png) |
-| Icons | Thirty proposed symbols, six groups, variant matrix and states | [icons.png](exports/icons.png) |
-| App Light | Wir, Momente, Planen and Mehr/Listen in one shell | [screens-light.png](exports/screens-light.png) |
-| App Dark | The same content with explicit dark surfaces and icon colors | [screens-dark.png](exports/screens-dark.png) |
-| Palette & components | Three worlds in both modes, role colors, actions, focus and type | [palette.png](exports/palette.png) |
+## Editable assets and review evidence
 
-The logo is editable in [`assets/logo-mark.svg`](assets/logo-mark.svg), with separately generated dark, natural and warm marks, plus a dedicated mono drawing and self-contained 512 × 512 app-icon SVGs. The proposed icon geometry lives in [`icons.js`](icons.js). [`tokens.proposal.json`](tokens.proposal.json) documents semantic color roles, typography, sizes and motion. `build-assets.py` generates derived SVGs and the board token adapter; `render.sh` renders all five PNGs with Chromium and records their checksums in `SHA256SUMS`; `verify.py` checks the files and representative contrast pairs.
+- [`assets/`](assets/) contains the SVG logo master and generated variants. `build-assets.py` synchronizes the Web SVG delivery assets.
+- [`icons.js`](icons.js), `boards.js` and `boards.css` produce the explanatory boards; the typed `EimirIcon` registry is the runtime source.
+- [`exports/`](exports/) preserves the snapshot identity, icon, palette and Compact Light/Dark boards. The editable board source contains the #1245 refinements; regenerate these PNGs with `render.sh` before using them as current visual evidence.
+- [`evidence/`](evidence/) contains four #1245 real Web screenshots of the private-area view at 390 and 1440 CSS px in Light and Dark, captured by PR browser QA with mocked API responses. Earlier Today, Planen and quick-create screenshots in that directory predate the #1245 refinements.
+- `verify.py` checks board symbols, SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
 
-The previews use the existing `Instrument Sans` and `Literata` fonts and photos from `backend/demo_assets/images/`. The Wir preview retains Lea & Alex, the upcoming Flohmarkt and the Frühstück photo from the current Today demo/evidence. Other labels are illustrative design copy. Personal photos are neither recolored nor blurred in Dark mode.
-
-## Selected system contract
-
-- **Logo:** keep the warm/cool circles, white e loop, navy finishing stroke and separate dot. Use a light rounded tile for the launcher, a tuned dark tile on dark system surfaces, and a one-ink version without gradients. Keep a clear margin around the mark. Check the e at 16 and 24 px before using it as a favicon; the two-circle Wir icon covers navigation's smallest sizes.
-- **Icons:** use a 24 px drawing grid, approximately 20 px optical content, 1.65 px rounded stroke and 44 px interactive target. Outline is the normal navigation/content style; filled denotes active or strong semantic content; duotone highlights a meaningful feature or status. State changes also use fill, shape, text or focus ring so color is never the only signal.
-- **Worlds:** Original is the core brand world. Natürlich and Warm are contextual worlds with complete light/dark semantic roles, not only background gradients. The decision uses them as controlled context palettes. They are not user-selectable themes and do not change Premium personalization.
-- **Surfaces:** photography and authored words lead. Boundaries explain independent content or an interaction layer. Do not tint personal photos globally, fill every section with cards, or add decorative empty photo frames. Use Literata for selected personal headings and Instrument Sans for controls and reading text.
-- **Accessibility and motion:** the proposal includes explicit focus and disabled examples, 44 px targets, reduced-motion behavior, and representative contrast values. Full state-by-state WCAG, zoom, keyboard, touch and app-icon-mask checks are still required after an explicit design decision in issue #1225.
-
-## Verification
-
-`render.sh` generated five Chromium PNGs. All generated SVGs parse as XML. The semantic text, muted text, action text and action-fill pairs in all three worlds and both modes were checked with the WCAG relative-luminance formula; the minimum sampled ratio is **4.65:1** for white on the Natürlich light action fill. These are token-pair checks, not a full audit of every illustration or composited gradient.
-
-## Web implementation and real UI evidence
-
-The owner decision is recorded in the issue before runtime work. The implementation updates `design/tokens.json`, the generated Web token adapters, the shared `Brand` and `DestinationIcon` components, a 38-symbol typed `EimirIcon` registry (30 owner-board icons plus eight existing route/content needs), Today content icons, PWA/favicons and the existing Light/Dark bootstrap. Warm is applied to the personal daily quote; Natürlich is applied to the upcoming shared horizon. No user-controlled theme setting or entitlement changes are introduced.
-
-The original Light palette was calibrated for the repository's existing surface-contrast contract: page `#E6EBFA`, surface `#F3F5FC`, recessed `#D6E1F7` and border `#BBC9E5`. The Dark primary button uses `#42558C` with white text; link text has a separate light `link` token. These adjustments keep the owner's composition and hue direction while meeting the app's established readability tests. The five boards above were re-rendered after calibration.
-
-Chromium screenshots of the real mocked app are in [`evidence/`](evidence/): Today at 390 px in Light/Dark, Quick Create in Light/Dark, Planen and Momente at 390 px, and Today at 1280 px. The old #882 evidence was restored after the browser test generated fresh images, so these files are scoped to #1225.
-
-This Web migration does not include native packaging or a release. Product Acceptance still requires human visual review of the implementation screenshots and final browser behavior before merge.
+The implementation keeps the existing four root destinations, central add action, current content hierarchy and feature behavior. The owner images define the new identity only; other product rules remain those of [Product Reference v1](../../../product/design/product-reference-v1.md).

@@ -1,13 +1,13 @@
 # eimir. Brand Guidelines
 
 **Status:** Binding brand identity guidance under Product Reference v1<br/>
-**Version:** 2.1<br/>
-**Effective Date:** September 15, 2026<br/>
+**Version:** 2.2<br/>
+**Effective Date:** September 23, 2026<br/>
 **Claim:** „Euer gemeinsamer Ort.“
 
 ---
 
-[Product Reference v1](./product/design/product-reference-v1.md), approved by [#955](https://github.com/baerenmarke90/eimir/issues/955), is the normative current product-design direction. It supersedes conflicting older visual guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. D1 retains the name, mark, palette direction, and self-hosted font families below; composition and interaction follow the [v1 system direction](./product/design/design-system-direction.md). Privacy, security, accessibility, business-model, and technical contracts remain binding.
+[Product Reference v1](./product/design/product-reference-v1.md), approved by [#955](https://github.com/baerenmarke90/eimir/issues/955), remains the normative product-design direction. The later Product Owner decision in [#1225](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5797850494) replaces its former mark and extends its palette with the selected icon, logo and color-world system. The complete identity contract and original owner images are in [#1225 Corporate Identity](design/eimir/1225-identity-system/CI.md). Composition, interaction, self-hosted font families, privacy, security, accessibility, business-model and technical contracts remain binding.
 
 ## 1. Brand Identity & Philosophy
 
@@ -35,22 +35,16 @@
   launch checklist are documented in [Brand & Launch Verification](BRAND-AND-LEGAL-CHECKS.md).
 
 ### Wordmark Usage
-- In headers and navigation, the wordmark uses `Instrument Sans` with bold weight and tight letter spacing (`-0.035em`).
+- In headers and navigation, the wordmark uses `Instrument Sans` with bold weight and tight letter spacing (`-0.045em`).
 - In inverse presentation, the dot uses the appropriate on-accent token only when the actual background pairing is legible. The wordmark accent is decorative brand identity; it does not replace the semantic keyboard-focus role or convey essential action state.
 
 ---
 
-## 3. The Brand Symbol (Interlocking Rings)
+## 3. The selected brand symbol
 
-### Symbolism
-The `eimir.` mark evolves the signature two-ring motif:
-- **Two Independent People:** Two distinct circles represent two independent partners with their own identity, thoughts, and personal space.
-- **A Protected Shared Space:** Where the two rings intersect, a shared, protected third space emerges—representing their relationship, shared memories, and plans.
-- **NOT an Infinity Loop:** The mark is deliberately composed of two intersecting rings, **not** a figure-8 or infinity symbol. The relationship is grounded in mutual choice and presence, not endless abstraction.
+The app mark is the owner's selected pair of overlapping warm/cool filled circles with a lowercase `e` loop, finishing shape and separate lower-right dot. Light uses a white loop and navy finish; Dark uses a dark cutout and warm-to-cool finish on its matching tile. Monochrome, Natürlich and Warm share the same geometry. The simpler two-circle motif is reserved for the small **Wir** navigation icon. The four owner originals, permitted uses, source assets, safe area and delivery points are defined in the [corporate identity document](design/eimir/1225-identity-system/CI.md) and [#1245](https://github.com/baerenmarke90/eimir/issues/1245).
 
-### Asset Delivery
-- **Web:** Self-contained inline vector mark and standalone `favicon.svg` with 135° warm gradient (`#D93D59` → `#BE2340`).
-- **Android:** Adaptive launcher vector drawables in the Capacitor wrapper (`android/app/src/main/res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`); in-app brand marks come from the Web client.
+Web uses the SVG mark and generated favicon/PWA/touch assets from that source. The Capacitor wrapper packages the same Web interface; native store packaging remains governed by its separate delivery scope.
 
 ---
 
@@ -58,10 +52,7 @@ The `eimir.` mark evolves the signature two-ring motif:
 
 `design/tokens.json` is the sole source of truth for all color, typography, spacing, radius, and motion tokens across Web and the Android wrapper.
 
-The runtime palettes are `color.scheme.light` and `color.scheme.dark`.
-`color.semantic` retains compatibility fallbacks; its earlier printed values are
-not a second current palette. Consume the active scheme through the platform
-adapter instead of copying hex values from this document or an old screenshot.
+`identity.colorWorlds` defines Original, Natürlich and Warm with explicit Light and Dark semantic roles. Original is the default. The two additional worlds are controlled contextual palettes, not user-selectable themes. The older `color.scheme` and `color.semantic` entries remain compatibility roles and do not override the selected identity. Consume the generated platform adapter; do not copy values from screenshots or this document.
 
 | Role family | Meaning and use |
 | --- | --- |
@@ -79,12 +70,7 @@ adapter instead of copying hex values from this document or an old screenshot.
 | `border`, `borderSubtle` | purposeful separation rather than outlines around every section |
 | `focus`, `error`, `warning` | distinct keyboard-focus and consequence states; never substituted by the decorative wordmark accent |
 
-The current Light muted/page pair fails normal-text contrast. Use a compliant
-secondary-text pairing for essential timestamps, help, and status. Disabled
-controls use their own semantic state roles. Check actual pairs in Light and
-Dark; a token name does not prove accessibility. Normal text requires at least
-4.5:1, qualifying large text and essential UI graphics at least 3:1, with visible
-keyboard focus and no color-only state meaning.
+Disabled controls use their own semantic state roles. Check actual rendered pairs in all relevant Light/Dark worlds; a token name does not prove accessibility. Normal text requires at least 4.5:1, qualifying large text and essential UI graphics at least 3:1, with visible keyboard focus and no color-only state meaning. The [corporate identity contract](design/eimir/1225-identity-system/CI.md) identifies the delivered palette roles and the scope of their current contrast checks.
 
 ---
 
@@ -115,7 +101,7 @@ Typography is self-hosted with zero runtime CDN dependencies.
 ### Do:
 - Always write `eimir.` with lowercase "e" and the terminal dot in consumer copy.
 - Use the active scheme's `background` role for the warm page ground; D1 retains the palette direction without freezing older fallback hex values.
-- Highlight the terminal dot in the brand lockup with `Brand Strong` / `Brand Coral`.
+- Highlight the terminal dot in the brand lockup with the active identity accent token.
 - Maintain WCAG 2.2 AA contrast ratios (at least 4.5:1 for body text, 3:1 for UI controls).
 - Keep design tokens in sync between `design/tokens.json` and Web CSS (the Android wrapper packages the Web bundle).
 

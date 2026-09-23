@@ -62,3 +62,17 @@
 .eimir-icon .cool {
   stroke: var(--identity-icon-cool);
 }
+
+.eimir-icon-momente .icon-pressed-detail {
+  opacity: 0;
+}
+
+:is(a, button):hover:not(:disabled) .eimir-icon-momente.eimir-icon-outline {
+  stroke: var(--identity-icon-cool);
+}
+
+:is(a, button):active:not(:disabled)
+  .eimir-icon-momente.eimir-icon-filled
+  .icon-pressed-detail {
+  opacity: 1;
+}

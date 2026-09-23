@@ -8,6 +8,7 @@ const PRECACHE_URLS = [
   '/offline.css',
   '/manifest.webmanifest',
   '/favicon.svg',
+  '/favicon-dark.svg',
   '/apple-touch-icon.png',
   '/pwa-192.png',
   '/pwa-512.png',

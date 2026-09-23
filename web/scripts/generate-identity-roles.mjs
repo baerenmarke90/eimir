@@ -91,6 +91,9 @@ css.push(
 );
 css.push('.eimir-icon .accent { stroke: var(--identity-icon-accent); }');
 css.push('.eimir-icon .cool { stroke: var(--identity-icon-cool); }');
+css.push(
+  '.eimir-icon .icon-fill-accent { fill: var(--identity-icon-accent); stroke: none; }',
+);
 css.push('.eimir-icon-filled, .eimir-icon-duotone { stroke: currentColor; }');
 const rawOutput = `${css.join('\n\n')}\n`;
 const biome = fileURLToPath(

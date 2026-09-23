@@ -1,8 +1,9 @@
-"""Generate self-contained logo variants for the design proposal."""
+"""Generate the owner-approved logo variants and their Web delivery assets."""
 
 from pathlib import Path
 
 ASSETS = Path(__file__).parent / "assets"
+WEB_PUBLIC = Path(__file__).resolve().parents[4] / "web" / "public"
 SOURCE = (ASSETS / "logo-mark.svg").read_text()
 MONO = (ASSETS / "logo-mark-mono.svg").read_text()
 
@@ -27,6 +28,8 @@ PALETTES = {
     },
 }
 
+DARK_TILE = "#20233B"
+
 
 def replace_colors(source: str, replacements: dict[str, str]) -> str:
     result = source
@@ -43,6 +46,17 @@ def inner(svg: str) -> str:
 MARKS = {"light": SOURCE, "mono": MONO}
 for name, replacements in PALETTES.items():
     MARKS[name] = replace_colors(SOURCE, replacements)
+    if name == "dark":
+        # The owner's dark tile cuts the e out of its background and gives the
+        # lower stroke a warm-to-cool finish; it does not use the light white e.
+        MARKS[name] = MARKS[name].replace(
+            "</defs>",
+            '<linearGradient id="dark-finish" x1="0%" y1="0%" x2="100%" y2="100%">'
+            '<stop stop-color="#FFB6B9"/><stop offset="1" stop-color="#AC8EE4"/>'
+            '</linearGradient></defs>',
+        ).replace('stroke="#FFFEFD"', f'stroke="{DARK_TILE}"').replace(
+            'fill="#303A83"', 'fill="url(#dark-finish)"'
+        ).replace('with a white loop', 'with a dark cutout')
     (ASSETS / f"logo-mark-{name}.svg").write_text(MARKS[name])
 
 for name, svg in MARKS.items():
@@ -54,11 +68,26 @@ for name, svg in MARKS.items():
         "warm": ("#FFFCF6", "#FFF0E9"),
     }[name]
     tile = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="eimir. App-Icon {name}">
-<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="{ground[0]}"/><stop offset="1" stop-color="{ground[1]}"/></linearGradient></defs>
+<defs><linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="{ground[0]}"/><stop offset="1" stop-color="{ground[1]}"/></linearGradient></defs>
 <rect width="512" height="512" rx="112" fill="url(#tile)"/>
-<g transform="translate(30 45) scale(1.75)">{inner(svg)}</g>
+<g transform="scale(2)">{inner(svg)}</g>
 </svg>'''
     (ASSETS / f"app-icon-{name}.svg").write_text(tile)
+
+# Keep delivered Web SVGs byte-identical to the reviewed masters.
+for name, svg in MARKS.items():
+    suffix = '' if name == 'light' else f'-{name}'
+    (WEB_PUBLIC / 'identity' / f'logo-mark{suffix}.svg').write_text(svg)
+    (WEB_PUBLIC / 'identity' / f'app-icon-{name}.svg').write_text(
+        (ASSETS / f'app-icon-{name}.svg').read_text()
+    )
+(WEB_PUBLIC / 'favicon.svg').write_text((ASSETS / 'app-icon-light.svg').read_text())
+(WEB_PUBLIC / 'favicon-dark.svg').write_text((ASSETS / 'app-icon-dark.svg').read_text())
+maskable = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>eimir. maskable app icon</title><rect width="512" height="512" fill="#FAFBFF"/>
+<g transform="translate(84 91) scale(1.32)">{inner(SOURCE)}</g></svg>'''
+(WEB_PUBLIC / 'pwa-maskable.svg').write_text(maskable)
+
 
 import json
 proposal = json.loads((ASSETS.parent / 'tokens.proposal.json').read_text())

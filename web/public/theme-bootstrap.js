@@ -44,4 +44,7 @@
   if (themeColor) {
     themeColor.content = themeColors[theme];
   }
+  var favicon = document.getElementById?.('app-favicon');
+  if (favicon)
+    favicon.href = theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg';
 })();

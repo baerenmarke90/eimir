@@ -6,6 +6,7 @@ import {
   PRIVATE_NOTES_PATH,
 } from '../client/privateArea';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import {
   GiftIdeaCreatePage,
   GiftIdeaDetailPage,
@@ -31,49 +32,26 @@ import './PrivateAreaReference.css';
 const destinations = [
   {
     key: 'notes',
+    icon: 'notes',
     href: PRIVATE_NOTES_PATH,
     title: 'privateArea.notes.title',
     intro: 'privateArea.notes.intro',
   },
   {
     key: 'gifts',
+    icon: 'geschenk',
     href: PRIVATE_GIFT_IDEAS_PATH,
     title: 'privateArea.gifts.title',
     intro: 'privateArea.gifts.intro',
   },
   {
     key: 'collections',
+    icon: 'listen',
     href: PRIVATE_COLLECTIONS_PATH,
     title: 'privateArea.collections.title',
     intro: 'privateArea.collections.intro',
   },
 ] as const;
-
-function DestinationIcon({
-  kind,
-}: {
-  kind: (typeof destinations)[number]['key'];
-}) {
-  if (kind === 'gifts') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M20 12v9H4v-9M2 7h20v5H2V7Zm10 14V7m0 0H8.5A2.5 2.5 0 1 1 11 4.5L12 7Zm0 0h3.5A2.5 2.5 0 1 0-2.5-2.5L12 7Z" />
-      </svg>
-    );
-  }
-  if (kind === 'collections') {
-    return (
-      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M5 4h14v16H5V4Zm3 4h8M8 12h8M8 16h5" />
-    </svg>
-  );
-}
 
 function PrivateAreaOverview() {
   const { t } = useTranslation();
@@ -82,9 +60,7 @@ function PrivateAreaOverview() {
       <PrivateAreaBackToMore />
       <section className="private-area-privacy-banner" role="note">
         <span className="private-area-privacy-banner-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V7Z" />
-          </svg>
+          <EimirIcon name="nurfuer" />
         </span>
         <div>
           <strong>{t('privateArea.privacyLabel')}</strong>
@@ -103,7 +79,7 @@ function PrivateAreaOverview() {
                 to={destination.href}
               >
                 <span className="private-area-destination-icon">
-                  <DestinationIcon kind={destination.key} />
+                  <EimirIcon name={destination.icon} />
                 </span>
                 <span className="private-area-destination-copy">
                   <strong>{t(destination.title)}</strong>

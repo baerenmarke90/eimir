@@ -81,6 +81,10 @@ _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
         ActivityKind.HEART_MOMENT_CREATED,
         EngagementTarget.HEART_MOMENT,
     ),
+    EventType.HEART_MOMENT_VISIBILITY_CHANGED: (
+        ActivityKind.HEART_MOMENT_CREATED,
+        EngagementTarget.HEART_MOMENT,
+    ),
     EventType.WISH_CREATED: (ActivityKind.WISH_CREATED, EngagementTarget.WISH),
     EventType.PLAN_CREATED: (ActivityKind.PLAN_CREATED, EngagementTarget.PLAN),
     EventType.PLAN_COMPLETED: (ActivityKind.PLAN_COMPLETED, EngagementTarget.PLAN),
@@ -217,7 +221,7 @@ def _activity_target(
     event_type: EventType,
 ) -> tuple[ActivityKind, EngagementTarget, UUID] | None:
     if (
-        event_type is EventType.HEART_MOMENT_CREATED
+        event_type in {EventType.HEART_MOMENT_CREATED, EventType.HEART_MOMENT_VISIBILITY_CHANGED}
         and event.payload.visibility is not ContentVisibility.SHARED
     ):
         return None
@@ -270,19 +274,22 @@ def _insert_activity(
     target_type: EngagementTarget,
     target_id: UUID,
 ) -> None:
-    statement = (
-        postgresql.insert(Activity)
-        .values(
-            space_id=event.space_id,
-            source_event_id=event.id,
-            kind=kind.value,
-            actor_id=event.actor_id,
-            target_type=target_type.value,
-            target_id=target_id,
-            occurred_at=event.created_at,
-        )
-        .on_conflict_do_nothing(index_elements=["source_event_id", "kind"])
+    insert = postgresql.insert(Activity).values(
+        space_id=event.space_id,
+        source_event_id=event.id,
+        kind=kind.value,
+        actor_id=event.actor_id,
+        target_type=target_type.value,
+        target_id=target_id,
+        occurred_at=event.created_at,
     )
+    # A HeartMoment can reach shared visibility at creation or through a
+    # later transition. The partial unique index keeps those event paths and
+    # repeated private/share transitions from adding a second feed entry.
+    if kind is ActivityKind.HEART_MOMENT_CREATED:
+        statement = insert.on_conflict_do_nothing()
+    else:
+        statement = insert.on_conflict_do_nothing(index_elements=["source_event_id", "kind"])
     session.execute(statement)
 
 

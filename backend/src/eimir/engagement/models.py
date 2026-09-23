@@ -111,6 +111,13 @@ class Activity(IdMixin, Base):
         ),
         UniqueConstraint("source_event_id", "kind", name="uq_activities_source_event_kind"),
         Index("ix_activities_space_occurred_id", "space_id", "occurred_at", "id"),
+        Index(
+            "uq_activities_heart_moment_created_target",
+            "space_id",
+            "target_id",
+            unique=True,
+            postgresql_where=text("kind = 'HEART_MOMENT_CREATED' AND target_type = 'HEART_MOMENT'"),
+        ),
     )
 
 

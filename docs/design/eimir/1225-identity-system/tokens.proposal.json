@@ -1,5 +1,5 @@
 {
-  "status": "Phase A design proposal; do not import into runtime before issue #1225 approval",
+  "status": "Owner-selected in issue #1225; runtime tokens calibrated for Web accessibility",
   "source": "Owner logo reference 2 combined with owner icon and visual-language board",
   "typography": {
     "interface": "Instrument Sans Variable",
@@ -55,19 +55,19 @@
     "original": {
       "role": "Core brand and default relationship interface",
       "light": {
-        "page": "#FAFBFF",
-        "surface": "#FFFFFF",
+        "page": "#E6EBFA",
+        "surface": "#F3F5FC",
         "elevated": "#FFFFFF",
         "text": "#19233E",
         "mutedText": "#58627B",
-        "border": "#DEE5F2",
+        "border": "#BBC9E5",
         "action": "#3055B8",
         "actionFill": "#4C6ED0",
         "onAction": "#FFFFFF",
         "accentRose": "#AA4C86",
         "accentSky": "#5685D1",
         "softRose": "#F9EAF4",
-        "softBlue": "#EAF1FF",
+        "softBlue": "#D6E1F7",
         "focus": "#335DCA",
         "pressed": "#3B61C2",
         "hover": "#E8EEFF"
@@ -80,14 +80,14 @@
         "mutedText": "#C4CEE8",
         "border": "#46506F",
         "action": "#B7C8FF",
-        "actionFill": "#839EED",
-        "onAction": "#101933",
+        "actionFill": "#42558C",
+        "onAction": "#FFFFFF",
         "accentRose": "#F1B3D7",
         "accentSky": "#AED1FA",
         "softRose": "#46394F",
         "softBlue": "#303F62",
         "focus": "#B7C8FF",
-        "pressed": "#A0B5F4",
+        "pressed": "#354778",
         "hover": "#34446D"
       }
     },

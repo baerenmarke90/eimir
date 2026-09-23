@@ -15,7 +15,9 @@ describe('Brand', () => {
     expect(html).toContain('href="/story"');
     expect(html).toContain('aria-label="Open eimir. Story"');
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain('<svg');
+    expect(html).toContain('src="/identity/logo-mark.svg"');
+    expect(html).toContain('src="/identity/logo-mark-dark.svg"');
+    expect(html).toContain('alt=""');
     expect(html).toContain('eimir');
     expect(html).toContain('brand-dot');
     expect(html).not.toContain('SidebySide');

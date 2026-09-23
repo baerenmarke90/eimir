@@ -60,6 +60,7 @@ import {
 import { DailyEnergyCheckIn } from './DailyEnergyCheckIn';
 import { DailyQuoteCard } from './DailyQuoteCard';
 import { DailyVibeCheckIn } from './DailyVibeCheckIn';
+import { EimirIcon, type EimirIconName } from './EimirIcon';
 import { MemoryPreview } from './MemoryPreview';
 import { PersonIdentity } from './PersonIdentity';
 import { ProblemState } from './ProblemState';
@@ -237,6 +238,7 @@ function TodayDestinationLink({
 export function TodayModuleSection({
   id,
   className,
+  colorWorld,
   title,
   kicker,
   subline,
@@ -245,6 +247,7 @@ export function TodayModuleSection({
 }: {
   id?: string;
   className?: string;
+  colorWorld?: 'natural' | 'warm';
   title: string;
   kicker?: string;
   subline?: string;
@@ -252,7 +255,11 @@ export function TodayModuleSection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={`today-section ${className ?? ''}`.trim()}>
+    <section
+      id={id}
+      className={`today-section ${className ?? ''}`.trim()}
+      data-color-world={colorWorld}
+    >
       <div className="today-section-header">
         <div>
           {kicker ? (
@@ -271,110 +278,24 @@ export function TodayModuleSection({
 }
 
 function RecentItemTypeIcon({ type }: { type: DashboardItemType }) {
-  switch (type) {
-    case 'HEART_MOMENT':
-    case 'ANNIVERSARY':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      );
-    case 'BIRTHDAY':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8" />
-          <path d="M4 16s2-1 4-1 4 1 4 1 2-1 4-1 4 1 4 1" />
-          <path d="M2 21h20" />
-          <line x1="12" y1="8" x2="12" y2="5" />
-          <circle cx="12" cy="3.5" r="1" />
-        </svg>
-      );
-    case 'MILESTONE':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-          <line x1="4" y1="22" x2="4" y2="15" />
-        </svg>
-      );
-    case 'CHAPTER':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
-        </svg>
-      );
-    case 'COLLECTION':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-        </svg>
-      );
-    case 'PLAN':
-    case 'IMPORTANT_DATE':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      );
-    case 'WISH':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" />
-        </svg>
-      );
-    case 'PLACE':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="recent-type-icon"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="4" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <path d="m21 15-5-5L5 21" />
-        </svg>
-      );
-  }
+  const names: Partial<Record<DashboardItemType, EimirIconName>> = {
+    HEART_MOMENT: 'momente',
+    ANNIVERSARY: 'jahrestag',
+    BIRTHDAY: 'geburtstag',
+    MILESTONE: 'meilensteine',
+    CHAPTER: 'kapitel',
+    COLLECTION: 'listen',
+    PLAN: 'kalender',
+    IMPORTANT_DATE: 'kalender',
+    WISH: 'wuensche',
+    PLACE: 'orte',
+  };
+  return (
+    <EimirIcon
+      name={names[type] ?? 'erinnerungen'}
+      className="recent-type-icon"
+    />
+  );
 }
 
 function RecentSharedItemCard({ item }: { item: DashboardItem }) {
@@ -1148,6 +1069,7 @@ export function TodayPage({
         {upcomingVisible && upcoming.length > 0 ? (
           <TodayModuleSection
             className="today-section-upcoming"
+            colorWorld="natural"
             title={t('m5s5.dashboard.upcomingTitle')}
             kicker={t('m5s5.dashboard.upcomingKicker')}
             headerAction={

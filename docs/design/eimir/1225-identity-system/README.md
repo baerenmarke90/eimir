@@ -1,6 +1,6 @@
 # eimir. identity system — issue #1225 design proposal
 
-**Status:** Complete Phase A design proposal for Product Owner review. This is not a runtime design-system migration or a final issue decision.
+**Status:** Owner-selected direction, documented in [issue #1225](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5797850494), with a Web identity migration in this branch.
 
 ## Provenance and decision
 
@@ -22,11 +22,11 @@ The logo is editable in [`assets/logo-mark.svg`](assets/logo-mark.svg), with sep
 
 The previews use the existing `Instrument Sans` and `Literata` fonts and photos from `backend/demo_assets/images/`. The Wir preview retains Lea & Alex, the upcoming Flohmarkt and the Frühstück photo from the current Today demo/evidence. Other labels are illustrative design copy. Personal photos are neither recolored nor blurred in Dark mode.
 
-## Proposed system contract
+## Selected system contract
 
 - **Logo:** keep the warm/cool circles, white e loop, navy finishing stroke and separate dot. Use a light rounded tile for the launcher, a tuned dark tile on dark system surfaces, and a one-ink version without gradients. Keep a clear margin around the mark. Check the e at 16 and 24 px before using it as a favicon; the two-circle Wir icon covers navigation's smallest sizes.
 - **Icons:** use a 24 px drawing grid, approximately 20 px optical content, 1.65 px rounded stroke and 44 px interactive target. Outline is the normal navigation/content style; filled denotes active or strong semantic content; duotone highlights a meaningful feature or status. State changes also use fill, shape, text or focus ring so color is never the only signal.
-- **Worlds:** Original is the core brand world. Natürlich and Warm are contextual worlds with complete light/dark semantic roles, not only background gradients. The issue still needs to decide whether they become selectable themes or controlled context palettes; a user-selectable treatment must be reconciled with the existing Premium personalization rule.
+- **Worlds:** Original is the core brand world. Natürlich and Warm are contextual worlds with complete light/dark semantic roles, not only background gradients. The decision uses them as controlled context palettes. They are not user-selectable themes and do not change Premium personalization.
 - **Surfaces:** photography and authored words lead. Boundaries explain independent content or an interaction layer. Do not tint personal photos globally, fill every section with cards, or add decorative empty photo frames. Use Literata for selected personal headings and Instrument Sans for controls and reading text.
 - **Accessibility and motion:** the proposal includes explicit focus and disabled examples, 44 px targets, reduced-motion behavior, and representative contrast values. Full state-by-state WCAG, zoom, keyboard, touch and app-icon-mask checks are still required after an explicit design decision in issue #1225.
 
@@ -34,4 +34,12 @@ The previews use the existing `Instrument Sans` and `Literata` fonts and photos 
 
 `render.sh` generated five Chromium PNGs. All generated SVGs parse as XML. The semantic text, muted text, action text and action-fill pairs in all three worlds and both modes were checked with the WCAG relative-luminance formula; the minimum sampled ratio is **4.65:1** for white on the Natürlich light action fill. These are token-pair checks, not a full audit of every illustration or composited gradient.
 
-No files under runtime `web/`, `design/tokens.json`, PWA assets or Android packaging are changed. The decision gate in issue #1225 remains in force until the Product Owner explicitly records the final logo, icon grammar and color-world policy there.
+## Web implementation and real UI evidence
+
+The owner decision is recorded in the issue before runtime work. The implementation updates `design/tokens.json`, the generated Web token adapters, the shared `Brand` and `DestinationIcon` components, a 38-symbol typed `EimirIcon` registry (30 owner-board icons plus eight existing route/content needs), Today content icons, PWA/favicons and the existing Light/Dark bootstrap. Warm is applied to the personal daily quote; Natürlich is applied to the upcoming shared horizon. No user-controlled theme setting or entitlement changes are introduced.
+
+The original Light palette was calibrated for the repository's existing surface-contrast contract: page `#E6EBFA`, surface `#F3F5FC`, recessed `#D6E1F7` and border `#BBC9E5`. The Dark primary button uses `#42558C` with white text; link text has a separate light `link` token. These adjustments keep the owner's composition and hue direction while meeting the app's established readability tests. The five boards above were re-rendered after calibration.
+
+Chromium screenshots of the real mocked app are in [`evidence/`](evidence/): Today at 390 px in Light/Dark, Quick Create in Light/Dark, Planen and Momente at 390 px, and Today at 1280 px. The old #882 evidence was restored after the browser test generated fresh images, so these files are scoped to #1225.
+
+This Web migration does not include native packaging or a release. Product Acceptance still requires human visual review of the implementation screenshots and final browser behavior before merge.

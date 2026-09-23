@@ -40,16 +40,16 @@
   --easing-enter: cubic-bezier(0, 0, 0.2, 1);
   --easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --elevation-overlay: 0px 8px 32px 0px var(--color-shadow-overlay);
-  --color-link-text: #be2340;
+  --color-link-text: #3055b8;
 }
 
 :root[data-theme="dark"] {
-  --color-link-text: #ff6b85;
+  --color-link-text: #b7c8ff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --color-link-text: #ff6b85;
+    --color-link-text: #b7c8ff;
   }
 }
 

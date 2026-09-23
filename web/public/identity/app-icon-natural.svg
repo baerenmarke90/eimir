@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="eimir. App-Icon natural">
+<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F4FFF9"/><stop offset="1" stop-color="#E7F9F2"/></linearGradient></defs>
+<rect width="512" height="512" rx="112" fill="url(#tile)"/>
+<g transform="translate(30 45) scale(1.75)">
+  <title id="title">eimir.: zwei überlagerte Farbkreise formen mit einer hellen Schleife ein e</title>
+  <defs>
+    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E6D7A7"/><stop offset=".53" stop-color="#A8D8B8"/><stop offset="1" stop-color="#6DBF9D"/></linearGradient>
+    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#A8E8E9"/><stop offset=".5" stop-color="#74C7DE"/><stop offset="1" stop-color="#5FA3C8"/></linearGradient>
+    <linearGradient id="join" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#82C9BE"/><stop offset="1" stop-color="#4F9EAD"/></linearGradient>
+  </defs>
+  <circle cx="94" cy="111" r="68" fill="url(#warm)"/>
+  <circle cx="154" cy="110" r="69" fill="url(#cool)"/>
+  <path d="M123.5 47.7A68 68 0 0 1 124.5 173.3A69 69 0 0 1 123.5 47.7Z" fill="url(#join)" opacity=".64"/>
+  <path d="M97 153C87 131 99 101 122 91C142 83 161 90 167 108C173 127 154 148 127 158C114 163 102 163 94 159" fill="none" stroke="#FFFEFD" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M94 158C104 184 133 192 159 169" fill="none" stroke="#1B5866" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="198" cy="181" r="14" fill="#1C6770"/>
+</g>
+</svg>

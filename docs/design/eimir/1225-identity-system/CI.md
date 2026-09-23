@@ -1,6 +1,6 @@
 # eimir. corporate identity — issue #1225
 
-**Status:** Product Owner selected; implemented in the Web review branch. Product acceptance and merge remain separate decisions.
+**Status:** Selected identity implemented in Web; PR #1244 merged. Issue #1245 is the owner-image fidelity follow-up. Final Product Design acceptance remains with Philipp.
 **Authority:** The four owner images below define the app logo, icon inventory, variant examples and icon states. All other visual and interaction rules continue from [Product Reference v1](../../../product/design/product-reference-v1.md), its [design-system direction](../../../product/design/design-system-direction.md), the [partner-app experience standard](../../../PARTNER-APP-EXPERIENCE-STANDARD.md) and the central [design tokens](../../../../design/tokens.json). The owner decision is recorded in [#1225](https://github.com/baerenmarke90/eimir/issues/1225#issuecomment-5797850494).
 
 ## 1. Fixed visual references and scope
@@ -20,16 +20,20 @@ The scope is identity: logo, icons, semantic color worlds and their existing Web
 
 The mark consists of two distinct filled circles, warm on the left and cool on the right, overlapping behind a white lower-case `e` loop. A navy lower shape finishes the `e`; the dot sits separately at lower right. The circles and loop must remain discernible. Do not substitute the navigation circles, a generic heart, a plant, an infinity symbol or a continuous ribbon for this app mark.
 
-The editable master is [logo-mark.svg](assets/logo-mark.svg) on a 256-unit square. Its mono drawing is [logo-mark-mono.svg](assets/logo-mark-mono.svg). [build-assets.py](build-assets.py) creates the Light, Dark, Natürlich and Warm marks and the 512-unit app tiles from the same geometry, then synchronizes the SVGs used by the Web app. The tile has a rounded square boundary with clear inner space. The maskable asset has an additional safe area around the mark. Do not stretch, rotate, crop the dot or apply a second color effect.
+The editable master is [logo-mark.svg](assets/logo-mark.svg) on a 256-unit square. Its mono drawing is [logo-mark-mono.svg](assets/logo-mark-mono.svg). [build-assets.py](build-assets.py) creates the Light, Dark, Natürlich and Warm marks and the 512-unit app tiles from the same geometry, then synchronizes the SVGs used by the Web app. Static brand-art colors live in these masters; the UI's semantic colors live in `design/tokens.json`. The tile has a rounded square boundary with clear inner space. The maskable asset has an additional safe area around the mark. Do not stretch, rotate, crop the dot or apply a second color effect.
+
+Light uses a white loop and a navy finishing stroke. **Dark cuts the loop out against its dark tile and uses a warm-to-cool finishing stroke**, with brighter circles and a lilac dot. Monochrome preserves the same geometry with one ink and a negative loop. Use the complete Dark tile on arbitrary backgrounds so its cutout keeps the correct ground. The full silhouette, overlap, lower stroke and separate dot follow the owner image at both large and launcher sizes.
 
 | Use | Implemented asset and rule |
 | --- | --- |
 | Light app icon and favicon | `web/public/identity/app-icon-light.svg`, `web/public/favicon.svg`, `web/public/pwa-192.png`, `web/public/pwa-512.png`, `web/public/apple-touch-icon.png` |
-| Dark app icon | `web/public/identity/app-icon-dark.svg`; deliberately lighter circles and dot on a dark tile |
+| Dark app icon and favicon | `web/public/identity/app-icon-dark.svg`, `web/public/favicon-dark.svg`; startup bootstrap and runtime choose the favicon from the resolved theme, including explicit overrides |
 | Monochrome | `web/public/identity/app-icon-mono.svg`; one ink for constrained use |
 | Contextual worlds | `app-icon-natural.svg` and `app-icon-warm.svg` are controlled brand variants, not user-selectable app themes |
-| Header and entry surfaces | `Brand` uses `logo-mark.svg` or `logo-mark-dark.svg` according to the resolved theme |
+| Header and entry surfaces | `Brand` uses the complete Light or Dark app tile according to the resolved theme; transparent marks remain editable exports |
 | Maskable PWA | `web/public/pwa-maskable.svg` uses the same master motif inside the mask-safe area |
+
+The installed PWA manifest uses the Light PNG and a maskable SVG; installed launchers do not reliably select an icon based on app theme. The Dark and monochrome artwork remain explicit deliverable assets, and the Web favicon switches with the resolved theme.
 
 The consumer name is always **eimir.** in lowercase with the terminal dot. The wordmark uses self-hosted Instrument Sans, bold, with compact letter spacing; the dot uses the semantic identity accent. The mark and wordmark have separate responsibilities: the mark must work alone as an app icon, while wordmark text stays real text in UI. The poster's handwritten phrases and slogan are part of the supplied visual reference; they do not replace existing localized product copy or the established brand claim.
 
@@ -51,23 +55,23 @@ The existing routes and content also need eight symbols absent from the board: S
 | Variant | Rule and implemented examples |
 | --- | --- |
 | Outline | Default navigation and ordinary content; all 30 board icons and the eight existing-route additions are covered. |
-| Filled | Active navigation or a strong semantic motif. The owner examples Wir, heart, calendar, plane, star and lock are implemented; Planen and Mehr also have active variants for the current shell. |
-| Duotone | Deliberate warm/cool emphasis only where it helps meaning. The six owner examples have separate duotone drawings; the variant is not made by drawing the outline over the Filled icon. |
+| Filled | Active navigation or a strong semantic motif. The owner examples Wir, heart, calendar, plane, star and lock are implemented; Planen and Mehr also have active variants for the current shell. The heart has a continuous cool-to-warm fill. |
+| Duotone | Deliberate warm/cool emphasis only where it helps meaning. The six owner examples (including the plus-lock for “Nur für mich”) have separate duotone drawings; the heart uses a cool-to-warm transition rather than two hard halves. |
 
 The control owns its accessible name and interaction state; decorative SVGs are hidden from assistive technology. Use the existing localized label, `aria-current` for active destinations, native `disabled` semantics where applicable, and the semantic focus role. Do not place an unlabeled icon alone in a button.
 
 | Control state | Visual treatment | Non-color signal |
 | --- | --- | --- |
 | Default | Outline, normal text/icon color | Recognizable contour and visible label |
-| Hover | Same contour, semantic hover surface | Pointer affordance and label retained |
+| Hover | Same contour with cool-blue heart stroke and semantic hover surface | Pointer affordance and label retained |
 | Active | Filled icon in navigation or selected content | Filled silhouette and `aria-current`/selected semantics |
-| Pressed | Purposeful duotone or existing pressed surface | Pressed control surface and stable label |
+| Pressed | The filled heart gains a cool lower finishing stroke while the control surface responds | Pressed control surface and stable label |
 | Disabled | Reduced emphasis, no active fill | Native disabled behavior and retained readable context |
 | Focus visible | Existing focus token/ring around the control | Visible ring independent of color accents |
 
 ## 4. Color worlds and Light/Dark
 
-`design/tokens.json > identity` is the only value source. Its generated Web adapter is `web/src/design/identity-roles.css`. Components consume semantic roles rather than literal colors. **Original** is the default brand world. **Natürlich** and **Warm** are controlled contextual worlds already used on the relevant personal surfaces; they are not selectable themes and do not change Premium personalization. All three define Light and Dark roles. User choice of System/Light/Dark still controls luminance independently of the contextual world.
+`design/tokens.json > identity` is the only **semantic UI color** value source. Its generated Web adapter is `web/src/design/identity-roles.css`. The static brand artwork has its own SVG master for the approved gradients; components consume semantic roles rather than scattering literal colors. **Original** is the default brand world. **Natürlich** and **Warm** are controlled contextual worlds already used on the relevant personal surfaces; they are not selectable themes and do not change Premium personalization. All three define Light and Dark roles. User choice of System/Light/Dark still controls luminance independently of the contextual world.
 
 The following values identify each world's main roles. `design/tokens.json` also defines elevated, muted text, border, link/action text, on-action, soft surfaces, hover, pressed and focus values for every row; those values are binding and generated, not inferred from this abbreviated display table.
 
@@ -98,4 +102,10 @@ Self-hosted **Instrument Sans** remains the UI and reading face; **Literata** re
 | Semantic color worlds | `design/tokens.json` → `web/scripts/generate-identity-roles.mjs` → generated CSS and existing theme bootstrap |
 | Design evidence | Original PNGs in `references/`; editable board source and generated exports in this directory; real app screenshots in `evidence/` |
 
-Run the existing token, PWA, type, unit and browser checks for affected surfaces. [verify.py](verify.py) validates the 30 board names, SVG syntax, export integrity and representative text contrast; the Web build validates its generated token output and PWA dimensions. Review Wir, Momente, Planen, Mehr/Listen and central add in real Compact Light/Dark UI, then the relevant Expanded view. Product acceptance compares those results with the four originals; a green build alone does not approve the visual match.
+Run the existing token, PWA, type, unit and browser checks for affected surfaces. [verify.py](verify.py) validates the owner-image hashes, 30 board names, runtime symbol coverage, SVG syntax, delivered asset consistency, historical export integrity and representative text contrast. The Web build validates its generated token output and PWA dimensions. Review Wir, Momente, Planen, Mehr/Listen and central add in real Compact Light/Dark UI, then the relevant Expanded view. Product acceptance compares those results with the four originals; a green build alone does not approve the visual match.
+
+### Comparison boundaries for #1245
+
+- The app logo is an editable vector reconstruction of the supplied raster. Its color order, circles, loop, lower stroke and separate dot follow the owner image. Pixel equality with the original lighting and anti-aliasing is not claimed; inspect it at 16, 32, 192 and 512 px before acceptance.
+- The owner board shows one state sequence for a heart. Runtime icons use its contour, fill, duotone and pressed distinctions with contrast-safe semantic theme colors; the parent control still owns hover, focus, disabled and selected semantics. The PNG exports from the original snapshot predate the #1245 changes and remain historical evidence until regenerated from the updated editable board source.
+- Existing app screenshots in `evidence/` predate the #1245 Dark loop and favicon adjustments. Current real Compact and Expanded screenshots must be added before Product Design acceptance; the illustrated design board does not substitute for them.

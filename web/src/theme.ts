@@ -80,6 +80,11 @@ export function applyResolvedTheme(
     .getPropertyValue('--color-background')
     .trim();
   if (themeColor && resolvedBackground) themeColor.content = resolvedBackground;
+  const favicon = document.getElementById?.('app-favicon');
+  if (favicon?.tagName === 'LINK') {
+    (favicon as HTMLLinkElement).href =
+      theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg';
+  }
 }
 
 export function initializeTheme(): ThemePreference {

@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="eimir. App-Icon natural">
-<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F4FFF9"/><stop offset="1" stop-color="#E7F9F2"/></linearGradient></defs>
+<defs><linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#F4FFF9"/><stop offset="1" stop-color="#E7F9F2"/></linearGradient></defs>
 <rect width="512" height="512" rx="112" fill="url(#tile)"/>
 <g transform="scale(2)">
   <title id="title">eimir. mark: two overlapping color circles form an e with a white loop</title>
   <defs>
-    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E6D7A7"/><stop offset=".53" stop-color="#A8D8B8"/><stop offset="1" stop-color="#6DBF9D"/></linearGradient>
-    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#A8E8E9"/><stop offset=".5" stop-color="#74C7DE"/><stop offset="1" stop-color="#5FA3C8"/></linearGradient>
-    <linearGradient id="join" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#82C9BE"/><stop offset="1" stop-color="#4F9EAD"/></linearGradient>
+    <linearGradient id="warm" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#E6D7A7"/><stop offset=".53" stop-color="#A8D8B8"/><stop offset="1" stop-color="#6DBF9D"/></linearGradient>
+    <linearGradient id="cool" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#A8E8E9"/><stop offset=".5" stop-color="#74C7DE"/><stop offset="1" stop-color="#5FA3C8"/></linearGradient>
+    <linearGradient id="join" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#82C9BE"/><stop offset="1" stop-color="#4F9EAD"/></linearGradient>
   </defs>
   <circle cx="87" cy="118" r="59" fill="url(#warm)"/>
   <circle cx="168" cy="118" r="59" fill="url(#cool)"/>

@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
-  <title id="title">eimir. mark: two overlapping color circles form an e with a white loop</title>
+  <title id="title">eimir. mark: two overlapping color circles form an e with a dark cutout</title>
   <defs>
-    <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFD7AB"/><stop offset=".53" stop-color="#FFB6B9"/><stop offset="1" stop-color="#F197C9"/></linearGradient>
-    <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#B0E6FC"/><stop offset=".5" stop-color="#94B7F6"/><stop offset="1" stop-color="#AC8EE4"/></linearGradient>
-    <linearGradient id="join" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#AD95EA"/><stop offset="1" stop-color="#7D73D0"/></linearGradient>
-  </defs>
+    <linearGradient id="warm" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#FFD7AB"/><stop offset=".53" stop-color="#FFB6B9"/><stop offset="1" stop-color="#F197C9"/></linearGradient>
+    <linearGradient id="cool" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#B0E6FC"/><stop offset=".5" stop-color="#94B7F6"/><stop offset="1" stop-color="#AC8EE4"/></linearGradient>
+    <linearGradient id="join" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#AD95EA"/><stop offset="1" stop-color="#7D73D0"/></linearGradient>
+  <linearGradient id="dark-finish" x1="0%" y1="0%" x2="100%" y2="100%"><stop stop-color="#FFB6B9"/><stop offset="1" stop-color="#AC8EE4"/></linearGradient></defs>
   <circle cx="87" cy="118" r="59" fill="url(#warm)"/>
   <circle cx="168" cy="118" r="59" fill="url(#cool)"/>
   <path d="M127.5 75A59 59 0 0 1 127.5 161A59 59 0 0 1 127.5 75Z" fill="url(#join)" opacity=".74"/>
-  <path d="M104 176C92 155 102 124 124 111C145 98 168 103 174 119C180 137 164 154 140 169C127 177 113 180 104 176" fill="none" stroke="#FFFEFD" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M99 180C112 185 138 177 159 160C168 153 174 155 176 163C170 185 150 200 127 203C112 205 102 197 99 180Z" fill="#303A83"/>
+  <path d="M104 176C92 155 102 124 124 111C145 98 168 103 174 119C180 137 164 154 140 169C127 177 113 180 104 176" fill="none" stroke="#20233B" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M99 180C112 185 138 177 159 160C168 153 174 155 176 163C170 185 150 200 127 203C112 205 102 197 99 180Z" fill="url(#dark-finish)"/>
   <circle cx="205" cy="184" r="13" fill="#C0AAFC"/>
 </svg>

@@ -42,7 +42,7 @@
 
 ## 3. The selected brand symbol
 
-The app mark is the owner's selected pair of overlapping warm/cool filled circles with a white lowercase `e` loop, navy finishing shape and separate lower-right dot. Its Light, Dark, monochrome, Natürlich and Warm assets share one editable geometry. The simpler two-circle motif is reserved for the small **Wir** navigation icon. The exact visual references, permitted uses, source assets, safe area and delivery points are defined in the [corporate identity document](design/eimir/1225-identity-system/CI.md).
+The app mark is the owner's selected pair of overlapping warm/cool filled circles with a lowercase `e` loop, finishing shape and separate lower-right dot. Light uses a white loop and navy finish; Dark uses a dark cutout and warm-to-cool finish on its matching tile. Monochrome, Natürlich and Warm share the same geometry. The simpler two-circle motif is reserved for the small **Wir** navigation icon. The four owner originals, permitted uses, source assets, safe area and delivery points are defined in the [corporate identity document](design/eimir/1225-identity-system/CI.md) and [#1245](https://github.com/baerenmarke90/eimir/issues/1245).
 
 Web uses the SVG mark and generated favicon/PWA/touch assets from that source. The Capacitor wrapper packages the same Web interface; native store packaging remains governed by its separate delivery scope.
 

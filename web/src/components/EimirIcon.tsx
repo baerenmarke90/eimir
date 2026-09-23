@@ -68,7 +68,7 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
     <>
       <rect x="3.5" y="5.5" width="17" height="15" rx="2.7" />
       <path d="M3.5 10h17M8 3.5v4M16 3.5v4" />
-      <circle className="accent" cx="12" cy="15.2" r="1.5" />
+      <path className="accent" d="M8 3.5v4M16 3.5v4" />
     </>
   ),
   listen: (
@@ -181,8 +181,8 @@ const OUTLINE: Record<EimirIconName, ReactNode> = {
   ),
   meilensteine: (
     <>
-      <path d="M3 10.5 10.5 3l4.3 4.3-7.5 7.5L3 10.5Zm8.8 1.2 7.2 7.2M5.5 13.5l-2 6 6-2" />
-      <path className="accent" d="m14.8 7.3 2.4-2.4 3.8 3.8-2.4 2.4" />
+      <path className="accent" d="m13 2.5 6 6-6 6-6-6 6-6Z" />
+      <path d="m8.5 10 6 6-6 6-6-6 6-6Z" />
     </>
   ),
   jahrestag: (
@@ -332,7 +332,16 @@ const FILLED: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
     </>
   ),
   momente: (id) => (
-    <path d={HEART_PATH} fill={`url(#${id}-warm)`} stroke="none" />
+    <>
+      <path d={HEART_PATH} fill={`url(#${id}-heart)`} stroke="none" />
+      <path
+        className="icon-pressed-detail"
+        d="M7.4 17.1c1.5 1.3 3.1 2.5 4.6 3.4 2.1-1.3 4.5-3.2 6.1-5.2"
+        fill="none"
+        stroke="var(--identity-icon-cool)"
+        strokeWidth="1.8"
+      />
+    </>
   ),
   planen: (id) => (
     <>
@@ -391,6 +400,24 @@ const FILLED: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
       />
     </>
   ),
+  nurfuer: (id) => (
+    <>
+      <rect
+        x="4.4"
+        y="10"
+        width="15.2"
+        height="11"
+        rx="2.7"
+        fill={`url(#${id}-lock-filled)`}
+        stroke="none"
+      />
+      <path
+        d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3"
+        stroke="var(--identity-icon-accent)"
+      />
+      <path d="M12 14v4m-2-2h4" stroke="var(--color-on-accent)" />
+    </>
+  ),
   mehr: () => (
     <g fill="currentColor" stroke="none">
       {[5, 12, 19].flatMap((y) =>
@@ -417,15 +444,7 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
     </>
   ),
   momente: (id) => (
-    <>
-      <path d={HEART_PATH} fill={`url(#${id}-cool)`} stroke="none" />
-      <path
-        d={HEART_PATH}
-        fill={`url(#${id}-warm)`}
-        stroke="none"
-        clipPath={`url(#${id}-heart-half)`}
-      />
-    </>
+    <path d={HEART_PATH} fill={`url(#${id}-cool-warm)`} stroke="none" />
   ),
   kalender: (id) => (
     <>
@@ -441,13 +460,6 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
       <path
         d="M3.5 10h17M8 3.5v4M16 3.5v4"
         stroke="var(--identity-icon-accent)"
-      />
-      <circle
-        cx="12"
-        cy="15.2"
-        r="1.2"
-        fill="var(--color-surface-raised)"
-        stroke="none"
       />
     </>
   ),
@@ -483,6 +495,24 @@ const DUOTONE: Partial<Record<EimirIconName, (id: string) => ReactNode>> = {
       <path d="M12 14.5v2" stroke="var(--color-surface-raised)" />
     </>
   ),
+  nurfuer: (id) => (
+    <>
+      <rect
+        x="4.4"
+        y="10"
+        width="15.2"
+        height="11"
+        rx="2.7"
+        fill={`url(#${id}-lock-duotone)`}
+        stroke="none"
+      />
+      <path
+        d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3"
+        stroke="var(--identity-icon-cool)"
+      />
+      <path d="M12 14v4m-2-2h4" stroke="var(--color-on-accent)" />
+    </>
+  ),
 };
 
 type Props = {
@@ -504,11 +534,11 @@ export function EimirIcon({ name, variant = 'outline', className }: Props) {
       viewBox="0 0 24 24"
       aria-hidden="true"
       focusable="false"
-      className={`eimir-icon eimir-icon-${variant}${className ? ` ${className}` : ''}`}
+      className={`eimir-icon eimir-icon-${name} eimir-icon-${variant}${className ? ` ${className}` : ''}`}
     >
       {variant !== 'outline' && (
         <defs>
-          <linearGradient id={`${id}-cool`} x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={`${id}-cool`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop stopColor="var(--identity-icon-cool-fill)" />
             <stop
               offset="1"
@@ -516,7 +546,7 @@ export function EimirIcon({ name, variant = 'outline', className }: Props) {
               stopOpacity=".65"
             />
           </linearGradient>
-          <linearGradient id={`${id}-warm`} x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id={`${id}-warm`} x1="0%" y1="0%" x2="100%" y2="100%">
             <stop stopColor="var(--identity-icon-warm-fill)" />
             <stop
               offset="1"
@@ -524,13 +554,47 @@ export function EimirIcon({ name, variant = 'outline', className }: Props) {
               stopOpacity=".65"
             />
           </linearGradient>
-          <linearGradient id={`${id}-cool-warm`} x1="0" y1="0" x2="1" y2="1">
+          <linearGradient
+            id={`${id}-cool-warm`}
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
             <stop stopColor="var(--identity-icon-cool-fill)" />
             <stop offset="1" stopColor="var(--identity-icon-warm-fill)" />
           </linearGradient>
-          <clipPath id={`${id}-heart-half`}>
-            <rect x="11.5" y="0" width="12.5" height="24" />
-          </clipPath>
+          <linearGradient
+            id={`${id}-heart`}
+            x1="0%"
+            y1="100%"
+            x2="100%"
+            y2="0%"
+          >
+            <stop stopColor="var(--identity-icon-cool-fill)" />
+            <stop offset=".55" stopColor="var(--identity-icon-warm-fill)" />
+            <stop offset="1" stopColor="var(--identity-icon-accent)" />
+          </linearGradient>
+          <linearGradient
+            id={`${id}-lock-filled`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <stop stopColor="var(--identity-icon-warm-fill)" />
+            <stop offset="1" stopColor="var(--identity-icon-cool-fill)" />
+          </linearGradient>
+          <linearGradient
+            id={`${id}-lock-duotone`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
+            <stop stopColor="var(--identity-icon-cool-fill)" />
+            <stop offset="1" stopColor="var(--identity-icon-warm-fill)" />
+          </linearGradient>
         </defs>
       )}
       {content}

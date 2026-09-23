@@ -33,11 +33,13 @@ function installThemeDocument(backgroundByTheme: Record<string, string>) {
     style: {} as Record<string, string>,
   };
   const themeColor = { content: 'fallback' };
+  const favicon = { tagName: 'LINK', href: '/favicon.svg' };
 
   Object.defineProperty(globalThis, 'document', {
     configurable: true,
     value: {
       documentElement: root,
+      getElementById: (id: string) => (id === 'app-favicon' ? favicon : null),
       querySelector: (selector: string) => {
         expect(selector).toBe('meta[name="theme-color"]');
         return themeColor;
@@ -59,7 +61,7 @@ function installThemeDocument(backgroundByTheme: Record<string, string>) {
     },
   });
 
-  return { root, themeColor };
+  return { root, themeColor, favicon };
 }
 
 describe('theme preference', () => {
@@ -86,7 +88,7 @@ describe('theme preference', () => {
   });
 
   it('derives browser theme-color from the resolved semantic CSS background', () => {
-    const { root, themeColor } = installThemeDocument({
+    const { root, themeColor, favicon } = installThemeDocument({
       light: '  #light-token  ',
       dark: '  #dark-token  ',
     });
@@ -98,11 +100,13 @@ describe('theme preference', () => {
     });
     expect(root.style.colorScheme).toBe('light');
     expect(themeColor.content).toBe('#light-token');
+    expect(favicon.href).toBe('/favicon.svg');
 
     applyResolvedTheme('dark', 'system');
     expect(root.dataset.theme).toBe('dark');
     expect(root.style.colorScheme).toBe('dark');
     expect(themeColor.content).toBe('#dark-token');
+    expect(favicon.href).toBe('/favicon-dark.svg');
   });
 
   it('keeps the bootstrap fallback when the semantic CSS token is unavailable', () => {

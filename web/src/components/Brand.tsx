@@ -13,14 +13,14 @@ function BrandMark() {
     <span className="brand-mark" aria-hidden="true">
       <img
         className="brand-logo-light"
-        src="/identity/logo-mark.svg"
+        src="/identity/app-icon-light.svg"
         alt=""
         width="32"
         height="32"
       />
       <img
         className="brand-logo-dark"
-        src="/identity/logo-mark-dark.svg"
+        src="/identity/app-icon-dark.svg"
         alt=""
         width="32"
         height="32"

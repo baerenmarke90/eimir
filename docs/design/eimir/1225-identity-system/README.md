@@ -1,6 +1,6 @@
 # eimir. identity system — issue #1225
 
-**Status:** Product Owner selected and implemented for Web review in [draft PR #1244](https://github.com/baerenmarke90/eimir/pull/1244). Product acceptance and merge are separate decisions.
+**Status:** The owner-selected Web identity was merged in [PR #1244](https://github.com/baerenmarke90/eimir/pull/1244). [#1245](https://github.com/baerenmarke90/eimir/issues/1245) continues the visual fidelity review. Final Product Design acceptance remains with Philipp.
 
 The [corporate identity document](CI.md) is the complete contract for the selected app logo, the owner icon set, its variants and states, the three color worlds, Light/Dark treatment, and the existing product-design rules inherited from Product Reference v1. It maps each rule to its delivered asset or runtime implementation.
 
@@ -17,7 +17,7 @@ The four supplied PNGs are preserved unchanged and are the visual authority for 
 
 - [`assets/`](assets/) contains the SVG logo master and generated variants. `build-assets.py` synchronizes the Web SVG delivery assets.
 - [`icons.js`](icons.js), `boards.js` and `boards.css` produce the explanatory boards; the typed `EimirIcon` registry is the runtime source.
-- [`exports/`](exports/) contains the identity, icon, palette and Compact Light/Dark boards. `render.sh` recreates them with Chromium.
+- [`exports/`](exports/) preserves the snapshot identity, icon, palette and Compact Light/Dark boards. The editable board source contains the #1245 refinements; regenerate these PNGs with `render.sh` before using them as current visual evidence.
 - [`evidence/`](evidence/) contains screenshots of the real Web implementation in Compact Light/Dark and Expanded layouts.
 - `verify.py` checks board symbols, SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
 

@@ -102,6 +102,7 @@ describe('PlanningCreatePage', () => {
     await waitFor(() => expect(createPlan).toHaveBeenCalledTimes(1));
     expect(createPlan).toHaveBeenCalledWith({
       spaceId: 'space-1',
+      idempotencyKey: expect.any(String),
       planCreate: {
         title: 'Park picnic',
         description: undefined,
@@ -176,6 +177,11 @@ describe('PlanningCreatePage', () => {
     fireEvent.click(screen.getByRole('button', { name: m5s3.common.save }));
 
     await waitFor(() => expect(createWish).toHaveBeenCalledTimes(1));
+    expect(createWish).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      idempotencyKey: expect.any(String),
+      wishCreate: { title: 'See the northern lights' },
+    });
     await waitFor(() => expect(screen.getByRole('alert')).toBeDefined());
     expect((title as HTMLInputElement).value).toBe('See the northern lights');
 

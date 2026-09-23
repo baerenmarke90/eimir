@@ -14,37 +14,49 @@ import {
   type CommentParentKind,
   listCommentsPage,
 } from '../client/commentQueries';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
 import { normalizeClientError } from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
+interface CommentCreateSnapshot {
+  readonly spaceId: string;
+  readonly parentKind: CommentParentKind;
+  readonly parentId: string;
+  readonly commentCreate: { readonly body: string };
+}
+
 function createComment(
   commentsApi: CommentsApi,
-  parentKind: CommentParentKind,
-  spaceId: string,
-  parentId: string,
-  body: string,
+  snapshot: CommentCreateSnapshot,
+  idempotencyKey: string,
 ) {
-  const commentCreate = { body };
-  switch (parentKind) {
+  const { spaceId, parentId, commentCreate } = snapshot;
+  switch (snapshot.parentKind) {
     case 'memory':
       return commentsApi.createMemoryComment({
         spaceId,
         memoryId: parentId,
         commentCreate,
+        idempotencyKey,
       });
     case 'heartMoment':
       return commentsApi.createHeartMomentComment({
         spaceId,
         heartMomentId: parentId,
         commentCreate,
+        idempotencyKey,
       });
     case 'milestone':
       return commentsApi.createMilestoneComment({
         spaceId,
         milestoneId: parentId,
         commentCreate,
+        idempotencyKey,
       });
   }
 }
@@ -80,6 +92,8 @@ export function CommentsPanel({
   const [commentDraft, setCommentDraft] = useState('');
   const commentDraftRef = useRef('');
   const commentDraftRevisionRef = useRef(0);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<CommentCreateSnapshot> | null>(null);
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
@@ -112,17 +126,21 @@ export function CommentsPanel({
       draftSnapshot: string;
       draftRevision: number;
     }) => {
-      try {
-        return await createComment(
-          commentsApi,
-          parentKind,
-          spaceId,
-          parentId,
-          body,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+      const snapshot: CommentCreateSnapshot = {
+        spaceId,
+        parentKind,
+        parentId,
+        commentCreate: { body },
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          createComment(commentsApi, snapshot, idempotencyKey),
+      });
     },
     onSuccess: async (_comment, submission) => {
       await Promise.all([

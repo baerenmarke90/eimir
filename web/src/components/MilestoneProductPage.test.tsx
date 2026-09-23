@@ -111,6 +111,67 @@ function renderDetail(taskOriginKey?: unknown) {
   );
 }
 
+function renderCreate() {
+  const createMilestone = vi.fn().mockResolvedValue({ id: 'milestone-new' });
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={['/story/milestones/new']}>
+        <Routes>
+          <Route
+            path="/story/milestones/new"
+            element={
+              <MilestoneProductPage
+                mode="create"
+                apis={
+                  {
+                    milestones: { createMilestone },
+                  } as unknown as ReferenceApis
+                }
+                spaceId="space-1"
+                currentAccountId="account-1"
+              />
+            }
+          />
+          <Route
+            path="/story/milestones/:milestoneId"
+            element={<p>Milestone result</p>}
+          />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+  return createMilestone;
+}
+
+describe('Milestone create request identity', () => {
+  it('sends an idempotency key with the submitted snapshot', async () => {
+    const createMilestone = renderCreate();
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+      'Our first home',
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.milestoneProduct.save,
+      }),
+    );
+
+    expect(createMilestone).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      idempotencyKey: expect.any(String),
+      milestoneCreate: {
+        title: 'Our first home',
+        body: undefined,
+        happenedOn: expect.any(Date),
+      },
+    });
+  });
+});
+
 describe('MilestoneProductPage Back restores origin (#966)', () => {
   it('falls back to the generic Story link when opened without a task origin', async () => {
     renderDetail();

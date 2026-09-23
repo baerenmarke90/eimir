@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
@@ -21,6 +21,10 @@ import {
 } from '../client/routes';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
+import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
@@ -40,6 +44,17 @@ import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
+
+interface MilestoneCreateValues {
+  readonly title: string;
+  readonly body?: string;
+  readonly happenedOn: Date;
+}
+
+interface MilestoneCreateSnapshot {
+  readonly spaceId: string;
+  readonly milestoneCreate: MilestoneCreateValues;
+}
 
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
@@ -76,6 +91,8 @@ export function MilestoneProductPage({
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -104,19 +121,23 @@ export function MilestoneProductPage({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: {
-      title: string;
-      body?: string;
-      happenedOn: Date;
-    }) => {
-      try {
-        return await apis.milestones.createMilestone({
-          spaceId,
-          milestoneCreate: values,
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+    mutationFn: async (values: MilestoneCreateValues) => {
+      const snapshot: MilestoneCreateSnapshot = {
+        spaceId,
+        milestoneCreate: values,
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          apis.milestones.createMilestone({
+            ...snapshot,
+            idempotencyKey,
+          }),
+      });
     },
     onSuccess: async (milestone) => {
       await Promise.all([

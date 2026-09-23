@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import {
+  type FormEvent,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
@@ -14,6 +20,10 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
 import { localDateInputValue } from '../client/dateInput';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
@@ -55,6 +65,19 @@ export type HeartMomentProductMode = 'create' | 'detail' | 'edit';
 type HeartEmotionValue = (typeof HeartEmotion)[keyof typeof HeartEmotion];
 type ContentVisibilityValue =
   (typeof ContentVisibility)[keyof typeof ContentVisibility];
+
+interface HeartMomentCreateValues {
+  readonly text: string;
+  readonly emotion: HeartEmotionValue;
+  readonly happenedOn: Date;
+  readonly visibility: ContentVisibilityValue;
+  readonly attachmentId?: string;
+}
+
+interface HeartMomentCreateSnapshot {
+  readonly spaceId: string;
+  readonly heartMomentCreate: HeartMomentCreateValues;
+}
 
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
@@ -104,6 +127,8 @@ export function HeartMomentProductPage({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
   const [removeExistingPhotoState, setRemoveExistingPhotoState] = useState<{
     contextKey: string;
     remove: boolean;
@@ -177,21 +202,23 @@ export function HeartMomentProductPage({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: {
-      text: string;
-      emotion: HeartEmotionValue;
-      happenedOn: Date;
-      visibility: ContentVisibilityValue;
-      attachmentId?: string;
-    }) => {
-      try {
-        return await apis.heartMoments.createHeartMoment({
-          spaceId,
-          heartMomentCreate: values,
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+    mutationFn: async (values: HeartMomentCreateValues) => {
+      const snapshot: HeartMomentCreateSnapshot = {
+        spaceId,
+        heartMomentCreate: values,
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          apis.heartMoments.createHeartMoment({
+            ...snapshot,
+            idempotencyKey,
+          }),
+      });
     },
     onSuccess: async (heartMoment) => {
       attachments.clear();

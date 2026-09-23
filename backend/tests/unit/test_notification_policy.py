@@ -1,7 +1,7 @@
 """Contract checks for the versioned, closed notification delivery catalog."""
 
 from eimir.engagement.models import NotificationKind
-from eimir.engagement.notification_policy import DeliveryClass, POLICIES, for_kind
+from eimir.engagement.notification_policy import POLICIES, DeliveryClass, for_kind
 
 
 def test_each_persisted_kind_has_an_explicit_delivery_class() -> None:

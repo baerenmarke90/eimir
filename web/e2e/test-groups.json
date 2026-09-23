@@ -230,7 +230,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3
+      "baselineTests": 5
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",

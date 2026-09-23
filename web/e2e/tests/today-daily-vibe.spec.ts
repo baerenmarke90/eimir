@@ -365,6 +365,24 @@ test('Daily Vibe lets one visible person fill the complete Vibe row', async ({
   expect(Math.abs(cardBox.width - peopleBox.width)).toBeLessThanOrEqual(1);
 });
 
+test('Daily Vibe keeps a visible partner Vibe without context non-interactive', async ({
+  page,
+}) => {
+  await installMocks(page, {
+    ownVibe: 'GOOD',
+    partnerState: { state: 'VISIBLE', value: 'STRESSED' },
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page);
+
+  const partnerCard = page.getByTestId('daily-vibe-partner');
+  await expect(partnerCard).toBeVisible();
+  expect(await partnerCard.evaluate((element) => element.tagName)).toBe('DIV');
+  expect(await partnerCard.getAttribute('aria-haspopup')).toBeNull();
+  await partnerCard.click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves Energy', async ({
   page,
 }, testInfo) => {
@@ -414,9 +432,33 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
   await expect(page.getByText(dailyVibe.partnerHidden)).toHaveCount(0);
   await expect(vibe.getByText(dailyVibe.voluntary)).toHaveCount(0);
+  await expect(page.getByText(partnerNote)).toHaveCount(0);
+  await expect(vibe.locator('.daily-vibe-partner-context')).toHaveCount(0);
 
-  await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+  const ownTrigger = page.getByRole('button', {
+    name: dailyVibe.chooseAria,
+  });
+  await ownTrigger.click();
   const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await expect(sheet).toBeVisible();
+  const noteField = sheet.getByPlaceholder(dailyVibe.notePlaceholder);
+  await expect(
+    sheet.getByRole('button', { name: dailyVibe.values.GOOD }),
+  ).toBeFocused();
+  await expect(noteField).not.toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await expect(ownTrigger).toBeFocused();
+
+  await ownTrigger.click();
+  await expect(sheet).toBeVisible();
+  await page.goBack();
+  await expect(sheet).toHaveCount(0);
+  await expect(ownTrigger).toBeFocused();
+  await expect(page).toHaveURL(/\/today$/);
+
+  await ownTrigger.click();
   await expect(sheet).toBeVisible();
 
   for (const label of Object.values(dailyVibe.values)) {
@@ -483,10 +525,9 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
   await expectNoHorizontalOverflow(page);
   const partnerSheetAxe = await new AxeBuilder({ page }).analyze();
   expect(partnerSheetAxe.violations).toEqual([]);
-  await partnerSheet
-    .getByRole('button', { name: dailyVibe.partnerNoteClose })
-    .click();
+  await page.keyboard.press('Escape');
   await expect(partnerSheet).toHaveCount(0);
+  await expect(partnerCard).toBeFocused();
 
   await expectNoHorizontalOverflow(page);
 

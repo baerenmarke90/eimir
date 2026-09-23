@@ -11,6 +11,7 @@ Start with [Product Reference v1](product-reference-v1.md). It is the **normativ
 | Which visual/input language applies? | [Design-system direction](design-system-direction.md): surfaces, images, type, color, shape, rhythm, motion, forms and content composition. |
 | Which Motion contract should Web implementations use? | [Web Motion Guideline](motion-guideline.md): semantic roles, canonical tokens, Enter/Exit lifecycle, reduced motion and engineering reference matrix. |
 | When should foreground notifications interrupt the current task? | [#1211 critical product review](1211-foreground-notification-arrival.md): existing badge/Center, candidate event mapping and prerequisites for any future banner. |
+| Which incoming events deserve motion? | [#1212 critical product review](1212-event-driven-arrival-motion.md): no global arrival animation for polling/reconciliation; scoped existing roles for verified future changes. |
 | What gets implemented next? | [Implementation roadmap](implementation-roadmap.md): F1/F2 → R1–R5 → P1–P2 → C1; the former native-parity P3 slice is retired by ADR 0011. |
 | How are F1 roles implemented and proven? | [F1 visual foundations](f1-visual-foundations.md): token/adapter mapping, bounded internal proof, usage limits and exact-build evidence. |
 | How do focused tasks save and return safely? | [F2 task boundaries](f2-task-boundaries.md): short sheets, Memory capture/result, scoped Timeline return, interruption safety and production-consumer evidence. |

@@ -122,6 +122,11 @@ Prefer compositor-friendly `transform` and `opacity`. Avoid animating layout-cri
 
 ## 8. Reference matrix
 
+The [#1212 event-driven arrival review](1212-event-driven-arrival-motion.md)
+maps incoming events to these existing roles. Polling, cache reconciliation
+and unread-count changes do not establish a live arrival and do not trigger
+attention motion.
+
 | Interaction | Pattern | Token / easing | Preferred primitive | Reduced-motion behavior |
 | --- | --- | --- | --- | --- |
 | Button press | micro feedback | fast / standard | native button + shared control styling | no scale/translation; state remains visible |

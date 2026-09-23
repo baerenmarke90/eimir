@@ -4,7 +4,7 @@
 **Authority:** [Product Reference v1](product-reference-v1.md), [R4 reference experience](reference-screens.md#r4--wir--today), [system direction](design-system-direction.md), the Today [Screen Template](../../SCREEN-TEMPLATES.md#3-template-today), and the accepted F1/F2/R1/R2/R3 contracts.  
 **Fresh baseline:** work began from `fd490e9f64fe56672aba47eb0b167258e456e0ee`; current `origin/main` at `3243c06322807dc63782b3f35726e89092375a25` was integrated on 2026-09-17 before the final product-source freeze.
 **Normative client:** Web / Mobile Web. Android is intentionally deferred and is not an acceptance criterion for this slice.  
-**Status:** Product Design Preflight recorded before R4 runtime changes. Product Owner acceptance remains a separate decision.
+**Status:** Product Design Preflight recorded before R4 runtime changes. Product Owner acceptance remains a separate decision. Later accepted #1189 and #1194 decisions govern the default order and personal Settings order where this preflight describes an older composition.
 
 ## Human outcome
 
@@ -51,7 +51,7 @@ No backend/API/schema gap was found. The existing Dashboard contract provides au
 
 ## AVOID
 
-- equal widget/card grids, one permanent card per feature, a configurable module catalogue, or a desktop dashboard wall;
+- equal widget/card grids, one permanent card per feature, an on-page widget catalogue, or a desktop dashboard wall; the supported Settings visibility/order preference is distinct from these patterns;
 - large status panels, KPI/statistic walls, activity/audit dominance, or planning-first administration;
 - nested cards, generic feature tiles, permanent toolbars, duplicated create forms, or embedded Plan/Memory editors;
 - duplicating accepted Momente chronology/filtering or Plan lifecycle logic;
@@ -87,22 +87,22 @@ Names, duration, upcoming details, focal prose, and actions wrap in semantic rea
 
 | Projection | Trigger | Priority / displacement | Role | Exit | Privacy |
 | --- | --- | --- | --- | --- | --- |
-| Couple presence | Authorized Dashboard Space context exists | Stable first composition; no domain module displaces it | Relationship identity | Only hidden by the existing personal module preference; an accessible page heading remains | Space/member identity and authorized profile media only |
+| Couple presence | Authorized Dashboard Space context exists | First by default; a personal module order may move it without changing its identity role | Relationship identity | Only hidden by the existing personal module preference; an accessible page heading remains | Space/member identity and authorized profile media only |
 | Thinking-of-You | Connected partner and current cooldown permit or explain interaction | Contextual inside couple presence; never displaces focal content | Relationship signal/action | Cooldown disables it truthfully; absent partner yields no send | Existing notification contract; no free text or inferred private state |
-| Upcoming projection | At least one authoritative near-future item survives the personal 1–3 limit | May precede the focal content but remains compact; suppresses a duplicate Plan/Wish fallback signal | Current/next context | Disappears when nothing is eligible or preference hides it | Dashboard-authorized SPACE_SHARED items only |
-| Focal shared item | Server Keepsake or an eligible shared Memory, Heart Moment, or Milestone is available | Dominant content after couple/current context; displaces generic onboarding and duplicate lower modules | Shared content / rediscovery | Disappears only when no real eligible item exists or preference hides the role | Authorized shared item; media loader follows source authorization; no private eligibility influence |
+| Upcoming projection | At least one authoritative near-future item survives the personal 1–3 limit | Compact after the focal item by default (#1189); a saved personal module order may place it earlier (#1194); suppresses a duplicate Plan/Wish fallback signal | Current/next context | Disappears when nothing is eligible or preference hides it | Dashboard-authorized SPACE_SHARED items only |
+| Focal shared item | Server Keepsake or an eligible shared Memory, Heart Moment, or Milestone is available | Dominant content after couple context and before the practical horizon by default; displaces generic onboarding and duplicate lower modules | Shared content / rediscovery | Disappears only when no real eligible item exists or preference hides the role | Authorized shared item; media loader follows source authorization; no private eligibility influence |
 | Contextual relationship module | Genuine partner comment, retrospective, Wish, Plan, or Milestone qualifies after exclusions | Exactly one; never duplicates the focal/current planning role | Relationship signal / rediscovery | Recomputed deterministically; absent/duplicate candidates collapse | Authorized Activity/Dashboard data only |
-| Monthly imagery | Current-month shared Memory previews remain after higher-priority exclusions | Secondary below focal/context; never creates a photo placeholder | Shared life texture | Disappears with no eligible real images or hidden preference | Authorized Memory preview only |
+| Monthly imagery | Current-month shared Memory previews remain after higher-priority exclusions | Secondary below focal/context by default; never creates a photo placeholder | Shared life texture | Disappears with no eligible real images or hidden preference | Authorized Memory preview only |
 | Recent trace | Authorized recent shared items remain after all higher-priority exclusions | Quiet secondary trace; capped and never an audit-log lead | Recent context | Disappears when empty or hidden | Authorized shared items only |
-| Story closing reflection | Existing eligibility threshold is met | Last, quiet and sentence-like rather than a KPI panel | Shared-story summary | Disappears below threshold or when hidden | Server-provided shared counts under existing privacy contract |
+| Story closing reflection | Existing eligibility threshold is met | Last by default, quiet and sentence-like rather than a KPI panel | Shared-story summary | Disappears below threshold or when hidden | Server-provided shared counts under existing privacy contract |
 
-The ordering is deterministic and explainable. There is no engagement rank, randomness, or new stored configuration. Roughly three dominant elements/interactions appear above the initial fold: couple presence, compact next context when relevant, and focal relationship content.
+The default ordering is deterministic and explainable: couple presence, focal relationship content, then compact next context when relevant. There is no engagement rank or randomness. The existing Account-and-Space Dashboard preference (#1194) persists each person's supported module order independently; hiding a module does not discard its position. Roughly three dominant elements/interactions appear above the initial fold, depending on optional content and viewport size.
 
 ## Mobile Interaction Contract
 
 | Concern | Bounded contract |
 | --- | --- |
-| Primary Compact state | Quiet couple presence → optional compact next context → one real photo/text focal item → only relevant supporting relationship content. |
+| Primary Compact state | Quiet couple presence → one real photo/text focal item → optional compact next context → only relevant supporting relationship content by default; supported modules follow a saved personal order when present. |
 | Dominant action | Open the focal shared item. Global Quick Create remains the only global capture action; an empty/new relationship may offer one local Memory-capture invitation. |
 | Immediate vs disclosed | Identity, current/next context, and focal content are immediate. Full Momente, Planen, and Activity remain canonical destinations; no embedded management detail. |
 | Interaction pattern | Ordinary vertical page, semantic links for destinations, one existing button for Thinking-of-You, and standard Browser Back/F2 explicit Back return. No new gesture or modal. |
@@ -120,7 +120,7 @@ The ordering is deterministic and explainable. There is no engagement rank, rand
 | Expanded | Same hierarchy and DOM order; more media width and breathing room, not more modules or management UI. |
 | Visual acceptance | Exact-build fixtures cover 320/360/390/430, Light/Dark, reduced motion, 200% zoom/small height, sparse/dense/empty, photo/text/no-photo, Plan present/absent, signal present/absent, partial failure, 1280/1440, and 1920 sanity. |
 
-The page is not a conventional list, table, or master-detail surface. Its vertical flow is intentional because a person reads one current relationship composition from identity through next context, focal content, and quieter rediscovery.
+The page is not a conventional list, table, or master-detail surface. Its vertical flow is intentional because a person reads one current relationship composition from identity through focal content, next context, and quieter rediscovery by default.
 
 ## Reuse decision
 

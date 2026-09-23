@@ -33,6 +33,7 @@ const DEFAULT_PREFERENCES = {
 function renderPanel(
   updateDashboardModulePreference: DashboardApi['updateDashboardModulePreference'],
   preferences: DashboardModulePreferenceList = DEFAULT_PREFERENCES,
+  updateDashboardModuleOrder: DashboardApi['updateDashboardModuleOrder'] = vi.fn(),
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -44,6 +45,7 @@ function renderPanel(
   const dashboardApi = {
     listDashboardModulePreferences: vi.fn().mockResolvedValue(preferences),
     updateDashboardModulePreference,
+    updateDashboardModuleOrder,
   } as unknown as DashboardApi;
 
   return {
@@ -71,6 +73,94 @@ function moduleLabel(moduleKey: string): string {
 }
 
 describe('DashboardSettingsPanel', () => {
+  it('reorders with the keyboard, preserves a concurrent visibility choice and announces position', async () => {
+    let finishOrder:
+      | ((value: DashboardModulePreferenceList) => void)
+      | undefined;
+    const reorder = vi.fn().mockReturnValue(
+      new Promise((resolve) => {
+        finishOrder = resolve;
+      }),
+    );
+    const toggle = vi
+      .fn()
+      .mockResolvedValue({ moduleKey: 'keepsake', visible: false });
+    const { queryClient } = renderPanel(toggle, DEFAULT_PREFERENCES, reorder);
+
+    const grip = screen.getByRole('button', {
+      name: `${moduleLabel('keepsake')} verschieben`,
+    });
+    grip.focus();
+    fireEvent.keyDown(grip, { key: 'ArrowDown' });
+    await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+    const desired = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
+      .moduleKeys as string[];
+    expect(desired.indexOf('keepsake')).toBe(2);
+    expect(document.activeElement).toBe(grip);
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: moduleLabel('keepsake') }),
+    );
+    await waitFor(() => expect(toggle).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      finishOrder?.({
+        items: desired.map((moduleKey) => ({ moduleKey, visible: true })),
+      });
+    });
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<DashboardModulePreferenceList>(
+        dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
+      );
+      expect(cached?.items.map((item) => item.moduleKey)).toEqual(desired);
+      expect(
+        cached?.items.find((item) => item.moduleKey === 'keepsake')?.visible,
+      ).toBe(false);
+    });
+    expect(grip.getAttribute('aria-describedby')).toBe(
+      'dashboard-order-instructions',
+    );
+  });
+
+  it('queues rapid keyboard reorders and restores the server order on a failed save', async () => {
+    let finishFirst:
+      | ((value: DashboardModulePreferenceList) => void)
+      | undefined;
+    const reorder = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFirst = resolve;
+          }),
+      )
+      .mockRejectedValueOnce(new Error('offline'));
+    const { queryClient } = renderPanel(vi.fn(), DEFAULT_PREFERENCES, reorder);
+    const grip = screen.getByRole('button', {
+      name: `${moduleLabel('keepsake')} verschieben`,
+    });
+    fireEvent.keyDown(grip, { key: 'ArrowDown' });
+    await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+    fireEvent.keyDown(grip, { key: 'ArrowDown' });
+    const first = reorder.mock.calls[0][0].dashboardModuleOrderUpdate
+      .moduleKeys as string[];
+    await act(async () => {
+      finishFirst?.({
+        items: first.map((moduleKey) => ({ moduleKey, visible: true })),
+      });
+    });
+    await waitFor(() => expect(reorder).toHaveBeenCalledTimes(2));
+    await waitFor(() => screen.getByRole('alert'));
+    await waitFor(() =>
+      expect(
+        queryClient
+          .getQueryData<DashboardModulePreferenceList>(
+            dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID),
+          )
+          ?.items.map((item) => item.moduleKey),
+      ).toEqual(DEFAULT_PREFERENCES.items.map((item) => item.moduleKey)),
+    );
+  });
+
   it('exposes one understandable native 1/2/3 radio group', () => {
     renderPanel(vi.fn());
 

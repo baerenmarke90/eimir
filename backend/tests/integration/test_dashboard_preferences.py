@@ -77,6 +77,14 @@ def _set_visible(client, space_id, token, module_key, visible):  # type: ignore[
     return _patch(client, space_id, token, module_key, {"visible": visible})
 
 
+def _reorder(client, space_id, token, keys):  # type: ignore[no-untyped-def]
+    return client.put(
+        f"/api/v1/spaces/{space_id}/dashboard/preferences/order",
+        json={"moduleKeys": keys},
+        headers=auth(token),
+    )
+
+
 def _item(response_json, module_key):  # type: ignore[no-untyped-def]
     return next(item for item in response_json["items"] if item["moduleKey"] == module_key)
 
@@ -88,9 +96,9 @@ def test_catalog_keys_are_stable_and_unique() -> None:
     keys = [definition.key.value for definition in CATALOG]
     assert keys == [
         "relationship_presence",
+        "keepsake",
         "upcoming",
         "pinned_collection",
-        "keepsake",
         "relationship_signal",
         "monthly_highlights",
         "recent_shared",
@@ -109,6 +117,54 @@ def test_only_upcoming_defines_an_item_limit_facet() -> None:
 
 def test_every_module_defaults_visible() -> None:
     assert all(definition.default_visible for definition in CATALOG)
+
+
+def test_reorder_persists_full_order_without_losing_visibility_or_other_facets(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    token = couple["token_a"]
+    assert _set_visible(client, space_id, token, "keepsake", False).status_code == 200
+    assert _set_limit(client, space_id, token, 3).status_code == 200
+    desired = [ALL_MODULE_KEYS[-1], *ALL_MODULE_KEYS[:-1]]
+
+    response = _reorder(client, space_id, token, desired)
+    assert response.status_code == 200, response.text
+    assert [item["moduleKey"] for item in response.json()["items"]] == desired
+    assert _item(response.json(), "keepsake")["visible"] is False
+    assert _item(response.json(), "upcoming")["itemLimit"] == 3
+
+    # A visibility PATCH changes only that facet; a hidden row keeps its slot.
+    assert _set_visible(client, space_id, token, "keepsake", True).status_code == 200
+    session.expire_all()
+    reloaded = _preferences(client, space_id, token)
+    assert [item["moduleKey"] for item in reloaded.json()["items"]] == desired
+    assert _item(reloaded.json(), "keepsake")["visible"] is True
+
+    # Neither partner nor another Space receives this person's order.
+    for other_space, other_token in [
+        (space_id, couple["token_b"]),
+        (couple["second_anna_space"].id, token),
+    ]:
+        other = _preferences(client, other_space, other_token)
+        assert other.status_code == 200
+        assert [item["moduleKey"] for item in other.json()["items"]] == ALL_MODULE_KEYS
+
+
+def test_reorder_rejects_partial_duplicate_and_foreign_keys_atomically(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    token = couple["token_a"]
+    for invalid in [ALL_MODULE_KEYS[:-1], [ALL_MODULE_KEYS[0]] * len(ALL_MODULE_KEYS),
+                    [*ALL_MODULE_KEYS[:-1], "not-a-module"]]:
+        result = _reorder(client, space_id, token, invalid)
+        assert result.status_code == 422
+        assert result.json()["code"] == "DASHBOARD_MODULE_INVALID_ORDER"
+    assert session.scalar(select(func.count()).select_from(DashboardModulePreference)) == 0
+
+    denied = _reorder(client, couple["foreign_space"].id, token, ALL_MODULE_KEYS)
+    assert denied.status_code == 404
 
 
 def test_only_pinned_collection_supports_collection_selection() -> None:
@@ -133,9 +189,9 @@ def test_missing_override_returns_effective_default_for_every_registered_module(
     assert response.json() == {
         "items": [
             {"moduleKey": "relationship_presence", "visible": True},
+            {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "upcoming", "visible": True, "itemLimit": 1},
             {"moduleKey": "pinned_collection", "visible": True},
-            {"moduleKey": "keepsake", "visible": True},
             {"moduleKey": "relationship_signal", "visible": True},
             {"moduleKey": "monthly_highlights", "visible": True},
             {"moduleKey": "recent_shared", "visible": True},

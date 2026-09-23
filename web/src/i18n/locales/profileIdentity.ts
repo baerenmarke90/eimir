@@ -104,7 +104,12 @@ const profileIdentity = {
     'Entscheide, welche Bereiche auf „Wir“ für dich sichtbar sind.',
   dashboardModulesTitle: 'Sichtbare Bereiche',
   dashboardModulesIntro:
-    'Blende einzelne Bereiche für dich aus oder wieder ein. Dein Partner sieht weiterhin seine eigene Auswahl.',
+    'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
+  dashboardOrderHandle: '{{name}} verschieben',
+  dashboardOrderInstructions:
+    'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
+  dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',
+  dashboardOrderFailed: 'Reihenfolge konnte nicht gespeichert werden.',
   dashboardModuleSaving: 'Wird gespeichert …',
   dashboardModuleSaved: '✓ Gespeichert',
   dashboardUpcomingTitle: 'Demnächst',

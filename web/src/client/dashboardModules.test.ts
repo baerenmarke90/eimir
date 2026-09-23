@@ -8,9 +8,9 @@ describe('dashboardModules', () => {
   it('registers the accepted #850 Today modules plus the #809 epilogue in deterministic order', () => {
     expect(DASHBOARD_MODULE_KEYS).toEqual([
       'relationship_presence',
+      'keepsake',
       'upcoming',
       'pinned_collection',
-      'keepsake',
       'relationship_signal',
       'monthly_highlights',
       'recent_shared',

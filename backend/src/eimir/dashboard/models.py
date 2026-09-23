@@ -31,6 +31,7 @@ class DashboardModulePreference(IdMixin, TimestampMixin, Base):
     item_limit: Mapped[int | None] = mapped_column(Integer)
     # Reserved for the common #817 seam. #848 neither reads nor exposes it.
     visible: Mapped[bool | None] = mapped_column(Boolean)
+    sort_position: Mapped[int | None] = mapped_column(Integer)
     selected_collection_id: Mapped[UUID | None] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey(

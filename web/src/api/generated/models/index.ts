@@ -57,6 +57,7 @@ export * from './DailyQuoteView';
 export * from './DailyVibe';
 export * from './DashboardItem';
 export * from './DashboardItemType';
+export * from './DashboardModuleOrderUpdate';
 export * from './DashboardModulePreferenceList';
 export * from './DashboardModulePreferenceUpdate';
 export * from './DashboardModulePreferenceView';

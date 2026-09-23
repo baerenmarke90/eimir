@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import type { DashboardModulePreferenceView } from '../api/generated/models/DashboardModulePreferenceView';
@@ -11,6 +11,8 @@ import {
   dashboardPreferencesQueryKey,
   effectiveUpcomingItemLimit,
   isDashboardModuleVisible,
+  orderedDashboardModuleKeys,
+  withDashboardModuleOrder,
   type UpcomingItemLimit,
   UPCOMING_ITEM_LIMITS,
   UPCOMING_MODULE_KEY,
@@ -18,6 +20,7 @@ import {
 import { normalizeClientError } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 
 export interface DashboardSettingsPanelProps {
   dashboardApi: DashboardApi;
@@ -29,13 +32,11 @@ function upsertPreference(
   old: DashboardModulePreferenceList | undefined,
   updated: DashboardModulePreferenceView,
 ): DashboardModulePreferenceList {
-  return {
-    items: [
-      ...(old?.items.filter((item) => item.moduleKey !== updated.moduleKey) ??
-        []),
-      updated,
-    ],
-  };
+  const items = [...(old?.items ?? [])];
+  const index = items.findIndex((item) => item.moduleKey === updated.moduleKey);
+  if (index >= 0) items[index] = updated;
+  else items.push(updated);
+  return { items };
 }
 
 export function DashboardSettingsPanel({
@@ -52,6 +53,8 @@ export function DashboardSettingsPanel({
   const [saved, setSaved] = useState(false);
   const [savedModuleKey, setSavedModuleKey] =
     useState<DashboardModuleKey | null>(null);
+  const [orderAnnouncement, setOrderAnnouncement] = useState('');
+  const latestOrderRequest = useRef(0);
 
   const preferencesQuery = useQuery({
     queryKey,
@@ -126,6 +129,70 @@ export function DashboardSettingsPanel({
     },
   });
 
+  const orderMutation = useMutation({
+    mutationKey: ['dashboard-order', accountId, spaceId],
+    scope: { id: `dashboard-order:${accountId}:${spaceId}` },
+    mutationFn: async ({
+      keys,
+    }: {
+      keys: DashboardModuleKey[];
+      sequence: number;
+    }) => {
+      try {
+        return await dashboardApi.updateDashboardModuleOrder({
+          spaceId,
+          dashboardModuleOrderUpdate: { moduleKeys: keys },
+        });
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onMutate: ({ keys }) => {
+      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
+        withDashboardModuleOrder(old, keys),
+      );
+    },
+    onSuccess: (savedOrder, { sequence }) => {
+      if (sequence !== latestOrderRequest.current) return;
+      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
+        withDashboardModuleOrder(
+          old,
+          savedOrder.items.map((item) => item.moduleKey as DashboardModuleKey),
+        ),
+      );
+      setOrderAnnouncement(t('profileIdentity.dashboardModuleSaved'));
+    },
+    onError: (_error, { sequence }) => {
+      if (sequence !== latestOrderRequest.current) return;
+      setOrderAnnouncement(t('profileIdentity.dashboardOrderFailed'));
+      void queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
+  const reorder = useListItemReorder({
+    itemIds: orderedKeys,
+    disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
+    onReorder: (keys, moved) => {
+      const next = keys as DashboardModuleKey[];
+      const entry = DASHBOARD_MODULE_CATALOG.find((item) => item.key === moved);
+      const position = next.indexOf(moved as DashboardModuleKey) + 1;
+      orderMutation.mutate({
+        keys: next,
+        sequence: ++latestOrderRequest.current,
+      });
+      if (entry) {
+        setOrderAnnouncement(
+          t('profileIdentity.dashboardOrderPosition', {
+            name: t(entry.labelKey),
+            position,
+            total: next.length,
+          }),
+        );
+      }
+    },
+  });
+
   const confirmedLimit = effectiveUpcomingItemLimit(preferencesQuery.data);
   const selectedLimit = pendingLimit ?? confirmedLimit;
   const status = mutation.isPending
@@ -159,14 +226,18 @@ export function DashboardSettingsPanel({
 
       <fieldset
         className="dashboard-module-preference"
-        aria-busy={visibilityMutation.isPending || preferencesQuery.isPending}
+        aria-busy={preferencesQuery.isPending}
       >
         <legend>{t('profileIdentity.dashboardModulesTitle')}</legend>
         <p className="dashboard-module-question">
           {t('profileIdentity.dashboardModulesIntro')}
         </p>
         <div className="dashboard-module-list">
-          {DASHBOARD_MODULE_CATALOG.map((entry) => {
+          {reorder.orderedItemIds.map((moduleKey) => {
+            const entry = DASHBOARD_MODULE_CATALOG.find(
+              (item) => item.key === moduleKey,
+            );
+            if (!entry) return null;
             const visible = isDashboardModuleVisible(
               preferencesQuery.data,
               entry.key,
@@ -175,11 +246,20 @@ export function DashboardSettingsPanel({
               visibilityMutation.isPending &&
               visibilityMutation.variables?.moduleKey === entry.key;
             return (
-              <label key={entry.key} className="dashboard-module-option">
-                <span className="dashboard-module-option-label">
+              <div
+                key={entry.key}
+                className={`dashboard-module-option${reorder.activeItemId === entry.key ? ' is-dragging' : ''}`}
+                data-sortable-item-id={entry.key}
+              >
+                <label
+                  className="dashboard-module-option-label"
+                  htmlFor={`dashboard-visible-${entry.key}`}
+                >
                   {t(entry.labelKey)}
-                </span>
+                </label>
                 <input
+                  id={`dashboard-visible-${entry.key}`}
+                  aria-label={t(entry.labelKey)}
                   type="checkbox"
                   checked={visible}
                   disabled={isRowPending || preferencesQuery.isPending}
@@ -190,11 +270,32 @@ export function DashboardSettingsPanel({
                     })
                   }
                 />
-              </label>
+                <ListEntryIconButton
+                  icon="reorder"
+                  label={t('profileIdentity.dashboardOrderHandle', {
+                    name: t(entry.labelKey),
+                  })}
+                  aria-describedby="dashboard-order-instructions"
+                  {...reorder.handleProps(entry.key)}
+                />
+              </div>
             );
           })}
         </div>
+        <p
+          id="dashboard-order-instructions"
+          className="dashboard-order-instructions"
+        >
+          {t('profileIdentity.dashboardOrderInstructions')}
+        </p>
       </fieldset>
+
+      <p className="dashboard-module-status" role="status" aria-live="polite">
+        {orderAnnouncement}
+      </p>
+      {orderMutation.error ? (
+        <ProblemState error={orderMutation.error} />
+      ) : null}
 
       {visibilityStatus ? (
         <p className="dashboard-module-status" role="status" aria-live="polite">

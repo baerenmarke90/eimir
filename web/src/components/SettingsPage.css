@@ -403,18 +403,45 @@
   border-radius: 0;
   background: transparent;
   color: var(--color-text-primary);
-  cursor: pointer;
+  transition:
+    background var(--duration-transition) var(--easing-standard),
+    box-shadow var(--duration-transition) var(--easing-standard);
+}
+
+.dashboard-module-option.is-dragging {
+  position: relative;
+  z-index: 1;
+  background: var(--color-brand-surface);
+  box-shadow: var(--shadow-raised);
 }
 
 .dashboard-module-option-label {
   min-width: 0;
+  flex: 1;
   overflow-wrap: anywhere;
+  cursor: pointer;
 }
 
 .dashboard-module-option input {
   flex: none;
   width: 20px;
   height: 20px;
+}
+
+.dashboard-module-option .list-entry-drag-handle {
+  color: var(--color-text-secondary);
+}
+
+.dashboard-order-instructions {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-module-option {
+    transition: none;
+  }
 }
 
 .dashboard-module-option:focus-within {

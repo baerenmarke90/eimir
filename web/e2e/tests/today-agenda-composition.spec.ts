@@ -2,12 +2,23 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 const PROFILE_ID = '00000000-0000-0000-0000-000000000020';
+const MODULE_KEYS = [
+  'relationship_presence',
+  'keepsake',
+  'upcoming',
+  'pinned_collection',
+  'relationship_signal',
+  'monthly_highlights',
+  'recent_shared',
+  'shared_story_summary',
+];
 
 /**
  * Reproduces the real-demo composition complaint (#790/#791 second
@@ -48,8 +59,17 @@ const UPCOMING_ITEMS = [
 async function installMocks(
   page: Page,
   initialPreference: 1 | 2 | 3 = 2,
-): Promise<{ currentPreference: () => number }> {
+): Promise<{ currentPreference: () => number; currentOrder: () => string[] }> {
   let preference = initialPreference;
+  let moduleOrder = [...MODULE_KEYS];
+  let upcomingVisible = true;
+  const modulePreferences = () => ({
+    items: moduleOrder.map((moduleKey) => ({
+      moduleKey,
+      visible: moduleKey === 'upcoming' ? upcomingVisible : true,
+      ...(moduleKey === 'upcoming' ? { itemLimit: preference } : {}),
+    })),
+  });
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -168,18 +188,41 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
-      await fulfillJson({
-        items: [{ moduleKey: 'upcoming', itemLimit: preference }],
-      });
+      await fulfillJson(modulePreferences());
+      return;
+    }
+    if (
+      method === 'PUT' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences/order`
+    ) {
+      const body = request.postDataJSON() as { moduleKeys: string[] };
+      if (
+        body.moduleKeys.length !== MODULE_KEYS.length ||
+        new Set(body.moduleKeys).size !== MODULE_KEYS.length ||
+        body.moduleKeys.some((key) => !MODULE_KEYS.includes(key))
+      ) {
+        await fulfillJson({ code: 'DASHBOARD_MODULE_INVALID_ORDER' }, 422);
+        return;
+      }
+      moduleOrder = body.moduleKeys;
+      await fulfillJson(modulePreferences());
       return;
     }
     if (
       method === 'PATCH' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences/upcoming`
     ) {
-      const body = request.postDataJSON() as { itemLimit: 1 | 2 | 3 };
-      preference = body.itemLimit;
-      await fulfillJson({ moduleKey: 'upcoming', itemLimit: preference });
+      const body = request.postDataJSON() as {
+        itemLimit?: 1 | 2 | 3;
+        visible?: boolean;
+      };
+      if (body.itemLimit !== undefined) preference = body.itemLimit;
+      if (body.visible !== undefined) upcomingVisible = body.visible;
+      await fulfillJson({
+        moduleKey: 'upcoming',
+        itemLimit: preference,
+        visible: upcomingVisible,
+      });
       return;
     }
     if (
@@ -212,7 +255,10 @@ async function installMocks(
     await fulfillJson({}, 200);
   });
 
-  return { currentPreference: () => preference };
+  return {
+    currentPreference: () => preference,
+    currentOrder: () => moduleOrder,
+  };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -406,6 +452,76 @@ test('compact Dashboard settings persist the personal horizon and update Today w
   await expect(page.locator('.today-agenda-row')).toHaveCount(3);
   await expect(page.getByText(UPCOMING_ITEMS[2].titleOrText)).toBeVisible();
   await expect(page.getByText(UPCOMING_ITEMS[3].titleOrText)).toHaveCount(0);
+});
+
+test('personal module reorder persists across reload and separates the visibility choice', async ({
+  page,
+}, testInfo) => {
+  const preferences = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto(settingsCategoryPath('today'));
+
+  const handle = page.getByRole('button', {
+    name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+  });
+  await expect(handle).toBeVisible();
+  const size = await handle.boundingBox();
+  expect(size?.width).toBeGreaterThanOrEqual(44);
+  expect(size?.height).toBeGreaterThanOrEqual(44);
+  await handle.focus();
+  await handle.press('ArrowUp');
+  await handle.press('ArrowUp');
+  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect(handle).toBeFocused();
+  await page
+    .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
+    .uncheck();
+  await page.reload();
+  await expect(page.locator('.dashboard-module-option').first()).toContainText(
+    m5s5.dashboard.upcomingTitle,
+  );
+  await expect(
+    page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
+  ).not.toBeChecked();
+  await page
+    .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
+    .check();
+  await page.goto('/today');
+  await expect(page.locator('.today-section-upcoming')).toBeVisible();
+  const orderedSections = await page
+    .locator('.today-content > *')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.className)
+        .filter((name) => typeof name === 'string'),
+    );
+  expect(
+    orderedSections.indexOf('today-section today-section-upcoming'),
+  ).toBeLessThan(
+    orderedSections.findIndex((name) => name.includes('today-hero')),
+  );
+
+  await page.goto(settingsCategoryPath('today'));
+  await page.screenshot({
+    path: testInfo.outputPath('1194-reorder-compact-dark.png'),
+    fullPage: true,
+  });
+  const a11y = await new AxeBuilder({ page })
+    .include('#settings-dashboard')
+    .analyze();
+  expect(a11y.violations).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator('html').evaluate((element) => {
+    element.style.zoom = '2';
+  });
+  const dimensions = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
 });
 
 test('expanded Dashboard settings remain clear in light mode and at 200 percent layout zoom', async ({

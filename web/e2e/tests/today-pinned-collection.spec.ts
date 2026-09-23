@@ -54,20 +54,34 @@ async function installMocks(
     initiallyPinned = false,
     sharedAchievementsEnabled = false,
     failFinalCompletionOnce = false,
+    openItemAfterCompletedPreview = false,
   }: {
     initiallyPinned?: boolean;
     sharedAchievementsEnabled?: boolean;
     failFinalCompletionOnce?: boolean;
+    openItemAfterCompletedPreview?: boolean;
   } = {},
 ) {
   let pinnedCollectionId: string | null = initiallyPinned
     ? COLLECTION_ID
     : null;
-  const items = [
-    collectionItem('00000000-0000-0000-0000-000000000031', 'Milch', 0),
-    collectionItem('00000000-0000-0000-0000-000000000032', 'Brot', 1, true),
-    collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
-  ];
+  const items = openItemAfterCompletedPreview
+    ? [
+        ...['Brot', 'Butter', 'Eier', 'Reis', 'Salz'].map((title, index) =>
+          collectionItem(
+            `00000000-0000-0000-0000-0000000001${index}0`,
+            title,
+            index,
+            true,
+          ),
+        ),
+        collectionItem('00000000-0000-0000-0000-000000000031', 'Milch', 5),
+      ]
+    : [
+        collectionItem('00000000-0000-0000-0000-000000000031', 'Milch', 0),
+        collectionItem('00000000-0000-0000-0000-000000000032', 'Brot', 1, true),
+        collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
+      ];
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
@@ -690,3 +704,63 @@ test('keeps the add task and plus usable across Compact widths and 320px 200-per
     animations: 'disabled',
   });
 });
+
+for (const width of [320, 360, 390, 430]) {
+  test(`keeps the open item first, the completed list visible and the page the only scroller after the celebration at ${width}px with reduced motion`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width, height: 800 });
+    await installMocks(page, {
+      initiallyPinned: true,
+      sharedAchievementsEnabled: true,
+      openItemAfterCompletedPreview: true,
+    });
+    await signIn(page);
+
+    const pinnedSection = page.locator('.today-section-pinned-collection');
+    const previewItems = pinnedSection.locator('.today-pinned-list-items > li');
+    // The only open item sits behind five completed ones but is still shown first.
+    await expect(previewItems).toHaveCount(4);
+    await expect(previewItems.first()).toContainText('Milch');
+
+    const milkDoneName = m5s3.collection.markDone.replace('{{title}}', 'Milch');
+    await pinnedSection.getByRole('button', { name: milkDoneName }).click();
+
+    const celebration = pinnedSection.locator(
+      '.shared-achievement-confirmation',
+    );
+    await expect(
+      celebration.getByRole('heading', {
+        name: m5s5.today.pinnedCollection.sharedAchievementTitle,
+      }),
+    ).toBeVisible();
+    // Same information without decorative motion.
+    await expect(celebration).toHaveCSS('animation-name', 'none');
+    // The completed list stays visible and usable next to the celebration.
+    await expect(previewItems).toHaveCount(4);
+    await expect(
+      pinnedSection.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Brot'),
+      }),
+    ).toBeEnabled();
+
+    // Progressive disclosure is inline; nothing becomes a nested vertical scroller.
+    await pinnedSection.locator('.today-pinned-list-disclosure').click();
+    await expect(previewItems).toHaveCount(6);
+    const nestedScrollers = await pinnedSection.evaluate(
+      (section) =>
+        [section, ...section.querySelectorAll('*')].filter((element) => {
+          const { overflowY } = getComputedStyle(element);
+          return (
+            (overflowY === 'auto' || overflowY === 'scroll') &&
+            element.scrollHeight > element.clientHeight
+          );
+        }).length,
+    );
+    expect(nestedScrollers).toBe(0);
+
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+  });
+}

@@ -337,9 +337,11 @@ describe('DashboardSettingsPanel', () => {
       renderPanel(update);
 
       await act(async () => {
-        fireEvent.click(
-          screen.getByRole('checkbox', { name: moduleLabel('keepsake') }),
-        );
+        const checkbox = screen.getByRole('checkbox', {
+          name: moduleLabel('keepsake'),
+        }) as HTMLInputElement;
+        fireEvent.click(checkbox);
+        expect(checkbox.checked).toBe(false);
         await Promise.resolve();
       });
 

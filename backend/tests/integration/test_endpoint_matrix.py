@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
+from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.main import create_app
 from eimir.relationship import service as relationship_service
@@ -316,6 +317,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard/preferences"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/dashboard/preferences/order",
+        body={"moduleKeys": [definition.key.value for definition in DASHBOARD_CATALOG]},
+    ),
     Endpoint(
         "PATCH",
         "/api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey}",

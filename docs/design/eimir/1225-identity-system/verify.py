@@ -79,8 +79,13 @@ sizes = {'identity': (1500, 1800), 'icons': (1500, 1850),
 for name, expected in sizes.items():
     with Image.open(BASE / 'exports' / f'{name}.png') as image:
         assert image.size == expected, (name, image.size)
+for width, minimum_height in ((390, 844), (1440, 900)):
+    for mode in ('light', 'dark'):
+        filename = f'private-area-{width}-{mode}-1245.png'
+        with Image.open(BASE / 'evidence' / filename) as image:
+            assert image.width == width and image.height >= minimum_height, (filename, image.size)
 for line in (BASE / 'SHA256SUMS').read_text().splitlines():
     checksum, filename = line.split('  ', 1)
     actual = hashlib.sha256((BASE / filename).read_bytes()).hexdigest()
     assert actual == checksum, filename
-print(f'30 unique icons, {len(svgs)} valid SVGs, 5 PNGs, minimum checked contrast {min(ratios):.2f}:1')
+print(f'30 unique icons, {len(svgs)} valid SVGs, 5 historical boards, 4 current app screenshots, minimum checked contrast {min(ratios):.2f}:1')

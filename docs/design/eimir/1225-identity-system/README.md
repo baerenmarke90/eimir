@@ -18,7 +18,7 @@ The four supplied PNGs are preserved unchanged and are the visual authority for 
 - [`assets/`](assets/) contains the SVG logo master and generated variants. `build-assets.py` synchronizes the Web SVG delivery assets.
 - [`icons.js`](icons.js), `boards.js` and `boards.css` produce the explanatory boards; the typed `EimirIcon` registry is the runtime source.
 - [`exports/`](exports/) preserves the snapshot identity, icon, palette and Compact Light/Dark boards. The editable board source contains the #1245 refinements; regenerate these PNGs with `render.sh` before using them as current visual evidence.
-- [`evidence/`](evidence/) contains screenshots of the real Web implementation in Compact Light/Dark and Expanded layouts.
+- [`evidence/`](evidence/) contains four #1245 real Web screenshots of the private-area view at 390 and 1440 CSS px in Light and Dark, captured by PR browser QA with mocked API responses. Earlier Today, Planen and quick-create screenshots in that directory predate the #1245 refinements.
 - `verify.py` checks board symbols, SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
 
 The implementation keeps the existing four root destinations, central add action, current content hierarchy and feature behavior. The owner images define the new identity only; other product rules remain those of [Product Reference v1](../../../product/design/product-reference-v1.md).

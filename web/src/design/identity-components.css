@@ -71,6 +71,8 @@
   stroke: var(--identity-icon-cool);
 }
 
-:is(a, button):active:not(:disabled) .eimir-icon-momente.eimir-icon-filled .icon-pressed-detail {
+:is(a, button):active:not(:disabled)
+  .eimir-icon-momente.eimir-icon-filled
+  .icon-pressed-detail {
   opacity: 1;
 }

@@ -446,24 +446,34 @@ test('private area reflows at 320 CSS px and removes decorative motion', async (
   expect(unexpectedRequests).toEqual([]);
 });
 
-test('private area keeps the accepted hierarchy in expanded Web', async ({
-  page,
-}, testInfo) => {
-  await page.emulateMedia({ colorScheme: 'light' });
-  await page.addInitScript(() => {
-    window.localStorage.setItem('eimir.theme', 'system');
-  });
-  await page.setViewportSize({ width: 1440, height: 900 });
+for (const colorScheme of ['light', 'dark'] as const) {
+  test(`private area keeps the accepted hierarchy in expanded Web in ${colorScheme} mode`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ colorScheme });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('eimir.theme', 'system');
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
 
-  const unexpectedRequests = await signInAndOpenPrivateArea(page);
-  await expectPrivateReferenceStructure(page);
+    const unexpectedRequests = await signInAndOpenPrivateArea(page);
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      colorScheme,
+    );
+    await expect(page.locator('#app-favicon')).toHaveAttribute(
+      'href',
+      colorScheme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg',
+    );
+    await expectPrivateReferenceStructure(page);
 
-  await page.screenshot({
-    path: testInfo.outputPath('private-area-1440-light.png'),
-    fullPage: true,
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-1440-${colorScheme}.png`),
+      fullPage: true,
+    });
+    expect(unexpectedRequests).toEqual([]);
   });
-  expect(unexpectedRequests).toEqual([]);
-});
+}
 
 test('private area remains usable at 200 percent layout zoom', async ({
   page,

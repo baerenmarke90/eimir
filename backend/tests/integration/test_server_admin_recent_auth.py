@@ -16,7 +16,7 @@ from eimir.core.clock import now
 from eimir.core.errors import ForbiddenError
 from eimir.identity import service as accounts
 from eimir.identity.models import AccountEmail, DeviceSession
-from tests.conftest import auth, make_account, requires_database, sign_in
+from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -172,6 +172,8 @@ def test_privileged_server_admin_actions_fail_closed_without_grant(
 ) -> None:  # type: ignore[no-untyped-def]
     _, admin_token, _ = _admin(session)
     target, email = _target_email(session)
+    unknown_space_id = "00000000-0000-0000-0000-000000000000"
+    unknown_grant_id = "00000000-0000-0000-0000-000000000001"
 
     verification = client.post(
         f"/api/v1/server-admin/accounts/{target.id}/emails/{email.id}/verify",
@@ -182,10 +184,28 @@ def test_privileged_server_admin_actions_fail_closed_without_grant(
         f"/api/v1/server-admin/accounts/{target.id}/recovery/operator",
         headers=auth(admin_token),
     )
+    grant_entitlement = client.post(
+        f"/api/v1/server-admin/spaces/{unknown_space_id}/entitlement/grants",
+        headers=auth(admin_token),
+        json={"reason": "test"},
+    )
+    revoke_entitlement = client.post(
+        f"/api/v1/server-admin/spaces/{unknown_space_id}/entitlement/grants/{unknown_grant_id}/revoke",
+        headers=auth(admin_token),
+        json={"reason": "test"},
+    )
 
-    assert verification.status_code == recovery.status_code == 403
+    assert (
+        verification.status_code
+        == recovery.status_code
+        == grant_entitlement.status_code
+        == revoke_entitlement.status_code
+        == 403
+    )
     assert verification.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
     assert recovery.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
+    assert grant_entitlement.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
+    assert revoke_entitlement.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
 
 
 def test_password_step_up_issues_server_admin_purpose_and_authorizes_action(
@@ -195,6 +215,8 @@ def test_password_step_up_issues_server_admin_purpose_and_authorizes_action(
 ) -> None:  # type: ignore[no-untyped-def]
     _, admin_token, _ = _admin(session)
     target, email = _target_email(session)
+    space = make_space(session, target)
+    session.flush()
 
     stepped_up = client.post(
         "/api/v1/auth/recent-authentication/server-admin/password",
@@ -214,6 +236,21 @@ def test_password_step_up_issues_server_admin_purpose_and_authorizes_action(
     )
     assert verified.status_code == 200, verified.text
     assert verified.json()["verifiedAt"] is not None
+
+    granted = client.post(
+        f"/api/v1/server-admin/spaces/{space.id}/entitlement/grants",
+        headers=auth(admin_token),
+        json={"reason": "test"},
+    )
+    assert granted.status_code == 200, granted.text
+    grant_id = granted.json()["grants"][0]["id"]
+
+    revoked = client.post(
+        f"/api/v1/server-admin/spaces/{space.id}/entitlement/grants/{grant_id}/revoke",
+        headers=auth(admin_token),
+        json={"reason": "test"},
+    )
+    assert revoked.status_code == 200, revoked.text
 
 
 def test_passkey_finish_uses_server_admin_purpose(

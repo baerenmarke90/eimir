@@ -29,16 +29,16 @@ import {
 export interface PartnerQuickActionCreate {
     /**
      * 
-     * @type {SupportGestureKind}
-     * @memberof PartnerQuickActionCreate
-     */
-    kind: SupportGestureKind;
-    /**
-     * 
      * @type {string}
      * @memberof PartnerQuickActionCreate
      */
     clientRequestId: string;
+    /**
+     * 
+     * @type {SupportGestureKind}
+     * @memberof PartnerQuickActionCreate
+     */
+    kind: SupportGestureKind;
 }
 
 
@@ -47,8 +47,8 @@ export interface PartnerQuickActionCreate {
  * Check if a given object implements the PartnerQuickActionCreate interface.
  */
 export function instanceOfPartnerQuickActionCreate(value: object): value is PartnerQuickActionCreate {
-    if (!('kind' in value) || value['kind'] === undefined) return false;
     if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;
+    if (!('kind' in value) || value['kind'] === undefined) return false;
     return true;
 }
 
@@ -62,8 +62,8 @@ export function PartnerQuickActionCreateFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
-        'kind': SupportGestureKindFromJSON(json['kind']),
         'clientRequestId': json['clientRequestId'],
+        'kind': SupportGestureKindFromJSON(json['kind']),
     };
 }
 
@@ -78,8 +78,8 @@ export function PartnerQuickActionCreateToJSONTyped(value?: PartnerQuickActionCr
 
     return {
         
-        'kind': SupportGestureKindToJSON(value['kind']),
         'clientRequestId': value['clientRequestId'],
+        'kind': SupportGestureKindToJSON(value['kind']),
     };
 }
 

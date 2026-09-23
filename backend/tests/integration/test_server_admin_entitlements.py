@@ -6,9 +6,11 @@ import pytest
 from sqlalchemy import select
 
 from eimir.administration.models import InstanceAdministrationActionEvent
+from eimir.auth import recent_auth
 from eimir.config import get_settings
 from eimir.core.clock import now
 from eimir.entitlements.models import EntitlementGrant, EntitlementSourceType
+from eimir.identity.models import DeviceSession
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -25,6 +27,12 @@ def server_admin_allowlist(monkeypatch):  # type: ignore[no-untyped-def]
 
 
 def _admin(session):  # type: ignore[no-untyped-def]
+    """A ServerAdmin with a live SERVER_ADMIN_ACTION step-up grant.
+
+    Entitlement grant/revoke are high-risk actions like account deletion and
+    email verification and require the same recent re-authentication; the
+    grant issued here stands in for a real step-up ceremony.
+    """
     from eimir.identity.models import AccountEmail
 
     account = make_account(session, "Operator")
@@ -36,8 +44,19 @@ def _admin(session):  # type: ignore[no-untyped-def]
             verified_at=now(),
         )
     )
+    token = sign_in(session, account)
+    device_session = session.execute(
+        select(DeviceSession).where(DeviceSession.account_id == account.id)
+    ).scalar_one()
+    recent_auth.issue_grant(
+        session,
+        account,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+        method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
+    )
     session.flush()
-    return account, sign_in(session, account)
+    return account, token
 
 
 def test_entitlement_endpoints_require_authentication(client) -> None:  # type: ignore[no-untyped-def]

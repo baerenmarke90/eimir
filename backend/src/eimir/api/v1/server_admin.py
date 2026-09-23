@@ -961,6 +961,7 @@ def get_server_admin_space_entitlement(
 def grant_server_admin_space_entitlement(
     body: ServerAdminEntitlementGrantRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
@@ -972,7 +973,17 @@ def grant_server_admin_space_entitlement(
     ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
+
+    Granting unlimited Premium is as consequential as the other high-risk
+    ServerAdmin actions in this router (account deletion, email verification,
+    recovery issuance), so it requires the same step-up re-authentication.
     """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed = _require_space(session, space_id)
     entitlements.record_grant(
         session,
@@ -1003,11 +1014,23 @@ def grant_server_admin_space_entitlement(
 def revoke_server_admin_space_entitlement_grant(
     body: ServerAdminEntitlementRevokeRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
     grant_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
-    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback)."""
+    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+
+    Revoking a paying customer's entitlement is as consequential as the other
+    high-risk ServerAdmin actions in this router, so it requires the same
+    step-up re-authentication.
+    """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed_space = _require_space(session, space_id)
     parsed_grant = parse_id(grant_id)
     if parsed_grant is None:

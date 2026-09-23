@@ -2,7 +2,7 @@
 <defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#292B45"/><stop offset="1" stop-color="#20233B"/></linearGradient></defs>
 <rect width="512" height="512" rx="112" fill="url(#tile)"/>
 <g transform="translate(30 45) scale(1.75)">
-  <title id="title">eimir.: zwei überlagerte Farbkreise formen mit einer hellen Schleife ein e</title>
+  <title id="title">eimir. mark: two overlapping color circles form an e with a white loop</title>
   <defs>
     <linearGradient id="warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFD7AB"/><stop offset=".53" stop-color="#FFB6B9"/><stop offset="1" stop-color="#F197C9"/></linearGradient>
     <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#B0E6FC"/><stop offset=".5" stop-color="#94B7F6"/><stop offset="1" stop-color="#AC8EE4"/></linearGradient>

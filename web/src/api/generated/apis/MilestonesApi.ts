@@ -42,6 +42,7 @@ import {
 export interface CreateMilestoneRequest {
     spaceId: string;
     milestoneCreate: MilestoneCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteMilestoneRequest {
@@ -97,6 +98,10 @@ export class MilestonesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/milestones`;

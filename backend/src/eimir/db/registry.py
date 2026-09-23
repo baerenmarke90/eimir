@@ -17,6 +17,7 @@ MODEL_MODULES = (
     "eimir.chapters.models",
     "eimir.collections.models",
     "eimir.comments.models",
+    "eimir.create_receipts.models",
     "eimir.daily_checkins.models",
     "eimir.dashboard.models",
     "eimir.demo.models",

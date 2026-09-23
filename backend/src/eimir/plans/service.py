@@ -48,7 +48,9 @@ from eimir.authorization import (
 )
 from eimir.core import cursor as cursor_codec
 from eimir.core.clock import today_in
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.identity.models import Account
 from eimir.outbox import service as outbox_service
@@ -59,6 +61,7 @@ from eimir.wishes import service as wish_service
 from eimir.wishes.models import Wish, WishStatus
 
 _PLAN_SUBJECT_TYPE = "plan"
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.PLAN.value
 
 PLAN_TITLE_REQUIRED = "PLAN_TITLE_REQUIRED"
 PLAN_STATUS_TRANSITION_INVALID = "PLAN_STATUS_TRANSITION_INVALID"
@@ -90,6 +93,14 @@ class WishToPlanResult:
     wish: Wish
     plan: Plan
     created: bool
+
+
+@dataclass(frozen=True)
+class PlanCreateResult:
+    plan: Plan
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new Plan."""
 
 
 @dataclass(frozen=True)
@@ -259,6 +270,86 @@ def create_plan(
     if status == PlanStatus.PLANNED:
         reminder_runtime.reconcile_space(session, context.space_id)
     return plan
+
+
+def create_plan_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    title: str,
+    description: str | None,
+    place_id: UUID | str | None,
+    planned_on: date | None = None,
+    planned_start: datetime | None = None,
+    planned_end: datetime | None = None,
+) -> PlanCreateResult:
+    """Create a direct Plan, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the Plan share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "save" or a
+    lost-response retry from adding the same plan twice.
+    """
+    if idempotency_key is None:
+        plan = create_plan(
+            session,
+            context,
+            title=title,
+            description=description,
+            place_id=place_id,
+            planned_on=planned_on,
+            planned_start=planned_start,
+            planned_end=planned_end,
+        )
+        return PlanCreateResult(plan, created=True)
+
+    normalized_title = _normalize_title(title)
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE,
+        {
+            "title": normalized_title,
+            "description": description,
+            "place_id": str(place_id) if place_id is not None else None,
+            "planned_on": planned_on.isoformat() if planned_on else None,
+            "planned_start": planned_start.isoformat() if planned_start else None,
+            "planned_end": planned_end.isoformat() if planned_end else None,
+        },
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        plan = create_receipts.replay(
+            session,
+            context,
+            Plan,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The plan created by this request no longer exists.",
+                ErrorCode.PLAN_CREATE_RESULT_DELETED,
+            ),
+        )
+        return PlanCreateResult(plan, created=False)
+
+    plan = create_plan(
+        session,
+        context,
+        title=normalized_title,
+        description=description,
+        place_id=place_id,
+        planned_on=planned_on,
+        planned_start=planned_start,
+        planned_end=planned_end,
+    )
+    create_receipts.attach(session, receipt_id, plan.id)
+    return PlanCreateResult(plan, created=True)
 
 
 def get_plan(

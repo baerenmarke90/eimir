@@ -22,6 +22,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.shared_achievements import (
     PLAN_COMPLETED_ACHIEVEMENT,
@@ -261,18 +262,32 @@ def _schedule_values(
     response_model=PlanDetail,
     status_code=http_status.HTTP_201_CREATED,
     operation_id="createPlan",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Plan in its "
+                "current state; no second Plan is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": PlanDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_plan(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: PlanCreate,
+    idempotency_key: IdempotencyKey,
 ) -> PlanDetail:
     planned_on, planned_start, planned_end = _schedule_values(body.schedule)
-    plan = service.create_plan(
+    result = service.create_plan_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         title=body.title,
         description=body.description,
         place_id=body.place_id,
@@ -280,8 +295,10 @@ def create_plan(
         planned_start=planned_start,
         planned_end=planned_end,
     )
-    response.headers["ETag"] = etag_for(plan.version)
-    return _plan_detail(session, authorization, plan)
+    if not result.created:
+        response.status_code = http_status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.plan.version)
+    return _plan_detail(session, authorization, result.plan)
 
 
 @router.get(

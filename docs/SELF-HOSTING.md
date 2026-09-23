@@ -542,6 +542,15 @@ allowed hosts.
 The `/api/` route must go directly to the API rather than through Web Nginx, otherwise
 the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
 
+The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
+JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
+uploads and Transfer imports retain their separate server-side streaming limits
+(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+application boundary is authoritative regardless of reverse-proxy configuration;
+the public TLS proxy should also enforce appropriate request-size limits to avoid
+buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
+8 MiB limit, which would break the bounded media and Transfer routes.
+
 ## Post-deploy verification
 
 The release smoke helper verifies Web health/revision, API/database readiness and API

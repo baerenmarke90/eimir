@@ -9,9 +9,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from eimir.api.errors import register_error_handlers
+from eimir.api.errors import problem_responses, register_error_handlers
 from eimir.api.openapi import EimirFastAPI
-from eimir.api.transport import RequireHttpsForExternalHostsMiddleware
+from eimir.api.transport import RequestBodyLimitMiddleware, RequireHttpsForExternalHostsMiddleware
 from eimir.api.v1 import router as v1_router
 from eimir.config import Environment, Settings, get_settings
 from eimir.identity.deletion_self_service import reconcile_configured_deletions_on_startup
@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
         docs_url=None if settings.is_production else "/docs",
         redoc_url=None,
         openapi_url=None if settings.is_production else "/openapi.json",
+        responses=problem_responses(413),
         lifespan=_lifespan,
     )
 
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
         app.add_middleware(RequireHttpsForExternalHostsMiddleware)
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
+    app.add_middleware(RequestBodyLimitMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RequestIdMiddleware)
 

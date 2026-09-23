@@ -63,7 +63,7 @@ def test_v1_endpoints_document_only_actual_problem_details() -> None:
             for status, response in responses.items()
             if _response_schema(response).get("$ref") == PROBLEM_DETAILS_REF
         }
-        assert documented == expected, f"{method.upper()} {path}"
+        assert documented == expected | {413}, f"{method.upper()} {path}"
 
 
 def test_request_validation_no_longer_references_fastapi_default_model() -> None:

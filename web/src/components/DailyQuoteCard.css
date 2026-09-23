@@ -421,11 +421,9 @@
 
 @keyframes daily-quote-reveal {
   from {
-    opacity: 0;
     transform: translateY(var(--space-1));
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }

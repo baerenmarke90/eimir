@@ -54,17 +54,22 @@ class OutboxEvent(IdMixin, Base):
     # broken event backs off instead of being reclaimed on the very next
     # poll; see outbox/service.py's mark_failed().
     next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # NULL means still retryable (or already processed). Set once
+    # mark_failed() exhausts service.MAX_ATTEMPTS, so a poison event stops
+    # being reclaimed on every poll forever and its terminal state becomes
+    # operator-visible instead of silently consuming worker capacity.
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         CheckConstraint(
             "resource_version IS NULL OR resource_version >= 1",
             name="resource_version_is_positive",
         ),
-        # The worker searches only unprocessed rows. A partial index keeps
-        # that lookup small even as the table grows.
+        # The worker searches only unprocessed, non-terminal rows. A partial
+        # index keeps that lookup small even as the table grows.
         Index(
             "ix_outbox_events_unprocessed",
             "created_at",
-            postgresql_where=processed_at.is_(None),
+            postgresql_where=processed_at.is_(None) & failed_at.is_(None),
         ),
     )

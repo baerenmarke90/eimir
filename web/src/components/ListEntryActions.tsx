@@ -2,6 +2,8 @@ import {
   type ButtonHTMLAttributes,
   type PointerEvent as ReactPointerEvent,
   forwardRef,
+  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -82,15 +84,76 @@ export function useListItemReorder({
   itemIds,
   disabled,
   onReorder,
+  animatePreview = false,
 }: {
   itemIds: readonly string[];
   disabled: boolean;
   onReorder: (itemIds: string[], movedId: string) => void;
+  animatePreview?: boolean;
 }) {
   const dragRef = useRef<DragState | null>(null);
   const scrollFrame = useRef<number | null>(null);
+  const previousRects = useRef<Map<string, number> | null>(null);
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+
+  function captureRects() {
+    if (!animatePreview) return;
+    previousRects.current = new Map(
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+      )
+        .filter((row) => itemIds.includes(row.dataset.sortableItemId ?? ''))
+        .map((row) => [
+          row.dataset.sortableItemId ?? '',
+          row.getBoundingClientRect().top,
+        ]),
+    );
+  }
+
+  useLayoutEffect(() => {
+    const before = previousRects.current;
+    previousRects.current = null;
+    if (
+      !before ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    )
+      return;
+    const rawDuration = getComputedStyle(document.documentElement)
+      .getPropertyValue('--duration-transition')
+      .trim();
+    const duration = rawDuration.endsWith('ms')
+      ? parseFloat(rawDuration)
+      : parseFloat(rawDuration) * 1000;
+    const easing =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--easing-standard')
+        .trim() || 'ease-out';
+    for (const row of document.querySelectorAll<HTMLElement>(
+      '[data-sortable-item-id]',
+    )) {
+      const oldTop = before.get(row.dataset.sortableItemId ?? '');
+      if (oldTop === undefined || typeof row.animate !== 'function') continue;
+      const displacement = oldTop - row.getBoundingClientRect().top;
+      if (Math.abs(displacement) < 1) continue;
+      row.animate(
+        [
+          { transform: `translateY(${displacement}px)` },
+          { transform: 'translateY(0)' },
+        ],
+        { duration: Number.isFinite(duration) ? duration : 180, easing },
+      );
+    }
+  }, [itemIds, previewOrder, animatePreview]);
+
+  useEffect(
+    () => () => {
+      dragRef.current = null;
+      if (scrollFrame.current !== null)
+        cancelAnimationFrame(scrollFrame.current);
+    },
+    [],
+  );
 
   function updateTarget(drag: DragState) {
     const element = document.elementFromPoint(drag.clientX, drag.clientY);
@@ -110,6 +173,7 @@ export function useListItemReorder({
       drag.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
     const next = moveSortableItem(drag.order, drag.itemId, targetId, placement);
     if (!sameOrder(drag.order, next)) {
+      captureRects();
       drag.order = next;
       setPreviewOrder(next);
     }
@@ -181,7 +245,10 @@ export function useListItemReorder({
           itemId,
           direction as -1 | 1,
         );
-        if (!sameOrder(itemIds, next)) onReorder(next, itemId);
+        if (!sameOrder(itemIds, next)) {
+          captureRects();
+          onReorder(next, itemId);
+        }
       },
       onPointerDown: (event) => {
         if (disabled || event.button !== 0) return;
@@ -197,6 +264,7 @@ export function useListItemReorder({
         };
         setPreviewOrder(initialOrder);
         setActiveItemId(itemId);
+        event.currentTarget.focus();
         event.currentTarget.setPointerCapture(event.pointerId);
         event.preventDefault();
       },

@@ -430,6 +430,13 @@
 
 .dashboard-module-option .list-entry-drag-handle {
   color: var(--color-text-secondary);
+  background: transparent;
+  border: 0;
+}
+
+.dashboard-module-option .list-entry-drag-handle:hover:not(:disabled),
+.dashboard-module-option .list-entry-drag-handle:active:not(:disabled) {
+  background: var(--color-brand-surface);
 }
 
 .dashboard-order-instructions {

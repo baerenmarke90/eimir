@@ -156,8 +156,11 @@ def test_reorder_rejects_partial_duplicate_and_foreign_keys_atomically(
 ) -> None:  # type: ignore[no-untyped-def]
     space_id = couple["space"].id
     token = couple["token_a"]
-    for invalid in [ALL_MODULE_KEYS[:-1], [ALL_MODULE_KEYS[0]] * len(ALL_MODULE_KEYS),
-                    [*ALL_MODULE_KEYS[:-1], "not-a-module"]]:
+    for invalid in [
+        ALL_MODULE_KEYS[:-1],
+        [ALL_MODULE_KEYS[0]] * len(ALL_MODULE_KEYS),
+        [*ALL_MODULE_KEYS[:-1], "not-a-module"],
+    ]:
         result = _reorder(client, space_id, token, invalid)
         assert result.status_code == 422
         assert result.json()["code"] == "DASHBOARD_MODULE_INVALID_ORDER"

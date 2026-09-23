@@ -28,12 +28,17 @@ export interface DashboardSettingsPanelProps {
   spaceId: string;
 }
 
-function upsertPreference(
+function patchPreference(
   old: DashboardModulePreferenceList | undefined,
-  updated: DashboardModulePreferenceView,
+  moduleKey: string,
+  facet: Partial<DashboardModulePreferenceView>,
 ): DashboardModulePreferenceList {
   const items = [...(old?.items ?? [])];
-  const index = items.findIndex((item) => item.moduleKey === updated.moduleKey);
+  const index = items.findIndex((item) => item.moduleKey === moduleKey);
+  const updated = {
+    ...(items[index] ?? { moduleKey, visible: true }),
+    ...facet,
+  };
   if (index >= 0) items[index] = updated;
   else items.push(updated);
   return { items };
@@ -86,7 +91,9 @@ export function DashboardSettingsPanel({
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        upsertPreference(old, updated),
+        patchPreference(old, updated.moduleKey, {
+          itemLimit: updated.itemLimit,
+        }),
       );
       setPendingLimit(null);
       setSaved(true);
@@ -115,16 +122,33 @@ export function DashboardSettingsPanel({
         throw await normalizeClientError(error);
       }
     },
-    onMutate: () => {
+    onMutate: ({ moduleKey, visible }) => {
+      const previousVisible = isDashboardModuleVisible(
+        queryClient.getQueryData<DashboardModulePreferenceList>(queryKey),
+        moduleKey,
+      );
+      queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
+        patchPreference(old, moduleKey, { visible }),
+      );
       setSavedModuleKey(null);
+      return { previousVisible };
     },
     onSuccess: (updated) => {
       queryClient.setQueryData<DashboardModulePreferenceList>(queryKey, (old) =>
-        upsertPreference(old, updated),
+        patchPreference(old, updated.moduleKey, { visible: updated.visible }),
       );
       setSavedModuleKey(updated.moduleKey as DashboardModuleKey);
     },
-    onError: () => {
+    onError: (_error, { moduleKey }, context) => {
+      if (context) {
+        queryClient.setQueryData<DashboardModulePreferenceList>(
+          queryKey,
+          (old) =>
+            patchPreference(old, moduleKey, {
+              visible: context.previousVisible,
+            }),
+        );
+      }
       setSavedModuleKey(null);
     },
   });
@@ -172,6 +196,7 @@ export function DashboardSettingsPanel({
   const orderedKeys = orderedDashboardModuleKeys(preferencesQuery.data);
   const reorder = useListItemReorder({
     itemIds: orderedKeys,
+    animatePreview: true,
     disabled: preferencesQuery.isPending || Boolean(preferencesQuery.error),
     onReorder: (keys, moved) => {
       const next = keys as DashboardModuleKey[];

@@ -98,6 +98,15 @@ async function installMocks(page: Page, options: DailyQuoteMockOptions = {}) {
       return;
     }
 
+    if (method === 'GET' && pathname === '/api/v1/auth/me') {
+      await json({
+        displayName:
+          currentAccountId === ACCOUNT_ID ? 'Anna Berger' : 'Ben Winter',
+        id: currentAccountId,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
       await json({ serverAdmin: false });
       return;

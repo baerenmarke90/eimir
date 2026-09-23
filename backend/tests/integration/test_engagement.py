@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import func, select
@@ -148,6 +148,149 @@ def test_private_heart_moment_never_projects_activity(session: Session, couple) 
         select(func.count(Activity.id)).where(Activity.source_event_id == event.id)
     ).scalar_one()
     assert count == 0
+
+
+@pytest.mark.parametrize("project_creation_first", [True, False])
+def test_first_share_of_private_heart_moment_creates_one_partner_activity(
+    client, session: Session, couple, project_creation_first: bool
+) -> None:  # type: ignore[no-untyped-def]
+    space_id = couple["space"].id
+    base_path = f"/api/v1/spaces/{space_id}/heart-moments"
+    created = client.post(
+        base_path,
+        headers=auth(couple["anna_token"]),
+        json={
+            "text": "Private until I decide to share",
+            "emotion": "LOVED",
+            "visibility": "PRIVATE",
+            "happenedOn": NOW.date().isoformat(),
+        },
+    )
+    assert created.status_code == 201
+    heart_id = UUID(created.json()["id"])
+    creation_event = session.execute(
+        select(OutboxEvent).where(
+            OutboxEvent.subject_id == heart_id,
+            OutboxEvent.event_type == EventType.HEART_MOMENT_CREATED.value,
+        )
+    ).scalar_one()
+
+    if project_creation_first:
+        service.project_event(session, creation_event)
+        assert (
+            session.execute(
+                select(func.count(Activity.id)).where(Activity.target_id == heart_id)
+            ).scalar_one()
+            == 0
+        )
+
+    shared = client.patch(
+        f"{base_path}/{heart_id}/visibility",
+        headers={**auth(couple["anna_token"]), "If-Match": '"1"'},
+        json={"visibility": "SHARED"},
+    )
+    assert shared.status_code == 200
+    share_event = session.execute(
+        select(OutboxEvent).where(
+            OutboxEvent.subject_id == heart_id,
+            OutboxEvent.event_type == EventType.HEART_MOMENT_VISIBILITY_CHANGED.value,
+            OutboxEvent.resource_version == 2,
+        )
+    ).scalar_one()
+
+    service.project_event(session, share_event)
+    service.project_event(session, creation_event)
+    service.project_event(session, share_event)
+    session.flush()
+
+    activities = list(
+        session.execute(select(Activity).where(Activity.target_id == heart_id)).scalars()
+    )
+    assert len(activities) == 1
+    assert activities[0].kind == ActivityKind.HEART_MOMENT_CREATED.value
+    assert activities[0].source_event_id == share_event.id
+    assert (
+        session.execute(
+            select(func.count(Notification.id)).where(Notification.target_id == heart_id)
+        ).scalar_one()
+        == 0
+    )
+
+    partner_activity = client.get(
+        f"/api/v1/spaces/{space_id}/activity", headers=auth(couple["ben_token"])
+    )
+    assert partner_activity.status_code == 200
+    assert [item["targetId"] for item in partner_activity.json()["items"]] == [str(heart_id)]
+
+    hidden = client.patch(
+        f"{base_path}/{heart_id}/visibility",
+        headers={**auth(couple["anna_token"]), "If-Match": '"2"'},
+        json={"visibility": "PRIVATE"},
+    )
+    assert hidden.status_code == 200
+    assert (
+        client.get(f"/api/v1/spaces/{space_id}/activity", headers=auth(couple["ben_token"])).json()[
+            "items"
+        ]
+        == []
+    )
+
+    reshared = client.patch(
+        f"{base_path}/{heart_id}/visibility",
+        headers={**auth(couple["anna_token"]), "If-Match": '"3"'},
+        json={"visibility": "SHARED"},
+    )
+    assert reshared.status_code == 200
+    reshare_event = session.execute(
+        select(OutboxEvent).where(
+            OutboxEvent.subject_id == heart_id,
+            OutboxEvent.event_type == EventType.HEART_MOMENT_VISIBILITY_CHANGED.value,
+            OutboxEvent.resource_version == 4,
+        )
+    ).scalar_one()
+    service.project_event(session, reshare_event)
+    session.flush()
+    assert (
+        session.execute(
+            select(func.count(Activity.id)).where(Activity.target_id == heart_id)
+        ).scalar_one()
+        == 1
+    )
+
+
+def test_share_event_does_not_publish_activity_after_privacy_is_revoked(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    heart_moment = HeartMoment(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.OWNER_ONLY.value,
+        happened_on=NOW.date(),
+        payload=HeartMomentPayload(text="Still private", emotion=HeartEmotion.SEEN),
+    )
+    session.add(heart_moment)
+    session.flush()
+    share_event = _event(
+        session,
+        couple,
+        EventType.HEART_MOMENT_VISIBILITY_CHANGED,
+        heart_moment,
+        payload=PublicEventPayload(visibility=ContentVisibility.SHARED),
+    )
+
+    service.project_event(session, share_event)
+    assert (
+        session.execute(
+            select(func.count(Activity.id)).where(Activity.source_event_id == share_event.id)
+        ).scalar_one()
+        == 0
+    )
+    partner_activity = client.get(
+        f"/api/v1/spaces/{couple['space'].id}/activity",
+        headers=auth(couple["ben_token"]),
+    )
+    assert partner_activity.status_code == 200
+    assert partner_activity.json()["items"] == []
 
 
 def test_comment_notifies_only_other_authorized_partner_and_replay_is_idempotent(

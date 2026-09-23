@@ -2,9 +2,9 @@
   "$comment": "Single authoritative, ordered list of #817 Dashboard module keys. backend/src/eimir/dashboard/preferences.py::CATALOG and this directory's dashboardModules.ts::DASHBOARD_MODULE_CATALOG must each match this exact key order; both are cross-checked against this file in CI (backend/tests/unit/test_dashboard_catalog_parity.py and dashboardModules.test.ts) so the two layers cannot silently drift apart. Edit this file first when a module is added, renamed, or reordered.",
   "moduleKeys": [
     "relationship_presence",
+    "keepsake",
     "upcoming",
     "pinned_collection",
-    "keepsake",
     "relationship_signal",
     "monthly_highlights",
     "recent_shared",

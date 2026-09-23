@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { type MouseEvent, type ReactNode } from 'react';
+import { Fragment, type MouseEvent, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
@@ -14,9 +14,11 @@ import type { DashboardRelationshipDuration } from '../api/generated/models/Dash
 import { DurationDisplayMode } from '../api/generated/models/DurationDisplayMode';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { dashboardQueryKey } from '../client/dashboardQueries';
+import type { DashboardModuleKey } from '../client/dashboardModules';
 import {
   dashboardPreferencesQueryKey,
   isDashboardModuleVisible,
+  orderedDashboardModuleKeys,
   limitUpcomingItems,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
@@ -1089,6 +1091,231 @@ export function TodayPage({
     />
   );
 
+  const moduleContent: Record<DashboardModuleKey, ReactNode> = {
+    relationship_presence: (
+      <>
+        {/* ROLE: Hero / Couple Presence — the permanent emotional entry
+              point, shown for every space including a new/sparse one, unless
+              the user hid the `relationship_presence` module. The Today date
+              heading above remains the stable page-level H1 either way. */}
+        {relationshipPresenceVisible ? (
+          supportGesturesEnabled && partner && account?.id ? (
+            <PartnerQuickActions
+              apis={apis}
+              entitlementApi={entitlementApi}
+              accountId={account.id}
+              spaceId={spaceId}
+              partnerName={partner.displayName}
+              thinkingOfYouAvailableAt={
+                dashboardQuery.data?.thinkingOfYouAvailableAt ?? null
+              }
+            >
+              {(avatarAction, avatarOverlay) =>
+                renderRelationshipHero(avatarAction, avatarOverlay)
+              }
+            </PartnerQuickActions>
+          ) : (
+            renderRelationshipHero()
+          )
+        ) : null}
+      </>
+    ),
+    keepsake: (
+      <>
+        {/* Personal shared content comes before the practical horizon:
+                  Today should show the relationship itself before another
+                  stack of planning utilities. */}
+        {showMomentSection && keepsakeVisible && focalItem ? (
+          <TodayModuleSection
+            className="today-section-moment"
+            title={t('m5s5.today.keepsake.title')}
+            kicker={t('m5s5.today.keepsake.kicker')}
+          >
+            <TodayMomentFeature
+              item={focalItem.item}
+              loadMemoryImage={loadMemoryImage}
+              isKeepsake={focalItem.kind === 'keepsake'}
+            />
+          </TodayModuleSection>
+        ) : null}
+      </>
+    ),
+    upcoming: (
+      <>
+        {/* Demnächst — the short shared horizon. One item is the
+                  default and must read as complete on its own; two or three
+                  stay restrained rather than becoming an agenda table. */}
+        {upcomingVisible && upcoming.length > 0 ? (
+          <TodayModuleSection
+            className="today-section-upcoming"
+            title={t('m5s5.dashboard.upcomingTitle')}
+            kicker={t('m5s5.dashboard.upcomingKicker')}
+            headerAction={
+              <Link
+                to={appRoutePath('plan')}
+                className="today-section-link"
+                aria-label={t('m5s5.today.upcoming.allAriaLabel')}
+              >
+                {t('m5s5.today.upcoming.allAction')} →
+              </Link>
+            }
+          >
+            <div className="today-agenda-list">
+              {upcoming.map((item: DashboardItem) => (
+                <TodayAgendaRow key={item.id} item={item} />
+              ))}
+            </div>
+          </TodayModuleSection>
+        ) : null}
+      </>
+    ),
+    pinned_collection: (
+      <>
+        {pinnedCollectionVisible &&
+        pinnedCollectionId &&
+        pinnedCollectionQuery.data ? (
+          <TodayModuleSection
+            className="today-section-pinned-collection"
+            title={pinnedCollectionQuery.data.title}
+            kicker={t('m5s5.today.pinnedCollection.kicker')}
+            headerAction={
+              <TodayDestinationLink
+                to={collectionDetailPath(pinnedCollectionId)}
+                className="today-section-link"
+                ariaLabel={t('m5s5.today.pinnedCollection.openAriaLabel', {
+                  title: pinnedCollectionQuery.data.title,
+                })}
+              >
+                {t('m5s5.today.pinnedCollection.openAction')} →
+              </TodayDestinationLink>
+            }
+          >
+            {collectionsApi ? (
+              <TodayPinnedCollection
+                api={collectionsApi}
+                accountId={account?.id ?? ''}
+                spaceId={spaceId}
+                collection={pinnedCollectionQuery.data}
+                sharedAchievementsEnabled={sharedAchievementsEnabled}
+              />
+            ) : null}
+          </TodayModuleSection>
+        ) : null}
+
+        {pinnedCollectionVisible &&
+        pinnedCollectionId &&
+        pinnedCollectionQuery.error ? (
+          <div className="today-partial-error" role="status">
+            <span>{t('m5s5.today.pinnedCollection.loadError')}</span>
+            <button
+              type="button"
+              className="today-partial-error-action"
+              onClick={() => void pinnedCollectionQuery.refetch()}
+            >
+              {t('common.retry')}
+            </button>
+          </div>
+        ) : null}
+      </>
+    ),
+    relationship_signal: (
+      <>
+        {/* 4. Gerade bei euch — exactly one contextual module. */}
+        {livingModule && relationshipSignalVisible ? (
+          <TodayModuleSection
+            className="today-section-living"
+            title={t('m5s5.today.living.kicker')}
+          >
+            <TodayLivingModuleCard
+              module={livingModule}
+              partnerName={partnerName}
+              partnerAvatarUrl={partnerAvatar.avatarUrl}
+              loadMemoryImage={loadMemoryImage}
+            />
+          </TodayModuleSection>
+        ) : null}
+
+        {activityQuery.error && relationshipSignalVisible ? (
+          <div className="today-partial-error" role="status">
+            <span>{t('m5s5.today.partialActivityError')}</span>
+            <button
+              type="button"
+              className="today-partial-error-action"
+              onClick={() => void activityQuery.refetch()}
+            >
+              {t('common.retry')}
+            </button>
+          </div>
+        ) : null}
+      </>
+    ),
+    monthly_highlights: (
+      <>
+        {/* 5. Diesen Monat — this month's shared life, shown rather than
+                  counted. */}
+        {monthlyHighlightsVisible &&
+        monthlyStrip.length > 0 &&
+        loadMemoryImage ? (
+          <TodayModuleSection
+            className="today-section-monthly"
+            title={t('m5s5.today.monthly.title')}
+            headerAction={
+              <Link
+                to={`${appRoutePath('story')}?tab=timeline`}
+                className="today-section-link"
+                aria-label={t('m5s5.today.monthly.allAriaLabel')}
+              >
+                {t('m5s5.today.monthly.allAction')} →
+              </Link>
+            }
+          >
+            <TodayMonthlyStrip
+              items={monthlyStrip}
+              loadMemoryImage={loadMemoryImage}
+            />
+          </TodayModuleSection>
+        ) : null}
+      </>
+    ),
+    recent_shared: (
+      <>
+        {/* 6. Zuletzt bei euch — deliberately secondary. Full activity
+                  navigation stays reachable from here. */}
+        {recentSharedVisible && recentSharedForTrace.length > 0 ? (
+          <TodayModuleSection
+            className="today-section-recent"
+            title={t('m5s5.dashboard.recentTitle')}
+            kicker={t('m5s5.dashboard.recentKicker')}
+          >
+            <div className="today-stream today-stream-recent">
+              {recentSharedForTrace.slice(0, 4).map((item: DashboardItem) => (
+                <RecentSharedItemCard key={item.id} item={item} />
+              ))}
+            </div>
+            <div className="today-recent-footer">
+              <Link to={ACTIVITY_ROUTE} className="today-recent-activity-link">
+                {t('m5s5.dashboard.allActivityAction')}
+              </Link>
+            </div>
+          </TodayModuleSection>
+        ) : null}
+      </>
+    ),
+    shared_story_summary: (
+      <>
+        {sharedStorySummaryVisible &&
+        dashboardQuery.data?.sharedStorySummary ? (
+          <SharedStorySummary
+            summary={dashboardQuery.data?.sharedStorySummary}
+          />
+        ) : null}
+      </>
+    ),
+  };
+  const orderedModuleKeys = orderedDashboardModuleKeys(
+    dashboardPreferencesQuery.data,
+  );
+
   return (
     <div className="page today-page">
       {(dashboardQuery.isLoading ||
@@ -1120,251 +1347,89 @@ export function TodayPage({
             <time className="today-date-value">{todayDate}</time>
           </header>
 
-          {/* ROLE: Hero / Couple Presence — the permanent emotional entry
-              point, shown for every space including a new/sparse one, unless
-              the user hid the `relationship_presence` module. The Today date
-              heading above remains the stable page-level H1 either way. */}
-          {relationshipPresenceVisible ? (
-            supportGesturesEnabled && partner && account?.id ? (
-              <PartnerQuickActions
-                apis={apis}
-                entitlementApi={entitlementApi}
-                accountId={account.id}
-                spaceId={spaceId}
-                partnerName={partner.displayName}
-                thinkingOfYouAvailableAt={
-                  dashboardQuery.data.thinkingOfYouAvailableAt
-                }
-              >
-                {(avatarAction, avatarOverlay) =>
-                  renderRelationshipHero(avatarAction, avatarOverlay)
-                }
-              </PartnerQuickActions>
-            ) : (
-              renderRelationshipHero()
-            )
-          ) : null}
-
-          {vibeCheckEnabled && partner && account?.id && dailyCheckInsApi ? (
-            <DailyVibeCheckIn
-              key={`${account.id}:${spaceId}`}
-              api={dailyCheckInsApi}
-              accountId={account.id}
-              spaceId={spaceId}
-              partnerName={partner.displayName}
-              configuredEnabled
-            />
-          ) : null}
-
-          {account?.id && dailyQuoteApi && entitlementApi ? (
-            <DailyQuoteCard
-              key={`${account.id}:${spaceId}`}
-              quoteApi={dailyQuoteApi}
-              entitlementsApi={entitlementApi}
-              accountId={account.id}
-              spaceId={spaceId}
-              partnerName={partner?.displayName}
-            />
-          ) : null}
-
           {isSparse ? (
-            <div className="new-space-experience">
-              <h2 className="new-space-title">
-                {partner
-                  ? t('m5s5.dashboard.newSpacePartner', {
-                      name: partner.displayName,
-                    })
-                  : t('m5s5.dashboard.newSpaceEmpty')}
-              </h2>
-              <p className="new-space-body">
-                {t('m5s5.dashboard.newSpaceIntro')}
-              </p>
-              <div className="new-space-actions">
-                <Link
-                  className="button-link primary new-space-cta"
-                  to="/story/memories/new"
-                >
-                  {t('m5s5.dashboard.newSpaceAction')}
-                </Link>
-              </div>
-            </div>
-          ) : (
             <>
-              {/* Personal shared content comes before the practical horizon:
-                  Today should show the relationship itself before another
-                  stack of planning utilities. */}
-              {showMomentSection && keepsakeVisible && focalItem ? (
-                <TodayModuleSection
-                  className="today-section-moment"
-                  title={t('m5s5.today.keepsake.title')}
-                  kicker={t('m5s5.today.keepsake.kicker')}
-                >
-                  <TodayMomentFeature
-                    item={focalItem.item}
-                    loadMemoryImage={loadMemoryImage}
-                    isKeepsake={focalItem.kind === 'keepsake'}
-                  />
-                </TodayModuleSection>
-              ) : null}
-
-              {/* Demnächst — the short shared horizon. One item is the
-                  default and must read as complete on its own; two or three
-                  stay restrained rather than becoming an agenda table. */}
-              {upcomingVisible && upcoming.length > 0 ? (
-                <TodayModuleSection
-                  className="today-section-upcoming"
-                  title={t('m5s5.dashboard.upcomingTitle')}
-                  kicker={t('m5s5.dashboard.upcomingKicker')}
-                  headerAction={
-                    <Link
-                      to={appRoutePath('plan')}
-                      className="today-section-link"
-                      aria-label={t('m5s5.today.upcoming.allAriaLabel')}
-                    >
-                      {t('m5s5.today.upcoming.allAction')} →
-                    </Link>
-                  }
-                >
-                  <div className="today-agenda-list">
-                    {upcoming.map((item: DashboardItem) => (
-                      <TodayAgendaRow key={item.id} item={item} />
-                    ))}
-                  </div>
-                </TodayModuleSection>
-              ) : null}
-
-              {pinnedCollectionVisible &&
-              pinnedCollectionId &&
-              pinnedCollectionQuery.data ? (
-                <TodayModuleSection
-                  className="today-section-pinned-collection"
-                  title={pinnedCollectionQuery.data.title}
-                  kicker={t('m5s5.today.pinnedCollection.kicker')}
-                  headerAction={
-                    <TodayDestinationLink
-                      to={collectionDetailPath(pinnedCollectionId)}
-                      className="today-section-link"
-                      ariaLabel={t(
-                        'm5s5.today.pinnedCollection.openAriaLabel',
-                        { title: pinnedCollectionQuery.data.title },
-                      )}
-                    >
-                      {t('m5s5.today.pinnedCollection.openAction')} →
-                    </TodayDestinationLink>
-                  }
-                >
-                  {collectionsApi ? (
-                    <TodayPinnedCollection
-                      api={collectionsApi}
-                      accountId={account?.id ?? ''}
-                      spaceId={spaceId}
-                      collection={pinnedCollectionQuery.data}
-                      sharedAchievementsEnabled={sharedAchievementsEnabled}
-                    />
-                  ) : null}
-                </TodayModuleSection>
-              ) : null}
-
-              {pinnedCollectionVisible &&
-              pinnedCollectionId &&
-              pinnedCollectionQuery.error ? (
-                <div className="today-partial-error" role="status">
-                  <span>{t('m5s5.today.pinnedCollection.loadError')}</span>
-                  <button
-                    type="button"
-                    className="today-partial-error-action"
-                    onClick={() => void pinnedCollectionQuery.refetch()}
-                  >
-                    {t('common.retry')}
-                  </button>
-                </div>
-              ) : null}
-
-              {/* 4. Gerade bei euch — exactly one contextual module. */}
-              {livingModule && relationshipSignalVisible ? (
-                <TodayModuleSection
-                  className="today-section-living"
-                  title={t('m5s5.today.living.kicker')}
-                >
-                  <TodayLivingModuleCard
-                    module={livingModule}
-                    partnerName={partnerName}
-                    partnerAvatarUrl={partnerAvatar.avatarUrl}
-                    loadMemoryImage={loadMemoryImage}
-                  />
-                </TodayModuleSection>
-              ) : null}
-
-              {activityQuery.error && relationshipSignalVisible ? (
-                <div className="today-partial-error" role="status">
-                  <span>{t('m5s5.today.partialActivityError')}</span>
-                  <button
-                    type="button"
-                    className="today-partial-error-action"
-                    onClick={() => void activityQuery.refetch()}
-                  >
-                    {t('common.retry')}
-                  </button>
-                </div>
-              ) : null}
-
-              {/* 5. Diesen Monat — this month's shared life, shown rather than
-                  counted. */}
-              {monthlyHighlightsVisible &&
-              monthlyStrip.length > 0 &&
-              loadMemoryImage ? (
-                <TodayModuleSection
-                  className="today-section-monthly"
-                  title={t('m5s5.today.monthly.title')}
-                  headerAction={
-                    <Link
-                      to={`${appRoutePath('story')}?tab=timeline`}
-                      className="today-section-link"
-                      aria-label={t('m5s5.today.monthly.allAriaLabel')}
-                    >
-                      {t('m5s5.today.monthly.allAction')} →
-                    </Link>
-                  }
-                >
-                  <TodayMonthlyStrip
-                    items={monthlyStrip}
-                    loadMemoryImage={loadMemoryImage}
-                  />
-                </TodayModuleSection>
-              ) : null}
-
-              {/* 6. Zuletzt bei euch — deliberately secondary. Full activity
-                  navigation stays reachable from here. */}
-              {recentSharedVisible && recentSharedForTrace.length > 0 ? (
-                <TodayModuleSection
-                  className="today-section-recent"
-                  title={t('m5s5.dashboard.recentTitle')}
-                  kicker={t('m5s5.dashboard.recentKicker')}
-                >
-                  <div className="today-stream today-stream-recent">
-                    {recentSharedForTrace
-                      .slice(0, 4)
-                      .map((item: DashboardItem) => (
-                        <RecentSharedItemCard key={item.id} item={item} />
-                      ))}
-                  </div>
-                  <div className="today-recent-footer">
-                    <Link
-                      to={ACTIVITY_ROUTE}
-                      className="today-recent-activity-link"
-                    >
-                      {t('m5s5.dashboard.allActivityAction')}
-                    </Link>
-                  </div>
-                </TodayModuleSection>
-              ) : null}
-              {sharedStorySummaryVisible &&
-              dashboardQuery.data.sharedStorySummary ? (
-                <SharedStorySummary
-                  summary={dashboardQuery.data.sharedStorySummary}
+              {moduleContent.relationship_presence}
+              {vibeCheckEnabled &&
+              partner &&
+              account?.id &&
+              dailyCheckInsApi ? (
+                <DailyVibeCheckIn
+                  key={`${account.id}:${spaceId}`}
+                  api={dailyCheckInsApi}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  partnerName={partner.displayName}
+                  configuredEnabled
                 />
               ) : null}
+
+              {account?.id && dailyQuoteApi && entitlementApi ? (
+                <DailyQuoteCard
+                  key={`${account.id}:${spaceId}`}
+                  quoteApi={dailyQuoteApi}
+                  entitlementsApi={entitlementApi}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  partnerName={partner?.displayName}
+                />
+              ) : null}
+
+              <div className="new-space-experience">
+                <h2 className="new-space-title">
+                  {partner
+                    ? t('m5s5.dashboard.newSpacePartner', {
+                        name: partner.displayName,
+                      })
+                    : t('m5s5.dashboard.newSpaceEmpty')}
+                </h2>
+                <p className="new-space-body">
+                  {t('m5s5.dashboard.newSpaceIntro')}
+                </p>
+                <div className="new-space-actions">
+                  <Link
+                    className="button-link primary new-space-cta"
+                    to="/story/memories/new"
+                  >
+                    {t('m5s5.dashboard.newSpaceAction')}
+                  </Link>
+                </div>
+              </div>
             </>
+          ) : (
+            orderedModuleKeys.map((key, index) => (
+              <Fragment key={key}>
+                {moduleContent[key]}
+                {index === 0 ? (
+                  <>
+                    {vibeCheckEnabled &&
+                    partner &&
+                    account?.id &&
+                    dailyCheckInsApi ? (
+                      <DailyVibeCheckIn
+                        key={`${account.id}:${spaceId}`}
+                        api={dailyCheckInsApi}
+                        accountId={account.id}
+                        spaceId={spaceId}
+                        partnerName={partner.displayName}
+                        configuredEnabled
+                      />
+                    ) : null}
+
+                    {account?.id && dailyQuoteApi && entitlementApi ? (
+                      <DailyQuoteCard
+                        key={`${account.id}:${spaceId}`}
+                        quoteApi={dailyQuoteApi}
+                        entitlementsApi={entitlementApi}
+                        accountId={account.id}
+                        spaceId={spaceId}
+                        partnerName={partner?.displayName}
+                      />
+                    ) : null}
+                  </>
+                ) : null}
+              </Fragment>
+            ))
           )}
         </div>
       ) : null}

@@ -1,5 +1,8 @@
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
-import type { DashboardModuleKey } from './dashboardModules';
+import {
+  DASHBOARD_MODULE_KEYS,
+  type DashboardModuleKey,
+} from './dashboardModules';
 
 export const DEFAULT_UPCOMING_ITEM_LIMIT = 1;
 export const UPCOMING_MODULE_KEY: DashboardModuleKey = 'upcoming';
@@ -57,6 +60,35 @@ export function isDashboardModuleVisible(
     (item) => item.moduleKey === moduleKey,
   )?.visible;
   return value ?? DEFAULT_MODULE_VISIBLE;
+}
+
+/** The server orders complete preference lists; older/incomplete cached data uses the catalog. */
+export function orderedDashboardModuleKeys(
+  preferences: DashboardModulePreferenceList | undefined,
+): DashboardModuleKey[] {
+  const keys = preferences?.items.map((item) => item.moduleKey);
+  return keys?.length === DASHBOARD_MODULE_KEYS.length &&
+    new Set(keys).size === DASHBOARD_MODULE_KEYS.length &&
+    keys.every((key) =>
+      DASHBOARD_MODULE_KEYS.includes(key as DashboardModuleKey),
+    )
+    ? (keys as DashboardModuleKey[])
+    : [...DASHBOARD_MODULE_KEYS];
+}
+
+export function withDashboardModuleOrder(
+  preferences: DashboardModulePreferenceList | undefined,
+  keys: readonly DashboardModuleKey[],
+): DashboardModulePreferenceList {
+  const byKey = new Map(
+    preferences?.items.map((item) => [item.moduleKey, item]),
+  );
+  return {
+    items: keys.map(
+      (moduleKey) =>
+        byKey.get(moduleKey) ?? { moduleKey, visible: DEFAULT_MODULE_VISIBLE },
+    ),
+  };
 }
 
 export function selectedDashboardCollectionId(

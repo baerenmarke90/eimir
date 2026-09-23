@@ -2329,6 +2329,7 @@ describe('formatRelationshipDuration', () => {
 
     function renderWithVisibility(
       overrides: Partial<Record<DashboardModuleKey, boolean>>,
+      order?: readonly DashboardModuleKey[],
     ): string {
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
@@ -2342,16 +2343,24 @@ describe('formatRelationshipDuration', () => {
       queryClient.setQueryData(
         dashboardPreferencesQueryKey('account-1', 'space-1'),
         {
-          items: [
-            {
-              moduleKey: 'pinned_collection',
-              visible: overrides.pinned_collection ?? true,
-              selectedCollectionId: 'collection-1',
-            },
-            ...Object.entries(overrides)
-              .filter(([moduleKey]) => moduleKey !== 'pinned_collection')
-              .map(([moduleKey, visible]) => ({ moduleKey, visible })),
-          ],
+          items: order
+            ? order.map((moduleKey) => ({
+                moduleKey,
+                visible: overrides[moduleKey] ?? true,
+                ...(moduleKey === 'pinned_collection'
+                  ? { selectedCollectionId: 'collection-1' }
+                  : {}),
+              }))
+            : [
+                {
+                  moduleKey: 'pinned_collection',
+                  visible: overrides.pinned_collection ?? true,
+                  selectedCollectionId: 'collection-1',
+                },
+                ...Object.entries(overrides)
+                  .filter(([moduleKey]) => moduleKey !== 'pinned_collection')
+                  .map(([moduleKey, visible]) => ({ moduleKey, visible })),
+              ],
         },
       );
       queryClient.setQueryData(
@@ -2409,6 +2418,21 @@ describe('formatRelationshipDuration', () => {
     const MODULE_SECTIONS = DASHBOARD_MODULE_KEYS.map(
       (key) => [key, MODULE_SECTION_MARKER[key]] as const,
     );
+
+    it('renders a personal complete order in DOM order, including the presence hero', () => {
+      const order: DashboardModuleKey[] = [
+        'upcoming',
+        'relationship_presence',
+        ...DASHBOARD_MODULE_KEYS.filter(
+          (key) => key !== 'upcoming' && key !== 'relationship_presence',
+        ),
+      ];
+      const html = renderWithVisibility({}, order);
+      expect(html.indexOf('today-section-upcoming')).toBeGreaterThan(0);
+      expect(html.indexOf('today-section-upcoming')).toBeLessThan(
+        html.indexOf('today-hero'),
+      );
+    });
 
     it('renders every registered module by default when no preference exists', () => {
       const html = renderWithVisibility({});

@@ -2,12 +2,23 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import { settingsCategoryPath } from '../../src/client/routes';
 import de from '../../src/i18n/locales/de';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
 const SPACE_ID = '00000000-0000-0000-0000-000000000010';
 const PROFILE_ID = '00000000-0000-0000-0000-000000000020';
+const MODULE_KEYS = [
+  'relationship_presence',
+  'keepsake',
+  'upcoming',
+  'pinned_collection',
+  'relationship_signal',
+  'monthly_highlights',
+  'recent_shared',
+  'shared_story_summary',
+];
 
 /**
  * Reproduces the real-demo composition complaint (#790/#791 second
@@ -48,8 +59,21 @@ const UPCOMING_ITEMS = [
 async function installMocks(
   page: Page,
   initialPreference: 1 | 2 | 3 = 2,
-): Promise<{ currentPreference: () => number }> {
+): Promise<{
+  currentPreference: () => number;
+  currentOrder: () => string[];
+  upcomingVisible: () => boolean;
+}> {
   let preference = initialPreference;
+  let moduleOrder = [...MODULE_KEYS];
+  let upcomingVisible = true;
+  const modulePreferences = () => ({
+    items: moduleOrder.map((moduleKey) => ({
+      moduleKey,
+      visible: moduleKey === 'upcoming' ? upcomingVisible : true,
+      ...(moduleKey === 'upcoming' ? { itemLimit: preference } : {}),
+    })),
+  });
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -168,18 +192,41 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
     ) {
-      await fulfillJson({
-        items: [{ moduleKey: 'upcoming', itemLimit: preference }],
-      });
+      await fulfillJson(modulePreferences());
+      return;
+    }
+    if (
+      method === 'PUT' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences/order`
+    ) {
+      const body = request.postDataJSON() as { moduleKeys: string[] };
+      if (
+        body.moduleKeys.length !== MODULE_KEYS.length ||
+        new Set(body.moduleKeys).size !== MODULE_KEYS.length ||
+        body.moduleKeys.some((key) => !MODULE_KEYS.includes(key))
+      ) {
+        await fulfillJson({ code: 'DASHBOARD_MODULE_INVALID_ORDER' }, 422);
+        return;
+      }
+      moduleOrder = body.moduleKeys;
+      await fulfillJson(modulePreferences());
       return;
     }
     if (
       method === 'PATCH' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences/upcoming`
     ) {
-      const body = request.postDataJSON() as { itemLimit: 1 | 2 | 3 };
-      preference = body.itemLimit;
-      await fulfillJson({ moduleKey: 'upcoming', itemLimit: preference });
+      const body = request.postDataJSON() as {
+        itemLimit?: 1 | 2 | 3;
+        visible?: boolean;
+      };
+      if (body.itemLimit !== undefined) preference = body.itemLimit;
+      if (body.visible !== undefined) upcomingVisible = body.visible;
+      await fulfillJson({
+        moduleKey: 'upcoming',
+        itemLimit: preference,
+        visible: upcomingVisible,
+      });
       return;
     }
     if (
@@ -212,7 +259,11 @@ async function installMocks(
     await fulfillJson({}, 200);
   });
 
-  return { currentPreference: () => preference };
+  return {
+    currentPreference: () => preference,
+    currentOrder: () => moduleOrder,
+    upcomingVisible: () => upcomingVisible,
+  };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -406,6 +457,194 @@ test('compact Dashboard settings persist the personal horizon and update Today w
   await expect(page.locator('.today-agenda-row')).toHaveCount(3);
   await expect(page.getByText(UPCOMING_ITEMS[2].titleOrText)).toBeVisible();
   await expect(page.getByText(UPCOMING_ITEMS[3].titleOrText)).toHaveCount(0);
+});
+
+test('personal module reorder persists across reload and separates the visibility choice', async ({
+  page,
+}, testInfo) => {
+  const preferences = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto(settingsCategoryPath('today'));
+
+  const handle = page.getByRole('button', {
+    name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+  });
+  await expect(handle).toBeVisible();
+  const size = await handle.boundingBox();
+  expect(size?.width).toBeGreaterThanOrEqual(44);
+  expect(size?.height).toBeGreaterThanOrEqual(44);
+  await handle.focus();
+  await handle.press('ArrowUp');
+  await handle.press('ArrowUp');
+  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+  await expect(handle).toBeFocused();
+  await page
+    .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
+    .uncheck();
+  await expect.poll(() => preferences.upcomingVisible()).toBe(false);
+  await page.reload();
+  await expect(page.locator('.dashboard-module-option').first()).toContainText(
+    m5s5.dashboard.upcomingTitle,
+  );
+  await expect(
+    page.getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle }),
+  ).not.toBeChecked();
+  await page
+    .getByRole('checkbox', { name: m5s5.dashboard.upcomingTitle })
+    .check();
+  await expect.poll(() => preferences.upcomingVisible()).toBe(true);
+  await page.goto('/today');
+  await expect(page.locator('.today-section-upcoming')).toBeVisible();
+  const orderedSections = await page
+    .locator('.today-content > *')
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => element.className)
+        .filter((name) => typeof name === 'string'),
+    );
+  expect(
+    orderedSections.indexOf('today-section today-section-upcoming'),
+  ).toBeLessThan(
+    orderedSections.findIndex((name) => name.includes('today-hero')),
+  );
+
+  await page.goto(settingsCategoryPath('today'));
+  await page.screenshot({
+    path: testInfo.outputPath('1194-reorder-compact-dark.png'),
+    fullPage: true,
+  });
+  const a11y = await new AxeBuilder({ page })
+    .include('#settings-dashboard')
+    .analyze();
+  expect(a11y.violations).toEqual([]);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator('html').evaluate((element) => {
+    element.style.zoom = '2';
+  });
+  const dimensions = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width);
+});
+
+test('drag handle moves a module by mouse while the rest of the row remains scrollable', async ({
+  page,
+}) => {
+  const preferences = await installMocks(page);
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto(settingsCategoryPath('today'));
+
+  const handle = page.getByRole('button', {
+    name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+  });
+  const firstRow = page.locator('.dashboard-module-option').first();
+  await handle.scrollIntoViewIfNeeded();
+  const firstBounds = await firstRow.boundingBox();
+  const handleBounds = await handle.boundingBox();
+  expect(firstBounds).not.toBeNull();
+  expect(handleBounds).not.toBeNull();
+  if (!firstBounds || !handleBounds) return;
+
+  await page.mouse.move(
+    handleBounds.x + handleBounds.width / 2,
+    handleBounds.y + handleBounds.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    firstBounds.x + firstBounds.width / 2,
+    firstBounds.y + 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => preferences.currentOrder()[0]).toBe('upcoming');
+
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(firstBounds.x + 12, firstBounds.y + 15);
+  await page.mouse.wheel(0, 300);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(scrollBefore);
+
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await handle.scrollIntoViewIfNeeded();
+  const movedHandle = await handle.boundingBox();
+  expect(movedHandle).not.toBeNull();
+  if (!movedHandle) return;
+  const beforeDragScroll = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(
+    movedHandle.x + movedHandle.width / 2,
+    movedHandle.y + movedHandle.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(movedHandle.x + movedHandle.width / 2, 595);
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(beforeDragScroll);
+  await page.mouse.up();
+});
+
+test('touch dragging starts on the handle and keeps normal row scrolling available', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const page = await context.newPage();
+    const preferences = await installMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto(settingsCategoryPath('today'));
+
+    const handle = page.getByRole('button', {
+      name: `${m5s5.dashboard.upcomingTitle} verschieben`,
+    });
+    await handle.scrollIntoViewIfNeeded();
+    const bounds = await handle.boundingBox();
+    const target = await page
+      .locator('.dashboard-module-option')
+      .nth(1)
+      .boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(target).not.toBeNull();
+    if (!bounds || !target) return;
+    expect(
+      await handle.evaluate((element) => getComputedStyle(element).touchAction),
+    ).toBe('none');
+    expect(
+      await page
+        .locator('.dashboard-module-option-label')
+        .first()
+        .evaluate((element) => getComputedStyle(element).touchAction),
+    ).not.toBe('none');
+
+    const session = await context.newCDPSession(page);
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y, id: 1 }],
+    });
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x, y: target.y + 2, id: 1 }],
+    });
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+    await expect.poll(() => preferences.currentOrder()[1]).toBe('upcoming');
+  } finally {
+    await context.close();
+  }
 });
 
 test('expanded Dashboard settings remain clear in light mode and at 200 percent layout zoom', async ({

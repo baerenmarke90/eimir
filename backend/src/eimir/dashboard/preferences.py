@@ -55,6 +55,7 @@ class DashboardModuleKey(StrEnum):
 class DashboardPreferenceErrorCode:
     MODULE_NOT_FOUND = "DASHBOARD_MODULE_NOT_FOUND"
     FACET_NOT_SUPPORTED = "DASHBOARD_MODULE_FACET_NOT_SUPPORTED"
+    INVALID_ORDER = "DASHBOARD_MODULE_INVALID_ORDER"
 
 
 DashboardItemLimit = Literal[1, 2, 3]
@@ -84,18 +85,18 @@ class DashboardModuleState:
     selected_collection_id: UUID | None
 
 
-# Deterministic Settings/Today order, matching the accepted #850 Today
-# composition (`web/src/components/TodayPage.tsx`): relationship_presence
-# (the Couple Presence hero), then upcoming, pinned_collection, keepsake,
-# relationship_signal, monthly_highlights, recent_shared. #848 established `UPCOMING` with an
-# item-limit facet; #817 adds mandatory visibility to every module,
-# including `UPCOMING` itself.
+# Default Settings/Today order, matching the current Today composition
+# (`web/src/components/TodayPage.tsx`): relationship_presence (the Couple
+# Presence hero), keepsake, upcoming, pinned_collection, relationship_signal,
+# monthly_highlights, recent_shared. #848 established `UPCOMING` with an
+# item-limit facet; #817 added visibility to every module.
 #
 # #809 appends the quiet shared-story epilogue after the existing Today
 # composition. It is a normal registered module and therefore inherits the
 # same per-Account+Space visibility behavior as every other Dashboard module.
 CATALOG: tuple[DashboardModuleDefinition, ...] = (
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_PRESENCE, default_visible=True),
+    DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(
         key=DashboardModuleKey.UPCOMING,
         default_visible=True,
@@ -106,7 +107,6 @@ CATALOG: tuple[DashboardModuleDefinition, ...] = (
         default_visible=True,
         selects_collection=True,
     ),
-    DashboardModuleDefinition(key=DashboardModuleKey.KEEPSAKE, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RELATIONSHIP_SIGNAL, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.MONTHLY_HIGHLIGHTS, default_visible=True),
     DashboardModuleDefinition(key=DashboardModuleKey.RECENT_SHARED, default_visible=True),
@@ -150,7 +150,67 @@ def read_module_preferences(
         )
     ).scalars()
     overrides = {DashboardModuleKey(row.module_key): row for row in rows}
-    return [_effective_state(definition, overrides.get(definition.key)) for definition in CATALOG]
+    ordered = [definition.key for definition in CATALOG]
+    positioned = sorted(
+        (key for key in ordered if key in overrides and overrides[key].sort_position is not None),
+        key=lambda key: (overrides[key].sort_position, ordered.index(key)),
+    )
+    if positioned:
+        # A newly registered module enters beside its catalog predecessor,
+        # without rewriting a person's saved order or discarding hidden rows.
+        result = list(positioned)
+        for index, key in enumerate(ordered):
+            if key in result:
+                continue
+            predecessor = next(
+                (candidate for candidate in reversed(ordered[:index]) if candidate in result), None
+            )
+            if predecessor is not None:
+                result.insert(result.index(predecessor) + 1, key)
+            else:
+                successor = next(
+                    (candidate for candidate in ordered[index + 1 :] if candidate in result), None
+                )
+                result.insert(
+                    result.index(successor) if successor is not None else len(result), key
+                )
+        ordered = result
+    return [_effective_state(_DEFINITIONS[key], overrides.get(key)) for key in ordered]
+
+
+def set_module_order(
+    session: Session, *, account_id: UUID, space_id: UUID, module_keys: list[str]
+) -> list[DashboardModuleState]:
+    """Atomically replace only the order facet of the personal preference rows."""
+    expected = {definition.key.value for definition in CATALOG}
+    if len(module_keys) != len(expected) or set(module_keys) != expected:
+        raise ValidationError(
+            "moduleKeys must contain every registered Dashboard module exactly once.",
+            DashboardPreferenceErrorCode.INVALID_ORDER,
+        )
+
+    # Serialize full-list writes for this Space, including two tabs on the
+    # same account. Per-module PATCH upserts update their own facets only.
+    from eimir.relationship.models import Space
+
+    session.execute(select(Space.id).where(Space.id == space_id).with_for_update()).one()
+    for position, module_key in enumerate(module_keys):
+        session.execute(
+            insert(DashboardModulePreference)
+            .values(
+                id=new_id(),
+                account_id=account_id,
+                space_id=space_id,
+                module_key=module_key,
+                sort_position=position,
+            )
+            .on_conflict_do_update(
+                constraint="uq_dashboard_module_preferences_account_space_module",
+                set_={"sort_position": position, "updated_at": func.now()},
+            )
+        )
+    session.flush()
+    return read_module_preferences(session, account_id=account_id, space_id=space_id)
 
 
 def _effective_state(

@@ -2009,6 +2009,23 @@
         "title": "DashboardItemType",
         "type": "string"
       },
+      "DashboardModuleOrderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "moduleKeys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Modulekeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "moduleKeys"
+        ],
+        "title": "DashboardModuleOrderUpdate",
+        "type": "object"
+      },
       "DashboardModulePreferenceList": {
         "properties": {
           "items": {
@@ -17732,6 +17749,79 @@
           }
         },
         "summary": "List Dashboard Module Preferences",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/dashboard/preferences/order": {
+      "put": {
+        "description": "Persist a complete private Dashboard module order in one transaction.",
+        "operationId": "updateDashboardModuleOrder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardModuleOrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardModulePreferenceList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Dashboard Module Order",
         "tags": [
           "dashboard"
         ]

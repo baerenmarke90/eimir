@@ -5,10 +5,10 @@
     <linearGradient id="cool" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8CDB5"/><stop offset=".5" stop-color="#EAB1C7"/><stop offset="1" stop-color="#C99AD3"/></linearGradient>
     <linearGradient id="join" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E9B2BD"/><stop offset="1" stop-color="#B48BB6"/></linearGradient>
   </defs>
-  <circle cx="94" cy="111" r="68" fill="url(#warm)"/>
-  <circle cx="154" cy="110" r="69" fill="url(#cool)"/>
-  <path d="M123.5 47.7A68 68 0 0 1 124.5 173.3A69 69 0 0 1 123.5 47.7Z" fill="url(#join)" opacity=".64"/>
-  <path d="M97 153C87 131 99 101 122 91C142 83 161 90 167 108C173 127 154 148 127 158C114 163 102 163 94 159" fill="none" stroke="#FFFEFD" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M94 158C104 184 133 192 159 169" fill="none" stroke="#694D73" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="198" cy="181" r="14" fill="#845579"/>
+  <circle cx="87" cy="118" r="59" fill="url(#warm)"/>
+  <circle cx="168" cy="118" r="59" fill="url(#cool)"/>
+  <path d="M127.5 75A59 59 0 0 1 127.5 161A59 59 0 0 1 127.5 75Z" fill="url(#join)" opacity=".74"/>
+  <path d="M104 176C92 155 102 124 124 111C145 98 168 103 174 119C180 137 164 154 140 169C127 177 113 180 104 176" fill="none" stroke="#FFFEFD" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M99 180C112 185 138 177 159 160C168 153 174 155 176 163C170 185 150 200 127 203C112 205 102 197 99 180Z" fill="#694D73"/>
+  <circle cx="205" cy="184" r="13" fill="#845579"/>
 </svg>

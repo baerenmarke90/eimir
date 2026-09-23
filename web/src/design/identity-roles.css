@@ -375,6 +375,11 @@
   stroke: var(--identity-icon-cool);
 }
 
+.eimir-icon .icon-fill-accent {
+  fill: var(--identity-icon-accent);
+  stroke: none;
+}
+
 .eimir-icon-filled,
 .eimir-icon-duotone {
   stroke: currentColor;

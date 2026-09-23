@@ -3,6 +3,7 @@
 from pathlib import Path
 
 ASSETS = Path(__file__).parent / "assets"
+WEB_PUBLIC = Path(__file__).resolve().parents[4] / "web" / "public"
 SOURCE = (ASSETS / "logo-mark.svg").read_text()
 MONO = (ASSETS / "logo-mark-mono.svg").read_text()
 
@@ -56,9 +57,23 @@ for name, svg in MARKS.items():
     tile = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="eimir. App-Icon {name}">
 <defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="{ground[0]}"/><stop offset="1" stop-color="{ground[1]}"/></linearGradient></defs>
 <rect width="512" height="512" rx="112" fill="url(#tile)"/>
-<g transform="translate(30 45) scale(1.75)">{inner(svg)}</g>
+<g transform="scale(2)">{inner(svg)}</g>
 </svg>'''
     (ASSETS / f"app-icon-{name}.svg").write_text(tile)
+
+# Keep delivered Web SVGs byte-identical to the reviewed masters.
+for name, svg in MARKS.items():
+    suffix = '' if name == 'light' else f'-{name}'
+    (WEB_PUBLIC / 'identity' / f'logo-mark{suffix}.svg').write_text(svg)
+    (WEB_PUBLIC / 'identity' / f'app-icon-{name}.svg').write_text(
+        (ASSETS / f'app-icon-{name}.svg').read_text()
+    )
+(WEB_PUBLIC / 'favicon.svg').write_text((ASSETS / 'app-icon-light.svg').read_text())
+maskable = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<title>eimir. maskable app icon</title><rect width="512" height="512" fill="#FAFBFF"/>
+<g transform="translate(84 91) scale(1.32)">{inner(SOURCE)}</g></svg>'''
+(WEB_PUBLIC / 'pwa-maskable.svg').write_text(maskable)
+
 
 import json
 proposal = json.loads((ASSETS.parent / 'tokens.proposal.json').read_text())

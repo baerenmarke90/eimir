@@ -39,11 +39,11 @@ export interface DashboardModuleCatalogEntry {
 }
 
 /**
- * Deterministic Settings/Today order, matching the accepted #850 Today
- * composition in `TodayPage.tsx`: the Couple Presence hero, then Demnaechst,
- * Euer Moment, Gerade bei euch, Diesen Monat, Zuletzt bei euch.
- *
- * #809 appends `shared_story_summary` as the quiet final Today epilogue.
+ * Default Settings/Today order for accounts without a saved personal order.
+ * The accepted #1189 composition puts the relationship hero and Euer Moment
+ * before Demnaechst; #1194 preserves this default while allowing each account
+ * to reorder the supported modules in Settings. The pinned collection and
+ * #809's quiet story summary keep their stable catalog positions.
  */
 export const DASHBOARD_MODULE_CATALOG: readonly DashboardModuleCatalogEntry[] =
   [

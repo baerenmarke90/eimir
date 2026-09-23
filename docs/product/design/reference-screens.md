@@ -185,23 +185,23 @@ Use a restrained focal tint and neutral agenda surfaces in Light/Dark. Dates, ra
 
 **The emotional entry point to the relationship right now.** People understand what matters now, what is next and what is worth rediscovering through their own content.
 
-**Owning template:** Today, governed by the [orchestration invariant](../../PARTNER-APP-EXPERIENCE-STANDARD.md#3-today--wir-orchestration-invariant). **Dominant content action:** open the focal memory/current meaningful item. Global capture and relationship impulses remain contextual rather than repeated toolbars.
+**Owning template:** Today, governed by the [orchestration invariant](../../PARTNER-APP-EXPERIENCE-STANDARD.md#3-today--wir-orchestration-invariant). **Dominant content action:** open the focal memory/current meaningful item. Global capture and relationship impulses remain contextual rather than repeated toolbars. The order below is the default when no personal module order is saved; the accepted #1189 composition places the focal item before the practical upcoming horizon.
 
 | Order | Compact composition | Behavior |
 | --- | --- | --- |
 | 1 | Quiet shared root header | Search and notifications remain recognizable utilities |
 | 2 | Personal relationship context | Actual avatar pair/names and optional duration; no ceremonial frame or decorative technical state |
 | 3 | Contextual relationship impulse | Existing intentional action with honest pending/result feedback; never auto-send |
-| 4 | Compact upcoming item(s) | Preserve the person's supported 1–3 item preference and real near-future selection |
-| 5 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
-| 6 | Eligible current/recent context | Bounded useful signal, month strip or activity trace only when present/relevant |
+| 4 | One real keepsake | Large photo with caption or actual readable thought; this is the visual focal point |
+| 5 | Compact upcoming item(s) | Preserve the person's supported 1–3 item preference and real near-future selection |
+| 6 | Eligible current/recent context | Pinned shared list, bounded useful signal, month strip or activity trace only when present/relevant |
 | 7 | Grouped story summary | Quiet closing reflection with truthful counts and correct destinations |
 
-Preserve the accepted Today orchestration and selection/preferences. A feature does not earn a permanent slot because it exists. Irrelevant modules disappear. Current, next and rediscovery have different shapes and weights; no equal widgets, dashboard builder or placeholder grid.
+Preserve the accepted Today orchestration and selection/preferences. A feature does not earn a permanent slot because it exists. Irrelevant modules disappear. Current, next and rediscovery have different shapes and weights; no equal widgets, dashboard builder or placeholder grid. The existing Account-and-Space-scoped Settings preference may reorder or hide supported modules without changing the partner's view; hidden modules keep their place and new modules receive a stable default place. This does not turn the Today reading surface into a widget editor. Optional Vibe/Energy and Daily Quote follow their own configuration and entitlement contracts; they do not change the default order of the supported modules.
 
 ### Mobile interaction contract and continuity
 
-- Use one vertical flow. Useful near-future context may precede the focal keepsake. A populated default 390 × 844 reference should make personal context, the first upcoming item and meaningful focal content recognizable without a large introductory block. This is not a fixed-height demand when content, text scale or device chrome differ.
+- Use one vertical flow. The focal keepsake precedes the practical near-future context by default; a saved personal order may place supported modules differently. A populated default 390 × 844 reference should make personal context and meaningful focal content recognizable without a large introductory block, with the first upcoming item close behind. This is not a fixed-height demand when optional content, text scale or device chrome differ.
 - Label a true anniversary memory as such only when the selection actually matches. Latest/sample content uses an honest label. Keep de-duplication, server selection and per-person visibility behavior.
 - Opening a memory, plan or activity leads to its real canonical destination. Back restores Today position. All-items actions enter the appropriate area with understandable context.
 - Contextual capture uses R1; relationship impulses show pending and confirmed outcome without premature success. Interruption protections apply to any editor reached from Today; the read surface itself has no invented draft.

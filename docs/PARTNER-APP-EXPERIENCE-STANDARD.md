@@ -153,7 +153,7 @@ from **existing** eimir. domains. A feature does NOT receive a permanent Today c
 - **Context decides visibility:** Relevance to the couple right now determines what surfaces.
 - **Privacy and consent override relevance:** Protected or unrevealed data is never exposed for visual decoration.
 - **No equal-weight widget grid:** Avoid SaaS-style dashboard layouts.
-- **No draggable dashboard builder or widget catalogue:** The screen is intentionally curated, not customized like an admin workspace.
+- **No draggable dashboard builder or widget catalogue on Today:** The reading surface is intentionally curated, not an admin workspace. The personal visibility and order controls in Settings (#1194) arrange supported modules without introducing on-page editing or arbitrary widgets.
 - **No speculative placeholder modules:** Never show empty widgets just to hold a grid coordinate.
 - **Deterministic product rules:** Orchestration relies on simple, predictable rules rather than black-box AI engagement ranking.
 - **Above the fold restraint:** At most roughly three dominant elements/interactions above the fold.

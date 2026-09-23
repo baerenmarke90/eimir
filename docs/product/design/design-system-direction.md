@@ -105,7 +105,7 @@ Reuse the existing radius vocabulary by purpose: `none` for flush content; `smal
 
 ## 7. Layout rhythm and mobile ergonomics
 
-Use a repeatable rhythm: **focal content → compact support → natural content → contextual continuation → breathing space**. This is a compositional grammar. A real upcoming item may precede a focal memory; chronology must not be reordered merely to alternate visual shapes.
+Use a repeatable rhythm: **focal content → compact support → natural content → contextual continuation → breathing space**. This is a compositional grammar. Today places its focal memory before the practical upcoming item by default (#1189); a saved personal module order may reverse them (#1194). Chronology must not be reordered merely to alternate visual shapes.
 
 - Related text uses the close spacing scale; image/caption and content groups use roughly 12–16 px; separate sections roughly 24–32 px. A major break up to 48 px needs useful content on both sides. Express repeated purpose through semantic aliases to existing spacing values.
 - **D7:** use approximately 16 px page gutters below approximately 390 px, and 20 px at/above approximately 390 px through Compact, unless a deliberate edge-to-edge composition is justified. At 360/390/430 px this yields about 328/350/390 px usable width. F1 reconciles the current single gutter token with this approved rule.

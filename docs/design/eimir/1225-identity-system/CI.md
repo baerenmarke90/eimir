@@ -44,7 +44,7 @@ All product icons use a **24 px drawing grid**, about **20 px optical content**,
 | Group | Symbols in the owner overview |
 | --- | --- |
 | Core and navigation | Wir, Momente, Planen, Listen, Mehr |
-| Relationship and emotion | Ich denke an dich, Vibe, Gemeinsam, Geteilt, Nur für mich |
+| Relationship and emotion | Thinking of you, Mood, Together, Shared, Private |
 | Content and actions | Foto, Video, Erinnerungen, Highlights, Wünsche |
 | Planning and travel | Kalender, Reisen, Ziele, Meilensteine, Jahrestag |
 | Communication | Benachrichtigungen, Nachrichten, Suche, Einstellungen, Neu/Hinzufügen |
@@ -56,7 +56,7 @@ The existing routes and content also need eight symbols absent from the board: S
 | --- | --- |
 | Outline | Default navigation and ordinary content; all 30 board icons and the eight existing-route additions are covered. |
 | Filled | Active navigation or a strong semantic motif. The owner examples Wir, heart, calendar, plane, star and lock are implemented; Planen and Mehr also have active variants for the current shell. The heart has a continuous cool-to-warm fill. |
-| Duotone | Deliberate warm/cool emphasis only where it helps meaning. The six owner examples (including the plus-lock for “Nur für mich”) have separate duotone drawings; the heart uses a cool-to-warm transition rather than two hard halves. |
+| Duotone | Deliberate warm/cool emphasis only where it helps meaning. The six owner examples (including the private plus-lock) have separate duotone drawings; the heart uses a cool-to-warm transition rather than two hard halves. |
 
 The control owns its accessible name and interaction state; decorative SVGs are hidden from assistive technology. Use the existing localized label, `aria-current` for active destinations, native `disabled` semantics where applicable, and the semantic focus role. Do not place an unlabeled icon alone in a button.
 

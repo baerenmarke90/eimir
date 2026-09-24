@@ -21,8 +21,8 @@ settings or normal-user technical configuration is introduced.
 **Business/freemium impact reviewed:** Notification Policy, Digest & Quiet
 Hours remains Free/Core on Cloud and Self-Hosted per the versioned matrix.
 An extended gesture still requires the sender's existing entitlement, but
-recipient opt-in is not paywalled. SMTP messages create usage cost only for
-explicit opt-ins and currently allowed immediate events; no new quotas,
+recipient opt-in is not paywalled. SMTP messages create usage cost only with
+explicit consent for currently allowed immediate events; no new quotas,
 storage limits, trial, downgrade, grandfathering or export semantics. Existing
 mail transport configuration is a host/operator capability. The new delivery
 record carries only a Notification FK, status and bounded technical code;

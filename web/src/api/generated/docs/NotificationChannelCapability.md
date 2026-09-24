@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `available` | boolean
 `channel` | [NotificationChannel](NotificationChannel.md)
+`destination` | string
 `reason` | string
 
 ## Example
@@ -19,6 +20,7 @@ import type { NotificationChannelCapability } from ''
 const example = {
   "available": null,
   "channel": null,
+  "destination": null,
   "reason": null,
 } satisfies NotificationChannelCapability
 

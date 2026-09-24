@@ -4010,6 +4010,17 @@
           "channel": {
             "$ref": "#/components/schemas/NotificationChannel"
           },
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination"
+          },
           "reason": {
             "anyOf": [
               {

@@ -16,6 +16,7 @@ from eimir.engagement import notification_policy, notification_preferences, push
 from eimir.engagement.models import (
     Activity,
     Notification,
+    NotificationChannel,
     NotificationKind,
     NotificationPreference,
     PushDelivery,
@@ -620,8 +621,7 @@ def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
     push.ensure_deliveries_for_source_event(session, source_event_id)
     assert session.execute(select(PushDelivery)).scalars().all() == []
 
-    # A previously queued record must be checked again at the provider
-    # boundary after a policy upgrade; it cannot bypass the new catalog.
+    # A stale manually queued record cannot bypass the explicit opt-in gate.
     stale_delivery = PushDelivery(
         notification_id=notification.id,
         push_endpoint_id=endpoint.id,
@@ -634,9 +634,219 @@ def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
     push.handle_delivery(session, {"deliveryId": str(stale_delivery.id)})
 
     assert stale_delivery.status == PushDeliveryStatus.UNAVAILABLE.value
-    assert stale_delivery.last_error_code == push.POLICY_BLOCKED_CODE
+    assert stale_delivery.last_error_code == "PUSH_PREFERENCE_DISABLED"
     assert stale_delivery.attempts == 0
     assert provider.calls == []
+
+
+def test_opted_in_comment_batch_sends_one_generic_push_after_window(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    instant = [NOW + timedelta(minutes=10)]
+    monkeypatch.setattr(push.clock, "now", lambda: instant[0])
+    push.register_endpoint(
+        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="digest-token"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    session.add(
+        NotificationPreference(
+            account_id=couple["ben"].id,
+            kind=NotificationKind.COMMENT_CREATED.value,
+            channel=NotificationChannel.PUSH.value,
+            enabled=True,
+        )
+    )
+    session.flush()
+
+    notifications = []
+    for minute in (10, 20):
+        instant[0] = NOW + timedelta(minutes=minute)
+        notification = Notification(
+            space_id=couple["space"].id,
+            recipient_account_id=couple["ben"].id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.COMMENT_CREATED.value,
+            actor_id=couple["anna"].id,
+            target_type=None,
+            target_id=None,
+            created_at=instant[0],
+        )
+        session.add(notification)
+        session.flush()
+        push.ensure_deliveries_for_source_event(session, notification.source_event_id)
+        notifications.append(notification)
+    session.flush()
+    deliveries = (
+        session.execute(select(PushDelivery).order_by(PushDelivery.created_at)).scalars().all()
+    )
+    assert len(deliveries) == 2
+
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
+    assert provider.calls == []
+    instant[0] = NOW + timedelta(hours=1, minutes=1)
+    push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
+    push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
+    push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
+    assert deliveries[0].status == PushDeliveryStatus.UNAVAILABLE.value
+    assert deliveries[0].last_error_code == "DIGEST_COALESCED"
+    assert deliveries[1].status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(provider.calls) == 1
+    assert provider.calls[0]["notificationReference"] == {
+        "id": str(notifications[1].id),
+        "kind": NotificationKind.COMMENT_CREATED.value,
+    }
+    assert str(provider.calls[0]["idempotencyKey"]).startswith("digest:")
+    assert all(notification.read_at is None for notification in notifications)
+
+
+def test_comment_digest_rechecks_opt_in_and_target_privacy(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    instant = [NOW + timedelta(minutes=10)]
+    monkeypatch.setattr(push.clock, "now", lambda: instant[0])
+    push.register_endpoint(
+        session, account_id=couple["ben"].id, provider_key="fake", endpoint_value="private-digest"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    preference = NotificationPreference(
+        account_id=couple["ben"].id,
+        kind=NotificationKind.COMMENT_CREATED.value,
+        channel=NotificationChannel.PUSH.value,
+        enabled=True,
+    )
+    session.add(preference)
+    moment = HeartMoment(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        happened_on=NOW.date(),
+        payload=HeartMomentPayload(text="Private later", emotion=HeartEmotion.SEEN),
+    )
+    session.add(moment)
+    session.flush()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=uuid4(),
+        kind=NotificationKind.COMMENT_CREATED.value,
+        actor_id=couple["anna"].id,
+        target_type="HEART_MOMENT",
+        target_id=moment.id,
+        created_at=instant[0],
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, notification.source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    instant[0] = NOW + timedelta(hours=1, minutes=1)
+    moment.privacy_class = PrivacyClass.OWNER_ONLY.value
+    session.flush()
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert delivery.last_error_code == "PUSH_TARGET_UNAVAILABLE"
+    assert provider.calls == []
+
+    # A fresh projection after revocation cannot create a latent delivery.
+    instant[0] += timedelta(minutes=1)
+    later = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=uuid4(),
+        kind=NotificationKind.COMMENT_CREATED.value,
+        actor_id=couple["anna"].id,
+        target_type="HEART_MOMENT",
+        target_id=moment.id,
+        created_at=instant[0],
+    )
+    session.add(later)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, later.source_event_id)
+    assert session.execute(select(func.count(PushDelivery.id))).scalar_one() == 1
+
+    moment.privacy_class = PrivacyClass.SPACE_SHARED.value
+    session.flush()
+    instant[0] += timedelta(minutes=1)
+    opted_out = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=uuid4(),
+        kind=NotificationKind.COMMENT_CREATED.value,
+        actor_id=couple["anna"].id,
+        target_type="HEART_MOMENT",
+        target_id=moment.id,
+        created_at=instant[0],
+    )
+    session.add(opted_out)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, opted_out.source_event_id)
+    queued = session.execute(
+        select(PushDelivery).where(PushDelivery.notification_id == opted_out.id)
+    ).scalar_one()
+    preference.enabled = False
+    session.flush()
+    instant[0] = NOW + timedelta(hours=2, minutes=1)
+    push.handle_delivery(session, {"deliveryId": str(queued.id)})
+    assert queued.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert queued.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert provider.calls == []
+
+
+def test_comment_digest_obeys_current_quiet_hours_and_timezone(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    instant = [NOW.replace(hour=21, minute=10)]
+    monkeypatch.setattr(push.clock, "now", lambda: instant[0])
+    ben = couple["ben"]
+    ben.timezone = "UTC"
+    ben.quiet_hours_start = time(22, 0)
+    ben.quiet_hours_end = time(7, 0)
+    session.add(
+        NotificationPreference(
+            account_id=ben.id,
+            kind=NotificationKind.COMMENT_CREATED.value,
+            channel=NotificationChannel.PUSH.value,
+            enabled=True,
+        )
+    )
+    push.register_endpoint(
+        session, account_id=ben.id, provider_key="fake", endpoint_value="quiet-digest"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=ben.id,
+        source_event_id=uuid4(),
+        kind=NotificationKind.COMMENT_CREATED.value,
+        actor_id=couple["anna"].id,
+        target_type=None,
+        target_id=None,
+        created_at=instant[0],
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, notification.source_event_id)
+    session.flush()
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    instant[0] = NOW.replace(hour=22, minute=1)
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.deferred_until is not None
+    assert provider.calls == []
+
+    # The Account's current timezone, rather than an old stored UTC instant,
+    # decides the next release when the worker revisits the same job.
+    ben.timezone = "America/New_York"
+    session.flush()
+    instant[0] = NOW.replace(hour=22, minute=16)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(provider.calls) == 1
 
 
 def test_unreviewed_preview_change_blocks_an_already_queued_push(

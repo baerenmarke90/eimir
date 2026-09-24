@@ -29,6 +29,22 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     )
 
 
+def digest_push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
+    """Require an explicit opt-in; current public controls cannot set this row."""
+    if not notification_policy.digest_kind_allowed(kind):
+        return False
+    return (
+        session.execute(
+            select(NotificationPreference.enabled).where(
+                NotificationPreference.account_id == account_id,
+                NotificationPreference.kind == kind,
+                NotificationPreference.channel == NotificationChannel.PUSH.value,
+            )
+        ).scalar_one_or_none()
+        is True
+    )
+
+
 def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     """Snapshot the recipient's Center choice when a notification is projected."""
     if notification_policy.for_kind(kind) is None:

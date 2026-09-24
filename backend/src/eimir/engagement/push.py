@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -155,13 +155,30 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
-        if notification_policy.presentation_for(notification.kind, notification.id) is None:
+        digest = (
+            notification_policy.digest_presentation_for(notification.kind, notification.id)
+            is not None
+        )
+        if (
+            not digest
+            and notification_policy.presentation_for(notification.kind, notification.id) is None
+        ):
             continue
         if not _target_available(session, notification):
             continue
-        allowed = notification_preferences.push_enabled(
-            session, account_id=notification.recipient_account_id, kind=notification.kind
+        allowed = (
+            notification_preferences.digest_push_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
+            if digest
+            else notification_preferences.push_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
         )
+        if digest and not allowed:
+            # A missing choice has never opted in. Do not create latent jobs
+            # that could start sending when a future Settings control is used.
+            continue
         endpoints = session.execute(
             select(PushEndpoint).where(
                 PushEndpoint.account_id == notification.recipient_account_id,
@@ -169,6 +186,7 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
             )
         ).scalars()
         for endpoint in endpoints:
+            created_at = clock.now() if digest else None
             statement = (
                 postgresql.insert(PushDelivery)
                 .values(
@@ -183,18 +201,64 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
                     attempts=0,
                     last_error_code=None if allowed else "PUSH_PREFERENCE_DISABLED",
                     finished_at=None if allowed else clock.now(),
+                    **({"created_at": created_at} if created_at is not None else {}),
                 )
                 .on_conflict_do_nothing(index_elements=["notification_id", "push_endpoint_id"])
                 .returning(PushDelivery.id)
             )
             delivery_id = session.execute(statement).scalar_one_or_none()
             if delivery_id is not None and allowed:
+                delay = None
+                if created_at is not None:
+                    _, end = notification_policy.digest_window(created_at)
+                    delay = max(end - clock.now(), timedelta(seconds=1))
                 queue.enqueue(
                     session,
                     JOB_KIND,
                     {"deliveryId": str(delivery_id)},
+                    delay=delay,
                     max_attempts=MAX_PUSH_ATTEMPTS,
                 )
+
+
+def _digest_superseded(
+    session: Session, delivery: PushDelivery, notification: Notification
+) -> bool:
+    """Choose one recipient/Space/endpoint receipt for an hourly batch.
+
+    The recipient Account lock serializes this decision with other workers.
+    Unavailable receipts are excluded so a later valid worker can be chosen.
+    """
+    start, end = notification_policy.digest_window(delivery.created_at)
+    batch = (
+        PushDelivery.push_endpoint_id == delivery.push_endpoint_id,
+        PushDelivery.created_at >= start,
+        PushDelivery.created_at < end,
+        Notification.recipient_account_id == notification.recipient_account_id,
+        Notification.space_id == notification.space_id,
+        Notification.kind == notification.kind,
+    )
+    sent = session.execute(
+        select(PushDelivery.id)
+        .join(Notification, Notification.id == PushDelivery.notification_id)
+        .where(*batch, PushDelivery.status == PushDeliveryStatus.SUCCEEDED.value)
+        .limit(1)
+    ).scalar_one_or_none()
+    if sent is not None:
+        return True
+    latest = session.execute(
+        select(PushDelivery.id)
+        .join(Notification, Notification.id == PushDelivery.notification_id)
+        .where(
+            *batch,
+            PushDelivery.status.in_(
+                (PushDeliveryStatus.PENDING.value, PushDeliveryStatus.RETRYING.value)
+            ),
+        )
+        .order_by(PushDelivery.created_at.desc(), PushDelivery.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    return latest != delivery.id
 
 
 def _delivery_account_snapshot(
@@ -270,7 +334,14 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     # A queued delivery must still be allowed by the current policy when the
     # worker reaches the provider boundary. Historical records cannot bypass
     # a stricter catalog after an upgrade.
-    presentation = notification_policy.presentation_for(notification.kind, notification.id)
+    digest = (
+        notification_policy.digest_presentation_for(notification.kind, notification.id) is not None
+    )
+    presentation = (
+        notification_policy.digest_presentation_for(notification.kind, notification.id)
+        if digest
+        else notification_policy.presentation_for(notification.kind, notification.id)
+    )
     if presentation is None:
         _finish_unavailable(delivery, POLICY_BLOCKED_CODE)
         return
@@ -281,9 +352,16 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if current_account_ids != account_ids or accounts is None:
         _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
         return
-    if not notification_preferences.push_enabled(
-        session, account_id=notification.recipient_account_id, kind=notification.kind
-    ):
+    enabled = (
+        notification_preferences.digest_push_enabled(
+            session, account_id=notification.recipient_account_id, kind=notification.kind
+        )
+        if digest
+        else notification_preferences.push_enabled(
+            session, account_id=notification.recipient_account_id, kind=notification.kind
+        )
+    )
+    if not enabled:
         _finish_unavailable(delivery, "PUSH_PREFERENCE_DISABLED")
         return
     if any(
@@ -321,6 +399,11 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         return
 
     checked_at = clock.now()
+    digest_start: datetime | None = None
+    if digest:
+        digest_start, end = notification_policy.digest_window(delivery.created_at)
+        if checked_at < end:
+            raise DeferredJobError(end)
     release_at = quiet_hours_preferences.release_at(
         accounts[notification.recipient_account_id], kind=notification.kind, at=checked_at
     )
@@ -352,6 +435,10 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             _finish_unavailable(delivery, "QUIET_HOURS_COALESCED")
             return
 
+    if digest and _digest_superseded(session, delivery, notification):
+        _finish_unavailable(delivery, "DIGEST_COALESCED")
+        return
+
     provider = providers.get(delivery.provider_key)
     if provider is None:
         _finish_unavailable(delivery)
@@ -360,7 +447,12 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     delivery.attempts += 1
     try:
         result = provider.send(
-            idempotency_key=f"{notification.id}:{endpoint.id}",
+            idempotency_key=(
+                f"digest:{notification.recipient_account_id}:{notification.space_id}:"
+                f"{endpoint.id}:{digest_start.isoformat()}"
+                if digest_start is not None
+                else f"{notification.id}:{endpoint.id}"
+            ),
             endpoint=endpoint.endpoint_value,
             notification_reference=presentation.reference,
             generic_presentation_key=presentation.key,

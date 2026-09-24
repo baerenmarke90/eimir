@@ -13,13 +13,14 @@ from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
 
 # Explicit partner signals can wait for the recipient's next available hour.
-# REMINDER_DUE follows its own chosen schedule. DIGESTIBLE comments have no
-# external channel before the digest contract has been implemented.
+# REMINDER_DUE follows its own chosen schedule. An explicitly opted-in comment
+# digest follows the same recipient window after its aggregation period.
 DEFERABLE_KINDS = frozenset(
     {
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.PARTNER_KISS,
         NotificationKind.PARTNER_CHECK_IN,
+        NotificationKind.COMMENT_CREATED,
     }
 )
 

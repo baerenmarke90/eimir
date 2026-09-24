@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from types import MappingProxyType
 from uuid import UUID
@@ -16,6 +17,7 @@ from eimir.engagement.models import NotificationKind
 
 POLICY_VERSION = 2
 GENERIC_PRESENTATION_KEY = "notification.generic"
+DIGEST_WINDOW = timedelta(hours=1)
 
 
 class DeliveryClass(StrEnum):
@@ -100,3 +102,32 @@ def presentation_for(kind: str, notification_id: UUID) -> PushPresentation | Non
         reference={"id": str(notification_id), "kind": NotificationKind(kind).value},
         key=GENERIC_PRESENTATION_KEY,
     )
+
+
+def digest_presentation_for(kind: str, notification_id: UUID) -> PushPresentation | None:
+    """Only the reviewed generic comment reference may represent an opted-in batch."""
+    if not digest_kind_allowed(kind):
+        return None
+    return PushPresentation(
+        reference={"id": str(notification_id), "kind": NotificationKind(kind).value},
+        key=GENERIC_PRESENTATION_KEY,
+    )
+
+
+def digest_kind_allowed(kind: str) -> bool:
+    """A digest may not silently promote another event or a richer preview."""
+    policy = for_kind(kind)
+    return (
+        kind == NotificationKind.COMMENT_CREATED.value
+        and policy is not None
+        and policy.delivery_class is DeliveryClass.DIGESTIBLE
+        and policy.preview == GENERIC_PREVIEW
+    )
+
+
+def digest_window(at: datetime) -> tuple[datetime, datetime]:
+    """Group by projection-time UTC hour, never by a mutable client clock."""
+    if at.tzinfo is None:
+        raise ValueError("Digest timestamps must have a timezone.")
+    start = at.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
+    return start, start + DIGEST_WINDOW

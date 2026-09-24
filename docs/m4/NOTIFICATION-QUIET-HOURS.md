@@ -16,9 +16,10 @@ The eligibility contract in `engagement.quiet_hours_preferences` allows
 recipient-owned Quiet Hours to defer voluntary partner gestures
 (`THINKING_OF_YOU`, `PARTNER_KISS`, `PARTNER_CHECK_IN`). A due Reminder follows
 its own configured schedule and is never delayed by this personal window.
-`COMMENT_CREATED` remains DIGESTIBLE and Center-only, pending its explicitly
-opted-in digest; it cannot become an individual Push or Email through Quiet
-Hours. Existing channel choices and the stricter target, privacy, membership
+`COMMENT_CREATED` remains DIGESTIBLE and Center-only for existing users; an
+explicitly opted-in [backend comment digest](./NOTIFICATION-COMMENT-DIGEST.md)
+can wait for the same personal window. It cannot become an individual Push or
+Email through Quiet Hours. Existing channel choices and the stricter target, privacy, membership
 and module rules always win.
 
 The Push worker checks the current Account timezone, personal window, channel
@@ -44,10 +45,10 @@ deliveries end with `QUIET_HOURS_COALESCED` and their Center entries remain.
 The existing at-most-once SMTP rule still applies once a mail is claimed: an
 ambiguous transport error must never trigger a second send attempt.
 
-The setting is not exposed through an API or UI yet, and both external-channel
-behaviors are off by default for existing Accounts. A user-facing Settings
-slice needs its own product-design preflight and generated visual reference
-against the current screen before implementation.
+The Account-owned Quiet Hours setting is exposed through the own-Account API
+and Notification Settings after the whole-screen product-design preflight.
+Both boundaries remain absent by default for existing Accounts. A digest
+opt-in is still separate from the Quiet Hours toggle.
 
 The capability stays Free/Core with identical Cloud and Self-Hosted behavior.
 There is no new provider or dependency. Account deletion removes the fields;

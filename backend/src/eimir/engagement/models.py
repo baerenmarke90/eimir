@@ -410,6 +410,7 @@ class PushDelivery(IdMixin, Base):
             name="uq_push_deliveries_notification_endpoint",
         ),
         Index("ix_push_deliveries_status_created", "status", "created_at"),
+        Index("ix_push_deliveries_endpoint_created", "push_endpoint_id", "created_at"),
         Index(
             "ix_push_deliveries_endpoint_deferred",
             "push_endpoint_id",

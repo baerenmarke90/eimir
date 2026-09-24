@@ -1,6 +1,7 @@
 """Contract checks for the versioned, closed notification delivery catalog."""
 
 from dataclasses import replace
+from datetime import UTC, datetime
 from types import MappingProxyType
 from uuid import uuid4
 
@@ -21,11 +22,25 @@ def test_each_persisted_kind_has_an_explicit_delivery_class() -> None:
     assert for_kind("UNRECOGNIZED_EVENT") is None
 
 
-def test_comment_remains_center_only_until_digest_delivery_exists() -> None:
+def test_comment_has_no_immediate_push_but_allows_one_generic_opted_in_digest() -> None:
     policy = for_kind(NotificationKind.COMMENT_CREATED.value)
     assert policy is not None
     assert policy.delivery_class is DeliveryClass.DIGESTIBLE
     assert not policy.push_immediately
+    assert presentation_for(NotificationKind.COMMENT_CREATED.value, uuid4()) is None
+    reference = notification_policy.digest_presentation_for(
+        NotificationKind.COMMENT_CREATED.value, uuid4()
+    )
+    assert reference is not None
+    assert reference.key == "notification.generic"
+    assert notification_policy.digest_presentation_for("UNRECOGNIZED_EVENT", uuid4()) is None
+
+
+def test_digest_window_uses_fixed_utc_projection_hour() -> None:
+    assert notification_policy.digest_window(datetime(2026, 9, 24, 12, 59, tzinfo=UTC)) == (
+        datetime(2026, 9, 24, 12, tzinfo=UTC),
+        datetime(2026, 9, 24, 13, tzinfo=UTC),
+    )
 
 
 def test_existing_explicit_signals_and_due_reminders_keep_generic_push() -> None:
@@ -66,3 +81,10 @@ def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
     )
     monkeypatch.setattr(notification_policy, "POLICIES", MappingProxyType(expanded_catalog))
     assert presentation_for(NotificationKind.THINKING_OF_YOU.value, notification_id) is None
+    expanded_catalog[NotificationKind.COMMENT_CREATED] = NotificationPolicy(
+        DeliveryClass.DIGESTIBLE, expanded_preview
+    )
+    monkeypatch.setattr(notification_policy, "POLICIES", MappingProxyType(expanded_catalog))
+    assert notification_policy.digest_presentation_for(
+        NotificationKind.COMMENT_CREATED.value, notification_id
+    ) is None

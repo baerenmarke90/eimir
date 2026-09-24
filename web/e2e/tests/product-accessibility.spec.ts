@@ -1147,7 +1147,9 @@ test('notification channel choice survives return and stays legible across theme
     page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'true');
 
-  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expectNoWcagViolations(page);
   await page.screenshot({
     path: test.info().outputPath('notification-settings-390-dark.png'),
     fullPage: true,
@@ -1158,6 +1160,7 @@ test('notification channel choice survives return and stays legible across theme
     fullPage: true,
   });
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.screenshot({
     path: test.info().outputPath('notification-settings-1280-light.png'),
     fullPage: true,

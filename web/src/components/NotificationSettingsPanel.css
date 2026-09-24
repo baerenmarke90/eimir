@@ -79,11 +79,29 @@
 
 .notification-channel-choice .preference-switch-copy > span {
   max-width: 24ch;
-  font-size: 0.75rem;
+  font-size: 0.82rem;
 }
 
 .notification-channel-choice .preference-switch-control:disabled {
   cursor: not-allowed;
+}
+
+/* Keep the track inside its 48px touch target when the root font grows. */
+.notification-channel-choice .preference-switch-track {
+  width: 44px;
+  height: 26px;
+}
+
+.notification-channel-choice .preference-switch-thumb {
+  left: 3px;
+  width: 18px;
+  height: 18px;
+}
+
+.notification-channel-choice
+  .preference-switch-control[aria-checked="true"]
+  .preference-switch-thumb {
+  transform: translate(18px, -50%);
 }
 
 .notification-settings-feedback {
@@ -92,7 +110,7 @@
   color: var(--color-text-secondary);
 }
 
-@container (max-width: 16rem) {
+@container (max-width: 27rem) {
   .notification-event-channels {
     grid-template-columns: minmax(0, 1fr);
   }

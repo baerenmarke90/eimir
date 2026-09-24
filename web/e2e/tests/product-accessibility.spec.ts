@@ -1141,7 +1141,6 @@ test('notification channel choice survives return and stays legible across theme
   await page
     .getByRole('link', {
       name: profileIdentity.settingsNotifications,
-      exact: true,
     })
     .click();
   await expect(

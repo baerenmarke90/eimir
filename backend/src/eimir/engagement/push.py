@@ -137,8 +137,7 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
-        policy = notification_policy.for_kind(notification.kind)
-        if policy is None or not policy.push_immediately:
+        if notification_policy.presentation_for(notification.kind, notification.id) is None:
             continue
         endpoints = session.execute(
             select(PushEndpoint).where(
@@ -242,8 +241,8 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     # A queued delivery must still be allowed by the current policy when the
     # worker reaches the provider boundary. Historical records cannot bypass
     # a stricter catalog after an upgrade.
-    policy = notification_policy.for_kind(notification.kind)
-    if policy is None or not policy.push_immediately:
+    presentation = notification_policy.presentation_for(notification.kind, notification.id)
+    if presentation is None:
         _finish_unavailable(delivery, POLICY_BLOCKED_CODE)
         return
 
@@ -291,11 +290,8 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         result = provider.send(
             idempotency_key=f"{notification.id}:{endpoint.id}",
             endpoint=endpoint.endpoint_value,
-            notification_reference={
-                "id": str(notification.id),
-                "kind": notification.kind,
-            },
-            generic_presentation_key=policy.push_presentation_key,
+            notification_reference=presentation.reference,
+            generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:
         _record_failure(delivery, exc.code)

@@ -1,7 +1,19 @@
 """Contract checks for the versioned, closed notification delivery catalog."""
 
+from dataclasses import replace
+from types import MappingProxyType
+from uuid import uuid4
+
+from eimir.engagement import notification_policy
 from eimir.engagement.models import NotificationKind
-from eimir.engagement.notification_policy import POLICIES, DeliveryClass, for_kind
+from eimir.engagement.notification_policy import (
+    GENERIC_PREVIEW,
+    POLICIES,
+    DeliveryClass,
+    NotificationPolicy,
+    for_kind,
+    presentation_for,
+)
 
 
 def test_each_persisted_kind_has_an_explicit_delivery_class() -> None:
@@ -17,6 +29,7 @@ def test_comment_remains_center_only_until_digest_delivery_exists() -> None:
 
 
 def test_existing_explicit_signals_and_due_reminders_keep_generic_push() -> None:
+    notification_id = uuid4()
     for kind in (
         NotificationKind.THINKING_OF_YOU,
         NotificationKind.PARTNER_KISS,
@@ -26,4 +39,30 @@ def test_existing_explicit_signals_and_due_reminders_keep_generic_push() -> None
         policy = for_kind(kind.value)
         assert policy is not None
         assert policy.push_immediately
-        assert policy.push_presentation_key == "notification.generic"
+        assert policy.preview == GENERIC_PREVIEW
+        presentation = presentation_for(kind.value, notification_id)
+        assert presentation is not None
+        assert presentation.key == "notification.generic"
+        assert presentation.reference == {"id": str(notification_id), "kind": kind.value}
+
+
+def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    notification_id = uuid4()
+    for policy in POLICIES.values():
+        assert not policy.preview.allow_sender_name
+        assert not policy.preview.allow_event_category
+        assert not policy.preview.allow_title
+        assert policy.preview.generic_only
+        assert policy.preview.neutral_lockscreen
+
+    assert presentation_for(NotificationKind.COMMENT_CREATED.value, notification_id) is None
+    assert presentation_for("UNRECOGNIZED_EVENT", notification_id) is None
+    expanded_preview = replace(GENERIC_PREVIEW, allow_sender_name=True)
+    expanded_catalog = dict(POLICIES)
+    expanded_catalog[NotificationKind.THINKING_OF_YOU] = NotificationPolicy(
+        DeliveryClass.IMMEDIATE, expanded_preview
+    )
+    monkeypatch.setattr(notification_policy, "POLICIES", MappingProxyType(expanded_catalog))
+    assert presentation_for(NotificationKind.THINKING_OF_YOU.value, notification_id) is None

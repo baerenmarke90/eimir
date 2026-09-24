@@ -208,9 +208,7 @@ class NotificationPreference(IdMixin, TimestampMixin, Base):
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
     __table_args__ = (
-        CheckConstraint(
-            f"kind IN ({_NOTIFICATION_KIND_VALUES})", name="notif_pref_kind_allowed"
-        ),
+        CheckConstraint(f"kind IN ({_NOTIFICATION_KIND_VALUES})", name="notif_pref_kind_allowed"),
         CheckConstraint(
             f"channel IN ({_NOTIFICATION_CHANNEL_VALUES})",
             name="notif_pref_channel_allowed",

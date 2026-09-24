@@ -6,8 +6,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.engagement import push
+from eimir.core.clock import now
+from eimir.engagement import email_delivery, push
 from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
+from eimir.identity.models import AccountEmail
 from tests.conftest import auth, make_account, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -121,7 +123,7 @@ def test_unimplemented_channels_and_digestible_push_fail_without_writing(
     account = make_account(session)
     token = sign_in(session, account)
     for kind, channel, code in (
-        ("THINKING_OF_YOU", "EMAIL", "NOTIFICATION_CHANNEL_NOT_CONFIGURABLE"),
+        ("COMMENT_CREATED", "EMAIL", "NOTIFICATION_EMAIL_NOT_ALLOWED"),
         ("COMMENT_CREATED", "PUSH", "NOTIFICATION_PUSH_NOT_ALLOWED"),
     ):
         response = client.patch(
@@ -151,13 +153,19 @@ def test_capabilities_never_promise_unimplemented_transport(client, session: Ses
     account = make_account(session)
     token = sign_in(session, account)
     first = client.get(BASE, headers=auth(token)).json()
-    assert _capability(first, "IN_APP") == {"channel": "IN_APP", "available": True, "reason": None}
+    assert _capability(first, "IN_APP") == {
+        "channel": "IN_APP",
+        "available": True,
+        "reason": None,
+        "destination": None,
+    }
     assert _capability(first, "PUSH")["reason"] == "PUSH_ENDPOINT_MISSING"
     assert _capability(first, "PUSH")["available"] is False
     assert _capability(first, "EMAIL") == {
         "channel": "EMAIL",
         "available": False,
-        "reason": "EMAIL_DELIVERY_NOT_IMPLEMENTED",
+        "reason": "EMAIL_TRANSPORT_UNAVAILABLE",
+        "destination": None,
     }
 
     push.register_endpoint(
@@ -166,3 +174,57 @@ def test_capabilities_never_promise_unimplemented_transport(client, session: Ses
     later = client.get(BASE, headers=auth(token)).json()
     assert _capability(later, "PUSH")["reason"] == "PUSH_TRANSPORT_NOT_READY"
     assert _capability(later, "PUSH")["available"] is False
+
+
+def test_email_opt_in_requires_smtp_and_verified_primary_and_is_account_scoped(
+    client, session: Session, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    anna_token = sign_in(session, anna)
+    ben_token = sign_in(session, ben)
+    path = f"{BASE}/REMINDER_DUE/EMAIL"
+
+    unavailable = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert unavailable.status_code == 409
+    assert unavailable.json()["code"] == "NOTIFICATION_EMAIL_TRANSPORT_UNAVAILABLE"
+    monkeypatch.setattr(email_delivery, "transport_available", lambda: True)
+    missing = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert missing.status_code == 409
+    assert missing.json()["code"] == "NOTIFICATION_EMAIL_VERIFIED_PRIMARY_MISSING"
+
+    address = AccountEmail(account_id=anna.id, email="anna@example.org", is_primary=True)
+    session.add(address)
+    session.flush()
+    unverified = client.get(BASE, headers=auth(anna_token)).json()
+    assert _capability(unverified, "EMAIL")["available"] is False
+    address.verified_at = now()
+    session.flush()
+
+    enabled = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert enabled.status_code == 200
+    own = client.get(BASE, headers=auth(anna_token))
+    assert own.headers["Cache-Control"] == "private, no-store"
+    assert _capability(own.json(), "EMAIL") == {
+        "channel": "EMAIL",
+        "available": True,
+        "reason": None,
+        "destination": "anna@example.org",
+    }
+    assert _channel(_entry(own.json(), "REMINDER_DUE"), "EMAIL")["enabled"] is True
+    assert _channel(_entry(own.json(), "COMMENT_CREATED"), "EMAIL")["configurable"] is False
+    partner = client.get(BASE, headers=auth(ben_token)).json()
+    assert _capability(partner, "EMAIL")["destination"] is None
+    assert _channel(_entry(partner, "REMINDER_DUE"), "EMAIL")["enabled"] is False
+
+    injection = client.patch(
+        path,
+        json={"enabled": True, "destination": "someone@example.org"},
+        headers=auth(anna_token),
+    )
+    assert injection.status_code == 422
+    address.verified_at = None
+    session.flush()
+    # Disabling remains possible when the transport or address disappears.
+    disabled = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
+    assert disabled.status_code == 200

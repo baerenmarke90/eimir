@@ -25,7 +25,7 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import notification_preferences, push, thinking
+from eimir.engagement import email_delivery, notification_preferences, push, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -188,16 +188,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     if event_type is EventType.PARTNER_THINKING_OF_YOU:
         thinking.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type in {EventType.PARTNER_KISS, EventType.PARTNER_CHECK_IN}:
         thinking.project_support_gesture_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     activity_target = _activity_target(event, event_type)
@@ -214,6 +217,7 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         _project_comment_notification(session, event, target_type, target_id)
 
     push.ensure_deliveries_for_source_event(session, event.id)
+    email_delivery.ensure_deliveries_for_source_event(session, event.id)
 
 
 def _activity_target(
@@ -369,6 +373,23 @@ def _projectable_predicate(
         )
         clauses.append(and_(target_type_column == target_type.value, exists))
     return or_(*clauses)
+
+
+def notification_target_available(
+    session: Session, notification: Notification, context: AuthorizationContext
+) -> bool:
+    """Recheck the existing Center target authorization for external mail."""
+    return (
+        session.execute(
+            select(Notification.id).where(
+                Notification.id == notification.id,
+                Notification.space_id == context.space_id,
+                Notification.recipient_account_id == context.account_id,
+                _projectable_predicate(Notification.target_type, Notification.target_id, context),
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
 
 
 def _activity_binding(context: AuthorizationContext) -> dict[str, str]:

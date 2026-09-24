@@ -44,6 +44,12 @@ export interface NotificationChannelCapability {
      * @type {string}
      * @memberof NotificationChannelCapability
      */
+    destination?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof NotificationChannelCapability
+     */
     reason: string | null;
 }
 
@@ -71,6 +77,7 @@ export function NotificationChannelCapabilityFromJSONTyped(json: any, ignoreDisc
         
         'available': json['available'],
         'channel': NotificationChannelFromJSON(json['channel']),
+        'destination': json['destination'] === undefined ? undefined : json['destination'] === null ? null : json['destination'],
         'reason': json['reason'],
     };
 }
@@ -88,6 +95,7 @@ export function NotificationChannelCapabilityToJSONTyped(value?: NotificationCha
         
         'available': value['available'],
         'channel': NotificationChannelToJSON(value['channel']),
+        'destination': value['destination'],
         'reason': value['reason'],
     };
 }

@@ -90,3 +90,4 @@ export function QuietHoursViewToJSONTyped(value?: QuietHoursView | null, ignoreD
         'timeZone': value['timeZone'],
     };
 }
+

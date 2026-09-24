@@ -201,9 +201,7 @@ def update_own_quiet_hours(
     else:
         window = None
     try:
-        quiet_hours_preferences.set_own_window(
-            session, account_id=account.id, window=window
-        )
+        quiet_hours_preferences.set_own_window(session, account_id=account.id, window=window)
     except ValueError as exc:
         raise ConflictError(
             "The Account is unavailable for notification changes.",

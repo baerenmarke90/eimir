@@ -87,18 +87,23 @@
 }
 
 /* Keep the track inside its 48px touch target when the root font grows. */
-.notification-channel-choice .preference-switch-track {
+.notification-channel-choice .preference-switch-track,
+.quiet-hours-settings .preference-switch-track {
   width: 44px;
   height: 26px;
 }
 
-.notification-channel-choice .preference-switch-thumb {
+.notification-channel-choice .preference-switch-thumb,
+.quiet-hours-settings .preference-switch-thumb {
   left: 3px;
   width: 18px;
   height: 18px;
 }
 
 .notification-channel-choice
+  .preference-switch-control[aria-checked="true"]
+  .preference-switch-thumb,
+.quiet-hours-settings
   .preference-switch-control[aria-checked="true"]
   .preference-switch-thumb {
   transform: translate(18px, -50%);

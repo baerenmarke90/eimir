@@ -29,7 +29,7 @@ const notificationSettings = {
     'Änderung nicht gespeichert. Deine bisherige Auswahl bleibt erhalten.',
   quietHoursTitle: 'Ruhezeiten',
   quietHoursIntro:
-    'Push- und E-Mail-Nachrichten für Partnergesten warten bis danach. In-App bleibt verfügbar; fällige Erinnerungen folgen ihrer gewählten Uhrzeit.',
+    'Push- und E-Mail-Nachrichten für Partnergesten warten bis danach. Deine In-App-Auswahl bleibt unverändert; fällige Erinnerungen folgen ihrer gewählten Uhrzeit.',
   quietHoursTimezone: 'Es gilt deine Account-Zeitzone: {{timeZone}}.',
   quietHoursEnable: 'Ruhezeit aktivieren',
   quietHoursStart: 'Von',

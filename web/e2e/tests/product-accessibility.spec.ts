@@ -1168,7 +1168,9 @@ test('notification channel choice survives return and stays legible across theme
   await quietSwitch.click();
   const quietEnd = page.getByLabel(notificationSettings.quietHoursEnd);
   await quietEnd.fill('22:00');
-  await expect(page.getByText(notificationSettings.quietHoursInvalid)).toBeVisible();
+  await expect(
+    page.getByText(notificationSettings.quietHoursInvalid),
+  ).toBeVisible();
   await expect(
     page.getByRole('button', { name: notificationSettings.quietHoursSave }),
   ).toBeDisabled();
@@ -1177,12 +1179,24 @@ test('notification channel choice survives return and stays legible across theme
     .getByRole('button', { name: notificationSettings.quietHoursSave })
     .click();
   await expect(quietSwitch).toHaveAttribute('aria-checked', 'true');
-  await expect(page.getByText(notificationSettings.quietHoursSaved)).toBeVisible();
+  await expect(
+    page.getByText(notificationSettings.quietHoursSaved),
+  ).toBeVisible();
   await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
   await page.screenshot({
     path: test.info().outputPath('notification-settings-390-light-saved.png'),
     fullPage: true,
   });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectSettingsControlsInsideViewport(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await email.click();
   await expect(email).toHaveAttribute('aria-checked', 'true');

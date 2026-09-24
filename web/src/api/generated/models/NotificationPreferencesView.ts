@@ -27,6 +27,13 @@ import {
     NotificationChannelCapabilityToJSON,
     NotificationChannelCapabilityToJSONTyped,
 } from './NotificationChannelCapability';
+import type { QuietHoursView } from './QuietHoursView';
+import {
+    QuietHoursViewFromJSON,
+    QuietHoursViewFromJSONTyped,
+    QuietHoursViewToJSON,
+    QuietHoursViewToJSONTyped,
+} from './QuietHoursView';
 
 /**
  * 
@@ -52,6 +59,12 @@ export interface NotificationPreferencesView {
      * @memberof NotificationPreferencesView
      */
     items: Array<NotificationPreferenceEntry>;
+    /**
+     * 
+     * @type {QuietHoursView}
+     * @memberof NotificationPreferencesView
+     */
+    quietHours: QuietHoursView;
 }
 
 /**
@@ -61,6 +74,7 @@ export function instanceOfNotificationPreferencesView(value: object): value is N
     if (!('capabilities' in value) || value['capabilities'] === undefined) return false;
     if (!('catalogVersion' in value) || value['catalogVersion'] === undefined) return false;
     if (!('items' in value) || value['items'] === undefined) return false;
+    if (!('quietHours' in value) || value['quietHours'] === undefined) return false;
     return true;
 }
 
@@ -77,6 +91,7 @@ export function NotificationPreferencesViewFromJSONTyped(json: any, ignoreDiscri
         'capabilities': ((json['capabilities'] as Array<any>).map(NotificationChannelCapabilityFromJSON)),
         'catalogVersion': json['catalogVersion'],
         'items': ((json['items'] as Array<any>).map(NotificationPreferenceEntryFromJSON)),
+        'quietHours': QuietHoursViewFromJSON(json['quietHours']),
     };
 }
 
@@ -94,6 +109,6 @@ export function NotificationPreferencesViewToJSONTyped(value?: NotificationPrefe
         'capabilities': ((value['capabilities'] as Array<any>).map(NotificationChannelCapabilityToJSON)),
         'catalogVersion': value['catalogVersion'],
         'items': ((value['items'] as Array<any>).map(NotificationPreferenceEntryToJSON)),
+        'quietHours': QuietHoursViewToJSON(value['quietHours']),
     };
 }
-

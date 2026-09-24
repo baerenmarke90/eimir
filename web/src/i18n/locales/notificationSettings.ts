@@ -27,6 +27,22 @@ const notificationSettings = {
   saved: '{{event}}: {{channel}} wurde gespeichert.',
   failed:
     'Änderung nicht gespeichert. Deine bisherige Auswahl bleibt erhalten.',
+  quietHoursTitle: 'Ruhezeiten',
+  quietHoursIntro:
+    'Push- und E-Mail-Nachrichten für Partnergesten warten bis danach. In-App bleibt verfügbar; fällige Erinnerungen folgen ihrer gewählten Uhrzeit.',
+  quietHoursTimezone: 'Es gilt deine Account-Zeitzone: {{timeZone}}.',
+  quietHoursEnable: 'Ruhezeit aktivieren',
+  quietHoursStart: 'Von',
+  quietHoursEnd: 'Bis',
+  quietHoursInvalid: 'Wähle zwei unterschiedliche Uhrzeiten.',
+  quietHoursSave: 'Ruhezeit speichern',
+  quietHoursSaving: 'Ruhezeit wird gespeichert …',
+  quietHoursSaved: 'Ruhezeit gespeichert.',
+  quietHoursUnsaved: 'Noch nicht gespeichert.',
+  quietHoursActive: 'Täglich {{start}}–{{end}} Uhr.',
+  quietHoursOff: 'Ruhezeit ist aus.',
+  quietHoursFailed:
+    'Ruhezeit nicht gespeichert. Deine Eingabe bleibt erhalten; versuche es erneut.',
   on: 'An',
   off: 'Aus',
 } as const;

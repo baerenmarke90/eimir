@@ -180,6 +180,8 @@ export * from './PrivateNoteDetail';
 export * from './PrivateNotePage';
 export * from './PrivateNoteUpdate';
 export * from './ProblemDetails';
+export * from './QuietHoursUpdate';
+export * from './QuietHoursView';
 export * from './ProfileIdentityUpdate';
 export * from './ProfilePreferenceCreate';
 export * from './ProfilePreferenceUpdate';

@@ -11,6 +11,12 @@ import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 function view(emailAvailable = true): NotificationPreferencesView {
   return {
     catalogVersion: 2,
+    quietHours: {
+      enabled: false,
+      start: null,
+      end: null,
+      timeZone: 'Europe/Berlin',
+    },
     capabilities: [
       { channel: NotificationChannel.IN_APP, available: true, reason: null },
       {
@@ -81,9 +87,16 @@ function setup(
   }),
 ) {
   const getOwnNotificationPreferences = vi.fn().mockResolvedValue(data);
+  const updateOwnQuietHours = vi.fn().mockResolvedValue({
+    enabled: true,
+    start: '22:00:00',
+    end: '07:00:00',
+    timeZone: data.quietHours.timeZone,
+  });
   const notificationsApi = {
     getOwnNotificationPreferences,
     updateOwnNotificationPreference: update,
+    updateOwnQuietHours,
   } as unknown as NotificationsApi;
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -98,7 +111,7 @@ function setup(
       </MemoryRouter>
     </QueryClientProvider>,
   );
-  return { update, getOwnNotificationPreferences };
+  return { update, updateOwnQuietHours, getOwnNotificationPreferences };
 }
 
 describe('NotificationSettingsPanel', () => {
@@ -166,6 +179,67 @@ describe('NotificationSettingsPanel', () => {
       expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
     );
     expect(email.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('saves a personal quiet window as one draft and restores the server state', async () => {
+    const { updateOwnQuietHours } = setup(view());
+    const quietSwitch = await screen.findByRole('switch', {
+      name: notificationSettings.quietHoursEnable,
+    });
+    fireEvent.click(quietSwitch);
+    expect(updateOwnQuietHours).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(notificationSettings.quietHoursUnsaved),
+    ).toBeDefined();
+    expect(
+      (
+        screen.getByLabelText(
+          notificationSettings.quietHoursStart,
+        ) as HTMLInputElement
+      ).value,
+    ).toBe('22:00');
+    fireEvent.click(
+      screen.getByRole('button', { name: notificationSettings.quietHoursSave }),
+    );
+    await waitFor(() =>
+      expect(updateOwnQuietHours).toHaveBeenCalledWith({
+        quietHoursUpdate: { enabled: true, start: '22:00', end: '07:00' },
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(notificationSettings.quietHoursSaved)).toBeDefined(),
+    );
+    expect(quietSwitch.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByText('Täglich 22:00–07:00 Uhr.')).toBeDefined();
+  });
+
+  it('rejects equal times and retains a failed save draft', async () => {
+    const { updateOwnQuietHours } = setup(view());
+    updateOwnQuietHours.mockRejectedValueOnce(new Error('offline'));
+    fireEvent.click(
+      await screen.findByRole('switch', {
+        name: notificationSettings.quietHoursEnable,
+      }),
+    );
+    const end = screen.getByLabelText(
+      notificationSettings.quietHoursEnd,
+    ) as HTMLInputElement;
+    fireEvent.change(end, { target: { value: '22:00' } });
+    expect(screen.getByText(notificationSettings.quietHoursInvalid)).toBeDefined();
+    expect(
+      screen
+        .getByRole('button', { name: notificationSettings.quietHoursSave })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    fireEvent.change(end, { target: { value: '06:30' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: notificationSettings.quietHoursSave }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText(notificationSettings.quietHoursFailed)).toBeDefined(),
+    );
+    expect(end.value).toBe('06:30');
+    expect(screen.getByText(notificationSettings.quietHoursUnsaved)).toBeDefined();
   });
 });
 // @vitest-environment jsdom

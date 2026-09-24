@@ -23,7 +23,7 @@ from eimir.jobs.models import Job
 from eimir.mail import MailMessage, MailSender, MailTransportError
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
-from tests.conftest import make_account, make_space, requires_database
+from tests.conftest import _clear_database, make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 
@@ -41,6 +41,8 @@ class CapturingMail(MailSender):
 
 @pytest.fixture
 def mail_setup(engine: Engine, monkeypatch):  # type: ignore[no-untyped-def]
+    _clear_database(engine)
+
     @contextmanager
     def work() -> Iterator[Session]:
         with Session(engine, expire_on_commit=False) as session:
@@ -89,7 +91,10 @@ def mail_setup(engine: Engine, monkeypatch):  # type: ignore[no-untyped-def]
         delivery_id = session.execute(select(EmailDelivery.id)).scalar_one()
         assert session.execute(select(func.count(Job.id))).scalar_one() == 1
         ids = (anna.id, ben.id, space.id, notification.id, delivery_id)
-    return engine, provider, ids
+    try:
+        yield engine, provider, ids
+    finally:
+        _clear_database(engine)
 
 
 def _handle(engine: Engine, delivery_id) -> None:  # type: ignore[no-untyped-def]

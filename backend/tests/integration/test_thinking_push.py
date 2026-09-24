@@ -11,6 +11,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from eimir.authorization import PrivacyClass
 from eimir.engagement import notification_policy, notification_preferences, push, service, thinking
 from eimir.engagement.models import (
     Activity,
@@ -22,6 +23,7 @@ from eimir.engagement.models import (
     ThinkingOfYouRequest,
 )
 from eimir.jobs.errors import RetryableJobError
+from eimir.memories.models import Memory, MemoryPayload
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import configuration as space_configuration
 from eimir.relationship import service as relationship_service
@@ -507,6 +509,70 @@ def test_unreviewed_preview_change_blocks_an_already_queued_push(
     assert delivery.last_error_code == push.POLICY_BLOCKED_CODE
     assert delivery.attempts == 0
     assert provider.calls == []
+
+
+@pytest.mark.parametrize("revoke_target", [False, True])
+def test_push_rechecks_target_privacy_before_contacting_provider(
+    session: Session, couple, revoke_target: bool
+) -> None:  # type: ignore[no-untyped-def]
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="target-privacy-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    memory = Memory(
+        space_id=couple["space"].id,
+        owner_id=couple["anna"].id,
+        privacy_class=PrivacyClass.SPACE_SHARED.value,
+        payload=MemoryPayload(title="A shared memory", body="Protected body"),
+    )
+    session.add(memory)
+    session.flush()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=uuid4(),
+        kind=NotificationKind.THINKING_OF_YOU.value,
+        actor_id=couple["anna"].id,
+        target_type="MEMORY",
+        target_id=memory.id,
+        created_at=NOW,
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, notification.source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    if revoke_target:
+        memory.privacy_class = PrivacyClass.OWNER_ONLY.value
+        session.flush()
+        later = Notification(
+            space_id=couple["space"].id,
+            recipient_account_id=couple["ben"].id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.THINKING_OF_YOU.value,
+            actor_id=couple["anna"].id,
+            target_type="MEMORY",
+            target_id=memory.id,
+            created_at=NOW,
+        )
+        session.add(later)
+        session.flush()
+        push.ensure_deliveries_for_source_event(session, later.source_event_id)
+        assert session.execute(select(func.count(PushDelivery.id))).scalar_one() == 1
+
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    if revoke_target:
+        assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+        assert delivery.last_error_code == "PUSH_TARGET_UNAVAILABLE"
+        assert delivery.attempts == 0
+        assert provider.calls == []
+    else:
+        assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+        assert len(provider.calls) == 1
 
 
 def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(

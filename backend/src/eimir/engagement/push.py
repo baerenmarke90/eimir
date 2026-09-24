@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
 from eimir.core import clock
 from eimir.engagement import notification_policy, notification_preferences
 from eimir.engagement.models import (
@@ -131,6 +132,21 @@ def register_endpoint(
     return endpoint_row
 
 
+def _target_available(session: Session, notification: Notification) -> bool:
+    if notification.target_type is None:
+        return True
+    from eimir.engagement import service
+
+    return service.notification_target_available(
+        session,
+        notification,
+        AuthorizationContext(
+            account_id=notification.recipient_account_id,
+            space_id=notification.space_id,
+        ),
+    )
+
+
 def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) -> None:
     """Create one logical delivery per active endpoint for projected Notifications."""
     notifications = session.execute(
@@ -138,6 +154,8 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
     ).scalars()
     for notification in notifications:
         if notification_policy.presentation_for(notification.kind, notification.id) is None:
+            continue
+        if not _target_available(session, notification):
             continue
         allowed = notification_preferences.push_enabled(
             session, account_id=notification.recipient_account_id, kind=notification.kind
@@ -292,6 +310,12 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             delivery,
             space_configuration.SpaceConfigurationErrorCode.MODULE_DISABLED,
         )
+        return
+
+    # A shared target can become private or disappear after projection. Match
+    # the Notification Center and mail authorization at the provider boundary.
+    if not _target_available(session, notification):
+        _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
         return
 
     provider = providers.get(delivery.provider_key)

@@ -85,6 +85,9 @@ def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
         DeliveryClass.DIGESTIBLE, expanded_preview
     )
     monkeypatch.setattr(notification_policy, "POLICIES", MappingProxyType(expanded_catalog))
-    assert notification_policy.digest_presentation_for(
-        NotificationKind.COMMENT_CREATED.value, notification_id
-    ) is None
+    assert (
+        notification_policy.digest_presentation_for(
+            NotificationKind.COMMENT_CREATED.value, notification_id
+        )
+        is None
+    )

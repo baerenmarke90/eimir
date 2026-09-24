@@ -46,9 +46,9 @@ def test_release_is_recipient_local_and_preserves_reminder_priority(session: Ses
     )
     at = datetime(2026, 1, 4, 21, 15, tzinfo=UTC)
     expected = datetime(2026, 1, 5, 6, tzinfo=UTC)
-    for kind in ("THINKING_OF_YOU", "PARTNER_KISS", "PARTNER_CHECK_IN"):
+    for kind in ("THINKING_OF_YOU", "PARTNER_KISS", "PARTNER_CHECK_IN", "COMMENT_CREATED"):
         assert quiet_hours_preferences.release_at(account, kind=kind, at=at) == expected
-    for kind in ("REMINDER_DUE", "COMMENT_CREATED", "UNKNOWN"):
+    for kind in ("REMINDER_DUE", "UNKNOWN"):
         assert quiet_hours_preferences.release_at(account, kind=kind, at=at) is None
 
     account.timezone = "America/New_York"

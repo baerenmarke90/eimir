@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.engagement import notification_policy, notification_preferences
+from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import (
     Notification,
     NotificationKind,
@@ -24,7 +25,7 @@ from eimir.engagement.models import (
 )
 from eimir.identity import effects as account_effects
 from eimir.jobs import queue
-from eimir.jobs.errors import RetryableJobError
+from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.worker import registry
 from eimir.relationship import configuration as space_configuration
 
@@ -33,6 +34,7 @@ GENERIC_PRESENTATION_KEY = notification_policy.GENERIC_PRESENTATION_KEY
 ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
+QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 _TERMINAL_DELIVERY_STATUSES = {
     PushDeliveryStatus.SUCCEEDED.value,
@@ -243,7 +245,7 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if snapshot_status in _TERMINAL_DELIVERY_STATUSES:
         return
 
-    accounts_available = account_effects.lock_enabled_accounts(session, account_ids) is not None
+    accounts = account_effects.lock_enabled_accounts(session, account_ids)
 
     # Lock only after Account rows. Account deletion async cleanup uses the same
     # order before suppressing stale deliveries, so the two paths can wait but
@@ -276,7 +278,7 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     current_account_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_account_ids.add(notification.actor_id)
-    if current_account_ids != account_ids or not accounts_available:
+    if current_account_ids != account_ids or accounts is None:
         _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
         return
     if not notification_preferences.push_enabled(
@@ -317,6 +319,38 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if not _target_available(session, notification):
         _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
         return
+
+    checked_at = clock.now()
+    release_at = quiet_hours_preferences.release_at(
+        accounts[notification.recipient_account_id], kind=notification.kind, at=checked_at
+    )
+    if release_at is not None:
+        delivery.deferred_until = release_at
+        raise DeferredJobError(min(release_at, checked_at + QUIET_HOURS_RECHECK))
+
+    # Only one generic wake per Space and endpoint after an accumulated quiet
+    # interval. Keep every underlying Center entry and suppress older external
+    # handoffs. The Account lock serializes concurrent worker decisions.
+    if delivery.deferred_until is not None:
+        if delivery.deferred_until > checked_at:
+            # A timezone or window change can end the hold before its old UTC
+            # release instant. The current Account choice is authoritative.
+            delivery.deferred_until = checked_at
+        latest = session.execute(
+            select(PushDelivery.id)
+            .join(Notification, Notification.id == PushDelivery.notification_id)
+            .where(
+                PushDelivery.push_endpoint_id == endpoint.id,
+                PushDelivery.deferred_until.is_not(None),
+                Notification.recipient_account_id == notification.recipient_account_id,
+                Notification.space_id == notification.space_id,
+            )
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if latest != delivery.id:
+            _finish_unavailable(delivery, "QUIET_HOURS_COALESCED")
+            return
 
     provider = providers.get(delivery.provider_key)
     if provider is None:

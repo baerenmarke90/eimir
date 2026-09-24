@@ -392,6 +392,7 @@ class PushDelivery(IdMixin, Base):
     )
     last_error_code: Mapped[str | None] = mapped_column(String(64))
     provider_message_id: Mapped[str | None] = mapped_column(String(256))
+    deferred_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -409,6 +410,12 @@ class PushDelivery(IdMixin, Base):
             name="uq_push_deliveries_notification_endpoint",
         ),
         Index("ix_push_deliveries_status_created", "status", "created_at"),
+        Index(
+            "ix_push_deliveries_endpoint_deferred",
+            "push_endpoint_id",
+            "deferred_until",
+            postgresql_where=deferred_until.is_not(None),
+        ),
     )
 
 

@@ -112,3 +112,4 @@ export function NotificationPreferencesViewToJSONTyped(value?: NotificationPrefe
         'quietHours': QuietHoursViewToJSON(value['quietHours']),
     };
 }
+

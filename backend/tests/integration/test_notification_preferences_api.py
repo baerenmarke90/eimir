@@ -48,7 +48,10 @@ def test_quiet_hours_are_owner_scoped_and_validate_complete_minute_windows(
         "end": None,
         "timeZone": "Europe/Berlin",
     }
-    assert client.patch(path, json={"enabled": True, "start": "22:00", "end": "07:00"}).status_code == 401
+    assert (
+        client.patch(path, json={"enabled": True, "start": "22:00", "end": "07:00"}).status_code
+        == 401
+    )
 
     for bad in (
         {"enabled": True, "start": "22:00"},

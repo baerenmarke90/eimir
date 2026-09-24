@@ -207,7 +207,9 @@ describe('NotificationSettingsPanel', () => {
       }),
     );
     await waitFor(() =>
-      expect(screen.getByText(notificationSettings.quietHoursSaved)).toBeDefined(),
+      expect(
+        screen.getByText(notificationSettings.quietHoursSaved),
+      ).toBeDefined(),
     );
     expect(quietSwitch.getAttribute('aria-checked')).toBe('true');
     expect(screen.getByText('Täglich 22:00–07:00 Uhr.')).toBeDefined();
@@ -225,7 +227,9 @@ describe('NotificationSettingsPanel', () => {
       notificationSettings.quietHoursEnd,
     ) as HTMLInputElement;
     fireEvent.change(end, { target: { value: '22:00' } });
-    expect(screen.getByText(notificationSettings.quietHoursInvalid)).toBeDefined();
+    expect(
+      screen.getByText(notificationSettings.quietHoursInvalid),
+    ).toBeDefined();
     expect(
       screen
         .getByRole('button', { name: notificationSettings.quietHoursSave })
@@ -236,10 +240,14 @@ describe('NotificationSettingsPanel', () => {
       screen.getByRole('button', { name: notificationSettings.quietHoursSave }),
     );
     await waitFor(() =>
-      expect(screen.getByText(notificationSettings.quietHoursFailed)).toBeDefined(),
+      expect(
+        screen.getByText(notificationSettings.quietHoursFailed),
+      ).toBeDefined(),
     );
     expect(end.value).toBe('06:30');
-    expect(screen.getByText(notificationSettings.quietHoursUnsaved)).toBeDefined();
+    expect(
+      screen.getByText(notificationSettings.quietHoursUnsaved),
+    ).toBeDefined();
   });
 });
 // @vitest-environment jsdom

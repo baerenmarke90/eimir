@@ -30,13 +30,13 @@ export interface QuietHoursView {
      * @type {string}
      * @memberof QuietHoursView
      */
-    end?: string | null;
+    end: string | null;
     /**
      * 
      * @type {string}
      * @memberof QuietHoursView
      */
-    start?: string | null;
+    start: string | null;
     /**
      * 
      * @type {string}
@@ -50,6 +50,8 @@ export interface QuietHoursView {
  */
 export function instanceOfQuietHoursView(value: object): value is QuietHoursView {
     if (!('enabled' in value) || value['enabled'] === undefined) return false;
+    if (!('end' in value) || value['end'] === undefined) return false;
+    if (!('start' in value) || value['start'] === undefined) return false;
     if (!('timeZone' in value) || value['timeZone'] === undefined) return false;
     return true;
 }
@@ -65,8 +67,8 @@ export function QuietHoursViewFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'enabled': json['enabled'],
-        'end': json['end'] === undefined ? undefined : json['end'] === null ? null : json['end'],
-        'start': json['start'] === undefined ? undefined : json['start'] === null ? null : json['start'],
+        'end': json['end'],
+        'start': json['start'],
         'timeZone': json['timeZone'],
     };
 }
@@ -88,4 +90,3 @@ export function QuietHoursViewToJSONTyped(value?: QuietHoursView | null, ignoreD
         'timeZone': value['timeZone'],
     };
 }
-

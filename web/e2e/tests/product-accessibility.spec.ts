@@ -91,6 +91,12 @@ async function installAuthorizedApiMocks(
   let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let spaceConfigurationVersion = 7;
   let reminderEmailEnabled = false;
+  let quietHours: {
+    enabled: boolean;
+    start: string | null;
+    end: string | null;
+    timeZone: string;
+  } = { enabled: false, start: null, end: null, timeZone: 'Europe/Berlin' };
   const spaceConfigurationBody = () =>
     JSON.stringify({
       canManageSpaceConfiguration: true,
@@ -263,6 +269,7 @@ async function installAuthorizedApiMocks(
     if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
       await fulfillJson({
         catalogVersion: 2,
+        quietHours,
         capabilities: [
           {
             channel: 'IN_APP',
@@ -308,6 +315,34 @@ async function installAuthorizedApiMocks(
           ],
         })),
       });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/quiet-hours'
+    ) {
+      const body = request.postDataJSON() as {
+        enabled: boolean;
+        start?: string | null;
+        end?: string | null;
+      };
+      if (
+        Object.keys(body).some(
+          (key) => !['enabled', 'start', 'end'].includes(key),
+        )
+      ) {
+        unexpectedRequests.push(
+          'Quiet Hours PATCH contained an unapproved field',
+        );
+      }
+      quietHours = {
+        enabled: body.enabled,
+        start: body.enabled ? `${body.start}:00` : null,
+        end: body.enabled ? `${body.end}:00` : null,
+        timeZone: quietHours.timeZone,
+      };
+      await fulfillJson(quietHours);
       return;
     }
 
@@ -1126,6 +1161,29 @@ test('notification channel choice survives return and stays legible across theme
     fullPage: true,
   });
 
+  const quietSwitch = page.getByRole('switch', {
+    name: notificationSettings.quietHoursEnable,
+  });
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'false');
+  await quietSwitch.click();
+  const quietEnd = page.getByLabel(notificationSettings.quietHoursEnd);
+  await quietEnd.fill('22:00');
+  await expect(page.getByText(notificationSettings.quietHoursInvalid)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: notificationSettings.quietHoursSave }),
+  ).toBeDisabled();
+  await quietEnd.fill('07:00');
+  await page
+    .getByRole('button', { name: notificationSettings.quietHoursSave })
+    .click();
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText(notificationSettings.quietHoursSaved)).toBeVisible();
+  await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light-saved.png'),
+    fullPage: true,
+  });
+
   await email.click();
   await expect(email).toHaveAttribute('aria-checked', 'true');
   await expect(
@@ -1146,6 +1204,19 @@ test('notification channel choice survives return and stays legible across theme
   await expect(
     page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: notificationSettings.quietHoursEnable }),
+  ).toHaveAttribute('aria-checked', 'true');
+
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: test.info().outputPath(`notification-settings-${width}-light.png`),
+      fullPage: true,
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
 
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');

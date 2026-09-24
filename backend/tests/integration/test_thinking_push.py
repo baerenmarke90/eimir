@@ -561,9 +561,7 @@ def test_quiet_hours_rechecks_channel_choice_before_release(
     assert session.get(Notification, notification.id) is not None
 
 
-def test_quiet_hours_preserves_due_reminder_schedule(
-    session: Session, couple, monkeypatch
-) -> None:  # type: ignore[no-untyped-def]
+def test_quiet_hours_preserves_due_reminder_schedule(session: Session, couple, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     ben = couple["ben"]
     ben.timezone = "Europe/Berlin"
     ben.quiet_hours_start = time(22)

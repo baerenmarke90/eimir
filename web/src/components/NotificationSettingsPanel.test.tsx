@@ -132,7 +132,9 @@ describe('NotificationSettingsPanel', () => {
         .getAttribute('aria-checked'),
     ).toBe('true');
     expect(screen.getByRole('status').textContent).toContain(
-      'Fällige Erinnerungen: E-Mail wurde gespeichert.',
+      notificationSettings.saved
+        .replace('{{event}}', notificationSettings.reminder)
+        .replace('{{channel}}', notificationSettings.email),
     );
   });
 

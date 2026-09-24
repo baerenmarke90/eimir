@@ -1,5 +1,7 @@
 .notification-settings {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: var(--space-6);
@@ -24,11 +26,15 @@
 
 .notification-settings-group {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: var(--space-2);
 }
 
 .notification-event {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   container-type: inline-size;
   gap: var(--space-2);
   padding: var(--space-3) 0;

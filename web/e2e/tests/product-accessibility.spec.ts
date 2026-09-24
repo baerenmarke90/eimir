@@ -1,9 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -38,7 +39,27 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const offenders = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .filter((element) => {
+          const box = element.getBoundingClientRect();
+          return (
+            box.width > 0 &&
+            box.right > document.documentElement.clientWidth + 1
+          );
+        })
+        .slice(0, 15)
+        .map((element) => ({
+          element: `${element.tagName.toLowerCase()}.${element.className}`,
+          right: Math.round(element.getBoundingClientRect().right),
+        })),
+    );
+    expect(
+      dimensions.scrollWidth,
+      JSON.stringify(offenders),
+    ).toBeLessThanOrEqual(dimensions.clientWidth);
+  }
 }
 
 type SpaceConfigurationPatch = {
@@ -1093,7 +1114,7 @@ test('notification channel choice survives return and stays legible across theme
   await expect(
     page.getByText('anna@example.org', { exact: false }),
   ).toBeVisible();
-  await expect(page.locator('.anniversary-reminder-form')).toBeVisible();
+  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
   await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
   await expect(
     page.getByRole('link', {
@@ -1108,7 +1129,11 @@ test('notification channel choice survives return and stays legible across theme
   await email.click();
   await expect(email).toHaveAttribute('aria-checked', 'true');
   await expect(
-    page.getByRole('status').filter({ hasText: 'E-Mail wurde gespeichert' }),
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.reminder)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
   ).toBeVisible();
   await page
     .getByRole('link', { name: profileIdentity.settingsBackToIndex })

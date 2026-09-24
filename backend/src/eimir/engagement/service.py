@@ -378,7 +378,7 @@ def _projectable_predicate(
 def notification_target_available(
     session: Session, notification: Notification, context: AuthorizationContext
 ) -> bool:
-    """Recheck the existing Center target authorization for external mail."""
+    """Recheck the Center target authorization before external delivery."""
     return (
         session.execute(
             select(Notification.id).where(

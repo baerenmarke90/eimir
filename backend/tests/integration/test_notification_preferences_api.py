@@ -39,9 +39,7 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     assert len(initial.json()["items"]) == len(NotificationKind)
     thinking = _entry(initial.json(), NotificationKind.THINKING_OF_YOU.value)
     assert thinking["deliveryClass"] == "IMMEDIATE"
-    assert _channel(thinking, "PUSH") == {
-        "channel": "PUSH", "enabled": True, "configurable": True
-    }
+    assert _channel(thinking, "PUSH") == {"channel": "PUSH", "enabled": True, "configurable": True}
     comment = _entry(initial.json(), NotificationKind.COMMENT_CREATED.value)
     assert comment["deliveryClass"] == "DIGESTIBLE"
     assert _channel(comment, "PUSH")["enabled"] is False
@@ -54,9 +52,7 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     )
     assert changed.status_code == 200
     assert changed.headers["Cache-Control"] == "private, no-store"
-    assert changed.json() == {
-        "kind": "THINKING_OF_YOU", "channel": "PUSH", "enabled": False
-    }
+    assert changed.json() == {"kind": "THINKING_OF_YOU", "channel": "PUSH", "enabled": False}
     again = client.patch(
         f"{BASE}/THINKING_OF_YOU/PUSH", json={"enabled": False}, headers=auth(anna_token)
     )
@@ -92,30 +88,34 @@ def test_unimplemented_channels_and_digestible_push_fail_without_writing(
         assert response.status_code == 409
         assert response.json()["code"] == code
 
-    assert client.patch(
-        f"{BASE}/THINKING_OF_YOU/PUSH",
-        json={"enabled": False, "accountId": str(account.id)},
-        headers=auth(token),
-    ).status_code == 422
-    assert client.patch(
-        f"{BASE}/NOT_A_KIND/PUSH", json={"enabled": False}, headers=auth(token)
-    ).status_code == 422
+    assert (
+        client.patch(
+            f"{BASE}/THINKING_OF_YOU/PUSH",
+            json={"enabled": False, "accountId": str(account.id)},
+            headers=auth(token),
+        ).status_code
+        == 422
+    )
+    assert (
+        client.patch(
+            f"{BASE}/NOT_A_KIND/PUSH", json={"enabled": False}, headers=auth(token)
+        ).status_code
+        == 422
+    )
     assert session.execute(select(NotificationPreference)).scalars().all() == []
 
 
-def test_capabilities_never_promise_unimplemented_transport(
-    client, session: Session
-) -> None:  # type: ignore[no-untyped-def]
+def test_capabilities_never_promise_unimplemented_transport(client, session: Session) -> None:  # type: ignore[no-untyped-def]
     account = make_account(session)
     token = sign_in(session, account)
     first = client.get(BASE, headers=auth(token)).json()
-    assert _capability(first, "IN_APP") == {
-        "channel": "IN_APP", "available": True, "reason": None
-    }
+    assert _capability(first, "IN_APP") == {"channel": "IN_APP", "available": True, "reason": None}
     assert _capability(first, "PUSH")["reason"] == "PUSH_ENDPOINT_MISSING"
     assert _capability(first, "PUSH")["available"] is False
     assert _capability(first, "EMAIL") == {
-        "channel": "EMAIL", "available": False, "reason": "EMAIL_DELIVERY_NOT_IMPLEMENTED"
+        "channel": "EMAIL",
+        "available": False,
+        "reason": "EMAIL_DELIVERY_NOT_IMPLEMENTED",
     }
 
     push.register_endpoint(

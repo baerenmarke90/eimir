@@ -209,11 +209,11 @@ class NotificationPreference(IdMixin, TimestampMixin, Base):
 
     __table_args__ = (
         CheckConstraint(
-            f"kind IN ({_NOTIFICATION_KIND_VALUES})", name="notification_preference_kind_allowed"
+            f"kind IN ({_NOTIFICATION_KIND_VALUES})", name="notif_pref_kind_allowed"
         ),
         CheckConstraint(
             f"channel IN ({_NOTIFICATION_CHANNEL_VALUES})",
-            name="notification_preference_channel_allowed",
+            name="notif_pref_channel_allowed",
         ),
         UniqueConstraint(
             "account_id", "kind", "channel", name="uq_notification_preferences_account_kind_channel"

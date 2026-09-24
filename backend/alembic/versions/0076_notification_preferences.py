@@ -35,20 +35,24 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name="pk_notification_preferences"),
         sa.ForeignKeyConstraint(
-            ["account_id"], ["accounts.id"], name="fk_notification_preferences_account_id_accounts",
+            ["account_id"],
+            ["accounts.id"],
+            name="fk_notification_preferences_account_id_accounts",
             ondelete="CASCADE",
         ),
         sa.CheckConstraint(
             "kind IN ('COMMENT_CREATED', 'THINKING_OF_YOU', 'PARTNER_KISS', "
             "'PARTNER_CHECK_IN', 'REMINDER_DUE')",
-            name="notification_preference_kind_allowed",
+            name="notif_pref_kind_allowed",
         ),
         sa.CheckConstraint(
             "channel IN ('IN_APP', 'PUSH', 'EMAIL')",
-            name="notification_preference_channel_allowed",
+            name="notif_pref_channel_allowed",
         ),
         sa.UniqueConstraint(
-            "account_id", "kind", "channel",
+            "account_id",
+            "kind",
+            "channel",
             name="uq_notification_preferences_account_kind_channel",
         ),
     )

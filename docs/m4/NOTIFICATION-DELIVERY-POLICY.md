@@ -61,6 +61,8 @@ changes. This catalog adds no polling or background job and keeps missing
 push providers nonfatal. The follow-up for Quiet Hours must use the
 authoritative account timezone, avoid push-flooding on reconnect and retain
 normal in-app access even if external delivery is delayed.
+The [Quiet Hours stored contract](./NOTIFICATION-QUIET-HOURS.md) defines the
+per-Account window and eligible kinds before provider behavior is activated.
 
 **Validation:** a catalog coverage test fails if a NotificationKind is added
 without classification; the existing signal/reminder integration paths

@@ -6,6 +6,7 @@ const notificationSettings = {
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
   commentPushDescription: 'Höchstens ein neutraler Push pro Stunde.',
+  commentEmailDescription: 'Höchstens eine neutrale E-Mail pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',

@@ -92,6 +92,7 @@ async function installAuthorizedApiMocks(
   let spaceConfigurationVersion = 7;
   let reminderEmailEnabled = false;
   let commentPushEnabled = false;
+  let commentEmailEnabled = false;
   let quietHours: {
     enabled: boolean;
     start: string | null;
@@ -310,8 +311,10 @@ async function installAuthorizedApiMocks(
             },
             {
               channel: 'EMAIL',
-              enabled: kind === 'REMINDER_DUE' && reminderEmailEnabled,
-              configurable: kind !== 'COMMENT_CREATED',
+              enabled:
+                (kind === 'COMMENT_CREATED' && commentEmailEnabled) ||
+                (kind === 'REMINDER_DUE' && reminderEmailEnabled),
+              configurable: true,
             },
           ],
         })),
@@ -362,6 +365,25 @@ async function installAuthorizedApiMocks(
         kind: 'COMMENT_CREATED',
         channel: 'PUSH',
         enabled: commentPushEnabled,
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Email PATCH contained an unapproved field',
+        );
+      }
+      commentEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'EMAIL',
+        enabled: commentEmailEnabled,
       });
       return;
     }
@@ -1181,6 +1203,30 @@ test('notification choices survive return and stay legible across themes and wid
     fullPage: true,
   });
 
+  const commentEmail = page.getByRole('switch', { name: 'Kommentare: E-Mail' });
+  await expect(commentEmail).toBeEnabled();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentEmailDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentEmail.click();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-email-opted-in.png'),
+    fullPage: true,
+  });
+
   const commentPush = page.getByRole('switch', { name: 'Kommentare: Push' });
   await expect(commentPush).toBeEnabled();
   await expect(commentPush).toHaveAttribute('aria-checked', 'false');
@@ -1268,6 +1314,9 @@ test('notification choices survive return and stay legible across themes and wid
   await expect(
     page.getByRole('switch', { name: 'Kommentare: Push' }),
   ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
 
   for (const width of [360, 430]) {
     await page.setViewportSize({ width, height: 844 });
@@ -1306,6 +1355,14 @@ test('notification choices survive return and stay legible across themes and wid
   await page.reload();
   await expect(
     page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.getByRole('switch', { name: 'Kommentare: E-Mail' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
   ).toHaveAttribute('aria-checked', 'false');
   expect(unexpectedRequests).toEqual([]);
 });

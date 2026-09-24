@@ -1,9 +1,11 @@
 # Comment email digest backend: #515 bounded slice
 
-`COMMENT_CREATED` remains DIGESTIBLE. The existing EMAIL Settings/API cannot
-enable it. Only a stored, explicit recipient-owned EMAIL preference row can
-queue this backend path, so deployment does not start sending mail to existing
-Accounts. A separate #515 user-facing slice must review and expose the choice.
+`COMMENT_CREATED` remains DIGESTIBLE. Notification Settings and the own-Account
+API expose its EMAIL choice only with available SMTP and a verified primary
+Account address. A stored, explicit recipient-owned EMAIL preference row is
+required to queue this backend path, so deployment does not start sending mail
+to existing Accounts. The choice defaults off, is independent of Push and
+In-App, and can be revoked if transport or the verified address disappears.
 Individual per-comment mail remains forbidden.
 
 Eligible projected comments create one content-free `EmailDelivery` and a
@@ -27,7 +29,7 @@ mail transport is introduced; the existing `(status, created_at)` index bounds
 hourly candidate lookup. A missing SMTP provider remains nonfatal.
 
 This Free/Core behavior is identical for Cloud and Self-Hosted. Managed SMTP
-cost begins only after a future explicit user opt-in. No entitlement, quota,
+cost begins only after an explicit user opt-in. No entitlement, quota,
 retention, downgrade or historical backfill behavior changes. PostgreSQL
 regressions cover default-off, hourly coalescing, recipient/Space separation,
 opt-out, Quiet Hours, ambiguous failure and retry. Existing target-privacy and

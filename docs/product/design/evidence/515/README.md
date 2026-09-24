@@ -44,3 +44,27 @@ reduced motion, axe and the continued anniversary/birthday reminder controls.
 The backend integration test covers explicit Account ownership and the fact
 that a saved preference is not an immediate per-comment Push or proof of an
 available transport.
+
+## Comment EMAIL opt-in
+
+The following lossless WebP images are real Chromium captures from the
+`#515` EMAIL opt-in branch. The [generated pre-implementation composition](../../references/515/comment-email-optin-compact.png)
+is a separate design guide. Browser captures use an available mocked EMAIL
+capability and the existing notification page, including Quiet Hours and
+reminder controls.
+
+| Image | State |
+| --- | --- |
+| `notification-settings-390-light-comment-email.webp` | Compact Light, comment EMAIL off by default |
+| `notification-settings-390-opted-in-comment-email.webp` | Compact Light, explicit comment EMAIL opt-in saved |
+| `notification-settings-390-dark-comment-email.webp` | Compact Dark, opted in, reduced motion |
+| `notification-settings-360-light-comment-email.webp` | Compact Light at 360 px, opted in |
+| `notification-settings-1280-light-comment-email.webp` | Expanded Light, opted in |
+| `notification-settings-1280-dark-comment-email.webp` | Expanded Dark, opted in, reduced motion |
+
+The browser test checks off → opt in → saved status → leave/return → opt out →
+reload, separate Push and In-App choices, 320 px at 200% text, Compact and
+Expanded widths, Light/Dark, reduced motion and axe. The backend integration
+test covers owner scope, verified primary address and SMTP requirements,
+revocation after lost capability, and the distinction between digest consent
+and individual per-comment email.

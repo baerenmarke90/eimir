@@ -126,7 +126,7 @@ def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[Notificati
 
 
 def own_email_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
-    """Email defaults off and digestible kinds cannot send individual mail."""
+    """Email defaults off; digest choices never imply individual mail."""
     rows = session.execute(
         select(NotificationPreference.kind, NotificationPreference.enabled).where(
             NotificationPreference.account_id == account_id,
@@ -136,7 +136,7 @@ def own_email_choices(session: Session, *, account_id: UUID) -> dict[Notificatio
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
     return {
         kind: bool(overrides.get(kind.value, False))
-        if notification_policy.POLICIES[kind].push_immediately
+        if notification_policy.email_choice_allowed(kind.value)
         else False
         for kind in NotificationKind
     }
@@ -180,9 +180,8 @@ def set_email_enabled(
     session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
 ) -> None:
     """Keep email opt-in separate from Center and Push choices."""
-    policy = notification_policy.for_kind(kind)
-    if policy is None or not policy.push_immediately:
-        raise ValueError("Individual email is not available for this notification kind.")
+    if not notification_policy.email_choice_allowed(kind.value):
+        raise ValueError("Email is not available for this notification kind.")
     _set_choice(
         session,
         account_id=account_id,

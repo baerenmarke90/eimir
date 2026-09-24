@@ -91,6 +91,7 @@ async function installAuthorizedApiMocks(
   let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let spaceConfigurationVersion = 7;
   let reminderEmailEnabled = false;
+  let commentPushEnabled = false;
   let quietHours: {
     enabled: boolean;
     start: string | null;
@@ -304,8 +305,8 @@ async function installAuthorizedApiMocks(
             { channel: 'IN_APP', enabled: true, configurable: true },
             {
               channel: 'PUSH',
-              enabled: false,
-              configurable: kind !== 'COMMENT_CREATED',
+              enabled: kind === 'COMMENT_CREATED' && commentPushEnabled,
+              configurable: true,
             },
             {
               channel: 'EMAIL',
@@ -343,6 +344,25 @@ async function installAuthorizedApiMocks(
         timeZone: quietHours.timeZone,
       };
       await fulfillJson(quietHours);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/PUSH'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Push PATCH contained an unapproved field',
+        );
+      }
+      commentPushEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'PUSH',
+        enabled: commentPushEnabled,
+      });
       return;
     }
 
@@ -1133,7 +1153,7 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
   });
 });
 
-test('notification channel choice survives return and stays legible across themes and widths (#638)', async ({
+test('notification choices survive return and stay legible across themes and widths (#638, #515)', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1158,6 +1178,28 @@ test('notification channel choice survives return and stays legible across theme
   ).toBeVisible();
   await page.screenshot({
     path: test.info().outputPath('notification-settings-390-light.png'),
+    fullPage: true,
+  });
+
+  const commentPush = page.getByRole('switch', { name: 'Kommentare: Push' });
+  await expect(commentPush).toBeEnabled();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentPushDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentPush.click();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page
+      .getByRole('status')
+      .filter({ hasText: 'Kommentare: Push wurde gespeichert.' }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-opted-in.png'),
     fullPage: true,
   });
 
@@ -1221,6 +1263,9 @@ test('notification channel choice survives return and stays legible across theme
   await expect(
     page.getByRole('switch', { name: notificationSettings.quietHoursEnable }),
   ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'true');
 
   for (const width of [360, 430]) {
     await page.setViewportSize({ width, height: 844 });
@@ -1252,6 +1297,14 @@ test('notification channel choice survives return and stays legible across theme
   });
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+  await page.getByRole('switch', { name: 'Kommentare: Push' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
   expect(unexpectedRequests).toEqual([]);
 });
 

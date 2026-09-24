@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from eimir.core.clock import now
-from eimir.engagement import email_delivery, push
+from eimir.engagement import email_delivery, notification_preferences, push
 from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
 from eimir.identity.models import Account, AccountEmail
 from tests.conftest import auth, make_account, requires_database, sign_in
@@ -110,7 +110,7 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     comment = _entry(initial.json(), NotificationKind.COMMENT_CREATED.value)
     assert comment["deliveryClass"] == "DIGESTIBLE"
     assert _channel(comment, "PUSH")["enabled"] is False
-    assert _channel(comment, "PUSH")["configurable"] is False
+    assert _channel(comment, "PUSH")["configurable"] is True
     assert _channel(thinking, "IN_APP")["enabled"] is True
     assert _channel(thinking, "IN_APP")["configurable"] is True
     assert _channel(comment, "IN_APP")["configurable"] is True
@@ -182,20 +182,67 @@ def test_in_app_choice_is_independent_per_kind_and_account(client, session: Sess
     )
 
 
-def test_unimplemented_channels_and_digestible_push_fail_without_writing(
+def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
+    client, session: Session
+) -> None:  # type: ignore[no-untyped-def]
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    anna_token = sign_in(session, anna)
+    ben_token = sign_in(session, ben)
+    path = f"{BASE}/COMMENT_CREATED/PUSH"
+
+    assert not notification_preferences.digest_push_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    assert client.patch(path, json={"enabled": True}).status_code == 401
+    enabled = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert enabled.status_code == 200
+    assert enabled.headers["Cache-Control"] == "private, no-store"
+    assert enabled.json() == {
+        "kind": "COMMENT_CREATED",
+        "channel": "PUSH",
+        "enabled": True,
+    }
+    assert notification_preferences.digest_push_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    assert not notification_preferences.push_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    assert (
+        _channel(
+            _entry(client.get(BASE, headers=auth(anna_token)).json(), "COMMENT_CREATED"), "PUSH"
+        )["enabled"]
+        is True
+    )
+    assert (
+        _channel(
+            _entry(client.get(BASE, headers=auth(ben_token)).json(), "COMMENT_CREATED"), "PUSH"
+        )["enabled"]
+        is False
+    )
+
+    disabled = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
+    assert disabled.status_code == 200
+    assert not notification_preferences.digest_push_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    rows = session.execute(select(NotificationPreference)).scalars().all()
+    assert len(rows) == 1
+    assert rows[0].account_id == anna.id
+    assert rows[0].enabled is False
+
+
+def test_unimplemented_comment_email_and_invalid_requests_fail_without_writing(
     client, session: Session
 ) -> None:  # type: ignore[no-untyped-def]
     account = make_account(session)
     token = sign_in(session, account)
-    for kind, channel, code in (
-        ("COMMENT_CREATED", "EMAIL", "NOTIFICATION_EMAIL_NOT_ALLOWED"),
-        ("COMMENT_CREATED", "PUSH", "NOTIFICATION_PUSH_NOT_ALLOWED"),
-    ):
-        response = client.patch(
-            f"{BASE}/{kind}/{channel}", json={"enabled": True}, headers=auth(token)
-        )
-        assert response.status_code == 409
-        assert response.json()["code"] == code
+    response = client.patch(
+        f"{BASE}/COMMENT_CREATED/EMAIL", json={"enabled": True}, headers=auth(token)
+    )
+    assert response.status_code == 409
+    assert response.json()["code"] == "NOTIFICATION_EMAIL_NOT_ALLOWED"
 
     assert (
         client.patch(

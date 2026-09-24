@@ -208,16 +208,23 @@ export function NotificationSettingsPanel({
                             );
                             if (!choice) return null;
                             const capability = capabilities.get(channel);
+                            const commentDigestPush =
+                              item.kind === NotificationKind.COMMENT_CREATED &&
+                              channel === NotificationChannel.PUSH;
                             const unavailable =
                               !choice.configurable ||
-                              (!choice.enabled && !capability?.available);
+                              (!commentDigestPush &&
+                                !choice.enabled &&
+                                !capability?.available);
                             const explanation =
                               !choice.configurable &&
                               item.deliveryClass !== 'IMMEDIATE'
                                 ? t('notificationSettings.policyUnavailable')
-                                : !capability?.available
-                                  ? reason(channel, capability)
-                                  : undefined;
+                                : commentDigestPush
+                                  ? `${t('notificationSettings.commentPushDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
+                                  : !capability?.available
+                                    ? reason(channel, capability)
+                                    : undefined;
                             const channelLabel = t(
                               `notificationSettings.${CHANNEL_KEYS[channel]}`,
                             );

@@ -125,6 +125,12 @@ def digest_kind_allowed(kind: str) -> bool:
     )
 
 
+def push_choice_allowed(kind: str) -> bool:
+    """Expose only reviewed immediate or digest Push kinds as a choice."""
+    policy = for_kind(kind)
+    return policy is not None and (policy.push_immediately or digest_kind_allowed(kind))
+
+
 def digest_window(at: datetime) -> tuple[datetime, datetime]:
     """Group by projection-time UTC hour, never by a mutable client clock."""
     if at.tzinfo is None:

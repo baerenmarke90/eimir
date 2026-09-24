@@ -30,7 +30,7 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 
 def digest_push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
-    """Require an explicit opt-in; current public controls cannot set this row."""
+    """Require an explicit recipient opt-in for a reviewed digest kind."""
     if not notification_policy.digest_kind_allowed(kind):
         return False
     return (
@@ -92,8 +92,10 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
     ).tuples()
     overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
     return {
-        kind: bool(overrides.get(kind.value, True))
-        if notification_policy.POLICIES[kind].push_immediately
+        kind: bool(
+            overrides.get(kind.value, not notification_policy.digest_kind_allowed(kind.value))
+        )
+        if notification_policy.push_choice_allowed(kind.value)
         else False
         for kind in NotificationKind
     }
@@ -136,8 +138,7 @@ def set_push_enabled(
     Callers supply the authenticated Account ID, never one from a request
     body or another Space member.
     """
-    policy = notification_policy.for_kind(kind)
-    if policy is None or not policy.push_immediately:
+    if not notification_policy.push_choice_allowed(kind.value):
         raise ValueError("Push is not available for this notification kind.")
     _set_choice(
         session,

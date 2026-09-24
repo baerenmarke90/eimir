@@ -135,7 +135,7 @@ def get_own_notification_preferences(
                     NotificationChannelPreference(
                         channel=NotificationChannel.PUSH,
                         enabled=push_choices[kind],
-                        configurable=notification_policy.POLICIES[kind].push_immediately,
+                        configurable=notification_policy.push_choice_allowed(kind.value),
                     ),
                     NotificationChannelPreference(
                         channel=NotificationChannel.EMAIL,
@@ -234,12 +234,11 @@ def update_own_notification_preference(
             "Individual email is not allowed for this notification kind.",
             ErrorCode.NOTIFICATION_EMAIL_NOT_ALLOWED,
         )
-    if (
-        channel is NotificationChannel.PUSH
-        and not notification_policy.POLICIES[kind].push_immediately
+    if channel is NotificationChannel.PUSH and not notification_policy.push_choice_allowed(
+        kind.value
     ):
         raise ConflictError(
-            "Immediate push is not allowed for this notification kind.",
+            "Push is not allowed for this notification kind.",
             ErrorCode.NOTIFICATION_PUSH_NOT_ALLOWED,
         )
     if channel is NotificationChannel.EMAIL and body.enabled:

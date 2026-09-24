@@ -3,6 +3,7 @@ import './PreferenceSwitch.css';
 
 export function PreferenceSwitch({
   label,
+  accessibleLabel,
   description,
   checked,
   disabled = false,
@@ -10,6 +11,7 @@ export function PreferenceSwitch({
   className,
 }: {
   label: string;
+  accessibleLabel?: string;
   description?: string;
   checked: boolean;
   disabled?: boolean;
@@ -28,7 +30,7 @@ export function PreferenceSwitch({
         type="button"
         role="switch"
         aria-checked={checked}
-        aria-label={label}
+        aria-label={accessibleLabel ?? label}
         aria-describedby={description ? descriptionId : undefined}
         className="preference-switch-control"
         disabled={disabled}

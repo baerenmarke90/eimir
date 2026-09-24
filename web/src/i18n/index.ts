@@ -16,6 +16,7 @@ import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
+import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
 import privateArea from './locales/privateArea';
@@ -48,6 +49,7 @@ if (!i18n.isInitialized) {
           taskSheets,
           accountSettings,
           navigation: { ...de.navigation, ...navigation },
+          notificationSettings,
           demo,
           dailyEnergy,
           dailyInsights,

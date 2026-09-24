@@ -1,0 +1,123 @@
+.notification-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: var(--space-6);
+}
+
+.notification-settings h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.notification-destination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.notification-destination p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notification-settings-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.notification-event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  container-type: inline-size;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.notification-event-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.notification-event-copy strong {
+  overflow-wrap: anywhere;
+}
+
+.notification-event-copy > span {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.notification-event-channels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.notification-channel-choice {
+  min-width: 0;
+}
+
+.notification-channel-choice .preference-switch-row {
+  display: grid;
+  align-content: start;
+  justify-content: start;
+  gap: var(--space-1);
+  min-height: 0;
+}
+
+.notification-channel-choice .preference-switch-copy {
+  align-content: start;
+}
+
+.notification-channel-choice .preference-switch-copy > span {
+  max-width: 24ch;
+  font-size: 0.82rem;
+}
+
+.notification-channel-choice .preference-switch-control:disabled {
+  cursor: not-allowed;
+}
+
+/* Keep the track inside its 48px touch target when the root font grows. */
+.notification-channel-choice .preference-switch-track {
+  width: 44px;
+  height: 26px;
+}
+
+.notification-channel-choice .preference-switch-thumb {
+  left: 3px;
+  width: 18px;
+  height: 18px;
+}
+
+.notification-channel-choice
+  .preference-switch-control[aria-checked="true"]
+  .preference-switch-thumb {
+  transform: translate(18px, -50%);
+}
+
+.notification-settings-feedback {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+@container (max-width: 27rem) {
+  .notification-event-channels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .notification-channel-choice .preference-switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

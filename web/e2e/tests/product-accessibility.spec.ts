@@ -1192,9 +1192,11 @@ test('notification choices survive return and stay legible across themes and wid
   await commentPush.click();
   await expect(commentPush).toHaveAttribute('aria-checked', 'true');
   await expect(
-    page
-      .getByRole('status')
-      .filter({ hasText: 'Kommentare: Push wurde gespeichert.' }),
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.push),
+    }),
   ).toBeVisible();
   await page.screenshot({
     path: test

@@ -6,10 +6,12 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**getNotificationUnreadCount**](NotificationsApi.md#getnotificationunreadcount) | **GET** /api/v1/spaces/{spaceId}/notifications/unread-count | Get Notification Unread Count |
 | [**getNotifications**](NotificationsApi.md#getnotifications) | **GET** /api/v1/spaces/{spaceId}/notifications | Get Notifications |
+| [**getOwnNotificationPreferences**](NotificationsApi.md#getownnotificationpreferences) | **GET** /api/v1/notification-preferences | Get Own Notification Preferences |
 | [**markAllNotificationsRead**](NotificationsApi.md#markallnotificationsread) | **POST** /api/v1/spaces/{spaceId}/notifications/read-all | Mark All Notifications Read |
 | [**markNotificationRead**](NotificationsApi.md#marknotificationread) | **POST** /api/v1/spaces/{spaceId}/notifications/{notificationId}/read | Mark Notification Read |
 | [**sendPartnerQuickAction**](NotificationsApi.md#sendpartnerquickaction) | **POST** /api/v1/spaces/{spaceId}/partner-quick-actions | Send Partner Quick Action |
 | [**sendThinkingOfYou**](NotificationsApi.md#sendthinkingofyou) | **POST** /api/v1/spaces/{spaceId}/thinking-of-you | Send Thinking Of You |
+| [**updateOwnNotificationPreference**](NotificationsApi.md#updateownnotificationpreference) | **PATCH** /api/v1/notification-preferences/{kind}/{channel} | Update Own Notification Preference |
 
 
 
@@ -152,6 +154,67 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getOwnNotificationPreferences
+
+> NotificationPreferencesView getOwnNotificationPreferences()
+
+Get Own Notification Preferences
+
+Keep persisted choice, policy eligibility and transport readiness distinct.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { GetOwnNotificationPreferencesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  try {
+    const data = await api.getOwnNotificationPreferences();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**NotificationPreferencesView**](NotificationPreferencesView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -436,6 +499,83 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
 | **429** | Too many attempts occurred within the allowed time window. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateOwnNotificationPreference
+
+> NotificationPreferenceUpdated updateOwnNotificationPreference(kind, channel, notificationPreferenceUpdate)
+
+Update Own Notification Preference
+
+Change only the authenticated recipient\&#39;s implemented PUSH choice.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { UpdateOwnNotificationPreferenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  const body = {
+    // NotificationKind
+    kind: ...,
+    // NotificationChannel
+    channel: ...,
+    // NotificationPreferenceUpdate
+    notificationPreferenceUpdate: ...,
+  } satisfies UpdateOwnNotificationPreferenceRequest;
+
+  try {
+    const data = await api.updateOwnNotificationPreference(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **kind** | `NotificationKind` |  | [Defaults to `undefined`] [Enum: COMMENT_CREATED, THINKING_OF_YOU, PARTNER_KISS, PARTNER_CHECK_IN, REMINDER_DUE] |
+| **channel** | `NotificationChannel` |  | [Defaults to `undefined`] [Enum: IN_APP, PUSH, EMAIL] |
+| **notificationPreferenceUpdate** | [NotificationPreferenceUpdate](NotificationPreferenceUpdate.md) |  | |
+
+### Return type
+
+[**NotificationPreferenceUpdated**](NotificationPreferenceUpdated.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

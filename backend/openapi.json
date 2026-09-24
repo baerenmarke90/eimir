@@ -2283,6 +2283,15 @@
         "title": "DateRepeat",
         "type": "string"
       },
+      "DeliveryClass": {
+        "enum": [
+          "IMMEDIATE",
+          "DIGESTIBLE",
+          "IN_APP_ONLY"
+        ],
+        "title": "DeliveryClass",
+        "type": "string"
+      },
       "DiscoverLeadContext": {
         "properties": {
           "type": {
@@ -3983,6 +3992,66 @@
         "title": "MilestoneUpdate",
         "type": "object"
       },
+      "NotificationChannel": {
+        "enum": [
+          "IN_APP",
+          "PUSH",
+          "EMAIL"
+        ],
+        "title": "NotificationChannel",
+        "type": "string"
+      },
+      "NotificationChannelCapability": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "channel",
+          "available",
+          "reason"
+        ],
+        "title": "NotificationChannelCapability",
+        "type": "object"
+      },
+      "NotificationChannelPreference": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "configurable": {
+            "title": "Configurable",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "enabled",
+          "configurable"
+        ],
+        "title": "NotificationChannelPreference",
+        "type": "object"
+      },
       "NotificationItem": {
         "properties": {
           "actor": {
@@ -4125,6 +4194,94 @@
           "hasMore"
         ],
         "title": "NotificationPage",
+        "type": "object"
+      },
+      "NotificationPreferenceEntry": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelPreference"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "deliveryClass": {
+            "$ref": "#/components/schemas/DeliveryClass"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "deliveryClass",
+          "channels"
+        ],
+        "title": "NotificationPreferenceEntry",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdate",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdated": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "channel",
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdated",
+        "type": "object"
+      },
+      "NotificationPreferencesView": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelCapability"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "catalogVersion": {
+            "title": "Catalogversion",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationPreferenceEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "catalogVersion",
+          "items",
+          "capabilities"
+        ],
+        "title": "NotificationPreferencesView",
         "type": "object"
       },
       "NotificationUnreadCount": {
@@ -11977,6 +12134,138 @@
         "summary": "Accept Invitation",
         "tags": [
           "invitations"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences": {
+      "get": {
+        "description": "Keep persisted choice, policy eligibility and transport readiness distinct.",
+        "operationId": "getOwnNotificationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Own Notification Preferences",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/{kind}/{channel}": {
+      "patch": {
+        "description": "Change only the authenticated recipient's implemented PUSH choice.",
+        "operationId": "updateOwnNotificationPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationKind"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationChannel"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferenceUpdated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Notification Preference",
+        "tags": [
+          "notifications"
         ]
       }
     },

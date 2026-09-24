@@ -36,14 +36,13 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
 
 def own_push_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
     """Read one Account's effective choices for the closed policy catalog."""
-    overrides = dict(
-        session.execute(
-            select(NotificationPreference.kind, NotificationPreference.enabled).where(
-                NotificationPreference.account_id == account_id,
-                NotificationPreference.channel == NotificationChannel.PUSH.value,
-            )
-        ).all()
-    )
+    rows = session.execute(
+        select(NotificationPreference.kind, NotificationPreference.enabled).where(
+            NotificationPreference.account_id == account_id,
+            NotificationPreference.channel == NotificationChannel.PUSH.value,
+        )
+    ).tuples()
+    overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
     return {
         kind: bool(overrides.get(kind.value, True))
         if notification_policy.POLICIES[kind].push_immediately

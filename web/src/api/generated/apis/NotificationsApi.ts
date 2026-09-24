@@ -14,15 +14,40 @@
 
 import * as runtime from '../runtime';
 import {
+    type NotificationChannel,
+    NotificationChannelFromJSON,
+    NotificationChannelToJSON,
+} from '../models/NotificationChannel';
+import {
     type NotificationItem,
     NotificationItemFromJSON,
     NotificationItemToJSON,
 } from '../models/NotificationItem';
 import {
+    type NotificationKind,
+    NotificationKindFromJSON,
+    NotificationKindToJSON,
+} from '../models/NotificationKind';
+import {
     type NotificationPage,
     NotificationPageFromJSON,
     NotificationPageToJSON,
 } from '../models/NotificationPage';
+import {
+    type NotificationPreferenceUpdate,
+    NotificationPreferenceUpdateFromJSON,
+    NotificationPreferenceUpdateToJSON,
+} from '../models/NotificationPreferenceUpdate';
+import {
+    type NotificationPreferenceUpdated,
+    NotificationPreferenceUpdatedFromJSON,
+    NotificationPreferenceUpdatedToJSON,
+} from '../models/NotificationPreferenceUpdated';
+import {
+    type NotificationPreferencesView,
+    NotificationPreferencesViewFromJSON,
+    NotificationPreferencesViewToJSON,
+} from '../models/NotificationPreferencesView';
 import {
     type NotificationUnreadCount,
     NotificationUnreadCountFromJSON,
@@ -86,6 +111,12 @@ export interface SendPartnerQuickActionRequest {
 export interface SendThinkingOfYouRequest {
     spaceId: string;
     thinkingOfYouCreate: ThinkingOfYouCreate;
+}
+
+export interface UpdateOwnNotificationPreferenceRequest {
+    kind: NotificationKind;
+    channel: NotificationChannel;
+    notificationPreferenceUpdate: NotificationPreferenceUpdate;
 }
 
 /**
@@ -188,6 +219,45 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async getNotifications(requestParameters: GetNotificationsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPage> {
         const response = await this.getNotificationsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getOwnNotificationPreferences without sending the request
+     */
+    async getOwnNotificationPreferencesRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/notification-preferences`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Keep persisted choice, policy eligibility and transport readiness distinct.
+     * Get Own Notification Preferences
+     */
+    async getOwnNotificationPreferencesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationPreferencesView>> {
+        const requestOptions = await this.getOwnNotificationPreferencesRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => NotificationPreferencesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Keep persisted choice, policy eligibility and transport readiness distinct.
+     * Get Own Notification Preferences
+     */
+    async getOwnNotificationPreferences(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferencesView> {
+        const response = await this.getOwnNotificationPreferencesRaw(initOverrides);
         return await response.value();
     }
 
@@ -396,6 +466,71 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async sendThinkingOfYou(requestParameters: SendThinkingOfYouRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ThinkingOfYouAccepted> {
         const response = await this.sendThinkingOfYouRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnNotificationPreference without sending the request
+     */
+    async updateOwnNotificationPreferenceRequestOpts(requestParameters: UpdateOwnNotificationPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        if (requestParameters['channel'] == null) {
+            throw new runtime.RequiredError(
+                'channel',
+                'Required parameter "channel" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        if (requestParameters['notificationPreferenceUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'notificationPreferenceUpdate',
+                'Required parameter "notificationPreferenceUpdate" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/notification-preferences/{kind}/{channel}`;
+        urlPath = urlPath.replace('{kind}', encodeURIComponent(String(requestParameters['kind'])));
+        urlPath = urlPath.replace('{channel}', encodeURIComponent(String(requestParameters['channel'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: NotificationPreferenceUpdateToJSON(requestParameters['notificationPreferenceUpdate']),
+        };
+    }
+
+    /**
+     * Change only the authenticated recipient\'s implemented PUSH choice.
+     * Update Own Notification Preference
+     */
+    async updateOwnNotificationPreferenceRaw(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationPreferenceUpdated>> {
+        const requestOptions = await this.updateOwnNotificationPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => NotificationPreferenceUpdatedFromJSON(jsonValue));
+    }
+
+    /**
+     * Change only the authenticated recipient\'s implemented PUSH choice.
+     * Update Own Notification Preference
+     */
+    async updateOwnNotificationPreference(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferenceUpdated> {
+        const response = await this.updateOwnNotificationPreferenceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -1,13 +1,15 @@
-# Comment digest Push backend: #515 bounded slice
+# Comment digest Push: #515 bounded slice
 
 The v2 notification catalog classifies `COMMENT_CREATED` as DIGESTIBLE. This
-backend slice allows one generic Push per recipient, Space, endpoint and fixed
-UTC hour **only after an explicit recipient-owned `PUSH` preference row has
-been set to true**. The public preference API and Settings still reject this
-choice. Existing users cannot activate it, and rollout creates no unsolicited
-Push. Exposing that opt-in is a separate user-facing slice with its required
-visual preflight. EMAIL digest, wider Activity kinds and a daily-summary
-control remain outside this slice.
+backend allows one generic Push per recipient, Space, endpoint and fixed UTC
+hour **only after an explicit recipient-owned `PUSH` preference row has been
+set to true**. The public preference API and Notification Settings expose this
+choice within the existing Comments row. It defaults off, so existing users
+receive no unsolicited Push. A person may save the choice before a Push
+endpoint is available; Settings explains that delivery is not yet ready on
+that device. Only future eligible comments enter a digest once an endpoint
+exists. EMAIL digest, wider Activity kinds and a daily-summary control remain
+outside this slice.
 
 Projection time determines the UTC bucket. Each opted-in comment creates one
 existing `PushDelivery` receipt and one delayed job with only a technical

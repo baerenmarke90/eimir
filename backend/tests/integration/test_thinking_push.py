@@ -984,13 +984,9 @@ def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
     assert not notification_preferences.push_enabled(
         session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
     )
-    with pytest.raises(ValueError, match="Push is not available"):
-        notification_preferences.set_push_enabled(
-            session,
-            account_id=couple["ben"].id,
-            kind=NotificationKind.COMMENT_CREATED,
-            enabled=True,
-        )
+    assert not notification_preferences.digest_push_enabled(
+        session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
+    )
     notification_preferences.set_push_enabled(
         session,
         account_id=couple["ben"].id,

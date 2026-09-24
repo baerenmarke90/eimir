@@ -34,6 +34,9 @@ def test_comment_has_no_immediate_push_but_allows_one_generic_opted_in_digest() 
     assert reference is not None
     assert reference.key == "notification.generic"
     assert notification_policy.digest_presentation_for("UNRECOGNIZED_EVENT", uuid4()) is None
+    assert notification_policy.push_choice_allowed(NotificationKind.COMMENT_CREATED.value)
+    assert notification_policy.push_choice_allowed(NotificationKind.THINKING_OF_YOU.value)
+    assert not notification_policy.push_choice_allowed("UNRECOGNIZED_EVENT")
 
 
 def test_digest_window_uses_fixed_utc_projection_hour() -> None:
@@ -91,3 +94,4 @@ def test_preview_contract_fails_closed_for_unreviewed_fields_and_classes(
         )
         is None
     )
+    assert not notification_policy.push_choice_allowed(NotificationKind.COMMENT_CREATED.value)

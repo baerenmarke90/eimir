@@ -44,7 +44,7 @@ function view(emailAvailable = true): NotificationPreferencesView {
           {
             channel: NotificationChannel.PUSH,
             enabled: false,
-            configurable: false,
+            configurable: true,
           },
           {
             channel: NotificationChannel.EMAIL,
@@ -115,6 +115,56 @@ function setup(
 }
 
 describe('NotificationSettingsPanel', () => {
+  it('saves an explicit comment digest choice while transport is unavailable', async () => {
+    const update = vi.fn().mockResolvedValue({
+      kind: NotificationKind.COMMENT_CREATED,
+      channel: NotificationChannel.PUSH,
+      enabled: true,
+    });
+    setup(view(), update);
+    const commentPush = await screen.findByRole('switch', {
+      name: 'Kommentare: Push',
+    });
+    expect(commentPush.hasAttribute('disabled')).toBe(false);
+    expect(commentPush.getAttribute('aria-checked')).toBe('false');
+    expect(
+      screen.getByText((content) =>
+        content.includes(notificationSettings.commentPushDescription),
+      ),
+    ).toBeDefined();
+    expect(
+      screen.getAllByText(notificationSettings.endpointMissing).length,
+    ).toBeGreaterThan(0);
+
+    fireEvent.click(commentPush);
+    await waitFor(() =>
+      expect(commentPush.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(update).toHaveBeenCalledWith({
+      kind: NotificationKind.COMMENT_CREATED,
+      channel: NotificationChannel.PUSH,
+      notificationPreferenceUpdate: { enabled: true },
+    });
+    expect(
+      screen
+        .getByRole('switch', { name: 'Kommentare: E-Mail' })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+  });
+
+  it('keeps comment Push off when the opt-in request fails', async () => {
+    const update = vi.fn().mockRejectedValue(new Error('offline'));
+    setup(view(), update);
+    const commentPush = await screen.findByRole('switch', {
+      name: 'Kommentare: Push',
+    });
+    fireEvent.click(commentPush);
+    await waitFor(() =>
+      expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
+    );
+    expect(commentPush.getAttribute('aria-checked')).toBe('false');
+  });
+
   it('updates only the selected owner channel after server confirmation', async () => {
     const { update } = setup(view());
     const email = await screen.findByRole('switch', {

@@ -5,6 +5,7 @@ const notificationSettings = {
   closeness: 'Nähe',
   comment: 'Kommentare',
   commentDescription: 'Neue Kommentare werden im Posteingang gesammelt.',
+  commentPushDescription: 'Höchstens ein neutraler Push pro Stunde.',
   reminder: 'Fällige Erinnerungen',
   thinking: 'Ich denke an dich',
   kiss: 'Ein Kuss',

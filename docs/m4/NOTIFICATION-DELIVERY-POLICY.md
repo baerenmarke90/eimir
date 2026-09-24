@@ -51,7 +51,8 @@ PUSH overrides for current immediate kinds and explicit digest opt-in. The
 [own-Account API and IN_APP follow-up](./NOTIFICATION-PREFERENCES-API.md)
 expose independent recipient choices. The
 [EMAIL delivery follow-up](./NOTIFICATION-EMAIL-DELIVERY.md) enables explicit
-opt-in for immediate kinds; EMAIL digests remain outstanding.
+opt-in for immediate kinds. The [comment EMAIL digest backend](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md)
+is dormant until a separate public opt-in is reviewed and exposed.
 
 **Business and operations:** notification quality is Free/Core in
 `docs/FREEMIUM-FEATURE-MATRIX.md` and identical for Cloud/Self-Hosted; no

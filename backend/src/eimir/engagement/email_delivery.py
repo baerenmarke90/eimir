@@ -56,30 +56,52 @@ def register_handlers() -> None:
 
 
 def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) -> None:
-    """Queue only explicitly opted-in immediate kinds, once per Notification."""
+    """Queue eligible mail once per Notification; digest requires an explicit row."""
     if not transport_available():
         return
     notifications = session.execute(
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
-        if notification_policy.presentation_for(notification.kind, notification.id) is None:
-            continue
-        if not notification_preferences.email_enabled(
-            session, account_id=notification.recipient_account_id, kind=notification.kind
+        digest = notification_policy.digest_kind_allowed(notification.kind)
+        if (
+            not digest
+            and notification_policy.presentation_for(notification.kind, notification.id) is None
         ):
+            continue
+        allowed = (
+            notification_preferences.digest_email_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
+            if digest
+            else notification_preferences.email_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
+        )
+        if not allowed:
             continue
         if verified_primary_email(session, notification.recipient_account_id) is None:
             continue
+        created_at = clock.now() if digest else None
         statement = (
             postgresql.insert(EmailDelivery)
-            .values(notification_id=notification.id, status=EmailDeliveryStatus.PENDING.value)
+            .values(
+                notification_id=notification.id,
+                status=EmailDeliveryStatus.PENDING.value,
+                **({"created_at": created_at} if created_at is not None else {}),
+            )
             .on_conflict_do_nothing(index_elements=["notification_id"])
             .returning(EmailDelivery.id)
         )
         delivery_id = session.execute(statement).scalar_one_or_none()
         if delivery_id is not None:
-            queue.enqueue(session, JOB_KIND, {"deliveryId": str(delivery_id)}, max_attempts=1)
+            delay = None
+            if created_at is not None:
+                _, end = notification_policy.digest_window(created_at)
+                delay = max(end - clock.now(), timedelta(seconds=1))
+            queue.enqueue(
+                session, JOB_KIND, {"deliveryId": str(delivery_id)}, delay=delay, max_attempts=1
+            )
 
 
 def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
@@ -129,11 +151,16 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
             and notification.kind == kind
         ):
             checked_at = clock.now()
-            release_at = quiet_hours_preferences.release_at(
-                accounts[recipient_id], kind=kind, at=checked_at
-            )
-            if release_at is not None:
-                next_check = _hold(row, release_at, checked_at)
+            if notification_policy.digest_kind_allowed(kind):
+                _, end = notification_policy.digest_window(row.created_at)
+                if checked_at < end:
+                    next_check = end
+            if next_check is None:
+                release_at = quiet_hours_preferences.release_at(
+                    accounts[recipient_id], kind=kind, at=checked_at
+                )
+                if release_at is not None:
+                    next_check = _hold(row, release_at, checked_at)
         if next_check is None:
             row.status = EmailDeliveryStatus.CLAIMED.value
             row.claimed_at = clock.now()
@@ -184,12 +211,23 @@ def _send_claimed(
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
         return None
-    if notification_policy.presentation_for(notification.kind, notification.id) is None:
+    digest = notification_policy.digest_kind_allowed(notification.kind)
+    if (
+        not digest
+        and notification_policy.presentation_for(notification.kind, notification.id) is None
+    ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_POLICY_BLOCKED")
         return None
-    if not notification_preferences.email_enabled(
-        session, account_id=recipient_id, kind=notification.kind
-    ):
+    allowed = (
+        notification_preferences.digest_email_enabled(
+            session, account_id=recipient_id, kind=notification.kind
+        )
+        if digest
+        else notification_preferences.email_enabled(
+            session, account_id=recipient_id, kind=notification.kind
+        )
+    )
+    if not allowed:
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_PREFERENCE_DISABLED")
         return None
     module = _SPACE_MODULES.get(notification.kind)
@@ -215,6 +253,12 @@ def _send_claimed(
         return None
 
     checked_at = clock.now()
+    if digest:
+        _, end = notification_policy.digest_window(delivery.created_at)
+        if checked_at < end:
+            delivery.status = EmailDeliveryStatus.PENDING.value
+            delivery.claimed_at = None
+            return end
     release_at = quiet_hours_preferences.release_at(
         accounts[recipient_id], kind=notification.kind, at=checked_at
     )
@@ -243,6 +287,10 @@ def _send_claimed(
             _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "QUIET_HOURS_COALESCED")
             return None
 
+    if digest and _digest_superseded(session, delivery, notification):
+        _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "DIGEST_COALESCED")
+        return None
+
     settings = get_settings()
     subject, body = _neutral_message(accounts[recipient_id].locale, settings.public_base_url)
     try:
@@ -263,6 +311,55 @@ def _send_claimed(
 def _hold(delivery: EmailDelivery, release_at: datetime, checked_at: datetime) -> datetime:
     delivery.deferred_until = release_at
     return min(release_at, checked_at + QUIET_HOURS_RECHECK)
+
+
+def _digest_superseded(
+    session: Session, delivery: EmailDelivery, notification: Notification
+) -> bool:
+    """Select one hourly mail under the recipient Account lock.
+
+    A sent or ambiguously failed SMTP attempt closes its bucket. A claimant
+    that died before SMTP also closes it: omission is safer than a duplicate.
+    """
+    start, end = notification_policy.digest_window(delivery.created_at)
+    batch = (
+        EmailDelivery.created_at >= start,
+        EmailDelivery.created_at < end,
+        Notification.recipient_account_id == notification.recipient_account_id,
+        Notification.space_id == notification.space_id,
+        Notification.kind == notification.kind,
+    )
+    attempted = session.execute(
+        select(EmailDelivery.id)
+        .join(Notification, Notification.id == EmailDelivery.notification_id)
+        .where(
+            *batch,
+            EmailDelivery.id != delivery.id,
+            EmailDelivery.status.in_(
+                (
+                    EmailDeliveryStatus.CLAIMED.value,
+                    EmailDeliveryStatus.SENT.value,
+                    EmailDeliveryStatus.FAILED.value,
+                )
+            ),
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if attempted is not None:
+        return True
+    latest = session.execute(
+        select(EmailDelivery.id)
+        .join(Notification, Notification.id == EmailDelivery.notification_id)
+        .where(
+            *batch,
+            EmailDelivery.status.in_(
+                (EmailDeliveryStatus.PENDING.value, EmailDeliveryStatus.CLAIMED.value)
+            ),
+        )
+        .order_by(EmailDelivery.created_at.desc(), EmailDelivery.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    return latest != delivery.id
 
 
 def _neutral_message(locale: str, base_url: str) -> tuple[str, str]:

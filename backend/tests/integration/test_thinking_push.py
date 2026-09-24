@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from types import MappingProxyType
 from uuid import uuid4
 
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.engagement import push, service, thinking
+from eimir.engagement import notification_policy, push, service, thinking
 from eimir.engagement.models import (
     Activity,
     Notification,
@@ -462,6 +464,47 @@ def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
     assert stale_delivery.status == PushDeliveryStatus.UNAVAILABLE.value
     assert stale_delivery.last_error_code == push.POLICY_BLOCKED_CODE
     assert stale_delivery.attempts == 0
+    assert provider.calls == []
+
+
+def test_unreviewed_preview_change_blocks_an_already_queued_push(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="private-endpoint-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.THINKING_OF_YOU.value,
+        actor_id=couple["anna"].id,
+        target_type=None,
+        target_id=None,
+        created_at=NOW,
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    expanded_catalog = dict(notification_policy.POLICIES)
+    expanded_catalog[NotificationKind.THINKING_OF_YOU] = replace(
+        expanded_catalog[NotificationKind.THINKING_OF_YOU],
+        preview=replace(notification_policy.GENERIC_PREVIEW, allow_sender_name=True),
+    )
+    monkeypatch.setattr(notification_policy, "POLICIES", MappingProxyType(expanded_catalog))
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert delivery.last_error_code == push.POLICY_BLOCKED_CODE
+    assert delivery.attempts == 0
     assert provider.calls == []
 
 

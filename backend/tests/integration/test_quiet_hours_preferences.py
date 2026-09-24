@@ -74,12 +74,11 @@ def test_database_rejects_partial_equal_or_second_precise_boundaries(
     session: Session, start: time, end: time | None
 ) -> None:
     account = make_account(session)
-    with pytest.raises(IntegrityError):
-        with session.begin_nested():
-            session.execute(
-                update(Account)
-                .where(Account.id == account.id)
-                .values(quiet_hours_start=start, quiet_hours_end=end)
-            )
+    with pytest.raises(IntegrityError), session.begin_nested():
+        session.execute(
+            update(Account)
+            .where(Account.id == account.id)
+            .values(quiet_hours_start=start, quiet_hours_end=end)
+        )
     session.refresh(account)
     assert quiet_hours_preferences.own_window(account) is None

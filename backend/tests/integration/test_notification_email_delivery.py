@@ -104,9 +104,7 @@ def _handle(engine: Engine, delivery_id) -> None:  # type: ignore[no-untyped-def
         email_delivery.handle_delivery(outer, {"deliveryId": str(delivery_id)})
 
 
-def _queue_partner_mail(
-    engine: Engine, *, ben_id, space_id, anna_id, created_at: datetime
-):  # type: ignore[no-untyped-def]
+def _queue_partner_mail(engine: Engine, *, ben_id, space_id, anna_id, created_at: datetime):  # type: ignore[no-untyped-def]
     with Session(engine) as session:
         notification_preferences.set_email_enabled(
             session, account_id=ben_id, kind=NotificationKind.PARTNER_KISS, enabled=True

@@ -69,6 +69,7 @@ async function installAuthorizedApiMocks(
   let vibeVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let spaceConfigurationVersion = 7;
+  let reminderEmailEnabled = false;
   const spaceConfigurationBody = () =>
     JSON.stringify({
       canManageSpaceConfiguration: true,
@@ -234,6 +235,76 @@ async function installAuthorizedApiMocks(
         ruleKey: pathname.split('/').at(-2),
         enabled: true,
         parameters: { daysBefore: [30, 7, 1], localTime: '09:00:00' },
+      });
+      return;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
+      await fulfillJson({
+        catalogVersion: 2,
+        capabilities: [
+          {
+            channel: 'IN_APP',
+            available: true,
+            reason: null,
+            destination: null,
+          },
+          {
+            channel: 'PUSH',
+            available: false,
+            reason: 'PUSH_ENDPOINT_MISSING',
+            destination: null,
+          },
+          {
+            channel: 'EMAIL',
+            available: true,
+            reason: null,
+            destination: 'anna@example.org',
+          },
+        ],
+        items: [
+          'COMMENT_CREATED',
+          'REMINDER_DUE',
+          'THINKING_OF_YOU',
+          'PARTNER_KISS',
+          'PARTNER_CHECK_IN',
+        ].map((kind) => ({
+          kind,
+          deliveryClass:
+            kind === 'COMMENT_CREATED' ? 'DIGESTIBLE' : 'IMMEDIATE',
+          channels: [
+            { channel: 'IN_APP', enabled: true, configurable: true },
+            {
+              channel: 'PUSH',
+              enabled: false,
+              configurable: kind !== 'COMMENT_CREATED',
+            },
+            {
+              channel: 'EMAIL',
+              enabled: kind === 'REMINDER_DUE' && reminderEmailEnabled,
+              configurable: kind !== 'COMMENT_CREATED',
+            },
+          ],
+        })),
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/REMINDER_DUE/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Notification PATCH contained an unapproved recipient',
+        );
+      }
+      reminderEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'REMINDER_DUE',
+        channel: 'EMAIL',
+        enabled: reminderEmailEnabled,
       });
       return;
     }
@@ -1004,6 +1075,72 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     await expectNoHorizontalOverflow(page);
     expect(unexpectedRequests).toEqual([]);
   });
+});
+
+test('notification channel choice survives return and stays legible across themes and widths (#638)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await installAuthorizedApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/more/settings/notifications');
+
+  const email = page.getByRole('switch', {
+    name: 'Fällige Erinnerungen: E-Mail',
+  });
+  await expect(email).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText('anna@example.org', { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator('.anniversary-reminder-form')).toBeVisible();
+  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  await expect(
+    page.getByRole('link', {
+      name: profileIdentity.settingsNotificationsAction,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light.png'),
+    fullPage: true,
+  });
+
+  await email.click();
+  await expect(email).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({ hasText: 'E-Mail wurde gespeichert' }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
+    .click();
+  await page
+    .getByRole('link', {
+      name: profileIdentity.settingsNotifications,
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
+
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-dark.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-dark.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-light.png'),
+    fullPage: true,
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
 });
 
 test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, and axe-clean', async ({

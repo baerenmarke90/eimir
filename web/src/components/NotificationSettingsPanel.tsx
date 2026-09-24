@@ -211,20 +211,26 @@ export function NotificationSettingsPanel({
                             const commentDigestPush =
                               item.kind === NotificationKind.COMMENT_CREATED &&
                               channel === NotificationChannel.PUSH;
+                            const commentDigestEmail =
+                              item.kind === NotificationKind.COMMENT_CREATED &&
+                              channel === NotificationChannel.EMAIL;
                             const unavailable =
                               !choice.configurable ||
                               (!commentDigestPush &&
                                 !choice.enabled &&
                                 !capability?.available);
                             const explanation =
+                              !commentDigestEmail &&
                               !choice.configurable &&
                               item.deliveryClass !== 'IMMEDIATE'
                                 ? t('notificationSettings.policyUnavailable')
                                 : commentDigestPush
                                   ? `${t('notificationSettings.commentPushDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
-                                  : !capability?.available
-                                    ? reason(channel, capability)
-                                    : undefined;
+                                  : commentDigestEmail
+                                    ? `${t('notificationSettings.commentEmailDescription')}${!capability?.available ? ` ${reason(channel, capability)}` : ''}`
+                                    : !capability?.available
+                                      ? reason(channel, capability)
+                                      : undefined;
                             const channelLabel = t(
                               `notificationSettings.${CHANNEL_KEYS[channel]}`,
                             );

@@ -233,17 +233,9 @@ def test_comment_digest_push_requires_explicit_owner_choice_without_transport(
     assert rows[0].enabled is False
 
 
-def test_unimplemented_comment_email_and_invalid_requests_fail_without_writing(
-    client, session: Session
-) -> None:  # type: ignore[no-untyped-def]
+def test_invalid_requests_fail_without_writing(client, session: Session) -> None:  # type: ignore[no-untyped-def]
     account = make_account(session)
     token = sign_in(session, account)
-    response = client.patch(
-        f"{BASE}/COMMENT_CREATED/EMAIL", json={"enabled": True}, headers=auth(token)
-    )
-    assert response.status_code == 409
-    assert response.json()["code"] == "NOTIFICATION_EMAIL_NOT_ALLOWED"
-
     assert (
         client.patch(
             f"{BASE}/THINKING_OF_YOU/PUSH",
@@ -324,7 +316,7 @@ def test_email_opt_in_requires_smtp_and_verified_primary_and_is_account_scoped(
         "destination": "anna@example.org",
     }
     assert _channel(_entry(own.json(), "REMINDER_DUE"), "EMAIL")["enabled"] is True
-    assert _channel(_entry(own.json(), "COMMENT_CREATED"), "EMAIL")["configurable"] is False
+    assert _channel(_entry(own.json(), "COMMENT_CREATED"), "EMAIL")["configurable"] is True
     partner = client.get(BASE, headers=auth(ben_token)).json()
     assert _capability(partner, "EMAIL")["destination"] is None
     assert _channel(_entry(partner, "REMINDER_DUE"), "EMAIL")["enabled"] is False
@@ -340,3 +332,82 @@ def test_email_opt_in_requires_smtp_and_verified_primary_and_is_account_scoped(
     # Disabling remains possible when the transport or address disappears.
     disabled = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
     assert disabled.status_code == 200
+
+
+def test_comment_email_digest_requires_explicit_owner_consent_and_can_be_revoked(
+    client, session: Session, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    anna_token = sign_in(session, anna)
+    ben_token = sign_in(session, ben)
+    path = f"{BASE}/COMMENT_CREATED/EMAIL"
+
+    initial = client.get(BASE, headers=auth(anna_token))
+    assert initial.headers["Cache-Control"] == "private, no-store"
+    assert _channel(_entry(initial.json(), "COMMENT_CREATED"), "EMAIL") == {
+        "channel": "EMAIL",
+        "enabled": False,
+        "configurable": False,
+    }
+    assert client.patch(path, json={"enabled": True}).status_code == 401
+    unavailable = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert unavailable.status_code == 409
+    assert unavailable.json()["code"] == "NOTIFICATION_EMAIL_TRANSPORT_UNAVAILABLE"
+
+    monkeypatch.setattr(email_delivery, "transport_available", lambda: True)
+    missing = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert missing.status_code == 409
+    assert missing.json()["code"] == "NOTIFICATION_EMAIL_VERIFIED_PRIMARY_MISSING"
+    address = AccountEmail(account_id=anna.id, email="anna@example.org", is_primary=True)
+    session.add(address)
+    session.flush()
+    assert (
+        _channel(
+            _entry(client.get(BASE, headers=auth(anna_token)).json(), "COMMENT_CREATED"), "EMAIL"
+        )["configurable"]
+        is False
+    )
+    address.verified_at = now()
+    session.flush()
+
+    ready = client.get(BASE, headers=auth(anna_token)).json()
+    assert _channel(_entry(ready, "COMMENT_CREATED"), "EMAIL")["configurable"] is True
+    enabled = client.patch(path, json={"enabled": True}, headers=auth(anna_token))
+    assert enabled.status_code == 200
+    assert enabled.headers["Cache-Control"] == "private, no-store"
+    assert enabled.json() == {"kind": "COMMENT_CREATED", "channel": "EMAIL", "enabled": True}
+    assert notification_preferences.digest_email_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    assert not notification_preferences.email_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    own = client.get(BASE, headers=auth(anna_token)).json()
+    assert _channel(_entry(own, "COMMENT_CREATED"), "EMAIL")["enabled"] is True
+    assert _channel(_entry(own, "COMMENT_CREATED"), "PUSH")["enabled"] is False
+    assert _channel(_entry(own, "COMMENT_CREATED"), "IN_APP")["enabled"] is True
+    partner = client.get(BASE, headers=auth(ben_token)).json()
+    assert _channel(_entry(partner, "COMMENT_CREATED"), "EMAIL")["enabled"] is False
+    assert (
+        client.patch(
+            path,
+            json={"enabled": True, "destination": "someone@example.org"},
+            headers=auth(anna_token),
+        ).status_code
+        == 422
+    )
+
+    address.verified_at = None
+    session.flush()
+    assert (
+        _channel(
+            _entry(client.get(BASE, headers=auth(anna_token)).json(), "COMMENT_CREATED"), "EMAIL"
+        )["configurable"]
+        is True
+    )
+    disabled = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
+    assert disabled.status_code == 200
+    assert not notification_preferences.digest_email_enabled(
+        session, account_id=anna.id, kind=NotificationKind.COMMENT_CREATED.value
+    )

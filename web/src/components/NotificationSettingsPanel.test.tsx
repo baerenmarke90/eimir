@@ -49,7 +49,7 @@ function view(emailAvailable = true): NotificationPreferencesView {
           {
             channel: NotificationChannel.EMAIL,
             enabled: false,
-            configurable: false,
+            configurable: emailAvailable,
           },
         ],
       },
@@ -149,7 +149,58 @@ describe('NotificationSettingsPanel', () => {
       screen
         .getByRole('switch', { name: 'Kommentare: E-Mail' })
         .hasAttribute('disabled'),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  it('saves a separate comment email digest choice only after server confirmation', async () => {
+    const update = vi.fn().mockResolvedValue({
+      kind: NotificationKind.COMMENT_CREATED,
+      channel: NotificationChannel.EMAIL,
+      enabled: true,
+    });
+    setup(view(), update);
+    const commentEmail = await screen.findByRole('switch', {
+      name: 'Kommentare: E-Mail',
+    });
+    expect(commentEmail.getAttribute('aria-checked')).toBe('false');
+    expect(commentEmail.hasAttribute('disabled')).toBe(false);
+    expect(
+      screen.getByText((content) =>
+        content.includes(notificationSettings.commentEmailDescription),
+      ),
+    ).toBeDefined();
+
+    fireEvent.click(commentEmail);
+    await waitFor(() =>
+      expect(commentEmail.getAttribute('aria-checked')).toBe('true'),
+    );
+    expect(update).toHaveBeenCalledWith({
+      kind: NotificationKind.COMMENT_CREATED,
+      channel: NotificationChannel.EMAIL,
+      notificationPreferenceUpdate: { enabled: true },
+    });
+    expect(
+      screen
+        .getByRole('switch', { name: 'Kommentare: In-App' })
+        .getAttribute('aria-checked'),
+    ).toBe('true');
+    expect(
+      screen
+        .getByRole('switch', { name: 'Kommentare: Push' })
+        .getAttribute('aria-checked'),
+    ).toBe('false');
+  });
+
+  it('keeps comment email off when saving fails', async () => {
+    setup(view(), vi.fn().mockRejectedValue(new Error('offline')));
+    const commentEmail = await screen.findByRole('switch', {
+      name: 'Kommentare: E-Mail',
+    });
+    fireEvent.click(commentEmail);
+    await waitFor(() =>
+      expect(screen.getByText(notificationSettings.failed)).toBeDefined(),
+    );
+    expect(commentEmail.getAttribute('aria-checked')).toBe('false');
   });
 
   it('keeps comment Push off when the opt-in request fails', async () => {

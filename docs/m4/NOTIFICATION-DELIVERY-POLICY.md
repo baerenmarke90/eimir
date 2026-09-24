@@ -13,7 +13,7 @@ authoritative ahead of delivery decisions.
 | `THINKING_OF_YOU` | IMMEDIATE | Existing content-free generic push for an explicit, server-paced Free/Core signal. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | IMMEDIATE | Existing content-free generic push when a permitted extended gesture is sent; Premium only governs sending. |
 | `REMINDER_DUE` | IMMEDIATE | Existing generic push for an already due recipient-specific reminder; source rule/preference controls whether it exists. |
-| `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; a bounded generic Push digest requires an explicit Account opt-in. No per-comment push. |
+| `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; bounded generic Push and EMAIL digests each require a separate explicit Account opt-in. No per-comment external delivery. |
 
 `IN_APP_ONLY` is an available catalog class for future explicitly approved
 notification kinds, not a wildcard for arbitrary Outbox/Activity events.
@@ -51,8 +51,9 @@ PUSH overrides for current immediate kinds and explicit digest opt-in. The
 [own-Account API and IN_APP follow-up](./NOTIFICATION-PREFERENCES-API.md)
 expose independent recipient choices. The
 [EMAIL delivery follow-up](./NOTIFICATION-EMAIL-DELIVERY.md) enables explicit
-opt-in for immediate kinds. The [comment EMAIL digest backend](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md)
-is dormant until a separate public opt-in is reviewed and exposed.
+opt-in for immediate kinds. The [comment EMAIL digest](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md)
+is available by explicit recipient opt-in in Notification Settings when SMTP
+and a verified primary Account address are present.
 
 **Business and operations:** notification quality is Free/Core in
 `docs/FREEMIUM-FEATURE-MATRIX.md` and identical for Cloud/Self-Hosted; no

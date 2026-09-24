@@ -76,12 +76,21 @@ class PushDeliveryStatus(StrEnum):
     UNAVAILABLE = "UNAVAILABLE"
 
 
+class EmailDeliveryStatus(StrEnum):
+    PENDING = "PENDING"
+    CLAIMED = "CLAIMED"
+    SENT = "SENT"
+    UNAVAILABLE = "UNAVAILABLE"
+    FAILED = "FAILED"
+
+
 _ACTIVITY_KIND_VALUES = ", ".join(f"'{value.value}'" for value in ActivityKind)
 _NOTIFICATION_KIND_VALUES = ", ".join(f"'{value.value}'" for value in NotificationKind)
 _NOTIFICATION_CHANNEL_VALUES = ", ".join(f"'{value.value}'" for value in NotificationChannel)
 _SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in SupportGestureKind)
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
+_EMAIL_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in EmailDeliveryStatus)
 
 
 class Activity(IdMixin, Base):
@@ -368,6 +377,7 @@ class PushDelivery(IdMixin, Base):
         ForeignKey("notifications.id", ondelete="CASCADE"),
         nullable=False,
     )
+
     push_endpoint_id: Mapped[UUID] = mapped_column(
         postgresql.UUID(as_uuid=True),
         ForeignKey("push_endpoints.id", ondelete="CASCADE"),
@@ -399,4 +409,33 @@ class PushDelivery(IdMixin, Base):
             name="uq_push_deliveries_notification_endpoint",
         ),
         Index("ix_push_deliveries_status_created", "status", "created_at"),
+    )
+
+
+class EmailDelivery(IdMixin, Base):
+    """One content-free mail attempt per Notification, with no stored address."""
+
+    __tablename__ = "email_deliveries"
+
+    notification_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("notifications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(
+        String(24), nullable=False, default=EmailDeliveryStatus.PENDING.value
+    )
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            f"status IN ({_EMAIL_STATUS_VALUES})", name="email_delivery_status_allowed"
+        ),
+        UniqueConstraint("notification_id", name="uq_email_deliveries_notification"),
+        Index("ix_email_deliveries_status_created", "status", "created_at"),
     )

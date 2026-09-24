@@ -10,7 +10,7 @@ from eimir.api.deps import CurrentAccount, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.core.errors import ConflictError, ErrorCode
-from eimir.engagement import notification_policy, notification_preferences
+from eimir.engagement import email_delivery, notification_policy, notification_preferences
 from eimir.engagement.models import NotificationChannel, NotificationKind, PushEndpoint
 
 router = APIRouter(prefix="/notification-preferences", tags=["notifications"])
@@ -32,6 +32,7 @@ class NotificationChannelCapability(ApiModel):
     channel: NotificationChannel
     available: bool
     reason: str | None
+    destination: str | None = None
 
 
 class NotificationPreferencesView(ApiModel):
@@ -64,6 +65,9 @@ def get_own_notification_preferences(
     """Keep persisted choice, policy eligibility and transport readiness distinct."""
     push_choices = notification_preferences.own_push_choices(session, account_id=account.id)
     in_app_choices = notification_preferences.own_in_app_choices(session, account_id=account.id)
+    email_choices = notification_preferences.own_email_choices(session, account_id=account.id)
+    email_address = email_delivery.verified_primary_email(session, account.id)
+    email_transport_ready = email_delivery.transport_available()
     active_endpoint = session.execute(
         select(PushEndpoint.id)
         .where(PushEndpoint.account_id == account.id, PushEndpoint.disabled_at.is_(None))
@@ -88,7 +92,15 @@ def get_own_notification_preferences(
                         configurable=notification_policy.POLICIES[kind].push_immediately,
                     ),
                     NotificationChannelPreference(
-                        channel=NotificationChannel.EMAIL, enabled=False, configurable=False
+                        channel=NotificationChannel.EMAIL,
+                        enabled=email_choices[kind],
+                        configurable=(
+                            notification_policy.POLICIES[kind].push_immediately
+                            and (
+                                (email_transport_ready and email_address is not None)
+                                or email_choices[kind]
+                            )
+                        ),
                     ),
                 ],
             )
@@ -109,8 +121,15 @@ def get_own_notification_preferences(
             ),
             NotificationChannelCapability(
                 channel=NotificationChannel.EMAIL,
-                available=False,
-                reason="EMAIL_DELIVERY_NOT_IMPLEMENTED",
+                available=email_transport_ready and email_address is not None,
+                reason=(
+                    None
+                    if email_transport_ready and email_address is not None
+                    else "EMAIL_TRANSPORT_UNAVAILABLE"
+                    if not email_transport_ready
+                    else "EMAIL_VERIFIED_PRIMARY_MISSING"
+                ),
+                destination=email_address,
             ),
         ],
     )
@@ -131,10 +150,13 @@ def update_own_notification_preference(
     response: Response,
 ) -> NotificationPreferenceUpdated:
     """Change only the authenticated recipient's implemented channel choice."""
-    if channel is NotificationChannel.EMAIL:
+    if (
+        channel is NotificationChannel.EMAIL
+        and not notification_policy.POLICIES[kind].push_immediately
+    ):
         raise ConflictError(
-            "This notification channel is not configurable yet.",
-            ErrorCode.NOTIFICATION_CHANNEL_NOT_CONFIGURABLE,
+            "Individual email is not allowed for this notification kind.",
+            ErrorCode.NOTIFICATION_EMAIL_NOT_ALLOWED,
         )
     if (
         channel is NotificationChannel.PUSH
@@ -144,13 +166,28 @@ def update_own_notification_preference(
             "Immediate push is not allowed for this notification kind.",
             ErrorCode.NOTIFICATION_PUSH_NOT_ALLOWED,
         )
+    if channel is NotificationChannel.EMAIL and body.enabled:
+        if not email_delivery.transport_available():
+            raise ConflictError(
+                "Notification email transport is unavailable.",
+                ErrorCode.NOTIFICATION_EMAIL_TRANSPORT_UNAVAILABLE,
+            )
+        if email_delivery.verified_primary_email(session, account.id) is None:
+            raise ConflictError(
+                "A verified primary Account email is required.",
+                ErrorCode.NOTIFICATION_EMAIL_VERIFIED_PRIMARY_MISSING,
+            )
     try:
         if channel is NotificationChannel.IN_APP:
             notification_preferences.set_in_app_enabled(
                 session, account_id=account.id, kind=kind, enabled=body.enabled
             )
-        else:
+        elif channel is NotificationChannel.PUSH:
             notification_preferences.set_push_enabled(
+                session, account_id=account.id, kind=kind, enabled=body.enabled
+            )
+        else:
+            notification_preferences.set_email_enabled(
                 session, account_id=account.id, kind=kind, enabled=body.enabled
             )
     except ValueError as exc:

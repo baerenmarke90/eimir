@@ -111,3 +111,11 @@ No product UI, localized text, accessibility behavior or motion changes in
 this backend slice. The Web Settings visual preflight and Mobile Interaction
 Contract remain required before any UI implementation, and notification mail
 needs its own verified account-email and delivery review.
+
+## Notification email follow-up
+
+[The SMTP and verified primary address delivery review](./NOTIFICATION-EMAIL-DELIVERY.md)
+supersedes the earlier read-only EMAIL description for eligible immediate
+kinds. DIGESTIBLE comments remain ineligible for individual email until #515
+delivers a reviewed digest. Existing channel defaults and owner isolation
+remain unchanged.

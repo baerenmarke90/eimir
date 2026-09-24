@@ -22,6 +22,7 @@ from eimir.config import get_settings
 from eimir.daily_checkins import retention as daily_checkin_retention
 from eimir.db.session import unit_of_work
 from eimir.demo import reset as demo_reset
+from eimir.engagement import email_delivery
 from eimir.engagement import push as push_delivery
 from eimir.engagement import service as engagement_service
 from eimir.identity import deletion_jobs as account_deletion_jobs
@@ -91,6 +92,7 @@ def main() -> None:
     media_cleanup.register_handlers()
     account_media.register_handlers()
     push_delivery.register_handlers()
+    email_delivery.register_handlers()
     reminder_runtime.register_handlers()
     demo_reset.register_handlers()
     daily_checkin_retention.register_handlers()

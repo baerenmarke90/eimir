@@ -38,6 +38,21 @@ def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     )
 
 
+def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
+    """Require an explicit recipient opt-in and an immediate reviewed kind."""
+    policy = notification_policy.for_kind(kind)
+    if policy is None or not policy.push_immediately:
+        return False
+    choice = session.execute(
+        select(NotificationPreference.enabled).where(
+            NotificationPreference.account_id == account_id,
+            NotificationPreference.kind == kind,
+            NotificationPreference.channel == NotificationChannel.EMAIL.value,
+        )
+    ).scalar_one_or_none()
+    return choice is True
+
+
 def _effective_choice(
     session: Session, *, account_id: UUID, kind: str, channel: NotificationChannel
 ) -> bool:
@@ -80,6 +95,23 @@ def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[Notificati
     return {kind: overrides.get(kind.value, True) for kind in NotificationKind}
 
 
+def own_email_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
+    """Email defaults off and digestible kinds cannot send individual mail."""
+    rows = session.execute(
+        select(NotificationPreference.kind, NotificationPreference.enabled).where(
+            NotificationPreference.account_id == account_id,
+            NotificationPreference.channel == NotificationChannel.EMAIL.value,
+        )
+    ).tuples()
+    overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
+    return {
+        kind: bool(overrides.get(kind.value, False))
+        if notification_policy.POLICIES[kind].push_immediately
+        else False
+        for kind in NotificationKind
+    }
+
+
 def set_push_enabled(
     session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
 ) -> None:
@@ -111,6 +143,22 @@ def set_in_app_enabled(
         account_id=account_id,
         kind=kind,
         channel=NotificationChannel.IN_APP,
+        enabled=enabled,
+    )
+
+
+def set_email_enabled(
+    session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
+) -> None:
+    """Keep email opt-in separate from Center and Push choices."""
+    policy = notification_policy.for_kind(kind)
+    if policy is None or not policy.push_immediately:
+        raise ValueError("Individual email is not available for this notification kind.")
+    _set_choice(
+        session,
+        account_id=account_id,
+        kind=kind,
+        channel=NotificationChannel.EMAIL,
         enabled=enabled,
     )
 

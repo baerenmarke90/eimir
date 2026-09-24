@@ -8,8 +8,8 @@ choice within the existing Comments row. It defaults off, so existing users
 receive no unsolicited Push. A person may save the choice before a Push
 endpoint is available; Settings explains that delivery is not yet ready on
 that device. Only future eligible comments enter a digest once an endpoint
-exists. EMAIL digest, wider Activity kinds and a daily-summary control remain
-outside this slice.
+exists. The separately opted-in EMAIL digest uses the same reviewed comment
+kind. Wider Activity kinds and a daily-summary control remain outside this slice.
 
 Projection time determines the UTC bucket. Each opted-in comment creates one
 existing `PushDelivery` receipt and one delayed job with only a technical
@@ -22,6 +22,10 @@ its independent read state. A late Outbox projection enters its actual
 projection-time bucket rather than retroactively recreating a completed one.
 The provider idempotency key is stable across all candidates for that
 recipient/Space/endpoint/bucket and across worker retries.
+A terminal provider failure also closes that bucket. Its acceptance may be
+ambiguous, so an older pending receipt cannot make another attempt after the
+newer one exhausts retries. Receipts made unavailable before any provider
+attempt do not close the bucket; another eligible receipt may still send.
 
 The recipient's existing Quiet Hours window may defer a bucket's external
 release. The current Account timezone is recalculated at each worker visit,

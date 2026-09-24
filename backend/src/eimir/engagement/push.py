@@ -227,7 +227,9 @@ def _digest_superseded(
     """Choose one recipient/Space/endpoint receipt for an hourly batch.
 
     The recipient Account lock serializes this decision with other workers.
-    Unavailable receipts are excluded so a later valid worker can be chosen.
+    A terminal provider failure closes the bucket: acceptance may be
+    ambiguous, so an older receipt must not attempt another external send.
+    Unavailable receipts made no provider attempt and remain excluded.
     """
     start, end = notification_policy.digest_window(delivery.created_at)
     batch = (
@@ -238,13 +240,18 @@ def _digest_superseded(
         Notification.space_id == notification.space_id,
         Notification.kind == notification.kind,
     )
-    sent = session.execute(
+    attempted = session.execute(
         select(PushDelivery.id)
         .join(Notification, Notification.id == PushDelivery.notification_id)
-        .where(*batch, PushDelivery.status == PushDeliveryStatus.SUCCEEDED.value)
+        .where(
+            *batch,
+            PushDelivery.status.in_(
+                (PushDeliveryStatus.SUCCEEDED.value, PushDeliveryStatus.FAILED.value)
+            ),
+        )
         .limit(1)
     ).scalar_one_or_none()
-    if sent is not None:
+    if attempted is not None:
         return True
     latest = session.execute(
         select(PushDelivery.id)

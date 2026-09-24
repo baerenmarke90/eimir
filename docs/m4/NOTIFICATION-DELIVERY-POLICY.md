@@ -15,6 +15,26 @@ authoritative ahead of delivery decisions.
 | `REMINDER_DUE` | IMMEDIATE | Existing generic push for an already due recipient-specific reminder; source rule/preference controls whether it exists. |
 | `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; bounded generic Push and EMAIL digests each require a separate explicit Account opt-in. No per-comment external delivery. |
 
+### Current noise-control audit
+
+| Kind | Admission and external noise bound |
+| --- | --- |
+| `THINKING_OF_YOU` | One sender/Space request per 30 minutes, with client-request replay and per-event delivery uniqueness. |
+| `PARTNER_KISS`, `PARTNER_CHECK_IN` | The same 30-minute pacing per sender/Space/gesture kind, with request replay and per-event delivery uniqueness. Different deliberate gestures remain independent. |
+| `REMINDER_DUE` | One generated occurrence per recipient, rule and due key; the chosen reminder schedule governs delivery, with source-event and channel receipt uniqueness. |
+| `COMMENT_CREATED` | One opted-in generic Push per recipient/Space/endpoint/fixed UTC hour and one separately opted-in generic EMAIL per recipient/Space/hour. Quiet Hours additionally coalesces held external receipts. |
+
+Both selected channels may notify the recipient for one event; channel choices
+are independent Account consent. The comment Push bucket now closes after a
+terminal provider attempt, including an ambiguous `FAILED` outcome. A later
+worker cannot promote an older comment receipt into another send for that
+hour. A pre-provider `UNAVAILABLE` receipt does not close the bucket, so an
+eligible older receipt can still deliver. This uses the existing Account
+lock, receipt statuses and indexed hourly lookup, without a new rate ledger.
+Daily summary, wider Activity kinds and cross-kind noise rules require a
+separate product decision rather than silent suppression of deliberate
+gestures or user-selected channels.
+
 `IN_APP_ONLY` is an available catalog class for future explicitly approved
 notification kinds, not a wildcard for arbitrary Outbox/Activity events.
 `IMMEDIATE` currently preserves the existing push handoff. `DIGESTIBLE`

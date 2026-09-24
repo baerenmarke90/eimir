@@ -1,4 +1,4 @@
-"""Account-owned Quiet Hours, separate from per-kind channel opt-ins."""
+"""Account-owned Quiet Hours, separate from per-kind channel choices."""
 
 from __future__ import annotations
 

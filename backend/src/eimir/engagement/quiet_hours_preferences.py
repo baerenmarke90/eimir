@@ -43,9 +43,7 @@ def release_at(account: Account, *, kind: str, at: datetime) -> datetime | None:
     return window.release_at(at, account.timezone) if window is not None else None
 
 
-def set_own_window(
-    session: Session, *, account_id: UUID, window: QuietHoursWindow | None
-) -> None:
+def set_own_window(session: Session, *, account_id: UUID, window: QuietHoursWindow | None) -> None:
     """Write the authenticated Account's optional window under its row lock.
 
     Callers must supply the current authenticated Account ID; never accept a

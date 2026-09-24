@@ -509,7 +509,7 @@ No authorization required
 
 Update Own Notification Preference
 
-Change only the authenticated recipient\&#39;s implemented PUSH choice.
+Change only the authenticated recipient\&#39;s implemented channel choice.
 
 ### Example
 

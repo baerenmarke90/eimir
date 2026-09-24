@@ -12181,7 +12181,7 @@
     },
     "/api/v1/notification-preferences/{kind}/{channel}": {
       "patch": {
-        "description": "Change only the authenticated recipient's implemented PUSH choice.",
+        "description": "Change only the authenticated recipient's implemented channel choice.",
         "operationId": "updateOwnNotificationPreference",
         "parameters": [
           {

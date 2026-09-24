@@ -11,14 +11,18 @@ import pytest
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
+from eimir.authorization import PrivacyClass
 from eimir.core.clock import now
 from eimir.engagement import email_delivery, notification_preferences
 from eimir.engagement.models import (
     EmailDelivery,
     EmailDeliveryStatus,
     Notification,
+    NotificationChannel,
     NotificationKind,
+    NotificationPreference,
 )
+from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.identity.models import Account, AccountEmail
 from eimir.jobs.errors import DeferredJobError
 from eimir.jobs.models import Job
@@ -125,6 +129,247 @@ def _queue_partner_mail(engine: Engine, *, ben_id, space_id, anna_id, created_at
         ).scalar_one()
         session.commit()
         return delivery_id, notification.id
+
+
+def _opt_in_comment_digest(engine: Engine, account_id) -> None:  # type: ignore[no-untyped-def]
+    # The public API intentionally keeps this future choice unavailable.
+    with Session(engine) as session:
+        session.add(
+            NotificationPreference(
+                account_id=account_id,
+                kind=NotificationKind.COMMENT_CREATED.value,
+                channel=NotificationChannel.EMAIL.value,
+                enabled=True,
+            )
+        )
+        session.commit()
+
+
+def _queue_comment_mail(engine: Engine, *, ben_id, space_id, anna_id):  # type: ignore[no-untyped-def]
+    with Session(engine) as session:
+        notification = Notification(
+            space_id=space_id,
+            recipient_account_id=ben_id,
+            actor_id=anna_id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.COMMENT_CREATED.value,
+            target_type=None,
+            target_id=None,
+        )
+        session.add(notification)
+        session.flush()
+        email_delivery.ensure_deliveries_for_source_event(session, notification.source_event_id)
+        delivery_id = session.execute(
+            select(EmailDelivery.id).where(EmailDelivery.notification_id == notification.id)
+        ).scalar_one_or_none()
+        session.commit()
+        return delivery_id, notification.id
+
+
+def test_comment_digest_requires_opt_in_and_sends_one_mail_per_hour(
+    mail_setup, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (anna_id, ben_id, space_id, _, _) = mail_setup
+    current = {"at": datetime(2026, 9, 24, 18, 10, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+
+    absent, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    assert absent is None
+    _opt_in_comment_digest(engine, ben_id)
+    with Session(engine) as session:
+        assert notification_preferences.digest_email_enabled(
+            session, account_id=ben_id, kind=NotificationKind.COMMENT_CREATED.value
+        )
+
+    first_id, first_notification = _queue_comment_mail(
+        engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id
+    )
+    assert first_id is not None
+    current["at"] += timedelta(minutes=20)
+    second_id, second_notification = _queue_comment_mail(
+        engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id
+    )
+    assert second_id is not None
+    with pytest.raises(DeferredJobError) as deferred:
+        _handle(engine, first_id)
+    assert deferred.value.until == datetime(2026, 9, 24, 19, tzinfo=UTC)
+    assert provider.messages == []
+
+    current["at"] = deferred.value.until
+    _handle(engine, first_id)
+    _handle(engine, second_id)
+    _handle(engine, second_id)
+    assert len(provider.messages) == 1
+    assert provider.messages[0].to == "first@example.org"
+    assert "COMMENT_CREATED" not in provider.messages[0].body
+    with Session(engine) as session:
+        deliveries = [
+            session.get(EmailDelivery, delivery_id) for delivery_id in (first_id, second_id)
+        ]
+        assert {delivery.status for delivery in deliveries if delivery is not None} == {
+            EmailDeliveryStatus.SENT.value,
+            EmailDeliveryStatus.UNAVAILABLE.value,
+        }
+        assert session.get(Notification, first_notification) is not None
+        assert session.get(Notification, second_notification) is not None
+
+    current["at"] += timedelta(minutes=5)
+    next_id, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    assert next_id is not None
+    current["at"] = datetime(2026, 9, 24, 20, tzinfo=UTC)
+    _handle(engine, next_id)
+    assert len(provider.messages) == 2
+
+
+def test_comment_digest_opt_out_while_waiting_blocks_mail(mail_setup, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (anna_id, ben_id, space_id, _, _) = mail_setup
+    current = {"at": datetime(2026, 9, 24, 18, 10, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+    _opt_in_comment_digest(engine, ben_id)
+    delivery_id, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    assert delivery_id is not None
+    with Session(engine) as session:
+        preference = session.execute(
+            select(NotificationPreference).where(
+                NotificationPreference.account_id == ben_id,
+                NotificationPreference.kind == NotificationKind.COMMENT_CREATED.value,
+                NotificationPreference.channel == NotificationChannel.EMAIL.value,
+            )
+        ).scalar_one()
+        preference.enabled = False
+        session.commit()
+    current["at"] = datetime(2026, 9, 24, 19, tzinfo=UTC)
+    _handle(engine, delivery_id)
+    assert provider.messages == []
+    with Session(engine) as session:
+        delivery = session.get(EmailDelivery, delivery_id)
+        assert delivery is not None
+        assert delivery.last_error_code == "EMAIL_PREFERENCE_DISABLED"
+
+
+def test_ambiguous_comment_digest_mail_failure_closes_bucket(mail_setup, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    engine, _, (anna_id, ben_id, space_id, _, _) = mail_setup
+    current = {"at": datetime(2026, 9, 24, 18, 10, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+    _opt_in_comment_digest(engine, ben_id)
+    first_id, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    current["at"] += timedelta(minutes=5)
+    second_id, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    assert first_id is not None and second_id is not None
+    provider = CapturingMail(fail=True)
+    monkeypatch.setattr(email_delivery, "configured_mail_sender", lambda: provider)
+    current["at"] = datetime(2026, 9, 24, 19, tzinfo=UTC)
+    _handle(engine, second_id)
+    _handle(engine, first_id)
+    _handle(engine, second_id)
+    assert len(provider.messages) == 1
+    with Session(engine) as session:
+        assert session.get(EmailDelivery, second_id).status == EmailDeliveryStatus.FAILED.value
+        assert session.get(EmailDelivery, first_id).last_error_code == "DIGEST_COALESCED"
+
+
+def test_comment_digest_isolated_by_recipient_and_space(mail_setup, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (anna_id, ben_id, space_id, _, _) = mail_setup
+    current = {"at": datetime(2026, 9, 24, 18, 10, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+    _opt_in_comment_digest(engine, ben_id)
+    _opt_in_comment_digest(engine, anna_id)
+    with Session(engine) as session:
+        anna = session.get(Account, anna_id)
+        ben = session.get(Account, ben_id)
+        assert anna is not None and ben is not None
+        second_space = make_space(session, anna)
+        relationship_service.add_member(session, second_space.id, ben)
+        session.add(
+            AccountEmail(
+                account_id=anna_id,
+                email="anna@example.org",
+                is_primary=True,
+                verified_at=now(),
+            )
+        )
+        second_space_id = second_space.id
+        session.commit()
+
+    ids = [
+        _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)[0],
+        _queue_comment_mail(engine, ben_id=ben_id, space_id=second_space_id, anna_id=anna_id)[0],
+        _queue_comment_mail(engine, ben_id=anna_id, space_id=space_id, anna_id=ben_id)[0],
+    ]
+    assert all(delivery_id is not None for delivery_id in ids)
+    current["at"] = datetime(2026, 9, 24, 19, tzinfo=UTC)
+    for delivery_id in ids:
+        assert delivery_id is not None
+        _handle(engine, delivery_id)
+    assert len(provider.messages) == 3
+    assert {message.to for message in provider.messages} == {
+        "first@example.org",
+        "anna@example.org",
+    }
+
+
+def test_comment_digest_waits_through_quiet_hours(mail_setup, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (anna_id, ben_id, space_id, _, _) = mail_setup
+    _opt_in_comment_digest(engine, ben_id)
+    _set_window(engine, ben_id)
+    current = {"at": datetime(2026, 8, 30, 20, 15, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+    delivery_id, _ = _queue_comment_mail(engine, ben_id=ben_id, space_id=space_id, anna_id=anna_id)
+    assert delivery_id is not None
+    current["at"] = datetime(2026, 8, 30, 21, tzinfo=UTC)
+    with pytest.raises(DeferredJobError) as deferred:
+        _handle(engine, delivery_id)
+    assert deferred.value.until == current["at"] + email_delivery.QUIET_HOURS_RECHECK
+    with Session(engine) as session:
+        delivery = session.get(EmailDelivery, delivery_id)
+        assert delivery is not None
+        assert delivery.status == EmailDeliveryStatus.PENDING.value
+        assert delivery.deferred_until == datetime(2026, 8, 31, 5, tzinfo=UTC)
+    current["at"] = datetime(2026, 8, 31, 5, tzinfo=UTC)
+    _handle(engine, delivery_id)
+    assert len(provider.messages) == 1
+
+
+def test_comment_digest_rechecks_target_privacy_before_smtp(mail_setup, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    engine, provider, (anna_id, ben_id, space_id, _, _) = mail_setup
+    _opt_in_comment_digest(engine, ben_id)
+    current = {"at": datetime(2026, 9, 24, 18, 10, tzinfo=UTC)}
+    monkeypatch.setattr(email_delivery.clock, "now", lambda: current["at"])
+    with Session(engine) as session:
+        moment = HeartMoment(
+            space_id=space_id,
+            owner_id=anna_id,
+            privacy_class=PrivacyClass.SPACE_SHARED.value,
+            happened_on=current["at"].date(),
+            payload=HeartMomentPayload(text="Shared first", emotion=HeartEmotion.SEEN),
+        )
+        session.add(moment)
+        session.flush()
+        notification = Notification(
+            space_id=space_id,
+            recipient_account_id=ben_id,
+            actor_id=anna_id,
+            source_event_id=uuid4(),
+            kind=NotificationKind.COMMENT_CREATED.value,
+            target_type="HEART_MOMENT",
+            target_id=moment.id,
+        )
+        session.add(notification)
+        session.flush()
+        email_delivery.ensure_deliveries_for_source_event(session, notification.source_event_id)
+        delivery_id = session.execute(
+            select(EmailDelivery.id).where(EmailDelivery.notification_id == notification.id)
+        ).scalar_one()
+        moment.privacy_class = PrivacyClass.OWNER_ONLY.value
+        session.commit()
+
+    current["at"] = datetime(2026, 9, 24, 19, tzinfo=UTC)
+    _handle(engine, delivery_id)
+    assert provider.messages == []
+    with Session(engine) as session:
+        delivery = session.get(EmailDelivery, delivery_id)
+        assert delivery is not None
+        assert delivery.last_error_code == "TARGET_UNAVAILABLE"
 
 
 def _set_window(engine: Engine, ben_id, *, timezone: str = "Europe/Berlin") -> None:  # type: ignore[no-untyped-def]

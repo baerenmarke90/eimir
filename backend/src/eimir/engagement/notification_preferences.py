@@ -33,15 +33,8 @@ def digest_push_enabled(session: Session, *, account_id: UUID, kind: str) -> boo
     """Require an explicit recipient opt-in for a reviewed digest kind."""
     if not notification_policy.digest_kind_allowed(kind):
         return False
-    return (
-        session.execute(
-            select(NotificationPreference.enabled).where(
-                NotificationPreference.account_id == account_id,
-                NotificationPreference.kind == kind,
-                NotificationPreference.channel == NotificationChannel.PUSH.value,
-            )
-        ).scalar_one_or_none()
-        is True
+    return _explicit_choice_enabled(
+        session, account_id=account_id, kind=kind, channel=NotificationChannel.PUSH
     )
 
 
@@ -59,14 +52,33 @@ def email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:
         return False
-    choice = session.execute(
-        select(NotificationPreference.enabled).where(
-            NotificationPreference.account_id == account_id,
-            NotificationPreference.kind == kind,
-            NotificationPreference.channel == NotificationChannel.EMAIL.value,
-        )
-    ).scalar_one_or_none()
-    return choice is True
+    return _explicit_choice_enabled(
+        session, account_id=account_id, kind=kind, channel=NotificationChannel.EMAIL
+    )
+
+
+def digest_email_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
+    """Require a stored recipient opt-in for the reviewed digest kind."""
+    if not notification_policy.digest_kind_allowed(kind):
+        return False
+    return _explicit_choice_enabled(
+        session, account_id=account_id, kind=kind, channel=NotificationChannel.EMAIL
+    )
+
+
+def _explicit_choice_enabled(
+    session: Session, *, account_id: UUID, kind: str, channel: NotificationChannel
+) -> bool:
+    return (
+        session.execute(
+            select(NotificationPreference.enabled).where(
+                NotificationPreference.account_id == account_id,
+                NotificationPreference.kind == kind,
+                NotificationPreference.channel == channel.value,
+            )
+        ).scalar_one_or_none()
+        is True
+    )
 
 
 def _effective_choice(

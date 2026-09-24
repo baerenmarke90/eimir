@@ -86,6 +86,9 @@ def test_quiet_hours_are_owner_scoped_and_validate_complete_minute_windows(
     cleared = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
     assert cleared.status_code == 200
     assert cleared.json()["enabled"] is False
+    # The TestClient override shares this test Session and bypasses the request
+    # unit-of-work commit; flush before refreshing from the database.
+    session.flush()
     session.refresh(anna)
     assert anna.quiet_hours_start is None and anna.quiet_hours_end is None
     assert session.get(Account, ben.id).quiet_hours_start is None

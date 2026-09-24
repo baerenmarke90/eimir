@@ -74,6 +74,16 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type QuietHoursUpdate,
+    QuietHoursUpdateFromJSON,
+    QuietHoursUpdateToJSON,
+} from '../models/QuietHoursUpdate';
+import {
+    type QuietHoursView,
+    QuietHoursViewFromJSON,
+    QuietHoursViewToJSON,
+} from '../models/QuietHoursView';
+import {
     type ThinkingOfYouAccepted,
     ThinkingOfYouAcceptedFromJSON,
     ThinkingOfYouAcceptedToJSON,
@@ -117,6 +127,10 @@ export interface UpdateOwnNotificationPreferenceRequest {
     kind: NotificationKind;
     channel: NotificationChannel;
     notificationPreferenceUpdate: NotificationPreferenceUpdate;
+}
+
+export interface UpdateOwnQuietHoursRequest {
+    quietHoursUpdate: QuietHoursUpdate;
 }
 
 /**
@@ -531,6 +545,55 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async updateOwnNotificationPreference(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferenceUpdated> {
         const response = await this.updateOwnNotificationPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnQuietHours without sending the request
+     */
+    async updateOwnQuietHoursRequestOpts(requestParameters: UpdateOwnQuietHoursRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['quietHoursUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'quietHoursUpdate',
+                'Required parameter "quietHoursUpdate" was null or undefined when calling updateOwnQuietHours().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/notification-preferences/quiet-hours`;
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: QuietHoursUpdateToJSON(requestParameters['quietHoursUpdate']),
+        };
+    }
+
+    /**
+     * Set or clear only the authenticated recipient\'s daily delivery window.
+     * Update Own Quiet Hours
+     */
+    async updateOwnQuietHoursRaw(requestParameters: UpdateOwnQuietHoursRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<QuietHoursView>> {
+        const requestOptions = await this.updateOwnQuietHoursRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => QuietHoursViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Set or clear only the authenticated recipient\'s daily delivery window.
+     * Update Own Quiet Hours
+     */
+    async updateOwnQuietHours(requestParameters: UpdateOwnQuietHoursRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<QuietHoursView> {
+        const response = await this.updateOwnQuietHoursRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

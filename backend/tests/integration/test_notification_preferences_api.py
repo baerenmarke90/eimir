@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from eimir.core.clock import now
 from eimir.engagement import email_delivery, push
 from eimir.engagement.models import NotificationChannel, NotificationKind, NotificationPreference
-from eimir.identity.models import AccountEmail
+from eimir.identity.models import Account, AccountEmail
 from tests.conftest import auth, make_account, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -27,6 +27,71 @@ def _entry(payload: dict, name: str) -> dict:  # type: ignore[type-arg]
 
 def _capability(payload: dict, name: str) -> dict:  # type: ignore[type-arg]
     return next(item for item in payload["capabilities"] if item["channel"] == name)
+
+
+def test_quiet_hours_are_owner_scoped_and_validate_complete_minute_windows(
+    client, session: Session
+) -> None:  # type: ignore[no-untyped-def]
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    anna.timezone = "Europe/Berlin"
+    ben.timezone = "America/New_York"
+    session.flush()
+    anna_token = sign_in(session, anna)
+    ben_token = sign_in(session, ben)
+    path = f"{BASE}/quiet-hours"
+
+    initial = client.get(BASE, headers=auth(anna_token))
+    assert initial.json()["quietHours"] == {
+        "enabled": False,
+        "start": None,
+        "end": None,
+        "timeZone": "Europe/Berlin",
+    }
+    assert (
+        client.patch(path, json={"enabled": True, "start": "22:00", "end": "07:00"}).status_code
+        == 401
+    )
+
+    for bad in (
+        {"enabled": True, "start": "22:00"},
+        {"enabled": True, "start": "22:00", "end": "22:00"},
+        {"enabled": True, "start": "22:00:01", "end": "07:00"},
+        {"enabled": False, "start": "22:00", "end": "07:00"},
+        {"enabled": True, "start": "22:00", "end": "07:00", "accountId": str(ben.id)},
+    ):
+        assert client.patch(path, json=bad, headers=auth(anna_token)).status_code == 422
+
+    saved = client.patch(
+        path, json={"enabled": True, "start": "22:00", "end": "07:00"}, headers=auth(anna_token)
+    )
+    assert saved.status_code == 200
+    assert saved.headers["Cache-Control"] == "private, no-store"
+    assert saved.json() == {
+        "enabled": True,
+        "start": "22:00:00",
+        "end": "07:00:00",
+        "timeZone": "Europe/Berlin",
+    }
+    assert client.get(BASE, headers=auth(anna_token)).json()["quietHours"] == saved.json()
+    assert client.get(BASE, headers=auth(ben_token)).json()["quietHours"] == {
+        "enabled": False,
+        "start": None,
+        "end": None,
+        "timeZone": "America/New_York",
+    }
+    session.refresh(ben)
+    assert ben.quiet_hours_start is None
+
+    cleared = client.patch(path, json={"enabled": False}, headers=auth(anna_token))
+    assert cleared.status_code == 200
+    assert cleared.json()["enabled"] is False
+    # The TestClient override shares this test Session and bypasses the request
+    # unit-of-work commit; flush before refreshing from the database.
+    session.flush()
+    session.refresh(anna)
+    assert anna.quiet_hours_start is None and anna.quiet_hours_end is None
+    assert session.get(Account, ben.id).quiet_hours_start is None
 
 
 def test_only_owner_can_read_or_change_personal_push_choice(client, session: Session) -> None:  # type: ignore[no-untyped-def]

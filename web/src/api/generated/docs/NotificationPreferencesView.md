@@ -9,6 +9,7 @@ Name | Type
 `capabilities` | [Array&lt;NotificationChannelCapability&gt;](NotificationChannelCapability.md)
 `catalogVersion` | number
 `items` | [Array&lt;NotificationPreferenceEntry&gt;](NotificationPreferenceEntry.md)
+`quietHours` | [QuietHoursView](QuietHoursView.md)
 
 ## Example
 
@@ -20,6 +21,7 @@ const example = {
   "capabilities": null,
   "catalogVersion": null,
   "items": null,
+  "quietHours": null,
 } satisfies NotificationPreferencesView
 
 console.log(example)

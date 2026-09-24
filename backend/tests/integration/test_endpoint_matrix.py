@@ -906,6 +906,7 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
     ("POST", "/api/v1/account/deletion"),
     ("GET", "/api/v1/notification-preferences"),
+    ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
     ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),

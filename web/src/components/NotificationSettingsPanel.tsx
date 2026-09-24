@@ -11,6 +11,7 @@ import { settingsCategoryPath } from '../client/routes';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
+import { QuietHoursSettings } from './QuietHoursSettings';
 import './NotificationSettingsPanel.css';
 
 const CHANNELS = [
@@ -252,6 +253,16 @@ export function NotificationSettingsPanel({
               );
             })
           )}
+          <QuietHoursSettings
+            quietHours={data.quietHours}
+            notificationsApi={notificationsApi}
+            onUpdated={(quietHours) =>
+              queryClient.setQueryData<NotificationPreferencesView>(
+                queryKey,
+                (current) => current && { ...current, quietHours },
+              )
+            }
+          />
           <p
             className="notification-settings-feedback"
             role="status"

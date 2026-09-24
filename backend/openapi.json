@@ -4285,12 +4285,16 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/QuietHoursView"
           }
         },
         "required": [
           "catalogVersion",
           "items",
-          "capabilities"
+          "capabilities",
+          "quietHours"
         ],
         "title": "NotificationPreferencesView",
         "type": "object"
@@ -5937,6 +5941,88 @@
         ],
         "title": "ProfileVisibility",
         "type": "string"
+      },
+      "QuietHoursUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "QuietHoursUpdate",
+        "type": "object"
+      },
+      "QuietHoursView": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "timeZone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "start",
+          "end",
+          "timeZone"
+        ],
+        "title": "QuietHoursView",
+        "type": "object"
       },
       "QuoteCategoryView": {
         "properties": {
@@ -12185,6 +12271,78 @@
           }
         },
         "summary": "Get Own Notification Preferences",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/quiet-hours": {
+      "patch": {
+        "description": "Set or clear only the authenticated recipient's daily delivery window.",
+        "operationId": "updateOwnQuietHours",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuietHoursUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuietHoursView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Quiet Hours",
         "tags": [
           "notifications"
         ]

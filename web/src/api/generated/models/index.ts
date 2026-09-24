@@ -185,6 +185,8 @@ export * from './ProfilePreferenceCreate';
 export * from './ProfilePreferenceUpdate';
 export * from './ProfilePreferenceView';
 export * from './ProfileVisibility';
+export * from './QuietHoursUpdate';
+export * from './QuietHoursView';
 export * from './QuoteCategoryView';
 export * from './QuoteSourceView';
 export * from './ReadDescriptor';

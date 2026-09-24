@@ -87,18 +87,23 @@
 }
 
 /* Keep the track inside its 48px touch target when the root font grows. */
-.notification-channel-choice .preference-switch-track {
+.notification-channel-choice .preference-switch-track,
+.quiet-hours-settings .preference-switch-track {
   width: 44px;
   height: 26px;
 }
 
-.notification-channel-choice .preference-switch-thumb {
+.notification-channel-choice .preference-switch-thumb,
+.quiet-hours-settings .preference-switch-thumb {
   left: 3px;
   width: 18px;
   height: 18px;
 }
 
 .notification-channel-choice
+  .preference-switch-control[aria-checked="true"]
+  .preference-switch-thumb,
+.quiet-hours-settings
   .preference-switch-control[aria-checked="true"]
   .preference-switch-thumb {
   transform: translate(18px, -50%);
@@ -108,6 +113,42 @@
   min-height: 1.4em;
   margin: 0;
   color: var(--color-text-secondary);
+}
+
+.quiet-hours-settings {
+  display: grid;
+  container-type: inline-size;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.quiet-hours-intro {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.quiet-hours-intro p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.quiet-hours-times {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.quiet-hours-times input {
+  min-width: 0;
+  width: 100%;
+}
+
+@container (min-width: 32rem) {
+  .quiet-hours-times {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @container (max-width: 27rem) {

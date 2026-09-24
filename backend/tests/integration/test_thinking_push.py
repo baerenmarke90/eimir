@@ -22,8 +22,8 @@ from eimir.engagement.models import (
     PushDeliveryStatus,
     ThinkingOfYouRequest,
 )
+from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.jobs.errors import RetryableJobError
-from eimir.memories.models import Memory, MemoryPayload
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import configuration as space_configuration
 from eimir.relationship import service as relationship_service
@@ -523,13 +523,14 @@ def test_push_rechecks_target_privacy_before_contacting_provider(
     )
     provider = FakePushProvider()
     push.providers.register("fake", provider)
-    memory = Memory(
+    moment = HeartMoment(
         space_id=couple["space"].id,
         owner_id=couple["anna"].id,
         privacy_class=PrivacyClass.SPACE_SHARED.value,
-        payload=MemoryPayload(title="A shared memory", body="Protected body"),
+        happened_on=NOW.date(),
+        payload=HeartMomentPayload(text="Shared first", emotion=HeartEmotion.SEEN),
     )
-    session.add(memory)
+    session.add(moment)
     session.flush()
     notification = Notification(
         space_id=couple["space"].id,
@@ -537,8 +538,8 @@ def test_push_rechecks_target_privacy_before_contacting_provider(
         source_event_id=uuid4(),
         kind=NotificationKind.THINKING_OF_YOU.value,
         actor_id=couple["anna"].id,
-        target_type="MEMORY",
-        target_id=memory.id,
+        target_type="HEART_MOMENT",
+        target_id=moment.id,
         created_at=NOW,
     )
     session.add(notification)
@@ -547,7 +548,7 @@ def test_push_rechecks_target_privacy_before_contacting_provider(
     delivery = session.execute(select(PushDelivery)).scalar_one()
 
     if revoke_target:
-        memory.privacy_class = PrivacyClass.OWNER_ONLY.value
+        moment.privacy_class = PrivacyClass.OWNER_ONLY.value
         session.flush()
         later = Notification(
             space_id=couple["space"].id,
@@ -555,8 +556,8 @@ def test_push_rechecks_target_privacy_before_contacting_provider(
             source_event_id=uuid4(),
             kind=NotificationKind.THINKING_OF_YOU.value,
             actor_id=couple["anna"].id,
-            target_type="MEMORY",
-            target_id=memory.id,
+            target_type="HEART_MOMENT",
+            target_id=moment.id,
             created_at=NOW,
         )
         session.add(later)

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from types import MappingProxyType
 from uuid import uuid4
 
@@ -23,7 +23,7 @@ from eimir.engagement.models import (
     ThinkingOfYouRequest,
 )
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
-from eimir.jobs.errors import RetryableJobError
+from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship import configuration as space_configuration
 from eimir.relationship import service as relationship_service
@@ -420,6 +420,175 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert reference["kind"] == NotificationKind.THINKING_OF_YOU.value
     assert "Anna" not in repr(call)
     assert "Ben" not in repr(call)
+
+
+def test_quiet_hours_rechecks_and_coalesces_deferred_partner_pushes(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    ben = couple["ben"]
+    ben.timezone = "Europe/Berlin"
+    ben.quiet_hours_start = time(22)
+    ben.quiet_hours_end = time(7)
+    push.register_endpoint(
+        session, account_id=ben.id, provider_key="fake", endpoint_value="quiet-hours-token"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+
+    quiet_at = datetime(2026, 8, 30, 20, 15, tzinfo=UTC)
+    release = datetime(2026, 8, 31, 5, 0, tzinfo=UTC)
+    current = {"at": quiet_at}
+    monkeypatch.setattr(push.clock, "now", lambda: current["at"])
+    deliveries = []
+    for offset in (0, 1):
+        source_event_id = uuid4()
+        notification = Notification(
+            space_id=couple["space"].id,
+            recipient_account_id=ben.id,
+            source_event_id=source_event_id,
+            kind=NotificationKind.THINKING_OF_YOU.value,
+            actor_id=couple["anna"].id,
+            created_at=quiet_at + timedelta(minutes=offset),
+        )
+        session.add(notification)
+        session.flush()
+        push.ensure_deliveries_for_source_event(session, source_event_id)
+        delivery = session.execute(
+            select(PushDelivery).where(PushDelivery.notification_id == notification.id)
+        ).scalar_one()
+        with pytest.raises(DeferredJobError) as deferred:
+            push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+        assert deferred.value.until == quiet_at + push.QUIET_HOURS_RECHECK
+        assert delivery.deferred_until == release
+        assert delivery.attempts == 0
+        deliveries.append(delivery)
+
+    assert provider.calls == []
+    current["at"] = release
+    push.handle_delivery(session, {"deliveryId": str(deliveries[0].id)})
+    push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
+    push.handle_delivery(session, {"deliveryId": str(deliveries[1].id)})
+
+    assert deliveries[0].status == PushDeliveryStatus.UNAVAILABLE.value
+    assert deliveries[0].last_error_code == "QUIET_HOURS_COALESCED"
+    assert deliveries[1].status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(provider.calls) == 1
+    assert provider.calls[0]["presentationKey"] == push.GENERIC_PRESENTATION_KEY
+    assert session.execute(select(func.count(Notification.id))).scalar_one() == 2
+
+
+def test_quiet_hours_timezone_change_releases_waiting_push_at_next_recheck(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    ben = couple["ben"]
+    ben.timezone = "Europe/Berlin"
+    ben.quiet_hours_start = time(22)
+    ben.quiet_hours_end = time(7)
+    push.register_endpoint(
+        session, account_id=ben.id, provider_key="fake", endpoint_value="timezone-token"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+
+    at = datetime(2026, 8, 30, 20, 15, tzinfo=UTC)
+    current = {"at": at}
+    monkeypatch.setattr(push.clock, "now", lambda: current["at"])
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=ben.id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.PARTNER_KISS.value,
+        actor_id=couple["anna"].id,
+        created_at=at,
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.deferred_until == datetime(2026, 8, 31, 5, tzinfo=UTC)
+
+    ben.timezone = "America/New_York"
+    current["at"] = at + push.QUIET_HOURS_RECHECK
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.deferred_until == current["at"]
+    assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(provider.calls) == 1
+
+
+def test_quiet_hours_rechecks_channel_choice_before_release(
+    session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    ben = couple["ben"]
+    ben.timezone = "Europe/Berlin"
+    ben.quiet_hours_start = time(22)
+    ben.quiet_hours_end = time(7)
+    push.register_endpoint(
+        session, account_id=ben.id, provider_key="fake", endpoint_value="changed-choice-token"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    current = {"at": datetime(2026, 8, 30, 20, 15, tzinfo=UTC)}
+    monkeypatch.setattr(push.clock, "now", lambda: current["at"])
+
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=ben.id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.PARTNER_CHECK_IN.value,
+        actor_id=couple["anna"].id,
+        created_at=current["at"],
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+    with pytest.raises(DeferredJobError):
+        push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+
+    notification_preferences.set_push_enabled(
+        session, account_id=ben.id, kind=NotificationKind.PARTNER_CHECK_IN, enabled=False
+    )
+    current["at"] = datetime(2026, 8, 31, 5, tzinfo=UTC)
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert delivery.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert delivery.attempts == 0
+    assert provider.calls == []
+    assert session.get(Notification, notification.id) is not None
+
+
+def test_quiet_hours_preserves_due_reminder_schedule(session: Session, couple, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    ben = couple["ben"]
+    ben.timezone = "Europe/Berlin"
+    ben.quiet_hours_start = time(22)
+    ben.quiet_hours_end = time(7)
+    push.register_endpoint(
+        session, account_id=ben.id, provider_key="fake", endpoint_value="reminder-token"
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    monkeypatch.setattr(push.clock, "now", lambda: datetime(2026, 8, 30, 20, 15, tzinfo=UTC))
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=ben.id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.REMINDER_DUE.value,
+        actor_id=None,
+        created_at=datetime(2026, 8, 30, 20, 15, tzinfo=UTC),
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+    assert delivery.deferred_until is None
+    assert len(provider.calls) == 1
 
 
 def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(

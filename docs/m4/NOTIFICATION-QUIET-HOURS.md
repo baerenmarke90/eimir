@@ -1,4 +1,4 @@
-# Personal Quiet Hours: stored and Push delivery contract (#515)
+# Personal Quiet Hours: stored and external delivery contract (#515)
 
 The canonical Account timezone and optional local start/end boundaries live on
 the same Account row. Both boundaries are null when off. They must be distinct,
@@ -32,12 +32,22 @@ endpoint reaches the provider; older deliveries end with
 `QUIET_HOURS_COALESCED`. Their Notification Center entries remain intact.
 This also applies when the window is turned off while delivery is waiting.
 
-The setting is not exposed through an API or UI yet, and this Push behavior is
-off by default for existing Accounts. Email delivery still follows its existing
-independent channel contract. Expose Quiet Hours only after Email has matching
-delivery semantics. A user-facing Settings slice needs its own product-design
-preflight and generated visual reference against the current screen before
-implementation.
+The separate notification Email worker applies the same eligibility, UTC
+release and 15-minute recheck to its existing opted-in mail channel. It leaves
+an EmailDelivery pending while Quiet Hours are active, so no SMTP claim has
+been committed. The worker rechecks all current authorization, preference,
+module, target, verified address and transport rules immediately before SMTP.
+If the window starts between the committed claim and that final check, the
+still-unsent claim returns to pending and the same Job is deferred. Only the
+newest deferred mail per recipient and Space can be sent after release; older
+deliveries end with `QUIET_HOURS_COALESCED` and their Center entries remain.
+The existing at-most-once SMTP rule still applies once a mail is claimed: an
+ambiguous transport error must never trigger a second send attempt.
+
+The setting is not exposed through an API or UI yet, and both external-channel
+behaviors are off by default for existing Accounts. A user-facing Settings
+slice needs its own product-design preflight and generated visual reference
+against the current screen before implementation.
 
 The capability stays Free/Core with identical Cloud and Self-Hosted behavior.
 There is no new provider or dependency. Account deletion removes the fields;

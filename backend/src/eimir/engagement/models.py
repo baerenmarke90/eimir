@@ -433,6 +433,7 @@ class EmailDelivery(IdMixin, Base):
         String(24), nullable=False, default=EmailDeliveryStatus.PENDING.value
     )
     last_error_code: Mapped[str | None] = mapped_column(String(64))
+    deferred_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
@@ -445,4 +446,9 @@ class EmailDelivery(IdMixin, Base):
         ),
         UniqueConstraint("notification_id", name="uq_email_deliveries_notification"),
         Index("ix_email_deliveries_status_created", "status", "created_at"),
+        Index(
+            "ix_email_deliveries_deferred_until",
+            "deferred_until",
+            postgresql_where=deferred_until.is_not(None),
+        ),
     )

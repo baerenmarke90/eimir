@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -13,17 +14,19 @@ from eimir.authorization import AuthorizationContext
 from eimir.config import MailTransport, get_settings
 from eimir.core import clock
 from eimir.db.session import unit_of_work
-from eimir.engagement import notification_policy, notification_preferences
+from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import EmailDelivery, EmailDeliveryStatus, Notification
 from eimir.identity import effects as account_effects
 from eimir.identity.models import AccountEmail
 from eimir.jobs import queue
+from eimir.jobs.errors import DeferredJobError
 from eimir.jobs.worker import registry
 from eimir.mail import MailMessage, MailSender, MailTransportError, MailUnavailableError
 from eimir.mail import sender as configured_mail_sender
 from eimir.relationship import configuration as space_configuration
 
 JOB_KIND = "notification-email-delivery"
+QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _SPACE_MODULES = {
     "THINKING_OF_YOU": space_configuration.SpaceModule.SUPPORT_GESTURES,
     "PARTNER_KISS": space_configuration.SpaceModule.SUPPORT_GESTURES,
@@ -96,20 +99,57 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     except ValueError:
         return
 
+    next_check: datetime | None = None
     with unit_of_work() as claim_session:
+        snapshot = claim_session.execute(
+            select(Notification.recipient_account_id, Notification.actor_id, Notification.kind)
+            .select_from(EmailDelivery)
+            .join(Notification, Notification.id == EmailDelivery.notification_id)
+            .where(EmailDelivery.id == delivery_id)
+        ).one_or_none()
+        if snapshot is None:
+            return
+        recipient_id, actor_id, kind = snapshot
+        account_ids = {recipient_id}
+        if actor_id is not None:
+            account_ids.add(actor_id)
+        # Account deletion owns the Account -> EmailDelivery lock order.
+        accounts = account_effects.lock_enabled_accounts(claim_session, account_ids)
         row = claim_session.execute(
             select(EmailDelivery).where(EmailDelivery.id == delivery_id).with_for_update()
         ).scalar_one_or_none()
         if row is None or row.status != EmailDeliveryStatus.PENDING.value:
             return
-        row.status = EmailDeliveryStatus.CLAIMED.value
-        row.claimed_at = clock.now()
+        notification = claim_session.get(Notification, row.notification_id)
+        if (
+            accounts is not None
+            and notification is not None
+            and notification.recipient_account_id == recipient_id
+            and notification.actor_id == actor_id
+            and notification.kind == kind
+        ):
+            checked_at = clock.now()
+            release_at = quiet_hours_preferences.release_at(
+                accounts[recipient_id], kind=kind, at=checked_at
+            )
+            if release_at is not None:
+                next_check = _hold(row, release_at, checked_at)
+        if next_check is None:
+            row.status = EmailDeliveryStatus.CLAIMED.value
+            row.claimed_at = clock.now()
+
+    if next_check is not None:
+        raise DeferredJobError(next_check)
 
     with unit_of_work() as send_session:
-        _send_claimed(send_session, delivery_id)
+        next_check = _send_claimed(send_session, delivery_id)
+    if next_check is not None:
+        raise DeferredJobError(next_check)
 
 
-def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None = None) -> None:
+def _send_claimed(
+    session: Session, delivery_id: UUID, mail: MailSender | None = None
+) -> datetime | None:
     """Revalidate every restriction immediately before the external effect."""
     snapshot = session.execute(
         select(Notification.recipient_account_id, Notification.actor_id)
@@ -118,7 +158,7 @@ def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None =
         .where(EmailDelivery.id == delivery_id)
     ).one_or_none()
     if snapshot is None:
-        return
+        return None
     recipient_id, actor_id = snapshot
     account_ids = {recipient_id}
     if actor_id is not None:
@@ -128,11 +168,11 @@ def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None =
         select(EmailDelivery).where(EmailDelivery.id == delivery_id).with_for_update()
     ).scalar_one_or_none()
     if delivery is None or delivery.status != EmailDeliveryStatus.CLAIMED.value:
-        return
+        return None
     notification = session.get(Notification, delivery.notification_id)
     if notification is None or accounts is None:
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
-        return
+        return None
     current_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_ids.add(notification.actor_id)
@@ -143,21 +183,21 @@ def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None =
         for account_id in account_ids
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
-        return
+        return None
     if notification_policy.presentation_for(notification.kind, notification.id) is None:
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_POLICY_BLOCKED")
-        return
+        return None
     if not notification_preferences.email_enabled(
         session, account_id=recipient_id, kind=notification.kind
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_PREFERENCE_DISABLED")
-        return
+        return None
     module = _SPACE_MODULES.get(notification.kind)
     if module is not None and not space_configuration.is_module_enabled(
         session, notification.space_id, module, lock_space=True
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "MODULE_DISABLED")
-        return
+        return None
 
     # A target can be deleted or made private after the Outbox projection.
     from eimir.engagement import service
@@ -168,11 +208,40 @@ def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None =
         AuthorizationContext(account_id=recipient_id, space_id=notification.space_id),
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "TARGET_UNAVAILABLE")
-        return
+        return None
     address = verified_primary_email(session, recipient_id)
     if address is None or not transport_available():
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_CAPABILITY_UNAVAILABLE")
-        return
+        return None
+
+    checked_at = clock.now()
+    release_at = quiet_hours_preferences.release_at(
+        accounts[recipient_id], kind=notification.kind, at=checked_at
+    )
+    if release_at is not None:
+        # The window may have changed after the durable SMTP claim. No send
+        # has happened, so only this still-unsent claim can return to pending.
+        delivery.status = EmailDeliveryStatus.PENDING.value
+        delivery.claimed_at = None
+        return _hold(delivery, release_at, checked_at)
+
+    if delivery.deferred_until is not None:
+        if delivery.deferred_until > checked_at:
+            delivery.deferred_until = checked_at
+        latest = session.execute(
+            select(EmailDelivery.id)
+            .join(Notification, Notification.id == EmailDelivery.notification_id)
+            .where(
+                EmailDelivery.deferred_until.is_not(None),
+                Notification.recipient_account_id == recipient_id,
+                Notification.space_id == notification.space_id,
+            )
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if latest != delivery.id:
+            _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "QUIET_HOURS_COALESCED")
+            return None
 
     settings = get_settings()
     subject, body = _neutral_message(accounts[recipient_id].locale, settings.public_base_url)
@@ -187,6 +256,13 @@ def _send_claimed(session: Session, delivery_id: UUID, mail: MailSender | None =
         _finish(delivery, EmailDeliveryStatus.FAILED, "EMAIL_TRANSPORT_FAILED")
     else:
         _finish(delivery, EmailDeliveryStatus.SENT)
+
+    return None
+
+
+def _hold(delivery: EmailDelivery, release_at: datetime, checked_at: datetime) -> datetime:
+    delivery.deferred_until = release_at
+    return min(release_at, checked_at + QUIET_HOURS_RECHECK)
 
 
 def _neutral_message(locale: str, base_url: str) -> tuple[str, str]:

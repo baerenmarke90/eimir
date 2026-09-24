@@ -417,6 +417,54 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert "Ben" not in repr(call)
 
 
+def test_digestible_notification_does_not_enqueue_or_send_an_individual_push(
+    session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    endpoint = push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="comment-endpoint-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.COMMENT_CREATED.value,
+        actor_id=couple["anna"].id,
+        target_type=None,
+        target_id=None,
+        created_at=NOW,
+    )
+    session.add(notification)
+    session.flush()
+
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    assert session.execute(select(PushDelivery)).scalars().all() == []
+
+    # A previously queued record must be checked again at the provider
+    # boundary after a policy upgrade; it cannot bypass the new catalog.
+    stale_delivery = PushDelivery(
+        notification_id=notification.id,
+        push_endpoint_id=endpoint.id,
+        provider_key="fake",
+        status=PushDeliveryStatus.PENDING.value,
+        attempts=0,
+    )
+    session.add(stale_delivery)
+    session.flush()
+    push.handle_delivery(session, {"deliveryId": str(stale_delivery.id)})
+
+    assert stale_delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert stale_delivery.last_error_code == push.POLICY_BLOCKED_CODE
+    assert stale_delivery.attempts == 0
+    assert provider.calls == []
+
+
 def test_disable_after_projection_prevents_pending_push_and_reenable_does_not_replay(
     client, session: Session, couple, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]

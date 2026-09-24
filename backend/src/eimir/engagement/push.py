@@ -13,6 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from eimir.core import clock
+from eimir.engagement import notification_policy
 from eimir.engagement.models import (
     Notification,
     NotificationKind,
@@ -27,8 +28,9 @@ from eimir.jobs.worker import registry
 from eimir.relationship import configuration as space_configuration
 
 JOB_KIND = "push-delivery"
-GENERIC_PRESENTATION_KEY = "notification.generic"
+GENERIC_PRESENTATION_KEY = notification_policy.GENERIC_PRESENTATION_KEY
 ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
+POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 _TERMINAL_DELIVERY_STATUSES = {
@@ -135,6 +137,9 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
+        policy = notification_policy.for_kind(notification.kind)
+        if policy is None or not policy.push_immediately:
+            continue
         endpoints = session.execute(
             select(PushEndpoint).where(
                 PushEndpoint.account_id == notification.recipient_account_id,
@@ -234,6 +239,14 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         _finish_unavailable(delivery)
         return
 
+    # A queued delivery must still be allowed by the current policy when the
+    # worker reaches the provider boundary. Historical records cannot bypass
+    # a stricter catalog after an upgrade.
+    policy = notification_policy.for_kind(notification.kind)
+    if policy is None or not policy.push_immediately:
+        _finish_unavailable(delivery, POLICY_BLOCKED_CODE)
+        return
+
     current_account_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_account_ids.add(notification.actor_id)
@@ -282,7 +295,7 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                 "id": str(notification.id),
                 "kind": notification.kind,
             },
-            generic_presentation_key=GENERIC_PRESENTATION_KEY,
+            generic_presentation_key=policy.push_presentation_key,
         )
     except PushProviderError as exc:
         _record_failure(delivery, exc.code)

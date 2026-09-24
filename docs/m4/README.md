@@ -99,6 +99,9 @@ PushDelivery  = technical delivery attempt/channel
 ```
 
 Detailed contract: [Activity and Notification Design](./ACTIVITY-NOTIFICATIONS-DESIGN.md).
+The later #515 delivery-class foundation is tracked in
+[Notification Delivery Policy](./NOTIFICATION-DELIVERY-POLICY.md); digest, Quiet
+Hours and per-account channel preferences are not part of the M4-B baseline.
 
 ## Activity
 

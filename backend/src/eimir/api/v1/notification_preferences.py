@@ -62,7 +62,8 @@ def get_own_notification_preferences(
     account: CurrentAccount, session: DbSession, response: Response
 ) -> NotificationPreferencesView:
     """Keep persisted choice, policy eligibility and transport readiness distinct."""
-    choices = notification_preferences.own_push_choices(session, account_id=account.id)
+    push_choices = notification_preferences.own_push_choices(session, account_id=account.id)
+    in_app_choices = notification_preferences.own_in_app_choices(session, account_id=account.id)
     active_endpoint = session.execute(
         select(PushEndpoint.id)
         .where(PushEndpoint.account_id == account.id, PushEndpoint.disabled_at.is_(None))
@@ -77,11 +78,13 @@ def get_own_notification_preferences(
                 delivery_class=notification_policy.POLICIES[kind].delivery_class,
                 channels=[
                     NotificationChannelPreference(
-                        channel=NotificationChannel.IN_APP, enabled=True, configurable=False
+                        channel=NotificationChannel.IN_APP,
+                        enabled=in_app_choices[kind],
+                        configurable=True,
                     ),
                     NotificationChannelPreference(
                         channel=NotificationChannel.PUSH,
-                        enabled=choices[kind],
+                        enabled=push_choices[kind],
                         configurable=notification_policy.POLICIES[kind].push_immediately,
                     ),
                     NotificationChannelPreference(
@@ -127,21 +130,29 @@ def update_own_notification_preference(
     session: DbSession,
     response: Response,
 ) -> NotificationPreferenceUpdated:
-    """Change only the authenticated recipient's implemented PUSH choice."""
-    if channel is not NotificationChannel.PUSH:
+    """Change only the authenticated recipient's implemented channel choice."""
+    if channel is NotificationChannel.EMAIL:
         raise ConflictError(
             "This notification channel is not configurable yet.",
             ErrorCode.NOTIFICATION_CHANNEL_NOT_CONFIGURABLE,
         )
-    if not notification_policy.POLICIES[kind].push_immediately:
+    if (
+        channel is NotificationChannel.PUSH
+        and not notification_policy.POLICIES[kind].push_immediately
+    ):
         raise ConflictError(
             "Immediate push is not allowed for this notification kind.",
             ErrorCode.NOTIFICATION_PUSH_NOT_ALLOWED,
         )
     try:
-        notification_preferences.set_push_enabled(
-            session, account_id=account.id, kind=kind, enabled=body.enabled
-        )
+        if channel is NotificationChannel.IN_APP:
+            notification_preferences.set_in_app_enabled(
+                session, account_id=account.id, kind=kind, enabled=body.enabled
+            )
+        else:
+            notification_preferences.set_push_enabled(
+                session, account_id=account.id, kind=kind, enabled=body.enabled
+            )
     except ValueError as exc:
         raise ConflictError(
             "The Account is unavailable for notification changes.",

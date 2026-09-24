@@ -48,8 +48,9 @@ In particular, a comment digest cannot silently enable a new push channel
 before the recipient has an explicit opt-in under #638.
 The [#638 backend foundation](./NOTIFICATION-PUSH-PREFERENCES.md) enforces
 PUSH overrides for current immediate kinds. The
-[own-Account API](./NOTIFICATION-PREFERENCES-API.md) exposes that choice;
-other channel controls and the user-facing Settings surface remain outstanding.
+[own-Account API and IN_APP follow-up](./NOTIFICATION-PREFERENCES-API.md)
+expose independent recipient choices; EMAIL delivery and the user-facing
+Settings surface remain outstanding.
 
 **Business and operations:** notification quality is Free/Core in
 `docs/FREEMIUM-FEATURE-MATRIX.md` and identical for Cloud/Self-Hosted; no

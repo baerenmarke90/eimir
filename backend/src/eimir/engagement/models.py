@@ -130,7 +130,7 @@ class Activity(IdMixin, Base):
 
 
 class Notification(IdMixin, Base):
-    """Recipient-scoped in-app state with no copied relationship plaintext."""
+    """Recipient-scoped delivery source with no copied relationship plaintext."""
 
     __tablename__ = "notifications"
 
@@ -156,6 +156,9 @@ class Notification(IdMixin, Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    in_app_visible: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
 
     __table_args__ = (
         CheckConstraint(

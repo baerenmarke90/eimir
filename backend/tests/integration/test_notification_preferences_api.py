@@ -45,6 +45,8 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     assert _channel(comment, "PUSH")["enabled"] is False
     assert _channel(comment, "PUSH")["configurable"] is False
     assert _channel(thinking, "IN_APP")["enabled"] is True
+    assert _channel(thinking, "IN_APP")["configurable"] is True
+    assert _channel(comment, "IN_APP")["configurable"] is True
     assert _channel(thinking, "EMAIL")["enabled"] is False
 
     changed = client.patch(
@@ -72,13 +74,53 @@ def test_only_owner_can_read_or_change_personal_push_choice(client, session: Ses
     assert client.patch(f"{BASE}/REMINDER_DUE/PUSH", json={"enabled": False}).status_code == 401
 
 
+def test_in_app_choice_is_independent_per_kind_and_account(client, session: Session) -> None:  # type: ignore[no-untyped-def]
+    anna = make_account(session, "Anna")
+    ben = make_account(session, "Ben")
+    anna_token = sign_in(session, anna)
+    ben_token = sign_in(session, ben)
+
+    for kind in ("COMMENT_CREATED", "THINKING_OF_YOU"):
+        changed = client.patch(
+            f"{BASE}/{kind}/IN_APP", json={"enabled": False}, headers=auth(anna_token)
+        )
+        assert changed.status_code == 200
+        assert changed.json() == {"kind": kind, "channel": "IN_APP", "enabled": False}
+    repeated = client.patch(
+        f"{BASE}/COMMENT_CREATED/IN_APP", json={"enabled": False}, headers=auth(anna_token)
+    )
+    assert repeated.status_code == 200
+
+    own = client.get(BASE, headers=auth(anna_token)).json()
+    partner = client.get(BASE, headers=auth(ben_token)).json()
+    assert _channel(_entry(own, "COMMENT_CREATED"), "IN_APP")["enabled"] is False
+    assert _channel(_entry(own, "THINKING_OF_YOU"), "IN_APP")["enabled"] is False
+    assert _channel(_entry(own, "REMINDER_DUE"), "IN_APP")["enabled"] is True
+    assert _channel(_entry(own, "THINKING_OF_YOU"), "PUSH")["enabled"] is True
+    assert _channel(_entry(partner, "COMMENT_CREATED"), "IN_APP")["enabled"] is True
+    assert len(session.execute(select(NotificationPreference)).scalars().all()) == 2
+
+    restored = client.patch(
+        f"{BASE}/COMMENT_CREATED/IN_APP", json={"enabled": True}, headers=auth(anna_token)
+    )
+    assert restored.status_code == 200
+    assert (
+        _channel(
+            _entry(client.get(BASE, headers=auth(anna_token)).json(), "COMMENT_CREATED"), "IN_APP"
+        )["enabled"]
+        is True
+    )
+    assert (
+        client.patch(f"{BASE}/COMMENT_CREATED/IN_APP", json={"enabled": False}).status_code == 401
+    )
+
+
 def test_unimplemented_channels_and_digestible_push_fail_without_writing(
     client, session: Session
 ) -> None:  # type: ignore[no-untyped-def]
     account = make_account(session)
     token = sign_in(session, account)
     for kind, channel, code in (
-        ("THINKING_OF_YOU", "IN_APP", "NOTIFICATION_CHANNEL_NOT_CONFIGURABLE"),
         ("THINKING_OF_YOU", "EMAIL", "NOTIFICATION_CHANNEL_NOT_CONFIGURABLE"),
         ("COMMENT_CREATED", "PUSH", "NOTIFICATION_PUSH_NOT_ALLOWED"),
     ):

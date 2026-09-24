@@ -360,6 +360,12 @@ def test_comment_digest_rechecks_target_privacy_before_smtp(mail_setup, monkeypa
         delivery_id = session.execute(
             select(EmailDelivery.id).where(EmailDelivery.notification_id == notification.id)
         ).scalar_one()
+        moment_id = moment.id
+        session.commit()
+
+    with Session(engine) as session:
+        moment = session.get(HeartMoment, moment_id)
+        assert moment is not None
         moment.privacy_class = PrivacyClass.OWNER_ONLY.value
         session.commit()
 

@@ -74,15 +74,11 @@ POLICIES: Mapping[NotificationKind, NotificationPolicy] = MappingProxyType(
         NotificationKind.THINKING_OF_YOU: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        NotificationKind.PARTNER_KISS: NotificationPolicy(
-            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
-        ),
+        NotificationKind.PARTNER_KISS: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
         NotificationKind.PARTNER_CHECK_IN: NotificationPolicy(
             DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
         ),
-        NotificationKind.REMINDER_DUE: NotificationPolicy(
-            DeliveryClass.IMMEDIATE, GENERIC_PREVIEW
-        ),
+        NotificationKind.REMINDER_DUE: NotificationPolicy(DeliveryClass.IMMEDIATE, GENERIC_PREVIEW),
     }
 )
 

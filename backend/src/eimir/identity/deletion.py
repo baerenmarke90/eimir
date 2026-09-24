@@ -302,6 +302,8 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     account.birthday = None
     account.locale = DELETED_ACCOUNT_LOCALE
     account.timezone = DELETED_ACCOUNT_TIMEZONE
+    account.quiet_hours_start = None
+    account.quiet_hours_end = None
     if account.disabled_at is None:
         account.disabled_at = deletion.accepted_at
 

@@ -13,8 +13,8 @@ at commit `d7408e60`:
 | Expanded, 1280 × 900 | [Rendered view](implemented-1280-light.png) | [Rendered view](implemented-1280-dark.png) |
 
 The actual Compact view stacks the three channel choices per event. The concept
-image arranged them side by side at an illustrative width; that arrangement made
-capability explanations too narrow in the real 390px browser view. Expanded
+image arranged them in three columns at an illustrative width. That arrangement
+made capability explanations too narrow in the real 390px browser view. Expanded
 retains three columns. The implementation retains the existing anniversary and
 birthday rule forms, their original wording, and the Notification Center link;
 the concept used simplified example text and form details. The fixed bottom

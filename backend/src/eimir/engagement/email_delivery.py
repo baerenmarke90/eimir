@@ -158,7 +158,7 @@ def _send_claimed(
         .where(EmailDelivery.id == delivery_id)
     ).one_or_none()
     if snapshot is None:
-        return
+        return None
     recipient_id, actor_id = snapshot
     account_ids = {recipient_id}
     if actor_id is not None:
@@ -168,11 +168,11 @@ def _send_claimed(
         select(EmailDelivery).where(EmailDelivery.id == delivery_id).with_for_update()
     ).scalar_one_or_none()
     if delivery is None or delivery.status != EmailDeliveryStatus.CLAIMED.value:
-        return
+        return None
     notification = session.get(Notification, delivery.notification_id)
     if notification is None or accounts is None:
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
-        return
+        return None
     current_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_ids.add(notification.actor_id)
@@ -183,21 +183,21 @@ def _send_claimed(
         for account_id in account_ids
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "ACCOUNT_UNAVAILABLE")
-        return
+        return None
     if notification_policy.presentation_for(notification.kind, notification.id) is None:
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_POLICY_BLOCKED")
-        return
+        return None
     if not notification_preferences.email_enabled(
         session, account_id=recipient_id, kind=notification.kind
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_PREFERENCE_DISABLED")
-        return
+        return None
     module = _SPACE_MODULES.get(notification.kind)
     if module is not None and not space_configuration.is_module_enabled(
         session, notification.space_id, module, lock_space=True
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "MODULE_DISABLED")
-        return
+        return None
 
     # A target can be deleted or made private after the Outbox projection.
     from eimir.engagement import service
@@ -208,11 +208,11 @@ def _send_claimed(
         AuthorizationContext(account_id=recipient_id, space_id=notification.space_id),
     ):
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "TARGET_UNAVAILABLE")
-        return
+        return None
     address = verified_primary_email(session, recipient_id)
     if address is None or not transport_available():
         _finish(delivery, EmailDeliveryStatus.UNAVAILABLE, "EMAIL_CAPABILITY_UNAVAILABLE")
-        return
+        return None
 
     checked_at = clock.now()
     release_at = quiet_hours_preferences.release_at(

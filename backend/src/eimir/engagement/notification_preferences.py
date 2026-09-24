@@ -34,13 +34,30 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     return choice if choice is not None else True
 
 
+def own_push_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
+    """Read one Account's effective choices for the closed policy catalog."""
+    rows = session.execute(
+        select(NotificationPreference.kind, NotificationPreference.enabled).where(
+            NotificationPreference.account_id == account_id,
+            NotificationPreference.channel == NotificationChannel.PUSH.value,
+        )
+    ).tuples()
+    overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
+    return {
+        kind: bool(overrides.get(kind.value, True))
+        if notification_policy.POLICIES[kind].push_immediately
+        else False
+        for kind in NotificationKind
+    }
+
+
 def set_push_enabled(
     session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
 ) -> None:
     """Serialize a personal preference change with any provider-side effect.
 
-    A future self-service endpoint must supply the authenticated Account ID,
-    never one taken from the request body or another Space member.
+    Callers supply the authenticated Account ID, never one from a request
+    body or another Space member.
     """
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:

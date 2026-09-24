@@ -28,9 +28,10 @@ partner; Account removal cascades its private rows.
 
 This does not change the existing in-app Center or its read state. It adds no
 mail channel delivery, digest, Quiet Hours or new external provider. The
-next slice must expose an authenticated own-Account API with generated
-clients, then provide visible settings after the required issue visual
-reference and Compact/Expanded UX preflight. It must wire `IN_APP` and
+[own-Account API follow-up](./NOTIFICATION-PREFERENCES-API.md) exposes PUSH
+choices and truthful capabilities with a generated client. Visible settings
+still require the issue visual reference and Compact/Expanded UX preflight.
+The later channel slices must wire `IN_APP` and
 `EMAIL` independently, show unavailable capabilities, and obtain an explicit
 opt-in before a new comment digest starts pushing. An absent channel row is
 an intentional catalog default; no migration pre-populates per-account rows.

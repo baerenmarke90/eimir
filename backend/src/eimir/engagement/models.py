@@ -7,6 +7,7 @@ from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -21,7 +22,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.db.base import Base
-from eimir.db.mixins import IdMixin
+from eimir.db.mixins import IdMixin, TimestampMixin
 
 
 class ActivityKind(StrEnum):
@@ -43,6 +44,12 @@ class NotificationKind(StrEnum):
     PARTNER_KISS = "PARTNER_KISS"
     PARTNER_CHECK_IN = "PARTNER_CHECK_IN"
     REMINDER_DUE = "REMINDER_DUE"
+
+
+class NotificationChannel(StrEnum):
+    IN_APP = "IN_APP"
+    PUSH = "PUSH"
+    EMAIL = "EMAIL"
 
 
 class SupportGestureKind(StrEnum):
@@ -71,6 +78,7 @@ class PushDeliveryStatus(StrEnum):
 
 _ACTIVITY_KIND_VALUES = ", ".join(f"'{value.value}'" for value in ActivityKind)
 _NOTIFICATION_KIND_VALUES = ", ".join(f"'{value.value}'" for value in NotificationKind)
+_NOTIFICATION_CHANNEL_VALUES = ", ".join(f"'{value.value}'" for value in NotificationChannel)
 _SUPPORT_GESTURE_KIND_VALUES = ", ".join(f"'{value.value}'" for value in SupportGestureKind)
 _TARGET_VALUES = ", ".join(f"'{value.value}'" for value in EngagementTarget)
 _PUSH_STATUS_VALUES = ", ".join(f"'{value.value}'" for value in PushDeliveryStatus)
@@ -181,6 +189,34 @@ class Notification(IdMixin, Base):
             "space_id",
             "created_at",
             postgresql_where=read_at.is_(None),
+        ),
+    )
+
+
+class NotificationPreference(IdMixin, TimestampMixin, Base):
+    """Account-owned channel override; absent rows use the versioned catalog default."""
+
+    __tablename__ = "notification_preferences"
+
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            f"kind IN ({_NOTIFICATION_KIND_VALUES})", name="notification_preference_kind_allowed"
+        ),
+        CheckConstraint(
+            f"channel IN ({_NOTIFICATION_CHANNEL_VALUES})",
+            name="notification_preference_channel_allowed",
+        ),
+        UniqueConstraint(
+            "account_id", "kind", "channel", name="uq_notification_preferences_account_kind_channel"
         ),
     )
 

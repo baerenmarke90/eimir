@@ -46,6 +46,9 @@ Later deliveries must intersect the #515 class, the #638 recipient channel
 choice, domain privacy/module rules and technical channel availability.
 In particular, a comment digest cannot silently enable a new push channel
 before the recipient has an explicit opt-in under #638.
+The [#638 backend foundation](./NOTIFICATION-PUSH-PREFERENCES.md) now enforces
+PUSH overrides for current immediate kinds, while its user-facing API and
+other channel controls remain outstanding.
 
 **Business and operations:** notification quality is Free/Core in
 `docs/FREEMIUM-FEATURE-MATRIX.md` and identical for Cloud/Self-Hosted; no

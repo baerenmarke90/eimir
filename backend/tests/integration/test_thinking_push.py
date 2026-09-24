@@ -11,11 +11,12 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from eimir.engagement import notification_policy, push, service, thinking
+from eimir.engagement import notification_policy, notification_preferences, push, service, thinking
 from eimir.engagement.models import (
     Activity,
     Notification,
     NotificationKind,
+    NotificationPreference,
     PushDelivery,
     PushDeliveryStatus,
     ThinkingOfYouRequest,
@@ -505,6 +506,120 @@ def test_unreviewed_preview_change_blocks_an_already_queued_push(
     assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
     assert delivery.last_error_code == push.POLICY_BLOCKED_CODE
     assert delivery.attempts == 0
+    assert provider.calls == []
+
+
+def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
+    session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="personal-choice-token",
+    )
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.THINKING_OF_YOU.value,
+        actor_id=couple["anna"].id,
+        target_type=None,
+        target_id=None,
+        created_at=NOW,
+    )
+    session.add(notification)
+    session.flush()
+
+    assert notification_preferences.push_enabled(
+        session, account_id=couple["ben"].id, kind=notification.kind
+    )
+    assert not notification_preferences.push_enabled(
+        session, account_id=couple["ben"].id, kind=NotificationKind.COMMENT_CREATED.value
+    )
+    with pytest.raises(ValueError, match="Push is not available"):
+        notification_preferences.set_push_enabled(
+            session,
+            account_id=couple["ben"].id,
+            kind=NotificationKind.COMMENT_CREATED,
+            enabled=True,
+        )
+    notification_preferences.set_push_enabled(
+        session,
+        account_id=couple["ben"].id,
+        kind=NotificationKind.THINKING_OF_YOU,
+        enabled=False,
+    )
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    suppressed = session.execute(select(PushDelivery)).scalar_one()
+    assert suppressed.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert suppressed.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert notification_preferences.push_enabled(
+        session, account_id=couple["anna"].id, kind=notification.kind
+    )
+    assert notification_preferences.push_enabled(
+        session, account_id=couple["ben"].id, kind=NotificationKind.REMINDER_DUE.value
+    )
+
+    notification_preferences.set_push_enabled(
+        session,
+        account_id=couple["ben"].id,
+        kind=NotificationKind.THINKING_OF_YOU,
+        enabled=True,
+    )
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    assert session.execute(select(func.count(PushDelivery.id))).scalar_one() == 1
+    assert suppressed.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert session.execute(select(func.count(NotificationPreference.id))).scalar_one() == 1
+
+
+def test_disabling_push_after_queueing_blocks_delivery_and_reenable_does_not_replay(
+    session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="queued-choice-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    source_event_id = uuid4()
+    notification = Notification(
+        space_id=couple["space"].id,
+        recipient_account_id=couple["ben"].id,
+        source_event_id=source_event_id,
+        kind=NotificationKind.THINKING_OF_YOU.value,
+        actor_id=couple["anna"].id,
+        target_type=None,
+        target_id=None,
+        created_at=NOW,
+    )
+    session.add(notification)
+    session.flush()
+    push.ensure_deliveries_for_source_event(session, source_event_id)
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    notification_preferences.set_push_enabled(
+        session,
+        account_id=couple["ben"].id,
+        kind=NotificationKind.THINKING_OF_YOU,
+        enabled=False,
+    )
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert delivery.last_error_code == "PUSH_PREFERENCE_DISABLED"
+    assert delivery.attempts == 0
+    assert provider.calls == []
+
+    notification_preferences.set_push_enabled(
+        session,
+        account_id=couple["ben"].id,
+        kind=NotificationKind.THINKING_OF_YOU,
+        enabled=True,
+    )
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     assert provider.calls == []
 
 

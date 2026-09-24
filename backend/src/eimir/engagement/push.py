@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from eimir.core import clock
-from eimir.engagement import notification_policy
+from eimir.engagement import notification_policy, notification_preferences
 from eimir.engagement.models import (
     Notification,
     NotificationKind,
@@ -139,6 +139,9 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
     for notification in notifications:
         if notification_policy.presentation_for(notification.kind, notification.id) is None:
             continue
+        allowed = notification_preferences.push_enabled(
+            session, account_id=notification.recipient_account_id, kind=notification.kind
+        )
         endpoints = session.execute(
             select(PushEndpoint).where(
                 PushEndpoint.account_id == notification.recipient_account_id,
@@ -152,14 +155,20 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
                     notification_id=notification.id,
                     push_endpoint_id=endpoint.id,
                     provider_key=endpoint.provider_key,
-                    status=PushDeliveryStatus.PENDING.value,
+                    status=(
+                        PushDeliveryStatus.PENDING.value
+                        if allowed
+                        else PushDeliveryStatus.UNAVAILABLE.value
+                    ),
                     attempts=0,
+                    last_error_code=None if allowed else "PUSH_PREFERENCE_DISABLED",
+                    finished_at=None if allowed else clock.now(),
                 )
                 .on_conflict_do_nothing(index_elements=["notification_id", "push_endpoint_id"])
                 .returning(PushDelivery.id)
             )
             delivery_id = session.execute(statement).scalar_one_or_none()
-            if delivery_id is not None:
+            if delivery_id is not None and allowed:
                 queue.enqueue(
                     session,
                     JOB_KIND,
@@ -251,6 +260,11 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         current_account_ids.add(notification.actor_id)
     if current_account_ids != account_ids or not accounts_available:
         _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
+        return
+    if not notification_preferences.push_enabled(
+        session, account_id=notification.recipient_account_id, kind=notification.kind
+    ):
+        _finish_unavailable(delivery, "PUSH_PREFERENCE_DISABLED")
         return
     if any(
         not account_effects.has_active_membership(

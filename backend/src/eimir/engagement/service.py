@@ -25,7 +25,7 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import push, thinking
+from eimir.engagement import notification_preferences, push, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -328,6 +328,9 @@ def _project_comment_notification(
             target_type=target_type.value,
             target_id=target_id,
             created_at=event.created_at,
+            in_app_visible=notification_preferences.in_app_enabled(
+                session, account_id=recipient_id, kind=NotificationKind.COMMENT_CREATED.value
+            ),
         )
         .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
     )
@@ -463,6 +466,7 @@ def read_notifications(
     statement = select(Notification).where(
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     if cursor is not None:
@@ -494,6 +498,7 @@ def unread_count(session: Session, context: AuthorizationContext) -> int:
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
         Notification.read_at.is_(None),
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     return int(session.execute(statement).scalar_one())
@@ -516,6 +521,7 @@ def mark_notification_read(
             Notification.id == identifier,
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
+            Notification.in_app_visible.is_(True),
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )
         .with_for_update()
@@ -540,6 +546,7 @@ def mark_all_notifications_read(
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
             Notification.read_at.is_(None),
+            Notification.in_app_visible.is_(True),
             Notification.created_at <= cutoff,
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )

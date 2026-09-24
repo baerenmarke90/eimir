@@ -515,7 +515,7 @@ export class NotificationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Change only the authenticated recipient\'s implemented PUSH choice.
+     * Change only the authenticated recipient\'s implemented channel choice.
      * Update Own Notification Preference
      */
     async updateOwnNotificationPreferenceRaw(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationPreferenceUpdated>> {
@@ -526,7 +526,7 @@ export class NotificationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Change only the authenticated recipient\'s implemented PUSH choice.
+     * Change only the authenticated recipient\'s implemented channel choice.
      * Update Own Notification Preference
      */
     async updateOwnNotificationPreference(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferenceUpdated> {

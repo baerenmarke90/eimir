@@ -574,6 +574,114 @@ def test_personal_push_choice_suppresses_enqueue_without_muting_the_partner(
     assert session.execute(select(func.count(NotificationPreference.id))).scalar_one() == 1
 
 
+def test_in_app_off_keeps_push_and_preserves_existing_center_state(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+    push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="independent-channel-token",
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    space_id = couple["space"].id
+    center = f"/api/v1/spaces/{space_id}/notifications"
+
+    first = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert first.status_code == 202
+    first_request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+    first_event = session.get(OutboxEvent, first_request.source_event_id)
+    assert first_event is not None
+    service.project_event(session, first_event)
+    session.flush()
+    original = session.execute(
+        select(Notification).where(Notification.source_event_id == first_event.id)
+    ).scalar_one()
+    assert original.in_app_visible is True
+    read = client.post(f"{center}/{original.id}/read", headers=auth(couple["ben_token"]))
+    assert read.status_code == 200
+    original_read_at = original.read_at
+
+    disabled = client.patch(
+        "/api/v1/notification-preferences/THINKING_OF_YOU/IN_APP",
+        json={"enabled": False},
+        headers=auth(couple["ben_token"]),
+    )
+    assert disabled.status_code == 200
+    second = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["ben_token"]),
+    )
+    assert second.status_code == 202
+    second_request = session.execute(
+        select(ThinkingOfYouRequest).where(ThinkingOfYouRequest.id != first_request.id)
+    ).scalar_one()
+    second_event = session.get(OutboxEvent, second_request.source_event_id)
+    assert second_event is not None
+    # The other Account still uses its own visible default.
+    service.project_event(session, second_event)
+
+    # New event for Ben from Anna, after the sender's 30-minute cooldown.
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW + timedelta(minutes=31))
+    third = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert third.status_code == 202
+    third_request = session.execute(
+        select(ThinkingOfYouRequest)
+        .where(ThinkingOfYouRequest.id != first_request.id)
+        .where(ThinkingOfYouRequest.id != second_request.id)
+    ).scalar_one()
+    third_event = session.get(OutboxEvent, third_request.source_event_id)
+    assert third_event is not None
+    service.project_event(session, third_event)
+    service.project_event(session, third_event)
+    session.flush()
+    hidden = session.execute(
+        select(Notification).where(Notification.source_event_id == third_event.id)
+    ).scalar_one()
+    assert hidden.in_app_visible is False
+    queued = session.execute(
+        select(PushDelivery).where(PushDelivery.notification_id == hidden.id)
+    ).scalar_one()
+    assert queued.status == PushDeliveryStatus.PENDING.value
+    push.handle_delivery(session, {"deliveryId": str(queued.id)})
+    assert queued.status == PushDeliveryStatus.SUCCEEDED.value
+    assert len(provider.calls) >= 1
+
+    visible = client.get(center, headers=auth(couple["ben_token"]))
+    assert visible.status_code == 200
+    assert [item["id"] for item in visible.json()["items"]] == [str(original.id)]
+    count = client.get(f"{center}/unread-count", headers=auth(couple["ben_token"]))
+    assert count.json()["unreadCount"] == 0
+    hidden_read = client.post(f"{center}/{hidden.id}/read", headers=auth(couple["ben_token"]))
+    assert hidden_read.status_code == 404
+    assert hidden_read.json()["code"] == "NOTIFICATION_NOT_FOUND"
+    mark_all = client.post(f"{center}/read-all", headers=auth(couple["ben_token"]))
+    assert mark_all.status_code == 200
+    assert mark_all.json()["updated"] == 0
+    assert hidden.read_at is None
+    assert original.read_at == original_read_at
+
+    enabled = client.patch(
+        "/api/v1/notification-preferences/THINKING_OF_YOU/IN_APP",
+        json={"enabled": True},
+        headers=auth(couple["ben_token"]),
+    )
+    assert enabled.status_code == 200
+    after = client.get(center, headers=auth(couple["ben_token"]))
+    assert [item["id"] for item in after.json()["items"]] == [str(original.id)]
+
+
 def test_disabling_push_after_queueing_blocks_delivery_and_reenable_does_not_replay(
     session: Session, couple
 ) -> None:  # type: ignore[no-untyped-def]

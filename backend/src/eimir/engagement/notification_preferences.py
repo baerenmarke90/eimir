@@ -1,4 +1,4 @@
-"""Account-owned push preference authority for persisted notification kinds."""
+"""Account-owned channel preferences for persisted notification kinds."""
 
 from __future__ import annotations
 
@@ -24,11 +24,28 @@ def push_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:
         return False
+    return _effective_choice(
+        session, account_id=account_id, kind=kind, channel=NotificationChannel.PUSH
+    )
+
+
+def in_app_enabled(session: Session, *, account_id: UUID, kind: str) -> bool:
+    """Snapshot the recipient's Center choice when a notification is projected."""
+    if notification_policy.for_kind(kind) is None:
+        return False
+    return _effective_choice(
+        session, account_id=account_id, kind=kind, channel=NotificationChannel.IN_APP
+    )
+
+
+def _effective_choice(
+    session: Session, *, account_id: UUID, kind: str, channel: NotificationChannel
+) -> bool:
     choice = session.execute(
         select(NotificationPreference.enabled).where(
             NotificationPreference.account_id == account_id,
             NotificationPreference.kind == kind,
-            NotificationPreference.channel == NotificationChannel.PUSH.value,
+            NotificationPreference.channel == channel.value,
         )
     ).scalar_one_or_none()
     return choice if choice is not None else True
@@ -51,6 +68,18 @@ def own_push_choices(session: Session, *, account_id: UUID) -> dict[Notification
     }
 
 
+def own_in_app_choices(session: Session, *, account_id: UUID) -> dict[NotificationKind, bool]:
+    """Read one Account's Center overrides; absent rows keep the visible default."""
+    rows = session.execute(
+        select(NotificationPreference.kind, NotificationPreference.enabled).where(
+            NotificationPreference.account_id == account_id,
+            NotificationPreference.channel == NotificationChannel.IN_APP.value,
+        )
+    ).tuples()
+    overrides: dict[str, bool] = {kind: enabled for kind, enabled in rows}
+    return {kind: overrides.get(kind.value, True) for kind in NotificationKind}
+
+
 def set_push_enabled(
     session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
 ) -> None:
@@ -62,6 +91,38 @@ def set_push_enabled(
     policy = notification_policy.for_kind(kind)
     if policy is None or not policy.push_immediately:
         raise ValueError("Push is not available for this notification kind.")
+    _set_choice(
+        session,
+        account_id=account_id,
+        kind=kind,
+        channel=NotificationChannel.PUSH,
+        enabled=enabled,
+    )
+
+
+def set_in_app_enabled(
+    session: Session, *, account_id: UUID, kind: NotificationKind, enabled: bool
+) -> None:
+    """Serialize the recipient's Center choice with projection and deletion."""
+    if notification_policy.for_kind(kind) is None:
+        raise ValueError("In-app delivery is not available for this notification kind.")
+    _set_choice(
+        session,
+        account_id=account_id,
+        kind=kind,
+        channel=NotificationChannel.IN_APP,
+        enabled=enabled,
+    )
+
+
+def _set_choice(
+    session: Session,
+    *,
+    account_id: UUID,
+    kind: NotificationKind,
+    channel: NotificationChannel,
+    enabled: bool,
+) -> None:
     if account_effects.lock_enabled_accounts(session, {account_id}) is None:
         raise ValueError("Account is unavailable.")
 
@@ -71,7 +132,7 @@ def set_push_enabled(
             id=new_id(),
             account_id=account_id,
             kind=NotificationKind(kind).value,
-            channel=NotificationChannel.PUSH.value,
+            channel=channel.value,
             enabled=enabled,
         )
         .on_conflict_do_update(

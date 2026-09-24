@@ -53,4 +53,61 @@ push-policy intersection; OpenAPI and the generated client must match.
 their own complete persistence, privacy, capability, and retry review before
 they become writable. Web Settings UI also requires the issue's generated
 visual reference and Compact Mobile Interaction Contract before code, plus
-Light/Dark and Expanded acceptance. #638 stays open.
+Light/Dark and Expanded acceptance. This paragraph describes the #1252 baseline;
+the IN_APP follow-up below supersedes its read-only channel statement.
+
+## Independent IN_APP choice follow-up (baseline `1eb61ec4`)
+
+This backend follow-up makes `IN_APP` writable for every current persisted
+`NotificationKind`. The GET channel state reflects the Account's effective
+choice, with `configurable: true`; PATCH reuses the same authenticated
+`/{kind}/{channel}` route, normalized override store and Account lock. Missing
+overrides default to enabled for all existing kinds. The closed #515 catalog
+still governs allowed kinds. `PUSH` eligibility, provider capability and
+`EMAIL` read-only/unavailable behavior remain separate.
+
+Every authorized projection retains the internal Notification as the source
+for independent delivery, and snapshots its recipient's IN_APP choice in
+`notifications.in_app_visible`. The migration backfills existing rows as
+visible without changing their read state. Account locking serializes the
+projection with preference writes; conflict-safe insertion preserves the
+original snapshot on Outbox replay. The Center page, cursor pagination,
+unread count, individual read and read-all operate only on visible rows.
+A hidden ID yields the same 404 as an absent or unauthorized one. Disabling
+the choice affects future projections, not delivered Center items; re-enabling
+does not reveal past hidden items. Activity remains an independent feed, and
+push uses the internal Notification even if it is hidden from the Center.
+Projection uses the choice current when queued Outbox work is processed; an
+event emitted while disabled but first processed after re-enablement follows
+the then-current setting. No recipient-controlled plaintext or email address
+is copied into the new column.
+
+**Reuse review:** existing SQLAlchemy/PostgreSQL upserts, the own-Account API,
+the #515 catalog, #565 PushDelivery, the Center read paths and generated
+OpenAPI client are reused. Alternatives were deleting internal Notifications
+when IN_APP is off, querying current choice on each Center read, or a second
+delivery/event table. Those would respectively lose push, retroactively hide
+delivered items, or duplicate the source of truth. One boolean snapshot is
+the minimal domain-specific extension; no new dependency, provider, license,
+host credential, cost or fallback stack is introduced.
+
+**Business/freemium impact reviewed:** Notification Policy, Digest & Quiet
+Hours is Free/Core and identical on Cloud and Self-Hosted per the versioned
+feature matrix. This recipient choice adds no entitlement or quota and
+does not alter Premium sender eligibility for extended gestures, managed
+transport cost, retention, downgrade, export or restored historical read
+state. Backups include the additive column and normalized preference rows.
+
+**Cross-cutting review:** server authentication binds changes to the own
+Account, never a request-supplied recipient; privacy, current membership,
+Space modules and target authorization run before projection/read. The
+Account lock serializes deletion and preference writes with projection.
+The visibility snapshot is stable under retries and does not alter PushDelivery
+or provider-send checks. Page and count queries filter in SQL before limits;
+existing recipient/Space indexes are retained. PostgreSQL tests cover
+isolation by Account and kind, push while Center is off, snapshot/replay,
+404 for hidden items, read-all and unread count, and Activity independence.
+No product UI, localized text, accessibility behavior or motion changes in
+this backend slice. The Web Settings visual preflight and Mobile Interaction
+Contract remain required before any UI implementation, and notification mail
+needs its own verified account-email and delivery review.

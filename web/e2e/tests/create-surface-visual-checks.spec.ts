@@ -253,7 +253,7 @@ async function expectSharingMetadataAligned(page: Page): Promise<void> {
 
   const icon = note.locator('.sharing-icon');
   const svg = icon.locator('svg');
-  const path = svg.locator('path');
+  const path = svg.locator('path').first();
   await expect(icon).toBeVisible();
   await expect(svg).toBeVisible();
   await expect(path).toBeVisible();

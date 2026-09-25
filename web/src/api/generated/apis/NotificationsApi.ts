@@ -74,6 +74,16 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type PushEndpointRegistration,
+    PushEndpointRegistrationFromJSON,
+    PushEndpointRegistrationToJSON,
+} from '../models/PushEndpointRegistration';
+import {
+    type PushEndpointRegistrationResult,
+    PushEndpointRegistrationResultFromJSON,
+    PushEndpointRegistrationResultToJSON,
+} from '../models/PushEndpointRegistrationResult';
+import {
     type QuietHoursUpdate,
     QuietHoursUpdateFromJSON,
     QuietHoursUpdateToJSON,
@@ -111,6 +121,14 @@ export interface MarkAllNotificationsReadRequest {
 export interface MarkNotificationReadRequest {
     notificationId: string;
     spaceId: string;
+}
+
+export interface RegisterOwnPushEndpointRequest {
+    pushEndpointRegistration: PushEndpointRegistration;
+}
+
+export interface RevokeOwnPushEndpointRequest {
+    endpointId: string;
 }
 
 export interface SendPartnerQuickActionRequest {
@@ -371,6 +389,101 @@ export class NotificationsApi extends runtime.BaseAPI {
     async markNotificationRead(requestParameters: MarkNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
         const response = await this.markNotificationReadRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for registerOwnPushEndpoint without sending the request
+     */
+    async registerOwnPushEndpointRequestOpts(requestParameters: RegisterOwnPushEndpointRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['pushEndpointRegistration'] == null) {
+            throw new runtime.RequiredError(
+                'pushEndpointRegistration',
+                'Required parameter "pushEndpointRegistration" was null or undefined when calling registerOwnPushEndpoint().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/push-endpoints`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PushEndpointRegistrationToJSON(requestParameters['pushEndpointRegistration']),
+        };
+    }
+
+    /**
+     * Accept only configured transports and return no endpoint secret.
+     * Register Own Push Endpoint
+     */
+    async registerOwnPushEndpointRaw(requestParameters: RegisterOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushEndpointRegistrationResult>> {
+        const requestOptions = await this.registerOwnPushEndpointRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PushEndpointRegistrationResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Accept only configured transports and return no endpoint secret.
+     * Register Own Push Endpoint
+     */
+    async registerOwnPushEndpoint(requestParameters: RegisterOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushEndpointRegistrationResult> {
+        const response = await this.registerOwnPushEndpointRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for revokeOwnPushEndpoint without sending the request
+     */
+    async revokeOwnPushEndpointRequestOpts(requestParameters: RevokeOwnPushEndpointRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['endpointId'] == null) {
+            throw new runtime.RequiredError(
+                'endpointId',
+                'Required parameter "endpointId" was null or undefined when calling revokeOwnPushEndpoint().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/push-endpoints/{endpointId}`;
+        urlPath = urlPath.replace('{endpointId}', encodeURIComponent(String(requestParameters['endpointId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Keep foreign and unknown IDs indistinguishable to the caller.
+     * Revoke Own Push Endpoint
+     */
+    async revokeOwnPushEndpointRaw(requestParameters: RevokeOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.revokeOwnPushEndpointRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Keep foreign and unknown IDs indistinguishable to the caller.
+     * Revoke Own Push Endpoint
+     */
+    async revokeOwnPushEndpoint(requestParameters: RevokeOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.revokeOwnPushEndpointRaw(requestParameters, initOverrides);
     }
 
     /**

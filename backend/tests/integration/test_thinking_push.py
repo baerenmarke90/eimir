@@ -41,6 +41,9 @@ class FakePushProvider:
         self.fail_once = fail_once
         self.calls: list[dict[str, object]] = []
 
+    def accepts_endpoint(self, endpoint: str) -> bool:
+        return endpoint.startswith("secret-")
+
     def send(
         self,
         *,
@@ -1326,6 +1329,46 @@ def test_disable_after_projection_prevents_pending_push_and_reenable_does_not_re
     _set_support_gestures(client, couple, enabled=True)
     push.handle_delivery(session, {"deliveryId": str(delivery.id)})
     session.flush()
+    assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
+    assert provider.calls == []
+
+
+def test_api_revocation_suppresses_queued_push_without_removing_notification(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    endpoint_response = client.post(
+        "/api/v1/push-endpoints",
+        json={"providerKey": "fake", "endpointValue": "secret-endpoint-token"},
+        headers=auth(couple["ben_token"]),
+    )
+    assert endpoint_response.status_code == 200
+
+    response = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert response.status_code == 202
+    request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+    event = session.get(OutboxEvent, request.source_event_id)
+    assert event is not None
+    service.project_event(session, event)
+    session.flush()
+    notification = session.execute(select(Notification)).scalar_one()
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    revoked = client.delete(
+        f"/api/v1/push-endpoints/{endpoint_response.json()['id']}",
+        headers=auth(couple["ben_token"]),
+    )
+    assert revoked.status_code == 204
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    session.flush()
+
+    assert session.get(Notification, notification.id) is not None
     assert delivery.status == PushDeliveryStatus.UNAVAILABLE.value
     assert provider.calls == []
 

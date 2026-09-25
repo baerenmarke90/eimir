@@ -39,6 +39,7 @@ from eimir.api.v1 import (
     private_area,
     private_collections,
     profiles,
+    push_endpoints,
     recent_authentication,
     reminders,
     rules,
@@ -75,6 +76,7 @@ normal_router.include_router(search.router)
 normal_router.include_router(dashboard.router)
 normal_router.include_router(engagement.router)
 normal_router.include_router(notification_preferences.router)
+normal_router.include_router(push_endpoints.router)
 normal_router.include_router(memories.router)
 normal_router.include_router(milestones.router)
 normal_router.include_router(heart_moments.router)

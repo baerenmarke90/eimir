@@ -9,6 +9,8 @@ All URIs are relative to *http://localhost*
 | [**getOwnNotificationPreferences**](NotificationsApi.md#getownnotificationpreferences) | **GET** /api/v1/notification-preferences | Get Own Notification Preferences |
 | [**markAllNotificationsRead**](NotificationsApi.md#markallnotificationsread) | **POST** /api/v1/spaces/{spaceId}/notifications/read-all | Mark All Notifications Read |
 | [**markNotificationRead**](NotificationsApi.md#marknotificationread) | **POST** /api/v1/spaces/{spaceId}/notifications/{notificationId}/read | Mark Notification Read |
+| [**registerOwnPushEndpoint**](NotificationsApi.md#registerownpushendpoint) | **POST** /api/v1/push-endpoints | Register Own Push Endpoint |
+| [**revokeOwnPushEndpoint**](NotificationsApi.md#revokeownpushendpoint) | **DELETE** /api/v1/push-endpoints/{endpointId} | Revoke Own Push Endpoint |
 | [**sendPartnerQuickAction**](NotificationsApi.md#sendpartnerquickaction) | **POST** /api/v1/spaces/{spaceId}/partner-quick-actions | Send Partner Quick Action |
 | [**sendThinkingOfYou**](NotificationsApi.md#sendthinkingofyou) | **POST** /api/v1/spaces/{spaceId}/thinking-of-you | Send Thinking Of You |
 | [**updateOwnNotificationPreference**](NotificationsApi.md#updateownnotificationpreference) | **PATCH** /api/v1/notification-preferences/{kind}/{channel} | Update Own Notification Preference |
@@ -355,6 +357,148 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## registerOwnPushEndpoint
+
+> PushEndpointRegistrationResult registerOwnPushEndpoint(pushEndpointRegistration)
+
+Register Own Push Endpoint
+
+Accept only configured transports and return no endpoint secret.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { RegisterOwnPushEndpointRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  const body = {
+    // PushEndpointRegistration
+    pushEndpointRegistration: ...,
+  } satisfies RegisterOwnPushEndpointRequest;
+
+  try {
+    const data = await api.registerOwnPushEndpoint(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **pushEndpointRegistration** | [PushEndpointRegistration](PushEndpointRegistration.md) |  | |
+
+### Return type
+
+[**PushEndpointRegistrationResult**](PushEndpointRegistrationResult.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+| **429** | Too many attempts occurred within the allowed time window. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## revokeOwnPushEndpoint
+
+> revokeOwnPushEndpoint(endpointId)
+
+Revoke Own Push Endpoint
+
+Keep foreign and unknown IDs indistinguishable to the caller.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { RevokeOwnPushEndpointRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  const body = {
+    // string
+    endpointId: endpointId_example,
+  } satisfies RevokeOwnPushEndpointRequest;
+
+  try {
+    const data = await api.revokeOwnPushEndpoint(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **endpointId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **204** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

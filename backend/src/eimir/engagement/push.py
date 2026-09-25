@@ -9,12 +9,13 @@ from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext
 from eimir.core import clock
+from eimir.core.errors import ConflictError, ErrorCode
 from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import (
     Notification,
@@ -24,6 +25,7 @@ from eimir.engagement.models import (
     PushEndpoint,
 )
 from eimir.identity import effects as account_effects
+from eimir.identity.models import Account
 from eimir.jobs import queue
 from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.worker import registry
@@ -34,6 +36,7 @@ GENERIC_PRESENTATION_KEY = notification_policy.GENERIC_PRESENTATION_KEY
 ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
+MAX_ACTIVE_ENDPOINTS = 10
 QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 _TERMINAL_DELIVERY_STATUSES = {
@@ -54,6 +57,8 @@ class PushSendResult:
 
 
 class PushProvider(Protocol):
+    def accepts_endpoint(self, endpoint: str) -> bool: ...
+
     def send(
         self,
         *,
@@ -111,7 +116,34 @@ def register_endpoint(
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
 
+    account = session.execute(
+        select(Account).where(Account.id == account_id).with_for_update()
+    ).scalar_one_or_none()
+    if account is None or account.disabled_at is not None:
+        raise ConflictError(
+            "Account is unavailable for push endpoint registration.",
+            ErrorCode.PUSH_ENDPOINT_ACCOUNT_UNAVAILABLE,
+        )
+
     fingerprint = hashlib.sha256(endpoint.encode("utf-8")).hexdigest()
+    existing = session.execute(
+        select(PushEndpoint.id, PushEndpoint.disabled_at).where(
+            PushEndpoint.account_id == account_id,
+            PushEndpoint.provider_key == provider,
+            PushEndpoint.fingerprint == fingerprint,
+        )
+    ).one_or_none()
+    if existing is None or existing.disabled_at is not None:
+        active_count = session.execute(
+            select(func.count())
+            .select_from(PushEndpoint)
+            .where(PushEndpoint.account_id == account_id, PushEndpoint.disabled_at.is_(None))
+        ).scalar_one()
+        if active_count >= MAX_ACTIVE_ENDPOINTS:
+            raise ConflictError(
+                "Active push endpoint limit reached.", ErrorCode.PUSH_ENDPOINT_LIMIT_REACHED
+            )
+
     statement = (
         postgresql.insert(PushEndpoint)
         .values(
@@ -132,6 +164,25 @@ def register_endpoint(
     if endpoint_row is None:
         raise RuntimeError("Push endpoint disappeared after upsert.")
     return endpoint_row
+
+
+def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) -> bool:
+    """Disable an owned endpoint under the same Account lock used by delivery."""
+    account = session.execute(
+        select(Account).where(Account.id == account_id).with_for_update()
+    ).scalar_one_or_none()
+    if account is None or account.disabled_at is not None:
+        return False
+    endpoint = session.execute(
+        select(PushEndpoint)
+        .where(PushEndpoint.id == endpoint_id, PushEndpoint.account_id == account_id)
+        .with_for_update()
+    ).scalar_one_or_none()
+    if endpoint is None:
+        return False
+    if endpoint.disabled_at is None:
+        endpoint.disabled_at = clock.now()
+    return True
 
 
 def _target_available(session: Session, notification: Notification) -> bool:

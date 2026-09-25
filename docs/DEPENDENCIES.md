@@ -205,28 +205,32 @@ registry or uses a hoster-controlled mirror.
 
 ## Android — Capacitor wrapper runtime
 
-The Android Gradle project in `android/` contains no product UI code. Product
+The Android Gradle project in `android/` contains no product UI screens. Product
 screens are the React application from `web/`, packaged as a local asset
-bundle. Capacitor plugin versions are pinned exactly in `web/package.json` and
-locked in `web/package-lock.json`; the Gradle modules below are resolved from
-`web/node_modules` by `npx cap sync android`.
+bundle. A small native bridge handles UnifiedPush registration, wake events,
+and content-free system notifications. Capacitor plugin versions are pinned
+exactly in `web/package.json` and locked in `web/package-lock.json`; the Gradle
+modules below are resolved from `web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
 | @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
 | @capacitor/app | 8.1.1 | npm | MIT |
 | @capacitor/browser | 8.0.4 | npm | MIT |
+| org.unifiedpush.android:connector | 3.3.3 | Maven Central | Apache-2.0 |
 | androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
 | androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
 | Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
-The wrapper adds **no** Room, WorkManager, Kotlin, or Compose dependency. It
-holds no product state: session, cache, and read models live in the Web client.
+The wrapper adds **no** direct Room, WorkManager, Kotlin, or Compose dependency.
+It holds no session, cache, or read model: those live in the Web client. The
+native bridge remembers only the active Account ID for distributor callbacks;
+the authenticated Web client registers and revokes the server endpoint.
 The former native read cache and its Keystore key belonged to the retired,
 non-authoritative Kotlin client and are not part of server data continuity.
 `google-services.json` is intentionally absent, so the Google Services plugin
-stays inactive until a push-notification slice adds Firebase.
+stays inactive until a separate Firebase slice is configured.
 
 ## Android — Wrapper test and build
 

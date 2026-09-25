@@ -21,6 +21,24 @@ const notificationSettings = {
     'E-Mail-Versand ist auf dieser Installation nicht verfügbar.',
   endpointMissing: 'Auf diesem Gerät ist noch kein Push-Empfang eingerichtet.',
   pushUnavailable: 'Push ist derzeit nicht verfügbar.',
+  deviceTitle: 'Auf diesem Gerät',
+  deviceIntro:
+    'Wähle einen Push-Dienst auf deinem Gerät. Hinweise zeigen keine privaten Inhalte; die Nachrichten findest du in eimir.',
+  deviceLoading: 'Push-Einrichtung wird geprüft …',
+  deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
+  deviceOff: 'Push ist auf diesem Gerät aus.',
+  deviceConnecting: 'Verbindung zum Push-Dienst wird hergestellt …',
+  deviceOn: 'Push ist auf diesem Gerät aktiv.',
+  deviceError:
+    'Die Verbindung konnte nicht eingerichtet werden. Versuche es erneut.',
+  deviceNoDistributor:
+    'Es ist noch kein Push-Dienst auf diesem Gerät installiert oder ausgewählt.',
+  devicePermissionDenied:
+    'Erlaube Benachrichtigungen in den Geräteeinstellungen.',
+  deviceCleanupPending:
+    'Auf diesem Gerät ist Push aus. Die alte Verbindung wird beim nächsten Start entfernt.',
+  deviceEnable: 'Auf diesem Gerät aktivieren',
+  deviceDisable: 'Auf diesem Gerät deaktivieren',
   policyUnavailable: 'Für diesen Ereignistyp derzeit nicht verfügbar.',
   unavailable: 'Dieser Kanal ist derzeit nicht verfügbar.',
   loading: 'Deine Benachrichtigungen werden geladen …',

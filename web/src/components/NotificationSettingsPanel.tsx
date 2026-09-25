@@ -8,6 +8,7 @@ import { NotificationKind } from '../api/generated/models/NotificationKind';
 import type { NotificationPreferencesView } from '../api/generated/models/NotificationPreferencesView';
 import { normalizeClientError } from '../client/problemDetails';
 import { settingsCategoryPath } from '../client/routes';
+import type { DevicePushController } from '../client/unifiedPush';
 import { useTranslation } from '../i18n';
 import { PreferenceSwitch } from './PreferenceSwitch';
 import { ProblemState } from './ProblemState';
@@ -58,9 +59,11 @@ type Choice = {
 export function NotificationSettingsPanel({
   notificationsApi,
   accountId,
+  devicePush,
 }: {
   notificationsApi: NotificationsApi;
   accountId: string;
+  devicePush?: DevicePushController;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -149,6 +152,47 @@ export function NotificationSettingsPanel({
           {t('notificationSettings.intro')}
         </p>
       </div>
+
+      {devicePush?.available && (
+        <div className="notification-device-push">
+          <h3>{t('notificationSettings.deviceTitle')}</h3>
+          <p>{t('notificationSettings.deviceIntro')}</p>
+          <p role="status" aria-live="polite">
+            {devicePush.error === 'NO_PUSH_DISTRIBUTOR'
+              ? t('notificationSettings.deviceNoDistributor')
+              : devicePush.error === 'NOTIFICATION_PERMISSION_DENIED'
+                ? t('notificationSettings.devicePermissionDenied')
+                : devicePush.error === 'PUSH_DEVICE_CLEANUP_PENDING'
+                  ? t('notificationSettings.deviceCleanupPending')
+                  : t(
+                      `notificationSettings.device${devicePush.state.charAt(0).toUpperCase()}${devicePush.state.slice(1)}`,
+                    )}
+          </p>
+          <div className="form-actions">
+            {(devicePush.state === 'off' || devicePush.state === 'error') && (
+              <button
+                type="button"
+                className="button-link"
+                onClick={() => void devicePush.enable()}
+              >
+                {t('notificationSettings.deviceEnable')}
+              </button>
+            )}
+            {(devicePush.state === 'on' ||
+              devicePush.state === 'connecting' ||
+              devicePush.state === 'error' ||
+              devicePush.state === 'unavailable') && (
+              <button
+                type="button"
+                className="button-link secondary-link"
+                onClick={() => void devicePush.disable()}
+              >
+                {t('notificationSettings.deviceDisable')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {preferences.isPending ? (
         <p role="status">{t('notificationSettings.loading')}</p>

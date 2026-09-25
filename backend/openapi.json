@@ -5942,6 +5942,43 @@
         "title": "ProfileVisibility",
         "type": "string"
       },
+      "PushEndpointRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointValue": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Endpointvalue",
+            "type": "string"
+          },
+          "providerKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Providerkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "endpointValue"
+        ],
+        "title": "PushEndpointRegistration",
+        "type": "object"
+      },
+      "PushEndpointRegistrationResult": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PushEndpointRegistrationResult",
+        "type": "object"
+      },
       "QuietHoursUpdate": {
         "additionalProperties": false,
         "properties": {
@@ -12433,6 +12470,144 @@
           }
         },
         "summary": "Update Own Notification Preference",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints": {
+      "post": {
+        "description": "Accept only configured transports and return no endpoint secret.",
+        "operationId": "registerOwnPushEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushEndpointRegistration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushEndpointRegistrationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Register Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/{endpointId}": {
+      "delete": {
+        "description": "Keep foreign and unknown IDs indistinguishable to the caller.",
+        "operationId": "revokeOwnPushEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "endpointId",
+            "required": true,
+            "schema": {
+              "title": "Endpointid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Revoke Own Push Endpoint",
         "tags": [
           "notifications"
         ]

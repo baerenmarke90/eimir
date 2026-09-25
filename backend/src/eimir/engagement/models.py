@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
     UniqueConstraint,
     func,
@@ -23,6 +24,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin
+from eimir.db.protected_payload import ProtectedPayloadJSON
+from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
 
 
 class ActivityKind(StrEnum):
@@ -365,6 +368,37 @@ class PushEndpoint(IdMixin, Base):
         ),
         Index("ix_push_endpoints_account_active", "account_id", "disabled_at"),
     )
+
+
+class PushEndpointSecretPayload(ProtectedPayload):
+    """The capability value supplied by a device, separate from endpoint metadata."""
+
+    value: str
+
+
+class PushEndpointSecret(IdMixin, Base):
+    """Protected registration material deleted with its owning endpoint."""
+
+    __tablename__ = "push_endpoint_secrets"
+
+    push_endpoint_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("push_endpoints.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger,
+        nullable=False,
+        default=CRYPTO_VERSION_PLAINTEXT,
+        server_default=text("0"),
+    )
+    payload: Mapped[PushEndpointSecretPayload] = mapped_column(
+        ProtectedPayloadJSON(PushEndpointSecretPayload),
+        nullable=False,
+    )
+
+    __table_args__ = (CheckConstraint("crypto_version >= 0", name="endpoint_secret_crypto_valid"),)
 
 
 class PushDelivery(IdMixin, Base):

@@ -103,6 +103,11 @@ import {
     ThinkingOfYouCreateFromJSON,
     ThinkingOfYouCreateToJSON,
 } from '../models/ThinkingOfYouCreate';
+import {
+    type UnifiedPushConfiguration,
+    UnifiedPushConfigurationFromJSON,
+    UnifiedPushConfigurationToJSON,
+} from '../models/UnifiedPushConfiguration';
 
 export interface GetNotificationUnreadCountRequest {
     spaceId: string;
@@ -290,6 +295,45 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async getOwnNotificationPreferences(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferencesView> {
         const response = await this.getOwnNotificationPreferencesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getUnifiedPushConfiguration without sending the request
+     */
+    async getUnifiedPushConfigurationRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/push-endpoints/unifiedpush-configuration`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Expose the public VAPID key to an authenticated device connector.
+     * Get Unified Push Configuration
+     */
+    async getUnifiedPushConfigurationRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UnifiedPushConfiguration>> {
+        const requestOptions = await this.getUnifiedPushConfigurationRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UnifiedPushConfigurationFromJSON(jsonValue));
+    }
+
+    /**
+     * Expose the public VAPID key to an authenticated device connector.
+     * Get Unified Push Configuration
+     */
+    async getUnifiedPushConfiguration(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UnifiedPushConfiguration> {
+        const response = await this.getUnifiedPushConfigurationRaw(initOverrides);
         return await response.value();
     }
 

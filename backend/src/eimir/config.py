@@ -289,6 +289,12 @@ class Settings(IdentityCompatibleSettings):
     smtp_password: SecretStr | None = None
     smtp_starttls: bool = True
 
+    # UnifiedPush uses Web Push for the server-to-distributor hop. No provider
+    # is active until an operator configures a VAPID key and explicit origins.
+    push_vapid_private_key: SecretStr | None = None
+    push_vapid_subject: str = ""
+    push_webpush_allowed_origins: list[str] = Field(default_factory=list)
+
     # Observability and logging configuration.
     log_format: LogFormat | None = None
     log_level: str = "INFO"
@@ -301,6 +307,7 @@ class Settings(IdentityCompatibleSettings):
         "s3_session_token",
         "encryption_at_rest",
         "encryption_active_key_id",
+        "push_vapid_private_key",
         mode="before",
     )
     @classmethod
@@ -530,6 +537,59 @@ class Settings(IdentityCompatibleSettings):
             )
         if self.is_production and not self.public_base_url.startswith("https://"):
             raise ValueError("Production requires an https EIMIR_PUBLIC_BASE_URL.")
+        return self
+
+    @model_validator(mode="after")
+    def web_push_configuration_is_complete(self) -> Self:
+        configured = bool(
+            self.push_vapid_private_key
+            or self.push_vapid_subject
+            or self.push_webpush_allowed_origins
+        )
+        if not configured:
+            return self
+        if not (
+            self.push_vapid_private_key
+            and self.push_vapid_subject
+            and self.push_webpush_allowed_origins
+        ):
+            raise ValueError(
+                "Web Push requires EIMIR_PUSH_VAPID_PRIVATE_KEY, "
+                "EIMIR_PUSH_VAPID_SUBJECT and EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS."
+            )
+        subject = urlsplit(self.push_vapid_subject)
+        if not (
+            (subject.scheme == "mailto" and subject.path and "@" in subject.path)
+            or (subject.scheme == "https" and subject.hostname)
+        ):
+            raise ValueError("EIMIR_PUSH_VAPID_SUBJECT must be a mailto: or https: contact.")
+        try:
+            from py_vapid import Vapid  # type: ignore[import-untyped]
+
+            Vapid.from_string(self.push_vapid_private_key.get_secret_value())
+        except Exception:
+            raise ValueError("EIMIR_PUSH_VAPID_PRIVATE_KEY is invalid.") from None
+        for raw_origin in self.push_webpush_allowed_origins:
+            try:
+                origin = urlsplit(raw_origin)
+                _ = origin.port
+            except ValueError:
+                raise ValueError(
+                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
+                ) from None
+            if (
+                origin.scheme != "https"
+                or not origin.hostname
+                or origin.username is not None
+                or origin.password is not None
+                or origin.path not in {"", "/"}
+                or origin.query
+                or origin.fragment
+                or any(ord(character) < 33 or ord(character) == 127 for character in raw_origin)
+            ):
+                raise ValueError(
+                    "EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS must contain HTTPS origins only."
+                )
         return self
 
 

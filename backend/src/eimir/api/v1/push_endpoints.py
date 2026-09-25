@@ -15,7 +15,7 @@ from eimir.api.schema import ApiModel
 from eimir.auth import rate_limit
 from eimir.core.errors import ErrorCode, NotFoundError, ServiceUnavailableError, ValidationError
 from eimir.core.ids import parse_id
-from eimir.engagement import push
+from eimir.engagement import push, unified_push
 
 router = APIRouter(prefix="/push-endpoints", tags=["notifications"])
 
@@ -50,6 +50,34 @@ class PushEndpointRegistrationResult(ApiModel):
     id: UUID
 
 
+class UnifiedPushConfiguration(ApiModel):
+    provider_key: str
+    vapid_public_key: str
+
+
+@router.get(
+    "/unifiedpush-configuration",
+    response_model=UnifiedPushConfiguration,
+    operation_id="getUnifiedPushConfiguration",
+    responses=problem_responses(401, 503),
+)
+def get_unified_push_configuration(
+    account: CurrentAccount, response: Response
+) -> UnifiedPushConfiguration:
+    """Expose the public VAPID key to an authenticated device connector."""
+    del account
+    provider = push.providers.get(unified_push.PROVIDER_KEY)
+    if not isinstance(provider, unified_push.UnifiedPushProvider):
+        raise ServiceUnavailableError(
+            "Push transport is unavailable.", ErrorCode.PUSH_TRANSPORT_UNAVAILABLE
+        )
+    response.headers["Cache-Control"] = "private, no-store"
+    return UnifiedPushConfiguration(
+        provider_key=unified_push.PROVIDER_KEY,
+        vapid_public_key=provider.vapid_public_key,
+    )
+
+
 @router.post(
     "",
     response_model=PushEndpointRegistrationResult,
@@ -76,6 +104,7 @@ def register_own_push_endpoint(
         account_id=account.id,
         provider_key=body.provider_key,
         endpoint_value=body.endpoint_value,
+        registration_identity=provider.registration_identity(body.endpoint_value),
     )
     response.headers["Cache-Control"] = "private, no-store"
     return PushEndpointRegistrationResult(id=endpoint.id)

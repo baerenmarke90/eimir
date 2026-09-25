@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**getNotificationUnreadCount**](NotificationsApi.md#getnotificationunreadcount) | **GET** /api/v1/spaces/{spaceId}/notifications/unread-count | Get Notification Unread Count |
 | [**getNotifications**](NotificationsApi.md#getnotifications) | **GET** /api/v1/spaces/{spaceId}/notifications | Get Notifications |
 | [**getOwnNotificationPreferences**](NotificationsApi.md#getownnotificationpreferences) | **GET** /api/v1/notification-preferences | Get Own Notification Preferences |
+| [**getUnifiedPushConfiguration**](NotificationsApi.md#getunifiedpushconfiguration) | **GET** /api/v1/push-endpoints/unifiedpush-configuration | Get Unified Push Configuration |
 | [**markAllNotificationsRead**](NotificationsApi.md#markallnotificationsread) | **POST** /api/v1/spaces/{spaceId}/notifications/read-all | Mark All Notifications Read |
 | [**markNotificationRead**](NotificationsApi.md#marknotificationread) | **POST** /api/v1/spaces/{spaceId}/notifications/{notificationId}/read | Mark Notification Read |
 | [**registerOwnPushEndpoint**](NotificationsApi.md#registerownpushendpoint) | **POST** /api/v1/push-endpoints | Register Own Push Endpoint |
@@ -201,6 +202,67 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**NotificationPreferencesView**](NotificationPreferencesView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **503** | A capability required for this operation is not configured on this instance. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getUnifiedPushConfiguration
+
+> UnifiedPushConfiguration getUnifiedPushConfiguration()
+
+Get Unified Push Configuration
+
+Expose the public VAPID key to an authenticated device connector.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  NotificationsApi,
+} from '';
+import type { GetUnifiedPushConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new NotificationsApi();
+
+  try {
+    const data = await api.getUnifiedPushConfiguration();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**UnifiedPushConfiguration**](UnifiedPushConfiguration.md)
 
 ### Authorization
 

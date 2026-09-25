@@ -286,6 +286,7 @@ export * from './TransferExportDetail';
 export * from './TransferImportDetail';
 export * from './TransferImportSummary';
 export * from './TransferScope';
+export * from './UnifiedPushConfiguration';
 export * from './UploadDescriptor';
 export * from './WishCreate';
 export * from './WishDetail';

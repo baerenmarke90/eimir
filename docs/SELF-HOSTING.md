@@ -363,6 +363,12 @@ Production rejects insecure runtime settings. At minimum:
   with an encrypting mode `EIMIR_ENCRYPTION_KEYS`/`EIMIR_ENCRYPTION_ACTIVE_KEY_ID` are valid;
 - `EIMIR_MAIL_TRANSPORT` is `smtp` or `none`, never `log`.
 
+UnifiedPush delivery is optional. To enable the backend transport, configure a
+stable VAPID key, contact subject and explicit allowed HTTPS push-server
+origins for both API and worker. See
+[UnifiedPush backend transport](./m4/UNIFIEDPUSH-TRANSPORT.md) for the exact
+settings, egress restrictions and current client-integration boundary.
+
 SMTP is optional. With:
 
 ```dotenv

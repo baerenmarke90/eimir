@@ -5946,6 +5946,7 @@
         "additionalProperties": false,
         "properties": {
           "endpointValue": {
+            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; the configured provider validates its own format. Treat this value as a secret.",
             "maxLength": 2048,
             "minLength": 1,
             "title": "Endpointvalue",

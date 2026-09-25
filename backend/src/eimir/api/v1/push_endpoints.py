@@ -27,7 +27,15 @@ class PushEndpointRegistration(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     provider_key: str = Field(min_length=1, max_length=64)
-    endpoint_value: str = Field(min_length=1, max_length=2048)
+    endpoint_value: str = Field(
+        min_length=1,
+        max_length=2048,
+        description=(
+            "Opaque provider-specific registration value. A Web Push transport can use "
+            "a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; "
+            "the configured provider validates its own format. Treat this value as a secret."
+        ),
+    )
 
     @field_validator("provider_key", "endpoint_value")
     @classmethod

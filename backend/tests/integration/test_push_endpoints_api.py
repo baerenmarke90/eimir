@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from uuid import uuid4
 
 import pytest
@@ -19,7 +20,7 @@ BASE = "/api/v1/push-endpoints"
 
 class FakeProvider:
     def accepts_endpoint(self, endpoint: str) -> bool:
-        return endpoint.startswith("opaque:")
+        return endpoint.startswith("opaque:") or endpoint.startswith('{"endpoint":')
 
     def send(
         self,
@@ -124,6 +125,32 @@ def test_registration_and_revocation_are_owner_scoped_and_idempotent(
     session.refresh(rows[0])
     assert rows[0].disabled_at is None
     assert len(session.execute(select(PushEndpoint)).scalars().all()) == 1
+
+
+def test_registration_preserves_web_push_subscription_without_echoing_keys(
+    client, session: Session
+) -> None:  # type: ignore[no-untyped-def]
+    account = make_account(session, "Anna")
+    token = sign_in(session, account)
+    push.providers.register("web-push", FakeProvider())
+    subscription = json.dumps(
+        {
+            "endpoint": "https://push.example.org/subscription/capability",
+            "keys": {"p256dh": "public-key", "auth": "private-secret"},
+        },
+        separators=(",", ":"),
+    )
+
+    result = client.post(
+        BASE,
+        json={"providerKey": "web-push", "endpointValue": subscription},
+        headers=auth(token),
+    )
+    assert result.status_code == 200
+    assert "private-secret" not in result.text
+    assert "capability" not in result.text
+    endpoint = session.execute(select(PushEndpoint)).scalar_one()
+    assert endpoint.endpoint_value == subscription
 
 
 def test_registration_caps_active_endpoints_per_account(client, session: Session) -> None:  # type: ignore[no-untyped-def]

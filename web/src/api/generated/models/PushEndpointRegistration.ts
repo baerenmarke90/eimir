@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface PushEndpointRegistration {
     /**
-     * 
+     * Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; the configured provider validates its own format. Treat this value as a secret.
      * @type {string}
      * @memberof PushEndpointRegistration
      */

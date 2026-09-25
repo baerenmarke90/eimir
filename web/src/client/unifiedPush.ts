@@ -258,7 +258,9 @@ export function useUnifiedPush({
     return () => {
       live = false;
       for (const subscription of subscriptions) {
-        void subscription.then((handle) => handle.remove());
+        void subscription
+          .then((handle) => handle.remove())
+          .catch(() => undefined);
       }
     };
   }, [accountId, key, native, navigate, notificationsApi, queryClient]);
@@ -306,5 +308,5 @@ export function useUnifiedPush({
 }
 
 export function stopNativePushForSignedOutAccount(): void {
-  if (isCapacitorNative()) void nativePush.disable();
+  if (isCapacitorNative()) void nativePush.disable().catch(() => undefined);
 }

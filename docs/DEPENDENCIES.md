@@ -4,7 +4,7 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-22
+As of: 2026-09-25
 
 ## Reproducibility and verification
 
@@ -88,6 +88,12 @@ outbound HTTP.
 involves CBOR, COSE keys, and Attestation, and reading these formats by hand
 would be custom implementation at the most sensitive boundary.
 
+`pywebpush` encrypts Web Push payloads and signs VAPID requests for the
+UnifiedPush backend transport. Using its established protocol implementation
+avoids custom RFC 8291 cryptography. The application supplies a restricted
+HTTPS transport for destination validation and connection pinning; it does not
+modify the upstream package.
+
 `cbor2` is development-only: the virtual Authenticator in tests constructs
 `attestationObject` and COSE keys itself so the suite verifies real signatures
 instead of recorded example data.
@@ -126,6 +132,7 @@ in a background job under resource limits — never in the request path.
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
 | pyjwt[crypto] | 2.13.0 | PyPI | MIT |
 | cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
+| pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 12.3.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |

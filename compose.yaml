@@ -67,6 +67,9 @@ x-self-hosted-runtime-environment: &self-hosted-runtime-environment
   EIMIR_ALLOWED_HOSTS: '${EIMIR_ALLOWED_HOSTS:-${SBS_ALLOWED_HOSTS:-["localhost","127.0.0.1"]}}'
   EIMIR_PUBLIC_BASE_URL: "${EIMIR_PUBLIC_BASE_URL:-${SBS_PUBLIC_BASE_URL:-http://localhost:8080}}"
   EIMIR_MAIL_TRANSPORT: "${EIMIR_MAIL_TRANSPORT:-${SBS_MAIL_TRANSPORT:-log}}"
+  EIMIR_PUSH_VAPID_PRIVATE_KEY: "${EIMIR_PUSH_VAPID_PRIVATE_KEY:-}"
+  EIMIR_PUSH_VAPID_SUBJECT: "${EIMIR_PUSH_VAPID_SUBJECT:-}"
+  EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS: '${EIMIR_PUSH_WEBPUSH_ALLOWED_ORIGINS:-[]}'
 
 x-cloud-runtime-environment: &cloud-runtime-environment
   <<: *shared-runtime-environment

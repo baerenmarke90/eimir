@@ -9760,6 +9760,24 @@
         "title": "TransferScope",
         "type": "string"
       },
+      "UnifiedPushConfiguration": {
+        "properties": {
+          "providerKey": {
+            "title": "Providerkey",
+            "type": "string"
+          },
+          "vapidPublicKey": {
+            "title": "Vapidpublickey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "vapidPublicKey"
+        ],
+        "title": "UnifiedPushConfiguration",
+        "type": "object"
+      },
       "UploadDescriptor": {
         "properties": {
           "attachment": {
@@ -12553,6 +12571,48 @@
           }
         },
         "summary": "Register Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/unifiedpush-configuration": {
+      "get": {
+        "description": "Expose the public VAPID key to an authenticated device connector.",
+        "operationId": "getUnifiedPushConfiguration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnifiedPushConfiguration"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Unified Push Configuration",
         "tags": [
           "notifications"
         ]

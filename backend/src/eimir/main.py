@@ -14,6 +14,7 @@ from eimir.api.openapi import EimirFastAPI
 from eimir.api.transport import RequestBodyLimitMiddleware, RequireHttpsForExternalHostsMiddleware
 from eimir.api.v1 import router as v1_router
 from eimir.config import Environment, Settings, get_settings
+from eimir.engagement import unified_push
 from eimir.identity.deletion_self_service import reconcile_configured_deletions_on_startup
 from eimir.observability import (
     RequestIdMiddleware,
@@ -65,6 +66,7 @@ async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    unified_push.configure_provider(settings)
     _log_operating_mode(settings)
 
     app = EimirFastAPI(

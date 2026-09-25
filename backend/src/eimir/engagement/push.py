@@ -23,6 +23,8 @@ from eimir.engagement.models import (
     PushDelivery,
     PushDeliveryStatus,
     PushEndpoint,
+    PushEndpointSecret,
+    PushEndpointSecretPayload,
 )
 from eimir.identity import effects as account_effects
 from eimir.identity.models import Account
@@ -59,6 +61,8 @@ class PushSendResult:
 class PushProvider(Protocol):
     def accepts_endpoint(self, endpoint: str) -> bool: ...
 
+    def registration_identity(self, endpoint: str) -> str: ...
+
     def send(
         self,
         *,
@@ -72,8 +76,9 @@ class PushProvider(Protocol):
 class PushProviderError(Exception):
     """Provider failure represented only by a bounded technical code."""
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, *, retryable: bool = True) -> None:
         self.code = sanitize_error_code(code)
+        self.retryable = retryable
         super().__init__(self.code)
 
 
@@ -109,6 +114,7 @@ def register_endpoint(
     account_id: UUID,
     provider_key: str,
     endpoint_value: str,
+    registration_identity: str | None = None,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
@@ -125,7 +131,8 @@ def register_endpoint(
             ErrorCode.PUSH_ENDPOINT_ACCOUNT_UNAVAILABLE,
         )
 
-    fingerprint = hashlib.sha256(endpoint.encode("utf-8")).hexdigest()
+    fingerprint = hashlib.sha256((registration_identity or endpoint).encode("utf-8")).hexdigest()
+    stored_reference = f"sha256:{fingerprint}"
     existing = session.execute(
         select(PushEndpoint.id, PushEndpoint.disabled_at).where(
             PushEndpoint.account_id == account_id,
@@ -149,13 +156,13 @@ def register_endpoint(
         .values(
             account_id=account_id,
             provider_key=provider,
-            endpoint_value=endpoint,
+            endpoint_value=stored_reference,
             fingerprint=fingerprint,
             disabled_at=None,
         )
         .on_conflict_do_update(
             index_elements=["account_id", "provider_key", "fingerprint"],
-            set_={"endpoint_value": endpoint, "disabled_at": None},
+            set_={"endpoint_value": stored_reference, "disabled_at": None},
         )
         .returning(PushEndpoint.id)
     )
@@ -163,6 +170,18 @@ def register_endpoint(
     endpoint_row = session.get(PushEndpoint, endpoint_id)
     if endpoint_row is None:
         raise RuntimeError("Push endpoint disappeared after upsert.")
+    secret = session.execute(
+        select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint_id)
+    ).scalar_one_or_none()
+    if secret is None:
+        session.add(
+            PushEndpointSecret(
+                push_endpoint_id=endpoint_id,
+                payload=PushEndpointSecretPayload(value=endpoint),
+            )
+        )
+    elif secret.payload.value != endpoint:
+        secret.payload = PushEndpointSecretPayload(value=endpoint)
     return endpoint_row
 
 
@@ -504,6 +523,9 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
 
     delivery.attempts += 1
     try:
+        secret = session.execute(
+            select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
+        ).scalar_one_or_none()
         result = provider.send(
             idempotency_key=(
                 f"digest:{notification.recipient_account_id}:{notification.space_id}:"
@@ -511,13 +533,15 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
                 if digest_start is not None
                 else f"{notification.id}:{endpoint.id}"
             ),
-            endpoint=endpoint.endpoint_value,
+            endpoint=secret.payload.value if secret is not None else endpoint.endpoint_value,
             notification_reference=presentation.reference,
             generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:
-        _record_failure(delivery, exc.code)
-        if delivery.attempts < MAX_PUSH_ATTEMPTS:
+        if exc.code == "PUSH_SUBSCRIPTION_GONE":
+            endpoint.disabled_at = clock.now()
+        _record_failure(delivery, exc.code, terminal=not exc.retryable)
+        if exc.retryable and delivery.attempts < MAX_PUSH_ATTEMPTS:
             raise RetryableJobError(exc.code) from exc
         return
     except Exception as exc:
@@ -548,9 +572,9 @@ def bounded_identifier(value: str | None) -> str | None:
     return cleaned[:256] or None
 
 
-def _record_failure(delivery: PushDelivery, code: str) -> None:
+def _record_failure(delivery: PushDelivery, code: str, *, terminal: bool = False) -> None:
     delivery.last_error_code = sanitize_error_code(code)
-    if delivery.attempts >= MAX_PUSH_ATTEMPTS:
+    if terminal or delivery.attempts >= MAX_PUSH_ATTEMPTS:
         delivery.status = PushDeliveryStatus.FAILED.value
         delivery.finished_at = clock.now()
     else:

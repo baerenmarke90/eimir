@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta
 from types import MappingProxyType
@@ -21,6 +22,7 @@ from eimir.engagement.models import (
     NotificationPreference,
     PushDelivery,
     PushDeliveryStatus,
+    PushEndpoint,
     ThinkingOfYouRequest,
 )
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
@@ -43,6 +45,9 @@ class FakePushProvider:
 
     def accepts_endpoint(self, endpoint: str) -> bool:
         return endpoint.startswith("secret-")
+
+    def registration_identity(self, endpoint: str) -> str:
+        return endpoint
 
     def send(
         self,
@@ -459,6 +464,39 @@ def test_push_uses_generic_payload_and_logical_delivery_is_unique(
     assert reference["kind"] == NotificationKind.THINKING_OF_YOU.value
     assert "Anna" not in repr(call)
     assert "Ben" not in repr(call)
+
+
+def test_preexisting_endpoint_without_secret_row_remains_deliverable(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+    legacy_value = "secret-legacy-endpoint"
+    session.add(
+        PushEndpoint(
+            account_id=couple["ben"].id,
+            provider_key="fake",
+            endpoint_value=legacy_value,
+            fingerprint=hashlib.sha256(legacy_value.encode()).hexdigest(),
+        )
+    )
+    provider = FakePushProvider()
+    push.providers.register("fake", provider)
+    response = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert response.status_code == 202
+    request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+    event = session.get(OutboxEvent, request.source_event_id)
+    assert event is not None
+    service.project_event(session, event)
+    session.flush()
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    assert delivery.status == PushDeliveryStatus.SUCCEEDED.value
+    assert provider.calls[0]["endpoint"] == legacy_value
 
 
 def test_quiet_hours_rechecks_and_coalesces_deferred_partner_pushes(
@@ -1412,6 +1450,50 @@ def test_push_retry_keeps_stable_idempotency_key_and_sanitized_error(
     assert delivery.attempts == 2
     assert len(provider.calls) == 2
     assert provider.calls[0]["idempotencyKey"] == provider.calls[1]["idempotencyKey"]
+
+
+def test_gone_subscription_disables_endpoint_without_retrying(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(thinking.clock, "now", lambda: NOW)
+    endpoint = push.register_endpoint(
+        session,
+        account_id=couple["ben"].id,
+        provider_key="fake",
+        endpoint_value="secret-endpoint-token",
+    )
+
+    class GoneProvider(FakePushProvider):
+        def send(
+            self,
+            *,
+            idempotency_key: str,
+            endpoint: str,
+            notification_reference: dict[str, str],
+            generic_presentation_key: str,
+        ) -> push.PushSendResult:
+            raise push.PushProviderError("PUSH_SUBSCRIPTION_GONE", retryable=False)
+
+    push.providers.register("fake", GoneProvider())
+    response = client.post(
+        _url(couple),
+        json={"clientRequestId": str(uuid4())},
+        headers=auth(couple["anna_token"]),
+    )
+    assert response.status_code == 202
+    request = session.execute(select(ThinkingOfYouRequest)).scalar_one()
+    event = session.get(OutboxEvent, request.source_event_id)
+    assert event is not None
+    service.project_event(session, event)
+    session.flush()
+    delivery = session.execute(select(PushDelivery)).scalar_one()
+
+    push.handle_delivery(session, {"deliveryId": str(delivery.id)})
+    session.flush()
+    assert delivery.status == PushDeliveryStatus.FAILED.value
+    assert delivery.attempts == 1
+    assert delivery.last_error_code == "PUSH_SUBSCRIPTION_GONE"
+    assert session.get(PushEndpoint, endpoint.id).disabled_at is not None
 
 
 def test_unconfigured_provider_is_nonfatal_and_marks_delivery_unavailable(

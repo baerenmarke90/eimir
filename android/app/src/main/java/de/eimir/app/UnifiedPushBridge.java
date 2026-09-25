@@ -13,6 +13,8 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 import java.lang.ref.WeakReference;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import kotlin.Unit;
 import org.unifiedpush.android.connector.UnifiedPush;
 import org.unifiedpush.android.connector.data.PushEndpoint;
@@ -27,6 +29,8 @@ public final class UnifiedPushBridge extends Plugin {
     private static final String PREFS = "eimir_unified_push";
     private static final String ACTIVE_INSTANCE = "active_account";
     private static WeakReference<UnifiedPushBridge> current = new WeakReference<>(null);
+    private final AtomicInteger registrationRequests = new AtomicInteger();
+    private final AtomicReference<String> pendingEnableCallId = new AtomicReference<>();
 
     @Override
     public void load() {
@@ -62,23 +66,35 @@ public final class UnifiedPushBridge extends Plugin {
 
     @PluginMethod
     public void enable(PluginCall call) {
+        int request = registrationRequests.incrementAndGet();
+        pendingEnableCallId.set(call.getCallbackId());
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationsAllowed()) {
             requestPermissionForAlias("notifications", call, "permissionResult");
             return;
         }
-        selectAndRegister(call);
+        selectAndRegister(call, request);
     }
 
     @PermissionCallback
     private void permissionResult(PluginCall call) {
+        int request = registrationRequests.get();
+        if (!isCurrentEnable(call, request)) {
+            call.reject("PUSH_REQUEST_CANCELLED");
+            return;
+        }
         if (notificationsAllowed()) {
-            selectAndRegister(call);
+            selectAndRegister(call, request);
         } else {
+            pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
             call.reject("NOTIFICATION_PERMISSION_DENIED");
         }
     }
 
-    private void selectAndRegister(PluginCall call) {
+    private boolean isCurrentEnable(PluginCall call, int request) {
+        return request == registrationRequests.get() && call.getCallbackId().equals(pendingEnableCallId.get());
+    }
+
+    private void selectAndRegister(PluginCall call, int request) {
         String accountId = call.getString("accountId");
         String vapid = call.getString("vapidPublicKey");
         try {
@@ -87,11 +103,17 @@ public final class UnifiedPushBridge extends Plugin {
             }
             UUID.fromString(accountId);
         } catch (IllegalArgumentException error) {
+            pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
             call.reject("INVALID_PUSH_CONFIGURATION");
             return;
         }
         UnifiedPush.tryUseCurrentOrDefaultDistributor(getActivity(), success -> {
+            if (!isCurrentEnable(call, request)) {
+                call.reject("PUSH_REQUEST_CANCELLED");
+                return Unit.INSTANCE;
+            }
             if (!success) {
+                pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
                 call.reject("NO_PUSH_DISTRIBUTOR");
                 return Unit.INSTANCE;
             }
@@ -102,9 +124,11 @@ public final class UnifiedPushBridge extends Plugin {
             setActiveInstance(accountId);
             try {
                 UnifiedPush.register(getContext(), accountId, "eimir.", vapid);
+                pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
                 call.resolve();
             } catch (RuntimeException error) {
                 clearActiveInstance();
+                pendingEnableCallId.compareAndSet(call.getCallbackId(), null);
                 call.reject("PUSH_REGISTRATION_FAILED");
             }
             return Unit.INSTANCE;
@@ -133,6 +157,8 @@ public final class UnifiedPushBridge extends Plugin {
 
     @PluginMethod
     public void disable(PluginCall call) {
+        registrationRequests.incrementAndGet();
+        pendingEnableCallId.set(null);
         String previous = activeInstance(getContext());
         clearActiveInstance();
         if (previous != null) {

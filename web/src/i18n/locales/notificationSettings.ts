@@ -28,6 +28,7 @@ const notificationSettings = {
   deviceUnavailable: 'Push ist auf dieser Installation nicht verfügbar.',
   deviceOff: 'Push ist auf diesem Gerät aus.',
   deviceConnecting: 'Verbindung zum Push-Dienst wird hergestellt …',
+  deviceDisconnecting: 'Push wird auf diesem Gerät ausgeschaltet …',
   deviceOn: 'Push ist auf diesem Gerät aktiv.',
   deviceError:
     'Die Verbindung konnte nicht eingerichtet werden. Versuche es erneut.',

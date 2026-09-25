@@ -5,7 +5,10 @@ import type { PropsWithChildren } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { notificationUnreadCountQueryKey } from './notificationQueries';
-import { useUnifiedPush } from './unifiedPush';
+import {
+  stopNativePushForSignedOutAccount,
+  useUnifiedPush,
+} from './unifiedPush';
 
 const native = vi.hoisted(() => {
   const listeners = new Map<string, (event: unknown) => void>();
@@ -180,4 +183,106 @@ it('opens the inbox from a notification that launched a stopped app', async () =
   await waitFor(() =>
     expect(screen.getByTestId('route').textContent).toBe('/more/notifications'),
   );
+});
+
+it('does not reactivate a device when registration finishes after disable', async () => {
+  const { api, result } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  let finishRegistration: ((value: { id: string }) => void) | undefined;
+  api.registerOwnPushEndpoint.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishRegistration = resolve;
+      }),
+  );
+  await act(async () => result.current.enable());
+  act(() =>
+    native.listeners.get('endpoint')?.({
+      accountId,
+      endpoint: 'https://push.example.test/late',
+      p256dh: 'public-key',
+      auth: 'auth-secret',
+    }),
+  );
+  await waitFor(() =>
+    expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+  );
+
+  let disabling: Promise<void> | undefined;
+  act(() => {
+    disabling = result.current.disable();
+  });
+  await waitFor(() => expect(native.disable).toHaveBeenCalledOnce());
+  expect(result.current.state).toBe('disconnecting');
+  await act(async () => {
+    finishRegistration?.({ id: 'endpoint-id' });
+    await disabling;
+  });
+
+  expect(api.revokeOwnPushEndpoint).toHaveBeenCalledWith({
+    endpointId: 'endpoint-id',
+  });
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+  expect(result.current.state).toBe('off');
+});
+
+it('retains a late logout registration ID for cleanup at the next sign-in', async () => {
+  const { api, result, unmount } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  let finishRegistration: ((value: { id: string }) => void) | undefined;
+  api.registerOwnPushEndpoint.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishRegistration = resolve;
+      }),
+  );
+  await act(async () => result.current.enable());
+  act(() =>
+    native.listeners.get('endpoint')?.({
+      accountId,
+      endpoint: 'https://push.example.test/logout',
+      p256dh: 'public-key',
+      auth: 'auth-secret',
+    }),
+  );
+  await waitFor(() =>
+    expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+  );
+  act(() => {
+    stopNativePushForSignedOutAccount();
+    unmount();
+  });
+  const nextLogin = setup();
+  await waitFor(() =>
+    expect(nextLogin.api.getUnifiedPushConfiguration).toHaveBeenCalledOnce(),
+  );
+  expect(nextLogin.api.revokeOwnPushEndpoint).not.toHaveBeenCalled();
+  await act(async () => finishRegistration?.({ id: 'endpoint-id' }));
+  expect(api.revokeOwnPushEndpoint).not.toHaveBeenCalled();
+  await waitFor(() =>
+    expect(nextLogin.api.revokeOwnPushEndpoint).toHaveBeenCalledWith({
+      endpointId: 'endpoint-id',
+    }),
+  );
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+});
+
+it('waits for the prior account to stop before checking a new sign-in', async () => {
+  let finishDisable: (() => void) | undefined;
+  native.disable.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishDisable = () => resolve(undefined);
+      }),
+  );
+  stopNativePushForSignedOutAccount();
+  const nextLogin = setup();
+  await waitFor(() =>
+    expect(nextLogin.api.getUnifiedPushConfiguration).toHaveBeenCalledOnce(),
+  );
+  expect(native.status).not.toHaveBeenCalled();
+
+  await act(async () => finishDisable?.());
+  await waitFor(() => expect(native.status).toHaveBeenCalledOnce());
+  await waitFor(() => expect(nextLogin.result.current.state).toBe('off'));
 });

@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { App } from '@capacitor/app';
 import { registerPlugin } from '@capacitor/core';
+import type { QueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { UnifiedPushConfiguration } from '../api/generated/models/UnifiedPushConfiguration';
+import { isCapacitorNative } from '../pwa';
 import {
   notificationsListQueryKey,
   notificationUnreadCountQueryKey,
 } from './notificationQueries';
 import { MORE_NOTIFICATIONS_ROUTE } from './routes';
-import { isCapacitorNative } from '../pwa';
-import type { QueryClient } from '@tanstack/react-query';
 
 type EndpointEvent = {
   accountId: string;
@@ -46,12 +46,16 @@ type NativePushPlugin = {
 };
 
 const nativePush = registerPlugin<NativePushPlugin>('EimirUnifiedPush');
+let registrationGeneration = 0;
+let pendingSignOutDisable: Promise<void> = Promise.resolve();
+let endpointRegistrationSequence: Promise<void> = Promise.resolve();
 
 export type DevicePushState =
   | 'loading'
   | 'unavailable'
   | 'off'
   | 'connecting'
+  | 'disconnecting'
   | 'on'
   | 'error';
 
@@ -90,7 +94,7 @@ async function revokeSavedEndpoint(
   const id = readEndpointId(key);
   if (!id) return;
   await notificationsApi.revokeOwnPushEndpoint({ endpointId: id });
-  clearEndpointId(key);
+  if (readEndpointId(key) === id) clearEndpointId(key);
 }
 
 function isInboxLaunchUrl(raw: string): boolean {
@@ -132,16 +136,22 @@ export function useUnifiedPush({
   const key = endpointIdKey(apiBaseUrl, accountId);
   const currentSpaceId = useRef(spaceId);
   const handledLaunchUrl = useRef(false);
+  const registrationAllowed = useRef(true);
   currentSpaceId.current = spaceId;
 
   useEffect(() => {
     if (!native) return;
     let live = true;
-    let sequence: Promise<void> = Promise.resolve();
     const subscriptions = [
       nativePush.addListener('endpoint', (event) => {
-        if (event.accountId !== accountId) return;
-        sequence = sequence
+        if (
+          !live ||
+          !registrationAllowed.current ||
+          event.accountId !== accountId
+        )
+          return;
+        const generation = registrationGeneration;
+        endpointRegistrationSequence = endpointRegistrationSequence
           .catch(() => undefined)
           .then(async () => {
             const registration = await notificationsApi.registerOwnPushEndpoint(
@@ -155,7 +165,6 @@ export function useUnifiedPush({
                 },
               },
             );
-            if (!live) return;
             const previous = readEndpointId(key);
             try {
               saveEndpointId(key, registration.id);
@@ -175,14 +184,24 @@ export function useUnifiedPush({
                 // The current registration is usable; stale rows expire on delivery.
               }
             }
-            setError(null);
-            setState('on');
-            void queryClient.invalidateQueries({
-              queryKey: ['notification-preferences', accountId],
-            });
+            if (
+              live &&
+              registrationAllowed.current &&
+              generation === registrationGeneration
+            ) {
+              setError(null);
+              setState('on');
+              void queryClient.invalidateQueries({
+                queryKey: ['notification-preferences', accountId],
+              });
+            }
           })
           .catch(() => {
-            if (live) {
+            if (
+              live &&
+              registrationAllowed.current &&
+              generation === registrationGeneration
+            ) {
               setError('PUSH_DEVICE_REGISTRATION_FAILED');
               setState('error');
             }
@@ -222,9 +241,11 @@ export function useUnifiedPush({
         const config = await notificationsApi.getUnifiedPushConfiguration();
         if (!live) return;
         setConfiguration(config);
+        await pendingSignOutDisable;
         const nativeState = await nativePush.status();
         if (!live) return;
         if (nativeState.accountId && nativeState.accountId !== accountId) {
+          registrationAllowed.current = false;
           await nativePush.disable();
           setState('off');
         } else if (nativeState.enabled) {
@@ -237,18 +258,22 @@ export function useUnifiedPush({
               accountId,
               vapidPublicKey: config.vapidPublicKey,
             });
+            if (!live || !registrationAllowed.current) return;
             if (!refreshed.enabled) {
               setError('NO_PUSH_DISTRIBUTOR');
               setState('error');
             }
           }
         } else {
-          setState('off');
+          registrationAllowed.current = false;
+          if (readEndpointId(key)) setState('disconnecting');
           try {
+            await endpointRegistrationSequence;
             await revokeSavedEndpoint(key, notificationsApi);
           } catch {
             setError('PUSH_DEVICE_CLEANUP_PENDING');
           }
+          if (live) setState('off');
         }
       } catch {
         if (live) setState('unavailable');
@@ -267,6 +292,8 @@ export function useUnifiedPush({
 
   const enable = useCallback(async () => {
     if (!native || !configuration) return;
+    registrationAllowed.current = true;
+    const generation = registrationGeneration;
     setError(null);
     setState('connecting');
     try {
@@ -274,7 +301,15 @@ export function useUnifiedPush({
         accountId,
         vapidPublicKey: configuration.vapidPublicKey,
       });
+      if (
+        generation !== registrationGeneration &&
+        !registrationAllowed.current
+      ) {
+        await nativePush.disable();
+      }
     } catch (cause) {
+      if (generation !== registrationGeneration) return;
+      registrationAllowed.current = false;
       setError(
         cause instanceof Error
           ? cause.message
@@ -285,6 +320,9 @@ export function useUnifiedPush({
   }, [accountId, configuration, native]);
 
   const disable = useCallback(async () => {
+    registrationAllowed.current = false;
+    registrationGeneration += 1;
+    setState('disconnecting');
     try {
       await nativePush.disable();
     } catch {
@@ -292,21 +330,25 @@ export function useUnifiedPush({
       setState('error');
       return;
     }
-    setError(null);
-    setState('off');
     try {
+      await endpointRegistrationSequence;
       await revokeSavedEndpoint(key, notificationsApi);
+      setError(null);
       void queryClient.invalidateQueries({
         queryKey: ['notification-preferences', accountId],
       });
     } catch {
       setError('PUSH_DEVICE_CLEANUP_PENDING');
     }
+    setState('off');
   }, [accountId, key, notificationsApi, queryClient]);
 
   return { available: native, state, error, enable, disable };
 }
 
 export function stopNativePushForSignedOutAccount(): void {
-  if (isCapacitorNative()) void nativePush.disable().catch(() => undefined);
+  if (isCapacitorNative()) {
+    registrationGeneration += 1;
+    pendingSignOutDisable = nativePush.disable().catch(() => undefined);
+  }
 }

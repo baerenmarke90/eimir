@@ -9,7 +9,7 @@ As of: 2026-09-25
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.5`, Python `3.13.7`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.13.7`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.

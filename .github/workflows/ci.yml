@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.13.7"
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.15"
 
 jobs:
   changes:

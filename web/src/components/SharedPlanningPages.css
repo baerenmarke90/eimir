@@ -517,6 +517,22 @@
   flex: 1 1 auto;
 }
 
+.planning-collection-item-title-form {
+  flex-wrap: wrap;
+}
+
+.planning-collection-item-pending {
+  flex-basis: 100%;
+  color: var(--color-text-secondary);
+}
+
+.planning-collection-item-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .planning-check {
   display: grid;
   width: 2.75rem;
@@ -617,6 +633,10 @@
     gap: var(--space-2);
   }
 
+  .planning-collection-item-actions {
+    gap: var(--space-2);
+  }
+
   .planning-create,
   .planning-create[open],
   .planning-card .button-link,
@@ -631,6 +651,29 @@
 
   .planning-item-title-form {
     width: 100%;
+  }
+}
+
+@container product-content (max-width: 20rem) {
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-items
+    li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-item-title-form {
+    grid-column: 2;
+    width: 100%;
+  }
+
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-item-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
   }
 }
 

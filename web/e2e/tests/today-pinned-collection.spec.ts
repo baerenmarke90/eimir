@@ -439,8 +439,20 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
+    offenders: [...document.querySelectorAll('body *')]
+      .map((element) => ({
+        element: element.tagName.toLowerCase(),
+        className:
+          typeof element.className === 'string' ? element.className : '',
+        right: Math.round(element.getBoundingClientRect().right),
+      }))
+      .filter(({ right }) => right > document.documentElement.clientWidth)
+      .slice(0, 12),
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  expect(
+    dimensions.scrollWidth,
+    JSON.stringify(dimensions.offenders),
+  ).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
@@ -449,6 +461,112 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
     .analyze();
   expect(result.violations).toEqual([]);
 }
+
+test('shows an optimistic collection-detail check, rolls back a failed write and retries', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installMocks(page);
+  await signIn(page);
+
+  let releaseFailure: (() => void) | null = null;
+  let failFirstWrite = true;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/*`,
+    async (route) => {
+      if (route.request().method() !== 'PATCH' || !failFirstWrite) {
+        await route.fallback();
+        return;
+      }
+      failFirstWrite = false;
+      await new Promise<void>((resolve) => {
+        releaseFailure = resolve;
+      });
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          code: 'SERVER_ERROR',
+          detail: 'The write was not confirmed.',
+          status: 503,
+          title: 'Service unavailable',
+          type: 'about:blank',
+        }),
+      });
+    },
+  );
+
+  await page.goto(`/plan/collections/${COLLECTION_ID}`);
+  const row = page.locator(
+    '[data-sortable-item-id="00000000-0000-0000-0000-000000000031"]',
+  );
+  const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
+  const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
+  await row.getByRole('button', { name: markDone }).click();
+  await expect.poll(() => releaseFailure !== null).toBe(true);
+  await expect(row.getByRole('button', { name: markOpen })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(row.getByRole('button', { name: markOpen })).toBeDisabled();
+  await expect(row.getByRole('status')).toHaveText(m5s3.common.saving);
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-detail-pending-390-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  releaseFailure?.();
+  await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+  await expect(
+    page.getByRole('button', { name: de.common.retry }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-detail-rollback-390-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.getByRole('button', { name: de.common.retry }).click();
+  await expect(row.getByRole('button', { name: markOpen })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByRole('button', { name: de.common.retry })).toHaveCount(
+    0,
+  );
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-detail-confirmed-1280-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-detail-confirmed-320-dark-200pct.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
 
 test('pins a shared Collection personally and keeps the compact Wir projection directly useful', async ({
   page,

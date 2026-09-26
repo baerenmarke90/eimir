@@ -13,6 +13,7 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -92,6 +93,7 @@ export function MemoryProductPage({
   ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
@@ -623,7 +625,11 @@ export function MemoryProductPage({
 
   const bodyText = memory.body || t('memoryProduct.noBody');
   const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
-  const provenanceAuthor = storyAuthorLabel(memory.author, currentAccountId);
+  const provenanceAuthor = storyAuthorLabel(
+    memory.author,
+    currentAccountId,
+    nicknameFor,
+  );
 
   return (
     <StoryDetailPageShell

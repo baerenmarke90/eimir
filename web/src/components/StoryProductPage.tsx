@@ -33,6 +33,7 @@ import {
   DiscoverSelectionToJSON,
 } from '../api/generated/models/DiscoverSelection';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   loadProductWithReadCache,
   type ProductReadResult,
@@ -116,9 +117,10 @@ function buildTapestryEntry(
   item: StoryItem,
   t: TFunction,
   locale: string,
+  nicknameFor?: (accountId: string) => string | null,
 ): TapestryEntry {
   const role = tapestryItemRole(item);
-  const presentation = storyItemPresentation(item, t);
+  const presentation = storyItemPresentation(item, t, nicknameFor);
   const firstAttachment =
     item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
   const path =
@@ -154,13 +156,16 @@ function buildTapestryBands(
   items: StoryItem[],
   t: TFunction,
   locale: string,
+  nicknameFor?: (accountId: string) => string | null,
 ): TapestryBand[] {
   if (items.length === 0) return [];
   return [
     {
       key: 'discover',
       label: '',
-      entries: items.map((item) => buildTapestryEntry(item, t, locale)),
+      entries: items.map((item) =>
+        buildTapestryEntry(item, t, locale, nicknameFor),
+      ),
     },
   ];
 }
@@ -227,6 +232,7 @@ export function StoryProductPage({
   profilesApi?: ProfilesApi;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const location = useLocation();
   const saved = Boolean((location.state as { saved?: boolean } | null)?.saved);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -596,8 +602,8 @@ export function StoryProductPage({
 
   const tapestryColumnCount = useTapestryColumnCount();
   const tapestryBands = useMemo(
-    () => buildTapestryBands(discoverItems, t, locale),
-    [discoverItems, t, locale],
+    () => buildTapestryBands(discoverItems, t, locale, nicknameFor),
+    [discoverItems, t, locale, nicknameFor],
   );
 
   const featuredMedia =
@@ -605,7 +611,7 @@ export function StoryProductPage({
       ? featuredItem.memory.attachments[0]
       : undefined;
   const featuredPresentation = featuredItem
-    ? storyItemPresentation(featuredItem, t)
+    ? storyItemPresentation(featuredItem, t, nicknameFor)
     : null;
   const featuredAuthor = featuredItem ? storyItemAuthor(featuredItem) : null;
   const featuredPath = featuredItem

@@ -18,6 +18,7 @@ from eimir.attachments import service as attachment_service
 from eimir.attachments.models import Attachment, AttachmentStatus, MediaType
 from eimir.profiles import service
 from eimir.profiles.models import (
+    PartnerNickname,
     PartnerProfile,
     PreferenceCategory,
     PreferenceSentiment,
@@ -106,6 +107,72 @@ class PartnerProfileView(ApiModel):
     created_at: datetime
     updated_at: datetime
     preferences: list[ProfilePreferenceView]
+
+
+class PartnerNicknameView(ApiModel):
+    """The viewer's private label for the currently active partner."""
+
+    partner_id: UUID | None
+    nickname: str | None
+    version: int
+
+
+class PartnerNicknameUpdate(ApiModel):
+    nickname: str | None = Field(max_length=80)
+
+    @field_validator("nickname")
+    @classmethod
+    def _clean_nickname(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("nickname must not be blank; use null to remove it")
+        return cleaned
+
+
+def _nickname_view(partner_id: UUID | None, row: PartnerNickname | None) -> PartnerNicknameView:
+    return PartnerNicknameView(
+        partner_id=partner_id,
+        nickname=row.payload.nickname if row is not None else None,
+        version=row.version if row is not None else 0,
+    )
+
+
+@router.get(
+    "/spaces/{spaceId}/partner-nickname",
+    response_model=PartnerNicknameView,
+    operation_id="getPartnerNickname",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404)},
+)
+def get_partner_nickname(
+    authorization: Authorization, session: DbSession, response: Response
+) -> PartnerNicknameView:
+    partner_id, row = service.partner_nickname(session, authorization)
+    result = _nickname_view(partner_id, row)
+    response.headers["ETag"] = etag_for(result.version)
+    return result
+
+
+@router.put(
+    "/spaces/{spaceId}/partner-nickname",
+    response_model=PartnerNicknameView,
+    operation_id="setPartnerNickname",
+    responses={200: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 409, 422)},
+)
+def set_partner_nickname(
+    authorization: Authorization,
+    session: DbSession,
+    response: Response,
+    body: PartnerNicknameUpdate,
+    expected_version: IfMatchVersion,
+) -> PartnerNicknameView:
+    partner_id, row = service.set_partner_nickname(
+        session, authorization, body.nickname, expected_version=expected_version
+    )
+    result = _nickname_view(partner_id, row)
+    response.headers["ETag"] = etag_for(result.version)
+    return result
 
 
 def _preference_view(preference: ProfilePreference) -> ProfilePreferenceView:

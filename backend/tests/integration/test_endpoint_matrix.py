@@ -164,6 +164,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-nickname",
+        body={"nickname": "Matrix Partner"},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/invitations"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/invitations", body={}),
     Endpoint(

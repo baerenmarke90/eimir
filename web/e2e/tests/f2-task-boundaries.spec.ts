@@ -115,6 +115,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         },
         status,
       );
+    if (method === 'GET' && path.endsWith('/partner-nickname'))
+      return json({ partnerId: null, nickname: null, version: 0 });
     if (path === '/api/v1/instance/status')
       return json({
         maintenanceMode: false,

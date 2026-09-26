@@ -29,6 +29,7 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { NativeDateField } from './NativeDateField';
@@ -85,6 +86,7 @@ export function MilestoneProductPage({
   currentAccountId: string;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const params = useParams();
   const queryClient = useQueryClient();
@@ -526,7 +528,11 @@ export function MilestoneProductPage({
       <footer className="milestone-provenance-footer">
         <p>
           {t('milestoneProduct.provenance', {
-            author: storyAuthorLabel(milestone.author, currentAccountId),
+            author: storyAuthorLabel(
+              milestone.author,
+              currentAccountId,
+              nicknameFor,
+            ),
             createdAt: formatCreatedAt(milestone.createdAt),
           })}
         </p>

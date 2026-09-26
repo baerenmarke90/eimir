@@ -28,6 +28,7 @@ import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
 import { normalizeClientError } from './client/problemDetails';
+import { PartnerNicknameProvider } from './client/partnerNickname';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -395,393 +396,407 @@ function AuthenticatedApp({
   };
 
   return (
-    <AppShell
-      onLogout={logout}
-      apiBaseUrl={apiBaseUrl}
-      accessToken={tokens.accessToken}
-      account={account}
+    <PartnerNicknameProvider
+      profilesApi={profilesApi}
       spaceId={spaceId}
-      serverAdmin={serverAdmin}
+      accountId={account.id}
     >
-      <AppErrorBoundary
-        resetKey={location.pathname}
-        fallback={
-          <UiState
-            kind="error"
-            title={t('states.unexpected.title')}
-            body={t('states.unexpected.body')}
-            action={
-              <Link
-                className="button-link secondary-link"
-                to={DEFAULT_APP_ROUTE}
-              >
-                {t('navigation.today')}
-              </Link>
-            }
-          />
-        }
+      <AppShell
+        onLogout={logout}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        account={account}
+        spaceId={spaceId}
+        serverAdmin={serverAdmin}
       >
-        <Routes>
-          <Route
-            path="/"
-            element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
-          />
-          <Route
-            path={appRoutePath('story')}
-            element={
-              <StoryProductPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-              />
-            }
-          />
-          <Route
-            path={STORY_YEARS_ROUTE}
-            element={
-              <StoryYearsIndexPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-              />
-            }
-          />
-          <Route
-            path={STORY_YEAR_ROUTE_PATTERN}
-            element={
-              <StoryYearDetailPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-              />
-            }
-          />
-          <Route
-            path={appRoutePath('plan')}
-            element={<SharedPlanningOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path={PLAN_CREATE_ROUTE}
-            element={
-              <PlanningCreatePage kind="plan" {...planningProductProps} />
-            }
-          />
-          <Route
-            path={WISH_CREATE_ROUTE}
-            element={
-              <PlanningCreatePage kind="wish" {...planningProductProps} />
-            }
-          />
-          <Route
-            path={WISH_DETAIL_ROUTE_PATTERN}
-            element={<WishProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={PLAN_DETAIL_ROUTE_PATTERN}
-            element={<PlanProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={STORY_CHAPTERS_ROUTE}
-            element={<ChaptersOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/chapters"
-            element={<Navigate replace to={STORY_CHAPTERS_ROUTE} />}
-          />
-          <Route
-            path={CHAPTER_CREATE_ROUTE}
-            element={<ChapterCreatePage {...planningProductProps} />}
-          />
-          <Route
-            path={CHAPTER_DETAIL_ROUTE_PATTERN}
-            element={<ChapterProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={MORE_PLACES_ROUTE}
-            element={<PlacesOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/places"
-            element={<Navigate replace to={MORE_PLACES_ROUTE} />}
-          />
-          <Route
-            path={PLACE_DETAIL_ROUTE_PATTERN}
-            element={<PlaceProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={MORE_COLLECTIONS_ROUTE}
-            element={<CollectionsOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/collections"
-            element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
-          />
-          <Route
-            path={COLLECTION_DETAIL_ROUTE_PATTERN}
-            element={
-              <CollectionProductPage
-                {...planningProductProps}
-                dashboardApi={m4Apis.dashboard}
-                accountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={appRoutePath('today')}
-            element={
-              <TodayPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                spacesApi={spacesApi}
-                dailyCheckInsApi={dailyCheckInsApi}
-                dailyQuoteApi={dailyQuoteApi}
-                entitlementApi={entitlementApi}
-                collectionsApi={planningApis.collections}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-                account={account}
-              />
-            }
-          />
-          <Route
-            path={ACTIVITY_ROUTE}
-            element={
-              <ActivityProductPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                profilesApi={profilesApi}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={SEARCH_ROUTE}
-            element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
-          />
-          <Route
-            path={GAMES_MOMENTS_ROUTE}
-            element={
-              <OurMomentsGamePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                spaceId={spaceId}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={GAMES_WISH_DETECTIVE_ROUTE}
-            element={
-              <WishDetectiveGamePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                spaceId={spaceId}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={appRoutePath('more')}
-            element={
-              <MoreOverviewPage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          {(
-            [
-              [MORE_INSIGHTS_ROUTE, 'week'],
-              [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
-              [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
-            ] as const
-          ).map(([path, insightView]) => (
+        <AppErrorBoundary
+          resetKey={location.pathname}
+          fallback={
+            <UiState
+              kind="error"
+              title={t('states.unexpected.title')}
+              body={t('states.unexpected.body')}
+              action={
+                <Link
+                  className="button-link secondary-link"
+                  to={DEFAULT_APP_ROUTE}
+                >
+                  {t('navigation.today')}
+                </Link>
+              }
+            />
+          }
+        >
+          <Routes>
             <Route
-              key={path}
-              path={path}
+              path="/"
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
+            />
+            <Route
+              path={appRoutePath('story')}
               element={
-                <DailyInsightsPage
-                  key={`${account.id}:${spaceId}`}
-                  view={insightView}
+                <StoryProductPage
+                  apis={apis}
+                  accountId={account.id}
                   spaceId={spaceId}
-                  account={account}
-                  dailyCheckInsApi={dailyCheckInsApi}
-                  entitlementApi={entitlementApi}
-                  dashboardApi={m4Apis.dashboard}
+                  loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
                 />
               }
             />
-          ))}
-          <Route
-            path={MORE_NOTIFICATIONS_ROUTE}
-            element={
-              <NotificationsProductPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                profilesApi={profilesApi}
-                currentAccountId={account.id}
+            <Route
+              path={STORY_YEARS_ROUTE}
+              element={
+                <StoryYearsIndexPage
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={STORY_YEAR_ROUTE_PATTERN}
+              element={
+                <StoryYearDetailPage
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('plan')}
+              element={<SharedPlanningOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path={PLAN_CREATE_ROUTE}
+              element={
+                <PlanningCreatePage kind="plan" {...planningProductProps} />
+              }
+            />
+            <Route
+              path={WISH_CREATE_ROUTE}
+              element={
+                <PlanningCreatePage kind="wish" {...planningProductProps} />
+              }
+            />
+            <Route
+              path={WISH_DETAIL_ROUTE_PATTERN}
+              element={<WishProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={PLAN_DETAIL_ROUTE_PATTERN}
+              element={<PlanProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={STORY_CHAPTERS_ROUTE}
+              element={<ChaptersOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/chapters"
+              element={<Navigate replace to={STORY_CHAPTERS_ROUTE} />}
+            />
+            <Route
+              path={CHAPTER_CREATE_ROUTE}
+              element={<ChapterCreatePage {...planningProductProps} />}
+            />
+            <Route
+              path={CHAPTER_DETAIL_ROUTE_PATTERN}
+              element={<ChapterProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={MORE_PLACES_ROUTE}
+              element={<PlacesOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/places"
+              element={<Navigate replace to={MORE_PLACES_ROUTE} />}
+            />
+            <Route
+              path={PLACE_DETAIL_ROUTE_PATTERN}
+              element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={MORE_COLLECTIONS_ROUTE}
+              element={<CollectionsOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/collections"
+              element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
+            />
+            <Route
+              path={COLLECTION_DETAIL_ROUTE_PATTERN}
+              element={
+                <CollectionProductPage
+                  {...planningProductProps}
+                  dashboardApi={m4Apis.dashboard}
+                  accountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('today')}
+              element={
+                <TodayPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  spacesApi={spacesApi}
+                  dailyCheckInsApi={dailyCheckInsApi}
+                  dailyQuoteApi={dailyQuoteApi}
+                  entitlementApi={entitlementApi}
+                  collectionsApi={planningApis.collections}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                  account={account}
+                />
+              }
+            />
+            <Route
+              path={ACTIVITY_ROUTE}
+              element={
+                <ActivityProductPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={SEARCH_ROUTE}
+              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+            />
+            <Route
+              path={GAMES_MOMENTS_ROUTE}
+              element={
+                <OurMomentsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_WISH_DETECTIVE_ROUTE}
+              element={
+                <WishDetectiveGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('more')}
+              element={
+                <MoreOverviewPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            {(
+              [
+                [MORE_INSIGHTS_ROUTE, 'week'],
+                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
+                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
+              ] as const
+            ).map(([path, insightView]) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <DailyInsightsPage
+                    key={`${account.id}:${spaceId}`}
+                    view={insightView}
+                    spaceId={spaceId}
+                    account={account}
+                    dailyCheckInsApi={dailyCheckInsApi}
+                    entitlementApi={entitlementApi}
+                    dashboardApi={m4Apis.dashboard}
+                    profilesApi={profilesApi}
+                  />
+                }
               />
-            }
-          />
-          <Route
-            path={MORE_PEOPLE_ROUTE}
-            element={
-              <RelatedPeoplePage
-                peopleApi={peopleApi}
-                spaceId={spaceId}
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                attachmentsApi={apis.attachments}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={MORE_PROFILE_ROUTE}
-            element={
-              <ProfilePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path={MORE_SETTINGS_ROUTE}
-            element={
-              <SettingsPage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path={MORE_SETTINGS_CATEGORY_ROUTE_PATTERN}
-            element={
-              <SettingsPage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path="/more/private/*"
-            element={
-              <PrivateAreaProductPage
-                api={privateAreaApi}
-                accountId={account.id}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path={MEMORY_CREATE_ROUTE}
-            element={
-              <MemoryCreatePage
-                key={`${account.id}:${spaceId}:${location.key}`}
-                accessToken={tokens.accessToken}
-                apiBaseUrl={apiBaseUrl}
-                spaceId={spaceId}
-                accountId={account.id}
-                onSaved={refreshStory}
-              />
-            }
-          />
-          <Route
-            path={MEMORY_EDIT_ROUTE_PATTERN}
-            element={<MemoryProductPage mode="edit" {...memoryProductProps} />}
-          />
-          <Route
-            path={MEMORY_DETAIL_ROUTE_PATTERN}
-            element={
-              <MemoryProductPage mode="detail" {...memoryProductProps} />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_CREATE_ROUTE}
-            element={
-              <HeartMomentProductPage
-                mode="create"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
-            element={
-              <HeartMomentProductPage
-                mode="edit"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_DETAIL_ROUTE_PATTERN}
-            element={
-              <HeartMomentProductPage
-                mode="detail"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={MILESTONE_CREATE_ROUTE}
-            element={
-              <MilestoneProductPage mode="create" {...milestoneProductProps} />
-            }
-          />
-          <Route
-            path={MILESTONE_EDIT_ROUTE_PATTERN}
-            element={
-              <MilestoneProductPage mode="edit" {...milestoneProductProps} />
-            }
-          />
-          <Route
-            path={MILESTONE_DETAIL_ROUTE_PATTERN}
-            element={
-              <MilestoneProductPage mode="detail" {...milestoneProductProps} />
-            }
-          />
-          {/*
+            ))}
+            <Route
+              path={MORE_NOTIFICATIONS_ROUTE}
+              element={
+                <NotificationsProductPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={MORE_PEOPLE_ROUTE}
+              element={
+                <RelatedPeoplePage
+                  peopleApi={peopleApi}
+                  spaceId={spaceId}
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  attachmentsApi={apis.attachments}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={MORE_PROFILE_ROUTE}
+              element={
+                <ProfilePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MORE_SETTINGS_ROUTE}
+              element={
+                <SettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MORE_SETTINGS_CATEGORY_ROUTE_PATTERN}
+              element={
+                <SettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path="/more/private/*"
+              element={
+                <PrivateAreaProductPage
+                  api={privateAreaApi}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MEMORY_CREATE_ROUTE}
+              element={
+                <MemoryCreatePage
+                  key={`${account.id}:${spaceId}:${location.key}`}
+                  accessToken={tokens.accessToken}
+                  apiBaseUrl={apiBaseUrl}
+                  spaceId={spaceId}
+                  accountId={account.id}
+                  onSaved={refreshStory}
+                />
+              }
+            />
+            <Route
+              path={MEMORY_EDIT_ROUTE_PATTERN}
+              element={
+                <MemoryProductPage mode="edit" {...memoryProductProps} />
+              }
+            />
+            <Route
+              path={MEMORY_DETAIL_ROUTE_PATTERN}
+              element={
+                <MemoryProductPage mode="detail" {...memoryProductProps} />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_CREATE_ROUTE}
+              element={
+                <HeartMomentProductPage
+                  mode="create"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
+              element={
+                <HeartMomentProductPage
+                  mode="edit"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_DETAIL_ROUTE_PATTERN}
+              element={
+                <HeartMomentProductPage
+                  mode="detail"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={MILESTONE_CREATE_ROUTE}
+              element={
+                <MilestoneProductPage
+                  mode="create"
+                  {...milestoneProductProps}
+                />
+              }
+            />
+            <Route
+              path={MILESTONE_EDIT_ROUTE_PATTERN}
+              element={
+                <MilestoneProductPage mode="edit" {...milestoneProductProps} />
+              }
+            />
+            <Route
+              path={MILESTONE_DETAIL_ROUTE_PATTERN}
+              element={
+                <MilestoneProductPage
+                  mode="detail"
+                  {...milestoneProductProps}
+                />
+              }
+            />
+            {/*
             Paths the client shipped before the route model was decided. Deep
             Links to them are already shared, so they redirect permanently
             instead of falling through to the catch-all.
           */}
-          {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+            {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+              <Route
+                key={from}
+                path={`${from}/*`}
+                element={<LegacyPathRedirect />}
+              />
+            ))}
+            {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+              <Route
+                key={`${from}-exact`}
+                path={from}
+                element={<LegacyPathRedirect />}
+              />
+            ))}
             <Route
-              key={from}
-              path={`${from}/*`}
-              element={<LegacyPathRedirect />}
+              path="*"
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-          ))}
-          {LEGACY_ROUTE_REWRITES.map(({ from }) => (
-            <Route
-              key={`${from}-exact`}
-              path={from}
-              element={<LegacyPathRedirect />}
-            />
-          ))}
-          <Route
-            path="*"
-            element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
-          />
-        </Routes>
-      </AppErrorBoundary>
-    </AppShell>
+          </Routes>
+        </AppErrorBoundary>
+      </AppShell>
+    </PartnerNicknameProvider>
   );
 }
 

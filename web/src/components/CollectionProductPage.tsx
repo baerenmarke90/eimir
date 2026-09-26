@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ButtonHTMLAttributes,
   type FormEvent,
@@ -5,31 +6,30 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
+import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import {
   dashboardPreferencesQueryKey,
   PINNED_COLLECTION_MODULE_KEY,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import {
-  clientProblemKind,
-  normalizeClientError,
-} from '../client/problemDetails';
-import {
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';

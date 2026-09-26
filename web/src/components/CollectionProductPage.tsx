@@ -15,7 +15,10 @@ import {
   PINNED_COLLECTION_MODULE_KEY,
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
-import { normalizeClientError } from '../client/problemDetails';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
 import {
   planningIfMatch,
   type SharedPlanningApis,
@@ -48,6 +51,18 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   }
 }
 
+function replaceCollectionItem(
+  collection: CollectionDetail,
+  replacement: CollectionItemDetail,
+): CollectionDetail {
+  return {
+    ...collection,
+    items: collection.items.map((item) =>
+      item.id === replacement.id ? replacement : item,
+    ),
+  };
+}
+
 function CollectionItemRow({
   item,
   collection,
@@ -57,6 +72,7 @@ function CollectionItemRow({
   onToggleComplete,
   onDelete,
   isUpdating,
+  isTogglePending,
   isDeleting,
 }: {
   item: CollectionItemDetail;
@@ -67,6 +83,7 @@ function CollectionItemRow({
   onToggleComplete: (item: CollectionItemDetail) => void;
   onDelete: (item: CollectionItemDetail) => void;
   isUpdating: boolean;
+  isTogglePending: boolean;
   isDeleting: boolean;
 }) {
   const { t } = useTranslation();
@@ -105,7 +122,7 @@ function CollectionItemRow({
         onToggle={() => onToggleComplete(item)}
         disabled={!item.capabilities.canEdit || isUpdating}
       />
-      <div className="planning-item-title-form">
+      <div className="planning-item-title-form planning-collection-item-title-form">
         <label className="sr-only" htmlFor={`collection-item-${item.id}`}>
           {t('m5s3.collection.itemTitle')}
         </label>
@@ -124,8 +141,13 @@ function CollectionItemRow({
           }}
           required
           maxLength={200}
-          disabled={!item.capabilities.canEdit}
+          disabled={!item.capabilities.canEdit || isUpdating}
         />
+        {isTogglePending ? (
+          <small className="planning-collection-item-pending" role="status">
+            {t('m5s3.common.saving')}
+          </small>
+        ) : null}
       </div>
       {collection.capabilities.canEdit ? (
         <ListEntryIconButton
@@ -177,6 +199,7 @@ export function CollectionProductPage({
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
   const restoreDeleteTriggerRef = useRef(false);
+  const itemUpdateInFlightRef = useRef(false);
   const key = authorSummaryQueryKeys.collectionDetail(spaceId, collectionId);
 
   const collectionQuery = useQuery({
@@ -317,10 +340,66 @@ export function CollectionProductPage({
           collectionItemUpdate: { title, completed },
         }),
       ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: key });
+    onMutate: async ({ item, completed }) => {
+      if (completed === undefined) return;
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const current = queryClient.getQueryData<CollectionDetail>(key);
+      const previousItem = current?.items.find((entry) => entry.id === item.id);
+      if (current && previousItem) {
+        queryClient.setQueryData<CollectionDetail>(
+          key,
+          replaceCollectionItem(current, { ...previousItem, completed }),
+        );
+      }
+      return { previousItem };
+    },
+    onError: (_error, { completed }, context) => {
+      if (completed === undefined || !context?.previousItem) return;
+      const previousItem = context.previousItem;
+      queryClient.setQueryData<CollectionDetail>(key, (current) =>
+        current ? replaceCollectionItem(current, previousItem) : current,
+      );
+    },
+    onSuccess: async (updatedItem, { completed }) => {
+      if (completed !== undefined) {
+        queryClient.setQueryData<CollectionDetail>(key, (current) =>
+          current ? replaceCollectionItem(current, updatedItem) : current,
+        );
+      }
+      await queryClient.invalidateQueries({ queryKey: key, exact: true });
+    },
+    onSettled: () => {
+      itemUpdateInFlightRef.current = false;
     },
   });
+
+  const submitItemUpdate = (variables: {
+    collection: CollectionDetail;
+    item: CollectionItemDetail;
+    title?: string;
+    completed?: boolean;
+  }) => {
+    if (itemUpdateInFlightRef.current) return;
+    itemUpdateInFlightRef.current = true;
+    updateItem.mutate(variables);
+  };
+
+  const retryItemUpdate = () => {
+    const failed = updateItem.variables;
+    if (!failed || clientProblemKind(updateItem.error) === 'conflict') {
+      updateItem.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    const current = queryClient.getQueryData<CollectionDetail>(key);
+    const item = current?.items.find((entry) => entry.id === failed.item.id);
+    if (!current || !item) {
+      updateItem.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    submitItemUpdate({ ...failed, collection: current, item });
+  };
 
   const deleteItem = useMutation({
     mutationFn: ({
@@ -436,7 +515,9 @@ export function CollectionProductPage({
   const reorder = useListItemReorder({
     itemIds: baseItemIds,
     disabled:
-      !collectionQuery.data?.capabilities.canEdit || reorderItems.isPending,
+      !collectionQuery.data?.capabilities.canEdit ||
+      reorderItems.isPending ||
+      updateItem.isPending,
     onReorder: (itemIds) => {
       const currentCollection = collectionQuery.data;
       if (!currentCollection) return;
@@ -682,10 +763,10 @@ export function CollectionProductPage({
                 activeItemId={reorder.activeItemId}
                 handleProps={reorder.handleProps}
                 onUpdateTitle={(targetItem, title) =>
-                  updateItem.mutate({ collection, item: targetItem, title })
+                  submitItemUpdate({ collection, item: targetItem, title })
                 }
                 onToggleComplete={(targetItem) =>
-                  updateItem.mutate({
+                  submitItemUpdate({
                     collection,
                     item: targetItem,
                     completed: !targetItem.completed,
@@ -695,7 +776,12 @@ export function CollectionProductPage({
                   deleteItem.mutate({ collection, item: targetItem })
                 }
                 isUpdating={updateItem.isPending}
-                isDeleting={deleteItem.isPending}
+                isTogglePending={
+                  updateItem.isPending &&
+                  updateItem.variables?.completed !== undefined &&
+                  updateItem.variables.item.id === item.id
+                }
+                isDeleting={deleteItem.isPending || updateItem.isPending}
               />
             ))}
           </ol>
@@ -708,7 +794,10 @@ export function CollectionProductPage({
         {itemMutationError ? (
           <ProblemState
             error={itemMutationError}
-            onRetry={() => void collectionQuery.refetch()}
+            onRetry={() => {
+              if (updateItem.error) retryItemUpdate();
+              else void collectionQuery.refetch();
+            }}
           />
         ) : null}
       </section>

@@ -258,7 +258,7 @@
     },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 5
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",

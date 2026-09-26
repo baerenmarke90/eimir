@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import { ProductTourProvider, useProductTour } from './productTour';
 
 function Fixture({
@@ -21,6 +21,7 @@ function Fixture({
       <button type="button" onClick={replay}>
         Replay from More
       </button>
+      <Link to="/today">Use app normally</Link>
       <div className="mobile-quick-create">
         <button type="button" className="quick-create-trigger">
           Actual plus
@@ -115,5 +116,14 @@ describe('optional product tour', () => {
     expect(
       screen.queryByRole('heading', { name: 'Etwas festhalten' }),
     ).toBeNull();
+  });
+
+  it('treats ordinary navigation away from the invitation as dismissal', () => {
+    renderTour();
+    fireEvent.click(screen.getByRole('link', { name: 'Use app normally' }));
+    expect(screen.getByRole('main').textContent).toBe('/today');
+    expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
+      'seen',
+    );
   });
 });

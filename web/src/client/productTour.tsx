@@ -105,6 +105,14 @@ export function ProductTourProvider({
     const previousPath = previousPathRef.current;
     previousPathRef.current = location.pathname;
     if (
+      !seen &&
+      previousPath === appRoutePath('more') &&
+      location.pathname !== appRoutePath('more')
+    ) {
+      setSeen(true);
+      rememberSeen(key);
+    }
+    if (
       stepIndex === null ||
       previousPath === location.pathname ||
       isTourVisible
@@ -112,7 +120,7 @@ export function ProductTourProvider({
       return;
     // Ordinary navigation wins over the optional orientation.
     setStepIndex(null);
-  }, [isTourVisible, location.pathname, stepIndex]);
+  }, [isTourVisible, key, location.pathname, seen, stepIndex]);
 
   function next(): void {
     if (stepIndex === null) return;

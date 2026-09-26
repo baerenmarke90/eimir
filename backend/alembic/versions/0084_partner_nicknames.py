@@ -17,6 +17,16 @@ branch_labels = None
 depends_on = None
 
 
+def _privacy_class() -> sa.Enum:
+    return sa.Enum(
+        "SPACE_SHARED",
+        "OWNER_ONLY",
+        name="privacy_class",
+        native_enum=False,
+        create_constraint=True,
+    )
+
+
 def upgrade() -> None:
     op.create_table(
         "partner_nicknames",
@@ -24,7 +34,7 @@ def upgrade() -> None:
         sa.Column("space_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("owner_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("account_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("privacy_class", sa.String(length=32), nullable=False),
+        sa.Column("privacy_class", _privacy_class(), nullable=False),
         sa.Column("crypto_version", sa.SmallInteger(), nullable=False, server_default="0"),
         sa.Column("payload", postgresql.JSONB(), nullable=False),
         sa.Column("version", sa.Integer(), nullable=False),

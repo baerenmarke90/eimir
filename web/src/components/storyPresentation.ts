@@ -130,7 +130,11 @@ export function storyItemPresentation(
         kindLabel,
         title: compactText(item.heartMoment.text),
         preview: emotionLabel(item.heartMoment.emotion, t),
-        author: storyAuthorLabel(item.heartMoment.author, undefined, nicknameFor),
+        author: storyAuthorLabel(
+          item.heartMoment.author,
+          undefined,
+          nicknameFor,
+        ),
         mediaCount: item.heartMoment.attachment ? 1 : undefined,
         mediaLabel: item.heartMoment.attachment
           ? t('story.photos', { count: 1 })

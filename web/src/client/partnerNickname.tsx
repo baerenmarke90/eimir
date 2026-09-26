@@ -58,7 +58,8 @@ export function PartnerNicknameProvider({
       state: query.data ?? null,
       nicknameFor,
       relationshipLabel: (personId, displayName, fallback) =>
-        nicknameFor(personId) || firstNameFromDisplayName(displayName, fallback),
+        nicknameFor(personId) ||
+        firstNameFromDisplayName(displayName, fallback),
     };
   }, [query.data]);
 

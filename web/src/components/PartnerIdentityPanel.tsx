@@ -30,7 +30,9 @@ export function PartnerIdentityPanel({
   const nicknameInputRef = useRef<HTMLInputElement>(null);
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameDraft, setNicknameDraft] = useState('');
-  const [nicknameStatus, setNicknameStatus] = useState<'saved' | 'removed' | null>(null);
+  const [nicknameStatus, setNicknameStatus] = useState<
+    'saved' | 'removed' | null
+  >(null);
   const configuration = useMemo(
     () =>
       new Configuration({
@@ -172,10 +174,10 @@ export function PartnerIdentityPanel({
         <div className="partner-nickname-summary">
           <div>
             <h3>{t('profiles.nickname.title', { name: partnerFirstName })}</h3>
-            <p>{
-              currentNickname ??
-              t('profiles.nickname.fallback', { name: partnerFirstName })
-            }</p>
+            <p>
+              {currentNickname ??
+                t('profiles.nickname.fallback', { name: partnerFirstName })}
+            </p>
           </div>
           <button
             ref={editButtonRef}

@@ -18,11 +18,14 @@ import relationshipComponents from '../i18n/locales/relationshipComponents';
 export function storyAuthorLabel(
   author: AuthorSummary,
   currentAccountId?: string,
+  nicknameFor?: (accountId: string) => string | null,
 ): string {
   if (author.isFormerMember === true) return authorDisplayName(author);
   if (currentAccountId && author.id === currentAccountId) {
     return i18n.t('story.authorSelf');
   }
+  const nickname = nicknameFor?.(author.id);
+  if (nickname) return nickname;
   return firstNameFromDisplayName(
     author.displayName,
     relationshipComponents.couplePresencePartnerFallback,
@@ -103,6 +106,7 @@ export function resolveStoryKindLabel(
 export function storyItemPresentation(
   item: StoryItem,
   t: TFunction,
+  nicknameFor?: (accountId: string) => string | null,
 ): StoryPresentation {
   const kindLabel = resolveStoryKindLabel(item.kind, t);
   switch (item.kind) {
@@ -111,7 +115,7 @@ export function storyItemPresentation(
       return {
         kindLabel,
         title: item.memory.title,
-        author: storyAuthorLabel(item.memory.author),
+        author: storyAuthorLabel(item.memory.author, undefined, nicknameFor),
         mediaCount: count > 0 ? count : undefined,
         mediaLabel: count > 0 ? t('story.photos', { count }) : undefined,
       };
@@ -126,7 +130,7 @@ export function storyItemPresentation(
         kindLabel,
         title: compactText(item.heartMoment.text),
         preview: emotionLabel(item.heartMoment.emotion, t),
-        author: storyAuthorLabel(item.heartMoment.author),
+        author: storyAuthorLabel(item.heartMoment.author, undefined, nicknameFor),
         mediaCount: item.heartMoment.attachment ? 1 : undefined,
         mediaLabel: item.heartMoment.attachment
           ? t('story.photos', { count: 1 })
@@ -140,7 +144,7 @@ export function storyItemPresentation(
       return {
         kindLabel,
         title: item.milestone.title,
-        author: storyAuthorLabel(item.milestone.author),
+        author: storyAuthorLabel(item.milestone.author, undefined, nicknameFor),
       };
   }
 }

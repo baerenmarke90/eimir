@@ -7,6 +7,7 @@ import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { sharedAchievementKind } from '../client/sharedAchievements';
 import { appRoutePath } from '../client/routes';
 import {
@@ -52,6 +53,7 @@ export function PlanProductPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const { planId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -362,7 +364,13 @@ export function PlanProductPage({
             ? `${t('m5s3.plan.placeLabel', { name: placeName })} · `
             : ''}
           {t('m5s3.overview.createdBy', {
-            name: authorDisplayName(plan.creator),
+            name: plan.creator.isFormerMember
+              ? authorDisplayName(plan.creator)
+              : relationshipLabel(
+                  plan.creator.id,
+                  plan.creator.displayName,
+                  t('couplePresencePartnerFallback'),
+                ),
           })}
         </p>
         {hasSubfacts ? (

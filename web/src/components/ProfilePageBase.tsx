@@ -21,6 +21,7 @@ import { Configuration } from '../api/generated/runtime';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { settingsCategoryPath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   CATEGORIES,
   type ProfilePreferenceDraft,
@@ -76,6 +77,7 @@ export function RelationshipSummarySection({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
 
   const spaceQuery = useQuery({
     queryKey: ['space', spaceId],
@@ -106,8 +108,16 @@ export function RelationshipSummarySection({
   const partnerNames = useMemo(() => {
     const partners = spaceQuery.data?.partners;
     if (!partners || partners.length === 0) return null;
-    return partners.map((p) => p.displayName).join(' & ');
-  }, [spaceQuery.data?.partners]);
+    return partners
+      .map((person) =>
+        relationshipLabel(
+          person.id,
+          person.displayName,
+          t('couplePresencePartnerFallback'),
+        ),
+      )
+      .join(' & ');
+  }, [relationshipLabel, spaceQuery.data?.partners, t]);
 
   if (!profileQuery.data?.relationshipStartedOn) {
     return null;
@@ -1051,6 +1061,7 @@ export function ProfilePreferencesSection({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const configuration = useMemo(
     () =>
       new Configuration({
@@ -1098,6 +1109,13 @@ export function ProfilePreferencesSection({
     spaceQuery.data?.partners.find(
       (candidate) => candidate.id !== account.id,
     ) ?? null;
+  const partnerName = partner
+    ? relationshipLabel(
+        partner.id,
+        partner.displayName,
+        t('couplePresencePartnerFallback'),
+      )
+    : '';
 
   const selfPreferences = preferencesQuery.data
     ? preferencesQuery.data.filter(
@@ -1149,7 +1167,7 @@ export function ProfilePreferencesSection({
               profilesApi={profilesApi}
               spaceId={spaceId}
               partnerId={partner.id}
-              partnerName={partner.displayName}
+              partnerName={partnerName}
             />
           </div>
           {preferencesQuery.data ? (
@@ -1157,7 +1175,7 @@ export function ProfilePreferencesSection({
               profilesApi={profilesApi}
               spaceId={spaceId}
               partnerId={partner.id}
-              partnerName={partner.displayName}
+              partnerName={partnerName}
               items={privatePartnerNotes}
             />
           ) : null}

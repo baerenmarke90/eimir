@@ -19,7 +19,6 @@ import {
   type DailyCheckInSnapshot,
   updateDailyCheckInToday,
 } from '../client/dailyCheckIn';
-import { firstNameFromDisplayName } from '../client/personalName';
 import {
   ClientProblemError,
   clientProblemKind,
@@ -133,9 +132,7 @@ export function DailyVibeCheckIn({
     serverVibe?.partner.state === 'VISIBLE'
       ? (serverVibe.partnerNote ?? null)
       : null;
-  const personalPartnerName = partnerName
-    ? firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
-    : t('dailyVibe.partnerFallback');
+  const personalPartnerName = partnerName || t('dailyVibe.partnerFallback');
   const serverReportsModuleDisabled = serverVibe === null;
   useEffect(() => {
     if (!configuredEnabled || !serverReportsModuleDisabled) return;

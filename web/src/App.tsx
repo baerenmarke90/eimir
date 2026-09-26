@@ -28,6 +28,7 @@ import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
 import { normalizeClientError } from './client/problemDetails';
+import { PartnerNicknameProvider } from './client/partnerNickname';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -395,6 +396,11 @@ function AuthenticatedApp({
   };
 
   return (
+    <PartnerNicknameProvider
+      profilesApi={profilesApi}
+      spaceId={spaceId}
+      accountId={account.id}
+    >
     <AppShell
       onLogout={logout}
       apiBaseUrl={apiBaseUrl}
@@ -782,6 +788,7 @@ function AuthenticatedApp({
         </Routes>
       </AppErrorBoundary>
     </AppShell>
+    </PartnerNicknameProvider>
   );
 }
 

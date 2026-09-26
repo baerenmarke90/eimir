@@ -59,7 +59,7 @@ CLEANUP_JOB_KIND = "transfer.cleanup.v1"
 # cannot enter the archive because they have no entry here.
 FILE_TABLES: dict[str, tuple[str, ...]] = {
     "space.json": ("space_profiles",),
-    "profiles.json": ("partner_profiles", "profile_preferences"),
+    "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
     "memories.json": ("memories", "memory_attachments"),
     "heart-moments.json": ("heart_moments",),
@@ -111,6 +111,7 @@ ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id"})
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
+    "partner_nicknames",
     "profile_preferences",
     "related_persons",
     "important_dates",
@@ -297,6 +298,21 @@ def _portable_rows(
             continue
         table = _table(session, table_name, metadata)
         rows[table_name] = _load_root_rows(session, table, authorization=authorization, scope=scope)
+
+    # A personal export carries the viewer's current relationship label only.
+    # A former partner's old label must not create an unmappable account reference.
+    if rows.get("partner_nicknames"):
+        active_account_ids = set(
+            session.execute(
+                select(Membership.account_id).where(
+                    Membership.space_id == authorization.space_id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
+                )
+            ).scalars()
+        )
+        rows["partner_nicknames"] = [
+            row for row in rows["partner_nicknames"] if row["account_id"] in active_account_ids
+        ]
 
     # Relation tables carry space_id but derive visibility from both targets.
     for table_name in RELATION_REQUIREMENTS:

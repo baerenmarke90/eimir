@@ -33,6 +33,7 @@ import {
   type M4ProductApis,
 } from '../client/m4Product';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   ACTIVITY_ROUTE,
   appRoutePath,
@@ -677,6 +678,7 @@ export function TodayPage({
   account?: AccountView | null;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const dashboardQuery = useQuery({
     queryKey: dashboardQueryKey(spaceId),
     queryFn: () => apiCall(() => apis.dashboard.getDashboard({ spaceId })),
@@ -748,8 +750,11 @@ export function TodayPage({
   });
 
   const partner = dashboardQuery.data?.space.partner;
-  const partnerName =
-    partner?.displayName ?? t('m5s5.today.relationshipSignal.partnerFallback');
+  const partnerName = relationshipLabel(
+    partner?.id,
+    partner?.displayName,
+    t('m5s5.today.relationshipSignal.partnerFallback'),
+  );
   const presenceQuery = usePartnerPresence({
     accountId: account?.id ?? '',
     spaceId,
@@ -962,7 +967,7 @@ export function TodayPage({
       spaceTitle={
         partner
           ? t('m5s5.dashboard.partner', {
-              name: partner.displayName,
+              name: partnerName,
             })
           : t('m5s5.dashboard.durationTitle')
       }
@@ -975,11 +980,12 @@ export function TodayPage({
       secondaryPerson={
         partner
           ? {
-              displayName: partner.displayName,
+              displayName: partnerName,
               imageUrl: partnerAvatar.avatarUrl,
             }
           : null
       }
+      secondaryLabel={partner ? partnerName : undefined}
       status={partnerPresenceStatus}
       relationshipDuration={
         dashboardQuery.data?.relationshipDuration
@@ -1005,7 +1011,7 @@ export function TodayPage({
             api={dailyCheckInsApi}
             accountId={account.id}
             spaceId={spaceId}
-            partnerName={partner?.displayName}
+            partnerName={partner ? partnerName : undefined}
           />
         ) : undefined
       }
@@ -1026,7 +1032,7 @@ export function TodayPage({
               entitlementApi={entitlementApi}
               accountId={account.id}
               spaceId={spaceId}
-              partnerName={partner.displayName}
+              partnerName={partnerName}
               thinkingOfYouAvailableAt={
                 dashboardQuery.data?.thinkingOfYouAvailableAt ?? null
               }
@@ -1281,7 +1287,7 @@ export function TodayPage({
                   api={dailyCheckInsApi}
                   accountId={account.id}
                   spaceId={spaceId}
-                  partnerName={partner.displayName}
+                  partnerName={partnerName}
                   configuredEnabled
                 />
               ) : null}
@@ -1293,7 +1299,7 @@ export function TodayPage({
                   entitlementsApi={entitlementApi}
                   accountId={account.id}
                   spaceId={spaceId}
-                  partnerName={partner?.displayName}
+                  partnerName={partner ? partnerName : undefined}
                 />
               ) : null}
 
@@ -1301,7 +1307,7 @@ export function TodayPage({
                 <h2 className="new-space-title">
                   {partner
                     ? t('m5s5.dashboard.newSpacePartner', {
-                        name: partner.displayName,
+                        name: partnerName,
                       })
                     : t('m5s5.dashboard.newSpaceEmpty')}
                 </h2>
@@ -1333,7 +1339,7 @@ export function TodayPage({
                         api={dailyCheckInsApi}
                         accountId={account.id}
                         spaceId={spaceId}
-                        partnerName={partner.displayName}
+                        partnerName={partnerName}
                         configuredEnabled
                       />
                     ) : null}
@@ -1345,7 +1351,7 @@ export function TodayPage({
                         entitlementsApi={entitlementApi}
                         accountId={account.id}
                         spaceId={spaceId}
-                        partnerName={partner?.displayName}
+                        partnerName={partner ? partnerName : undefined}
                       />
                     ) : null}
                   </>

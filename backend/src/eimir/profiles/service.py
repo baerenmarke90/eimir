@@ -26,12 +26,20 @@ from eimir.authorization import (
     require_writable,
 )
 from eimir.core.clock import now
-from eimir.core.errors import ConflictError, ErrorCode, ForbiddenError, ValidationError
+from eimir.core.errors import (
+    ConflictError,
+    ErrorCode,
+    ForbiddenError,
+    NotFoundError,
+    ValidationError,
+)
 from eimir.core.ids import parse_id
 from eimir.demo import canonical
 from eimir.identity import service as identity_service
 from eimir.identity.models import Account
 from eimir.profiles.models import (
+    PartnerNickname,
+    PartnerNicknamePayload,
     PartnerProfile,
     PreferenceCategory,
     PreferenceSentiment,
@@ -41,6 +49,7 @@ from eimir.profiles.models import (
     privacy_for,
 )
 from eimir.relationship.models import Membership, MembershipStatus
+from eimir.relationship.service import lock_space
 from eimir.reminders import runtime as reminder_runtime
 
 
@@ -50,6 +59,76 @@ class ProfileErrorCode:
     TOPIC_REQUIRED = "PROFILE_PREFERENCE_TOPIC_REQUIRED"
     VALUE_REQUIRED = "PROFILE_PREFERENCE_VALUE_REQUIRED"
     AVATAR_IMAGE_REQUIRED = "PROFILE_AVATAR_IMAGE_REQUIRED"
+    NICKNAME_PARTNER_NOT_FOUND = "PARTNER_NICKNAME_PARTNER_NOT_FOUND"
+
+
+def _active_partner_id(session: Session, context: AuthorizationContext) -> UUID | None:
+    return session.execute(
+        select(Membership.account_id).where(
+            Membership.space_id == context.space_id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+            Membership.account_id != context.account_id,
+        )
+    ).scalar_one_or_none()
+
+
+def partner_nickname(
+    session: Session, context: AuthorizationContext
+) -> tuple[UUID | None, PartnerNickname | None]:
+    """Project only this viewer's label for the current active partner."""
+    partner_id = _active_partner_id(session, context)
+    if partner_id is None:
+        return None, None
+    row = session.execute(
+        select(PartnerNickname).where(
+            PartnerNickname.space_id == context.space_id,
+            PartnerNickname.owner_id == context.account_id,
+            PartnerNickname.account_id == partner_id,
+            PartnerNickname.privacy_class == PrivacyClass.OWNER_ONLY.value,
+        )
+    ).scalar_one_or_none()
+    return partner_id, row
+
+
+def set_partner_nickname(
+    session: Session,
+    context: AuthorizationContext,
+    nickname: str | None,
+    *,
+    expected_version: int,
+) -> tuple[UUID, PartnerNickname | None]:
+    """Replace the viewer's private label, serialized with partner lifecycle."""
+    lock_space(session, context.space_id)
+    partner_id, row = partner_nickname(session, context)
+    if partner_id is None:
+        raise NotFoundError(
+            "Active partner not found.", ProfileErrorCode.NICKNAME_PARTNER_NOT_FOUND
+        )
+    actual_version = row.version if row is not None else 0
+    if actual_version != expected_version:
+        raise ConflictError(
+            "The partner nickname changed since it was read.", ErrorCode.VERSION_CONFLICT
+        )
+    if row is None:
+        if nickname is None:
+            return partner_id, None
+        row = PartnerNickname(
+            space_id=context.space_id,
+            owner_id=context.account_id,
+            account_id=partner_id,
+            privacy_class=PrivacyClass.OWNER_ONLY.value,
+            payload=PartnerNicknamePayload(nickname=nickname),
+        )
+        session.add(row)
+    elif row.payload.nickname != nickname:
+        row.payload = PartnerNicknamePayload(nickname=nickname)
+    try:
+        session.flush()
+    except StaleDataError as stale:
+        raise ConflictError(
+            "The partner nickname changed since it was read.", ErrorCode.VERSION_CONFLICT
+        ) from stale
+    return partner_id, row
 
 
 def _subject_id(value: UUID | str) -> UUID | None:

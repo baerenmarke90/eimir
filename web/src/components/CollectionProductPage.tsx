@@ -149,26 +149,30 @@ function CollectionItemRow({
           </small>
         ) : null}
       </div>
-      {collection.capabilities.canEdit ? (
-        <ListEntryIconButton
-          icon="reorder"
-          className="tertiary"
-          label={t('m5s3.collection.reorderItem', {
-            title: item.title,
-          })}
-          {...handleProps(item.id)}
-        />
-      ) : null}
-      {item.capabilities.canDelete ? (
-        <ListEntryIconButton
-          icon="delete"
-          className="tertiary"
-          label={t('m5s3.collection.deleteItem', {
-            title: item.title,
-          })}
-          onClick={() => onDelete(item)}
-          disabled={isDeleting}
-        />
+      {collection.capabilities.canEdit || item.capabilities.canDelete ? (
+        <div className="planning-collection-item-actions">
+          {collection.capabilities.canEdit ? (
+            <ListEntryIconButton
+              icon="reorder"
+              className="tertiary"
+              label={t('m5s3.collection.reorderItem', {
+                title: item.title,
+              })}
+              {...handleProps(item.id)}
+            />
+          ) : null}
+          {item.capabilities.canDelete ? (
+            <ListEntryIconButton
+              icon="delete"
+              className="tertiary"
+              label={t('m5s3.collection.deleteItem', {
+                title: item.title,
+              })}
+              onClick={() => onDelete(item)}
+              disabled={isDeleting}
+            />
+          ) : null}
+        </div>
       ) : null}
     </li>
   );

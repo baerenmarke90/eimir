@@ -439,8 +439,20 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
+    offenders: [...document.querySelectorAll('body *')]
+      .map((element) => ({
+        element: element.tagName.toLowerCase(),
+        className:
+          typeof element.className === 'string' ? element.className : '',
+        right: Math.round(element.getBoundingClientRect().right),
+      }))
+      .filter(({ right }) => right > document.documentElement.clientWidth)
+      .slice(0, 12),
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  expect(
+    dimensions.scrollWidth,
+    JSON.stringify(dimensions.offenders),
+  ).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
 async function expectNoWcagViolations(page: Page): Promise<void> {

@@ -50,12 +50,51 @@ if (
   process.exit(1);
 }
 
-console.log(`Building Web bundle for Capacitor with API base: ${apiBaseUrl}`);
+function configuredDemoValue(name) {
+  return (
+    process.env[`VITE_EIMIR_${name}`]?.trim() ||
+    process.env[`VITE_SBS_${name}`]?.trim() ||
+    undefined
+  );
+}
+
+const declaredDemoMode = configuredDemoValue('DEMO_MODE');
+const declaredResetTimer = configuredDemoValue('DEMO_RESET_TIMER');
+for (const [name, value] of [
+  ['DEMO_MODE', declaredDemoMode],
+  ['DEMO_RESET_TIMER', declaredResetTimer],
+]) {
+  if (value !== undefined && value !== 'true' && value !== 'false') {
+    console.error(`Invalid ${name} value "${value}". Must be true or false.`);
+    process.exit(1);
+  }
+}
+
+const isDemo =
+  declaredDemoMode === 'true' ||
+  (declaredDemoMode === undefined && parsed.hostname.startsWith('demo.'));
+
+if (!isDemo && declaredResetTimer === 'true') {
+  console.error('DEMO_RESET_TIMER=true requires Demo mode.');
+  process.exit(1);
+}
+
+const demoEnv = {
+  VITE_EIMIR_DEMO_MODE: isDemo ? 'true' : 'false',
+  VITE_EIMIR_DEMO_RESET_TIMER: declaredResetTimer ?? 'false',
+  VITE_EIMIR_DEMO_RESET_INTERVAL:
+    configuredDemoValue('DEMO_RESET_INTERVAL') ?? '6h',
+};
+
+console.log(
+  `Building Web bundle for Capacitor with API base: ${apiBaseUrl}${isDemo ? ' (demo mode enabled)' : ''}`,
+);
 execSync('npm run build', {
   cwd: webRoot,
   stdio: 'inherit',
   env: {
     ...process.env,
     VITE_EIMIR_API_BASE_URL: apiBaseUrl,
+    ...demoEnv,
   },
 });

@@ -47,6 +47,10 @@ import {
   loadAuthorizedMedia,
 } from './client/referenceFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
+import {
+  stopNativePushForSignedOutAccount,
+  useUnifiedPush,
+} from './client/unifiedPush';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
   ACTIVITY_ROUTE,
@@ -253,6 +257,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  const devicePush = useUnifiedPush({
+    accountId: account.id,
+    apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -664,6 +675,7 @@ function AuthenticatedApp({
                 accessToken={tokens.accessToken}
                 account={account}
                 spaceId={spaceId}
+                devicePush={devicePush}
               />
             }
           />
@@ -675,6 +687,7 @@ function AuthenticatedApp({
                 accessToken={tokens.accessToken}
                 account={account}
                 spaceId={spaceId}
+                devicePush={devicePush}
               />
             }
           />
@@ -816,6 +829,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const restoredAuthReturnForAccountId = useRef<string | null>(null);
 
   const terminateSession = useCallback(() => {
+    stopNativePushForSignedOutAccount();
     clearStoredSession();
     setEntryToken(null);
     setSpaceId(null);

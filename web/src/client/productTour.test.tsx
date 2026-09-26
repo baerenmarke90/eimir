@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Link, MemoryRouter, useLocation } from 'react-router-dom';
 import { ProductTourProvider, useProductTour } from './productTour';
+import productTour from '../i18n/locales/productTour';
 
 function Fixture({
   accountId = 'alex',
@@ -61,11 +62,11 @@ describe('optional product tour', () => {
   it('offers first-use help on More, dismisses it per viewer and Space, and permits replay', () => {
     const first = renderTour();
     expect(
-      screen.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+      screen.getByRole('heading', { name: productTour.invite.title }),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Später' }));
+    fireEvent.click(screen.getByRole('button', { name: productTour.later }));
     expect(
-      screen.queryByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+      screen.queryByRole('heading', { name: productTour.invite.title }),
     ).toBeNull();
     expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
       'seen',
@@ -74,23 +75,23 @@ describe('optional product tour', () => {
 
     renderTour();
     expect(
-      screen.queryByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+      screen.queryByRole('heading', { name: productTour.invite.title }),
     ).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Replay from More' }));
     expect(
-      screen.getByRole('heading', { name: 'Euer gemeinsamer Ort' }),
+      screen.getByRole('heading', { name: productTour.today.title }),
     ).toBeTruthy();
     expect(screen.getByRole('main').textContent).toBe('/today');
     cleanup();
 
     renderTour('/more', 'sam', 'home');
     expect(
-      screen.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+      screen.getByRole('heading', { name: productTour.invite.title }),
     ).toBeTruthy();
     cleanup();
     renderTour('/more', 'alex', 'other-space');
     expect(
-      screen.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+      screen.getByRole('heading', { name: productTour.invite.title }),
     ).toBeTruthy();
   });
 
@@ -101,20 +102,22 @@ describe('optional product tour', () => {
     screen
       .getByRole('button', { name: 'Actual plus' })
       .addEventListener('click', plus);
-    fireEvent.click(screen.getByRole('button', { name: 'Ansehen' }));
+    fireEvent.click(screen.getByRole('button', { name: productTour.start }));
     expect(screen.getByRole('main').textContent).toBe('/today');
-    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
     expect(screen.getByRole('main').textContent).toBe('/story');
-    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
     expect(screen.getByRole('main').textContent).toBe('/plan');
-    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.click(screen.getByRole('button', { name: productTour.next }));
     expect(
-      screen.getByRole('heading', { name: 'Etwas festhalten' }),
+      screen.getByRole('heading', { name: productTour.create.title }),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Plus öffnen' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: productTour.openCreate }),
+    );
     expect(plus).toHaveBeenCalledOnce();
     expect(
-      screen.queryByRole('heading', { name: 'Etwas festhalten' }),
+      screen.queryByRole('heading', { name: productTour.create.title }),
     ).toBeNull();
   });
 

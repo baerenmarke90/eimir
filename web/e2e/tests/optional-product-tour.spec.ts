@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import productTour from '../../src/i18n/locales/productTour';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
 const PARTNER_ID = '00000000-0000-4000-8000-000000000002';
@@ -141,40 +142,40 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/more$/);
   await expect(
-    page.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+    page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();
   await capture(page, info, 'tour-more-compact-light.png');
 
-  await page.getByRole('button', { name: 'Ansehen' }).click();
+  await page.getByRole('button', { name: productTour.start }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole('heading', { name: 'Euer gemeinsamer Ort' }),
+    page.getByRole('heading', { name: productTour.today.title }),
   ).toBeVisible();
   await capture(page, info, 'tour-wir-compact-light.png');
-  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: productTour.next }).click();
   await expect(page).toHaveURL(/\/story$/);
-  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.getByRole('button', { name: productTour.next }).click();
   await expect(page).toHaveURL(/\/plan$/);
-  await page.getByRole('button', { name: 'Weiter' }).click();
-  await page.getByRole('button', { name: 'Plus öffnen' }).click();
+  await page.getByRole('button', { name: productTour.next }).click();
+  await page.getByRole('button', { name: productTour.openCreate }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.goto('/more');
   await expect(
-    page.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+    page.getByRole('heading', { name: productTour.invite.title }),
   ).toHaveCount(0);
-  await page.getByRole('button', { name: 'eimir. kennenlernen' }).click();
+  await page.getByRole('button', { name: productTour.replay }).click();
   await expect(page).toHaveURL(/\/today$/);
-  await page.getByRole('button', { name: 'Später' }).click();
+  await page.getByRole('button', { name: productTour.later }).click();
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.evaluate(() => window.localStorage.setItem('eimir.theme', 'dark'));
   await page.reload();
   await page.goto('/more');
-  await page.getByRole('button', { name: 'eimir. kennenlernen' }).click();
+  await page.getByRole('button', { name: productTour.replay }).click();
   await expect(
-    page.getByRole('heading', { name: 'Euer gemeinsamer Ort' }),
+    page.getByRole('heading', { name: productTour.today.title }),
   ).toBeVisible();
   await capture(page, info, 'tour-wir-expanded-dark.png');
 
@@ -183,8 +184,12 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.evaluate(() => {
     document.documentElement.style.fontSize = '200%';
   });
-  await expect(page.getByRole('button', { name: 'Später' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Weiter' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: productTour.later }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: productTour.next }),
+  ).toBeVisible();
   const width = await page.evaluate(() => ({
     client: document.documentElement.clientWidth,
     scroll: document.documentElement.scrollWidth,
@@ -199,9 +204,9 @@ test('optional tour visits the real shell and can be replayed on Compact and Exp
   await page.setViewportSize({ width: 430, height: 932 });
   await page.reload();
   await page.goto('/more');
-  await page.getByRole('button', { name: 'eimir. kennenlernen' }).click();
+  await page.getByRole('button', { name: productTour.replay }).click();
   await expect(
-    page.getByRole('heading', { name: 'Euer gemeinsamer Ort' }),
+    page.getByRole('heading', { name: productTour.today.title }),
   ).toBeVisible();
   await capture(page, info, 'tour-wir-430-light.png');
 });
@@ -216,18 +221,18 @@ test('ordinary More destinations remain usable while the first invitation is vis
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(
-    page.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+    page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();
 
-  const settings = page.getByRole('link', { name: 'Einstellungen' });
+  const settings = page.getByRole('link', { name: de.more.settings.title });
   await settings.scrollIntoViewIfNeeded();
   await settings.click();
   await expect(page).toHaveURL(/\/more\/settings$/);
   await page.goto('/more');
   await expect(
-    page.getByRole('heading', { name: 'Ein kurzer Blick auf eimir.' }),
+    page.getByRole('heading', { name: productTour.invite.title }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole('button', { name: 'eimir. kennenlernen' }),
+    page.getByRole('button', { name: productTour.replay }),
   ).toBeVisible();
 });

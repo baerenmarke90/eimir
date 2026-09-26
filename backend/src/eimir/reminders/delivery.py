@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
+from eimir.engagement import notification_preferences
 from eimir.engagement.models import Notification, NotificationKind
 from eimir.outbox.models import OutboxEvent
 from eimir.relationship.models import Membership, MembershipStatus
@@ -39,6 +40,9 @@ def project_notification(session: Session, event: OutboxEvent) -> None:
             target_type=None,
             target_id=None,
             created_at=event.created_at,
+            in_app_visible=notification_preferences.in_app_enabled(
+                session, account_id=recipient_id, kind=NotificationKind.REMINDER_DUE.value
+            ),
         )
         .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
     )

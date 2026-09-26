@@ -23,6 +23,9 @@ dependencies = [
     # present transitively through pyjwt[crypto]; declared because the
     # application now imports it directly.
     "cryptography>=46.0",
+    # UnifiedPush uses RFC 8291 Web Push encryption and optional VAPID auth.
+    # Protocol cryptography stays in the maintained Web Push library.
+    "pywebpush>=2.3,<3",
     # WebAuthn: CBOR, COSE und Attestation von Hand zu lesen waere
     # Eigenbau an der empfindlichsten Stelle.
     "webauthn>=2.5",
@@ -49,9 +52,9 @@ dev = [
 ]
 
 [tool.uv]
-# uv.lock und das Installationsverhalten sind Teil des Builds. Ein anderer
-# uv-Minor kann ein anderes Lockformat oder andere Aufloesungsregeln nutzen.
-required-version = "==0.12.5"
+# The lockfile and installation behavior are part of the build. A different uv
+# version may use another lockfile format or different resolution rules.
+required-version = "==0.12.15"
 
 [build-system]
 requires = ["setuptools==84.0.0"]

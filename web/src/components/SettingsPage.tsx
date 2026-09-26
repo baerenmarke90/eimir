@@ -10,6 +10,7 @@ import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RulesApi } from '../api/generated/apis/RulesApi';
+import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
@@ -32,6 +33,7 @@ import {
 } from './AnniversaryReminderSettings';
 import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
@@ -78,6 +80,10 @@ export function SettingsPage(props: SettingsPageProps) {
   );
   const entitlementsApi = useMemo(
     () => new EntitlementsApi(configuration),
+    [configuration],
+  );
+  const notificationsApi = useMemo(
+    () => new NotificationsApi(configuration),
     [configuration],
   );
   const demoMode = isDemoModeConfigured();
@@ -133,6 +139,10 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-functional-panel"
         aria-label={t('profileIdentity.settingsNotifications')}
       >
+        <NotificationSettingsPanel
+          notificationsApi={notificationsApi}
+          accountId={props.account.id}
+        />
         <AnniversaryReminderSettings
           rulesApi={rulesApi}
           spaceId={props.spaceId}

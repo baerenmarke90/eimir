@@ -25,7 +25,7 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import push, thinking
+from eimir.engagement import email_delivery, notification_preferences, push, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -188,16 +188,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     if event_type is EventType.PARTNER_THINKING_OF_YOU:
         thinking.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type in {EventType.PARTNER_KISS, EventType.PARTNER_CHECK_IN}:
         thinking.project_support_gesture_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     activity_target = _activity_target(event, event_type)
@@ -214,6 +217,7 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         _project_comment_notification(session, event, target_type, target_id)
 
     push.ensure_deliveries_for_source_event(session, event.id)
+    email_delivery.ensure_deliveries_for_source_event(session, event.id)
 
 
 def _activity_target(
@@ -328,6 +332,9 @@ def _project_comment_notification(
             target_type=target_type.value,
             target_id=target_id,
             created_at=event.created_at,
+            in_app_visible=notification_preferences.in_app_enabled(
+                session, account_id=recipient_id, kind=NotificationKind.COMMENT_CREATED.value
+            ),
         )
         .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
     )
@@ -366,6 +373,23 @@ def _projectable_predicate(
         )
         clauses.append(and_(target_type_column == target_type.value, exists))
     return or_(*clauses)
+
+
+def notification_target_available(
+    session: Session, notification: Notification, context: AuthorizationContext
+) -> bool:
+    """Recheck the Center target authorization before external delivery."""
+    return (
+        session.execute(
+            select(Notification.id).where(
+                Notification.id == notification.id,
+                Notification.space_id == context.space_id,
+                Notification.recipient_account_id == context.account_id,
+                _projectable_predicate(Notification.target_type, Notification.target_id, context),
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
 
 
 def _activity_binding(context: AuthorizationContext) -> dict[str, str]:
@@ -463,6 +487,7 @@ def read_notifications(
     statement = select(Notification).where(
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     if cursor is not None:
@@ -494,6 +519,7 @@ def unread_count(session: Session, context: AuthorizationContext) -> int:
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
         Notification.read_at.is_(None),
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     return int(session.execute(statement).scalar_one())
@@ -516,6 +542,7 @@ def mark_notification_read(
             Notification.id == identifier,
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
+            Notification.in_app_visible.is_(True),
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )
         .with_for_update()
@@ -540,6 +567,7 @@ def mark_all_notifications_read(
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
             Notification.read_at.is_(None),
+            Notification.in_app_visible.is_(True),
             Notification.created_at <= cutoff,
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )

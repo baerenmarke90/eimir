@@ -1,9 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import notificationSettings from '../../src/i18n/locales/notificationSettings';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -38,7 +39,27 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const offenders = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .filter((element) => {
+          const box = element.getBoundingClientRect();
+          return (
+            box.width > 0 &&
+            box.right > document.documentElement.clientWidth + 1
+          );
+        })
+        .slice(0, 15)
+        .map((element) => ({
+          element: `${element.tagName.toLowerCase()}.${element.className}`,
+          right: Math.round(element.getBoundingClientRect().right),
+        })),
+    );
+    expect(
+      dimensions.scrollWidth,
+      JSON.stringify(offenders),
+    ).toBeLessThanOrEqual(dimensions.clientWidth);
+  }
 }
 
 type SpaceConfigurationPatch = {
@@ -69,6 +90,15 @@ async function installAuthorizedApiMocks(
   let vibeVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
   let spaceConfigurationVersion = 7;
+  let reminderEmailEnabled = false;
+  let commentPushEnabled = false;
+  let commentEmailEnabled = false;
+  let quietHours: {
+    enabled: boolean;
+    start: string | null;
+    end: string | null;
+    timeZone: string;
+  } = { enabled: false, start: null, end: null, timeZone: 'Europe/Berlin' };
   const spaceConfigurationBody = () =>
     JSON.stringify({
       canManageSpaceConfiguration: true,
@@ -234,6 +264,145 @@ async function installAuthorizedApiMocks(
         ruleKey: pathname.split('/').at(-2),
         enabled: true,
         parameters: { daysBefore: [30, 7, 1], localTime: '09:00:00' },
+      });
+      return;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
+      await fulfillJson({
+        catalogVersion: 2,
+        quietHours,
+        capabilities: [
+          {
+            channel: 'IN_APP',
+            available: true,
+            reason: null,
+            destination: null,
+          },
+          {
+            channel: 'PUSH',
+            available: false,
+            reason: 'PUSH_ENDPOINT_MISSING',
+            destination: null,
+          },
+          {
+            channel: 'EMAIL',
+            available: true,
+            reason: null,
+            destination: 'anna@example.org',
+          },
+        ],
+        items: [
+          'COMMENT_CREATED',
+          'REMINDER_DUE',
+          'THINKING_OF_YOU',
+          'PARTNER_KISS',
+          'PARTNER_CHECK_IN',
+        ].map((kind) => ({
+          kind,
+          deliveryClass:
+            kind === 'COMMENT_CREATED' ? 'DIGESTIBLE' : 'IMMEDIATE',
+          channels: [
+            { channel: 'IN_APP', enabled: true, configurable: true },
+            {
+              channel: 'PUSH',
+              enabled: kind === 'COMMENT_CREATED' && commentPushEnabled,
+              configurable: true,
+            },
+            {
+              channel: 'EMAIL',
+              enabled:
+                (kind === 'COMMENT_CREATED' && commentEmailEnabled) ||
+                (kind === 'REMINDER_DUE' && reminderEmailEnabled),
+              configurable: true,
+            },
+          ],
+        })),
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/quiet-hours'
+    ) {
+      const body = request.postDataJSON() as {
+        enabled: boolean;
+        start?: string | null;
+        end?: string | null;
+      };
+      if (
+        Object.keys(body).some(
+          (key) => !['enabled', 'start', 'end'].includes(key),
+        )
+      ) {
+        unexpectedRequests.push(
+          'Quiet Hours PATCH contained an unapproved field',
+        );
+      }
+      quietHours = {
+        enabled: body.enabled,
+        start: body.enabled ? `${body.start}:00` : null,
+        end: body.enabled ? `${body.end}:00` : null,
+        timeZone: quietHours.timeZone,
+      };
+      await fulfillJson(quietHours);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/PUSH'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Push PATCH contained an unapproved field',
+        );
+      }
+      commentPushEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'PUSH',
+        enabled: commentPushEnabled,
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Email PATCH contained an unapproved field',
+        );
+      }
+      commentEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'EMAIL',
+        enabled: commentEmailEnabled,
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/REMINDER_DUE/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Notification PATCH contained an unapproved recipient',
+        );
+      }
+      reminderEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'REMINDER_DUE',
+        channel: 'EMAIL',
+        enabled: reminderEmailEnabled,
       });
       return;
     }
@@ -1004,6 +1173,198 @@ test.describe('Complete Settings pages reflow (#1162)', () => {
     await expectNoHorizontalOverflow(page);
     expect(unexpectedRequests).toEqual([]);
   });
+});
+
+test('notification choices survive return and stay legible across themes and widths (#638, #515)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await installAuthorizedApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/more/settings/notifications');
+
+  const email = page.getByRole('switch', {
+    name: 'Fällige Erinnerungen: E-Mail',
+  });
+  await expect(email).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText('anna@example.org', { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
+  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  await expect(
+    page.getByRole('link', {
+      name: profileIdentity.settingsNotificationsAction,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light.png'),
+    fullPage: true,
+  });
+
+  const commentEmail = page.getByRole('switch', { name: 'Kommentare: E-Mail' });
+  await expect(commentEmail).toBeEnabled();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentEmailDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentEmail.click();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-email-opted-in.png'),
+    fullPage: true,
+  });
+
+  const commentPush = page.getByRole('switch', { name: 'Kommentare: Push' });
+  await expect(commentPush).toBeEnabled();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentPushDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentPush.click();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.push),
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-opted-in.png'),
+    fullPage: true,
+  });
+
+  const quietSwitch = page.getByRole('switch', {
+    name: notificationSettings.quietHoursEnable,
+  });
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'false');
+  await quietSwitch.click();
+  const quietEnd = page.getByLabel(notificationSettings.quietHoursEnd);
+  await quietEnd.fill('22:00');
+  await expect(
+    page.getByText(notificationSettings.quietHoursInvalid),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: notificationSettings.quietHoursSave }),
+  ).toBeDisabled();
+  await quietEnd.fill('07:00');
+  await page
+    .getByRole('button', { name: notificationSettings.quietHoursSave })
+    .click();
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByText(notificationSettings.quietHoursSaved),
+  ).toBeVisible();
+  await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light-saved.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectSettingsControlsInsideViewport(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await email.click();
+  await expect(email).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.reminder)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
+    .click();
+  await page
+    .getByRole('link', {
+      name: profileIdentity.settingsNotifications,
+    })
+    .click();
+  await expect(
+    page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: notificationSettings.quietHoursEnable }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
+
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: test.info().outputPath(`notification-settings-${width}-light.png`),
+      fullPage: true,
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-dark.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-dark.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-light.png'),
+    fullPage: true,
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.getByRole('switch', { name: 'Kommentare: Push' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.getByRole('switch', { name: 'Kommentare: E-Mail' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  expect(unexpectedRequests).toEqual([]);
 });
 
 test('planning sanctuary is compact, dark, reduced-motion, keyboard operable, and axe-clean', async ({

@@ -2283,6 +2283,15 @@
         "title": "DateRepeat",
         "type": "string"
       },
+      "DeliveryClass": {
+        "enum": [
+          "IMMEDIATE",
+          "DIGESTIBLE",
+          "IN_APP_ONLY"
+        ],
+        "title": "DeliveryClass",
+        "type": "string"
+      },
       "DiscoverLeadContext": {
         "properties": {
           "type": {
@@ -3983,6 +3992,77 @@
         "title": "MilestoneUpdate",
         "type": "object"
       },
+      "NotificationChannel": {
+        "enum": [
+          "IN_APP",
+          "PUSH",
+          "EMAIL"
+        ],
+        "title": "NotificationChannel",
+        "type": "string"
+      },
+      "NotificationChannelCapability": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "channel",
+          "available",
+          "reason"
+        ],
+        "title": "NotificationChannelCapability",
+        "type": "object"
+      },
+      "NotificationChannelPreference": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "configurable": {
+            "title": "Configurable",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "enabled",
+          "configurable"
+        ],
+        "title": "NotificationChannelPreference",
+        "type": "object"
+      },
       "NotificationItem": {
         "properties": {
           "actor": {
@@ -4125,6 +4205,98 @@
           "hasMore"
         ],
         "title": "NotificationPage",
+        "type": "object"
+      },
+      "NotificationPreferenceEntry": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelPreference"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "deliveryClass": {
+            "$ref": "#/components/schemas/DeliveryClass"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "deliveryClass",
+          "channels"
+        ],
+        "title": "NotificationPreferenceEntry",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdate",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdated": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "channel",
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdated",
+        "type": "object"
+      },
+      "NotificationPreferencesView": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelCapability"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "catalogVersion": {
+            "title": "Catalogversion",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationPreferenceEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/QuietHoursView"
+          }
+        },
+        "required": [
+          "catalogVersion",
+          "items",
+          "capabilities",
+          "quietHours"
+        ],
+        "title": "NotificationPreferencesView",
         "type": "object"
       },
       "NotificationUnreadCount": {
@@ -5769,6 +5941,126 @@
         ],
         "title": "ProfileVisibility",
         "type": "string"
+      },
+      "PushEndpointRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointValue": {
+            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; the configured provider validates its own format. Treat this value as a secret.",
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Endpointvalue",
+            "type": "string"
+          },
+          "providerKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Providerkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "endpointValue"
+        ],
+        "title": "PushEndpointRegistration",
+        "type": "object"
+      },
+      "PushEndpointRegistrationResult": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PushEndpointRegistrationResult",
+        "type": "object"
+      },
+      "QuietHoursUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "QuietHoursUpdate",
+        "type": "object"
+      },
+      "QuietHoursView": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "timeZone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "start",
+          "end",
+          "timeZone"
+        ],
+        "title": "QuietHoursView",
+        "type": "object"
       },
       "QuoteCategoryView": {
         "properties": {
@@ -9468,6 +9760,24 @@
         "title": "TransferScope",
         "type": "string"
       },
+      "UnifiedPushConfiguration": {
+        "properties": {
+          "providerKey": {
+            "title": "Providerkey",
+            "type": "string"
+          },
+          "vapidPublicKey": {
+            "title": "Vapidpublickey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "vapidPublicKey"
+        ],
+        "title": "UnifiedPushConfiguration",
+        "type": "object"
+      },
       "UploadDescriptor": {
         "properties": {
           "attachment": {
@@ -11977,6 +12287,390 @@
         "summary": "Accept Invitation",
         "tags": [
           "invitations"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences": {
+      "get": {
+        "description": "Keep persisted choice, policy eligibility and transport readiness distinct.",
+        "operationId": "getOwnNotificationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Own Notification Preferences",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/quiet-hours": {
+      "patch": {
+        "description": "Set or clear only the authenticated recipient's daily delivery window.",
+        "operationId": "updateOwnQuietHours",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuietHoursUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuietHoursView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Quiet Hours",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/{kind}/{channel}": {
+      "patch": {
+        "description": "Change only the authenticated recipient's implemented channel choice.",
+        "operationId": "updateOwnNotificationPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationKind"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationChannel"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferenceUpdated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Notification Preference",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints": {
+      "post": {
+        "description": "Accept only configured transports and return no endpoint secret.",
+        "operationId": "registerOwnPushEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushEndpointRegistration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushEndpointRegistrationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Register Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/unifiedpush-configuration": {
+      "get": {
+        "description": "Expose the public VAPID key to an authenticated device connector.",
+        "operationId": "getUnifiedPushConfiguration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnifiedPushConfiguration"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Unified Push Configuration",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/{endpointId}": {
+      "delete": {
+        "description": "Keep foreign and unknown IDs indistinguishable to the caller.",
+        "operationId": "revokeOwnPushEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "endpointId",
+            "required": true,
+            "schema": {
+              "title": "Endpointid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Revoke Own Push Endpoint",
+        "tags": [
+          "notifications"
         ]
       }
     },

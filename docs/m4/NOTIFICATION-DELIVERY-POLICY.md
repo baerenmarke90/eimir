@@ -1,7 +1,7 @@
 # Notification delivery classification: #515 foundation
 
-**Current baseline:** `main` at `fb82fb7a`, 24 September 2026. This covers
-the first two runtime slices of #515, not the complete notification-policy feature.
+The closed v2 catalog began with #515's first runtime slices; this document
+describes the current policy, not the complete notification-policy feature.
 `backend/src/eimir/engagement/notification_policy.py` is the versioned,
 closed delivery-class catalog for the five currently persisted
 `NotificationKind` values. An unknown kind fails closed for push. Domain
@@ -13,13 +13,35 @@ authoritative ahead of delivery decisions.
 | `THINKING_OF_YOU` | IMMEDIATE | Existing content-free generic push for an explicit, server-paced Free/Core signal. |
 | `PARTNER_KISS`, `PARTNER_CHECK_IN` | IMMEDIATE | Existing content-free generic push when a permitted extended gesture is sent; Premium only governs sending. |
 | `REMINDER_DUE` | IMMEDIATE | Existing generic push for an already due recipient-specific reminder; source rule/preference controls whether it exists. |
-| `COMMENT_CREATED` | DIGESTIBLE | Notification Center only; no per-comment push. Digest delivery is **not implemented**. |
+| `COMMENT_CREATED` | DIGESTIBLE | Notification Center by default; bounded generic Push and EMAIL digests each require a separate explicit Account opt-in. No per-comment external delivery. |
+
+### Current noise-control audit
+
+| Kind | Admission and external noise bound |
+| --- | --- |
+| `THINKING_OF_YOU` | One sender/Space request per 30 minutes, with client-request replay and per-event delivery uniqueness. |
+| `PARTNER_KISS`, `PARTNER_CHECK_IN` | The same 30-minute pacing per sender/Space/gesture kind, with request replay and per-event delivery uniqueness. Different deliberate gestures remain independent. |
+| `REMINDER_DUE` | One generated occurrence per recipient, rule and due key; the chosen reminder schedule governs delivery, with source-event and channel receipt uniqueness. |
+| `COMMENT_CREATED` | One opted-in generic Push per recipient/Space/endpoint/fixed UTC hour and one separately opted-in generic EMAIL per recipient/Space/hour. Quiet Hours additionally coalesces held external receipts. |
+
+Both selected channels may notify the recipient for one event; channel choices
+are independent Account consent. The comment Push bucket now closes after a
+terminal provider attempt, including an ambiguous `FAILED` outcome. A later
+worker cannot promote an older comment receipt into another send for that
+hour. A pre-provider `UNAVAILABLE` receipt does not close the bucket, so an
+eligible older receipt can still deliver. This uses the existing Account
+lock, receipt statuses and indexed hourly lookup, without a new rate ledger.
+Daily summary, wider Activity kinds and cross-kind noise rules require a
+separate product decision rather than silent suppression of deliberate
+gestures or user-selected channels.
 
 `IN_APP_ONLY` is an available catalog class for future explicitly approved
 notification kinds, not a wildcard for arbitrary Outbox/Activity events.
 `IMMEDIATE` currently preserves the existing push handoff. `DIGESTIBLE`
-does **not** send a push until a bounded, idempotent digest is designed and
-delivered. A delivery already queued before a later policy change is
+does **not** send a push for existing users; the [bounded comment digest](./NOTIFICATION-COMMENT-DIGEST.md)
+checks an explicit Account opt-in at projection and provider time. The choice
+is available in Notification Settings, independently of transport readiness.
+A delivery already queued before a later policy change is
 re-evaluated before calling the provider; a blocked delivery terminates with
 the technical `PUSH_POLICY_BLOCKED` code and cannot replay on reenable.
 
@@ -36,24 +58,31 @@ No new provider, broker, job queue or storage is needed; the existing Outbox,
 PushDelivery and PostgreSQL Job Queue are reused. External libraries,
 WebSocket and secondary preference stores are unsuitable for this catalog.
 
-**Not delivered by these slices:** #515's digest aggregation, rate/noise policy,
-account-timezone Quiet Hours and category controls; #638's per-account,
-per-event, per-channel IN_APP/PUSH/EMAIL preference authority; #565's provider
-transport. Do not infer that a new notification class enables email, a
+**Still separate:** #515's daily summary, wider rate/noise policy and category
+controls; #565's provider transport. Do not infer that a new notification class enables email, a
 foreground banner or a richer lock-screen preview. #1211 retains the current
 badge/preview/Center, and #1212 rejects motion from unread-count polling.
 Later deliveries must intersect the #515 class, the #638 recipient channel
 choice, domain privacy/module rules and technical channel availability.
 In particular, a comment digest cannot silently enable a new push channel
 before the recipient has an explicit opt-in under #638.
+The [#638 backend foundation](./NOTIFICATION-PUSH-PREFERENCES.md) enforces
+PUSH overrides for current immediate kinds and explicit digest opt-in. The
+[own-Account API and IN_APP follow-up](./NOTIFICATION-PREFERENCES-API.md)
+expose independent recipient choices. The
+[EMAIL delivery follow-up](./NOTIFICATION-EMAIL-DELIVERY.md) enables explicit
+opt-in for immediate kinds. The [comment EMAIL digest](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md)
+is available by explicit recipient opt-in in Notification Settings when SMTP
+and a verified primary Account address are present.
 
 **Business and operations:** notification quality is Free/Core in
 `docs/FREEMIUM-FEATURE-MATRIX.md` and identical for Cloud/Self-Hosted; no
-entitlement, quota, retention, migration, schema or deployment setting
-changes. This catalog adds no polling or background job and keeps missing
-push providers nonfatal. The follow-up for Quiet Hours must use the
-authoritative account timezone, avoid push-flooding on reconnect and retain
-normal in-app access even if external delivery is delayed.
+entitlement, quota, retention or deployment setting changes. The bounded
+digest reuses the existing PushDelivery and Job Queue, with one supporting
+index. Missing push providers stay nonfatal. Quiet Hours uses the authoritative
+Account timezone, coalesces after a hold and retains normal in-app access.
+The [Quiet Hours stored contract](./NOTIFICATION-QUIET-HOURS.md) defines the
+per-Account window and eligible kinds before provider behavior is activated.
 
 **Validation:** a catalog coverage test fails if a NotificationKind is added
 without classification; the existing signal/reminder integration paths

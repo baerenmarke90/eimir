@@ -5,25 +5,31 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Any, Protocol
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session
 
+from eimir.authorization import AuthorizationContext
 from eimir.core import clock
-from eimir.engagement import notification_policy
+from eimir.core.errors import ConflictError, ErrorCode
+from eimir.engagement import notification_policy, notification_preferences, quiet_hours_preferences
 from eimir.engagement.models import (
     Notification,
     NotificationKind,
     PushDelivery,
     PushDeliveryStatus,
     PushEndpoint,
+    PushEndpointSecret,
+    PushEndpointSecretPayload,
 )
 from eimir.identity import effects as account_effects
+from eimir.identity.models import Account
 from eimir.jobs import queue
-from eimir.jobs.errors import RetryableJobError
+from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.worker import registry
 from eimir.relationship import configuration as space_configuration
 
@@ -32,6 +38,8 @@ GENERIC_PRESENTATION_KEY = notification_policy.GENERIC_PRESENTATION_KEY
 ACCOUNT_UNAVAILABLE_CODE = "ACCOUNT_UNAVAILABLE"
 POLICY_BLOCKED_CODE = "PUSH_POLICY_BLOCKED"
 MAX_PUSH_ATTEMPTS = 5
+MAX_ACTIVE_ENDPOINTS = 10
+QUIET_HOURS_RECHECK = timedelta(minutes=15)
 _TECHNICAL_CODE = re.compile(r"[A-Z0-9_-]{1,64}\Z")
 _TERMINAL_DELIVERY_STATUSES = {
     PushDeliveryStatus.SUCCEEDED.value,
@@ -51,6 +59,10 @@ class PushSendResult:
 
 
 class PushProvider(Protocol):
+    def accepts_endpoint(self, endpoint: str) -> bool: ...
+
+    def registration_identity(self, endpoint: str) -> str: ...
+
     def send(
         self,
         *,
@@ -64,8 +76,9 @@ class PushProvider(Protocol):
 class PushProviderError(Exception):
     """Provider failure represented only by a bounded technical code."""
 
-    def __init__(self, code: str) -> None:
+    def __init__(self, code: str, *, retryable: bool = True) -> None:
         self.code = sanitize_error_code(code)
+        self.retryable = retryable
         super().__init__(self.code)
 
 
@@ -101,6 +114,7 @@ def register_endpoint(
     account_id: UUID,
     provider_key: str,
     endpoint_value: str,
+    registration_identity: str | None = None,
 ) -> PushEndpoint:
     """Create/reactivate one technical endpoint without exposing it publicly."""
     provider = provider_key.strip()
@@ -108,19 +122,47 @@ def register_endpoint(
     if not provider or not endpoint:
         raise ValueError("push endpoint and provider must not be blank")
 
-    fingerprint = hashlib.sha256(endpoint.encode("utf-8")).hexdigest()
+    account = session.execute(
+        select(Account).where(Account.id == account_id).with_for_update()
+    ).scalar_one_or_none()
+    if account is None or account.disabled_at is not None:
+        raise ConflictError(
+            "Account is unavailable for push endpoint registration.",
+            ErrorCode.PUSH_ENDPOINT_ACCOUNT_UNAVAILABLE,
+        )
+
+    fingerprint = hashlib.sha256((registration_identity or endpoint).encode("utf-8")).hexdigest()
+    stored_reference = f"sha256:{fingerprint}"
+    existing = session.execute(
+        select(PushEndpoint.id, PushEndpoint.disabled_at).where(
+            PushEndpoint.account_id == account_id,
+            PushEndpoint.provider_key == provider,
+            PushEndpoint.fingerprint == fingerprint,
+        )
+    ).one_or_none()
+    if existing is None or existing.disabled_at is not None:
+        active_count = session.execute(
+            select(func.count())
+            .select_from(PushEndpoint)
+            .where(PushEndpoint.account_id == account_id, PushEndpoint.disabled_at.is_(None))
+        ).scalar_one()
+        if active_count >= MAX_ACTIVE_ENDPOINTS:
+            raise ConflictError(
+                "Active push endpoint limit reached.", ErrorCode.PUSH_ENDPOINT_LIMIT_REACHED
+            )
+
     statement = (
         postgresql.insert(PushEndpoint)
         .values(
             account_id=account_id,
             provider_key=provider,
-            endpoint_value=endpoint,
+            endpoint_value=stored_reference,
             fingerprint=fingerprint,
             disabled_at=None,
         )
         .on_conflict_do_update(
             index_elements=["account_id", "provider_key", "fingerprint"],
-            set_={"endpoint_value": endpoint, "disabled_at": None},
+            set_={"endpoint_value": stored_reference, "disabled_at": None},
         )
         .returning(PushEndpoint.id)
     )
@@ -128,7 +170,53 @@ def register_endpoint(
     endpoint_row = session.get(PushEndpoint, endpoint_id)
     if endpoint_row is None:
         raise RuntimeError("Push endpoint disappeared after upsert.")
+    secret = session.execute(
+        select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint_id)
+    ).scalar_one_or_none()
+    if secret is None:
+        session.add(
+            PushEndpointSecret(
+                push_endpoint_id=endpoint_id,
+                payload=PushEndpointSecretPayload(value=endpoint),
+            )
+        )
+    elif secret.payload.value != endpoint:
+        secret.payload = PushEndpointSecretPayload(value=endpoint)
     return endpoint_row
+
+
+def revoke_endpoint(session: Session, *, account_id: UUID, endpoint_id: UUID) -> bool:
+    """Disable an owned endpoint under the same Account lock used by delivery."""
+    account = session.execute(
+        select(Account).where(Account.id == account_id).with_for_update()
+    ).scalar_one_or_none()
+    if account is None or account.disabled_at is not None:
+        return False
+    endpoint = session.execute(
+        select(PushEndpoint)
+        .where(PushEndpoint.id == endpoint_id, PushEndpoint.account_id == account_id)
+        .with_for_update()
+    ).scalar_one_or_none()
+    if endpoint is None:
+        return False
+    if endpoint.disabled_at is None:
+        endpoint.disabled_at = clock.now()
+    return True
+
+
+def _target_available(session: Session, notification: Notification) -> bool:
+    if notification.target_type is None:
+        return True
+    from eimir.engagement import service
+
+    return service.notification_target_available(
+        session,
+        notification,
+        AuthorizationContext(
+            account_id=notification.recipient_account_id,
+            space_id=notification.space_id,
+        ),
+    )
 
 
 def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) -> None:
@@ -137,7 +225,29 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
         select(Notification).where(Notification.source_event_id == source_event_id)
     ).scalars()
     for notification in notifications:
-        if notification_policy.presentation_for(notification.kind, notification.id) is None:
+        digest = (
+            notification_policy.digest_presentation_for(notification.kind, notification.id)
+            is not None
+        )
+        if (
+            not digest
+            and notification_policy.presentation_for(notification.kind, notification.id) is None
+        ):
+            continue
+        if not _target_available(session, notification):
+            continue
+        allowed = (
+            notification_preferences.digest_push_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
+            if digest
+            else notification_preferences.push_enabled(
+                session, account_id=notification.recipient_account_id, kind=notification.kind
+            )
+        )
+        if digest and not allowed:
+            # A missing choice has never opted in. Do not create latent jobs
+            # that could start sending when a future Settings control is used.
             continue
         endpoints = session.execute(
             select(PushEndpoint).where(
@@ -146,26 +256,86 @@ def ensure_deliveries_for_source_event(session: Session, source_event_id: UUID) 
             )
         ).scalars()
         for endpoint in endpoints:
+            created_at = clock.now() if digest else None
             statement = (
                 postgresql.insert(PushDelivery)
                 .values(
                     notification_id=notification.id,
                     push_endpoint_id=endpoint.id,
                     provider_key=endpoint.provider_key,
-                    status=PushDeliveryStatus.PENDING.value,
+                    status=(
+                        PushDeliveryStatus.PENDING.value
+                        if allowed
+                        else PushDeliveryStatus.UNAVAILABLE.value
+                    ),
                     attempts=0,
+                    last_error_code=None if allowed else "PUSH_PREFERENCE_DISABLED",
+                    finished_at=None if allowed else clock.now(),
+                    **({"created_at": created_at} if created_at is not None else {}),
                 )
                 .on_conflict_do_nothing(index_elements=["notification_id", "push_endpoint_id"])
                 .returning(PushDelivery.id)
             )
             delivery_id = session.execute(statement).scalar_one_or_none()
-            if delivery_id is not None:
+            if delivery_id is not None and allowed:
+                delay = None
+                if created_at is not None:
+                    _, end = notification_policy.digest_window(created_at)
+                    delay = max(end - clock.now(), timedelta(seconds=1))
                 queue.enqueue(
                     session,
                     JOB_KIND,
                     {"deliveryId": str(delivery_id)},
+                    delay=delay,
                     max_attempts=MAX_PUSH_ATTEMPTS,
                 )
+
+
+def _digest_superseded(
+    session: Session, delivery: PushDelivery, notification: Notification
+) -> bool:
+    """Choose one recipient/Space/endpoint receipt for an hourly batch.
+
+    The recipient Account lock serializes this decision with other workers.
+    A terminal provider failure closes the bucket: acceptance may be
+    ambiguous, so an older receipt must not attempt another external send.
+    Unavailable receipts made no provider attempt and remain excluded.
+    """
+    start, end = notification_policy.digest_window(delivery.created_at)
+    batch = (
+        PushDelivery.push_endpoint_id == delivery.push_endpoint_id,
+        PushDelivery.created_at >= start,
+        PushDelivery.created_at < end,
+        Notification.recipient_account_id == notification.recipient_account_id,
+        Notification.space_id == notification.space_id,
+        Notification.kind == notification.kind,
+    )
+    attempted = session.execute(
+        select(PushDelivery.id)
+        .join(Notification, Notification.id == PushDelivery.notification_id)
+        .where(
+            *batch,
+            PushDelivery.status.in_(
+                (PushDeliveryStatus.SUCCEEDED.value, PushDeliveryStatus.FAILED.value)
+            ),
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if attempted is not None:
+        return True
+    latest = session.execute(
+        select(PushDelivery.id)
+        .join(Notification, Notification.id == PushDelivery.notification_id)
+        .where(
+            *batch,
+            PushDelivery.status.in_(
+                (PushDeliveryStatus.PENDING.value, PushDeliveryStatus.RETRYING.value)
+            ),
+        )
+        .order_by(PushDelivery.created_at.desc(), PushDelivery.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    return latest != delivery.id
 
 
 def _delivery_account_snapshot(
@@ -216,7 +386,7 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     if snapshot_status in _TERMINAL_DELIVERY_STATUSES:
         return
 
-    accounts_available = account_effects.lock_enabled_accounts(session, account_ids) is not None
+    accounts = account_effects.lock_enabled_accounts(session, account_ids)
 
     # Lock only after Account rows. Account deletion async cleanup uses the same
     # order before suppressing stale deliveries, so the two paths can wait but
@@ -241,7 +411,14 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     # A queued delivery must still be allowed by the current policy when the
     # worker reaches the provider boundary. Historical records cannot bypass
     # a stricter catalog after an upgrade.
-    presentation = notification_policy.presentation_for(notification.kind, notification.id)
+    digest = (
+        notification_policy.digest_presentation_for(notification.kind, notification.id) is not None
+    )
+    presentation = (
+        notification_policy.digest_presentation_for(notification.kind, notification.id)
+        if digest
+        else notification_policy.presentation_for(notification.kind, notification.id)
+    )
     if presentation is None:
         _finish_unavailable(delivery, POLICY_BLOCKED_CODE)
         return
@@ -249,8 +426,20 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
     current_account_ids = {notification.recipient_account_id}
     if notification.actor_id is not None:
         current_account_ids.add(notification.actor_id)
-    if current_account_ids != account_ids or not accounts_available:
+    if current_account_ids != account_ids or accounts is None:
         _finish_unavailable(delivery, ACCOUNT_UNAVAILABLE_CODE)
+        return
+    enabled = (
+        notification_preferences.digest_push_enabled(
+            session, account_id=notification.recipient_account_id, kind=notification.kind
+        )
+        if digest
+        else notification_preferences.push_enabled(
+            session, account_id=notification.recipient_account_id, kind=notification.kind
+        )
+    )
+    if not enabled:
+        _finish_unavailable(delivery, "PUSH_PREFERENCE_DISABLED")
         return
     if any(
         not account_effects.has_active_membership(
@@ -280,6 +469,53 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
         )
         return
 
+    # A shared target can become private or disappear after projection. Match
+    # the Notification Center and mail authorization at the provider boundary.
+    if not _target_available(session, notification):
+        _finish_unavailable(delivery, "PUSH_TARGET_UNAVAILABLE")
+        return
+
+    checked_at = clock.now()
+    digest_start: datetime | None = None
+    if digest:
+        digest_start, end = notification_policy.digest_window(delivery.created_at)
+        if checked_at < end:
+            raise DeferredJobError(end)
+    release_at = quiet_hours_preferences.release_at(
+        accounts[notification.recipient_account_id], kind=notification.kind, at=checked_at
+    )
+    if release_at is not None:
+        delivery.deferred_until = release_at
+        raise DeferredJobError(min(release_at, checked_at + QUIET_HOURS_RECHECK))
+
+    # Only one generic wake per Space and endpoint after an accumulated quiet
+    # interval. Keep every underlying Center entry and suppress older external
+    # handoffs. The Account lock serializes concurrent worker decisions.
+    if delivery.deferred_until is not None:
+        if delivery.deferred_until > checked_at:
+            # A timezone or window change can end the hold before its old UTC
+            # release instant. The current Account choice is authoritative.
+            delivery.deferred_until = checked_at
+        latest = session.execute(
+            select(PushDelivery.id)
+            .join(Notification, Notification.id == PushDelivery.notification_id)
+            .where(
+                PushDelivery.push_endpoint_id == endpoint.id,
+                PushDelivery.deferred_until.is_not(None),
+                Notification.recipient_account_id == notification.recipient_account_id,
+                Notification.space_id == notification.space_id,
+            )
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        if latest != delivery.id:
+            _finish_unavailable(delivery, "QUIET_HOURS_COALESCED")
+            return
+
+    if digest and _digest_superseded(session, delivery, notification):
+        _finish_unavailable(delivery, "DIGEST_COALESCED")
+        return
+
     provider = providers.get(delivery.provider_key)
     if provider is None:
         _finish_unavailable(delivery)
@@ -287,15 +523,25 @@ def handle_delivery(session: Session, payload: dict[str, Any]) -> None:
 
     delivery.attempts += 1
     try:
+        secret = session.execute(
+            select(PushEndpointSecret).where(PushEndpointSecret.push_endpoint_id == endpoint.id)
+        ).scalar_one_or_none()
         result = provider.send(
-            idempotency_key=f"{notification.id}:{endpoint.id}",
-            endpoint=endpoint.endpoint_value,
+            idempotency_key=(
+                f"digest:{notification.recipient_account_id}:{notification.space_id}:"
+                f"{endpoint.id}:{digest_start.isoformat()}"
+                if digest_start is not None
+                else f"{notification.id}:{endpoint.id}"
+            ),
+            endpoint=secret.payload.value if secret is not None else endpoint.endpoint_value,
             notification_reference=presentation.reference,
             generic_presentation_key=presentation.key,
         )
     except PushProviderError as exc:
-        _record_failure(delivery, exc.code)
-        if delivery.attempts < MAX_PUSH_ATTEMPTS:
+        if exc.code == "PUSH_SUBSCRIPTION_GONE":
+            endpoint.disabled_at = clock.now()
+        _record_failure(delivery, exc.code, terminal=not exc.retryable)
+        if exc.retryable and delivery.attempts < MAX_PUSH_ATTEMPTS:
             raise RetryableJobError(exc.code) from exc
         return
     except Exception as exc:
@@ -326,9 +572,9 @@ def bounded_identifier(value: str | None) -> str | None:
     return cleaned[:256] or None
 
 
-def _record_failure(delivery: PushDelivery, code: str) -> None:
+def _record_failure(delivery: PushDelivery, code: str, *, terminal: bool = False) -> None:
     delivery.last_error_code = sanitize_error_code(code)
-    if delivery.attempts >= MAX_PUSH_ATTEMPTS:
+    if terminal or delivery.attempts >= MAX_PUSH_ATTEMPTS:
         delivery.status = PushDeliveryStatus.FAILED.value
         delivery.finished_at = clock.now()
     else:

@@ -14,15 +14,40 @@
 
 import * as runtime from '../runtime';
 import {
+    type NotificationChannel,
+    NotificationChannelFromJSON,
+    NotificationChannelToJSON,
+} from '../models/NotificationChannel';
+import {
     type NotificationItem,
     NotificationItemFromJSON,
     NotificationItemToJSON,
 } from '../models/NotificationItem';
 import {
+    type NotificationKind,
+    NotificationKindFromJSON,
+    NotificationKindToJSON,
+} from '../models/NotificationKind';
+import {
     type NotificationPage,
     NotificationPageFromJSON,
     NotificationPageToJSON,
 } from '../models/NotificationPage';
+import {
+    type NotificationPreferenceUpdate,
+    NotificationPreferenceUpdateFromJSON,
+    NotificationPreferenceUpdateToJSON,
+} from '../models/NotificationPreferenceUpdate';
+import {
+    type NotificationPreferenceUpdated,
+    NotificationPreferenceUpdatedFromJSON,
+    NotificationPreferenceUpdatedToJSON,
+} from '../models/NotificationPreferenceUpdated';
+import {
+    type NotificationPreferencesView,
+    NotificationPreferencesViewFromJSON,
+    NotificationPreferencesViewToJSON,
+} from '../models/NotificationPreferencesView';
 import {
     type NotificationUnreadCount,
     NotificationUnreadCountFromJSON,
@@ -49,6 +74,26 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type PushEndpointRegistration,
+    PushEndpointRegistrationFromJSON,
+    PushEndpointRegistrationToJSON,
+} from '../models/PushEndpointRegistration';
+import {
+    type PushEndpointRegistrationResult,
+    PushEndpointRegistrationResultFromJSON,
+    PushEndpointRegistrationResultToJSON,
+} from '../models/PushEndpointRegistrationResult';
+import {
+    type QuietHoursUpdate,
+    QuietHoursUpdateFromJSON,
+    QuietHoursUpdateToJSON,
+} from '../models/QuietHoursUpdate';
+import {
+    type QuietHoursView,
+    QuietHoursViewFromJSON,
+    QuietHoursViewToJSON,
+} from '../models/QuietHoursView';
+import {
     type ThinkingOfYouAccepted,
     ThinkingOfYouAcceptedFromJSON,
     ThinkingOfYouAcceptedToJSON,
@@ -58,6 +103,11 @@ import {
     ThinkingOfYouCreateFromJSON,
     ThinkingOfYouCreateToJSON,
 } from '../models/ThinkingOfYouCreate';
+import {
+    type UnifiedPushConfiguration,
+    UnifiedPushConfigurationFromJSON,
+    UnifiedPushConfigurationToJSON,
+} from '../models/UnifiedPushConfiguration';
 
 export interface GetNotificationUnreadCountRequest {
     spaceId: string;
@@ -78,6 +128,14 @@ export interface MarkNotificationReadRequest {
     spaceId: string;
 }
 
+export interface RegisterOwnPushEndpointRequest {
+    pushEndpointRegistration: PushEndpointRegistration;
+}
+
+export interface RevokeOwnPushEndpointRequest {
+    endpointId: string;
+}
+
 export interface SendPartnerQuickActionRequest {
     spaceId: string;
     partnerQuickActionCreate: PartnerQuickActionCreate;
@@ -86,6 +144,16 @@ export interface SendPartnerQuickActionRequest {
 export interface SendThinkingOfYouRequest {
     spaceId: string;
     thinkingOfYouCreate: ThinkingOfYouCreate;
+}
+
+export interface UpdateOwnNotificationPreferenceRequest {
+    kind: NotificationKind;
+    channel: NotificationChannel;
+    notificationPreferenceUpdate: NotificationPreferenceUpdate;
+}
+
+export interface UpdateOwnQuietHoursRequest {
+    quietHoursUpdate: QuietHoursUpdate;
 }
 
 /**
@@ -192,6 +260,84 @@ export class NotificationsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getOwnNotificationPreferences without sending the request
+     */
+    async getOwnNotificationPreferencesRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/notification-preferences`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Keep persisted choice, policy eligibility and transport readiness distinct.
+     * Get Own Notification Preferences
+     */
+    async getOwnNotificationPreferencesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationPreferencesView>> {
+        const requestOptions = await this.getOwnNotificationPreferencesRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => NotificationPreferencesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Keep persisted choice, policy eligibility and transport readiness distinct.
+     * Get Own Notification Preferences
+     */
+    async getOwnNotificationPreferences(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferencesView> {
+        const response = await this.getOwnNotificationPreferencesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getUnifiedPushConfiguration without sending the request
+     */
+    async getUnifiedPushConfigurationRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/push-endpoints/unifiedpush-configuration`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Expose the public VAPID key to an authenticated device connector.
+     * Get Unified Push Configuration
+     */
+    async getUnifiedPushConfigurationRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UnifiedPushConfiguration>> {
+        const requestOptions = await this.getUnifiedPushConfigurationRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UnifiedPushConfigurationFromJSON(jsonValue));
+    }
+
+    /**
+     * Expose the public VAPID key to an authenticated device connector.
+     * Get Unified Push Configuration
+     */
+    async getUnifiedPushConfiguration(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UnifiedPushConfiguration> {
+        const response = await this.getUnifiedPushConfigurationRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for markAllNotificationsRead without sending the request
      */
     async markAllNotificationsReadRequestOpts(requestParameters: MarkAllNotificationsReadRequest): Promise<runtime.RequestOpts> {
@@ -287,6 +433,101 @@ export class NotificationsApi extends runtime.BaseAPI {
     async markNotificationRead(requestParameters: MarkNotificationReadRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationItem> {
         const response = await this.markNotificationReadRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for registerOwnPushEndpoint without sending the request
+     */
+    async registerOwnPushEndpointRequestOpts(requestParameters: RegisterOwnPushEndpointRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['pushEndpointRegistration'] == null) {
+            throw new runtime.RequiredError(
+                'pushEndpointRegistration',
+                'Required parameter "pushEndpointRegistration" was null or undefined when calling registerOwnPushEndpoint().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/push-endpoints`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PushEndpointRegistrationToJSON(requestParameters['pushEndpointRegistration']),
+        };
+    }
+
+    /**
+     * Accept only configured transports and return no endpoint secret.
+     * Register Own Push Endpoint
+     */
+    async registerOwnPushEndpointRaw(requestParameters: RegisterOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PushEndpointRegistrationResult>> {
+        const requestOptions = await this.registerOwnPushEndpointRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PushEndpointRegistrationResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Accept only configured transports and return no endpoint secret.
+     * Register Own Push Endpoint
+     */
+    async registerOwnPushEndpoint(requestParameters: RegisterOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PushEndpointRegistrationResult> {
+        const response = await this.registerOwnPushEndpointRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for revokeOwnPushEndpoint without sending the request
+     */
+    async revokeOwnPushEndpointRequestOpts(requestParameters: RevokeOwnPushEndpointRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['endpointId'] == null) {
+            throw new runtime.RequiredError(
+                'endpointId',
+                'Required parameter "endpointId" was null or undefined when calling revokeOwnPushEndpoint().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/push-endpoints/{endpointId}`;
+        urlPath = urlPath.replace('{endpointId}', encodeURIComponent(String(requestParameters['endpointId'])));
+
+        return {
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Keep foreign and unknown IDs indistinguishable to the caller.
+     * Revoke Own Push Endpoint
+     */
+    async revokeOwnPushEndpointRaw(requestParameters: RevokeOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.revokeOwnPushEndpointRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Keep foreign and unknown IDs indistinguishable to the caller.
+     * Revoke Own Push Endpoint
+     */
+    async revokeOwnPushEndpoint(requestParameters: RevokeOwnPushEndpointRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.revokeOwnPushEndpointRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -396,6 +637,120 @@ export class NotificationsApi extends runtime.BaseAPI {
      */
     async sendThinkingOfYou(requestParameters: SendThinkingOfYouRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ThinkingOfYouAccepted> {
         const response = await this.sendThinkingOfYouRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnNotificationPreference without sending the request
+     */
+    async updateOwnNotificationPreferenceRequestOpts(requestParameters: UpdateOwnNotificationPreferenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['kind'] == null) {
+            throw new runtime.RequiredError(
+                'kind',
+                'Required parameter "kind" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        if (requestParameters['channel'] == null) {
+            throw new runtime.RequiredError(
+                'channel',
+                'Required parameter "channel" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        if (requestParameters['notificationPreferenceUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'notificationPreferenceUpdate',
+                'Required parameter "notificationPreferenceUpdate" was null or undefined when calling updateOwnNotificationPreference().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/notification-preferences/{kind}/{channel}`;
+        urlPath = urlPath.replace('{kind}', encodeURIComponent(String(requestParameters['kind'])));
+        urlPath = urlPath.replace('{channel}', encodeURIComponent(String(requestParameters['channel'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: NotificationPreferenceUpdateToJSON(requestParameters['notificationPreferenceUpdate']),
+        };
+    }
+
+    /**
+     * Change only the authenticated recipient\'s implemented channel choice.
+     * Update Own Notification Preference
+     */
+    async updateOwnNotificationPreferenceRaw(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NotificationPreferenceUpdated>> {
+        const requestOptions = await this.updateOwnNotificationPreferenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => NotificationPreferenceUpdatedFromJSON(jsonValue));
+    }
+
+    /**
+     * Change only the authenticated recipient\'s implemented channel choice.
+     * Update Own Notification Preference
+     */
+    async updateOwnNotificationPreference(requestParameters: UpdateOwnNotificationPreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NotificationPreferenceUpdated> {
+        const response = await this.updateOwnNotificationPreferenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateOwnQuietHours without sending the request
+     */
+    async updateOwnQuietHoursRequestOpts(requestParameters: UpdateOwnQuietHoursRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['quietHoursUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'quietHoursUpdate',
+                'Required parameter "quietHoursUpdate" was null or undefined when calling updateOwnQuietHours().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/notification-preferences/quiet-hours`;
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: QuietHoursUpdateToJSON(requestParameters['quietHoursUpdate']),
+        };
+    }
+
+    /**
+     * Set or clear only the authenticated recipient\'s daily delivery window.
+     * Update Own Quiet Hours
+     */
+    async updateOwnQuietHoursRaw(requestParameters: UpdateOwnQuietHoursRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<QuietHoursView>> {
+        const requestOptions = await this.updateOwnQuietHoursRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => QuietHoursViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Set or clear only the authenticated recipient\'s daily delivery window.
+     * Update Own Quiet Hours
+     */
+    async updateOwnQuietHours(requestParameters: UpdateOwnQuietHoursRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<QuietHoursView> {
+        const response = await this.updateOwnQuietHoursRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

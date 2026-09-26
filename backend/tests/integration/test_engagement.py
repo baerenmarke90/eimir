@@ -14,7 +14,7 @@ from eimir.collections.models import Collection, CollectionPayload
 from eimir.comments import service as comment_service
 from eimir.comments.models import CommentTarget
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
-from eimir.engagement import service
+from eimir.engagement import notification_preferences, service
 from eimir.engagement.models import Activity, ActivityKind, Notification, NotificationKind
 from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.memories.models import Memory, MemoryPayload
@@ -332,6 +332,45 @@ def test_comment_notifies_only_other_authorized_partner_and_replay_is_idempotent
     assert notification.target_id == memory.id
     assert not hasattr(notification, "payload")
     assert not hasattr(notification, "body")
+
+
+def test_comment_in_app_choice_hides_future_projection_without_changing_activity(
+    client, session: Session, couple
+) -> None:  # type: ignore[no-untyped-def]
+    memory = _shared_memory(session, couple, owner=couple["anna"])
+    context = AuthorizationContext(account_id=couple["ben"].id, space_id=couple["space"].id)
+    notification_preferences.set_in_app_enabled(
+        session,
+        account_id=couple["anna"].id,
+        kind=NotificationKind.COMMENT_CREATED,
+        enabled=False,
+    )
+    comment = comment_service.create_comment(
+        session,
+        context,
+        target_type=CommentTarget.MEMORY,
+        target_id=memory.id,
+        body="Private relationship prose stays in its source domain.",
+    )
+    event = session.execute(
+        select(OutboxEvent).where(
+            OutboxEvent.event_type == EventType.COMMENT_CREATED.value,
+            OutboxEvent.subject_id == comment.id,
+        )
+    ).scalar_one()
+    service.project_event(session, event)
+    session.flush()
+    notification = session.execute(
+        select(Notification).where(Notification.source_event_id == event.id)
+    ).scalar_one()
+    assert notification.in_app_visible is False
+    path = f"/api/v1/spaces/{couple['space'].id}"
+    own_center = client.get(f"{path}/notifications", headers=auth(couple["anna_token"]))
+    assert own_center.status_code == 200
+    assert own_center.json()["items"] == []
+    own_activity = client.get(f"{path}/activity", headers=auth(couple["anna_token"]))
+    assert own_activity.status_code == 200
+    assert any(item["kind"] == "COMMENT_CREATED" for item in own_activity.json()["items"])
 
 
 def test_later_privacy_transition_suppresses_stale_activity_immediately(

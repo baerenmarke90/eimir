@@ -1288,6 +1288,7 @@ export function TodayPage({
                   accountId={account.id}
                   spaceId={spaceId}
                   partnerName={partnerName}
+                  partnerNameIsResolved
                   configuredEnabled
                 />
               ) : null}
@@ -1300,6 +1301,7 @@ export function TodayPage({
                   accountId={account.id}
                   spaceId={spaceId}
                   partnerName={partner ? partnerName : undefined}
+                  partnerNameIsResolved
                 />
               ) : null}
 
@@ -1340,6 +1342,7 @@ export function TodayPage({
                         accountId={account.id}
                         spaceId={spaceId}
                         partnerName={partnerName}
+                        partnerNameIsResolved
                         configuredEnabled
                       />
                     ) : null}
@@ -1352,6 +1355,7 @@ export function TodayPage({
                         accountId={account.id}
                         spaceId={spaceId}
                         partnerName={partner ? partnerName : undefined}
+                        partnerNameIsResolved
                       />
                     ) : null}
                   </>

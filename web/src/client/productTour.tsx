@@ -148,7 +148,11 @@ export function ProductTourProvider({
     <ProductTourContext.Provider value={value}>
       {children}
       {isInvite || isTourVisible ? (
-        <aside className="product-tour" aria-labelledby="product-tour-title">
+        <aside
+          className="product-tour"
+          data-invite={isInvite ? 'true' : undefined}
+          aria-labelledby="product-tour-title"
+        >
           <div className="product-tour-copy">
             <span className="product-tour-eyebrow">
               {t('productTour.eyebrow')}

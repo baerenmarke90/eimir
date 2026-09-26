@@ -224,10 +224,23 @@ test('ordinary More destinations remain usable while the first invitation is vis
     page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();
 
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
   const settings = page.getByRole('link', { name: de.more.settings.title });
   await settings.scrollIntoViewIfNeeded();
   await settings.click();
   await expect(page).toHaveURL(/\/more\/settings$/);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (key) => window.localStorage.getItem(key),
+        `eimir:product-tour:v1:${ACCOUNT_ID}:${SPACE_ID}`,
+      ),
+    )
+    .toBe('seen');
   await page.goto('/more');
   await expect(
     page.getByRole('heading', { name: productTour.invite.title }),

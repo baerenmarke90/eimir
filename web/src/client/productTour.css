@@ -66,7 +66,9 @@
 
 @media (max-width: 839px) {
   .product-shell:has(+ .product-tour) .product-main {
-    padding-bottom: calc(var(--shell-content-bottom-clearance) + 12rem);
+    /* Leave enough scroll room for every More destination, even when the
+       invitation fills most of a narrow viewport at large text sizes. */
+    padding-bottom: calc(var(--shell-content-bottom-clearance) + 100dvh);
   }
 }
 
@@ -76,6 +78,14 @@
     bottom: var(--space-6);
     left: auto;
     margin: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-tour[data-invite="true"] {
+    top: var(--space-2);
+    bottom: auto;
+    max-height: 40dvh;
   }
 }
 

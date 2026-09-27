@@ -23,6 +23,7 @@ export interface CouplePresenceProps {
   spaceTitle: string;
   primaryPerson: PartnerAvatarPerson;
   secondaryPerson?: PartnerAvatarPerson | null;
+  secondaryLabel?: string;
   status?: PartnerPresenceStatus;
   statusText?: string;
   relationshipDuration?: string;
@@ -43,6 +44,7 @@ export function CouplePresence({
   spaceTitle,
   primaryPerson,
   secondaryPerson = null,
+  secondaryLabel,
   status = 'unknown',
   statusText,
   relationshipDuration,
@@ -67,7 +69,8 @@ export function CouplePresence({
     t('couplePresenceYouFallback'),
   );
   const secondaryFirstName = secondaryPerson
-    ? firstNameFromDisplayName(
+    ? secondaryLabel ||
+      firstNameFromDisplayName(
         secondaryPerson.displayName,
         t('couplePresencePartnerFallback'),
       )

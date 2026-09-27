@@ -80,6 +80,10 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 5
     },
+    "partner-nickname.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
     "plan-inline-place-create.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 6

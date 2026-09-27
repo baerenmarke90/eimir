@@ -25,6 +25,7 @@ import {
   submitCreateRequest,
 } from '../client/createRequestIdentity';
 import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
@@ -118,6 +119,7 @@ export function HeartMomentProductPage({
   ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const params = useParams();
   const queryClient = useQueryClient();
@@ -812,7 +814,11 @@ export function HeartMomentProductPage({
       <footer className="heart-moment-provenance-footer">
         <p>
           {t('heartMomentProduct.provenanceCompact', {
-            author: storyAuthorLabel(heartMoment.author, currentAccountId),
+            author: storyAuthorLabel(
+              heartMoment.author,
+              currentAccountId,
+              nicknameFor,
+            ),
             createdAt: formatCreatedAt(heartMoment.createdAt),
           })}
         </p>

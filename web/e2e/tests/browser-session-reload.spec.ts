@@ -330,6 +330,10 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     // 1. Initial sign-in
     await page.goto('/');
     await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+    ).toBeVisible();
 
     // 2. Open header profile menu and click logout
     const menuButton = page.getByRole('button', {

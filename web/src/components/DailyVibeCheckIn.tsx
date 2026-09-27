@@ -19,12 +19,12 @@ import {
   type DailyCheckInSnapshot,
   updateDailyCheckInToday,
 } from '../client/dailyCheckIn';
-import { firstNameFromDisplayName } from '../client/personalName';
 import {
   ClientProblemError,
   clientProblemKind,
 } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
+import { firstNameFromDisplayName } from '../client/personalName';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import { DailyVibeIcon } from './DailyVibeIcon';
@@ -87,12 +87,14 @@ export function DailyVibeCheckIn({
   accountId,
   spaceId,
   partnerName,
+  partnerNameIsResolved = false,
   configuredEnabled = false,
 }: {
   api?: DailyCheckInsApi;
   accountId: string;
   spaceId: string;
   partnerName?: string;
+  partnerNameIsResolved?: boolean;
   configuredEnabled?: boolean;
 }) {
   const { t } = useTranslation();
@@ -134,7 +136,9 @@ export function DailyVibeCheckIn({
       ? (serverVibe.partnerNote ?? null)
       : null;
   const personalPartnerName = partnerName
-    ? firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
+    ? partnerNameIsResolved
+      ? partnerName
+      : firstNameFromDisplayName(partnerName, t('dailyVibe.partnerFallback'))
     : t('dailyVibe.partnerFallback');
   const serverReportsModuleDisabled = serverVibe === null;
   useEffect(() => {

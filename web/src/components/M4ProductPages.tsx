@@ -30,6 +30,7 @@ import {
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
@@ -336,6 +337,7 @@ function ActivityCard({
   onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
   const isOwn = Boolean(
@@ -344,7 +346,13 @@ function ActivityCard({
   const actorName = isOwn
     ? t('m5s5.activity.you')
     : item.actor
-      ? authorDisplayName(item.actor)
+      ? item.actor.isFormerMember
+        ? authorDisplayName(item.actor)
+        : relationshipLabel(
+            item.actor.id,
+            item.actor.displayName,
+            t('couplePresencePartnerFallback'),
+          )
       : undefined;
 
   const actionText = isOwn

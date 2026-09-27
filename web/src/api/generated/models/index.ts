@@ -138,6 +138,8 @@ export * from './PartnerEnergyHidden';
 export * from './PartnerEnergyNoCheckIn';
 export * from './PartnerEnergyProjection';
 export * from './PartnerEnergyVisible';
+export * from './PartnerNicknameUpdate';
+export * from './PartnerNicknameView';
 export * from './PartnerPresenceView';
 export * from './PartnerProfileView';
 export * from './PartnerQuickActionAccepted';

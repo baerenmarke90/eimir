@@ -1158,6 +1158,7 @@ export function ProfilePreferencesSection({
         <>
           <div className="profile-partner-block">
             <PartnerIdentityPanel
+              key={`${account.id}:${spaceId}:${partner.id}`}
               apiBaseUrl={apiBaseUrl}
               accessToken={accessToken}
               account={account}

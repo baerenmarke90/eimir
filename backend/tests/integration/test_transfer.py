@@ -18,6 +18,7 @@ from eimir.core.clock import now
 from eimir.identity.models import AccountEmail
 from eimir.media import get_media_store
 from eimir.private_notes import service as private_note_service
+from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
 from eimir.relationship import service as relationship_service
 from eimir.relationship.models import Membership, MembershipStatus
@@ -178,6 +179,12 @@ def test_shared_export_excludes_owner_only_and_personal_keeps_only_requester(
         body="Anna must never export this.",
         pinned=False,
     )
+    profile_service.set_partner_nickname(
+        session, anna_context, "Anna's private label", expected_version=0
+    )
+    profile_service.set_partner_nickname(
+        session, ben_context, "Ben's private label", expected_version=0
+    )
     session.add_all(
         [
             RulePreference(
@@ -204,6 +211,9 @@ def test_shared_export_excludes_owner_only_and_personal_keeps_only_requester(
     ):
         assert "private/notes.json" not in archive.namelist()
         assert "rules.json" not in archive.namelist()
+        shared_profiles = json.loads(archive.read("profiles.json"))
+
+    assert all(group["name"] != "partner_nicknames" for group in shared_profiles["tables"])
 
     with (
         service.build_export_archive(session, anna_context, TransferScope.PERSONAL) as bundle,
@@ -211,6 +221,7 @@ def test_shared_export_excludes_owner_only_and_personal_keeps_only_requester(
     ):
         private_document = json.loads(archive.read("private/notes.json"))
         rule_document = json.loads(archive.read("rules.json"))
+        personal_profiles = json.loads(archive.read("profiles.json"))
 
     notes = next(group for group in private_document["tables"] if group["name"] == "private_notes")[
         "rows"
@@ -218,12 +229,19 @@ def test_shared_export_excludes_owner_only_and_personal_keeps_only_requester(
     rules = next(group for group in rule_document["tables"] if group["name"] == "rule_preferences")[
         "rows"
     ]
+    nicknames = next(
+        group for group in personal_profiles["tables"] if group["name"] == "partner_nicknames"
+    )["rows"]
     assert len(notes) == 1
     assert notes[0]["ownerId"] == str(anna.id)
     assert notes[0]["payload"]["title"] == "Anna secret"
     assert len(rules) == 1
     assert rules[0]["accountId"] == str(anna.id)
     assert rules[0]["enabled"] is False
+    assert len(nicknames) == 1
+    assert nicknames[0]["ownerId"] == str(anna.id)
+    assert nicknames[0]["accountId"] == str(ben.id)
+    assert nicknames[0]["payload"]["nickname"] == "Anna's private label"
 
 
 def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(

@@ -374,7 +374,7 @@ test('Daily Energy keeps an unset own affordance, reveals partner Energy, and al
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
-  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(hero).toHaveCSS('z-index', '60');
   await expect(popover).not.toContainText('%');
   await expect(popover.locator('.daily-energy-current-value')).toHaveCount(0);
   await expect(popover.locator('.daily-energy-scale')).toHaveCount(0);
@@ -575,15 +575,17 @@ test('Daily Energy changes the own battery before response, rolls back, and retr
     scroll: document.documentElement.scrollWidth,
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
-  const sliderUnobscured = await slider.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    return (
-      document.elementFromPoint(
-        rect.left + rect.width / 2,
-        rect.top + rect.height / 2,
-      ) === element
-    );
-  });
+  const sliderUnobscured = await popover
+    .locator('.daily-energy-slider')
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return (
+        document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        ) === element
+      );
+    });
   expect(sliderUnobscured).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath('today-energy-confirmed-320-dark-200pct.png'),
@@ -652,7 +654,7 @@ test('Daily Energy avatar batteries and popover reflow at 320px with 200 percent
 
   const popover = page.getByTestId('daily-energy-popover');
   await expect(popover).toBeVisible();
-  await expect(hero).toHaveCSS('z-index', '20');
+  await expect(hero).toHaveCSS('z-index', '60');
   await expect(popover).not.toContainText('%');
   await expect(
     popover.getByRole('slider', { name: dailyEnergy.selectLegend }),

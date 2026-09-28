@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import productTour from '../../src/i18n/locales/productTour';
 
@@ -220,6 +220,18 @@ test('ordinary More destinations remain usable while the first invitation is vis
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(
+    page.getByRole('heading', { name: productTour.invite.title }),
+  ).toBeVisible();
+
+  const quickCreate = page.getByRole('button', {
+    name: de.navigation.newContent,
+  });
+  await quickCreate.click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(quickCreate).toBeFocused();
   await expect(
     page.getByRole('heading', { name: productTour.invite.title }),
   ).toBeVisible();

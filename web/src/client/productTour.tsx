@@ -1,16 +1,16 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { appRoutePath } from './routes';
 import { useTranslation } from '../i18n';
+import { appRoutePath } from './routes';
 import './productTour.css';
 
 type TourStep = 'today' | 'story' | 'plan' | 'create';
@@ -93,15 +93,6 @@ export function ProductTourProvider({
   }, [isTourVisible, step]);
 
   useEffect(() => {
-    if (!isInvite && !isTourVisible) return;
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') finish();
-    };
-    window.addEventListener('keydown', onEscape);
-    return () => window.removeEventListener('keydown', onEscape);
-  }, [finish, isInvite, isTourVisible]);
-
-  useEffect(() => {
     const previousPath = previousPathRef.current;
     previousPathRef.current = location.pathname;
     if (
@@ -152,6 +143,11 @@ export function ProductTourProvider({
           className="product-tour"
           data-invite={isInvite ? 'true' : undefined}
           aria-labelledby="product-tour-title"
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return;
+            event.stopPropagation();
+            finish();
+          }}
         >
           <div className="product-tour-copy">
             <span className="product-tour-eyebrow">

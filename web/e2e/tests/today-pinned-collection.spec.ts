@@ -424,6 +424,13 @@ async function installMocks(
   return {
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
+    reorder(itemIds: string[]) {
+      items.forEach((item) => {
+        item.position = itemIds.indexOf(item.id);
+      });
+      collectionVersion += 1;
+      return collection();
+    },
   };
 }
 
@@ -562,6 +569,115 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
   await page.screenshot({
     path: testInfo.outputPath(
       'planning-collection-detail-confirmed-320-dark-200pct.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+});
+
+test('keeps a shared Collection reorder in place until confirmed or rolled back', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const network = await installMocks(page);
+  await signIn(page);
+
+  let releaseFailure: (() => void) | null = null;
+  let failFirstWrite = true;
+  await page.route(
+    `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+    async (route) => {
+      const itemIds = (route.request().postDataJSON() as { itemIds: string[] })
+        .itemIds;
+      if (failFirstWrite) {
+        failFirstWrite = false;
+        await new Promise<void>((resolve) => {
+          releaseFailure = resolve;
+        });
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: 'SERVER_ERROR',
+            detail: 'The order was not saved.',
+            status: 503,
+            title: 'Service unavailable',
+            type: 'about:blank',
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify(network.reorder(itemIds)),
+      });
+    },
+  );
+
+  await page.goto(`/plan/collections/${COLLECTION_ID}`);
+  const rows = page.locator('[data-sortable-item-id]');
+  const names = async () =>
+    rows
+      .locator('input[name="title"]')
+      .evaluateAll((inputs) =>
+        inputs.map((input) => (input as HTMLInputElement).value),
+      );
+  const moveApples = page.getByRole('button', {
+    name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+  });
+  await moveApples.focus();
+  await page.keyboard.press('ArrowUp');
+  await expect.poll(names).toEqual(['Milch', 'Äpfel', 'Brot']);
+  await expect.poll(() => releaseFailure !== null).toBe(true);
+  await expect(page.getByRole('status')).toHaveText(m5s3.collection.reordering);
+  await expect(moveApples).toBeDisabled();
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-reorder-pending-390-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  releaseFailure?.();
+  await expect.poll(names).toEqual(['Milch', 'Brot', 'Äpfel']);
+  await expect(
+    page.getByRole('button', { name: de.common.retry }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-reorder-rollback-390-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await page.getByRole('button', { name: de.common.retry }).click();
+  await expect.poll(names).toEqual(['Milch', 'Äpfel', 'Brot']);
+  await expect(page.getByRole('button', { name: de.common.retry })).toHaveCount(
+    0,
+  );
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-reorder-confirmed-1280-light.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'planning-collection-reorder-confirmed-320-dark-200pct.png',
     ),
     fullPage: true,
     animations: 'disabled',

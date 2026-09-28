@@ -201,6 +201,7 @@ export function CollectionProductPage({
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
+  const reorderInFlightRef = useRef(false);
   const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
   const restoreDeleteTriggerRef = useRef(false);
   const itemUpdateInFlightRef = useRef(false);
@@ -383,7 +384,7 @@ export function CollectionProductPage({
     title?: string;
     completed?: boolean;
   }) => {
-    if (itemUpdateInFlightRef.current) return;
+    if (itemUpdateInFlightRef.current || reorderInFlightRef.current) return;
     itemUpdateInFlightRef.current = true;
     updateItem.mutate(variables);
   };
@@ -445,8 +446,77 @@ export function CollectionProductPage({
           collectionOrder: { itemIds },
         }),
       ),
+    onMutate: async ({ itemIds }) => {
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const current = queryClient.getQueryData<CollectionDetail>(key);
+      if (!current) return;
+      const previousPositions = new Map(
+        current.items.map((item) => [item.id, item.position]),
+      );
+      const nextPositions = new Map(
+        itemIds.map((itemId, position) => [itemId, position]),
+      );
+      queryClient.setQueryData<CollectionDetail>(key, {
+        ...current,
+        items: current.items.map((item) => ({
+          ...item,
+          position: nextPositions.get(item.id) ?? item.position,
+        })),
+      });
+      return { previousPositions };
+    },
+    onError: async (error, _variables, context) => {
+      if (context?.previousPositions) {
+        queryClient.setQueryData<CollectionDetail>(key, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((item) => ({
+                  ...item,
+                  position:
+                    context.previousPositions.get(item.id) ?? item.position,
+                })),
+              }
+            : current,
+        );
+      }
+      if (clientProblemKind(error) === 'conflict') {
+        await queryClient.invalidateQueries({ queryKey: key, exact: true });
+      }
+    },
     onSuccess: commitCollection,
+    onSettled: () => {
+      reorderInFlightRef.current = false;
+    },
   });
+
+  const submitReorder = (collection: CollectionDetail, itemIds: string[]) => {
+    if (reorderInFlightRef.current) return;
+    reorderInFlightRef.current = true;
+    reorderItems.mutate({ collection, itemIds });
+  };
+
+  const retryReorder = () => {
+    const failed = reorderItems.variables;
+    if (!failed || clientProblemKind(reorderItems.error) === 'conflict') {
+      reorderItems.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    const current = queryClient.getQueryData<CollectionDetail>(key);
+    if (
+      !current ||
+      current.items.length !== failed.itemIds.length ||
+      !failed.itemIds.every((itemId) =>
+        current.items.some((item) => item.id === itemId),
+      )
+    ) {
+      reorderItems.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    submitReorder(current, failed.itemIds);
+  };
 
   const deleteCollection = useMutation({
     mutationFn: (collection: CollectionDetail) =>
@@ -521,11 +591,14 @@ export function CollectionProductPage({
     disabled:
       !collectionQuery.data?.capabilities.canEdit ||
       reorderItems.isPending ||
-      updateItem.isPending,
+      updateItem.isPending ||
+      createItem.isPending ||
+      deleteItem.isPending ||
+      updateCollection.isPending,
     onReorder: (itemIds) => {
-      const currentCollection = collectionQuery.data;
+      const currentCollection = queryClient.getQueryData<CollectionDetail>(key);
       if (!currentCollection) return;
-      reorderItems.mutate({ collection: currentCollection, itemIds });
+      submitReorder(currentCollection, itemIds);
     },
   });
 
@@ -555,7 +628,7 @@ export function CollectionProductPage({
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!collection) return;
+    if (!collection || reorderInFlightRef.current) return;
     const data = new FormData(event.currentTarget);
     updateCollection.mutate({
       collection,
@@ -565,7 +638,7 @@ export function CollectionProductPage({
 
   function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!collection) return;
+    if (!collection || reorderInFlightRef.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     createItem.mutate(
@@ -660,7 +733,8 @@ export function CollectionProductPage({
                   disabled={
                     !isTitleDirty ||
                     updateCollection.isPending ||
-                    deleteCollection.isPending
+                    deleteCollection.isPending ||
+                    reorderItems.isPending
                   }
                 />
                 <button
@@ -752,7 +826,7 @@ export function CollectionProductPage({
                   ? t('m5s3.common.saving')
                   : t('m5s3.collection.addItem')
               }
-              disabled={createItem.isPending}
+              disabled={createItem.isPending || reorderItems.isPending}
             />
           </form>
         ) : null}
@@ -779,13 +853,17 @@ export function CollectionProductPage({
                 onDelete={(targetItem) =>
                   deleteItem.mutate({ collection, item: targetItem })
                 }
-                isUpdating={updateItem.isPending}
+                isUpdating={updateItem.isPending || reorderItems.isPending}
                 isTogglePending={
                   updateItem.isPending &&
                   updateItem.variables?.completed !== undefined &&
                   updateItem.variables.item.id === item.id
                 }
-                isDeleting={deleteItem.isPending || updateItem.isPending}
+                isDeleting={
+                  deleteItem.isPending ||
+                  updateItem.isPending ||
+                  reorderItems.isPending
+                }
               />
             ))}
           </ol>
@@ -800,6 +878,7 @@ export function CollectionProductPage({
             error={itemMutationError}
             onRetry={() => {
               if (updateItem.error) retryItemUpdate();
+              else if (reorderItems.error) retryReorder();
               else void collectionQuery.refetch();
             }}
           />

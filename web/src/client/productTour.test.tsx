@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Link, MemoryRouter, useLocation } from 'react-router-dom';
-import { ProductTourProvider, useProductTour } from './productTour';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import productTour from '../i18n/locales/productTour';
+import { ProductTourProvider, useProductTour } from './productTour';
 
 function Fixture({
   accountId = 'alex',
@@ -125,6 +125,29 @@ describe('optional product tour', () => {
     renderTour();
     fireEvent.click(screen.getByRole('link', { name: 'Use app normally' }));
     expect(screen.getByRole('main').textContent).toBe('/today');
+    expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
+      'seen',
+    );
+  });
+
+  it('dismisses on Escape inside the tour without taking Escape from another control', () => {
+    renderTour();
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Replay from More' }),
+      {
+        key: 'Escape',
+      },
+    );
+    expect(
+      screen.getByRole('heading', { name: productTour.invite.title }),
+    ).toBeTruthy();
+
+    fireEvent.keyDown(screen.getByRole('button', { name: productTour.later }), {
+      key: 'Escape',
+    });
+    expect(
+      screen.queryByRole('heading', { name: productTour.invite.title }),
+    ).toBeNull();
     expect(window.localStorage.getItem('eimir:product-tour:v1:alex:home')).toBe(
       'seen',
     );

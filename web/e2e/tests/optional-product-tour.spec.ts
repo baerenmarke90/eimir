@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import productTour from '../../src/i18n/locales/productTour';
 
 const ACCOUNT_ID = '00000000-0000-4000-8000-000000000001';
@@ -225,7 +226,7 @@ test('ordinary More destinations remain usable while the first invitation is vis
   ).toBeVisible();
 
   const quickCreate = page.getByRole('button', {
-    name: de.navigation.newContent,
+    name: navigation.newContent,
   });
   await quickCreate.click();
   await expect(page.getByRole('dialog')).toBeVisible();

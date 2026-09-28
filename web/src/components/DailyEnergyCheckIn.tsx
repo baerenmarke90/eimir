@@ -178,6 +178,16 @@ export function DailyEnergyCheckIn({
   const [draftEnergy, setDraftEnergy] = useState<DailyEnergyLevel>(50);
   const [draftTouched, setDraftTouched] = useState(false);
   const [moduleDisabled, setModuleDisabled] = useState(false);
+  const [pendingEnergy, setPendingEnergy] = useState<{
+    accountId: string;
+    spaceId: string;
+    value: DailyEnergyLevel | null;
+  } | null>(null);
+  const [failedEnergy, setFailedEnergy] = useState<{
+    accountId: string;
+    spaceId: string;
+    value: DailyEnergyLevel | null;
+  } | null>(null);
   const submittedEnergyRef = useRef<DailyEnergyLevel | null | undefined>(
     undefined,
   );
@@ -194,26 +204,67 @@ export function DailyEnergyCheckIn({
   }, [accountId, queryClient, serverReportsModuleDisabled, spaceId]);
 
   const mutation = useMutation({
-    mutationFn: async (energyLevel: DailyEnergyLevel | null) => {
-      const current =
-        queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
-        dailyQuery.data;
+    mutationFn: async ({
+      accountId: targetAccountId,
+      spaceId: targetSpaceId,
+      value,
+    }: {
+      accountId: string;
+      spaceId: string;
+      value: DailyEnergyLevel | null;
+    }) => {
+      const targetKey = dailyCheckInTodayQueryKey(
+        targetAccountId,
+        targetSpaceId,
+      );
+      const current = queryClient.getQueryData<DailyCheckInSnapshot>(targetKey);
       if (!api || !current) {
         throw new ClientProblemError('unknown');
       }
-      return updateDailyCheckInToday(api, spaceId, current.etag, {
-        energyLevel,
+      return updateDailyCheckInToday(api, targetSpaceId, current.etag, {
+        energyLevel: value,
       });
     },
-    onSuccess: (snapshot) => {
-      queryClient.setQueryData<DailyCheckInSnapshot>(queryKey, snapshot);
-      setDraftTouched(false);
+    onMutate: async (variables) => {
+      setFailedEnergy(null);
+      setPendingEnergy(variables);
+      await queryClient.cancelQueries({
+        queryKey: dailyCheckInTodayQueryKey(
+          variables.accountId,
+          variables.spaceId,
+        ),
+        exact: true,
+      });
     },
-    onError: async (error) => {
+    onSuccess: async (snapshot, variables) => {
+      const targetKey = dailyCheckInTodayQueryKey(
+        variables.accountId,
+        variables.spaceId,
+      );
+      await queryClient.cancelQueries({ queryKey: targetKey, exact: true });
+      queryClient.setQueryData<DailyCheckInSnapshot>(targetKey, snapshot);
+      setPendingEnergy(null);
+      if (variables.accountId === accountId && variables.spaceId === spaceId) {
+        setDraftTouched(false);
+      }
+    },
+    onError: async (error, variables) => {
+      setPendingEnergy(null);
+      if (variables.accountId !== accountId || variables.spaceId !== spaceId) {
+        return;
+      }
       const problem =
         error instanceof ClientProblemError
           ? error
           : new ClientProblemError(clientProblemKind(error));
+
+      if (
+        problem.kind !== 'conflict' &&
+        problem.code !== 'SPACE_MODULE_DISABLED' &&
+        problem.code !== 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE'
+      ) {
+        setFailedEnergy(variables);
+      }
 
       if (problem.code === 'SPACE_MODULE_DISABLED') {
         setModuleDisabled(true);
@@ -231,6 +282,7 @@ export function DailyEnergyCheckIn({
       }
 
       if (problem.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE') {
+        setDraftTouched(false);
         await queryClient.refetchQueries({
           queryKey,
           exact: true,
@@ -240,6 +292,7 @@ export function DailyEnergyCheckIn({
       }
 
       if (problem.kind === 'conflict') {
+        setDraftTouched(false);
         await queryClient.refetchQueries({
           queryKey,
           exact: true,
@@ -254,7 +307,7 @@ export function DailyEnergyCheckIn({
   });
 
   useEffect(() => {
-    if (mutation.isPending) return;
+    if (mutation.isPending || draftTouched) return;
     if (ownEnergy !== null) {
       setDraftEnergy(ownEnergy as DailyEnergyLevel);
       return;
@@ -263,7 +316,7 @@ export function DailyEnergyCheckIn({
       setDraftEnergy(50);
       setDraftTouched(false);
     }
-  }, [mutation.isPending, open, ownEnergy]);
+  }, [draftTouched, mutation.isPending, open, ownEnergy]);
 
   useEffect(() => {
     if (online && !dailyQuery.isError) {
@@ -323,20 +376,35 @@ export function DailyEnergyCheckIn({
   }
 
   const snapshot = dailyQuery.data;
+  const activeMutation =
+    mutation.variables?.accountId === accountId &&
+    mutation.variables.spaceId === spaceId;
+  const pendingOwnEnergy =
+    pendingEnergy?.accountId === accountId && pendingEnergy.spaceId === spaceId
+      ? pendingEnergy
+      : null;
+  const failedOwnEnergy =
+    failedEnergy?.accountId === accountId && failedEnergy.spaceId === spaceId
+      ? failedEnergy
+      : null;
+  const displayedEnergy = pendingOwnEnergy ? pendingOwnEnergy.value : ownEnergy;
   const mutationProblem =
-    mutation.error instanceof ClientProblemError ? mutation.error : null;
+    activeMutation && mutation.error instanceof ClientProblemError
+      ? mutation.error
+      : null;
   const contextUnavailable =
     mutationProblem?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE';
   const showGenericMutationError =
+    activeMutation &&
     Boolean(mutation.error) &&
     mutationProblem?.kind !== 'conflict' &&
     mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
     !contextUnavailable;
 
   const badgeAria =
-    ownEnergy === null
+    displayedEnergy === null
       ? t('dailyEnergy.badgeAriaEmpty')
-      : t('dailyEnergy.badgeAriaValue', { value: ownEnergy });
+      : t('dailyEnergy.badgeAriaValue', { value: displayedEnergy });
   const progress = ((draftEnergy - 10) / 90) * 100;
   const sliderStyle = {
     '--daily-energy-progress': `${progress}%`,
@@ -345,14 +413,20 @@ export function DailyEnergyCheckIn({
   function submitEnergy(value: DailyEnergyLevel | null): void {
     if (mutation.isPending) return;
     if (submittedEnergyRef.current === value) return;
-    if (value === ownEnergy) return;
+    if (value === ownEnergy) {
+      setFailedEnergy(null);
+      mutation.reset();
+      return;
+    }
     submittedEnergyRef.current = value;
-    mutation.mutate(value);
+    mutation.mutate({ accountId, spaceId, value });
   }
 
   function updateDraft(value: number): void {
     setDraftEnergy(value as DailyEnergyLevel);
     setDraftTouched(true);
+    setFailedEnergy(null);
+    mutation.reset();
   }
 
   return (
@@ -368,11 +442,16 @@ export function DailyEnergyCheckIn({
         aria-expanded={open}
         aria-controls={open ? dialogId : undefined}
         aria-label={badgeAria}
+        aria-busy={Boolean(pendingOwnEnergy)}
+        data-pending={pendingOwnEnergy ? 'true' : undefined}
         onClick={toggle}
         data-testid="daily-energy-own-battery"
       >
         <span className="daily-energy-avatar-chip" aria-hidden="true">
-          <BatteryIcon value={ownEnergy} showQuestion={ownEnergy === null} />
+          <BatteryIcon
+            value={displayedEnergy}
+            showQuestion={displayedEnergy === null}
+          />
         </span>
       </button>
 
@@ -430,7 +509,9 @@ export function DailyEnergyCheckIn({
               role="status"
               aria-live="polite"
             >
-              {mutation.isPending ? t('dailyEnergy.saving') : ''}
+              {mutation.isPending && activeMutation
+                ? t('dailyEnergy.saving')
+                : ''}
             </span>
             {ownEnergy !== null ? (
               <button
@@ -451,6 +532,15 @@ export function DailyEnergyCheckIn({
           ) : showGenericMutationError ? (
             <div className="daily-energy-inline-error" role="status">
               {t('dailyEnergy.saveError')}
+              {failedOwnEnergy ? (
+                <button
+                  type="button"
+                  className="tertiary daily-energy-retry"
+                  onClick={() => submitEnergy(failedOwnEnergy.value)}
+                >
+                  {t('common.retry')}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

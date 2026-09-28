@@ -327,6 +327,203 @@ describe('DailyEnergyCheckIn', () => {
     expect(screen.queryByText('20 %')).toBeNull();
   });
 
+  it('shows only the own submitted Energy while a stale background read and write are pending', async () => {
+    let confirmWrite!: (response: ReturnType<typeof rawResponse>) => void;
+    const updateDailyCheckInTodayRaw = vi.fn(
+      () =>
+        new Promise<ReturnType<typeof rawResponse>>((resolve) => {
+          confirmWrite = resolve;
+        }),
+    );
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(rawResponse(projection(), '"today:absent"')),
+      updateDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    const { queryClient } = renderEnergy(api);
+    setSlider(await openUnsetEnergy(), 70);
+    await waitFor(() =>
+      expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(1),
+    );
+    const ownBattery = screen.getByRole('button', {
+      name: energyBadgeAriaValue(70),
+    });
+    expect(ownBattery.getAttribute('aria-busy')).toBe('true');
+    expect(screen.getByRole('status').textContent).toContain(
+      dailyEnergy.saving,
+    );
+    expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
+    expect(
+      queryClient.getQueryData<{
+        projection: DailyCheckInTodayView;
+      }>(dailyCheckInTodayQueryKey('account-1', 'space-1'))?.projection.own
+        .energyLevel,
+    ).toBeNull();
+
+    await queryClient.refetchQueries({
+      queryKey: dailyCheckInTodayQueryKey('account-1', 'space-1'),
+      exact: true,
+    });
+    expect(screen.getByRole('button', { name: energyBadgeAriaValue(70) })).toBe(
+      ownBattery,
+    );
+    expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
+
+    confirmWrite(
+      rawResponse(
+        projection({ own: 70, partner: { state: 'VISIBLE', value: 20 } }),
+        '"today:1"',
+      ),
+    );
+    await waitFor(() =>
+      expect(ownBattery.getAttribute('aria-busy')).toBe('false'),
+    );
+    expect(ownBattery.getAttribute('aria-label')).toBe(
+      energyBadgeAriaValue(70),
+    );
+    expect(
+      screen
+        .getByTestId('daily-energy-partner-battery')
+        .getAttribute('data-energy'),
+    ).toBe('20');
+  });
+
+  it('restores the confirmed Energy on failure and retries the retained selection', async () => {
+    let rejectWrite!: (error: Error) => void;
+    let confirmRetry!: (response: ReturnType<typeof rawResponse>) => void;
+    const updateDailyCheckInTodayRaw = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectWrite = reject;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            confirmRetry = resolve;
+          }),
+      );
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(
+            projection({ own: 60, partner: { state: 'VISIBLE', value: 40 } }),
+            '"today:1"',
+          ),
+        ),
+      updateDailyCheckInTodayRaw,
+    } as unknown as DailyCheckInsApi;
+
+    renderEnergy(api);
+    setSlider(await openSetEnergy(60), 80);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: energyBadgeAriaValue(80) }),
+      ).not.toBeNull(),
+    );
+    expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(1);
+    rejectWrite(new ClientProblemError('server', 503));
+    const confirmedBadge = await screen.findByRole('button', {
+      name: energyBadgeAriaValue(60),
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Erneut versuchen' }),
+      ).not.toBeNull(),
+    );
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('80');
+    expect(
+      screen
+        .getByTestId('daily-energy-partner-battery')
+        .getAttribute('data-energy'),
+    ).toBe('40');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await waitFor(() =>
+      expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(2),
+    );
+    expect(updateDailyCheckInTodayRaw).toHaveBeenLastCalledWith({
+      spaceId: 'space-1',
+      ifMatch: '"today:1"',
+      dailyCheckInUpdate: { energyLevel: 80 },
+    });
+    expect(confirmedBadge.getAttribute('aria-label')).toBe(
+      energyBadgeAriaValue(80),
+    );
+    confirmRetry(
+      rawResponse(
+        projection({ own: 80, partner: { state: 'VISIBLE', value: 40 } }),
+        '"today:2"',
+      ),
+    );
+    await waitFor(() =>
+      expect(confirmedBadge.getAttribute('aria-busy')).toBe('false'),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Erneut versuchen' }),
+    ).toBeNull();
+  });
+
+  it('does not carry a pending own value into another Space', async () => {
+    let confirmWrite!: (response: ReturnType<typeof rawResponse>) => void;
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockImplementation(({ spaceId }) =>
+          Promise.resolve(
+            rawResponse(
+              projection({ own: spaceId === 'space-2' ? 30 : 60 }),
+              '"today:1"',
+            ),
+          ),
+        ),
+      updateDailyCheckInTodayRaw: vi.fn(
+        () =>
+          new Promise<ReturnType<typeof rawResponse>>((resolve) => {
+            confirmWrite = resolve;
+          }),
+      ),
+    } as unknown as DailyCheckInsApi;
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const renderForSpace = (spaceId: string) => (
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <DailyEnergyCheckIn
+            api={api}
+            accountId="account-1"
+            spaceId={spaceId}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+    const view = render(renderForSpace('space-1'));
+    setSlider(await openSetEnergy(60), 80);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: energyBadgeAriaValue(80) }),
+      ).not.toBeNull(),
+    );
+
+    view.rerender(renderForSpace('space-2'));
+    await screen.findByRole('button', { name: energyBadgeAriaValue(30) });
+    expect(screen.queryByTestId('daily-energy-partner-battery')).toBeNull();
+    confirmWrite(rawResponse(projection({ own: 80 }), '"today:2"'));
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(
+      screen.getByRole('button', { name: energyBadgeAriaValue(30) }),
+    ).not.toBeNull();
+  });
+
   it('changes an existing value using the compact slider', async () => {
     const updateDailyCheckInTodayRaw = vi.fn().mockResolvedValue(
       rawResponse(

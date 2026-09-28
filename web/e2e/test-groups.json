@@ -230,7 +230,7 @@
     },
     "today-daily-energy.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3
+      "baselineTests": 4
     },
     "today-daily-quote.spec.ts": {
       "disposition": "PR_CRITICAL",

@@ -575,6 +575,16 @@ test('Daily Energy changes the own battery before response, rolls back, and retr
     scroll: document.documentElement.scrollWidth,
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+  const sliderUnobscured = await slider.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return (
+      document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+      ) === element
+    );
+  });
+  expect(sliderUnobscured).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath('today-energy-confirmed-320-dark-200pct.png'),
     fullPage: true,

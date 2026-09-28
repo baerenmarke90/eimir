@@ -536,6 +536,7 @@ export function DailyEnergyCheckIn({
                 <button
                   type="button"
                   className="tertiary daily-energy-retry"
+                  disabled={mutation.isPending}
                   onClick={() => submitEnergy(failedOwnEnergy.value)}
                 >
                   {t('common.retry')}

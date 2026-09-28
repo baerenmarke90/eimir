@@ -76,6 +76,10 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13
     },
+    "optional-product-tour.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 5

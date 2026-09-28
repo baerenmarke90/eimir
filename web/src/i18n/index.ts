@@ -22,6 +22,7 @@ import people from './locales/people';
 import privateArea from './locales/privateArea';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
+import productTour from './locales/productTour';
 import serverAdmin from './locales/serverAdmin';
 import snackbar from './locales/snackbar';
 import relationshipComponents from './locales/relationshipComponents';
@@ -66,6 +67,7 @@ if (!i18n.isInitialized) {
           privateArea,
           profileIdentity,
           profiles,
+          productTour,
           serverAdmin,
           spaceOffboarding,
           ...relationshipComponents,

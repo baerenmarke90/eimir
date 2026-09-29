@@ -90,6 +90,7 @@ export function MemoryCreatePage({
   const [deletedAfterSave, setDeletedAfterSave] = useState(false);
   const attemptRef = useRef<MemoryCreateAttempt | null>(null);
   const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
+  const outcomeNoticeRef = useRef<HTMLElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
     null,
   );
@@ -113,7 +114,12 @@ export function MemoryCreatePage({
   const outcomeNoticeVisible = uncertain || deletedAfterSave;
   // biome-ignore lint/correctness/useExhaustiveDependencies: refocus when the notice changes kind
   useEffect(() => {
-    if (outcomeNoticeVisible) outcomeHeadingRef.current?.focus();
+    if (outcomeNoticeVisible) {
+      outcomeHeadingRef.current?.focus();
+      // The context chips make this form taller on Compact. Bring the notice
+      // actions into view after moving focus to its explanation.
+      outcomeNoticeRef.current?.scrollIntoView?.({ block: 'end' });
+    }
   }, [outcomeNoticeVisible, verifiable, deletedAfterSave]);
   useEffect(() => {
     if (!dateEditorOpen) return;
@@ -533,7 +539,11 @@ export function MemoryCreatePage({
           <p role="alert">{t('taskBoundary.offline')}</p>
         ) : null}
         {uncertain ? (
-          <section className="inline-message" role="alert">
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
             <h2 ref={outcomeHeadingRef} tabIndex={-1}>
               {t(
                 verifiable
@@ -594,7 +604,11 @@ export function MemoryCreatePage({
             </button>
           </section>
         ) : deletedAfterSave ? (
-          <section className="inline-message" role="alert">
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
             <h2 ref={outcomeHeadingRef} tabIndex={-1}>
               {t('taskBoundary.deletedTitle')}
             </h2>

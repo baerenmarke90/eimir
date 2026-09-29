@@ -4,11 +4,16 @@ import m5s3 from '../../src/i18n/locales/m5s3';
 import navigation from '../../src/i18n/locales/navigation';
 import privateArea from '../../src/i18n/locales/privateArea';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
 const TEST_NOW = '2026-09-01T10:00:00Z';
+const backToStoryName = new RegExp(
+  storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
+  'i',
+);
 
 /**
  * Browser harness for the #810/#839 Quick Create destination contract:
@@ -23,6 +28,7 @@ const TEST_NOW = '2026-09-01T10:00:00Z';
  * shared task-origin and route-entry primitives rather than destination hacks.
  */
 async function installProductMocks(page: Page): Promise<void> {
+  let savedMilestone: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -145,10 +151,73 @@ async function installProductMocks(page: Page): Promise<void> {
         recentShared: [],
         relationshipDuration: null,
         retrospective: null,
+        sharedStorySummary: { heartMoments: 0, memories: 0, milestones: 0 },
         space: { partner: null, spaceId: SPACE_ID },
         thinkingOfYouAvailableAt: null,
         upcoming: [],
       });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
+    ) {
+      await fulfillJson({ items: [] });
+      return;
+    }
+
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/milestones`
+    ) {
+      savedMilestone = {
+        ...request.postDataJSON(),
+        id: '44444444-4444-4444-8444-444444444444',
+        spaceId: SPACE_ID,
+        authorId: ACCOUNT_ID,
+        author: { id: ACCOUNT_ID, displayName: 'Anna' },
+        capabilities: { canEdit: true, canDelete: true, canComment: true },
+        createdAt: TEST_NOW,
+        updatedAt: TEST_NOW,
+        version: 1,
+      };
+      await fulfillJson(savedMilestone, 201);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/milestones/44444444-4444-4444-8444-444444444444` &&
+      savedMilestone
+    ) {
+      await fulfillJson(savedMilestone);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/milestones/44444444-4444-4444-8444-444444444444` &&
+      savedMilestone
+    ) {
+      savedMilestone = {
+        ...savedMilestone,
+        ...request.postDataJSON(),
+        updatedAt: TEST_NOW,
+        version: 2,
+      };
+      await fulfillJson(savedMilestone);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/milestones/44444444-4444-4444-8444-444444444444/comments`
+    ) {
+      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
     }
 
@@ -529,3 +598,116 @@ test.describe('Quick Create -> dedicated /new routes: land at the correct start 
     await expect(page.locator('#title')).toBeVisible();
   });
 });
+
+for (const viewport of [
+  { name: 'Compact', width: 390, height: 844 },
+  { name: 'Expanded', width: 1440, height: 900 },
+] as const) {
+  test(`Quick Create Milestone preserves its origin through confirmed Save and edit (${viewport.name})`, async ({
+    page,
+  }, testInfo) => {
+    await installProductMocks(page);
+    await page.setViewportSize({
+      width: viewport.width,
+      height: viewport.height,
+    });
+    await page.goto('/today');
+    await signIn(page);
+    await expect(page.locator('.today-content')).toBeVisible();
+    await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
+
+    await page.getByRole('button', { name: navigation.newContent }).click();
+    await expect(
+      page.getByRole(viewport.name === 'Compact' ? 'dialog' : 'menu', {
+        name: navigation.quickCreateTitle,
+      }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath(`milestone-sheet-${viewport.width}.png`),
+      fullPage: true,
+    });
+    await page
+      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
+        name: navigation.quickCreateMilestone,
+      })
+      .click();
+    await expect(page).toHaveURL(/\/story\/milestones\/new$/);
+    await expect(page.locator('#milestone-title')).not.toBeFocused();
+    await expect(
+      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath(`milestone-task-${viewport.width}.png`),
+      fullPage: true,
+    });
+    await page.getByRole('button', { name: de.common.cancel }).click();
+    await expect(page).toHaveURL(/\/today$/);
+
+    await page.getByRole('button', { name: navigation.newContent }).click();
+    await page
+      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
+        name: navigation.quickCreateMilestone,
+      })
+      .click();
+    await page.getByRole('button', { name: taskBoundary.back }).click();
+    await expect(page).toHaveURL(/\/today$/);
+
+    await page.getByRole('button', { name: navigation.newContent }).click();
+    await page
+      .getByRole(viewport.name === 'Compact' ? 'link' : 'menuitem', {
+        name: navigation.quickCreateMilestone,
+      })
+      .click();
+    await page.locator('#milestone-title').fill('Our first home');
+    const createRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/spaces/${SPACE_ID}/milestones`),
+    );
+    await page
+      .getByRole('button', { name: storyProducts.milestoneProduct.save })
+      .click();
+    expect((await createRequest).postDataJSON()).toEqual(
+      expect.objectContaining({ title: 'Our first home' }),
+    );
+    await expect(page).toHaveURL(
+      /\/story\/milestones\/44444444-4444-4444-8444-444444444444$/,
+    );
+    await expect(
+      page.getByRole('heading', { name: 'Our first home' }),
+    ).toBeVisible();
+    await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
+    await page.screenshot({
+      path: testInfo.outputPath(`milestone-result-${viewport.width}.png`),
+      fullPage: true,
+    });
+
+    await page
+      .getByRole('link', { name: storyProducts.milestoneProduct.edit })
+      .click();
+    await expect(page).toHaveURL(/\/edit$/);
+    await page.getByRole('link', { name: de.common.cancel }).click();
+    await expect(page).toHaveURL(
+      /\/story\/milestones\/44444444-4444-4444-8444-444444444444$/,
+    );
+    await page
+      .getByRole('link', { name: storyProducts.milestoneProduct.edit })
+      .click();
+    await page.locator('#milestone-title').fill('Our next home');
+    await page
+      .getByRole('button', { name: storyProducts.milestoneProduct.save })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: 'Our next home' }),
+    ).toBeVisible();
+    await page.locator('.shell-detail-back').click();
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(
+      page.getByRole('button', { name: navigation.newContent }),
+    ).toBeFocused();
+
+    await page.goto('/story/milestones/new');
+    await page.getByRole('button', { name: backToStoryName }).click();
+    await expect(page).toHaveURL(/\/story$/);
+  });
+}

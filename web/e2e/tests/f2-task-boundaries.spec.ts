@@ -538,7 +538,12 @@ test('photo-only Quick Create saves a Memory without text and returns to its sco
   );
   await page.getByRole('button', { name: de.memory.save, exact: true }).click();
   expect((await createRequest).postDataJSON()).toEqual(
-    expect.objectContaining({ title: '', body: '' }),
+    expect.objectContaining({
+      title: expect.stringContaining(
+        memoryProduct.createFallbackTitle.split('{{date}}')[0],
+      ),
+      body: '',
+    }),
   );
   await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
   const savedPhoto = page.locator('.media-gallery-thumb-content');

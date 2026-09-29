@@ -470,7 +470,7 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
-    path: testInfo.outputPath('509-heart-tags-selected-390.png'),
+    path: testInfo.outputPath('shell-heart-tags-selected-390.png'),
     fullPage: true,
   });
 
@@ -501,7 +501,7 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
     page.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
   ).toBeVisible();
   await page.screenshot({
-    path: testInfo.outputPath('509-heart-tags-detail-390.png'),
+    path: testInfo.outputPath('shell-heart-tags-detail-390.png'),
     fullPage: true,
   });
 });

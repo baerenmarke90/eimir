@@ -1,7 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -521,4 +523,91 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
     path: testInfo.outputPath('shell-heart-tags-detail-390.png'),
     fullPage: true,
   });
+});
+
+test('Quick Create Heart Moment returns from a saved tag-only result to Today (#509)', async ({
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  try {
+    await installApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+
+    await page
+      .getByRole('button', { name: navigation.newContent, exact: true })
+      .click();
+    await expect(
+      page.getByRole('dialog', { name: navigation.quickCreateTitle }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath('shell-heart-quick-create-sheet-390.png'),
+      fullPage: true,
+    });
+    await page
+      .getByRole('link', {
+        name: navigation.quickCreateHeartMoment,
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(/\/story\/heart-moments\/new$/);
+    await expect(
+      page.getByRole('button', { name: taskBoundary.back, exact: true }),
+    ).toBeVisible();
+    await expect(page.locator('#heart-moment-text')).not.toBeFocused();
+    await page.getByRole('button', { name: de.common.cancel }).click();
+    await expect(page).toHaveURL(/\/today$/);
+    await page
+      .getByRole('button', { name: navigation.newContent, exact: true })
+      .click();
+    await page
+      .getByRole('link', {
+        name: navigation.quickCreateHeartMoment,
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(/\/story\/heart-moments\/new$/);
+    await page.screenshot({
+      path: testInfo.outputPath('shell-heart-quick-create-task-390.png'),
+      fullPage: true,
+    });
+
+    await page
+      .getByRole('checkbox', {
+        name: storyProducts.heartMomentProduct.tagLabels.everyday,
+      })
+      .check();
+    const createRequest = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        request.url().endsWith(`/spaces/${SPACE_ID}/heart-moments`),
+    );
+    await page
+      .getByRole('button', { name: storyProducts.heartMomentProduct.save })
+      .click();
+    expect((await createRequest).postDataJSON()).toEqual(
+      expect.objectContaining({ text: '', tags: ['everyday'] }),
+    );
+    await expect(page).toHaveURL(
+      /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
+    );
+    await expect(
+      page.getByRole('heading', {
+        name: storyProducts.heartMomentProduct.untitled,
+      }),
+    ).toBeVisible();
+    await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
+    await page.locator('.shell-detail-back').click();
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(
+      page.getByRole('button', { name: navigation.newContent, exact: true }),
+    ).toBeFocused();
+  } finally {
+    await context.close();
+  }
 });

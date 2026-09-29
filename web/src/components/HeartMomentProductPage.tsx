@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
@@ -29,6 +29,7 @@ import { localDateInputValue } from '../client/dateInput';
 import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
@@ -127,6 +128,10 @@ export function HeartMomentProductPage({
   const { t } = useTranslation();
   const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
   const heartMomentId = params.heartMomentId;
@@ -238,7 +243,7 @@ export function HeartMomentProductPage({
       ]);
       navigate(heartMomentDetailPath(heartMoment.id), {
         replace: true,
-        state: { saved: true },
+        state: { saved: true, taskOriginKey: originKey },
       });
     },
   });
@@ -295,7 +300,10 @@ export function HeartMomentProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(heartMomentDetailPath(heartMoment.id), { replace: true });
+      navigate(heartMomentDetailPath(heartMoment.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -409,12 +417,17 @@ export function HeartMomentProductPage({
         header={
           <header className="heart-moment-create-header">
             <div className="heart-moment-create-topline">
-              <Link
-                className="back-link heart-moment-create-back"
-                to={appRoutePath('story')}
+              <button
+                type="button"
+                className="back-link tertiary heart-moment-create-back"
+                onClick={() => requestReturn(originKey)}
               >
-                {t('heartMomentProduct.backToStory')}
-              </Link>
+                {t(
+                  resolveOrigin(originKey)
+                    ? 'taskBoundary.back'
+                    : 'heartMomentProduct.backToStory',
+                )}
+              </button>
               <span className="heart-moment-create-identity" aria-hidden="true">
                 {PRODUCT_NAME}
               </span>
@@ -548,12 +561,13 @@ export function HeartMomentProductPage({
                   ? t('heartMomentProduct.saving')
                   : t('heartMomentProduct.save')}
               </button>
-              <Link
+              <button
+                type="button"
                 className="button-link secondary-link"
-                to={appRoutePath('story')}
+                onClick={() => requestReturn(originKey)}
               >
                 {t('common.cancel')}
-              </Link>
+              </button>
             </div>
             {createContentError ? (
               <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
@@ -601,6 +615,7 @@ export function HeartMomentProductPage({
               <Link
                 className="back-link"
                 to={heartMomentDetailPath(heartMoment.id)}
+                state={{ taskOriginKey: originKey }}
               >
                 {t('heartMomentProduct.backToHeartMoment')}
               </Link>
@@ -661,6 +676,7 @@ export function HeartMomentProductPage({
           <Link
             className="back-link"
             to={heartMomentDetailPath(heartMoment.id)}
+            state={{ taskOriginKey: originKey }}
           >
             {t('heartMomentProduct.backToHeartMoment')}
           </Link>
@@ -707,6 +723,7 @@ export function HeartMomentProductPage({
               <Link
                 className="button-link secondary-link"
                 to={heartMomentDetailPath(heartMoment.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -796,6 +813,7 @@ export function HeartMomentProductPage({
           <StoryDetailEditLink
             to={heartMomentEditPath(heartMoment.id)}
             label={t('heartMomentProduct.edit')}
+            state={{ taskOriginKey: originKey }}
           />
         ) : undefined
       }

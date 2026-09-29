@@ -623,7 +623,7 @@ for (const viewport of [
       }),
     ).toBeVisible();
     await page.screenshot({
-      path: testInfo.outputPath(`milestone-sheet-${viewport.width}.png`),
+      path: testInfo.outputPath(`shell-milestone-sheet-${viewport.width}.png`),
       fullPage: true,
     });
     await page
@@ -637,7 +637,7 @@ for (const viewport of [
       page.getByRole('button', { name: taskBoundary.back, exact: true }),
     ).toBeVisible();
     await page.screenshot({
-      path: testInfo.outputPath(`milestone-task-${viewport.width}.png`),
+      path: testInfo.outputPath(`shell-milestone-task-${viewport.width}.png`),
       fullPage: true,
     });
     await page.getByRole('button', { name: de.common.cancel }).click();
@@ -678,7 +678,7 @@ for (const viewport of [
     ).toBeVisible();
     await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
     await page.screenshot({
-      path: testInfo.outputPath(`milestone-result-${viewport.width}.png`),
+      path: testInfo.outputPath(`shell-milestone-result-${viewport.width}.png`),
       fullPage: true,
     });
 

@@ -467,9 +467,7 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
   });
   await tag.check();
   await expect(tag).toBeChecked();
-  await expect(
-    page.getByLabel(storyProducts.heartMomentProduct.textLabel),
-  ).toHaveValue('');
+  await expect(page.locator('#heart-moment-text')).toHaveValue('');
   await expectNoHorizontalOverflow(page);
   await page.screenshot({
     path: testInfo.outputPath('509-heart-tags-selected-390.png'),

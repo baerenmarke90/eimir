@@ -55,7 +55,10 @@ const heartMoment = {
   capabilities: { canComment: true, canDelete: true, canEdit: true },
 };
 
-function renderDetail(taskOriginKey?: unknown) {
+function renderDetail(
+  taskOriginKey?: unknown,
+  data: typeof heartMoment & { tags?: Array<'everyday'> } = heartMoment,
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
@@ -77,7 +80,7 @@ function renderDetail(taskOriginKey?: unknown) {
   });
   queryClient.setQueryData(
     authorSummaryQueryKeys.heartMoment('space-1', 'heart-1'),
-    { value: heartMoment, source: 'network' },
+    { value: data, source: 'network' },
   );
   render(
     <QueryClientProvider client={queryClient}>
@@ -247,6 +250,17 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
 });
 
 describe('Heart Moment detail edit action and shared state (#1014)', () => {
+  it('shows authored context without inventing prose for a textless result', async () => {
+    renderDetail(undefined, { ...heartMoment, text: '', tags: ['everyday'] });
+    expect(
+      await screen.findByRole('heading', {
+        name: storyProducts.heartMomentProduct.untitled,
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
+    ).toBeTruthy();
+  });
   it('replaces the oversized text button with a compact icon-only edit link', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {

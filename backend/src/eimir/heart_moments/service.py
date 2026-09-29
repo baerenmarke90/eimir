@@ -191,19 +191,17 @@ def create_heart_moment_once(
     selected_tags = tags if tags is not None else []
     _require_content(normalized_text, selected_tags, attachment_id)
     fingerprint_content: dict[str, Any] = {
-            "text": normalized_text,
-            "emotion": emotion.value,
-            "visibility": visibility.value,
-            "happened_on": happened_on.isoformat(),
-            "attachment_id": str(attachment_id) if attachment_id is not None else None,
+        "text": normalized_text,
+        "emotion": emotion.value,
+        "visibility": visibility.value,
+        "happened_on": happened_on.isoformat(),
+        "attachment_id": str(attachment_id) if attachment_id is not None else None,
     }
     if selected_tags:
         # Keep the original receipt fingerprint for older untagged clients.
         fingerprint_content["v"] = 2
         fingerprint_content["tags"] = selected_tags
-    request_fingerprint = create_receipts.fingerprint(
-        _RECEIPT_RESOURCE_TYPE, fingerprint_content
-    )
+    request_fingerprint = create_receipts.fingerprint(_RECEIPT_RESOURCE_TYPE, fingerprint_content)
     receipt_id = create_receipts.claim(
         session,
         context,

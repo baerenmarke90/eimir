@@ -122,9 +122,7 @@ class TestCrudAndOwnership:
         assert deleted.status_code == 204
         assert deleted.content == b""
 
-    def test_textless_tagged_create_replay_edit_and_private_boundary(
-        self, client, couple
-    ) -> None:  # type: ignore[no-untyped-def]
+    def test_textless_tagged_create_replay_edit_and_private_boundary(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         key = str(uuid4())
         payload = {**body(text=""), "tags": ["everyday", "home"], "visibility": "PRIVATE"}
         url = path(couple["space"].id)
@@ -156,7 +154,8 @@ class TestCrudAndOwnership:
         )
         assert empty.status_code == 422
         assert client.get(detail_url, headers=auth(couple["token_a"])).json()["tags"] == [
-            "everyday", "home"
+            "everyday",
+            "home",
         ]
 
     def test_partner_reads_shared_but_does_not_write(

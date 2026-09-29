@@ -25,6 +25,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 }
 
 async function installApiMocks(page: Page): Promise<void> {
+  let savedMoment: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -149,6 +150,37 @@ async function installApiMocks(page: Page): Promise<void> {
       pathname === `/api/v1/spaces/${SPACE_ID}/presence`
     ) {
       await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/heart-moments`
+    ) {
+      const submitted = request.postDataJSON();
+      savedMoment = {
+        ...submitted,
+        id: '44444444-4444-4444-8444-444444444444',
+        spaceId: SPACE_ID,
+        authorId: ACCOUNT_ID,
+        author: { id: ACCOUNT_ID, displayName: 'Anna' },
+        capabilities: { canEdit: true, canDelete: true, canComment: true },
+        attachment: null,
+        createdAt: TEST_NOW,
+        updatedAt: TEST_NOW,
+        version: 1,
+      };
+      await fulfillJson(savedMoment, 201);
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/heart-moments/44444444-4444-4444-8444-444444444444` &&
+      savedMoment
+    ) {
+      await fulfillJson(savedMoment);
       return;
     }
 
@@ -421,6 +453,57 @@ test('Heart Moment Create adapts the Compact reference to Expanded Web (#862)', 
     path: testInfo.outputPath(
       'shell-heart-moment-create-reference-expanded.png',
     ),
+    fullPage: true,
+  });
+});
+
+test('tag-only Heart Moment saves and opens its real result (#509)', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHeartMomentCreate(page);
+  const tag = page.getByRole('checkbox', {
+    name: storyProducts.heartMomentProduct.tagLabels.everyday,
+  });
+  await tag.check();
+  await expect(tag).toBeChecked();
+  await expect(
+    page.getByLabel(storyProducts.heartMomentProduct.textLabel),
+  ).toHaveValue('');
+  await expectNoHorizontalOverflow(page);
+  await page.screenshot({
+    path: testInfo.outputPath('509-heart-tags-selected-390.png'),
+    fullPage: true,
+  });
+
+  const requestPromise = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      request.url().endsWith(`/spaces/${SPACE_ID}/heart-moments`),
+  );
+  await page
+    .getByRole('button', { name: storyProducts.heartMomentProduct.save })
+    .click();
+  const request = await requestPromise;
+  expect(request.postDataJSON()).toEqual(
+    expect.objectContaining({
+      text: '',
+      tags: ['everyday'],
+    }),
+  );
+  await expect(page).toHaveURL(
+    /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
+  );
+  await expect(
+    page.getByRole('heading', {
+      name: storyProducts.heartMomentProduct.untitled,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('509-heart-tags-detail-390.png'),
     fullPage: true,
   });
 });

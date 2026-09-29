@@ -10,6 +10,7 @@ Name | Type
 `attachmentId` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`tags` | Array&lt;string&gt;
 `text` | string
 
 ## Example
@@ -22,6 +23,7 @@ const example = {
   "attachmentId": null,
   "emotion": null,
   "happenedOn": null,
+  "tags": null,
   "text": null,
 } satisfies HeartMomentUpdate
 

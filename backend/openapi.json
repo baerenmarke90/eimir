@@ -2926,6 +2926,20 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "enum": [
+                "everyday",
+                "out_together",
+                "home",
+                "special_day"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -2989,6 +3003,20 @@
             "title": "Spaceid",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "enum": [
+                "everyday",
+                "out_together",
+                "home",
+                "special_day"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -3011,6 +3039,7 @@
           "spaceId",
           "authorId",
           "text",
+          "tags",
           "emotion",
           "visibility",
           "happenedOn",
@@ -3094,6 +3123,27 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "everyday",
+                    "out_together",
+                    "home",
+                    "special_day"
+                  ],
+                  "type": "string"
+                },
+                "maxItems": 4,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "text": {
             "anyOf": [

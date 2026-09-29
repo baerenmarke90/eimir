@@ -15,6 +15,7 @@ import {
   HeartMomentDetailToJSON,
 } from '../api/generated/models/HeartMomentDetail';
 import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
+import type { HeartMomentCreateTagsEnum } from '../api/generated/models/HeartMomentCreate';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -47,6 +48,10 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
+import {
+  HeartMomentTagChoices,
+  type HeartMomentTag,
+} from './HeartMomentTagChoices';
 import { MediaGallery } from './MediaGallery';
 import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
@@ -73,6 +78,7 @@ interface HeartMomentCreateValues {
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
   readonly attachmentId?: string;
+  readonly tags: HeartMomentCreateTagsEnum[];
 }
 
 interface HeartMomentCreateSnapshot {
@@ -127,6 +133,8 @@ export function HeartMomentProductPage({
   const queryKey = authorSummaryQueryKeys.heartMoment(spaceId, heartMomentId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [createContentError, setCreateContentError] = useState(false);
+  const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
   const createAttemptRef =
@@ -261,6 +269,7 @@ export function HeartMomentProductPage({
         value: {
           ...current,
           text: update.text ?? current.text,
+          tags: update.tags ?? current.tags,
           emotion: update.emotion ?? current.emotion,
           happenedOn: update.happenedOn ?? current.happenedOn,
           attachment: update.attachmentId === null ? null : current.attachment,
@@ -378,8 +387,16 @@ export function HeartMomentProductPage({
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
+      const text = String(data.get('text') || '').trim();
+      const tags = data.getAll('tags') as HeartMomentTag[];
+      if (!text && !tags.length && !attachments.readyIds.length) {
+        setCreateContentError(true);
+        return;
+      }
+      setCreateContentError(false);
       createMutation.mutate({
-        text: String(data.get('text') || '').trim(),
+        text,
+        tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
         visibility: String(data.get('visibility')) as ContentVisibilityValue,
@@ -451,13 +468,14 @@ export function HeartMomentProductPage({
               <textarea
                 id="heart-moment-text"
                 name="text"
-                required
                 rows={4}
                 maxLength={4000}
                 placeholder={t('heartMomentProduct.textPlaceholder')}
                 className="immersive-create-title-multiline"
               />
             </div>
+
+            <HeartMomentTagChoices />
 
             <div className="heart-moment-create-field-grid">
               <HeartEmotionPicker
@@ -537,6 +555,9 @@ export function HeartMomentProductPage({
                 {t('common.cancel')}
               </Link>
             </div>
+            {createContentError ? (
+              <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
+            ) : null}
           </form>
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />
@@ -611,8 +632,19 @@ export function HeartMomentProductPage({
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const replacementAttachmentId = attachments.readyIds[0];
+      const text = String(data.get('text') || '').trim();
+      const tags = data.getAll('tags') as HeartMomentTag[];
+      const hasPhoto =
+        Boolean(replacementAttachmentId) ||
+        (Boolean(heartMoment.attachment) && !removeExistingPhoto);
+      if (!text && !tags.length && !hasPhoto) {
+        setEditContentError(true);
+        return;
+      }
+      setEditContentError(false);
       const update: HeartMomentUpdate = {
-        text: String(data.get('text') || '').trim(),
+        text,
+        tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
       };
@@ -692,6 +724,9 @@ export function HeartMomentProductPage({
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
           ) : null}
+          {editContentError ? (
+            <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
+          ) : null}
 
           {heartMoment.capabilities.canDelete && !offline ? (
             <div style={{ marginTop: 'var(--space-8)' }}>
@@ -755,7 +790,7 @@ export function HeartMomentProductPage({
   return (
     <StoryDetailPageShell
       eyebrow={heartMomentEyebrow}
-      title={heartMoment.text}
+      title={heartMoment.text || t('heartMomentProduct.untitled')}
       titleAction={
         heartMoment.capabilities.canEdit && !offline ? (
           <StoryDetailEditLink
@@ -771,6 +806,17 @@ export function HeartMomentProductPage({
       <div className="heart-moment-detail-emotion">
         <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
       </div>
+
+      {heartMoment.tags?.length ? (
+        <ul
+          className="memory-tag-summary"
+          aria-label={t('heartMomentProduct.tagsLabel')}
+        >
+          {heartMoment.tags.map((tag) => (
+            <li key={tag}>{t(`heartMomentProduct.tagLabels.${tag}`)}</li>
+          ))}
+        </ul>
+      ) : null}
 
       {heartMoment.attachment ? (
         <section aria-label={t('heartMomentProduct.photoLabel')}>
@@ -880,12 +926,12 @@ function HeartMomentFields({
           id="heart-moment-text"
           name="text"
           rows={5}
-          required
           maxLength={4000}
           defaultValue={heartMoment?.text ?? ''}
           placeholder={t('heartMomentProduct.textPlaceholder')}
         />
       </div>
+      <HeartMomentTagChoices selected={heartMoment?.tags} />
       <HeartEmotionPicker
         legend={t('heartMomentProduct.emotionLabel')}
         defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}

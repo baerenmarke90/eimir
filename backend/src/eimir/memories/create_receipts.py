@@ -32,6 +32,7 @@ from eimir.authorization import AuthorizationContext, readable
 from eimir.core import clock
 from eimir.core.errors import ConflictError, ErrorCode, NotFoundError
 from eimir.memories.models import Memory, MemoryCreateReceipt
+from eimir.memories.tags import MemoryTags
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import CursorResult
@@ -44,15 +45,22 @@ clock skew cannot turn an expired identity into a duplicate create.
 """
 
 
-def fingerprint(*, title: str, body: str, happened_on: date | None) -> str:
+def fingerprint(
+    *, title: str, body: str, happened_on: date | None, tags: MemoryTags | None = None
+) -> str:
     """Hash the normalized create request without retaining any of its content."""
+    content = {
+        "v": 1,
+        "title": title,
+        "body": body,
+        "happenedOn": happened_on.isoformat() if happened_on else None,
+    }
+    if tags:
+        # Preserve receipts written before tags existed for untagged replays.
+        content["v"] = 2
+        content["tags"] = tags
     canonical = json.dumps(
-        {
-            "v": 1,
-            "title": title,
-            "body": body,
-            "happenedOn": happened_on.isoformat() if happened_on else None,
-        },
+        content,
         sort_keys=True,
         ensure_ascii=False,
         separators=(",", ":"),

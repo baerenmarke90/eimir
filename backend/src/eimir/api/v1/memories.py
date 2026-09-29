@@ -20,6 +20,7 @@ from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.memories import service
 from eimir.memories.models import Memory
+from eimir.memories.tags import MemoryTags, unique_tags
 
 router = APIRouter(tags=["memories"])
 
@@ -37,6 +38,9 @@ class MemoryCreate(ApiModel):
     title: str
     body: str = ""
     happened_on: date | None = None
+    tags: MemoryTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @field_validator("title")
     @classmethod
@@ -53,6 +57,9 @@ class MemoryUpdate(ApiModel):
     title: str | None = None
     body: str | None = None
     happened_on: date | None = None
+    tags: MemoryTags | None = None
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -64,6 +71,8 @@ class MemoryUpdate(ApiModel):
             self.title = self.title.strip()
         if "body" in self.model_fields_set and self.body is None:
             raise ValueError("body must not be null")
+        if "tags" in self.model_fields_set and self.tags is None:
+            raise ValueError("tags must not be null")
         return self
 
 
@@ -92,6 +101,7 @@ class MemoryDetail(ApiModel):
     author_id: UUID
     title: str
     body: str
+    tags: MemoryTags
     happened_on: date | None
     version: int
     created_at: datetime
@@ -123,6 +133,7 @@ def _memory_detail(
         author_id=memory.owner_id,
         title=memory.payload.title,
         body=memory.payload.body,
+        tags=memory.payload.tags,
         happened_on=memory.happened_on,
         version=memory.version,
         created_at=memory.created_at,
@@ -190,6 +201,7 @@ def create_memory(
         idempotency_key=idempotency_key,
         title=body.title,
         body=body.body,
+        tags=body.tags,
         happened_on=body.happened_on,
     )
     if not result.created:
@@ -271,6 +283,7 @@ def update_memory(
         changed_fields=frozenset(body.model_fields_set),
         title=body.title,
         body=body.body,
+        tags=body.tags,
         happened_on=body.happened_on,
     )
     response.headers["ETag"] = etag_for(memory.version)

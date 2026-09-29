@@ -45,6 +45,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
+import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -72,6 +73,7 @@ export function MemoryCreatePage({
   const [initialDate] = useState(localDateInputValue);
   const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
   const [body, setBody] = useState('');
+  const [tags, setTags] = useState<MemoryTag[]>([]);
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
   const [dateEditorOpen, setDateEditorOpen] = useState(false);
@@ -137,7 +139,11 @@ export function MemoryCreatePage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS,
   });
   const dirty = Boolean(
-    title || body || attachments.items.length || happenedOn !== initialDate,
+    title ||
+      body ||
+      tags.length ||
+      attachments.items.length ||
+      happenedOn !== initialDate,
   );
   const hasUserContent = Boolean(
     title.trim() || body.trim() || attachments.items.length,
@@ -318,6 +324,7 @@ export function MemoryCreatePage({
               date: formatDateInputValue(date, resolvedLocale()),
             }),
         body,
+        tags: [...tags],
         happenedOn: submittedDate,
       },
       [...attachments.readyIds],
@@ -411,6 +418,8 @@ export function MemoryCreatePage({
                 placeholder={t('memory.bodyPlaceholder')}
               />
             </div>
+
+            <MemoryTagChoices selected={tags} onChange={setTags} />
 
             <div className="field-group immersive-create-title-field">
               <label htmlFor="title">{t('memory.titleLabelOptional')}</label>

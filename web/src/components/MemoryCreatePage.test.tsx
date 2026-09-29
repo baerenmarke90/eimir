@@ -153,6 +153,29 @@ describe('Memory capture mutation ownership', () => {
     enterTitle();
     expect(save.disabled).toBe(false);
   });
+  it('treats tags as optional context and replays the exact selected snapshot', async () => {
+    fixture.create
+      .mockRejectedValueOnce(new Error('Response lost'))
+      .mockResolvedValueOnce(confirmed);
+    setup();
+    const tag = screen.getByRole('checkbox', {
+      name: de.memory.tagLabels.home,
+    }) as HTMLInputElement;
+    fireEvent.click(tag);
+    expect(tag.checked).toBe(true);
+    expect(
+      screen
+        .getByRole('button', { name: de.memory.save })
+        .hasAttribute('disabled'),
+    ).toBe(true);
+    enterTitle();
+    submit();
+    await screen.findByText(taskBoundary.uncertainTitle);
+    expect(requestOf(0).memoryCreate.tags).toEqual(['home']);
+    fireEvent.click(verifyButton());
+    await screen.findByText('Actual result destination');
+    expect(requestOf(1).memoryCreate).toBe(requestOf(0).memoryCreate);
+  });
   it('locks duplicate submission and opens the confirmed result despite failed projection invalidation', async () => {
     const response = deferred<MemoryDetail>();
     fixture.create.mockReturnValue(response.promise);

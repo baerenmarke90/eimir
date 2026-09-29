@@ -356,8 +356,35 @@ for (const colorScheme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '';
     });
 
+    const homeTag = page.getByRole('checkbox', {
+      name: de.memory.tagLabels.home,
+    });
+    await expect(homeTag).not.toBeChecked();
+    await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
+    await expect(homeTag).toBeChecked();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `shell-memory-tags-selected-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '24px';
+    });
+    await expectNoHorizontalOverflow(page);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
+    await homeTag.focus();
+    await page.keyboard.press('Space');
+    await expect(homeTag).not.toBeChecked();
+
     const axeResult = await new AxeBuilder({ page })
       .include('.immersive-sharing-note')
+      .include('.memory-tag-choices')
       .include('.immersive-create-narrative')
       .include('.immersive-create-title-field')
       .include('.immersive-create-date-field')

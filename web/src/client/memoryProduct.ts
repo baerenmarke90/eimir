@@ -1,10 +1,12 @@
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import type { MemoryUpdate } from '../api/generated/models/MemoryUpdate';
+import type { MemoryTag } from '../components/MemoryTagChoices';
 
 export interface MemoryEditValues {
   title: string;
   body: string;
   happenedOn: string;
+  tags: MemoryTag[];
 }
 
 export function memoryDateInputValue(value: Date | null): string {
@@ -19,6 +21,7 @@ export function memoryUpdatePayload(values: MemoryEditValues): MemoryUpdate {
   return {
     title: values.title,
     body: values.body,
+    tags: values.tags,
     happenedOn: values.happenedOn
       ? new Date(`${values.happenedOn}T00:00:00.000Z`)
       : null,

@@ -103,6 +103,40 @@ async function installProductMocks(page: Page): Promise<void> {
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'ACTIVE',
+        tier: 'PREMIUM',
+        capabilities: ['daily.quote'],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote`
+    ) {
+      await fulfillJson({
+        checkedOn: '2026-09-29',
+        enabled: false,
+        quote: null,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote/catalog`
+    ) {
+      await fulfillJson({ categories: [], sources: [] });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
     ) {
       await fulfillJson({ items: [] });
@@ -615,6 +649,7 @@ for (const viewport of [
     await signIn(page);
     await expect(page.locator('.today-content')).toBeVisible();
     await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
+    await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 
     await page.getByRole('button', { name: navigation.newContent }).click();
     await expect(

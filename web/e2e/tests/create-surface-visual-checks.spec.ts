@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
@@ -196,6 +197,7 @@ async function installApiMocks(page: Page): Promise<void> {
           happenedOn: TEST_NOW,
           id: memoryCase.id,
           spaceId: SPACE_ID,
+          tags: memoryCase.id === MEMORY_ID ? ['home'] : [],
           title: memoryCase.title,
           updatedAt: TEST_NOW,
           version: 1,
@@ -356,8 +358,51 @@ for (const colorScheme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '';
     });
 
+    const homeTag = page.getByRole('checkbox', {
+      name: de.memory.tagLabels.home,
+    });
+    await expect(homeTag).not.toBeChecked();
+    await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
+    await expect(homeTag).toBeChecked();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `shell-memory-tags-selected-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shell-memory-tags-selected-${width}-${colorScheme}.png`,
+        ),
+        fullPage: true,
+      });
+    }
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '32px';
+    });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `shell-memory-tags-320-200pct-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '';
+    });
+    await homeTag.focus();
+    await page.keyboard.press('Space');
+    await expect(homeTag).not.toBeChecked();
+
     const axeResult = await new AxeBuilder({ page })
       .include('.immersive-sharing-note')
+      .include('.memory-tag-choices')
       .include('.immersive-create-narrative')
       .include('.immersive-create-title-field')
       .include('.immersive-create-date-field')
@@ -977,12 +1022,36 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expectNoHorizontalOverflow(page);
+    await expect(
+      page.getByText(de.memory.tagLabels.home, { exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `shell-memory-tags-detail-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.locator('html').evaluate((element) => {
       element.style.zoom = '2';
     });
     await expectNoHorizontalOverflow(page);
+    await page.locator('html').evaluate((element) => {
+      element.style.zoom = '';
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('link', { name: memoryProduct.edit }).click();
+    await expect(
+      page.getByRole('checkbox', { name: de.memory.tagLabels.home }),
+    ).toBeChecked();
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `shell-memory-tags-edit-390-${colorScheme}.png`,
+      ),
+      fullPage: true,
+    });
   });
 }
 

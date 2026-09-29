@@ -13,6 +13,7 @@ const AUTHORED_BODY = 'A remembered detail';
 interface MemoryCreateRequestBody {
   body?: string;
   happenedOn?: string | null;
+  tags?: string[];
   title?: string;
 }
 
@@ -178,6 +179,7 @@ async function installApiMocks(page: Page): Promise<void> {
         happenedOn: body.happenedOn ?? null,
         id: MEMORY_ID,
         spaceId: SPACE_ID,
+        tags: body.tags ?? [],
         title: body.title ?? '',
         updatedAt: TEST_NOW,
         version: 1,
@@ -282,6 +284,7 @@ test('text-only with the default date saves a non-empty localized fallback title
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
@@ -290,6 +293,7 @@ test('text-only with the default date saves a non-empty localized fallback title
   const requestBody = await submitAndReadCreateRequest(page);
 
   expect(requestBody.body).toBe(AUTHORED_BODY);
+  expect(requestBody.tags).toEqual(['home']);
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');
@@ -300,6 +304,9 @@ test('text-only with the default date saves a non-empty localized fallback title
       name: localizedFallbackTitle(expectedDate),
       exact: true,
     }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(de.memory.tagLabels.home, { exact: true }),
   ).toBeVisible();
 });
 

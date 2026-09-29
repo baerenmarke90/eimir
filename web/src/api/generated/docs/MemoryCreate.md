@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `body` | string
 `happenedOn` | Date
+`tags` | Array&lt;string&gt;
 `title` | string
 
 ## Example
@@ -19,6 +20,7 @@ import type { MemoryCreate } from ''
 const example = {
   "body": null,
   "happenedOn": null,
+  "tags": null,
   "title": null,
 } satisfies MemoryCreate
 

@@ -33,11 +33,30 @@ export interface MemoryCreate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {Array<MemoryCreateTagsEnum>}
+     * @memberof MemoryCreate
+     */
+    tags?: Array<MemoryCreateTagsEnum>;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryCreate
      */
     title: string;
 }
+
+
+/**
+ * @export
+ */
+export const MemoryCreateTagsEnum = {
+    out_together: 'out_together',
+    laughter: 'laughter',
+    home: 'home',
+    special_day: 'special_day'
+} as const;
+export type MemoryCreateTagsEnum = typeof MemoryCreateTagsEnum[keyof typeof MemoryCreateTagsEnum];
+
 
 /**
  * Check if a given object implements the MemoryCreate interface.
@@ -59,6 +78,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'body': json['body'] == null ? undefined : json['body'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
 }
@@ -76,6 +96,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         
         'body': value['body'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

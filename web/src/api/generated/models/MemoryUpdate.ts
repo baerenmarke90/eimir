@@ -33,11 +33,30 @@ export interface MemoryUpdate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {Array<MemoryUpdateTagsEnum>}
+     * @memberof MemoryUpdate
+     */
+    tags?: Array<MemoryUpdateTagsEnum> | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryUpdate
      */
     title?: string | null;
 }
+
+
+/**
+ * @export
+ */
+export const MemoryUpdateTagsEnum = {
+    out_together: 'out_together',
+    laughter: 'laughter',
+    home: 'home',
+    special_day: 'special_day'
+} as const;
+export type MemoryUpdateTagsEnum = typeof MemoryUpdateTagsEnum[keyof typeof MemoryUpdateTagsEnum];
+
 
 /**
  * Check if a given object implements the MemoryUpdate interface.
@@ -58,6 +77,7 @@ export function MemoryUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'body': json['body'] === undefined ? undefined : json['body'] === null ? null : json['body'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'title': json['title'] === undefined ? undefined : json['title'] === null ? null : json['title'],
     };
 }
@@ -75,6 +95,7 @@ export function MemoryUpdateToJSONTyped(value?: MemoryUpdate | null, ignoreDiscr
         
         'body': value['body'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

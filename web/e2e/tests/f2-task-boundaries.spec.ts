@@ -765,6 +765,11 @@ test('an unknown create outcome is verified with the same identity and opens the
     name: taskBoundary.verify,
     exact: true,
   });
+  // Optional context adds height to the capture form; the explanation and
+  // recovery action must both remain in the Compact viewport after focus.
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeInViewport();
   await expect(verify).toBeInViewport();
   expect((await verify.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   for (const colorScheme of ['light', 'dark'] as const) {

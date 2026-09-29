@@ -66,6 +66,7 @@ function setup(canEdit: boolean) {
     author: { id: 'account-1', displayName: 'Alex' },
     title: 'A shared evening',
     body: 'Quiet words',
+    tags: [],
     attachments: [],
     happenedOn: new Date('2025-09-15'),
     createdAt: new Date('2025-09-15'),
@@ -174,6 +175,7 @@ describe('Memory detail edit action (#1014)', () => {
       author: { id: 'account-1', displayName: 'Alex' },
       title: 'A shared evening',
       body: 'Quiet words',
+      tags: [],
       attachments: [],
       happenedOn: new Date('2025-09-15'),
       createdAt: new Date('2025-09-15'),
@@ -273,6 +275,7 @@ describe('Memory view receipt', () => {
       author: { id: 'account-1', displayName: 'Alex' },
       title: 'A shared evening',
       body: 'Quiet words',
+      tags: [],
       attachments: [],
       happenedOn: new Date('2025-09-15'),
       createdAt: new Date('2025-09-15'),
@@ -377,7 +380,9 @@ describe('Memory view receipt', () => {
     expect(await screen.findByText('A shared evening')).toBeTruthy();
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
 
-    await client.invalidateQueries();
+    await client.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.memory('space-1', 'memory-1'),
+    });
 
     expect(recordStoryViewMock).toHaveBeenCalledTimes(1);
   });

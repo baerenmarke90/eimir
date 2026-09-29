@@ -72,6 +72,45 @@ def create_memory(
 
 
 class TestCrudAndOwnership:
+    def test_tags_are_shared_editable_and_validated_without_dropping_content(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        path = memories_path(couple["space"].id)
+        created = client.post(
+            path,
+            json={**memory_body(), "tags": ["home", "laughter"]},
+            headers=auth(couple["token_a"]),
+        )
+        assert created.status_code == 201
+        memory_id = created.json()["id"]
+        assert created.json()["tags"] == ["home", "laughter"]
+        shared = client.get(f"{path}/{memory_id}", headers=auth(couple["token_b"]))
+        assert shared.json()["tags"] == ["home", "laughter"]
+
+        edited = client.patch(
+            f"{path}/{memory_id}",
+            json={"body": "A new narrative"},
+            headers=if_match(couple["token_a"], 1),
+        )
+        assert edited.json()["tags"] == ["home", "laughter"]
+        cleared = client.patch(
+            f"{path}/{memory_id}",
+            json={"tags": []},
+            headers=if_match(couple["token_a"], 2),
+        )
+        assert cleared.json()["tags"] == []
+        for tags in (["unknown"], ["home", "home"], ["home"] * 5):
+            rejected = client.patch(
+                f"{path}/{memory_id}",
+                json={"tags": tags},
+                headers=if_match(couple["token_a"], 3),
+            )
+            assert rejected.status_code == 422
+        assert (
+            client.get(f"{path}/{memory_id}", headers=auth(couple["token_a"])).json()["version"]
+            == 3
+        )
+
     def test_create_get_update_delete_as_author(
         self,
         client,

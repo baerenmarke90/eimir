@@ -1,0 +1,70 @@
+.memory-tag-choices {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.memory-tag-choices legend {
+  font-weight: 650;
+}
+
+.memory-tag-choices .field-help {
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+.memory-tag-list,
+.memory-tag-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.memory-tag-choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.memory-tag-choice:has(input:checked) {
+  border-color: var(--color-text);
+  background: var(--color-surface);
+  font-weight: 650;
+}
+
+.memory-tag-choice:has(input:checked) span::before {
+  content: "✓ ";
+}
+
+.memory-tag-choice:has(input:focus-visible) {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.memory-tag-choice input {
+  position: absolute;
+  opacity: 0;
+}
+
+.memory-tag-summary {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.memory-tag-summary li {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+}

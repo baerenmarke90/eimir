@@ -30,7 +30,7 @@
     },
     "f2-task-boundaries.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 34
+      "baselineTests": 35
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -42,7 +42,7 @@
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 5
+      "baselineTests": 6
     },
     "hidden-file-inputs.spec.ts": {
       "disposition": "PR_CRITICAL",

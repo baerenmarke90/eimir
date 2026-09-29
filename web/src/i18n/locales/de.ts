@@ -333,7 +333,8 @@ const de = {
     bodyLabel: 'Erinnerung',
     bodyPlaceholder: 'Was möchtet ihr von diesem Moment behalten?',
     tagsLabel: 'Was passt zu diesem Moment?',
-    tagsHelp: 'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
+    tagsHelp:
+      'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
     tagLabels: {
       out_together: 'Unterwegs zusammen',
       laughter: 'Lachen',

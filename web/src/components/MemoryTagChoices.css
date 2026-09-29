@@ -43,7 +43,7 @@
 }
 
 .memory-tag-choice:has(input:checked) span::before {
-  content: '✓ ';
+  content: "✓ ";
 }
 
 .memory-tag-choice:has(input:focus-visible) {

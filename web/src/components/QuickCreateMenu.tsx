@@ -141,6 +141,7 @@ export function QuickCreateMenu({ variant = 'desktop' }: QuickCreateMenuProps) {
     const handoff = () => {
       const taskOriginKey = [
         'memory',
+        'heart-moment',
         'wish',
         'plan',
         'note',

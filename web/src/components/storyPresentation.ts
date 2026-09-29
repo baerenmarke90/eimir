@@ -128,7 +128,9 @@ export function storyItemPresentation(
       const visibility = item.heartMoment.visibility;
       return {
         kindLabel,
-        title: compactText(item.heartMoment.text),
+        title:
+          compactText(item.heartMoment.text) ||
+          t('heartMomentProduct.untitled'),
         preview: emotionLabel(item.heartMoment.emotion, t),
         author: storyAuthorLabel(
           item.heartMoment.author,

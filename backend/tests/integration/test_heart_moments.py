@@ -122,6 +122,42 @@ class TestCrudAndOwnership:
         assert deleted.status_code == 204
         assert deleted.content == b""
 
+    def test_textless_tagged_create_replay_edit_and_private_boundary(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        key = str(uuid4())
+        payload = {**body(text=""), "tags": ["everyday", "home"], "visibility": "PRIVATE"}
+        url = path(couple["space"].id)
+        headers = {**auth(couple["token_a"]), "Idempotency-Key": key}
+        created = client.post(url, json=payload, headers=headers)
+        assert created.status_code == 201
+        item = created.json()
+        assert item["text"] == ""
+        assert item["tags"] == ["everyday", "home"]
+        assert client.post(url, json=payload, headers=headers).status_code == 200
+        changed = client.post(url, json={**payload, "tags": ["home"]}, headers=headers)
+        assert changed.status_code == 409
+        assert changed.json()["code"] == "IDEMPOTENCY_KEY_REUSED"
+
+        detail_url = f"{url}/{item['id']}"
+        assert client.get(detail_url, headers=auth(couple["token_b"])).status_code == 404
+        assert client.get(url, headers=auth(couple["token_b"])).json()["items"] == []
+        updated = client.patch(
+            detail_url,
+            json={"emotion": "GRATEFUL"},
+            headers=if_match(couple["token_a"], 1),
+        )
+        assert updated.status_code == 200
+        assert updated.json()["tags"] == ["everyday", "home"]
+        empty = client.patch(
+            detail_url,
+            json={"tags": []},
+            headers=if_match(couple["token_a"], 2),
+        )
+        assert empty.status_code == 422
+        assert client.get(detail_url, headers=auth(couple["token_a"])).json()["tags"] == [
+            "everyday",
+            "home",
+        ]
+
     def test_partner_reads_shared_but_does_not_write(
         self,
         client,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import CheckConstraint
@@ -90,6 +92,23 @@ def test_blank_text_is_rejected() -> None:
                 "happenedOn": "2025-06-13",
             }
         )
+
+
+def test_textless_context_and_legacy_payload_are_valid_but_empty_capture_is_not() -> None:
+    base = {
+        "text": " ",
+        "emotion": "LOVED",
+        "visibility": "PRIVATE",
+        "happenedOn": "2025-06-13",
+    }
+    assert HeartMomentCreate.model_validate({**base, "tags": ["everyday"]}).text == ""
+    assert HeartMomentCreate.model_validate({**base, "attachmentId": str(uuid4())}).text == ""
+    assert HeartMomentPayload.model_validate({"text": "old", "emotion": "LOVED"}).tags == []
+    for invalid in (["unknown"], ["home", "home"]):
+        with pytest.raises(ValidationError):
+            HeartMomentCreate.model_validate({**base, "tags": invalid})
+    with pytest.raises(ValidationError):
+        HeartMomentUpdate.model_validate({"tags": None})
 
 
 def test_empty_patch_is_rejected() -> None:

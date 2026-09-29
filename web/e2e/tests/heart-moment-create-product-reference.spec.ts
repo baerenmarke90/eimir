@@ -184,6 +184,15 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/heart-moments/44444444-4444-4444-8444-444444444444/comments`
+    ) {
+      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      return;
+    }
+
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -469,6 +478,12 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
   await expect(tag).toBeChecked();
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
   await expectNoHorizontalOverflow(page);
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    window.scrollTo(0, 0);
+  });
   await page.screenshot({
     path: testInfo.outputPath('shell-heart-tags-selected-390.png'),
     fullPage: true,
@@ -500,6 +515,8 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
   await expect(
     page.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
   ).toBeVisible();
+  await expect(page.locator('.comments-panel')).toBeVisible();
+  await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
   await page.screenshot({
     path: testInfo.outputPath('shell-heart-tags-detail-390.png'),
     fullPage: true,

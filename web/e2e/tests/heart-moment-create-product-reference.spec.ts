@@ -113,12 +113,31 @@ async function installApiMocks(page: Page): Promise<void> {
       pathname === `/api/v1/spaces/${SPACE_ID}/dashboard`
     ) {
       await fulfillJson({
+        keepsake: null,
         recentShared: [],
         relationshipDuration: null,
         retrospective: null,
+        sharedStorySummary: { heartMoments: 0, memories: 0, milestones: 0 },
         space: { partner: null, spaceId: SPACE_ID },
+        thinkingOfYouAvailableAt: null,
         upcoming: [],
       });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/dashboard/preferences`
+    ) {
+      await fulfillJson({ items: [] });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/activity`
+    ) {
+      await fulfillJson({ hasMore: false, items: [], nextCursor: null });
       return;
     }
 
@@ -538,6 +557,8 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
     await installApiMocks(page);
     await page.goto('/today');
     await signIn(page);
+    await expect(page.locator('.today-content')).toBeVisible();
+    await expect(page.locator('.today-page .ui-state-error')).toHaveCount(0);
 
     await page
       .getByRole('button', { name: navigation.newContent, exact: true })

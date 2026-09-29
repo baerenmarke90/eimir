@@ -1,6 +1,6 @@
 # #509 Memory Smart Tags — browser evidence
 
-Captured by `web/e2e/tests/create-surface-visual-checks.spec.ts` in the [Web Browser QA run](https://github.com/baerenmarke90/eimir/actions/runs/36566770771) for feature head `2d84d9f440e88b08f1d2ac91c434126f35a1acb2` (2026-09-29). The screenshots are from the running Web app with deterministic API responses, not the generated preflight illustration. The subsequent commit only adds these evidence files and PR metadata. The [full CI artifact](https://github.com/baerenmarke90/eimir/actions/runs/36566770771) also contains the 360/430 px, small-height, and date/reduced-motion states.
+Captured by `web/e2e/tests/create-surface-visual-checks.spec.ts` in the [Web Browser QA run](https://github.com/baerenmarke90/eimir/actions/runs/36566770771) for feature head `2d84d9f440e88b08f1d2ac91c434126f35a1acb2` (2026-09-29). The screenshots are from the running Web app with deterministic API responses, not the generated preflight illustration. A later change scrolls the unknown-create recovery notice into view; it does not change the captured tag surfaces. The [full CI artifact](https://github.com/baerenmarke90/eimir/actions/runs/36566770771) also contains the 360/430 px, small-height, and date/reduced-motion states.
 
 | State | Light | Dark |
 | --- | --- | --- |

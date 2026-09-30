@@ -695,15 +695,14 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
 
   await expect
     .poll(() =>
-      sheet.evaluate((dialog) =>
-        dialog
-          .getAnimations()
-          .every((animation) => animation.playState === 'finished'),
-      ),
+      sheet.evaluate((dialog) => ({
+        sheet: getComputedStyle(dialog).opacity,
+        backdrop: getComputedStyle(dialog, '::backdrop').opacity,
+      })),
     )
-    .toBe(true);
+    .toEqual({ sheet: '1', backdrop: '1' });
   await page.screenshot({
     path: testInfo.outputPath('today-daily-vibe-1280-light.png'),
-    fullPage: true,
+    fullPage: false,
   });
 });

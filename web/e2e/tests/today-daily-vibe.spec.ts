@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import de from '../../src/i18n/locales/de';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
+import de from '../../src/i18n/locales/de';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -19,6 +19,8 @@ async function installMocks(
     ownVibeNote?: string | null;
     partnerState?: VibePartnerState;
     partnerVibeNote?: string | null;
+    holdFirstPatch?: boolean;
+    failFirstPatch?: boolean;
   } = {},
 ) {
   let ownVibe: string | null = initial.ownVibe ?? null;
@@ -29,6 +31,11 @@ async function installMocks(
   const partnerVibeNote = initial.partnerVibeNote ?? null;
   let etag = '"2026-09-21:check-in-1:1"';
   let lastPatch: Record<string, unknown> | null = null;
+  let patchCount = 0;
+  let releaseFirstPatch = () => {};
+  const firstPatchGate = new Promise<void>((resolve) => {
+    releaseFirstPatch = resolve;
+  });
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -218,7 +225,22 @@ async function installMocks(
       method === 'PATCH' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
     ) {
+      patchCount += 1;
       lastPatch = request.postDataJSON() as Record<string, unknown>;
+      if (patchCount === 1 && initial.holdFirstPatch) {
+        await firstPatchGate;
+      }
+      if (patchCount === 1 && initial.failFirstPatch) {
+        await json(
+          {
+            code: 'SERVICE_UNAVAILABLE',
+            status: 503,
+            title: 'Temporarily unavailable',
+          },
+          503,
+        );
+        return;
+      }
       ownVibe = Object.hasOwn(lastPatch, 'vibe')
         ? (lastPatch.vibe as string | null)
         : ownVibe;
@@ -267,7 +289,11 @@ async function installMocks(
     );
   });
 
-  return { lastPatch: () => lastPatch };
+  return {
+    lastPatch: () => lastPatch,
+    patchCount: () => patchCount,
+    releaseFirstPatch,
+  };
 }
 
 async function signIn(page: Page) {
@@ -550,6 +576,70 @@ test('Daily Vibe stays relationship-first, uses the shared sheet, and preserves 
     page.getByRole('button', { name: dailyVibe.chooseAria }),
   ).toBeVisible();
   expect(state.lastPatch()).toEqual({ vibe: null });
+});
+
+test('Daily Vibe immediately shows only the own pending Vibe and recovers a failed save', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page, {
+    holdFirstPatch: true,
+    failFirstPatch: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+
+  await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await sheet.getByRole('button', { name: dailyVibe.values.GOOD }).click();
+  const note = 'A nice calm morning';
+  await sheet.getByPlaceholder(dailyVibe.notePlaceholder).fill(note);
+  await sheet.getByRole('button', { name: dailyVibe.share }).click();
+
+  await expect(sheet).toHaveCount(0);
+  const ownCard = page.getByTestId('daily-vibe-own');
+  await expect(ownCard.getByText(dailyVibe.values.GOOD)).toBeVisible();
+  await expect(ownCard).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByText(dailyVibe.saving)).toBeVisible();
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-vibe-pending-390-light.png'),
+    fullPage: true,
+  });
+  await ownCard.click();
+  await expect(sheet).toHaveCount(0);
+  expect(state.patchCount()).toBe(1);
+
+  state.releaseFirstPatch();
+  await expect(sheet).toBeVisible();
+  await expect(ownCard.getByText(dailyVibe.values.GOOD)).toHaveCount(0);
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+  await expect(sheet.getByText(dailyVibe.saveError)).toBeVisible();
+  await expect(sheet.getByPlaceholder(dailyVibe.notePlaceholder)).toHaveValue(
+    note,
+  );
+  await expect(
+    sheet.getByRole('button', { name: dailyVibe.values.GOOD }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-vibe-save-error-390-light.png'),
+    fullPage: true,
+  });
+
+  await sheet.getByRole('button', { name: dailyVibe.retry }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(ownCard.getByText(dailyVibe.values.GOOD)).toBeVisible();
+  await expect(ownCard).toHaveAttribute('aria-disabled', 'false');
+  await expect(page.getByText(dailyVibe.saving)).toHaveCount(0);
+  await expect(
+    page.getByTestId('daily-vibe-partner').getByText(dailyVibe.values.STRESSED),
+  ).toBeVisible();
+  expect(state.patchCount()).toBe(2);
+  expect(state.lastPatch()).toEqual({ vibe: 'GOOD', vibeNote: note });
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
 test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({

@@ -92,6 +92,16 @@ function rawResponse(value: DailyCheckInTodayView, etag: string) {
   };
 }
 
+function deferredResponse() {
+  let resolve!: (value: ReturnType<typeof rawResponse>) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<ReturnType<typeof rawResponse>>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+
 function renderVibe(
   api: DailyCheckInsApi,
   {
@@ -276,6 +286,153 @@ describe('DailyVibeCheckIn', () => {
     expect(within(partner).getByText('Marie')).not.toBeNull();
     expect(within(partner).queryByText('Marie Winter')).toBeNull();
     expect(screen.getByRole('status').textContent).toContain('Marie');
+  });
+
+  it('shows only the own pending Vibe before the server authorizes a partner reveal', async () => {
+    const held = deferredResponse();
+    const update = vi.fn().mockReturnValue(held.promise);
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(rawResponse(projection(), '"today:1"')),
+      updateDailyCheckInTodayRaw: update,
+    } as unknown as DailyCheckInsApi;
+
+    const { queryClient } = renderVibe(api);
+    const dialog = await openVibeSheet();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: dailyVibe.values.OKAY }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: dailyVibe.share }),
+    );
+
+    const own = await screen.findByRole('button', {
+      name: changeAria(dailyVibe.values.OKAY),
+    });
+    expect(own.getAttribute('aria-disabled')).toBe('true');
+    expect(within(own).getByRole('status').textContent).toBe(dailyVibe.saving);
+    expect(
+      screen.queryByRole('dialog', { name: dailyVibe.sheetTitle }),
+    ).toBeNull();
+    expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+    fireEvent.click(own);
+    expect(update).toHaveBeenCalledTimes(1);
+
+    const cached = queryClient.getQueryData<{
+      etag: string;
+      projection: DailyCheckInTodayView;
+    }>(dailyCheckInTodayQueryKey('account-1', 'space-1'));
+    expect(cached?.etag).toBe('"today:1"');
+    expect(cached?.projection.own.vibe).toBeNull();
+    expect(cached?.projection.own.energyLevel).toBe(60);
+    expect(cached?.projection.vibe?.partner.state).toBe(
+      'HIDDEN_UNTIL_SELF_CHECK_IN',
+    );
+
+    held.resolve(
+      rawResponse(
+        projection({
+          ownVibe: 'OKAY',
+          partner: { state: 'VISIBLE', value: 'GOOD' },
+        }),
+        '"today:2"',
+      ),
+    );
+    await waitFor(() =>
+      expect(own.getAttribute('aria-disabled')).toBe('false'),
+    );
+    expect(within(own).queryByRole('status')).toBeNull();
+    expect(
+      within(await screen.findByTestId('daily-vibe-partner')).getByText(
+        dailyVibe.values.GOOD,
+      ),
+    ).not.toBeNull();
+  });
+
+  it('rolls back a failed own preview and retries the preserved Vibe and note', async () => {
+    const failed = deferredResponse();
+    const retried = deferredResponse();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(failed.promise)
+      .mockReturnValueOnce(retried.promise);
+    const api = {
+      getDailyCheckInTodayRaw: vi
+        .fn()
+        .mockResolvedValue(
+          rawResponse(projection({ ownVibe: 'GOOD' }), '"today:1"'),
+        ),
+      updateDailyCheckInTodayRaw: update,
+    } as unknown as DailyCheckInsApi;
+
+    renderVibe(api);
+    const dialog = await openVibeSheet(changeAria(dailyVibe.values.GOOD));
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: dailyVibe.values.SAD }),
+    );
+    fireEvent.change(
+      within(dialog).getByPlaceholderText(dailyVibe.notePlaceholder),
+      {
+        target: { value: 'A quiet evening would help.' },
+      },
+    );
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: dailyVibe.saveChanges }),
+    );
+    await screen.findByRole('button', {
+      name: changeAria(dailyVibe.values.SAD),
+    });
+    failed.reject(new ClientProblemError('server', 500, 'BROKEN'));
+
+    const reopened = await screen.findByRole('dialog', {
+      name: dailyVibe.sheetTitle,
+    });
+    expect(
+      screen.getByRole('button', {
+        name: changeAria(dailyVibe.values.GOOD),
+      }),
+    ).not.toBeNull();
+    expect(within(reopened).getByText(dailyVibe.saveError)).not.toBeNull();
+    expect(
+      within(reopened).getByPlaceholderText(dailyVibe.notePlaceholder),
+    ).toHaveProperty('value', 'A quiet evening would help.');
+    expect(
+      within(reopened)
+        .getByRole('button', { name: dailyVibe.values.SAD })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(update).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      within(reopened).getByRole('button', { name: dailyVibe.retry }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(update.mock.calls[1][0].dailyCheckInUpdate).toEqual({
+      vibe: 'SAD',
+      vibeNote: 'A quiet evening would help.',
+    });
+    retried.resolve(
+      rawResponse(
+        projection({
+          ownVibe: 'SAD',
+          ownVibeNote: 'A quiet evening would help.',
+        }),
+        '"today:2"',
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', {
+            name: changeAria(dailyVibe.values.SAD),
+          })
+          .getAttribute('aria-disabled'),
+      ).toBe('false'),
+    );
+    expect(
+      screen.queryByRole('dialog', { name: dailyVibe.sheetTitle }),
+    ).toBeNull();
   });
 
   it('shares an optional context note atomically with the selected Vibe', async () => {

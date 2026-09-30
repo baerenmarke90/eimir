@@ -14,17 +14,17 @@ import {
 } from '../api/generated/models/DailyVibe';
 import type { PartnerVibeProjection } from '../api/generated/models/PartnerVibeProjection';
 import {
+  type DailyCheckInSnapshot,
   dailyCheckInTodayQueryKey,
   dailyCheckInTodayQueryOptions,
-  type DailyCheckInSnapshot,
   updateDailyCheckInToday,
 } from '../client/dailyCheckIn';
+import { firstNameFromDisplayName } from '../client/personalName';
 import {
   ClientProblemError,
   clientProblemKind,
 } from '../client/problemDetails';
 import { postSnackbar } from '../client/snackbar';
-import { firstNameFromDisplayName } from '../client/personalName';
 import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useTranslation } from '../i18n';
 import { DailyVibeIcon } from './DailyVibeIcon';
@@ -117,6 +117,11 @@ export function DailyVibeCheckIn({
   const [open, setOpen] = useState(false);
   const [draftVibe, setDraftVibe] = useState<DailyVibeValue | null>(null);
   const [draftNote, setDraftNote] = useState('');
+  const [pendingOwnVibe, setPendingOwnVibe] = useState<{
+    accountId: string;
+    spaceId: string;
+    value: DailyVibeValue;
+  } | null>(null);
   const [partnerNoteOpen, setPartnerNoteOpen] = useState(false);
   const [revealVersion, setRevealVersion] = useState(0);
   const [announcement, setAnnouncement] = useState('');
@@ -130,6 +135,10 @@ export function DailyVibeCheckIn({
 
   const ownVibe = dailyQuery.data?.projection.own.vibe ?? null;
   const ownVibeNote = dailyQuery.data?.projection.own.vibeNote ?? null;
+  const ownPending =
+    pendingOwnVibe?.accountId === accountId &&
+    pendingOwnVibe.spaceId === spaceId;
+  const displayedOwnVibe = ownPending ? pendingOwnVibe.value : ownVibe;
   const serverVibe = dailyQuery.data?.projection.vibe;
   const serverPartnerNote =
     serverVibe?.partner.state === 'VISIBLE'
@@ -175,24 +184,54 @@ export function DailyVibeCheckIn({
   }
 
   const mutation = useMutation({
-    mutationFn: async (update: DailyCheckInUpdate) => {
-      const current =
-        queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
-        dailyQuery.data;
+    mutationFn: async ({
+      accountId: targetAccountId,
+      spaceId: targetSpaceId,
+      update,
+    }: {
+      accountId: string;
+      spaceId: string;
+      update: DailyCheckInUpdate;
+    }) => {
+      const targetKey = dailyCheckInTodayQueryKey(
+        targetAccountId,
+        targetSpaceId,
+      );
+      const current = queryClient.getQueryData<DailyCheckInSnapshot>(targetKey);
       if (!api || !current) {
         throw new ClientProblemError('unknown');
       }
-      return updateDailyCheckInToday(api, spaceId, current.etag, update);
+      return updateDailyCheckInToday(api, targetSpaceId, current.etag, update);
     },
-    onMutate: () => {
-      const current =
-        queryClient.getQueryData<DailyCheckInSnapshot>(queryKey) ??
-        dailyQuery.data;
+    onMutate: async (variables) => {
+      const targetKey = dailyCheckInTodayQueryKey(
+        variables.accountId,
+        variables.spaceId,
+      );
+      const current = queryClient.getQueryData<DailyCheckInSnapshot>(targetKey);
       previousPartnerStateRef.current = current?.projection.vibe?.partner.state;
       setAnnouncement('');
+      if (variables.update.vibe) {
+        setPendingOwnVibe({
+          accountId: variables.accountId,
+          spaceId: variables.spaceId,
+          value: variables.update.vibe,
+        });
+        setOpen(false);
+      }
+      await queryClient.cancelQueries({ queryKey: targetKey, exact: true });
     },
-    onSuccess: (snapshot) => {
-      queryClient.setQueryData<DailyCheckInSnapshot>(queryKey, snapshot);
+    onSuccess: async (snapshot, variables) => {
+      const targetKey = dailyCheckInTodayQueryKey(
+        variables.accountId,
+        variables.spaceId,
+      );
+      await queryClient.cancelQueries({ queryKey: targetKey, exact: true });
+      queryClient.setQueryData<DailyCheckInSnapshot>(targetKey, snapshot);
+      if (variables.accountId !== accountId || variables.spaceId !== spaceId) {
+        return;
+      }
+      setPendingOwnVibe(null);
       const nextPartner = snapshot.projection.vibe?.partner;
       if (
         previousPartnerStateRef.current === 'HIDDEN_UNTIL_SELF_CHECK_IN' &&
@@ -203,7 +242,11 @@ export function DailyVibeCheckIn({
       }
       setOpen(false);
     },
-    onError: async (error) => {
+    onError: async (error, variables) => {
+      if (variables.accountId !== accountId || variables.spaceId !== spaceId) {
+        return;
+      }
+      setPendingOwnVibe(null);
       const problem =
         error instanceof ClientProblemError
           ? error
@@ -229,6 +272,7 @@ export function DailyVibeCheckIn({
           exact: true,
           type: 'active',
         });
+        setOpen(true);
         return;
       }
 
@@ -240,7 +284,9 @@ export function DailyVibeCheckIn({
         });
         setOpen(false);
         postSnackbar('snackbar.dailyVibeConflict');
+        return;
       }
+      setOpen(true);
     },
   });
 
@@ -326,14 +372,18 @@ export function DailyVibeCheckIn({
       return;
     }
     mutation.mutate({
-      vibe: draftVibe,
-      vibeNote: normalizedNote.length > 0 ? normalizedNote : null,
+      accountId,
+      spaceId,
+      update: {
+        vibe: draftVibe,
+        vibeNote: normalizedNote.length > 0 ? normalizedNote : null,
+      },
     });
   }
 
   function removeVibe(): void {
     if (mutation.isPending) return;
-    mutation.mutate({ vibe: null });
+    mutation.mutate({ accountId, spaceId, update: { vibe: null } });
   }
 
   if (snapshot.projection.vibe === null) {
@@ -367,7 +417,7 @@ export function DailyVibeCheckIn({
     );
   }
 
-  const ownOption = ownVibe ? vibeOption(ownVibe) : undefined;
+  const ownOption = displayedOwnVibe ? vibeOption(displayedOwnVibe) : undefined;
   const ownLabel = ownOption ? t(ownOption.labelKey) : '';
   const triggerLabel = ownOption
     ? t('dailyVibe.changeAria', { value: ownLabel })
@@ -427,14 +477,18 @@ export function DailyVibeCheckIn({
         <div className="daily-vibe-people">
           {ownOption ? (
             <button
-              key={ownVibe}
+              key={displayedOwnVibe}
               ref={triggerRef}
               type="button"
-              className="daily-vibe-person daily-vibe-own is-startup-reveal"
+              className={`daily-vibe-person daily-vibe-own${ownPending ? ' is-pending' : ' is-startup-reveal'}`}
               aria-haspopup="dialog"
               aria-expanded={open}
+              aria-disabled={ownPending}
               aria-label={triggerLabel}
-              onClick={openOwnSheet}
+              data-testid="daily-vibe-own"
+              onClick={() => {
+                if (!ownPending) openOwnSheet();
+              }}
             >
               <span className="daily-vibe-glyph" aria-hidden="true">
                 <DailyVibeIcon value={ownOption.value} />
@@ -442,6 +496,11 @@ export function DailyVibeCheckIn({
               <span className="daily-vibe-person-copy">
                 <span>{t('dailyVibe.you')}</span>
                 <strong>{ownLabel}</strong>
+                {ownPending ? (
+                  <small className="daily-vibe-pending-status" role="status">
+                    {t('dailyVibe.saving')}
+                  </small>
+                ) : null}
               </span>
             </button>
           ) : null}
@@ -566,9 +625,11 @@ export function DailyVibeCheckIn({
               disabled={mutation.isPending || draftVibe === null}
               onClick={saveDraft}
             >
-              {ownVibe === null
-                ? t('dailyVibe.share')
-                : t('dailyVibe.saveChanges')}
+              {genericMutationError
+                ? t('dailyVibe.retry')
+                : ownVibe === null
+                  ? t('dailyVibe.share')
+                  : t('dailyVibe.saveChanges')}
             </button>
           </div>
         </div>

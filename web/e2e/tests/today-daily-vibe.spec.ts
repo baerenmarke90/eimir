@@ -608,7 +608,7 @@ test('Daily Vibe immediately shows only the own pending Vibe and recovers a fail
     path: testInfo.outputPath('today-daily-vibe-pending-390-light.png'),
     fullPage: true,
   });
-  await ownCard.click();
+  await ownCard.dispatchEvent('click');
   await expect(sheet).toHaveCount(0);
   expect(state.patchCount()).toBe(1);
 

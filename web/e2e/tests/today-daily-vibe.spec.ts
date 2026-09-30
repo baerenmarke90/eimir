@@ -693,6 +693,15 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
   const axe = await new AxeBuilder({ page }).analyze();
   expect(axe.violations).toEqual([]);
 
+  await expect
+    .poll(() =>
+      sheet.evaluate((dialog) =>
+        dialog
+          .getAnimations()
+          .every((animation) => animation.playState === 'finished'),
+      ),
+    )
+    .toBe(true);
   await page.screenshot({
     path: testInfo.outputPath('today-daily-vibe-1280-light.png'),
     fullPage: true,

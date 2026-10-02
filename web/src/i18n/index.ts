@@ -29,6 +29,7 @@ import relationshipComponents from './locales/relationshipComponents';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
 import contextTags from './locales/contextTags';
+import sharedPhotos from './locales/sharedPhotos';
 
 export const DEFAULT_LOCALE = 'de';
 
@@ -75,6 +76,7 @@ if (!i18n.isInitialized) {
           ...snackbar,
           ...storyProducts,
           contextTags,
+          sharedPhotos,
         },
       },
     },

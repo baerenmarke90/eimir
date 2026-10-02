@@ -1,0 +1,21 @@
+export default {
+  browse: 'Fotos',
+  eyebrow: 'Gemeinsam erinnert',
+  title: 'Unsere Fotos',
+  description: 'Eure geteilten Bilder, gesammelt an einem Ort.',
+  count_one: '{{count}} Foto · Gemeinsam',
+  count_other: '{{count}} Fotos · Gemeinsam',
+  open: 'Foto {{index}} vom {{date}} öffnen',
+  source: 'Zum Moment',
+  loading: 'Eure Fotos werden geladen …',
+  empty: 'Hier sammeln sich eure Fotos',
+  emptyBody:
+    'Bilder aus euren geteilten Erinnerungen und Herzmomenten erscheinen hier.',
+  error: 'Eure Fotos konnten nicht geladen werden',
+  pageError: 'Weitere Fotos konnten nicht geladen werden',
+  retry: 'Erneut versuchen',
+  more: 'Weitere Fotos laden',
+  loadingMore: 'Weitere Fotos werden geladen …',
+  offline: 'Du bist gerade offline',
+  offlineBody: 'Verbinde dich mit dem Internet, um eure Fotos zu laden.',
+};

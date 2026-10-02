@@ -8,7 +8,11 @@ import {
   useRef,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ACTIVITY_ROUTE, MORE_NOTIFICATIONS_ROUTE } from './routes';
+import {
+  ACTIVITY_ROUTE,
+  MORE_NOTIFICATIONS_ROUTE,
+  STORY_PHOTOS_ROUTE,
+} from './routes';
 import { parseStoryFilters, storyFiltersToSearch } from './storyProduct';
 
 const MAX_ORIGINS = 12;
@@ -70,6 +74,7 @@ export function taskOriginPath(
     ![
       '/today',
       '/story',
+      STORY_PHOTOS_ROUTE,
       '/plan',
       '/more',
       '/search',

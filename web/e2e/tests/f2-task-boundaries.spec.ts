@@ -1260,6 +1260,12 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.addStyleTag({ content: ':root { font-size: 200%; }' });
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator('.momente-browse-layer').screenshot({
+    path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
+    animations: 'disabled',
+  });
+  await page.setViewportSize({ width: 320, height: 480 });
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();

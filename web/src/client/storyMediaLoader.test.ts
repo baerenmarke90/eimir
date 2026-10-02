@@ -25,6 +25,39 @@ function storyApis({
 }
 
 describe('loadAuthorizedStoryImage', () => {
+  it('requests the thumbnail variant through both descriptor and authorized stream with cancellation', async () => {
+    const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
+      storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
+    const controller = new AbortController();
+    await loadAuthorizedStoryImage(
+      apis,
+      'space-1',
+      'MEMORY',
+      'memory-1',
+      'image-1',
+      {
+        variant: 'thumbnail',
+        signal: controller.signal,
+        createObjectUrl: () => 'blob:thumbnail',
+      },
+    );
+    expect(createAttachmentReadAccess).toHaveBeenCalledWith(
+      {
+        spaceId: 'space-1',
+        attachmentId: 'image-1',
+        attachmentReadRequest: {
+          parentType: 'MEMORY',
+          parentId: 'memory-1',
+          variant: 'thumbnail',
+        },
+      },
+      { signal: controller.signal },
+    );
+    expect(getAttachmentContentRaw).toHaveBeenCalledWith(
+      { spaceId: 'space-1', attachmentId: 'image-1', variant: 'thumbnail' },
+      { signal: controller.signal },
+    );
+  });
   it('binds Heart Moment timeline media to HEART_MOMENT before streaming', async () => {
     const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
       storyApis({

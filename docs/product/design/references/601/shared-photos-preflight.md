@@ -61,7 +61,7 @@ for the asymmetric Entdecken experience. No new upload flow or primary tab.
 - Touch photo opens the shared fullscreen viewer. Swipe, keyboard arrows and
   visible previous/next controls browse loaded photos. Escape, close and system
   Back dismiss the viewer, restoring the triggering tile and scroll position.
-  `Zum Moment` opens the canonical parent detail after removing the overlay
+  The source action opens the canonical parent detail after removing the overlay
   history entry; task return restores the gallery's loaded pages and position.
 - Header and Momente bottom navigation stay visible in the overview. All
   controls have 48px targets; at 320px and 200% text there is no page overflow.

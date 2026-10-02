@@ -114,7 +114,7 @@
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 17
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",

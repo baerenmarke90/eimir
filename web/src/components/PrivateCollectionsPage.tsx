@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -16,6 +16,7 @@ import {
   privateCollectionPath,
 } from '../client/privateArea';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
+import { clientProblemKind } from '../client/problemDetails';
 import { useTranslation } from '../i18n';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
 import { PageHeader } from './PageHeader';
@@ -296,14 +297,21 @@ function CollectionItems({
   spaceId,
   collection,
   editing,
+  readBlocked = false,
   onPendingChange,
 }: Props & {
   collection: PrivateCollectionDetail;
   editing: boolean;
+  readBlocked?: boolean;
   onPendingChange?: (pending: boolean) => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const itemUpdateInFlightRef = useRef(false);
+  const [pendingToggle, setPendingToggle] = useState<{
+    itemId: string;
+    completed: boolean;
+  } | null>(null);
   const collectionKey = privateAreaQueryKeys.collection(
     accountId,
     spaceId,
@@ -331,20 +339,117 @@ function CollectionItems({
     mutationFn: ({
       item,
       update,
+      scope,
     }: {
       item: PrivateCollectionItemDetail;
       update: { title?: string; completed?: boolean };
+      scope: { accountId: string; spaceId: string; collectionId: string };
     }) =>
       privateApiCall(() =>
         api.updatePrivateCollectionItem({
-          spaceId,
-          collectionId: collection.id,
+          spaceId: scope.spaceId,
+          collectionId: scope.collectionId,
           itemId: item.id,
           ifMatch: String(item.version),
           privateCollectionItemUpdate: update,
         }),
       ),
-    onSuccess: refresh,
+    onMutate: async ({ item, update, scope }) => {
+      const key = privateAreaQueryKeys.collection(
+        scope.accountId,
+        scope.spaceId,
+        scope.collectionId,
+      );
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const previousItem = queryClient
+        .getQueryData<PrivateCollectionDetail>(key)
+        ?.items.find((entry) => entry.id === item.id);
+      const completed = update.completed;
+      if (completed !== undefined && previousItem) {
+        setPendingToggle({ itemId: item.id, completed });
+        queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((entry) =>
+                  entry.id === item.id ? { ...entry, completed } : entry,
+                ),
+              }
+            : current,
+        );
+      }
+      return { key, previousItem };
+    },
+    onError: async (error, { update }, context) => {
+      setPendingToggle(null);
+      if (update.completed !== undefined && context?.previousItem) {
+        const previousItem = context.previousItem;
+        queryClient.setQueryData<PrivateCollectionDetail>(
+          context.key,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.map((entry) =>
+                    entry.id === previousItem.id &&
+                    entry.version === previousItem.version
+                      ? { ...entry, completed: previousItem.completed }
+                      : entry,
+                  ),
+                }
+              : current,
+        );
+      }
+      if (
+        context &&
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.resetQueries({ queryKey: context.key, exact: true });
+      }
+    },
+    onSuccess: (updatedItem, _variables, context) => {
+      if (context) {
+        queryClient.setQueryData<PrivateCollectionDetail>(
+          context.key,
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  items: current.items.map((entry) =>
+                    entry.id === updatedItem.id &&
+                    entry.version <= updatedItem.version
+                      ? updatedItem
+                      : entry,
+                  ),
+                }
+              : current,
+        );
+      }
+      setPendingToggle(null);
+    },
+    onSettled: async (_data, error, { scope }, context) => {
+      if (
+        context &&
+        !['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+        });
+      }
+      await queryClient.invalidateQueries({
+        queryKey: privateAreaQueryKeys.collections(
+          scope.accountId,
+          scope.spaceId,
+        ),
+        exact: true,
+      });
+      itemUpdateInFlightRef.current = false;
+    },
   });
   const deleteMutation = useMutation({
     mutationFn: (item: PrivateCollectionItemDetail) =>
@@ -391,7 +496,7 @@ function CollectionItems({
   const reorder = useListItemReorder({
     itemIds: baseItems.map((item) => item.id),
     disabled:
-      !editing || !collection.capabilities.canEdit || reorderMutation.isPending,
+      !editing || !collection.capabilities.canEdit || pending || readBlocked,
     onReorder: (itemIds) => reorderMutation.mutate(itemIds),
   });
   const itemById = new Map(baseItems.map((item) => [item.id, item]));
@@ -404,8 +509,28 @@ function CollectionItems({
     const form = event.currentTarget;
     const data = new FormData(form);
     const title = String(data.get('title') || '').trim();
-    if (!title) return;
+    if (!title || pending || readBlocked || itemUpdateInFlightRef.current)
+      return;
     createMutation.mutate(title, { onSuccess: () => form.reset() });
+  }
+
+  function submitItemUpdate(
+    item: PrivateCollectionItemDetail,
+    update: { title?: string; completed?: boolean },
+  ) {
+    if (
+      itemUpdateInFlightRef.current ||
+      pending ||
+      readBlocked ||
+      !collection.capabilities.canEdit
+    )
+      return;
+    itemUpdateInFlightRef.current = true;
+    updateMutation.mutate({
+      item,
+      update,
+      scope: { accountId, spaceId, collectionId: collection.id },
+    });
   }
 
   function commitRename(
@@ -419,16 +544,21 @@ function CollectionItems({
       return;
     }
     if (title === item.title) return;
-    updateMutation.mutate({ item, update: { title } });
+    submitItemUpdate(item, { title });
   }
 
   function renderChecklistItem(item: PrivateCollectionItemDetail) {
+    const isTogglePending = pendingToggle?.itemId === item.id;
+    const completed = isTogglePending
+      ? pendingToggle.completed
+      : item.completed;
+    const pendingId = `private-item-${item.id}-pending`;
     return (
       <li
         key={item.id}
         data-sortable-item-id={item.id}
         className={[
-          item.completed ? 'planning-item-completed' : null,
+          completed ? 'planning-item-completed' : null,
           reorder.activeItemId === item.id ? 'list-entry-dragging' : null,
         ]
           .filter(Boolean)
@@ -437,38 +567,34 @@ function CollectionItems({
         <button
           type="button"
           className="planning-check is-private"
-          aria-pressed={item.completed}
+          aria-pressed={completed}
+          aria-describedby={isTogglePending ? pendingId : undefined}
           aria-label={
-            item.completed
+            completed
               ? t('privateArea.collections.markOpen')
               : t('privateArea.collections.markComplete')
           }
-          onClick={() =>
-            updateMutation.mutate({
-              item,
-              update: { completed: !item.completed },
-            })
-          }
-          disabled={
-            !collection.capabilities.canEdit || updateMutation.isPending
-          }
+          onClick={() => submitItemUpdate(item, { completed: !completed })}
+          disabled={!collection.capabilities.canEdit || pending || readBlocked}
         >
-          {item.completed ? '✓' : ''}
+          {completed ? '✓' : ''}
         </button>
         {editing ? (
           <>
-            <div className="planning-item-title-form">
+            <div className="planning-item-title-form planning-collection-item-title-form">
               <label className="sr-only" htmlFor={`private-item-${item.id}`}>
                 {t('privateArea.collections.rename')}
               </label>
               <input
                 id={`private-item-${item.id}`}
                 name="title"
-                className={`private-checklist-title-input${item.completed ? ' is-completed' : ''}`}
+                className={`private-checklist-title-input${completed ? ' is-completed' : ''}`}
                 defaultValue={item.title}
                 required
                 maxLength={200}
-                disabled={!collection.capabilities.canEdit}
+                disabled={
+                  !collection.capabilities.canEdit || pending || readBlocked
+                }
                 onBlur={(event) => {
                   commitRename(
                     item,
@@ -486,6 +612,15 @@ function CollectionItems({
                   }
                 }}
               />
+              {isTogglePending ? (
+                <small
+                  id={pendingId}
+                  className="planning-collection-item-pending"
+                  role="status"
+                >
+                  {t('common.saving')}
+                </small>
+              ) : null}
             </div>
             {collection.capabilities.canEdit ? (
               <ListEntryIconButton
@@ -501,16 +636,27 @@ function CollectionItems({
                 className="tertiary"
                 label={t('privateArea.collections.removeItem')}
                 onClick={() => deleteMutation.mutate(item)}
-                disabled={deleteMutation.isPending}
+                disabled={pending || readBlocked}
               />
             ) : null}
           </>
         ) : (
-          <span
-            className={`private-collection-item-title${item.completed ? ' is-completed' : ''}`}
-          >
-            {item.title}
-          </span>
+          <div className="planning-item-title-form planning-collection-item-title-form">
+            <span
+              className={`private-collection-item-title${completed ? ' is-completed' : ''}`}
+            >
+              {item.title}
+            </span>
+            {isTogglePending ? (
+              <small
+                id={pendingId}
+                className="planning-collection-item-pending"
+                role="status"
+              >
+                {t('common.saving')}
+              </small>
+            ) : null}
+          </div>
         )}
       </li>
     );
@@ -536,6 +682,7 @@ function CollectionItems({
             required
             maxLength={200}
             placeholder={t('privateArea.collections.itemTitleLabel')}
+            disabled={pending || readBlocked}
           />
           <ListEntryIconButton
             type="submit"
@@ -546,7 +693,7 @@ function CollectionItems({
                 ? t('common.saving')
                 : t('privateArea.collections.addItem')
             }
-            disabled={createMutation.isPending}
+            disabled={pending || readBlocked}
           />
         </form>
       ) : null}
@@ -567,7 +714,16 @@ function CollectionItems({
         <p role="status">{t('privateArea.collections.reordering')}</p>
       ) : null}
       {updateMutation.error ? (
-        <ProblemState error={updateMutation.error} />
+        <ProblemState
+          error={updateMutation.error}
+          onRetry={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: collectionKey,
+              exact: true,
+            });
+            updateMutation.reset();
+          }}
+        />
       ) : null}
       {deleteMutation.error ? (
         <ProblemState error={deleteMutation.error} />
@@ -594,6 +750,8 @@ export function PrivateCollectionDetailPage({
   const [showTitleSaved, showTitleSavedForFeedbackWindow] =
     useTransientFlag(2000);
   const [itemOperationPending, setItemOperationPending] = useState(false);
+  const collectionOperationBlocked =
+    itemOperationPending || query.isFetching || Boolean(query.error);
 
   const collection = query.data;
 
@@ -688,7 +846,13 @@ export function PrivateCollectionDetailPage({
       <UiState kind="loading" title={t('privateArea.collections.loading')} />
     );
   }
-  if (query.error) {
+  if (
+    query.error &&
+    (!collection ||
+      ['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(query.error),
+      ))
+  ) {
     return (
       <ProblemState error={query.error} onRetry={() => void query.refetch()} />
     );
@@ -697,7 +861,12 @@ export function PrivateCollectionDetailPage({
 
   function submitCollectionTitle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!isTitleDirty || updateCollectionMutation.isPending) return;
+    if (
+      !isTitleDirty ||
+      updateCollectionMutation.isPending ||
+      collectionOperationBlocked
+    )
+      return;
     updateCollectionMutation.mutate(titleDraft.trim());
   }
 
@@ -754,6 +923,7 @@ export function PrivateCollectionDetailPage({
               className="tertiary"
               label={t('common.edit')}
               onClick={() => setIsEditing(true)}
+              disabled={itemOperationPending || Boolean(query.error)}
             />
           ) : undefined
         }
@@ -791,7 +961,11 @@ export function PrivateCollectionDetailPage({
                       ? t('common.saving')
                       : t('m5s3.common.saveChanges')
                   }
-                  disabled={!isTitleDirty || updateCollectionMutation.isPending}
+                  disabled={
+                    !isTitleDirty ||
+                    updateCollectionMutation.isPending ||
+                    collectionOperationBlocked
+                  }
                 />
                 <button
                   type="button"
@@ -819,12 +993,25 @@ export function PrivateCollectionDetailPage({
         })}
       />
 
+      {query.error ? (
+        <ProblemState
+          error={query.error}
+          onRetry={() => void query.refetch()}
+        />
+      ) : null}
       <CollectionItems
+        key={`${accountId}:${spaceId}:${collection.id}`}
         api={api}
         accountId={accountId}
         spaceId={spaceId}
         collection={collection}
         editing={isEditing}
+        readBlocked={
+          query.isFetching ||
+          Boolean(query.error) ||
+          updateCollectionMutation.isPending ||
+          deleteMutation.isPending
+        }
         onPendingChange={setItemOperationPending}
       />
 
@@ -842,6 +1029,9 @@ export function PrivateCollectionDetailPage({
               type="button"
               className="danger"
               onClick={() => setConfirmDelete(true)}
+              disabled={
+                collectionOperationBlocked || updateCollectionMutation.isPending
+              }
             >
               {t('m5s3.common.delete')}
             </button>
@@ -851,7 +1041,11 @@ export function PrivateCollectionDetailPage({
                 type="button"
                 className="danger"
                 onClick={() => deleteMutation.mutate(collection)}
-                disabled={deleteMutation.isPending}
+                disabled={
+                  deleteMutation.isPending ||
+                  updateCollectionMutation.isPending ||
+                  collectionOperationBlocked
+                }
               >
                 {deleteMutation.isPending
                   ? t('m5s3.common.deleting')

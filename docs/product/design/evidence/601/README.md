@@ -16,7 +16,7 @@ existing viewport-gated preview and authorized variant contract. Resource keys
 bind account, Space, parent type, parent id, attachment and rendition; removal,
 rebinding and late responses cannot retain another context's Object URL.
 
-Back/Escape/close return to the triggering tile. “Zum Moment” removes the
+Back/Escape/close return to the triggering tile. `Zum Moment` removes the
 overlay entry before opening the canonical detail; returning restores the
 loaded photo pages, focus and tile offset. Browser QA exposed and fixed a
 pending lightbox scroll callback that could otherwise reopen a dismissed modal.

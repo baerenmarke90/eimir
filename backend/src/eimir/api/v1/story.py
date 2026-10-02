@@ -224,6 +224,7 @@ class SharedPhotoPage(ApiModel):
     responses=problem_responses(400, 401, 404, 422),
 )
 def get_shared_photos(
+    response: Response,
     tenant: Tenant,
     authorization: Authorization,
     session: DbSession,
@@ -235,6 +236,7 @@ def get_shared_photos(
     Owner-private media is excluded even for its owner. Media bytes still use
     the existing parent-bound attachment read authorization.
     """
+    response.headers["Cache-Control"] = "private, no-store"
     page = photo_service.read_shared_photos(session, authorization, cursor=cursor, limit=limit)
     attachments = {
         attachment.id: attachment

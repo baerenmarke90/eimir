@@ -41,6 +41,7 @@ def bind_memory(client, couple, session, *, count=1, happened_on="2026-09-12"): 
 
 def image_ids(response):  # type: ignore[no-untyped-def]
     assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "private, no-store"
     return [item["attachment"]["id"] for item in response.json()["items"]]
 
 

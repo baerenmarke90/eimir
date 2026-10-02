@@ -26,8 +26,8 @@ def gallery(client, couple, *, token=None, **params):  # type: ignore[no-untyped
 def bind_memory(client, couple, session, *, count=1, happened_on="2026-09-12"):  # type: ignore[no-untyped-def]
     parent = memory(client, couple, happened_on=happened_on)
     attachments = [ready_attachment(client, couple, session) for _ in range(count)]
-    response = client.patch(
-        f"{base_path(couple['space'].id)}/memories/{parent['id']}",
+    response = client.put(
+        f"{base_path(couple['space'].id)}/memories/{parent['id']}/attachments",
         json={
             "attachments": [
                 {"attachmentId": item, "position": i} for i, item in enumerate(attachments)
@@ -117,7 +117,7 @@ def test_private_transition_removes_photo_and_blocks_partner_bytes(client, coupl
     heart = heart_moment(client, couple, attachment_id=image).json()
     assert image_ids(gallery(client, couple)) == [image]
     response = client.patch(
-        f"{base_path(couple['space'].id)}/heart-moments/{heart['id']}",
+        f"{base_path(couple['space'].id)}/heart-moments/{heart['id']}/visibility",
         json={"visibility": "PRIVATE"},
         headers={**auth(couple["token_a"]), "If-Match": f'"{heart["version"]}"'},
     )

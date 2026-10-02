@@ -523,6 +523,7 @@
 
 .planning-collection-item-pending {
   flex-basis: 100%;
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
 }
 

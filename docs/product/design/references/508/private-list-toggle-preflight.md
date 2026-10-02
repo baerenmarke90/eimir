@@ -9,6 +9,10 @@ feedback in `CollectionProductPage`. Existing shell, privacy banner, private
 tabs, Back, title/count, edit action, read/check-first items, and primary
 navigation remain. Add/remove/rename/reorder stay behind the existing Edit mode.
 
+Rechecked after #1291 at `main@06bd4e9300f7febebcecc42164a28ea0a67ef55a`:
+the private destination, shell and checklist are unchanged, so the generated
+composition and interaction contract still apply.
+
 This fifth #508 slice changes only private item completion feedback. It does
 not claim to complete #508 or add immediate private reorder, offline writes,
 shared discovery, a notification, or another persistence layer.

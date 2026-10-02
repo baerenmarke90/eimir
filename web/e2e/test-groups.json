@@ -58,7 +58,7 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 7
     },
     "momente-discover-canonical.spec.ts": {
       "disposition": "PR_CRITICAL",

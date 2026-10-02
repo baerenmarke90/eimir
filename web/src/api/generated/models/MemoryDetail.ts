@@ -97,10 +97,10 @@ export interface MemoryDetail {
     spaceId: string;
     /**
      * 
-     * @type {Array<MemoryDetailTagsEnum>}
+     * @type {Array<string>}
      * @memberof MemoryDetail
      */
-    tags: Array<MemoryDetailTagsEnum>;
+    tags: Array<string>;
     /**
      * 
      * @type {string}
@@ -120,19 +120,6 @@ export interface MemoryDetail {
      */
     version: number;
 }
-
-
-/**
- * @export
- */
-export const MemoryDetailTagsEnum = {
-    out_together: 'out_together',
-    laughter: 'laughter',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type MemoryDetailTagsEnum = typeof MemoryDetailTagsEnum[keyof typeof MemoryDetailTagsEnum];
-
 
 /**
  * Check if a given object implements the MemoryDetail interface.

@@ -78,28 +78,28 @@ class TestCrudAndOwnership:
         path = memories_path(couple["space"].id)
         created = client.post(
             path,
-            json={**memory_body(), "tags": ["home", "laughter"]},
+            json={**memory_body(), "tags": ["home", "laughter", "Unser Urlaub"]},
             headers=auth(couple["token_a"]),
         )
         assert created.status_code == 201
         memory_id = created.json()["id"]
-        assert created.json()["tags"] == ["home", "laughter"]
+        assert created.json()["tags"] == ["home", "laughter", "Unser Urlaub"]
         shared = client.get(f"{path}/{memory_id}", headers=auth(couple["token_b"]))
-        assert shared.json()["tags"] == ["home", "laughter"]
+        assert shared.json()["tags"] == ["home", "laughter", "Unser Urlaub"]
 
         edited = client.patch(
             f"{path}/{memory_id}",
             json={"body": "A new narrative"},
             headers=if_match(couple["token_a"], 1),
         )
-        assert edited.json()["tags"] == ["home", "laughter"]
+        assert edited.json()["tags"] == ["home", "laughter", "Unser Urlaub"]
         cleared = client.patch(
             f"{path}/{memory_id}",
             json={"tags": []},
             headers=if_match(couple["token_a"], 2),
         )
         assert cleared.json()["tags"] == []
-        for tags in (["unknown"], ["home", "home"], ["home"] * 5):
+        for tags in ([" "], ["x" * 41], ["home", "home"], [str(i) for i in range(9)]):
             rejected = client.patch(
                 f"{path}/{memory_id}",
                 json={"tags": tags},

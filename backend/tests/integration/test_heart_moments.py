@@ -124,14 +124,18 @@ class TestCrudAndOwnership:
 
     def test_textless_tagged_create_replay_edit_and_private_boundary(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         key = str(uuid4())
-        payload = {**body(text=""), "tags": ["everyday", "home"], "visibility": "PRIVATE"}
+        payload = {
+            **body(text=""),
+            "tags": ["everyday", "home", "Unser Urlaub"],
+            "visibility": "PRIVATE",
+        }
         url = path(couple["space"].id)
         headers = {**auth(couple["token_a"]), "Idempotency-Key": key}
         created = client.post(url, json=payload, headers=headers)
         assert created.status_code == 201
         item = created.json()
         assert item["text"] == ""
-        assert item["tags"] == ["everyday", "home"]
+        assert item["tags"] == ["everyday", "home", "Unser Urlaub"]
         assert client.post(url, json=payload, headers=headers).status_code == 200
         changed = client.post(url, json={**payload, "tags": ["home"]}, headers=headers)
         assert changed.status_code == 409
@@ -146,7 +150,7 @@ class TestCrudAndOwnership:
             headers=if_match(couple["token_a"], 1),
         )
         assert updated.status_code == 200
-        assert updated.json()["tags"] == ["everyday", "home"]
+        assert updated.json()["tags"] == ["everyday", "home", "Unser Urlaub"]
         empty = client.patch(
             detail_url,
             json={"tags": []},
@@ -156,6 +160,7 @@ class TestCrudAndOwnership:
         assert client.get(detail_url, headers=auth(couple["token_a"])).json()["tags"] == [
             "everyday",
             "home",
+            "Unser Urlaub",
         ]
 
     def test_partner_reads_shared_but_does_not_write(

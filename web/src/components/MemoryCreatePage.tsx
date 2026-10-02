@@ -74,6 +74,7 @@ export function MemoryCreatePage({
   const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
   const [body, setBody] = useState('');
   const [tags, setTags] = useState<MemoryTag[]>([]);
+  const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
   const [dateEditorOpen, setDateEditorOpen] = useState(false);
@@ -148,6 +149,7 @@ export function MemoryCreatePage({
     title ||
       body ||
       tags.length ||
+      tagDraftDirty ||
       attachments.items.length ||
       happenedOn !== initialDate,
   );
@@ -425,7 +427,11 @@ export function MemoryCreatePage({
               />
             </div>
 
-            <MemoryTagChoices selected={tags} onChange={setTags} />
+            <MemoryTagChoices
+              selected={tags}
+              onChange={setTags}
+              onDraftChange={setTagDraftDirty}
+            />
 
             <div className="field-group immersive-create-title-field">
               <label htmlFor="title">{t('memory.titleLabelOptional')}</label>

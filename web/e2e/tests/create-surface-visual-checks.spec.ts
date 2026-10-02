@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import contextTags from '../../src/i18n/locales/contextTags';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 
@@ -358,6 +359,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       document.documentElement.style.fontSize = '';
     });
 
+    await page.getByText(contextTags.suggestions, { exact: true }).click();
     const homeTag = page.getByRole('checkbox', {
       name: de.memory.tagLabels.home,
     });
@@ -1042,6 +1044,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('link', { name: memoryProduct.edit }).click();
+    await page.getByText(contextTags.suggestions, { exact: true }).click();
     await expect(
       page.getByRole('checkbox', { name: de.memory.tagLabels.home }),
     ).toBeChecked();

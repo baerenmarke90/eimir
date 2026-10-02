@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
 import storyProducts from '../../src/i18n/locales/storyProducts';
+import taskBoundary from '../../src/i18n/locales/taskBoundary';
 
 const SPACE = '22222222-2222-4222-8222-222222222222';
 const ACCOUNT = '11111111-1111-4111-8111-111111111111';
@@ -148,8 +150,8 @@ async function mocks(
       return json({
         id: p.split('/').at(-1),
         spaceId: SPACE,
-        title: 'Unser Tag am See',
-        body: 'Ein schöner gemeinsamer Tag.',
+        title: 'Our day by the lake',
+        body: 'A lovely day together.',
         happenedOn: '2026-08-14',
         author,
         authorId: ACCOUNT,
@@ -189,7 +191,7 @@ async function signIn(page: Page) {
   await page.getByRole('button', { name: de.login.submit }).click();
   await page.goto('/story/photos');
   await expect(
-    page.getByRole('heading', { name: 'Unsere Fotos', level: 1 }),
+    page.getByRole('heading', { name: sharedPhotos.title, level: 1 }),
   ).toBeVisible();
 }
 
@@ -223,14 +225,18 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     .locator('.media-lightbox-footer-nav')
     .getByRole('button', { name: storyProducts.gallery.next })
     .click();
-  await expect(page.locator('.media-lightbox-counter')).toHaveText('3 von 40');
+  await expect(page.locator('.media-lightbox-counter')).toHaveText(
+    storyProducts.gallery.counter
+      .replace('{{index}}', '3')
+      .replace('{{count}}', '40'),
+  );
   await page.goBack();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('.shared-photos-tile').nth(1)).toBeFocused();
   await expect(page).toHaveURL(/\/story\/photos$/);
 
   await page
-    .getByRole('button', { name: 'Weitere Fotos laden', exact: true })
+    .getByRole('button', { name: sharedPhotos.more, exact: true })
     .click();
   await expect(page.locator('.shared-photos-tile')).toHaveCount(44);
   const selected = page.locator('[data-photo-id="photo-42"]');
@@ -239,13 +245,15 @@ test('shared photos: lazy variants, viewer Back, bounded originals and canonical
     (element) => element.getBoundingClientRect().top,
   );
   await selected.click();
-  await page.getByRole('button', { name: 'Zum Moment', exact: true }).click();
+  await page
+    .getByRole('button', { name: sharedPhotos.source, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/story\/memories\/memory-42$/);
   await expect(
-    page.getByRole('heading', { name: 'Unser Tag am See', level: 1 }),
+    page.getByRole('heading', { name: 'Our day by the lake', level: 1 }),
   ).toBeVisible();
   await page
-    .getByRole('button', { name: 'Zurück', exact: true })
+    .getByRole('button', { name: taskBoundary.back, exact: true })
     .first()
     .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
@@ -301,7 +309,7 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
       await screenshot(page, testInfo, 'story-photos-390-text-200-grid.png');
       await page.locator('.shared-photos-tile').first().click();
       await expect(
-        page.getByRole('button', { name: 'Zum Moment', exact: true }),
+        page.getByRole('button', { name: sharedPhotos.source, exact: true }),
       ).toBeVisible();
       await screenshot(page, testInfo, 'story-photos-390-text-200-viewer.png');
       await page
@@ -315,7 +323,9 @@ test('shared photos: Compact/Expanded themes, 320px, 200% text and accessible ga
     document.documentElement.style.fontSize = '';
   });
   await page.goto('/story');
-  await page.getByRole('link', { name: 'Fotos', exact: true }).click();
+  await page
+    .getByRole('link', { name: sharedPhotos.browse, exact: true })
+    .click();
   await expect(page).toHaveURL(/\/story\/photos$/);
 });
 
@@ -324,7 +334,7 @@ test('shared photos: empty and failed first page disclose no count, offline stat
 }, testInfo) => {
   await mocks(page, 'empty');
   await signIn(page);
-  await expect(page.getByText('Hier sammeln sich eure Fotos')).toBeVisible();
+  await expect(page.getByText(sharedPhotos.empty)).toBeVisible();
   await screenshot(page, testInfo, 'story-photos-empty.png');
   await page.unroute('**/api/v1/**');
   await mocks(page, 'error');

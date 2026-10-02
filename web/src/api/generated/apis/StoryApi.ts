@@ -24,6 +24,11 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type SharedPhotoPage,
+    SharedPhotoPageFromJSON,
+    SharedPhotoPageToJSON,
+} from '../models/SharedPhotoPage';
+import {
     type StoryKind,
     StoryKindFromJSON,
     StoryKindToJSON,
@@ -43,6 +48,12 @@ import {
     StoryViewReceiptFromJSON,
     StoryViewReceiptToJSON,
 } from '../models/StoryViewReceipt';
+
+export interface GetSharedPhotosRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
 
 export interface GetStoryDiscoverRequest {
     spaceId: string;
@@ -66,6 +77,61 @@ export interface RecordStoryViewRequest {
  * 
  */
 export class StoryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getSharedPhotos without sending the request
+     */
+    async getSharedPhotosRequestOpts(requestParameters: GetSharedPhotosRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getSharedPhotos().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photos`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Browse READY images from currently shared Memory and HeartMoment parents.  Owner-private media is excluded even for its owner. Media bytes still use the existing parent-bound attachment read authorization.
+     * Get Shared Photos
+     */
+    async getSharedPhotosRaw(requestParameters: GetSharedPhotosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SharedPhotoPage>> {
+        const requestOptions = await this.getSharedPhotosRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SharedPhotoPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Browse READY images from currently shared Memory and HeartMoment parents.  Owner-private media is excluded even for its owner. Media bytes still use the existing parent-bound attachment read authorization.
+     * Get Shared Photos
+     */
+    async getSharedPhotos(requestParameters: GetSharedPhotosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SharedPhotoPage> {
+        const response = await this.getSharedPhotosRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getStoryDiscover without sending the request

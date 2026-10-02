@@ -4957,6 +4957,14 @@
         "title": "PersonRelationship",
         "type": "string"
       },
+      "PhotoParentType": {
+        "enum": [
+          "MEMORY",
+          "HEART_MOMENT"
+        ],
+        "title": "PhotoParentType",
+        "type": "string"
+      },
       "PlaceCreate": {
         "additionalProperties": false,
         "properties": {
@@ -8957,6 +8965,73 @@
           "attachment"
         ],
         "title": "SharedHeartMomentSummary",
+        "type": "object"
+      },
+      "SharedPhoto": {
+        "properties": {
+          "attachment": {
+            "$ref": "#/components/schemas/AttachmentSummary"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "parentType": {
+            "$ref": "#/components/schemas/PhotoParentType"
+          }
+        },
+        "required": [
+          "parentType",
+          "parentId",
+          "effectiveDate",
+          "attachment"
+        ],
+        "title": "SharedPhoto",
+        "type": "object"
+      },
+      "SharedPhotoPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SharedPhoto"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "totalCount": {
+            "minimum": 0.0,
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "totalCount",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "SharedPhotoPage",
         "type": "object"
       },
       "SignInRequest": {
@@ -22734,6 +22809,107 @@
         "summary": "Send Partner Quick Action",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photos": {
+      "get": {
+        "description": "Browse READY images from currently shared Memory and HeartMoment parents.\n\nOwner-private media is excluded even for its owner. Media bytes still use\nthe existing parent-bound attachment read authorization.",
+        "operationId": "getSharedPhotos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPhotoPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Shared Photos",
+        "tags": [
+          "story"
         ]
       }
     },

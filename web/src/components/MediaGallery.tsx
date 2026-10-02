@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -11,6 +12,7 @@ import {
   type MediaType as MediaTypeValue,
 } from '../api/generated/models/MediaType';
 import { useObjectUrlResources } from '../client/useObjectUrlResources';
+import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
 import { useTranslation } from '../i18n';
 import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 
@@ -23,17 +25,38 @@ export function MediaGallery({
   items,
   loadMedia,
   resourceScopeKey = 'gallery',
+  renderPreviews,
+  renderCaption,
+  dismissWithHistory = false,
 }: {
   items: GalleryMediaItem[];
   loadMedia: (attachmentId: string, signal?: AbortSignal) => Promise<string>;
   resourceScopeKey?: string;
+  /** Custom thumbnail surface; originals are then loaded only for the active photo and neighbours. */
+  renderPreviews?: (open: (index: number) => void) => ReactNode;
+  renderCaption?: (
+    index: number,
+    close: (afterClose?: () => void) => void,
+  ) => ReactNode;
+  dismissWithHistory?: boolean;
 }) {
   const { t } = useTranslation();
   const itemIdentity = JSON.stringify(
     items.map((item) => [item.id, item.mediaType]),
   );
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const imageResourceIds = items
-    .filter((item) => item.mediaType !== MediaType.VIDEO)
+    .filter((item, index) => {
+      if (item.mediaType === MediaType.VIDEO) return false;
+      if (!renderPreviews) return true;
+      if (activeIndex === null) return false;
+      return [
+        activeIndex,
+        (activeIndex + 1) % items.length,
+        (activeIndex - 1 + items.length) % items.length,
+      ].includes(index);
+    })
     .map((item) => item.id);
   const mediaResources = useObjectUrlResources(
     resourceScopeKey,
@@ -42,8 +65,6 @@ export function MediaGallery({
   );
   const urls = mediaResources.urls;
   const failed = new Set(Object.keys(mediaResources.errors));
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButton = useRef<HTMLButtonElement | null>(null);
   const lightboxDialog = useRef<HTMLDivElement | null>(null);
   const carouselTrack = useRef<HTMLDivElement | null>(null);
@@ -57,6 +78,45 @@ export function MediaGallery({
   const lightboxInitialIndex = useRef(0);
   const activeIndexRef = useRef<number | null>(null);
   const carouselItemsIdentityRef = useRef<string | null>(null);
+  const activeItemIdRef = useRef<string | null>(null);
+  const dismiss = useCallback(() => {
+    if (lightboxScrollFrame.current !== null) {
+      window.cancelAnimationFrame(lightboxScrollFrame.current);
+      lightboxScrollFrame.current = null;
+    }
+    if (lightboxScrollEndTimer.current !== null) {
+      window.clearTimeout(lightboxScrollEndTimer.current);
+      lightboxScrollEndTimer.current = null;
+    }
+    activeIndexRef.current = null;
+    setActiveIndex(null);
+  }, []);
+  const closeHistoryEntry = useEditorHistoryEntry({
+    isActive: dismissWithHistory && activeIndex !== null,
+    isDirty: false,
+    onDiscardRequested: dismiss,
+    onClose: dismiss,
+  });
+  const closeLightbox = useCallback(
+    (afterClose?: unknown) => {
+      const complete = () => {
+        dismiss();
+        if (typeof afterClose === 'function') afterClose();
+      };
+      if (dismissWithHistory) closeHistoryEntry(complete);
+      else complete();
+    },
+    [dismiss, dismissWithHistory, closeHistoryEntry],
+  );
+
+  // Removal/reordering cannot silently show a different parent at the old index.
+  useLayoutEffect(() => {
+    if (
+      activeIndex !== null &&
+      activeItemIdRef.current !== items[activeIndex]?.id
+    )
+      closeLightbox();
+  }, [items, activeIndex, closeLightbox]);
 
   useEffect(() => {
     if (carouselIndex < items.length) return;
@@ -112,6 +172,7 @@ export function MediaGallery({
       const track = lightboxTrack.current;
       if (!track) {
         activeIndexRef.current = nextIndex;
+        activeItemIdRef.current = items[nextIndex]?.id ?? null;
         setActiveIndex(nextIndex);
         return;
       }
@@ -142,13 +203,14 @@ export function MediaGallery({
       if (reducedMotion) {
         track.scrollLeft = target.offsetLeft;
         activeIndexRef.current = nextIndex;
+        activeItemIdRef.current = items[nextIndex]?.id ?? null;
         setActiveIndex(nextIndex);
         return;
       }
 
       track.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
     },
-    [items.length],
+    [items],
   );
 
   useModalLifecycle({
@@ -161,8 +223,7 @@ export function MediaGallery({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        activeIndexRef.current = null;
-        setActiveIndex(null);
+        closeLightbox();
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -175,7 +236,7 @@ export function MediaGallery({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [changeActive, lightboxOpen]);
+  }, [changeActive, lightboxOpen, closeLightbox]);
 
   if (items.length === 0) return null;
 
@@ -285,6 +346,7 @@ export function MediaGallery({
   }
 
   function finishLightboxScroll(track: HTMLDivElement) {
+    if (activeIndexRef.current === null) return;
     const nearest = nearestLightboxSlide(track);
     if (!nearest) return;
 
@@ -292,6 +354,7 @@ export function MediaGallery({
     if (!Number.isInteger(index) || index < 0 || index >= items.length) return;
 
     activeIndexRef.current = index;
+    activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
 
     if (nearest.dataset.lightboxClone) {
@@ -303,14 +366,17 @@ export function MediaGallery({
   }
 
   function handleLightboxScroll(track: HTMLDivElement) {
+    if (activeIndexRef.current === null) return;
     if (lightboxScrollFrame.current === null) {
       lightboxScrollFrame.current = window.requestAnimationFrame(() => {
         lightboxScrollFrame.current = null;
+        if (activeIndexRef.current === null) return;
         const nearest = nearestLightboxSlide(track);
         if (!nearest) return;
         const index = Number(nearest.dataset.lightboxIndex);
         if (Number.isInteger(index) && index >= 0 && index < items.length) {
           activeIndexRef.current = index;
+          activeItemIdRef.current = items[index]?.id ?? null;
           setActiveIndex(index);
         }
       });
@@ -328,12 +394,8 @@ export function MediaGallery({
   function openLightbox(index: number) {
     lightboxInitialIndex.current = index;
     activeIndexRef.current = index;
+    activeItemIdRef.current = items[index]?.id ?? null;
     setActiveIndex(index);
-  }
-
-  function closeLightbox() {
-    activeIndexRef.current = null;
-    setActiveIndex(null);
   }
 
   function renderMedia(item: GalleryMediaItem, className: string) {
@@ -396,98 +458,102 @@ export function MediaGallery({
 
   return (
     <>
-      <section
-        className="media-gallery-carousel"
-        aria-label={t('gallery.aria')}
-      >
-        <div className="media-gallery-carousel-viewport">
-          <div
-            ref={carouselTrack}
-            className="eimir-media-snap-track media-gallery-carousel-track"
-            onScroll={(event) => handleCarouselScroll(event.currentTarget)}
-          >
+      {renderPreviews ? (
+        renderPreviews(openLightbox)
+      ) : (
+        <section
+          className="media-gallery-carousel"
+          aria-label={t('gallery.aria')}
+        >
+          <div className="media-gallery-carousel-viewport">
+            <div
+              ref={carouselTrack}
+              className="eimir-media-snap-track media-gallery-carousel-track"
+              onScroll={(event) => handleCarouselScroll(event.currentTarget)}
+            >
+              {items.length > 1 ? (
+                <div
+                  className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
+                  data-carousel-index={items.length - 1}
+                  data-carousel-clone="start"
+                  aria-hidden="true"
+                >
+                  {renderCarouselMedia(items[items.length - 1]!)}
+                </div>
+              ) : null}
+
+              {items.map((item, index) => {
+                const isActive = index === carouselIndex;
+
+                return (
+                  <button
+                    ref={(element) => {
+                      carouselSlides.current[index] = element;
+                    }}
+                    key={item.id}
+                    type="button"
+                    className={`eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide${
+                      isActive ? ' is-active' : ''
+                    }`}
+                    data-carousel-index={index}
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => openLightbox(index)}
+                    aria-label={t('gallery.openItem', {
+                      index: index + 1,
+                      count: items.length,
+                    })}
+                  >
+                    {renderCarouselMedia(item)}
+                  </button>
+                );
+              })}
+
+              {items.length > 1 ? (
+                <div
+                  className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
+                  data-carousel-index={0}
+                  data-carousel-clone="end"
+                  aria-hidden="true"
+                >
+                  {renderCarouselMedia(items[0]!)}
+                </div>
+              ) : null}
+            </div>
+
             {items.length > 1 ? (
-              <div
-                className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
-                data-carousel-index={items.length - 1}
-                data-carousel-clone="start"
-                aria-hidden="true"
-              >
-                {renderCarouselMedia(items[items.length - 1]!)}
-              </div>
-            ) : null}
-
-            {items.map((item, index) => {
-              const isActive = index === carouselIndex;
-
-              return (
-                <button
-                  ref={(element) => {
-                    carouselSlides.current[index] = element;
-                  }}
-                  key={item.id}
-                  type="button"
-                  className={`eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide${
-                    isActive ? ' is-active' : ''
-                  }`}
-                  data-carousel-index={index}
-                  tabIndex={isActive ? 0 : -1}
-                  onClick={() => openLightbox(index)}
-                  aria-label={t('gallery.openItem', {
-                    index: index + 1,
+              <>
+                <span
+                  className="media-gallery-carousel-counter"
+                  aria-live="polite"
+                >
+                  {t('gallery.counter', {
+                    index: carouselIndex + 1,
                     count: items.length,
                   })}
+                </span>
+                <button
+                  type="button"
+                  className="media-gallery-carousel-nav media-gallery-carousel-prev"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => changeCarousel(-1)}
+                  aria-label={t('gallery.previous')}
                 >
-                  {renderCarouselMedia(item)}
+                  <span aria-hidden="true">‹</span>
                 </button>
-              );
-            })}
-
-            {items.length > 1 ? (
-              <div
-                className="eimir-media-snap-item eimir-media-snap-item-center media-gallery-carousel-slide is-clone"
-                data-carousel-index={0}
-                data-carousel-clone="end"
-                aria-hidden="true"
-              >
-                {renderCarouselMedia(items[0]!)}
-              </div>
+                <button
+                  type="button"
+                  className="media-gallery-carousel-nav media-gallery-carousel-next"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => changeCarousel(1)}
+                  aria-label={t('gallery.next')}
+                >
+                  <span aria-hidden="true">›</span>
+                </button>
+              </>
             ) : null}
           </div>
-
-          {items.length > 1 ? (
-            <>
-              <span
-                className="media-gallery-carousel-counter"
-                aria-live="polite"
-              >
-                {t('gallery.counter', {
-                  index: carouselIndex + 1,
-                  count: items.length,
-                })}
-              </span>
-              <button
-                type="button"
-                className="media-gallery-carousel-nav media-gallery-carousel-prev"
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => changeCarousel(-1)}
-                aria-label={t('gallery.previous')}
-              >
-                <span aria-hidden="true">‹</span>
-              </button>
-              <button
-                type="button"
-                className="media-gallery-carousel-nav media-gallery-carousel-next"
-                onPointerDown={(event) => event.preventDefault()}
-                onClick={() => changeCarousel(1)}
-                aria-label={t('gallery.next')}
-              >
-                <span aria-hidden="true">›</span>
-              </button>
-            </>
-          ) : null}
-        </div>
-      </section>
+        </section>
+      )}
 
       {activeItem && activeIndex !== null && typeof document !== 'undefined'
         ? createPortal(
@@ -501,7 +567,9 @@ export function MediaGallery({
                 containModalTabFocus(event, lightboxDialog.current);
               }}
             >
-              <div className="media-lightbox">
+              <div
+                className={`media-lightbox${renderCaption ? ' media-lightbox-captioned' : ''}`}
+              >
                 <div className="media-lightbox-stage">
                   {items.length > 1 ? (
                     <div
@@ -590,6 +658,31 @@ export function MediaGallery({
                     </>
                   ) : null}
                 </div>
+                {renderCaption ? (
+                  <div className="media-lightbox-footer">
+                    <div className="media-lightbox-context">
+                      {renderCaption(activeIndex, closeLightbox)}
+                    </div>
+                    {items.length > 1 ? (
+                      <div className="media-lightbox-footer-nav">
+                        <button
+                          type="button"
+                          onClick={() => changeActive(-1)}
+                          aria-label={t('gallery.previous')}
+                        >
+                          ‹
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => changeActive(1)}
+                          aria-label={t('gallery.next')}
+                        >
+                          ›
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>,
             document.body,

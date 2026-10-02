@@ -86,6 +86,7 @@ import {
   STORY_CHAPTERS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
+  STORY_PHOTOS_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   WISH_CREATE_ROUTE,
 } from './client/routes';
@@ -98,6 +99,7 @@ import {
 } from './client/spaceContext';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
+import { SharedPhotosPage } from './components/SharedPhotosPage';
 import { Brand } from './components/Brand';
 import { ChapterCreatePage } from './components/ChapterCreatePage';
 import { ChapterProductPage } from './components/ChapterProductPage';
@@ -453,6 +455,17 @@ function AuthenticatedApp({
                   spaceId={spaceId}
                   loadMemoryImage={loadMemoryImage}
                   profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={STORY_PHOTOS_ROUTE}
+              element={
+                <SharedPhotosPage
+                  key={`${account.id}:${spaceId}`}
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
                 />
               }
             />

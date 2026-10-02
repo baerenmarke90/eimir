@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import contextTags from '../../src/i18n/locales/contextTags';
 import navigation from '../../src/i18n/locales/navigation';
 import storyProducts from '../../src/i18n/locales/storyProducts';
 import taskBoundary from '../../src/i18n/locales/taskBoundary';
@@ -264,6 +265,21 @@ async function installApiMocks(page: Page): Promise<void> {
         version: 1,
       };
       await fulfillJson(savedMoment, 201);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname ===
+        `/api/v1/spaces/${SPACE_ID}/heart-moments/44444444-4444-4444-8444-444444444444` &&
+      savedMoment
+    ) {
+      savedMoment = {
+        ...savedMoment,
+        ...request.postDataJSON(),
+        version: Number(savedMoment.version) + 1,
+      };
+      await fulfillJson(savedMoment);
       return;
     }
 
@@ -559,16 +575,14 @@ test('Heart Moment Create adapts the Compact reference to Expanded Web (#862)', 
   });
 });
 
-test('tag-only Heart Moment saves and opens its real result (#509)', async ({
+test('custom tag-only Heart Moment survives create, reload, edit and removal (#1290)', async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await openHeartMomentCreate(page);
-  const tag = page.getByRole('checkbox', {
-    name: storyProducts.heartMomentProduct.tagLabels.everyday,
-  });
-  await tag.check();
-  await expect(tag).toBeChecked();
+  await page.getByLabel(contextTags.newLabel).fill('Ostsee');
+  await page.getByLabel(contextTags.newLabel).press('Enter');
   await expect(page.locator('#heart-moment-text')).toHaveValue('');
   await expectNoHorizontalOverflow(page);
   await page.evaluate(() => {
@@ -594,7 +608,7 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
   expect(request.postDataJSON()).toEqual(
     expect.objectContaining({
       text: '',
-      tags: ['everyday'],
+      tags: ['Ostsee'],
     }),
   );
   await expect(page).toHaveURL(
@@ -605,15 +619,42 @@ test('tag-only Heart Moment saves and opens its real result (#509)', async ({
       name: storyProducts.heartMomentProduct.untitled,
     }),
   ).toBeVisible();
-  await expect(
-    page.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
-  ).toBeVisible();
+  await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
   await expect(page.locator('.comments-panel')).toBeVisible();
   await expect(page.locator('.comments-panel .ui-state')).toHaveCount(0);
   await page.screenshot({
     path: testInfo.outputPath('shell-heart-tags-detail-390.png'),
     fullPage: true,
   });
+  await page.reload();
+  await expect(page.getByText('Ostsee', { exact: true })).toBeVisible();
+  await page
+    .getByRole('link', {
+      name: storyProducts.heartMomentProduct.edit,
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole('button', {
+      name: contextTags.remove.replace('{{tag}}', 'Ostsee'),
+    })
+    .click();
+  await page.getByLabel(contextTags.newLabel).fill('Our tradition');
+  const update = page.waitForRequest(
+    (request) =>
+      request.method() === 'PATCH' &&
+      request.url().includes('/heart-moments/44444444'),
+  );
+  await page
+    .getByRole('button', { name: storyProducts.heartMomentProduct.save })
+    .click();
+  expect((await update).postDataJSON().tags).toEqual(['Our tradition']);
+  await expect(page).toHaveURL(
+    /\/story\/heart-moments\/44444444-4444-4444-8444-444444444444$/,
+  );
+  await page.reload();
+  await expect(page.getByText('Our tradition', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ostsee', { exact: true })).toHaveCount(0);
 });
 
 test('photo-only Heart Moment saves without text and opens its photo (#509)', async ({
@@ -720,6 +761,7 @@ test('Quick Create Heart Moment returns from a saved tag-only result to Today (#
       fullPage: true,
     });
 
+    await page.getByText(contextTags.suggestions, { exact: true }).click();
     await page
       .getByRole('checkbox', {
         name: storyProducts.heartMomentProduct.tagLabels.everyday,

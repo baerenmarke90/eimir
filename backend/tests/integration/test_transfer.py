@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -13,10 +13,14 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from eimir.authorization import AuthorizationContext
+from eimir.authorization import AuthorizationContext, ContentVisibility
 from eimir.core.clock import now
+from eimir.heart_moments import service as heart_moment_service
+from eimir.heart_moments.models import HeartEmotion, HeartMoment
 from eimir.identity.models import AccountEmail
 from eimir.media import get_media_store
+from eimir.memories import service as memory_service
+from eimir.memories.models import Memory
 from eimir.private_notes import service as private_note_service
 from eimir.profiles import service as profile_service
 from eimir.profiles.models import PartnerProfile
@@ -262,6 +266,24 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
     )
     assert len(target_profile_ids) == 2
 
+    memory_service.create_memory(
+        session,
+        source_authorization,
+        title="Portable day",
+        body="Together",
+        happened_on=date(2026, 9, 1),
+        tags=["home", "Our first summer"],
+    )
+    heart_moment_service.create_heart_moment(
+        session,
+        source_authorization,
+        text="",
+        emotion=HeartEmotion.HAPPY,
+        visibility=ContentVisibility.SHARED,
+        happened_on=date(2026, 9, 1),
+        tags=["everyday", "Our tradition"],
+    )
+
     with service.build_export_archive(
         session, source_authorization, TransferScope.SHARED
     ) as bundle:
@@ -296,6 +318,14 @@ def test_shared_round_trip_maps_email_less_pair_and_reuses_target_profiles(
         ).scalars()
     )
     assert imported_target_profile_ids == target_profile_ids
+    imported_memory = session.execute(
+        select(Memory).where(Memory.space_id == target_space.id)
+    ).scalar_one()
+    imported_heart = session.execute(
+        select(HeartMoment).where(HeartMoment.space_id == target_space.id)
+    ).scalar_one()
+    assert imported_memory.payload.tags == ["home", "Our first summer"]
+    assert imported_heart.payload.tags == ["everyday", "Our tradition"]
 
 
 def test_personal_import_maps_requester_and_apply_is_idempotent(session: Session) -> None:

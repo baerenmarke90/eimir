@@ -2928,15 +2928,11 @@
           },
           "tags": {
             "items": {
-              "enum": [
-                "everyday",
-                "out_together",
-                "home",
-                "special_day"
-              ],
+              "maxLength": 40,
+              "minLength": 1,
               "type": "string"
             },
-            "maxItems": 4,
+            "maxItems": 8,
             "title": "Tags",
             "type": "array"
           },
@@ -3005,15 +3001,11 @@
           },
           "tags": {
             "items": {
-              "enum": [
-                "everyday",
-                "out_together",
-                "home",
-                "special_day"
-              ],
+              "maxLength": 40,
+              "minLength": 1,
               "type": "string"
             },
-            "maxItems": 4,
+            "maxItems": 8,
             "title": "Tags",
             "type": "array"
           },
@@ -3128,15 +3120,11 @@
             "anyOf": [
               {
                 "items": {
-                  "enum": [
-                    "everyday",
-                    "out_together",
-                    "home",
-                    "special_day"
-                  ],
+                  "maxLength": 40,
+                  "minLength": 1,
                   "type": "string"
                 },
-                "maxItems": 4,
+                "maxItems": 8,
                 "type": "array"
               },
               {
@@ -3625,15 +3613,11 @@
           },
           "tags": {
             "items": {
-              "enum": [
-                "out_together",
-                "laughter",
-                "home",
-                "special_day"
-              ],
+              "maxLength": 40,
+              "minLength": 1,
               "type": "string"
             },
-            "maxItems": 4,
+            "maxItems": 8,
             "title": "Tags",
             "type": "array"
           },
@@ -3701,15 +3685,11 @@
           },
           "tags": {
             "items": {
-              "enum": [
-                "out_together",
-                "laughter",
-                "home",
-                "special_day"
-              ],
+              "maxLength": 40,
+              "minLength": 1,
               "type": "string"
             },
-            "maxItems": 4,
+            "maxItems": 8,
             "title": "Tags",
             "type": "array"
           },
@@ -3863,15 +3843,11 @@
             "anyOf": [
               {
                 "items": {
-                  "enum": [
-                    "out_together",
-                    "laughter",
-                    "home",
-                    "special_day"
-                  ],
+                  "maxLength": 40,
+                  "minLength": 1,
                   "type": "string"
                 },
-                "maxItems": 4,
+                "maxItems": 8,
                 "type": "array"
               },
               {

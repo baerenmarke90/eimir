@@ -46,7 +46,11 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
-import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
+import {
+  MEMORY_TAGS,
+  MemoryTagChoices,
+  type MemoryTag,
+} from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -697,7 +701,11 @@ export function MemoryProductPage({
         <section aria-label={t('memory.tagsLabel')}>
           <ul className="memory-tag-summary">
             {memory.tags.map((tag) => (
-              <li key={tag}>{t(`memory.tagLabels.${tag}`)}</li>
+              <li key={tag}>
+                {(MEMORY_TAGS as readonly string[]).includes(tag)
+                  ? t(`memory.tagLabels.${tag}`)
+                  : tag}
+              </li>
             ))}
           </ul>
         </section>

@@ -15,7 +15,6 @@ import {
   HeartMomentDetailToJSON,
 } from '../api/generated/models/HeartMomentDetail';
 import type { HeartMomentUpdate } from '../api/generated/models/HeartMomentUpdate';
-import type { HeartMomentCreateTagsEnum } from '../api/generated/models/HeartMomentCreate';
 import {
   authorSummaryQueryKeys,
   invalidateStoryProjections,
@@ -51,6 +50,7 @@ import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
 import {
   HeartMomentTagChoices,
+  HEART_MOMENT_TAGS,
   type HeartMomentTag,
 } from './HeartMomentTagChoices';
 import { MediaGallery } from './MediaGallery';
@@ -79,7 +79,7 @@ interface HeartMomentCreateValues {
   readonly happenedOn: Date;
   readonly visibility: ContentVisibilityValue;
   readonly attachmentId?: string;
-  readonly tags: HeartMomentCreateTagsEnum[];
+  readonly tags: string[];
 }
 
 interface HeartMomentCreateSnapshot {
@@ -831,7 +831,11 @@ export function HeartMomentProductPage({
           aria-label={t('heartMomentProduct.tagsLabel')}
         >
           {heartMoment.tags.map((tag) => (
-            <li key={tag}>{t(`heartMomentProduct.tagLabels.${tag}`)}</li>
+            <li key={tag}>
+              {(HEART_MOMENT_TAGS as readonly string[]).includes(tag)
+                ? t(`heartMomentProduct.tagLabels.${tag}`)
+                : tag}
+            </li>
           ))}
         </ul>
       ) : null}

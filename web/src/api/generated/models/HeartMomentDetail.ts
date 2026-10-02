@@ -111,10 +111,10 @@ export interface HeartMomentDetail {
     spaceId: string;
     /**
      * 
-     * @type {Array<HeartMomentDetailTagsEnum>}
+     * @type {Array<string>}
      * @memberof HeartMomentDetail
      */
-    tags: Array<HeartMomentDetailTagsEnum>;
+    tags: Array<string>;
     /**
      * 
      * @type {string}
@@ -141,17 +141,6 @@ export interface HeartMomentDetail {
     visibility: ContentVisibility;
 }
 
-
-/**
- * @export
- */
-export const HeartMomentDetailTagsEnum = {
-    everyday: 'everyday',
-    out_together: 'out_together',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type HeartMomentDetailTagsEnum = typeof HeartMomentDetailTagsEnum[keyof typeof HeartMomentDetailTagsEnum];
 
 
 /**

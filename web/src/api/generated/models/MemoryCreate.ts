@@ -33,10 +33,10 @@ export interface MemoryCreate {
     happenedOn?: Date | null;
     /**
      * 
-     * @type {Array<MemoryCreateTagsEnum>}
+     * @type {Array<string>}
      * @memberof MemoryCreate
      */
-    tags?: Array<MemoryCreateTagsEnum>;
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -44,19 +44,6 @@ export interface MemoryCreate {
      */
     title: string;
 }
-
-
-/**
- * @export
- */
-export const MemoryCreateTagsEnum = {
-    out_together: 'out_together',
-    laughter: 'laughter',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type MemoryCreateTagsEnum = typeof MemoryCreateTagsEnum[keyof typeof MemoryCreateTagsEnum];
-
 
 /**
  * Check if a given object implements the MemoryCreate interface.

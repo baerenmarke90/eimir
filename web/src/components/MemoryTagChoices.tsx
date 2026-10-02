@@ -1,50 +1,38 @@
 import { useTranslation } from '../i18n';
-import { MemoryCreateTagsEnum } from '../api/generated/models/MemoryCreate';
-import './MemoryTagChoices.css';
+import { ContextTagEditor } from './ContextTagEditor';
 
 export const MEMORY_TAGS = [
-  MemoryCreateTagsEnum.out_together,
-  MemoryCreateTagsEnum.laughter,
-  MemoryCreateTagsEnum.home,
-  MemoryCreateTagsEnum.special_day,
+  'out_together',
+  'laughter',
+  'home',
+  'special_day',
 ] as const;
-
-export type MemoryTag = (typeof MEMORY_TAGS)[number];
+export type MemoryTag = string;
 
 export function MemoryTagChoices({
   selected,
   onChange,
   disabled = false,
+  onDraftChange,
 }: {
   selected: readonly string[];
-  onChange: (tags: MemoryTag[]) => void;
+  onChange: (tags: string[]) => void;
   disabled?: boolean;
+  onDraftChange?: (dirty: boolean) => void;
 }) {
   const { t } = useTranslation();
   return (
-    <fieldset className="memory-tag-choices" disabled={disabled}>
-      <legend>{t('memory.tagsLabel')}</legend>
-      <p className="field-help">{t('memory.tagsHelp')}</p>
-      <div className="memory-tag-list">
-        {MEMORY_TAGS.map((tag) => (
-          <label className="memory-tag-choice" key={tag}>
-            <input
-              type="checkbox"
-              checked={selected.includes(tag)}
-              onChange={(event) =>
-                onChange(
-                  event.target.checked
-                    ? ([...selected, tag] as MemoryTag[])
-                    : (selected.filter(
-                        (entry) => entry !== tag,
-                      ) as MemoryTag[]),
-                )
-              }
-            />
-            <span>{t(`memory.tagLabels.${tag}`)}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <ContextTagEditor
+      selected={selected}
+      onChange={onChange}
+      disabled={disabled}
+      onDraftChange={onDraftChange}
+      suggestions={MEMORY_TAGS}
+      labelForTag={(tag) =>
+        (MEMORY_TAGS as readonly string[]).includes(tag)
+          ? t(`memory.tagLabels.${tag}`)
+          : tag
+      }
+    />
   );
 }

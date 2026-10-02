@@ -104,7 +104,10 @@ def test_textless_context_and_legacy_payload_are_valid_but_empty_capture_is_not(
     assert HeartMomentCreate.model_validate({**base, "tags": ["everyday"]}).text == ""
     assert HeartMomentCreate.model_validate({**base, "attachmentId": str(uuid4())}).text == ""
     assert HeartMomentPayload.model_validate({"text": "old", "emotion": "LOVED"}).tags == []
-    for invalid in (["unknown"], ["home", "home"]):
+    assert HeartMomentCreate.model_validate({**base, "tags": [" Unser Urlaub "]}).tags == [
+        "Unser Urlaub"
+    ]
+    for invalid in ([" "], ["x" * 41], ["home", "home"]):
         with pytest.raises(ValidationError):
             HeartMomentCreate.model_validate({**base, "tags": invalid})
     with pytest.raises(ValidationError):

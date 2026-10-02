@@ -1,14 +1,7 @@
-"""Closed context catalog for authored Heart Moments."""
+"""HeartMoment authored tags retain their parent's privacy and legacy keys."""
 
-from typing import Annotated, Literal
+from eimir.core.context_tags import ContextTag as HeartMomentTag
+from eimir.core.context_tags import ContextTags as HeartMomentTags
+from eimir.core.context_tags import unique_tags as unique_tags
 
-from pydantic import Field
-
-HeartMomentTag = Literal["everyday", "out_together", "home", "special_day"]
-HeartMomentTags = Annotated[list[HeartMomentTag], Field(max_length=4)]
-
-
-def unique_tags(value: HeartMomentTags | None) -> HeartMomentTags | None:
-    if value is not None and len(value) != len(set(value)):
-        raise ValueError("Heart Moment tags must be unique")
-    return value
+__all__ = ["HeartMomentTag", "HeartMomentTags", "unique_tags"]

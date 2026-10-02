@@ -17,6 +17,7 @@ import {
 } from '../client/memoryCreateIdentity';
 import { TaskOriginProvider } from '../client/taskOrigin';
 import de from '../i18n/locales/de';
+import contextTags from '../i18n/locales/contextTags';
 import taskBoundary from '../i18n/locales/taskBoundary';
 import { MemoryCreatePage } from './MemoryCreatePage';
 
@@ -163,6 +164,9 @@ describe('Memory capture mutation ownership', () => {
     }) as HTMLInputElement;
     fireEvent.click(tag);
     expect(tag.checked).toBe(true);
+    const customTag = screen.getByLabelText(contextTags.newLabel);
+    fireEvent.change(customTag, { target: { value: 'Our tradition' } });
+    fireEvent.keyDown(customTag, { key: 'Enter' });
     expect(
       screen
         .getByRole('button', { name: de.memory.save })
@@ -171,10 +175,20 @@ describe('Memory capture mutation ownership', () => {
     enterTitle();
     submit();
     await screen.findByText(taskBoundary.uncertainTitle);
-    expect(requestOf(0).memoryCreate.tags).toEqual(['home']);
+    expect(requestOf(0).memoryCreate.tags).toEqual(['home', 'Our tradition']);
     fireEvent.click(verifyButton());
     await screen.findByText('Actual result destination');
     expect(requestOf(1).memoryCreate).toBe(requestOf(0).memoryCreate);
+  });
+  it('protects a pending custom tag draft when leaving a clean capture', () => {
+    setup();
+    fireEvent.change(screen.getByLabelText(contextTags.newLabel), {
+      target: { value: 'An unfinished label' },
+    });
+    const dirty = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(dirty);
+    expect(dirty.defaultPrevented).toBe(true);
+    expect(fixture.create).not.toHaveBeenCalled();
   });
   it('locks duplicate submission and opens the confirmed result despite failed projection invalidation', async () => {
     const response = deferred<MemoryDetail>();

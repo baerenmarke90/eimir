@@ -1,15 +1,14 @@
-import { HeartMomentCreateTagsEnum } from '../api/generated/models/HeartMomentCreate';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../i18n';
-import './MemoryTagChoices.css';
+import { ContextTagEditor } from './ContextTagEditor';
 
 export const HEART_MOMENT_TAGS = [
-  HeartMomentCreateTagsEnum.everyday,
-  HeartMomentCreateTagsEnum.out_together,
-  HeartMomentCreateTagsEnum.home,
-  HeartMomentCreateTagsEnum.special_day,
+  'everyday',
+  'out_together',
+  'home',
+  'special_day',
 ] as const;
-
-export type HeartMomentTag = (typeof HEART_MOMENT_TAGS)[number];
+export type HeartMomentTag = string;
 
 export function HeartMomentTagChoices({
   selected = [],
@@ -17,23 +16,21 @@ export function HeartMomentTagChoices({
   selected?: readonly string[];
 }) {
   const { t } = useTranslation();
+  const [tags, setTags] = useState<string[]>([...selected]);
+  const identity = JSON.stringify(selected);
+  useEffect(() => {
+    setTags(JSON.parse(identity) as string[]);
+  }, [identity]);
   return (
-    <fieldset className="memory-tag-choices">
-      <legend>{t('heartMomentProduct.tagsLabel')}</legend>
-      <p className="field-help">{t('heartMomentProduct.tagsHelp')}</p>
-      <div className="memory-tag-list">
-        {HEART_MOMENT_TAGS.map((tag) => (
-          <label className="memory-tag-choice" key={tag}>
-            <input
-              type="checkbox"
-              name="tags"
-              value={tag}
-              defaultChecked={selected.includes(tag)}
-            />
-            <span>{t(`heartMomentProduct.tagLabels.${tag}`)}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
+    <ContextTagEditor
+      selected={tags}
+      onChange={setTags}
+      suggestions={HEART_MOMENT_TAGS}
+      labelForTag={(tag) =>
+        (HEART_MOMENT_TAGS as readonly string[]).includes(tag)
+          ? t(`heartMomentProduct.tagLabels.${tag}`)
+          : tag
+      }
+    />
   );
 }

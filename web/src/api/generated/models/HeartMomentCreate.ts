@@ -54,10 +54,10 @@ export interface HeartMomentCreate {
     happenedOn: Date;
     /**
      * 
-     * @type {Array<HeartMomentCreateTagsEnum>}
+     * @type {Array<string>}
      * @memberof HeartMomentCreate
      */
-    tags?: Array<HeartMomentCreateTagsEnum>;
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -72,17 +72,6 @@ export interface HeartMomentCreate {
     visibility: ContentVisibility;
 }
 
-
-/**
- * @export
- */
-export const HeartMomentCreateTagsEnum = {
-    everyday: 'everyday',
-    out_together: 'out_together',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type HeartMomentCreateTagsEnum = typeof HeartMomentCreateTagsEnum[keyof typeof HeartMomentCreateTagsEnum];
 
 
 /**

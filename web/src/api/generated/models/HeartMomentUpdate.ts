@@ -51,10 +51,10 @@ export interface HeartMomentUpdate {
     happenedOn?: Date | null;
     /**
      * 
-     * @type {Array<HeartMomentUpdateTagsEnum>}
+     * @type {Array<string>}
      * @memberof HeartMomentUpdate
      */
-    tags?: Array<HeartMomentUpdateTagsEnum> | null;
+    tags?: Array<string> | null;
     /**
      * 
      * @type {string}
@@ -63,17 +63,6 @@ export interface HeartMomentUpdate {
     text?: string | null;
 }
 
-
-/**
- * @export
- */
-export const HeartMomentUpdateTagsEnum = {
-    everyday: 'everyday',
-    out_together: 'out_together',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type HeartMomentUpdateTagsEnum = typeof HeartMomentUpdateTagsEnum[keyof typeof HeartMomentUpdateTagsEnum];
 
 
 /**

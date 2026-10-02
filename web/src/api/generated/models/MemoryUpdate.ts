@@ -33,10 +33,10 @@ export interface MemoryUpdate {
     happenedOn?: Date | null;
     /**
      * 
-     * @type {Array<MemoryUpdateTagsEnum>}
+     * @type {Array<string>}
      * @memberof MemoryUpdate
      */
-    tags?: Array<MemoryUpdateTagsEnum> | null;
+    tags?: Array<string> | null;
     /**
      * 
      * @type {string}
@@ -44,19 +44,6 @@ export interface MemoryUpdate {
      */
     title?: string | null;
 }
-
-
-/**
- * @export
- */
-export const MemoryUpdateTagsEnum = {
-    out_together: 'out_together',
-    laughter: 'laughter',
-    home: 'home',
-    special_day: 'special_day'
-} as const;
-export type MemoryUpdateTagsEnum = typeof MemoryUpdateTagsEnum[keyof typeof MemoryUpdateTagsEnum];
-
 
 /**
  * Check if a given object implements the MemoryUpdate interface.

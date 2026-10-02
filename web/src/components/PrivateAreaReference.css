@@ -221,6 +221,22 @@ body.theme-vault
   container-type: inline-size;
 }
 
+.private-collection-page > .planning-subsection,
+.private-collection-page > .planning-danger-zone {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@container product-content (max-width: 20rem) {
+  .private-collection-page .planning-collection-title-row {
+    flex-wrap: wrap;
+  }
+
+  .private-collection-page .planning-collection-title-row input {
+    flex-basis: 100%;
+  }
+}
+
 @container (max-width: 14rem) {
   .private-collection-items > li {
     flex-wrap: wrap;
@@ -228,5 +244,6 @@ body.theme-vault
 
   .private-collection-items .planning-item-title-form {
     flex-basis: 100%;
+    width: 100%;
   }
 }

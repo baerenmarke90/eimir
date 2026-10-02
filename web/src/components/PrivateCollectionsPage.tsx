@@ -308,6 +308,8 @@ function CollectionItems({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const itemUpdateInFlightRef = useRef(false);
+  const reorderInFlightRef = useRef(false);
+  const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const [pendingToggle, setPendingToggle] = useState<{
     itemId: string;
     completed: boolean;
@@ -464,20 +466,119 @@ function CollectionItems({
     onSuccess: refresh,
   });
   const reorderMutation = useMutation({
-    mutationFn: (itemIds: string[]) =>
+    mutationFn: ({
+      itemIds,
+      version,
+      scope,
+    }: {
+      itemIds: string[];
+      version: number;
+      scope: { accountId: string; spaceId: string; collectionId: string };
+    }) =>
       privateApiCall(() =>
         api.reorderPrivateCollectionItems({
-          spaceId,
-          collectionId: collection.id,
-          ifMatch: String(collection.version),
+          spaceId: scope.spaceId,
+          collectionId: scope.collectionId,
+          ifMatch: String(version),
           privateCollectionOrder: { itemIds },
         }),
       ),
-    onSuccess: async (updated) => {
-      queryClient.setQueryData(collectionKey, updated);
+    onMutate: async ({ itemIds, scope }) => {
+      const key = privateAreaQueryKeys.collection(
+        scope.accountId,
+        scope.spaceId,
+        scope.collectionId,
+      );
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const previous = queryClient.getQueryData<PrivateCollectionDetail>(key);
+      const positions = new Map(itemIds.map((id, position) => [id, position]));
+      queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((item) => ({
+                ...item,
+                position: positions.get(item.id) ?? item.position,
+              })),
+            }
+          : current,
+      );
+      return {
+        key,
+        version: previous?.version,
+        previousPositions: new Map(
+          previous?.items.map((item) => [item.id, item.position]),
+        ),
+      };
+    },
+    onError: async (error, _variables, context) => {
+      setPendingOrder(null);
+      if (!context) return;
+      queryClient.setQueryData<PrivateCollectionDetail>(
+        context.key,
+        (current) =>
+          current && current.version === context.version
+            ? {
+                ...current,
+                items: current.items.map((item) => ({
+                  ...item,
+                  position:
+                    context.previousPositions.get(item.id) ?? item.position,
+                })),
+              }
+            : current,
+      );
+      if (
+        ['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.resetQueries({ queryKey: context.key, exact: true });
+      }
+    },
+    onSuccess: (updated, _variables, context) => {
+      if (context) {
+        queryClient.setQueryData<PrivateCollectionDetail>(
+          context.key,
+          (current) => {
+            if (!current || current.version > updated.version) return current;
+            const currentItems = new Map(
+              current.items.map((item) => [item.id, item]),
+            );
+            return {
+              ...updated,
+              items: updated.items.map((item) => {
+                const existing = currentItems.get(item.id);
+                return existing && existing.version > item.version
+                  ? { ...existing, position: item.position }
+                  : item;
+              }),
+            };
+          },
+        );
+      }
+      setPendingOrder(null);
+    },
+    onSettled: async (_data, error, { scope }, context) => {
+      if (
+        context &&
+        !['unauthorized', 'permission', 'notFound'].includes(
+          clientProblemKind(error),
+        )
+      ) {
+        await queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+        });
+      }
       await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
+        queryKey: privateAreaQueryKeys.collections(
+          scope.accountId,
+          scope.spaceId,
+        ),
+        exact: true,
       });
+      reorderInFlightRef.current = false;
     },
   });
 
@@ -490,14 +591,42 @@ function CollectionItems({
     onPendingChange?.(pending);
   }, [onPendingChange, pending]);
 
-  const baseItems = [...collection.items].sort(
+  const confirmedItems = [...collection.items].sort(
     (left, right) => left.position - right.position,
   );
+  const pendingPositions = new Map(
+    pendingOrder?.map((id, position) => [id, position]),
+  );
+  const baseItems = pendingOrder
+    ? [...confirmedItems].sort(
+        (left, right) =>
+          (pendingPositions.get(left.id) ?? pendingOrder.length) -
+          (pendingPositions.get(right.id) ?? pendingOrder.length),
+      )
+    : confirmedItems;
   const reorder = useListItemReorder({
     itemIds: baseItems.map((item) => item.id),
     disabled:
       !editing || !collection.capabilities.canEdit || pending || readBlocked,
-    onReorder: (itemIds) => reorderMutation.mutate(itemIds),
+    animatePreview: true,
+    onReorder: (itemIds) => {
+      if (
+        reorderInFlightRef.current ||
+        itemUpdateInFlightRef.current ||
+        pending ||
+        readBlocked ||
+        !editing ||
+        !collection.capabilities.canEdit
+      )
+        return;
+      reorderInFlightRef.current = true;
+      setPendingOrder(itemIds);
+      reorderMutation.mutate({
+        itemIds,
+        version: collection.version,
+        scope: { accountId, spaceId, collectionId: collection.id },
+      });
+    },
   });
   const itemById = new Map(baseItems.map((item) => [item.id, item]));
   const items = reorder.orderedItemIds
@@ -509,7 +638,13 @@ function CollectionItems({
     const form = event.currentTarget;
     const data = new FormData(form);
     const title = String(data.get('title') || '').trim();
-    if (!title || pending || readBlocked || itemUpdateInFlightRef.current)
+    if (
+      !title ||
+      pending ||
+      readBlocked ||
+      itemUpdateInFlightRef.current ||
+      reorderInFlightRef.current
+    )
       return;
     createMutation.mutate(title, { onSuccess: () => form.reset() });
   }
@@ -520,6 +655,7 @@ function CollectionItems({
   ) {
     if (
       itemUpdateInFlightRef.current ||
+      reorderInFlightRef.current ||
       pending ||
       readBlocked ||
       !collection.capabilities.canEdit
@@ -635,7 +771,16 @@ function CollectionItems({
                 icon="delete"
                 className="tertiary"
                 label={t('privateArea.collections.removeItem')}
-                onClick={() => deleteMutation.mutate(item)}
+                onClick={() => {
+                  if (
+                    pending ||
+                    readBlocked ||
+                    itemUpdateInFlightRef.current ||
+                    reorderInFlightRef.current
+                  )
+                    return;
+                  deleteMutation.mutate(item);
+                }}
                 disabled={pending || readBlocked}
               />
             ) : null}
@@ -729,7 +874,16 @@ function CollectionItems({
         <ProblemState error={deleteMutation.error} />
       ) : null}
       {reorderMutation.error ? (
-        <ProblemState error={reorderMutation.error} />
+        <ProblemState
+          error={reorderMutation.error}
+          onRetry={async () => {
+            await queryClient.invalidateQueries({
+              queryKey: collectionKey,
+              exact: true,
+            });
+            reorderMutation.reset();
+          }}
+        />
       ) : null}
     </section>
   );

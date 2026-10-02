@@ -921,3 +921,340 @@ test('private checklist rolls back, refreshes a conflict and recovers a failed r
   expect(fixture.writes).toHaveLength(3);
   expect(unexpectedRequests).toEqual([]);
 });
+
+async function installHeldPrivateReorder(page: Page, count = 3) {
+  const list = await installHeldPrivateList(page, count);
+  let version = 1;
+  let failReads = false;
+  const collection = () => ({
+    id: PRIVATE_COLLECTION_ID,
+    ownerId: ACCOUNT_ID,
+    spaceId: SPACE_ID,
+    title: 'Travel preparations',
+    version,
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    items: list.items,
+  });
+  const writes: { ifMatch: string | undefined; itemIds: string[] }[] = [];
+  let waiting: { route: Route; release: () => void; itemIds: string[] } | null =
+    null;
+  const root = `/api/v1/spaces/${SPACE_ID}/private/collections`;
+  await page.route(`**${root}**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'GET') {
+      await route.fulfill({
+        status: failReads ? 503 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          failReads
+            ? {
+                status: 503,
+                title: 'Read unavailable',
+                code: 'E2E_READ_UNAVAILABLE',
+                type: 'about:blank',
+              }
+            : path === root
+              ? { items: [collection()], hasMore: false, nextCursor: null }
+              : collection(),
+        ),
+      });
+      return;
+    }
+    if (
+      request.method() === 'PUT' &&
+      path === `${root}/${PRIVATE_COLLECTION_ID}/order`
+    ) {
+      const { itemIds } = request.postDataJSON() as { itemIds: string[] };
+      writes.push({ ifMatch: request.headers()['if-match'], itemIds });
+      await new Promise<void>((release) => {
+        waiting = { route, release, itemIds };
+      });
+      return;
+    }
+    await route.fallback();
+  });
+  return {
+    items: list.items,
+    writes,
+    failReads: (fail: boolean) => {
+      failReads = fail;
+    },
+    setVersion: (next: number) => {
+      version = next;
+    },
+    respond: async (status = 200) => {
+      const pending = waiting;
+      if (!pending) throw new Error('No private reorder is waiting.');
+      waiting = null;
+      if (status === 200) {
+        for (const item of list.items)
+          item.position = pending.itemIds.indexOf(item.id);
+        version += 1;
+      }
+      await pending.route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          status === 200
+            ? collection()
+            : {
+                status,
+                code:
+                  status === 409 ? 'VERSION_CONFLICT' : 'E2E_WRITE_UNAVAILABLE',
+                title: 'Write unavailable',
+                type: 'about:blank',
+              },
+        ),
+      });
+      pending.release();
+    },
+  };
+}
+
+async function privateEditTitles(page: Page) {
+  return page
+    .getByLabel(privateArea.collections.rename)
+    .evaluateAll((inputs) =>
+      inputs.map((input) => (input as HTMLInputElement).value),
+    );
+}
+
+async function capturePrivateReorder(page: Page, path: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        );
+        return window.scrollY;
+      }),
+    )
+    .toBe(0);
+  await page.screenshot({ path, fullPage: true });
+}
+
+for (const view of feedbackViews) {
+  test(`private reorder stays in place before confirmation in ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({
+      colorScheme: view.theme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    await page.setViewportSize({ width: view.width, height: view.height });
+    const unexpectedRequests = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateReorder(
+      page,
+      Math.max(2, view.count),
+    );
+    await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
+    if ('largeText' in view)
+      await page.addStyleTag({
+        content: 'html { font-size: 200% !important; }',
+      });
+    const before = await privateEditTitles(page);
+    const handle = page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .nth(1);
+    await handle.focus();
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowDown');
+    const after = [before[1], before[0], ...before.slice(2)];
+    await expect.poll(() => privateEditTitles(page)).toEqual(after);
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    expect(fixture.writes[0]).toEqual({
+      ifMatch: '1',
+      itemIds: [
+        fixture.items[1].id,
+        fixture.items[0].id,
+        ...fixture.items.slice(2).map((item) => item.id),
+      ],
+    });
+    await expect(handle).toBeDisabled();
+    await expect(page.getByRole('status')).toHaveText(
+      privateArea.collections.reordering,
+    );
+    await expect(
+      page.getByPlaceholder(privateArea.collections.itemTitleLabel),
+    ).toBeDisabled();
+    await expectNoHorizontalOverflow(page);
+    await capturePrivateReorder(
+      page,
+      testInfo.outputPath(`private-reorder-pending-${view.name}.png`),
+    );
+    await expectNoWcagViolations(page);
+    await fixture.respond();
+    await expect(page.getByRole('status')).toHaveCount(0);
+    await expect(handle).toBeEnabled();
+    await expect.poll(() => privateEditTitles(page)).toEqual(after);
+    const first = page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .first();
+    await first.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(() => fixture.writes.length).toBe(2);
+    expect(fixture.writes[1].ifMatch).toBe('2');
+    await expect.poll(() => privateEditTitles(page)).toEqual(before);
+    await fixture.respond();
+    await expect(first).toBeEnabled();
+    await page
+      .getByRole('button', { name: de.common.cancel, exact: true })
+      .first()
+      .click();
+    await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(
+      0,
+    );
+    await page
+      .getByRole('link', {
+        name: privateArea.collections.detailBack,
+        exact: true,
+      })
+      .click();
+    await expect(page).toHaveURL(/\/more\/private\/collections$/);
+    expect(unexpectedRequests).toEqual([]);
+  });
+}
+
+test('private pointer reorder survives release and retains the existing title draft', async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({
+    colorScheme: 'dark',
+    reducedMotion: 'no-preference',
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await signInAndOpenPrivateArea(page);
+  const fixture = await installHeldPrivateReorder(page);
+  await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  const draft = page.getByLabel(privateArea.collections.titleLabel);
+  await draft.fill('My travel draft');
+  const rows = page.locator('[data-sortable-item-id]');
+  await rows.first().scrollIntoViewIfNeeded();
+  const handle = rows
+    .nth(1)
+    .getByRole('button', { name: privateArea.collections.reorderItem });
+  await handle.evaluate((element) =>
+    element.scrollIntoView({ block: 'center' }),
+  );
+  const start = await handle.boundingBox();
+  const target = await rows.first().boundingBox();
+  if (!start || !target) throw new Error('Private drag rows are not visible.');
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(start.x + start.width / 2, target.y + 8, { steps: 4 });
+  await page.mouse.up();
+  await expect
+    .poll(() => privateEditTitles(page))
+    .toEqual([
+      'Pack the photo album',
+      'Book train tickets',
+      'Bring favourite snacks',
+    ]);
+  await expect.poll(() => fixture.writes.length).toBe(1);
+  await expect(page.getByRole('status')).toHaveText(
+    privateArea.collections.reordering,
+  );
+  await expect(draft).toHaveValue('My travel draft');
+  await expect(
+    page.getByRole('button', { name: m5s3.common.saveChanges }),
+  ).toBeDisabled();
+  await capturePrivateReorder(
+    page,
+    testInfo.outputPath('private-reorder-pointer-390-dark.png'),
+  );
+  await fixture.respond();
+  await expect(handle).toBeEnabled();
+  await expect(draft).toHaveValue('My travel draft');
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('private reorder rolls back and recovers conflicts and read failures without replay', async ({
+  page,
+}, testInfo) => {
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await signInAndOpenPrivateArea(page);
+  const fixture = await installHeldPrivateReorder(page);
+  await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+  await page.getByRole('button', { name: de.common.edit, exact: true }).click();
+  const before = await privateEditTitles(page);
+  const move = async () => {
+    await page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .nth(1)
+      .focus();
+    await page.keyboard.press('ArrowUp');
+  };
+  await move();
+  await expect.poll(() => fixture.writes.length).toBe(1);
+  await fixture.respond(500);
+  await expect(
+    page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .first(),
+  ).toBeEnabled();
+  await expect.poll(() => privateEditTitles(page)).toEqual(before);
+  await expect(
+    page.getByRole('button', { name: de.common.retry }),
+  ).toBeVisible();
+  await capturePrivateReorder(
+    page,
+    testInfo.outputPath('private-reorder-rollback-390-light.png'),
+  );
+  await expectNoWcagViolations(page);
+  await page.getByRole('button', { name: de.common.retry }).click();
+  expect(fixture.writes).toHaveLength(1);
+  await move();
+  await expect.poll(() => fixture.writes.length).toBe(2);
+  fixture.setVersion(7);
+  await fixture.respond(409);
+  await expect(
+    page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .first(),
+  ).toBeEnabled();
+  await expect(
+    page.getByText(de.states.conflict.title, { exact: true }),
+  ).toBeVisible();
+  await expect.poll(() => privateEditTitles(page)).toEqual(before);
+  expect(fixture.writes).toHaveLength(2);
+  await move();
+  await expect.poll(() => fixture.writes.length).toBe(3);
+  expect(fixture.writes[2].ifMatch).toBe('7');
+  fixture.failReads(true);
+  await fixture.respond(500);
+  await expect(page.getByRole('button', { name: de.common.retry })).toHaveCount(
+    2,
+  );
+  await expect(
+    page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .first(),
+  ).toBeDisabled();
+  await expect.poll(() => privateEditTitles(page)).toEqual(before);
+  await expectNoHorizontalOverflow(page);
+  await capturePrivateReorder(
+    page,
+    testInfo.outputPath('private-reorder-read-recovery-390-light.png'),
+  );
+  fixture.failReads(false);
+  await page.getByRole('button', { name: de.common.retry }).first().click();
+  await expect(
+    page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .first(),
+  ).toBeEnabled();
+  expect(fixture.writes).toHaveLength(3);
+  expect(unexpectedRequests).toEqual([]);
+});

@@ -31,11 +31,17 @@ this workspace. CI uses the repository's pinned browser runtime.
 - [390 light](story-photos-390-light.png), [390 dark](story-photos-390-dark.png)
 - [1280 light](story-photos-1280-light.png), [1280 dark](story-photos-1280-dark.png)
 - [320 light](story-photos-320-light.png)
+- [Momente browse at 320px / 200% text](f2-story-browse-large-text-320.png)
 - [200% text header](story-photos-390-text-200.png), [grid](story-photos-390-text-200-grid.png), [viewer](story-photos-390-text-200-viewer.png)
 - [Viewer](story-photos-viewer-390.png), [empty](story-photos-empty.png), [error](story-photos-error.png)
 
 Review: visible content and actions are coherent in both themes; photos remain
 dominant and the app shell is preserved. No page overflow at 320px/200% text.
+The secondary browse grid adapts to the available width and text size, with
+one column when two cannot fit. Browser regression exposed a fixed two-column
+rule that overflowed the milestone label at 320px/200%; removing that override
+and allowing long labels to wrap fixes it. The existing short-viewport F2
+journey and all three gallery browser cases pass together after the correction.
 The viewer footer wraps and stays reachable with large text. Reduced motion
 uses the existing static scrolling behavior. Existing primary-nav labels may
 truncate at 200% text; their accessible names remain complete. No new shell

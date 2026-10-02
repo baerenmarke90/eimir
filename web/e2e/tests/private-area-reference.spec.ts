@@ -1190,10 +1190,12 @@ test('private reorder rolls back and recovers conflicts and read failures withou
   await page.getByRole('button', { name: de.common.edit, exact: true }).click();
   const before = await privateEditTitles(page);
   const move = async () => {
-    await page
+    const handle = page
       .getByRole('button', { name: privateArea.collections.reorderItem })
-      .nth(1)
-      .focus();
+      .nth(1);
+    await expect(handle).toBeEnabled();
+    await handle.focus();
+    await expect(handle).toBeFocused();
     await page.keyboard.press('ArrowUp');
   };
   await move();

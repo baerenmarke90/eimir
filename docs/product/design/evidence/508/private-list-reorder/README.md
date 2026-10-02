@@ -40,6 +40,12 @@ root version 7, and unavailable recovery reads without another write. It
 checks visible authorized content and disabled writes until recovery succeeds;
 rollback also passes Axe. No write is automatically replayed.
 
+The recovery test waits for an enabled, focused handle before its next keyboard
+move. The original CI trace showed focus being attempted while Retry's read
+still blocked writes; `locator.focus()` does not wait for enabled state. This
+readiness assertion preserves the recovery and exact write-count checks without
+adding a delay, extending timeouts or changing runtime behavior.
+
 Nine component cases verify immediate order, duplicate/overlapping writes,
 unchanged versions, background refresh, position-only rollback, title-draft
 safety, newer independent item content, newer root/item-set preservation on

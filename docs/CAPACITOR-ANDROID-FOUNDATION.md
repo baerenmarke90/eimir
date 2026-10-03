@@ -33,6 +33,8 @@ web/ (Vite + TypeScript)
   - Falling back to `window.location.origin` inside the native container would incorrectly target `https://localhost` (the internal WebView origin), resulting in broken network calls.
   - The build script `web/scripts/build-capacitor-web.mjs` enforces `VITE_EIMIR_API_BASE_URL` at build time.
   - Runtime resolution (`web/src/client/config.ts`) throws a fail-closed descriptive error if `VITE_EIMIR_API_BASE_URL` is missing or resolves to localhost/127.0.0.1 in native mode.
+  - For an Android build pointed at a `demo.` API subdomain, the build enables the existing Demo entry and banner unless `VITE_EIMIR_DEMO_MODE=false` is set explicitly. Other API hosts require `VITE_EIMIR_DEMO_MODE=true` to enable that presentation. The backend remains authoritative for Demo entry and destructive-action restrictions.
+  - The Demo reset timer is independent of Demo mode. Set `VITE_EIMIR_DEMO_RESET_TIMER` and `VITE_EIMIR_DEMO_RESET_INTERVAL` to match the backend deployment; the build does not infer an active reset timer from the API hostname.
 - **Native HTTP Transport (`CapacitorHttp`)**:
   - `CapacitorHttp.enabled: true` patches `window.fetch` and `window.XMLHttpRequest` in the native WebView container.
   - Requests are routed through the native Android network stack, preserving `Authorization: Bearer ...` headers and bypassing WebView CORS restrictions against the remote API origin.

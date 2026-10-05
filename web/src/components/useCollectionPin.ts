@@ -41,7 +41,7 @@ export function useCollectionPin({
   spaceId: string;
 }) {
   const queryClient = useQueryClient();
-  const inFlightRef = useRef(false);
+  const inFlightRef = useRef<Selection | null>(null);
   const [pendingSelection, setPendingSelection] = useState<Selection | null>(
     null,
   );
@@ -181,7 +181,7 @@ export function useCollectionPin({
       }
       clearPending(selection);
     },
-    onSettled: async (_data, error, _selection, context) => {
+    onSettled: async (_data, error, selection, context) => {
       try {
         if (
           context?.isCurrentQuery() &&
@@ -195,7 +195,7 @@ export function useCollectionPin({
           });
         }
       } finally {
-        inFlightRef.current = false;
+        if (inFlightRef.current === selection) inFlightRef.current = null;
       }
     },
   });
@@ -216,12 +216,13 @@ export function useCollectionPin({
       !accountId ||
       !spaceId ||
       isBlocked ||
-      inFlightRef.current ||
+      (inFlightRef.current?.accountId === accountId &&
+        inFlightRef.current.spaceId === spaceId) ||
       queryClient.isMutating({ mutationKey, exact: true }) > 0
     )
       return;
-    inFlightRef.current = true;
     const selection = { accountId, spaceId, selectedCollectionId };
+    inFlightRef.current = selection;
     setPendingSelection(selection);
     mutation.mutate(selection);
   }
@@ -235,7 +236,12 @@ export function useCollectionPin({
     selectedCollectionId,
     isSaving,
     isBlocked,
-    error: query.error ?? mutation.error,
+    error:
+      query.error ??
+      (mutation.variables?.accountId === accountId &&
+      mutation.variables.spaceId === spaceId
+        ? mutation.error
+        : null),
     changeSelection,
     retryRead,
   };

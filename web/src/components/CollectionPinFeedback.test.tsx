@@ -399,3 +399,69 @@ it('preserves a newer authoritative row when an older pin response arrives befor
   await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
   expect(cached(h)).toEqual(newer);
 });
+
+it.each(['account', 'space'])(
+  'does not present an initiating write failure after a %s switch',
+  async (dimension) => {
+    const h = setup();
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    const owner = dimension === 'account' ? 'account-2' : accountId;
+    const space = dimension === 'space' ? 'space-2' : spaceId;
+    const otherKey = dashboardPreferencesQueryKey(owner, space);
+    const other = { items: [preference('other-list', false)] };
+    h.queryClient.setQueryData(otherKey, other);
+    h.view.rerender(h.tree(owner, space));
+    await act(async () =>
+      h.writes[0].reject(new ClientProblemError('server', 500)),
+    );
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    expect(screen.queryByText(de.states.server.title)).toBeNull();
+    expect(screen.queryByRole('button', { name: de.common.retry })).toBeNull();
+    expect(cached(h, otherKey)).toEqual(other);
+  },
+);
+
+it.each(['account', 'space'])(
+  'allows a new explicit selection in a different %s while an earlier scope is pending',
+  async (dimension) => {
+    const h = setup();
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    const owner = dimension === 'account' ? 'account-2' : accountId;
+    const space = dimension === 'space' ? 'space-2' : spaceId;
+    const otherKey = dashboardPreferencesQueryKey(owner, space);
+    const other = { items: [preference('other-list', false)] };
+    h.queryClient.setQueryData(otherKey, other);
+    h.view.rerender(h.tree(owner, space));
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(2));
+    expect(h.update.mock.calls[1][0].spaceId).toBe(space);
+    await act(async () =>
+      h.writes[0].reject(new ClientProblemError('server', 500)),
+    );
+    expect(unpinButton().getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('status').textContent).toBe(de.common.saving);
+    expect(screen.queryByText(de.states.server.title)).toBeNull();
+    expect(cached(h, otherKey)?.items[0]).toEqual(
+      preference(collectionId, true),
+    );
+    h.get.mockResolvedValue({ items: [preference(collectionId, true)] });
+    await act(async () => h.writes[1].resolve(preference(collectionId, true)));
+    await waitFor(() =>
+      expect(unpinButton().hasAttribute('disabled')).toBe(false),
+    );
+    expect(h.update).toHaveBeenCalledTimes(2);
+  },
+);

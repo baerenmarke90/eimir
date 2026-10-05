@@ -7,7 +7,7 @@ Baseline: `main@8dbe6e6bdbeeb0b98e5e875d4b1423b2e51ef53b`.
 
 These are unretouched full-page Chromium captures of the canonical Web app
 with authorized synthetic API fixtures and locked dependencies. The tested
-Web source tree is `5484c6b53161183acc27b13ec4d25e0f9434c87a`; later evidence-only files do not
+Web source tree is `efd65bcdfb5c1f7f9d54ff53195929d61b7568df`; later evidence-only files do not
 change that tree. German product copy comes from existing i18n resources.
 Fixed navigation remains attached to the viewport in full-page captures;
 this is not a proposed placement in document flow.
@@ -43,16 +43,19 @@ The entire updated browser spec passes 17 cases without retries.
 
 ## Component and build verification
 
-Thirteen production-component cases cover immediate selection/removal,
+Seventeen production-component cases cover immediate selection/removal,
 rapid duplicates, visibility semantics, background reads, row-owned rollback,
 unrelated modules/order, newer authoritative rows on late success/failure,
 conflict/offline recovery, Account/Space switches, removed/recreated query
-non-recreation, remount duplicate prevention and denied preference reads.
+non-recreation, remount duplicate prevention and denied preference reads. Additional scoped
+cases keep old errors out of the new Account/Space and allow its explicit
+selection while the initiating scope still saves; late settlement cannot
+clear the newer pending feedback or write guard.
 Fifteen existing Collection component cases and the planning regression remain
 covered. The prior write-replaying retry assertion now verifies a read followed
 by another explicit selection.
 
-The full Web suite passes: 194 files / 1360 tests, with one existing skipped
+The full Web suite passes: 194 files / 1364 tests, with one existing skipped
 file/test. Build, TypeScript, format, changed-file lint (no diagnostics), full
 lint (existing warnings only), and engineering/documentation language audits
 pass. The full suite exposed a pre-existing planning fixture clock dependency:

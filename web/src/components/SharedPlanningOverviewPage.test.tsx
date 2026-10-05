@@ -1,3 +1,4 @@
+import { afterEach, vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
@@ -60,6 +61,8 @@ function plan(overrides: {
     ...overrides,
   };
 }
+
+afterEach(() => vi.useRealTimers());
 
 describe('SharedPlanningOverviewPage', () => {
   it('renders only the shared M3 planning product areas', () => {
@@ -232,6 +235,9 @@ describe('SharedPlanningOverviewPage', () => {
   });
 
   it('keeps Wishes and Plans separate and composes focal, later, undated, and receded history', () => {
+    // Both dated fixtures must remain in the future for this composition case.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-02T10:00:00Z'));
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });

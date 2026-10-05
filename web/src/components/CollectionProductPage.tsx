@@ -11,11 +11,7 @@ import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
-import {
-  dashboardPreferencesQueryKey,
-  PINNED_COLLECTION_MODULE_KEY,
-  selectedDashboardCollectionId,
-} from '../client/dashboardPreferences';
+import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
@@ -41,6 +37,7 @@ import {
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { useTransientFlag } from './useTransientFlag';
+import { useCollectionPin } from './useCollectionPin';
 import './SharedPlanningPages.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -219,43 +216,8 @@ export function CollectionProductPage({
     retry: false,
   });
 
-  const dashboardPreferencesQuery = useQuery({
-    queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
-    queryFn: () => {
-      if (!dashboardApi) throw new Error('Dashboard API is not available.');
-      return apiCall(() =>
-        dashboardApi.listDashboardModulePreferences({ spaceId }),
-      );
-    },
-    enabled: Boolean(dashboardApi && accountId && spaceId),
-    retry: false,
-  });
-
-  const pinnedCollectionId = selectedDashboardCollectionId(
-    dashboardPreferencesQuery.data,
-    PINNED_COLLECTION_MODULE_KEY,
-  );
-
-  const pinCollection = useMutation({
-    mutationFn: (selectedCollectionId: string | null) => {
-      if (!dashboardApi) throw new Error('Dashboard API is not available.');
-      return apiCall(() =>
-        dashboardApi.updateDashboardModulePreference({
-          moduleKey: PINNED_COLLECTION_MODULE_KEY,
-          spaceId,
-          dashboardModulePreferenceUpdate: {
-            selectedCollectionId,
-            visible: selectedCollectionId ? true : undefined,
-          },
-        }),
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
-      });
-    },
-  });
+  const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
+  const pinnedCollectionId = pinCollection.selectedCollectionId;
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -771,11 +733,13 @@ export function CollectionProductPage({
           <button
             type="button"
             className="button-link secondary-link"
-            disabled={
-              dashboardPreferencesQuery.isPending || pinCollection.isPending
+            disabled={pinCollection.isBlocked}
+            aria-pressed={pinnedCollectionId === collection.id}
+            aria-describedby={
+              pinCollection.isSaving ? 'collection-pin-pending' : undefined
             }
             onClick={() =>
-              pinCollection.mutate(
+              pinCollection.changeSelection(
                 pinnedCollectionId === collection.id ? null : collection.id,
               )
             }
@@ -784,14 +748,15 @@ export function CollectionProductPage({
               ? t('m5s3.collection.unpinFromToday')
               : t('m5s3.collection.pinToToday')}
           </button>
+          {pinCollection.isSaving ? (
+            <small id="collection-pin-pending" role="status">
+              {t('common.saving')}
+            </small>
+          ) : null}
           {pinCollection.error ? (
             <ProblemState
               error={pinCollection.error}
-              onRetry={() => {
-                if (pinCollection.variables !== undefined) {
-                  pinCollection.mutate(pinCollection.variables);
-                }
-              }}
+              onRetry={() => void pinCollection.retryRead()}
             />
           ) : null}
         </div>

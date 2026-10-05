@@ -887,7 +887,7 @@ describe('CollectionProductPage', () => {
     );
   });
 
-  it('retries the failed Wir pin mutation instead of only refetching preferences', async () => {
+  it('refreshes a failed Wir pin before another explicit selection', async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -906,8 +906,11 @@ describe('CollectionProductPage', () => {
         visible: true,
         selectedCollectionId: 'collection-1',
       });
+    const listDashboardModulePreferences = vi
+      .fn()
+      .mockResolvedValue({ items: [] });
     const dashboardApi = {
-      listDashboardModulePreferences: vi.fn().mockResolvedValue({ items: [] }),
+      listDashboardModulePreferences,
       updateDashboardModulePreference,
     } as unknown as DashboardApi;
     const apis = {
@@ -948,8 +951,21 @@ describe('CollectionProductPage', () => {
     });
     expect(updateDashboardModulePreference).toHaveBeenCalledTimes(1);
 
+    const readsBeforeRetry = listDashboardModulePreferences.mock.calls.length;
     await user.click(retry);
-
+    await waitFor(() =>
+      expect(listDashboardModulePreferences).toHaveBeenCalledTimes(
+        readsBeforeRetry + 1,
+      ),
+    );
+    expect(updateDashboardModulePreference).toHaveBeenCalledTimes(1);
+    const recoveredPin = screen.getByRole('button', {
+      name: i18n.t('m5s3.collection.pinToToday'),
+    });
+    await waitFor(() =>
+      expect(recoveredPin.hasAttribute('disabled')).toBe(false),
+    );
+    await user.click(recoveredPin);
     await waitFor(() =>
       expect(updateDashboardModulePreference).toHaveBeenCalledTimes(2),
     );

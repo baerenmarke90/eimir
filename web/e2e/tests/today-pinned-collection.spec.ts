@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
@@ -55,11 +55,13 @@ async function installMocks(
     sharedAchievementsEnabled = false,
     failFinalCompletionOnce = false,
     openItemAfterCompletedPreview = false,
+    itemCount,
   }: {
     initiallyPinned?: boolean;
     sharedAchievementsEnabled?: boolean;
     failFinalCompletionOnce?: boolean;
     openItemAfterCompletedPreview?: boolean;
+    itemCount?: number;
   } = {},
 ) {
   let pinnedCollectionId: string | null = initiallyPinned
@@ -82,6 +84,21 @@ async function installMocks(
         collectionItem('00000000-0000-0000-0000-000000000032', 'Brot', 1, true),
         collectionItem('00000000-0000-0000-0000-000000000033', 'Äpfel', 2),
       ];
+  if (itemCount !== undefined) {
+    const titles = ['Milch', 'Brot', 'Äpfel', 'Butter', 'Reis', 'Salz'];
+    items.splice(
+      0,
+      items.length,
+      ...Array.from({ length: itemCount }, (_, index) =>
+        collectionItem(
+          `00000000-0000-0000-0000-0000000001${index}0`,
+          titles[index] ?? `Entry ${index + 1}`,
+          index,
+          index === 1,
+        ),
+      ),
+    );
+  }
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
@@ -424,6 +441,9 @@ async function installMocks(
   return {
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
+    pin: (selectedCollectionId: string | null) => {
+      pinnedCollectionId = selectedCollectionId;
+    },
     reorder(itemIds: string[]) {
       items.forEach((item) => {
         item.position = itemIds.indexOf(item.id);
@@ -998,3 +1018,241 @@ for (const width of [320, 360, 390, 430]) {
     await expectNoWcagViolations(page);
   });
 }
+
+async function holdPersonalPin(
+  page: Page,
+  network: Awaited<ReturnType<typeof installMocks>>,
+) {
+  let pending: { route: Route; selectedCollectionId: string | null } | null =
+    null;
+  let readsUnavailable = false;
+  let reads = 0;
+  const writes: (string | null)[] = [];
+  await page.route('**/dashboard/preferences', async (route) => {
+    reads += 1;
+    if (readsUnavailable)
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Preference read unavailable',
+          status: 500,
+        }),
+      });
+    else await route.fallback();
+  });
+  await page.route(
+    '**/dashboard/preferences/pinned_collection',
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        selectedCollectionId: string | null;
+      };
+      writes.push(body.selectedCollectionId);
+      pending = { route, selectedCollectionId: body.selectedCollectionId };
+    },
+  );
+  return {
+    writes,
+    reads: () => reads,
+    failReads: (value: boolean) => {
+      readsUnavailable = value;
+    },
+    confirm: async () => {
+      if (!pending) throw new Error('No personal pin is waiting.');
+      const current = pending;
+      pending = null;
+      network.pin(current.selectedCollectionId);
+      await current.route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          moduleKey: 'pinned_collection',
+          visible: true,
+          selectedCollectionId: current.selectedCollectionId,
+        }),
+      });
+    },
+    fail: async (status = 500) => {
+      if (!pending) throw new Error('No personal pin is waiting.');
+      const current = pending;
+      pending = null;
+      await current.route.fulfill({
+        status,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Preference write unavailable',
+          status,
+        }),
+      });
+    },
+  };
+}
+
+for (const view of [
+  {
+    name: '390-light',
+    width: 390,
+    scheme: 'light' as const,
+    items: 3,
+    scale: false,
+  },
+  {
+    name: '390-dark-sparse',
+    width: 390,
+    scheme: 'dark' as const,
+    items: 1,
+    scale: false,
+  },
+  {
+    name: '360-light-dense',
+    width: 360,
+    scheme: 'light' as const,
+    items: 6,
+    scale: false,
+  },
+  {
+    name: '430-dark-empty',
+    width: 430,
+    scheme: 'dark' as const,
+    items: 0,
+    scale: false,
+  },
+  {
+    name: '320-dark-200pct',
+    width: 320,
+    scheme: 'dark' as const,
+    items: 3,
+    scale: true,
+  },
+  {
+    name: '1280-light',
+    width: 1280,
+    scheme: 'light' as const,
+    items: 3,
+    scale: false,
+  },
+]) {
+  test(`personal list pin responds before confirmation in ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page, { itemCount: view.items });
+    await signIn(page);
+    const held = await holdPersonalPin(page, network);
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    if (view.scale)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const action = page.locator('.planning-collection-dashboard-action');
+    const button = action.getByRole('button');
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(button).toHaveText(m5s3.collection.unpinFromToday);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toBeDisabled();
+    await expect(action.getByRole('status')).toHaveText(de.common.saving);
+    await expect(button).toHaveAttribute(
+      'aria-describedby',
+      'collection-pin-pending',
+    );
+    await button.evaluate((element) => {
+      (element as HTMLButtonElement).click();
+      (element as HTMLButtonElement).click();
+    });
+    await expect.poll(() => held.writes.length).toBe(1);
+    await expect(
+      page.getByPlaceholder(m5s3.collection.newItemPlaceholder),
+    ).toBeEnabled();
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`collection-pin-pending-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await expectNoWcagViolations(page);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await expect(action.getByRole('status')).toHaveCount(0);
+    await page.goto('/today');
+    await expect(
+      page.locator('.today-section-pinned-collection'),
+    ).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toBeEnabled();
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveText(m5s3.collection.pinToToday);
+    await expect.poll(() => held.writes.length).toBe(2);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await page.goto('/today');
+    await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
+      0,
+    );
+    expect(held.writes).toEqual([COLLECTION_ID, null]);
+  });
+}
+
+test('personal pin recovers failed writes, conflicts and reads without replaying a selection', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const network = await installMocks(page);
+  await signIn(page);
+  const held = await holdPersonalPin(page, network);
+  await page.goto(`/plan/collections/${COLLECTION_ID}`);
+  const action = page.locator('.planning-collection-dashboard-action');
+  const button = action.getByRole('button').first();
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect.poll(() => held.writes.length).toBe(1);
+  await held.fail();
+  await expect(button).toBeEnabled();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await expect(
+    action.getByRole('button', { name: de.common.retry }),
+  ).toBeVisible();
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('collection-pin-rollback-390-light.png'),
+    fullPage: true,
+  });
+  const readsBeforeRetry = held.reads();
+  await action.getByRole('button', { name: de.common.retry }).click();
+  await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
+  expect(held.writes.length).toBe(1);
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect.poll(() => held.writes.length).toBe(2);
+  network.pin(COLLECTION_ID);
+  await held.fail(409);
+  await expect(button).toBeEnabled();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(
+    action.getByText(de.states.conflict.title, { exact: true }),
+  ).toBeVisible();
+  await button.click();
+  await expect.poll(() => held.writes.length).toBe(3);
+  held.failReads(true);
+  await held.fail();
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('collection-pin-read-recovery-390-light.png'),
+    fullPage: true,
+  });
+  held.failReads(false);
+  await action.getByRole('button', { name: de.common.retry }).click();
+  await expect(button).toBeEnabled();
+  expect(held.writes).toEqual([COLLECTION_ID, COLLECTION_ID, null]);
+});

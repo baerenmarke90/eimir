@@ -35,7 +35,12 @@ const notificationSettings = {
   deviceNoDistributor:
     'Es ist noch kein Push-Dienst auf diesem Gerät installiert oder ausgewählt.',
   devicePermissionDenied:
-    'Erlaube Benachrichtigungen in den Geräteeinstellungen.',
+    'Benachrichtigungen sind für eimir. auf diesem Gerät nicht erlaubt.',
+  deviceOpenSettings: 'Geräteeinstellungen öffnen',
+  deviceUnsupported:
+    'Dein Push-Dienst wird von dieser eimir.-Installation nicht unterstützt. Die Person, die eure Installation betreut, kann ihn freigeben.',
+  deviceStatusUnavailable:
+    'Der Push-Status konnte gerade nicht geprüft werden. Versuche es gleich noch einmal.',
   deviceCleanupPending:
     'Auf diesem Gerät ist Push aus. Die alte Verbindung wird beim nächsten Start entfernt.',
   deviceEnable: 'Auf diesem Gerät aktivieren',

@@ -2,7 +2,10 @@ package de.eimir.app;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
+import android.provider.Settings;
 import android.os.Build;
+import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -60,7 +63,8 @@ public final class UnifiedPushBridge extends Plugin {
         String active = activeInstance(getContext());
         result.put("accountId", active);
         result.put("enabled", active != null && UnifiedPush.getAckDistributor(getContext()) != null);
-        result.put("permissionGranted", notificationsAllowed());
+        // Covers both the runtime permission and notifications blocked for the app.
+        result.put("permissionGranted", NotificationManagerCompat.from(getContext()).areNotificationsEnabled());
         call.resolve(result);
     }
 
@@ -164,7 +168,22 @@ public final class UnifiedPushBridge extends Plugin {
         if (previous != null) {
             UnifiedPush.unregister(getContext(), previous);
         }
+        EimirPushService.cancelWakeNotification(getContext());
         call.resolve();
+    }
+
+    /** Platform route for a blocked permission; the prompt is never reopened automatically. */
+    @PluginMethod
+    public void openNotificationSettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName())
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (RuntimeException error) {
+            call.reject("NOTIFICATION_SETTINGS_UNAVAILABLE");
+        }
     }
 
     static void endpoint(Context context, PushEndpoint endpoint, String instance) {

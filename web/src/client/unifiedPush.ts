@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { UnifiedPushConfiguration } from '../api/generated/models/UnifiedPushConfiguration';
+import { ResponseError } from '../api/generated/runtime';
 import { isCapacitorNative } from '../pwa';
 import {
   notificationsListQueryKey,
@@ -31,6 +32,7 @@ type NativePushPlugin = {
     vapidPublicKey: string;
   }): Promise<{ enabled: boolean }>;
   disable(): Promise<void>;
+  openNotificationSettings(): Promise<void>;
   addListener(
     event: 'endpoint',
     callback: (event: EndpointEvent) => void,
@@ -63,8 +65,15 @@ export interface DevicePushController {
   available: boolean;
   state: DevicePushState;
   error: string | null;
+  /** True only while this device is registered with a distributor for this Account. */
+  registered: boolean;
   enable(): Promise<void>;
   disable(): Promise<void>;
+  openSettings(): Promise<void>;
+}
+
+function responseStatus(error: unknown): number | null {
+  return error instanceof ResponseError ? error.response.status : null;
 }
 
 function endpointIdKey(apiBaseUrl: string, accountId: string): string {
@@ -93,8 +102,34 @@ async function revokeSavedEndpoint(
 ): Promise<void> {
   const id = readEndpointId(key);
   if (!id) return;
-  await notificationsApi.revokeOwnPushEndpoint({ endpointId: id });
+  try {
+    await notificationsApi.revokeOwnPushEndpoint({ endpointId: id });
+  } catch (error) {
+    // 404: already revoked or expired on the server; nothing is left to retry.
+    if (responseStatus(error) !== 404) throw error;
+  }
   if (readEndpointId(key) === id) clearEndpointId(key);
+}
+
+async function loadConfiguration(
+  notificationsApi: NotificationsApi,
+): Promise<
+  | { configuration: UnifiedPushConfiguration; failure: null }
+  | { configuration: null; failure: 'unavailable' | 'unreachable' }
+> {
+  try {
+    return {
+      configuration: await notificationsApi.getUnifiedPushConfiguration(),
+      failure: null,
+    };
+  } catch (error) {
+    // 503 means the installation has no Push transport; anything else is a
+    // transient inability to check and must not read as a permanent absence.
+    return {
+      configuration: null,
+      failure: responseStatus(error) === 503 ? 'unavailable' : 'unreachable',
+    };
+  }
 }
 
 function isInboxLaunchUrl(raw: string): boolean {
@@ -131,13 +166,24 @@ export function useUnifiedPush({
     native ? 'loading' : 'unavailable',
   );
   const [error, setError] = useState<string | null>(null);
-  const [configuration, setConfiguration] =
-    useState<UnifiedPushConfiguration | null>(null);
+  const [registered, setRegistered] = useState(false);
+  const configuration = useRef<UnifiedPushConfiguration | null>(null);
+  const errorRef = useRef<string | null>(null);
   const key = endpointIdKey(apiBaseUrl, accountId);
   const currentSpaceId = useRef(spaceId);
   const handledLaunchUrl = useRef(false);
   const registrationAllowed = useRef(true);
   currentSpaceId.current = spaceId;
+  errorRef.current = error;
+
+  const syncRegistered = useCallback(async () => {
+    try {
+      const nativeState = await nativePush.status();
+      setRegistered(nativeState.enabled && nativeState.accountId === accountId);
+    } catch {
+      // Keep the last known value; the next start re-reads native state.
+    }
+  }, [accountId]);
 
   useEffect(() => {
     if (!native) return;
@@ -196,12 +242,28 @@ export function useUnifiedPush({
               });
             }
           })
-          .catch(() => {
-            if (
+          .catch(async (cause: unknown) => {
+            const current =
               live &&
               registrationAllowed.current &&
-              generation === registrationGeneration
-            ) {
+              generation === registrationGeneration;
+            if (responseStatus(cause) === 422) {
+              // The backend does not accept this distributor's origin. A retry
+              // cannot succeed, so stop device receipt instead of re-registering
+              // on every start.
+              if (current) {
+                registrationAllowed.current = false;
+                registrationGeneration += 1;
+              }
+              await nativePush.disable().catch(() => undefined);
+              if (live) setRegistered(false);
+              if (current) {
+                setError('PUSH_ENDPOINT_UNSUPPORTED');
+                setState('error');
+              }
+              return;
+            }
+            if (current) {
               setError('PUSH_DEVICE_REGISTRATION_FAILED');
               setState('error');
             }
@@ -221,10 +283,26 @@ export function useUnifiedPush({
         if (!live) return;
         setError(reason);
         setState('error');
+        void syncRegistered();
       }),
       App.addListener('appUrlOpen', ({ url }) => {
         if (!live) return;
         if (isInboxLaunchUrl(url)) navigate(MORE_NOTIFICATIONS_ROUTE);
+      }),
+      App.addListener('resume', () => {
+        // Returning from the system notification settings: re-check the
+        // permission instead of reopening the prompt.
+        if (!live || errorRef.current !== 'NOTIFICATION_PERMISSION_DENIED')
+          return;
+        void (async () => {
+          const nativeState = await nativePush.status();
+          if (!live || !nativeState.permissionGranted) return;
+          const here =
+            nativeState.enabled && nativeState.accountId === accountId;
+          setRegistered(here);
+          setError(null);
+          setState(here ? 'on' : 'off');
+        })().catch(() => undefined);
       }),
     ];
 
@@ -238,42 +316,63 @@ export function useUnifiedPush({
             navigate(MORE_NOTIFICATIONS_ROUTE);
           }
         }
-        const config = await notificationsApi.getUnifiedPushConfiguration();
+        const loaded = await loadConfiguration(notificationsApi);
         if (!live) return;
-        setConfiguration(config);
+        configuration.current = loaded.configuration;
         await pendingSignOutDisable;
         const nativeState = await nativePush.status();
         if (!live) return;
-        if (nativeState.accountId && nativeState.accountId !== accountId) {
+        const otherAccount =
+          nativeState.accountId !== null && nativeState.accountId !== accountId;
+        if (otherAccount) {
           registrationAllowed.current = false;
           await nativePush.disable();
-          setState('off');
-        } else if (nativeState.enabled) {
-          if (!nativeState.permissionGranted) {
-            setError('NOTIFICATION_PERMISSION_DENIED');
-            setState('error');
-          } else {
-            setState('connecting');
-            const refreshed = await nativePush.refresh({
-              accountId,
-              vapidPublicKey: config.vapidPublicKey,
-            });
-            if (!live || !registrationAllowed.current) return;
-            if (!refreshed.enabled) {
-              setError('NO_PUSH_DISTRIBUTOR');
-              setState('error');
-            }
-          }
-        } else {
+        }
+        const registeredHere = !otherAccount && nativeState.enabled;
+        setRegistered(registeredHere);
+
+        let cleanupPending = false;
+        if (!registeredHere) {
           registrationAllowed.current = false;
           if (readEndpointId(key)) setState('disconnecting');
           try {
             await endpointRegistrationSequence;
             await revokeSavedEndpoint(key, notificationsApi);
           } catch {
-            setError('PUSH_DEVICE_CLEANUP_PENDING');
+            cleanupPending = true;
           }
-          if (live) setState('off');
+        }
+        if (!live) return;
+
+        if (loaded.failure === 'unavailable') {
+          setState('unavailable');
+          return;
+        }
+        if (loaded.failure === 'unreachable') {
+          setError('PUSH_DEVICE_STATUS_UNAVAILABLE');
+          setState('error');
+          return;
+        }
+        if (!registeredHere) {
+          if (cleanupPending) setError('PUSH_DEVICE_CLEANUP_PENDING');
+          setState('off');
+          return;
+        }
+        if (!nativeState.permissionGranted) {
+          setError('NOTIFICATION_PERMISSION_DENIED');
+          setState('error');
+          return;
+        }
+        setState('connecting');
+        const refreshed = await nativePush.refresh({
+          accountId,
+          vapidPublicKey: loaded.configuration.vapidPublicKey,
+        });
+        if (!live || !registrationAllowed.current) return;
+        if (!refreshed.enabled) {
+          setRegistered(false);
+          setError('NO_PUSH_DISTRIBUTOR');
+          setState('error');
         }
       } catch {
         if (live) setState('unavailable');
@@ -288,19 +387,41 @@ export function useUnifiedPush({
           .catch(() => undefined);
       }
     };
-  }, [accountId, key, native, navigate, notificationsApi, queryClient]);
+  }, [
+    accountId,
+    key,
+    native,
+    navigate,
+    notificationsApi,
+    queryClient,
+    syncRegistered,
+  ]);
 
   const enable = useCallback(async () => {
-    if (!native || !configuration) return;
+    if (!native) return;
     registrationAllowed.current = true;
     const generation = registrationGeneration;
     setError(null);
     setState('connecting');
+    if (!configuration.current) {
+      // The status check failed earlier; enabling retries it.
+      const loaded = await loadConfiguration(notificationsApi);
+      if (generation !== registrationGeneration) return;
+      if (!loaded.configuration) {
+        registrationAllowed.current = false;
+        setError(
+          loaded.failure === 'unavailable'
+            ? null
+            : 'PUSH_DEVICE_STATUS_UNAVAILABLE',
+        );
+        setState(loaded.failure === 'unavailable' ? 'unavailable' : 'error');
+        return;
+      }
+      configuration.current = loaded.configuration;
+    }
+    const { vapidPublicKey } = configuration.current;
     try {
-      await nativePush.enable({
-        accountId,
-        vapidPublicKey: configuration.vapidPublicKey,
-      });
+      await nativePush.enable({ accountId, vapidPublicKey });
       if (
         generation !== registrationGeneration &&
         !registrationAllowed.current
@@ -316,8 +437,10 @@ export function useUnifiedPush({
           : 'PUSH_DEVICE_REGISTRATION_FAILED',
       );
       setState('error');
+    } finally {
+      await syncRegistered();
     }
-  }, [accountId, configuration, native]);
+  }, [accountId, native, notificationsApi, syncRegistered]);
 
   const disable = useCallback(async () => {
     registrationAllowed.current = false;
@@ -330,6 +453,7 @@ export function useUnifiedPush({
       setState('error');
       return;
     }
+    setRegistered(false);
     try {
       await endpointRegistrationSequence;
       await revokeSavedEndpoint(key, notificationsApi);
@@ -343,7 +467,48 @@ export function useUnifiedPush({
     setState('off');
   }, [accountId, key, notificationsApi, queryClient]);
 
-  return { available: native, state, error, enable, disable };
+  const openSettings = useCallback(async () => {
+    if (!native) return;
+    try {
+      await nativePush.openNotificationSettings();
+    } catch {
+      // The status line already explains where to allow notifications.
+    }
+  }, [native]);
+
+  return {
+    available: native,
+    state,
+    error,
+    registered,
+    enable,
+    disable,
+    openSettings,
+  };
+}
+
+/**
+ * Revoke this device's server endpoint while the session is still valid.
+ *
+ * Called on explicit sign-out before the session is revoked, so the server
+ * stops sending wakes to a device that no longer receives them. A failure is
+ * left to the existing cleanup at the next sign-in of the same Account.
+ */
+export async function revokeDevicePushBeforeSignOut(
+  apiBaseUrl: string,
+  accountId: string,
+  notificationsApi: NotificationsApi,
+): Promise<void> {
+  if (!isCapacitorNative()) return;
+  try {
+    await endpointRegistrationSequence.catch(() => undefined);
+    await revokeSavedEndpoint(
+      endpointIdKey(apiBaseUrl, accountId),
+      notificationsApi,
+    );
+  } catch {
+    // Retried after the next sign-in of this Account on this device.
+  }
 }
 
 export function stopNativePushForSignedOutAccount(): void {

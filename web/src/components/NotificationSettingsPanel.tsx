@@ -56,6 +56,47 @@ type Choice = {
   enabled: boolean;
 };
 
+const DEVICE_ERROR_STATUS_KEYS: Readonly<Record<string, string>> = {
+  NO_PUSH_DISTRIBUTOR: 'notificationSettings.deviceNoDistributor',
+  NOTIFICATION_PERMISSION_DENIED: 'notificationSettings.devicePermissionDenied',
+  PUSH_DEVICE_CLEANUP_PENDING: 'notificationSettings.deviceCleanupPending',
+  PUSH_ENDPOINT_UNSUPPORTED: 'notificationSettings.deviceUnsupported',
+  PUSH_DEVICE_STATUS_UNAVAILABLE:
+    'notificationSettings.deviceStatusUnavailable',
+};
+
+const DEVICE_STATE_STATUS_KEYS: Readonly<
+  Record<DevicePushController['state'], string>
+> = {
+  loading: 'notificationSettings.deviceLoading',
+  unavailable: 'notificationSettings.deviceUnavailable',
+  off: 'notificationSettings.deviceOff',
+  connecting: 'notificationSettings.deviceConnecting',
+  disconnecting: 'notificationSettings.deviceDisconnecting',
+  on: 'notificationSettings.deviceOn',
+  error: 'notificationSettings.deviceError',
+};
+
+function deviceStatusKey(devicePush: DevicePushController): string {
+  return (
+    (devicePush.error && DEVICE_ERROR_STATUS_KEYS[devicePush.error]) ||
+    DEVICE_STATE_STATUS_KEYS[devicePush.state]
+  );
+}
+
+/** One dominant action per state; retry only where it can succeed. */
+function deviceAction(
+  devicePush: DevicePushController,
+): 'enable' | 'openSettings' | null {
+  if (devicePush.error === 'NOTIFICATION_PERMISSION_DENIED') {
+    return 'openSettings';
+  }
+  if (devicePush.error === 'PUSH_ENDPOINT_UNSUPPORTED') return null;
+  return devicePush.state === 'off' || devicePush.state === 'error'
+    ? 'enable'
+    : null;
+}
+
 export function NotificationSettingsPanel({
   notificationsApi,
   accountId,
@@ -158,18 +199,19 @@ export function NotificationSettingsPanel({
           <h3>{t('notificationSettings.deviceTitle')}</h3>
           <p>{t('notificationSettings.deviceIntro')}</p>
           <p role="status" aria-live="polite">
-            {devicePush.error === 'NO_PUSH_DISTRIBUTOR'
-              ? t('notificationSettings.deviceNoDistributor')
-              : devicePush.error === 'NOTIFICATION_PERMISSION_DENIED'
-                ? t('notificationSettings.devicePermissionDenied')
-                : devicePush.error === 'PUSH_DEVICE_CLEANUP_PENDING'
-                  ? t('notificationSettings.deviceCleanupPending')
-                  : t(
-                      `notificationSettings.device${devicePush.state.charAt(0).toUpperCase()}${devicePush.state.slice(1)}`,
-                    )}
+            {t(deviceStatusKey(devicePush))}
           </p>
           <div className="form-actions">
-            {(devicePush.state === 'off' || devicePush.state === 'error') && (
+            {deviceAction(devicePush) === 'openSettings' && (
+              <button
+                type="button"
+                className="button-link"
+                onClick={() => void devicePush.openSettings()}
+              >
+                {t('notificationSettings.deviceOpenSettings')}
+              </button>
+            )}
+            {deviceAction(devicePush) === 'enable' && (
               <button
                 type="button"
                 className="button-link"
@@ -178,10 +220,9 @@ export function NotificationSettingsPanel({
                 {t('notificationSettings.deviceEnable')}
               </button>
             )}
-            {(devicePush.state === 'on' ||
-              devicePush.state === 'connecting' ||
-              devicePush.state === 'error' ||
-              devicePush.state === 'unavailable') && (
+            {(devicePush.registered ||
+              devicePush.state === 'on' ||
+              devicePush.state === 'connecting') && (
               <button
                 type="button"
                 className="button-link secondary-link"

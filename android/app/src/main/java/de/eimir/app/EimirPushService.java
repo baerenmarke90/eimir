@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -12,7 +13,6 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.unifiedpush.android.connector.FailedReason;
@@ -23,7 +23,13 @@ import org.unifiedpush.android.connector.data.PushMessage;
 /** A wake has no content or route target; authenticated Web fetches the inbox. */
 public final class EimirPushService extends PushService {
     private static final String CHANNEL_ID = "eimir_notifications";
-    private static final AtomicInteger nextNotificationId = new AtomicInteger(1);
+    /** One generic notification at most: repeated wakes update it instead of stacking. */
+    private static final int WAKE_NOTIFICATION_ID = 1;
+
+    /** Remove the generic notification, e.g. after disable, sign-out or an Account switch. */
+    static void cancelWakeNotification(Context context) {
+        NotificationManagerCompat.from(context).cancel(WAKE_NOTIFICATION_ID);
+    }
 
     @Override
     public void onNewEndpoint(PushEndpoint endpoint, String instance) {
@@ -68,7 +74,7 @@ public final class EimirPushService extends PushService {
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
         try {
-            NotificationManagerCompat.from(this).notify(nextNotificationId.getAndIncrement(), notification.build());
+            NotificationManagerCompat.from(this).notify(WAKE_NOTIFICATION_ID, notification.build());
         } catch (SecurityException ignored) {
             // Permission can be revoked after the check above.
         }

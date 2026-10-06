@@ -49,6 +49,7 @@ import {
 } from './client/referenceFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
 import {
+  revokeDevicePushBeforeSignOut,
   stopNativePushForSignedOutAccount,
   useUnifiedPush,
 } from './client/unifiedPush';
@@ -1038,7 +1039,19 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     if (tokens?.accessToken) {
       try {
         const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
-        void apis.auth.signOutApiV1AuthSignOutPost().catch(() => {});
+        // Revoke this device's Push endpoint while the session still exists;
+        // the session is revoked afterwards.
+        const devicePushCleanup = account
+          ? revokeDevicePushBeforeSignOut(
+              config.apiBaseUrl,
+              account.id,
+              createM4ProductApis(config.apiBaseUrl, tokens.accessToken)
+                .notifications,
+            )
+          : Promise.resolve();
+        void devicePushCleanup
+          .then(() => apis.auth.signOutApiV1AuthSignOutPost())
+          .catch(() => {});
       } catch {
         // Best effort sign-out
       }

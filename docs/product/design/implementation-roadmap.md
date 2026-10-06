@@ -1,9 +1,9 @@
 # Product Reference v1 implementation roadmap
 
-**Status:** Accepted execution sequence; implementation remains tracked by [#955](https://github.com/baerenmarke90/eimir/issues/955).<br/>
+**Status:** Accepted execution sequence, executed through C1. The program tracker [#955](https://github.com/baerenmarke90/eimir/issues/955) closed as completed on September 20, 2026; the separate final product audit [#946](https://github.com/baerenmarke90/eimir/issues/946) remains open.<br/>
 **Decision date:** September 15, 2026.
 
-This roadmap executes [Product Reference v1](product-reference-v1.md), the [five reference experiences](reference-screens.md), and [system direction](design-system-direction.md). Those documents define the target; [historical evidence](audits/2026-09-15/evidence-and-decisions.md) explains its origin. A slice below is planned work, not a claim that its behavior already ships.
+This roadmap executes [Product Reference v1](product-reference-v1.md), the [five reference experiences](reference-screens.md), and [system direction](design-system-direction.md). Those documents define the target; [historical evidence](audits/2026-09-15/evidence-and-decisions.md) explains its origin. Each slice section below records that slice's objective and acceptance concept as planned; delivery status is recorded under [Issue preparation and completion tracking](#issue-preparation-and-completion-tracking).
 
 ## Sequence and scope
 
@@ -156,4 +156,6 @@ F1/F2 issues must link the committed reference revision, identify the bounded pr
 
 [P1 #1081](https://github.com/baerenmarke90/eimir/issues/1081) and [P2 #1084](https://github.com/baerenmarke90/eimir/issues/1084) are completed. P3 native screen parity is retired by ADR 0011 / #1005 and #1009; Android/iOS receive the canonical React/Vite product through Capacitor, with device acceptance only for wrapper or native-capability changes that actually require it.
 
-[C1 #1103](https://github.com/baerenmarke90/eimir/issues/1103) is the remaining Product Reference close-out slice. It owns evidence-based retirement of obsolete mechanisms, reconciliation of active normative guidance, and the final current-main v1 consistency pass required before #955 can close.
+[C1 #1103](https://github.com/baerenmarke90/eimir/issues/1103) is completed (merged in [#1104](https://github.com/baerenmarke90/eimir/pull/1104)). It retired the proven-dead compatibility surface, reconciled active normative guidance and recorded the final current-main v1 consistency pass in the [C1 close-out](c1-product-reference-closeout.md). [#955](https://github.com/baerenmarke90/eimir/issues/955) closed as completed on that basis. No Product Reference v1 implementation slice remains open.
+
+This does not complete or waive [#946](https://github.com/baerenmarke90/eimir/issues/946). That final end-of-project Product Acceptance and launch-quality audit stays open, and it still needs real-runtime first-use journey evidence. [Implementation status](../../IMPLEMENTATION-STATUS.md) remains the authoritative living status source; this section only records the design sequence's outcome.

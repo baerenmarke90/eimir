@@ -1,8 +1,9 @@
 # Honest immediate Plan completion feedback — #508
 
-Status: **preflight prepared; the generated whole-screen Compact reference is
-still outstanding.** No UI implementation may start until it is attached to
-#508 (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 9A).
+Status: **Product Design Preflight complete; generated whole-screen Compact
+reference produced.** The selected reference and generation record below complete
+the visual artifact. Its publication in #508 is required before UI implementation
+(`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 9A).
 
 ## Baseline
 
@@ -67,6 +68,38 @@ CTA, and the four-destination Compact navigation. The `Zum Inhalt springen`
 overlay in one capture is the focused skip link from the test run, not product
 content.
 
+## Generated whole-screen Compact reference
+
+![Generated Plan completion pending reference, Compact Dark](plan-completion-pending-compact-dark.png)
+
+Generated on 2026-10-06 with built-in Codex Imagegen after a fresh fetch confirmed
+`main@4aa0806523a55dfafbee94d4479c6ffe06825303`. The actual
+`PlanProductPage`, completion/continuation contract, shared shell, current tokens
+and the baseline Light/Dark captures above were inspected first.
+
+The reference retains the header, Back, title and Edit affordance, last-confirmed
+schedule and creator, Notes, shared-visibility note, open management disclosure,
+schedule/date/time controls, both schedule actions, entered completion day,
+completion CTA and current primary navigation. It adds one plain pending status
+in the summary and depicts competing write controls as unavailable. It contains
+no completed result, celebration or Memory/Milestone continuation.
+
+The only intentionally removed baseline element is the incidental focused
+`Zum Inhalt springen` test overlay. The submitted day is **11 September 2026**;
+`09/11/2026` is the captured browser date-field rendering, not a new product
+format. Production status text must use the active locale's date formatting.
+
+This is a generated composition reference, **not a pixel lock or runtime
+acceptance**. Generated color, control-opacity, icon and spacing approximations
+do not override the actual semantic tokens, readable disabled states, component
+contracts or accessibility checks. The `role=status` semantics, synchronous
+guards and transaction locking must still be implemented and tested. Expanded
+retains the same bounded detail composition, so a separately generated Expanded
+reference is unnecessary for this slice; actual Expanded and Light/Dark evidence
+remains required after implementation.
+
+[Generation inputs, provenance, selected-output identity and complete prompts](plan-completion-generation.md).
+
 ## Mobile Interaction Contract
 
 | Concern | Contract |
@@ -114,9 +147,14 @@ write replay. Observability, API/schema/migration and release impact: none.
 Tests: component tests for the transaction guard, lock and scope; browser tests
 for held, confirmed, failed, conflict, offline and scope changes.
 
-## Remaining prerequisite
+## Implementation handoff
 
-The generated whole-screen Compact reference must be produced from the baseline
-captures above (shell, content and existing functions preserved; only the single
-pending status and locked controls added) and linked in #508. The authoring
-session had no image-generation capability.
+Publish the generated reference link in #508 before runtime implementation. Then
+continue this same branch with the synchronous in-flight guard, one localized
+summary status naming the submitted day, locked competing writes, scoped
+late-response handling, failure/date retention and authoritative 409 recovery.
+
+Completed status, shared-achievement celebration and optional continuation remain
+server-confirmed. Cover component and full browser journeys, actual
+Compact/Expanded, Light/Dark and reduced-motion states. The reference alone does
+not close #508 or establish product acceptance.

@@ -51,6 +51,12 @@ export interface HeartMomentUpdate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof HeartMomentUpdate
+     */
+    tags?: Array<string> | null;
+    /**
+     * 
      * @type {string}
      * @memberof HeartMomentUpdate
      */
@@ -79,6 +85,7 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'text': json['text'] === undefined ? undefined : json['text'] === null ? null : json['text'],
     };
 }
@@ -97,6 +104,7 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
         'attachmentId': value['attachmentId'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'text': value['text'],
     };
 }

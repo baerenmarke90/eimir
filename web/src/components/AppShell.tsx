@@ -22,6 +22,7 @@ import {
   SEARCH_ROUTE,
 } from '../client/routes';
 import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { ProductTourProvider } from '../client/productTour';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AppSurfacePullToRefresh } from './AppSurfacePullToRefresh';
 import { Brand } from './Brand';
@@ -127,7 +128,12 @@ export function AppShell(props: AppShellProps) {
         accountId={props.account.id}
         spaceId={props.spaceId}
       >
-        <AuthenticatedAppShell {...props} />
+        <ProductTourProvider
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        >
+          <AuthenticatedAppShell {...props} />
+        </ProductTourProvider>
       </TaskOriginProvider>
     </ApiRuntimeProvider>
   );

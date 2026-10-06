@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+from datetime import date
 from zipfile import ZipFile
 
 import pytest
@@ -16,6 +17,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
 from eimir.memories.models import Memory, MemoryPayload
 from eimir.relationship import service as relationship_service
 from eimir.transfer import jobs, service
@@ -40,7 +42,16 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
             space_id=source.id,
             owner_id=anna.id,
             privacy_class=PrivacyClass.SPACE_SHARED.value,
-            payload=MemoryPayload(title=TITLE, body="Body text"),
+            payload=MemoryPayload(title=TITLE, body="Body text", tags=["home"]),
+        )
+    )
+    session.add(
+        HeartMoment(
+            space_id=source.id,
+            owner_id=anna.id,
+            privacy_class=PrivacyClass.SPACE_SHARED.value,
+            happened_on=date(2026, 9, 29),
+            payload=HeartMomentPayload(text="", emotion=HeartEmotion.LOVED, tags=["everyday"]),
         )
     )
     session.flush()
@@ -48,15 +59,27 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
         text("SELECT payload::text FROM memories WHERE space_id = :s"), {"s": source.id}
     ).scalar_one()
     assert TITLE not in stored
+    heart_stored = session.execute(
+        text("SELECT payload::text FROM heart_moments WHERE space_id = :s"),
+        {"s": source.id},
+    ).scalar_one()
+    assert "everyday" not in heart_stored
 
     source_context = AuthorizationContext(account_id=anna.id, space_id=source.id)
     target_context = AuthorizationContext(account_id=anna.id, space_id=target.id)
     with service.build_export_archive(session, source_context, TransferScope.SHARED) as bundle:
         with ZipFile(bundle) as archive:
             document = json.loads(archive.read("memories.json"))
+            heart_document = json.loads(archive.read("heart-moments.json"))
         rows = next(t for t in document["tables"] if t["name"] == "memories")["rows"]
         assert rows[0]["payload"]["title"] == TITLE
+        assert rows[0]["payload"]["tags"] == ["home"]
         assert rows[0]["cryptoVersion"] == 0
+        heart_rows = next(
+            table for table in heart_document["tables"] if table["name"] == "heart_moments"
+        )["rows"]
+        assert heart_rows[0]["payload"]["text"] == ""
+        assert heart_rows[0]["payload"]["tags"] == ["everyday"]
 
         bundle.seek(0, io.SEEK_END)
         size = bundle.tell()
@@ -86,3 +109,7 @@ def test_export_is_plaintext_and_import_is_encrypted_again(session: Session, enc
     assert version == 2
     imported = session.query(Memory).filter(Memory.space_id == target.id).one()
     assert imported.payload.title == TITLE
+    assert imported.payload.tags == ["home"]
+    imported_heart = session.query(HeartMoment).filter(HeartMoment.space_id == target.id).one()
+    assert imported_heart.payload.text == ""
+    assert imported_heart.payload.tags == ["everyday"]

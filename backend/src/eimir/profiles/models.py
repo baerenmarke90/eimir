@@ -75,6 +75,12 @@ class ProfilePreferencePayload(ProtectedPayload):
     value: str = Field(min_length=1, max_length=2000)
 
 
+class PartnerNicknamePayload(ProtectedPayload):
+    """Viewer-owned relationship label, including an explicit cleared state."""
+
+    nickname: str | None = Field(default=None, max_length=80)
+
+
 class PartnerProfile(IdMixin, TimestampMixin, PrivateResourceMixin, Base):
     """The SELF_PROFILE of an account that is visible to the partner."""
 
@@ -87,6 +93,34 @@ class PartnerProfile(IdMixin, TimestampMixin, PrivateResourceMixin, Base):
     __table_args__ = (
         UniqueConstraint("space_id", "owner_id", name="uq_partner_profiles_space_id_owner_id"),
         CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
+    )
+
+
+class PartnerNickname(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base):
+    """One viewer's private name for the other person in this Space."""
+
+    __tablename__ = "partner_nicknames"
+
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    crypto_version: Mapped[int] = mapped_column(
+        SmallInteger,
+        nullable=False,
+        default=CRYPTO_VERSION_PLAINTEXT,
+        server_default=text("0"),
+    )
+    payload: Mapped[PartnerNicknamePayload] = mapped_column(
+        ProtectedPayloadJSON(PartnerNicknamePayload), nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint("space_id", "owner_id", "account_id", name="uq_partner_nicknames_pair"),
+        CheckConstraint("owner_id <> account_id", name="nickname_targets_partner"),
+        CheckConstraint("privacy_class = 'OWNER_ONLY'", name="nickname_owner_only"),
+        CheckConstraint("crypto_version >= 0", name="nickname_crypto_version_valid"),
     )
 
 

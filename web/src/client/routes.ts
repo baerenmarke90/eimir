@@ -180,6 +180,7 @@ export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 
 export const STORY_CHAPTERS_ROUTE = '/story/chapters';
 export const STORY_YEARS_ROUTE = '/story/years';
+export const STORY_PHOTOS_ROUTE = '/story/photos';
 export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
 export const MEMORY_CREATE_ROUTE = '/story/memories/new';
 export const MEMORY_DETAIL_ROUTE_PATTERN = '/story/memories/:memoryId';

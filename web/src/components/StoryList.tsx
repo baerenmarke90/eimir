@@ -14,6 +14,7 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../api/generated/runtime';
 import { useApiRuntime } from '../client/apiRuntimeContext';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   commentPresenceQueryKey,
   type CommentParentKind,
@@ -239,6 +240,7 @@ export function StoryList({
   progressiveReveal?: boolean;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
   const commentsApi = useMemo(
@@ -273,7 +275,7 @@ export function StoryList({
       <ol className="story-list">
         {items.map((item, index) => {
           const itemKey = storyItemKey(item);
-          const presentation = storyItemPresentation(item, t);
+          const presentation = storyItemPresentation(item, t, nicknameFor);
           const author = storyItemAuthor(item);
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;

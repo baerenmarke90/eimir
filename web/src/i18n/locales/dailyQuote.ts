@@ -25,6 +25,7 @@ const dailyQuote = {
   sheetTitle: 'Dein Zitat des Tages',
   close: 'Zitat-Einstellungen schließen',
   privacy: 'Nur für dich – {{name, firstName}} sieht deine Auswahl nicht.',
+  privacyResolved: 'Nur für dich – {{name}} sieht deine Auswahl nicht.',
   privacyFallback: 'Nur für dich – deine Auswahl bleibt persönlich.',
   categories: 'Rubriken',
   sources: 'Quellen',

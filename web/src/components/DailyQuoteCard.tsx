@@ -60,6 +60,7 @@ function PreferencesContent({
   catalog,
   draft,
   partnerName,
+  partnerNameIsResolved,
   pending,
   error,
   onDraftChange,
@@ -70,6 +71,7 @@ function PreferencesContent({
   catalog: Awaited<ReturnType<typeof loadDailyQuoteCatalog>>;
   draft: DailyQuoteDraft;
   partnerName?: string;
+  partnerNameIsResolved?: boolean;
   pending: boolean;
   error: unknown;
   onDraftChange: (draft: DailyQuoteDraft) => void;
@@ -85,7 +87,12 @@ function PreferencesContent({
     <div className="daily-quote-preferences">
       <p className="daily-quote-privacy">
         {partnerName
-          ? t('dailyQuote.privacy', { name: partnerName })
+          ? t(
+              partnerNameIsResolved
+                ? 'dailyQuote.privacyResolved'
+                : 'dailyQuote.privacy',
+              { name: partnerName },
+            )
           : t('dailyQuote.privacyFallback')}
       </p>
 
@@ -215,12 +222,14 @@ export function DailyQuoteCard({
   accountId,
   spaceId,
   partnerName,
+  partnerNameIsResolved = false,
 }: {
   quoteApi: DailyQuoteApi;
   entitlementsApi: EntitlementsApi;
   accountId: string;
   spaceId: string;
   partnerName?: string;
+  partnerNameIsResolved?: boolean;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -583,6 +592,7 @@ export function DailyQuoteCard({
             catalog={preferenceReady.catalog}
             draft={preferenceReady.draft}
             partnerName={partnerName}
+            partnerNameIsResolved={partnerNameIsResolved}
             pending={saveMutation.isPending}
             error={saveMutation.error}
             onDraftChange={(nextDraft) => {

@@ -115,6 +115,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         },
         status,
       );
+    if (method === 'GET' && path.endsWith('/partner-nickname'))
+      return json({ partnerId: null, nickname: null, version: 0 });
     if (path === '/api/v1/instance/status')
       return json({
         maintenanceMode: false,
@@ -508,6 +510,61 @@ test('content and photo save opens the confirmed canonical Memory and returns to
   expect(api.unexpected).toEqual([]);
 });
 
+test('photo-only Quick Create saves a Memory without text and returns to its scope (#509)', async ({
+  page,
+}) => {
+  const api = await installProductApi(page);
+  await signIn(page);
+  await openMemory(page);
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toHaveValue('');
+  await expect(
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
+  ).toHaveValue('');
+  await page.locator('#memory-create-images').setInputFiles({
+    name: 'river.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(PHOTO),
+  });
+  await expect(
+    page.getByText(de.memory.photoReady, { exact: true }),
+  ).toBeVisible();
+
+  const createRequest = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === `/api/v1/spaces/${SPACE}/memories`,
+  );
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  expect((await createRequest).postDataJSON()).toEqual(
+    expect.objectContaining({
+      title: expect.stringContaining(
+        memoryProduct.createFallbackTitle.split('{{date}}')[0],
+      ),
+      body: '',
+    }),
+  );
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  const savedPhoto = page.locator('.media-gallery-thumb-content');
+  await expect(savedPhoto).toBeVisible();
+  await expect
+    .poll(() =>
+      savedPhoto.evaluate(
+        (element) => (element as HTMLImageElement).naturalWidth,
+      ),
+    )
+    .toBeGreaterThan(0);
+  expect(api.createRequests).toBe(1);
+  expect(api.bindRequests).toBe(1);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\?.*year=2025/);
+  expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
+  expect(api.unexpected).toEqual([]);
+});
+
 test('a pending submission retains its draft and cannot create twice or exit', async ({
   page,
 }) => {
@@ -763,6 +820,11 @@ test('an unknown create outcome is verified with the same identity and opens the
     name: taskBoundary.verify,
     exact: true,
   });
+  // Optional context adds height to the capture form; the explanation and
+  // recovery action must both remain in the Compact viewport after focus.
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeInViewport();
   await expect(verify).toBeInViewport();
   expect((await verify.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   for (const colorScheme of ['light', 'dark'] as const) {
@@ -1198,6 +1260,12 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.addStyleTag({ content: ':root { font-size: 200%; }' });
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator('.momente-browse-layer').screenshot({
+    path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
+    animations: 'disabled',
+  });
+  await page.setViewportSize({ width: 320, height: 480 });
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();

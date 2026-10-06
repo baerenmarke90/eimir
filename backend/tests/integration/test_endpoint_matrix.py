@@ -164,6 +164,13 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-nickname",
+        body={"nickname": "Matrix Partner"},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/invitations"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/invitations", body={}),
     Endpoint(
@@ -308,6 +315,7 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(

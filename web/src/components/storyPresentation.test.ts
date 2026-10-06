@@ -100,6 +100,21 @@ describe('storyAuthorLabel (#1019)', () => {
   it('keeps the partner first-name treatment for another account', () => {
     expect(storyAuthorLabel(author, 'author-2')).toBe('Alex');
   });
+
+  it('uses only the viewer-specific nickname for an active partner', () => {
+    expect(
+      storyAuthorLabel(author, 'author-2', (id) =>
+        id === 'author-1' ? 'Sternchen' : null,
+      ),
+    ).toBe('Sternchen');
+    expect(
+      storyAuthorLabel(
+        { ...author, isFormerMember: true },
+        'author-2',
+        () => 'Sternchen',
+      ),
+    ).toBe(i18n.t('formerMemberLabel'));
+  });
 });
 
 describe('storyItemPresentation', () => {

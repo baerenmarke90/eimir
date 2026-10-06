@@ -14,6 +14,16 @@
 
 import * as runtime from '../runtime';
 import {
+    type PartnerNicknameUpdate,
+    PartnerNicknameUpdateFromJSON,
+    PartnerNicknameUpdateToJSON,
+} from '../models/PartnerNicknameUpdate';
+import {
+    type PartnerNicknameView,
+    PartnerNicknameViewFromJSON,
+    PartnerNicknameViewToJSON,
+} from '../models/PartnerNicknameView';
+import {
     type PartnerProfileView,
     PartnerProfileViewFromJSON,
     PartnerProfileViewToJSON,
@@ -55,6 +65,10 @@ export interface DeleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPref
     ifMatch: string;
 }
 
+export interface GetPartnerNicknameRequest {
+    spaceId: string;
+}
+
 export interface GetPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRequest {
     accountId: string;
     spaceId: string;
@@ -72,6 +86,12 @@ export interface GetProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPrefere
 
 export interface ListProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRequest {
     spaceId: string;
+}
+
+export interface SetPartnerNicknameRequest {
+    spaceId: string;
+    ifMatch: string;
+    partnerNicknameUpdate: PartnerNicknameUpdate;
 }
 
 export interface UpdateProfileIdentityRequest {
@@ -209,6 +229,51 @@ export class ProfilesApi extends runtime.BaseAPI {
      */
     async deleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdDelete(requestParameters: DeleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.deleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdDeleteRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for getPartnerNickname without sending the request
+     */
+    async getPartnerNicknameRequestOpts(requestParameters: GetPartnerNicknameRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPartnerNickname().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-nickname`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Partner Nickname
+     */
+    async getPartnerNicknameRaw(requestParameters: GetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerNicknameView>> {
+        const requestOptions = await this.getPartnerNicknameRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerNicknameViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Partner Nickname
+     */
+    async getPartnerNickname(requestParameters: GetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerNicknameView> {
+        const response = await this.getPartnerNicknameRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
@@ -413,6 +478,72 @@ export class ProfilesApi extends runtime.BaseAPI {
      */
     async listProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGet(requestParameters: ListProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProfilePreferenceView>> {
         const response = await this.listProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setPartnerNickname without sending the request
+     */
+    async setPartnerNicknameRequestOpts(requestParameters: SetPartnerNicknameRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        if (requestParameters['partnerNicknameUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'partnerNicknameUpdate',
+                'Required parameter "partnerNicknameUpdate" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-nickname`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PartnerNicknameUpdateToJSON(requestParameters['partnerNicknameUpdate']),
+        };
+    }
+
+    /**
+     * Set Partner Nickname
+     */
+    async setPartnerNicknameRaw(requestParameters: SetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerNicknameView>> {
+        const requestOptions = await this.setPartnerNicknameRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerNicknameViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Partner Nickname
+     */
+    async setPartnerNickname(requestParameters: SetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerNicknameView> {
+        const response = await this.setPartnerNicknameRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

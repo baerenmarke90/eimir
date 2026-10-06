@@ -1,0 +1,108 @@
+.shared-photos-page {
+  max-width: var(--reading-max);
+}
+.shared-photos-count {
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6);
+}
+.shared-photos-months {
+  display: grid;
+  gap: var(--space-8);
+}
+.shared-photos-months h2 {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+}
+.shared-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.shared-photos-tile {
+  display: block;
+  position: relative;
+  padding: 0;
+  min-width: 0;
+  min-height: 48px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+  box-shadow: none;
+}
+.shared-photos-tile .story-media-preview,
+.shared-photos-tile .story-media-skeleton,
+.shared-photos-tile .story-media-placeholder {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border-radius: inherit;
+  object-fit: cover;
+}
+.shared-photos-tile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.shared-photos-more {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+.media-lightbox-captioned {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+  background: var(--color-surface-overlay);
+  border-radius: var(--radius-large);
+}
+.media-lightbox-captioned .media-lightbox-stage {
+  flex: 1 1 auto;
+  height: 68dvh;
+  min-height: 30dvh;
+  max-height: 68dvh;
+}
+.media-lightbox-captioned .media-lightbox-content,
+.media-lightbox-captioned .media-gallery-loading,
+.media-lightbox-captioned .media-gallery-unavailable {
+  height: 100%;
+  max-height: 100%;
+}
+.media-lightbox-captioned .media-lightbox-close {
+  min-width: 48px;
+  min-height: 48px;
+}
+.media-lightbox-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+.media-lightbox-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text);
+  min-width: 0;
+}
+.media-lightbox-context button {
+  min-height: 48px;
+}
+.media-lightbox-footer-nav {
+  display: flex;
+  gap: var(--space-2);
+}
+.media-lightbox-footer-nav button {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 1.5rem;
+}
+@media (min-width: 768px) {
+  .shared-photos-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

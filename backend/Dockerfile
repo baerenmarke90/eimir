@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "uv==0.12.5"
+RUN pip install --no-cache-dir "uv==0.12.15"
 
 # Install only the locked runtime dependencies first. This keeps the expensive
 # layer independent of application code, and uv must not modify the lock state.

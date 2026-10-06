@@ -1,6 +1,6 @@
 import { type FormEvent, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
   MilestoneDetailFromJSON,
@@ -13,6 +13,7 @@ import {
 } from '../client/productReadCache';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -29,6 +30,7 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
 import { NativeDateField } from './NativeDateField';
@@ -85,7 +87,12 @@ export function MilestoneProductPage({
   currentAccountId: string;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
   const milestoneId = params.milestoneId;
@@ -146,7 +153,7 @@ export function MilestoneProductPage({
       ]);
       navigate(milestoneDetailPath(milestone.id), {
         replace: true,
-        state: { saved: true },
+        state: { saved: true, taskOriginKey: originKey },
       });
     },
   });
@@ -199,7 +206,10 @@ export function MilestoneProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(milestoneDetailPath(milestone.id), { replace: true });
+      navigate(milestoneDetailPath(milestone.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -250,9 +260,17 @@ export function MilestoneProductPage({
         header={
           <PageHeader
             before={
-              <Link className="back-link" to={appRoutePath('story')}>
-                {t('milestoneProduct.backToStory')}
-              </Link>
+              <button
+                type="button"
+                className="back-link tertiary"
+                onClick={() => requestReturn(originKey)}
+              >
+                {t(
+                  resolveOrigin(originKey)
+                    ? 'taskBoundary.back'
+                    : 'milestoneProduct.backToStory',
+                )}
+              </button>
             }
             eyebrow={t('milestoneProduct.createEyebrow')}
             title={t('milestoneProduct.createHeading')}
@@ -308,12 +326,13 @@ export function MilestoneProductPage({
             </details>
 
             <div className="form-actions">
-              <Link
+              <button
+                type="button"
                 className="button-link secondary-link"
-                to={appRoutePath('story')}
+                onClick={() => requestReturn(originKey)}
               >
                 {t('common.cancel')}
-              </Link>
+              </button>
               <button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending
                   ? t('milestoneProduct.saving')
@@ -363,6 +382,7 @@ export function MilestoneProductPage({
               <Link
                 className="back-link"
                 to={milestoneDetailPath(milestone.id)}
+                state={{ taskOriginKey: originKey }}
               >
                 {t('milestoneProduct.backToMilestone')}
               </Link>
@@ -406,7 +426,11 @@ export function MilestoneProductPage({
     return (
       <StoryEditorPageShell
         before={
-          <Link className="back-link" to={milestoneDetailPath(milestone.id)}>
+          <Link
+            className="back-link"
+            to={milestoneDetailPath(milestone.id)}
+            state={{ taskOriginKey: originKey }}
+          >
             {t('milestoneProduct.backToMilestone')}
           </Link>
         }
@@ -423,6 +447,7 @@ export function MilestoneProductPage({
               <Link
                 className="button-link secondary-link"
                 to={milestoneDetailPath(milestone.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -503,6 +528,7 @@ export function MilestoneProductPage({
           <StoryDetailEditLink
             to={milestoneEditPath(milestone.id)}
             label={t('milestoneProduct.edit')}
+            state={{ taskOriginKey: originKey }}
           />
         ) : undefined
       }
@@ -526,7 +552,11 @@ export function MilestoneProductPage({
       <footer className="milestone-provenance-footer">
         <p>
           {t('milestoneProduct.provenance', {
-            author: storyAuthorLabel(milestone.author, currentAccountId),
+            author: storyAuthorLabel(
+              milestone.author,
+              currentAccountId,
+              nicknameFor,
+            ),
             createdAt: formatCreatedAt(milestone.createdAt),
           })}
         </p>

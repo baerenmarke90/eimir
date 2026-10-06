@@ -15,6 +15,7 @@ import {
   type AppRouteIcon,
 } from '../client/routes';
 import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
+import { useProductTour } from '../client/productTour';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
@@ -147,6 +148,7 @@ export function MoreOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { replay } = useProductTour();
   const { displayName, avatarUrl } = useCurrentProfileIdentity({
     apiBaseUrl,
     accessToken,
@@ -205,6 +207,23 @@ export function MoreOverviewPage({
               destination={destination}
             />
           ))}
+          <li>
+            <button
+              type="button"
+              className="more-destination more-destination-button"
+              onClick={replay}
+            >
+              <span className="more-destination-icon" aria-hidden="true">
+                <DestinationIcon icon="story" />
+              </span>
+              <span className="more-destination-copy">
+                <strong>{t('productTour.replay')}</strong>
+              </span>
+              <span className="more-destination-chevron" aria-hidden="true">
+                ›
+              </span>
+            </button>
+          </li>
         </MoreDestinationGroup>
       </div>
     </div>

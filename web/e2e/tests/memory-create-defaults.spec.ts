@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import contextTags from '../../src/i18n/locales/contextTags';
 import de from '../../src/i18n/locales/de';
 import memoryProduct from '../../src/i18n/locales/memoryProduct';
 
@@ -13,6 +15,7 @@ const AUTHORED_BODY = 'A remembered detail';
 interface MemoryCreateRequestBody {
   body?: string;
   happenedOn?: string | null;
+  tags?: string[];
   title?: string;
 }
 
@@ -178,11 +181,26 @@ async function installApiMocks(page: Page): Promise<void> {
         happenedOn: body.happenedOn ?? null,
         id: MEMORY_ID,
         spaceId: SPACE_ID,
+        tags: body.tags ?? [],
         title: body.title ?? '',
         updatedAt: TEST_NOW,
         version: 1,
       };
       await fulfillJson(savedMemory, 201);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/memories/${MEMORY_ID}` &&
+      savedMemory
+    ) {
+      savedMemory = {
+        ...savedMemory,
+        ...request.postDataJSON(),
+        version: Number(savedMemory.version) + 1,
+      };
+      await fulfillJson(savedMemory);
       return;
     }
 
@@ -278,10 +296,108 @@ test('Memory Create opens with browser-local today and an optional title', async
   ).not.toHaveAttribute('required', '');
 });
 
+test('custom Memory tags survive create, reload, edit and removal (#1290)', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signInAndOpenMemoryCreate(page);
+  await page
+    .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
+    .fill(AUTHORED_BODY);
+  const input = page.getByLabel(contextTags.newLabel);
+  await input.fill('  Ostsee   2026  ');
+  await input.press('Enter');
+  await expect(
+    page.getByRole('button', {
+      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/memories\/new$/);
+  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  for (const [name, width, dark, large] of [
+    ['compact-light', 390, false, false],
+    ['compact-dark', 390, true, false],
+    ['expanded-light', 1280, false, false],
+    ['reflow-320', 320, false, false],
+    ['large-text', 390, false, true],
+  ] as const) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: dark ? 'dark' : 'light' });
+    await page.evaluate((large) => {
+      document.documentElement.style.fontSize = large ? '200%' : '';
+    }, large);
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`context-tags-${name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await input.fill('First summer');
+  expect((await submitAndReadCreateRequest(page)).tags).toEqual([
+    'Ostsee 2026',
+    'First summer',
+  ]);
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  await page.reload();
+  await expect(
+    page
+      .locator('.memory-tag-summary')
+      .getByText('Ostsee 2026', { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: memoryProduct.edit, exact: true })
+    .click();
+  await page
+    .getByRole('button', {
+      name: contextTags.remove.replace('{{tag}}', 'Ostsee 2026'),
+    })
+    .click();
+  await page.getByLabel(contextTags.newLabel).fill('Our tradition');
+  const update = page.waitForRequest(
+    (request) =>
+      request.method() === 'PATCH' &&
+      request.url().endsWith(`/memories/${MEMORY_ID}`),
+  );
+  await page
+    .getByRole('button', { name: memoryProduct.save, exact: true })
+    .click();
+  expect((await update).postDataJSON().tags).toEqual([
+    'First summer',
+    'Our tradition',
+  ]);
+  await expect(page).toHaveURL(new RegExp(`/memories/${MEMORY_ID}$`));
+  await page.reload();
+  await expect(
+    page
+      .locator('.memory-tag-summary')
+      .getByText('Our tradition', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('.memory-tag-summary')
+      .getByText('Ostsee 2026', { exact: true }),
+  ).toHaveCount(0);
+});
+
 test('text-only with the default date saves a non-empty localized fallback title', async ({
   page,
 }) => {
   await signInAndOpenMemoryCreate(page);
+  await page.getByText(contextTags.suggestions, { exact: true }).click();
+  await page.getByText(de.memory.tagLabels.home, { exact: true }).click();
   await page
     .getByRole('textbox', { name: de.memory.bodyLabel, exact: true })
     .fill(AUTHORED_BODY);
@@ -290,6 +406,7 @@ test('text-only with the default date saves a non-empty localized fallback title
   const requestBody = await submitAndReadCreateRequest(page);
 
   expect(requestBody.body).toBe(AUTHORED_BODY);
+  expect(requestBody.tags).toEqual(['home']);
   expect(requestBody.happenedOn).toBe(expectedDate);
   expect(requestBody.title).toBe(localizedFallbackTitle(expectedDate));
   expect(requestBody.title?.trim()).not.toBe('');
@@ -300,6 +417,9 @@ test('text-only with the default date saves a non-empty localized fallback title
       name: localizedFallbackTitle(expectedDate),
       exact: true,
     }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(de.memory.tagLabels.home, { exact: true }),
   ).toBeVisible();
 });
 

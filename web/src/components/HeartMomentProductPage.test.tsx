@@ -1,18 +1,20 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import navigation from '../i18n/locales/navigation';
 import relationshipComponents from '../i18n/locales/relationshipComponents';
 import storyProducts from '../i18n/locales/storyProducts';
 import { AppShell } from './AppShell';
 import { HeartMomentProductPage } from './HeartMomentProductPage';
+import { QuickCreateMenu } from './QuickCreateMenu';
 
 const backToStoryName = new RegExp(
   storyProducts.heartMomentProduct.backToStory.replace(/^←\s*/, ''),
@@ -55,7 +57,10 @@ const heartMoment = {
   capabilities: { canComment: true, canDelete: true, canEdit: true },
 };
 
-function renderDetail(taskOriginKey?: unknown) {
+function renderDetail(
+  taskOriginKey?: unknown,
+  data: typeof heartMoment & { tags?: Array<'everyday'> } = heartMoment,
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
@@ -77,7 +82,7 @@ function renderDetail(taskOriginKey?: unknown) {
   });
   queryClient.setQueryData(
     authorSummaryQueryKeys.heartMoment('space-1', 'heart-1'),
-    { value: heartMoment, source: 'network' },
+    { value: data, source: 'network' },
   );
   render(
     <QueryClientProvider client={queryClient}>
@@ -152,6 +157,7 @@ function renderCreate() {
             path="/story/heart-moments/:heartMomentId"
             element={<p>Heart Moment result</p>}
           />
+          <Route path="/story" element={<p>Story landing</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -182,8 +188,147 @@ describe('Heart Moment create request identity', () => {
         happenedOn: expect.any(Date),
         visibility: ContentVisibility.SHARED,
         attachmentId: undefined,
+        tags: [],
       },
     });
+  });
+
+  it('saves a chosen context without opening the keyboard or requiring prose', async () => {
+    const createHeartMoment = renderCreate();
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: storyProducts.heartMomentProduct.tagLabels.everyday,
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      idempotencyKey: expect.any(String),
+      heartMomentCreate: expect.objectContaining({
+        text: '',
+        tags: ['everyday'],
+      }),
+    });
+  });
+
+  it('explains why an empty feeling-only capture cannot be saved', async () => {
+    const createHeartMoment = renderCreate();
+    await userEvent.setup().click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    expect(createHeartMoment).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toBe(
+      storyProducts.heartMomentProduct.contentRequired,
+    );
+  });
+});
+
+function ReturnFromResult() {
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  return (
+    <button type="button" onClick={() => requestReturn(originKey)}>
+      {resolveOrigin(originKey) ? 'Return to origin' : 'Origin missing'}
+    </button>
+  );
+}
+
+describe('Quick Create Heart Moment continuity (#509)', () => {
+  it('returns from a confirmed tag-only result to the originating context', async () => {
+    const createHeartMoment = vi.fn().mockResolvedValue({ id: 'heart-new' });
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/today']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <QuickCreateMenu variant="desktop" />
+            <Routes>
+              <Route path="/today" element={<p>Today origin</p>} />
+              <Route
+                path="/story/heart-moments/new"
+                element={
+                  <HeartMomentProductPage
+                    mode="create"
+                    apis={
+                      {
+                        heartMoments: { createHeartMoment },
+                      } as unknown as ReferenceApis
+                    }
+                    apiBaseUrl="https://example.test"
+                    accessToken="token"
+                    spaceId="space-1"
+                    currentAccountId="account-1"
+                    loadAttachment={async () => 'blob:test-image'}
+                  />
+                }
+              />
+              <Route
+                path="/story/heart-moments/:heartMomentId"
+                element={<ReturnFromResult />}
+              />
+              <Route path="/story" element={<p>Story fallback</p>} />
+            </Routes>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('button', { name: navigation.newContent }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', {
+        name: navigation.quickCreateHeartMoment,
+      }),
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: storyProducts.heartMomentProduct.createHeading,
+      }),
+    ).toBeTruthy();
+    expect(document.activeElement).not.toBe(
+      screen.getByLabelText(storyProducts.heartMomentProduct.textLabel),
+    );
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: storyProducts.heartMomentProduct.tagLabels.everyday,
+      }),
+    );
+    await user.click(
+      screen.getByRole('button', {
+        name: storyProducts.heartMomentProduct.save,
+      }),
+    );
+    await waitFor(() => expect(createHeartMoment).toHaveBeenCalledTimes(1));
+    await user.click(
+      await screen.findByRole('button', { name: 'Return to origin' }),
+    );
+    expect(await screen.findByText('Today origin')).toBeTruthy();
+  });
+
+  it('uses Story as the safe fallback for a direct create entry', async () => {
+    renderCreate();
+    await userEvent.setup().click(
+      screen.getByRole('button', {
+        name: backToStoryName,
+      }),
+    );
+    expect(await screen.findByText('Story landing')).toBeTruthy();
   });
 });
 
@@ -210,6 +355,17 @@ describe('HeartMomentProductPage Back restores origin (#966)', () => {
 });
 
 describe('Heart Moment detail edit action and shared state (#1014)', () => {
+  it('shows authored context without inventing prose for a textless result', async () => {
+    renderDetail(undefined, { ...heartMoment, text: '', tags: ['everyday'] });
+    expect(
+      await screen.findByRole('heading', {
+        name: storyProducts.heartMomentProduct.untitled,
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(storyProducts.heartMomentProduct.tagLabels.everyday),
+    ).toBeTruthy();
+  });
   it('replaces the oversized text button with a compact icon-only edit link', async () => {
     renderDetail();
     const editLink = await screen.findByRole('link', {

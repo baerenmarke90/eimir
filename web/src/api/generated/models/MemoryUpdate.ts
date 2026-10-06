@@ -33,6 +33,12 @@ export interface MemoryUpdate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof MemoryUpdate
+     */
+    tags?: Array<string> | null;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryUpdate
      */
@@ -58,6 +64,7 @@ export function MemoryUpdateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'body': json['body'] === undefined ? undefined : json['body'] === null ? null : json['body'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'title': json['title'] === undefined ? undefined : json['title'] === null ? null : json['title'],
     };
 }
@@ -75,6 +82,7 @@ export function MemoryUpdateToJSONTyped(value?: MemoryUpdate | null, ignoreDiscr
         
         'body': value['body'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

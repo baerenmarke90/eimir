@@ -45,6 +45,7 @@ import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { StoryCreatePageShell } from './StoryFormPageShell';
+import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -72,6 +73,8 @@ export function MemoryCreatePage({
   const [initialDate] = useState(localDateInputValue);
   const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
   const [body, setBody] = useState('');
+  const [tags, setTags] = useState<MemoryTag[]>([]);
+  const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
   const [dateEditorOpen, setDateEditorOpen] = useState(false);
@@ -88,6 +91,7 @@ export function MemoryCreatePage({
   const [deletedAfterSave, setDeletedAfterSave] = useState(false);
   const attemptRef = useRef<MemoryCreateAttempt | null>(null);
   const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
+  const outcomeNoticeRef = useRef<HTMLElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
     null,
   );
@@ -111,7 +115,12 @@ export function MemoryCreatePage({
   const outcomeNoticeVisible = uncertain || deletedAfterSave;
   // biome-ignore lint/correctness/useExhaustiveDependencies: refocus when the notice changes kind
   useEffect(() => {
-    if (outcomeNoticeVisible) outcomeHeadingRef.current?.focus();
+    if (outcomeNoticeVisible) {
+      outcomeHeadingRef.current?.focus();
+      // The context chips make this form taller on Compact. Bring the notice
+      // actions into view after moving focus to its explanation.
+      outcomeNoticeRef.current?.scrollIntoView?.({ block: 'end' });
+    }
   }, [outcomeNoticeVisible, verifiable, deletedAfterSave]);
   useEffect(() => {
     if (!dateEditorOpen) return;
@@ -137,7 +146,12 @@ export function MemoryCreatePage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS,
   });
   const dirty = Boolean(
-    title || body || attachments.items.length || happenedOn !== initialDate,
+    title ||
+      body ||
+      tags.length ||
+      tagDraftDirty ||
+      attachments.items.length ||
+      happenedOn !== initialDate,
   );
   const hasUserContent = Boolean(
     title.trim() || body.trim() || attachments.items.length,
@@ -318,6 +332,7 @@ export function MemoryCreatePage({
               date: formatDateInputValue(date, resolvedLocale()),
             }),
         body,
+        tags: [...tags],
         happenedOn: submittedDate,
       },
       [...attachments.readyIds],
@@ -411,6 +426,12 @@ export function MemoryCreatePage({
                 placeholder={t('memory.bodyPlaceholder')}
               />
             </div>
+
+            <MemoryTagChoices
+              selected={tags}
+              onChange={setTags}
+              onDraftChange={setTagDraftDirty}
+            />
 
             <div className="field-group immersive-create-title-field">
               <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
@@ -524,7 +545,11 @@ export function MemoryCreatePage({
           <p role="alert">{t('taskBoundary.offline')}</p>
         ) : null}
         {uncertain ? (
-          <section className="inline-message" role="alert">
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
             <h2 ref={outcomeHeadingRef} tabIndex={-1}>
               {t(
                 verifiable
@@ -585,7 +610,11 @@ export function MemoryCreatePage({
             </button>
           </section>
         ) : deletedAfterSave ? (
-          <section className="inline-message" role="alert">
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
             <h2 ref={outcomeHeadingRef} tabIndex={-1}>
               {t('taskBoundary.deletedTitle')}
             </h2>

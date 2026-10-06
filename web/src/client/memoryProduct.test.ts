@@ -18,16 +18,23 @@ describe('memory product helpers', () => {
         title: 'At the lake',
         body: 'A good day',
         happenedOn: '2026-08-30',
+        tags: ['home'],
       }),
     ).toEqual({
       title: 'At the lake',
       body: 'A good day',
       happenedOn: new Date('2026-08-30T00:00:00.000Z'),
+      tags: ['home'],
     });
 
     expect(
-      memoryUpdatePayload({ title: 'At the lake', body: '', happenedOn: '' }),
-    ).toEqual({ title: 'At the lake', body: '', happenedOn: null });
+      memoryUpdatePayload({
+        title: 'At the lake',
+        body: '',
+        happenedOn: '',
+        tags: [],
+      }),
+    ).toEqual({ title: 'At the lake', body: '', happenedOn: null, tags: [] });
   });
 
   it('uses the observed resource version as If-Match value', () => {

@@ -30,7 +30,7 @@
     },
     "f2-task-boundaries.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 34
+      "baselineTests": 35
     },
     "floating-bottom-nav-scroll.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -42,7 +42,7 @@
     },
     "heart-moment-create-product-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 5
+      "baselineTests": 6
     },
     "hidden-file-inputs.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -58,7 +58,7 @@
     },
     "memory-create-defaults.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 7
     },
     "momente-discover-canonical.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -76,9 +76,17 @@
       "disposition": "FULL_REGRESSION",
       "baselineTests": 13
     },
+    "optional-product-tour.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
     "people-important-dates-mobile-first.spec.ts": {
       "disposition": "FULL_REGRESSION",
       "baselineTests": 5
+    },
+    "partner-nickname.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
     },
     "plan-inline-place-create.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -106,7 +114,7 @@
     },
     "private-area-reference.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 9
+      "baselineTests": 25
     },
     "private-token-contrast.spec.ts": {
       "disposition": "FULL_REGRESSION",
@@ -222,7 +230,7 @@
     },
     "today-daily-energy.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 3
+      "baselineTests": 4
     },
     "today-daily-quote.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -230,7 +238,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 5
+      "baselineTests": 6
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -258,11 +266,15 @@
     },
     "today-pinned-collection.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 4
+      "baselineTests": 6
     },
     "partner-quick-actions.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 9
+    },
+    "shared-photos.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
     }
   }
 }

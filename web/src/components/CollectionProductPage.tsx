@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   type ButtonHTMLAttributes,
   type FormEvent,
@@ -5,28 +6,26 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
-import {
-  dashboardPreferencesQueryKey,
-  PINNED_COLLECTION_MODULE_KEY,
-  selectedDashboardCollectionId,
-} from '../client/dashboardPreferences';
-import { normalizeClientError } from '../client/problemDetails';
-import {
-  planningIfMatch,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
-import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
   deleteFocusTargetFromInfiniteData,
   type InfiniteItemsData,
   PLANNING_DELETE_FOCUS_STATE_KEY,
 } from '../client/deleteFocusTarget';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
+import {
+  planningIfMatch,
+  type SharedPlanningApis,
+} from '../client/sharedPlanning';
 import { useTranslation } from '../i18n';
 import { ChecklistToggle } from './ChecklistToggle';
 import { ListEntryIconButton, useListItemReorder } from './ListEntryActions';
@@ -38,6 +37,7 @@ import {
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 import { useTransientFlag } from './useTransientFlag';
+import { useCollectionPin } from './useCollectionPin';
 import './SharedPlanningPages.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -46,6 +46,18 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw await normalizeClientError(error);
   }
+}
+
+function replaceCollectionItem(
+  collection: CollectionDetail,
+  replacement: CollectionItemDetail,
+): CollectionDetail {
+  return {
+    ...collection,
+    items: collection.items.map((item) =>
+      item.id === replacement.id ? replacement : item,
+    ),
+  };
 }
 
 function CollectionItemRow({
@@ -57,6 +69,7 @@ function CollectionItemRow({
   onToggleComplete,
   onDelete,
   isUpdating,
+  isTogglePending,
   isDeleting,
 }: {
   item: CollectionItemDetail;
@@ -67,6 +80,7 @@ function CollectionItemRow({
   onToggleComplete: (item: CollectionItemDetail) => void;
   onDelete: (item: CollectionItemDetail) => void;
   isUpdating: boolean;
+  isTogglePending: boolean;
   isDeleting: boolean;
 }) {
   const { t } = useTranslation();
@@ -105,7 +119,7 @@ function CollectionItemRow({
         onToggle={() => onToggleComplete(item)}
         disabled={!item.capabilities.canEdit || isUpdating}
       />
-      <div className="planning-item-title-form">
+      <div className="planning-item-title-form planning-collection-item-title-form">
         <label className="sr-only" htmlFor={`collection-item-${item.id}`}>
           {t('m5s3.collection.itemTitle')}
         </label>
@@ -124,29 +138,38 @@ function CollectionItemRow({
           }}
           required
           maxLength={200}
-          disabled={!item.capabilities.canEdit}
+          disabled={!item.capabilities.canEdit || isUpdating}
         />
+        {isTogglePending ? (
+          <small className="planning-collection-item-pending" role="status">
+            {t('m5s3.common.saving')}
+          </small>
+        ) : null}
       </div>
-      {collection.capabilities.canEdit ? (
-        <ListEntryIconButton
-          icon="reorder"
-          className="tertiary"
-          label={t('m5s3.collection.reorderItem', {
-            title: item.title,
-          })}
-          {...handleProps(item.id)}
-        />
-      ) : null}
-      {item.capabilities.canDelete ? (
-        <ListEntryIconButton
-          icon="delete"
-          className="tertiary"
-          label={t('m5s3.collection.deleteItem', {
-            title: item.title,
-          })}
-          onClick={() => onDelete(item)}
-          disabled={isDeleting}
-        />
+      {collection.capabilities.canEdit || item.capabilities.canDelete ? (
+        <div className="planning-collection-item-actions">
+          {collection.capabilities.canEdit ? (
+            <ListEntryIconButton
+              icon="reorder"
+              className="tertiary"
+              label={t('m5s3.collection.reorderItem', {
+                title: item.title,
+              })}
+              {...handleProps(item.id)}
+            />
+          ) : null}
+          {item.capabilities.canDelete ? (
+            <ListEntryIconButton
+              icon="delete"
+              className="tertiary"
+              label={t('m5s3.collection.deleteItem', {
+                title: item.title,
+              })}
+              onClick={() => onDelete(item)}
+              disabled={isDeleting}
+            />
+          ) : null}
+        </div>
       ) : null}
     </li>
   );
@@ -175,8 +198,10 @@ export function CollectionProductPage({
   const editTriggerRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
+  const reorderInFlightRef = useRef(false);
   const deleteHeadingRef = useRef<HTMLHeadingElement>(null);
   const restoreDeleteTriggerRef = useRef(false);
+  const itemUpdateInFlightRef = useRef(false);
   const key = authorSummaryQueryKeys.collectionDetail(spaceId, collectionId);
 
   const collectionQuery = useQuery({
@@ -191,43 +216,8 @@ export function CollectionProductPage({
     retry: false,
   });
 
-  const dashboardPreferencesQuery = useQuery({
-    queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
-    queryFn: () => {
-      if (!dashboardApi) throw new Error('Dashboard API is not available.');
-      return apiCall(() =>
-        dashboardApi.listDashboardModulePreferences({ spaceId }),
-      );
-    },
-    enabled: Boolean(dashboardApi && accountId && spaceId),
-    retry: false,
-  });
-
-  const pinnedCollectionId = selectedDashboardCollectionId(
-    dashboardPreferencesQuery.data,
-    PINNED_COLLECTION_MODULE_KEY,
-  );
-
-  const pinCollection = useMutation({
-    mutationFn: (selectedCollectionId: string | null) => {
-      if (!dashboardApi) throw new Error('Dashboard API is not available.');
-      return apiCall(() =>
-        dashboardApi.updateDashboardModulePreference({
-          moduleKey: PINNED_COLLECTION_MODULE_KEY,
-          spaceId,
-          dashboardModulePreferenceUpdate: {
-            selectedCollectionId,
-            visible: selectedCollectionId ? true : undefined,
-          },
-        }),
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: dashboardPreferencesQueryKey(accountId ?? '', spaceId),
-      });
-    },
-  });
+  const pinCollection = useCollectionPin({ dashboardApi, accountId, spaceId });
+  const pinnedCollectionId = pinCollection.selectedCollectionId;
 
   useEffect(() => {
     if (collectionQuery.data?.title) {
@@ -317,10 +307,66 @@ export function CollectionProductPage({
           collectionItemUpdate: { title, completed },
         }),
       ),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: key });
+    onMutate: async ({ item, completed }) => {
+      if (completed === undefined) return;
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const current = queryClient.getQueryData<CollectionDetail>(key);
+      const previousItem = current?.items.find((entry) => entry.id === item.id);
+      if (current && previousItem) {
+        queryClient.setQueryData<CollectionDetail>(
+          key,
+          replaceCollectionItem(current, { ...previousItem, completed }),
+        );
+      }
+      return { previousItem };
+    },
+    onError: (_error, { completed }, context) => {
+      if (completed === undefined || !context?.previousItem) return;
+      const previousItem = context.previousItem;
+      queryClient.setQueryData<CollectionDetail>(key, (current) =>
+        current ? replaceCollectionItem(current, previousItem) : current,
+      );
+    },
+    onSuccess: async (updatedItem, { completed }) => {
+      if (completed !== undefined) {
+        queryClient.setQueryData<CollectionDetail>(key, (current) =>
+          current ? replaceCollectionItem(current, updatedItem) : current,
+        );
+      }
+      await queryClient.invalidateQueries({ queryKey: key, exact: true });
+    },
+    onSettled: () => {
+      itemUpdateInFlightRef.current = false;
     },
   });
+
+  const submitItemUpdate = (variables: {
+    collection: CollectionDetail;
+    item: CollectionItemDetail;
+    title?: string;
+    completed?: boolean;
+  }) => {
+    if (itemUpdateInFlightRef.current || reorderInFlightRef.current) return;
+    itemUpdateInFlightRef.current = true;
+    updateItem.mutate(variables);
+  };
+
+  const retryItemUpdate = () => {
+    const failed = updateItem.variables;
+    if (!failed || clientProblemKind(updateItem.error) === 'conflict') {
+      updateItem.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    const current = queryClient.getQueryData<CollectionDetail>(key);
+    const item = current?.items.find((entry) => entry.id === failed.item.id);
+    if (!current || !item) {
+      updateItem.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    submitItemUpdate({ ...failed, collection: current, item });
+  };
 
   const deleteItem = useMutation({
     mutationFn: ({
@@ -362,8 +408,77 @@ export function CollectionProductPage({
           collectionOrder: { itemIds },
         }),
       ),
+    onMutate: async ({ itemIds }) => {
+      await queryClient.cancelQueries({ queryKey: key, exact: true });
+      const current = queryClient.getQueryData<CollectionDetail>(key);
+      if (!current) return;
+      const previousPositions = new Map(
+        current.items.map((item) => [item.id, item.position]),
+      );
+      const nextPositions = new Map(
+        itemIds.map((itemId, position) => [itemId, position]),
+      );
+      queryClient.setQueryData<CollectionDetail>(key, {
+        ...current,
+        items: current.items.map((item) => ({
+          ...item,
+          position: nextPositions.get(item.id) ?? item.position,
+        })),
+      });
+      return { previousPositions };
+    },
+    onError: async (error, _variables, context) => {
+      if (context?.previousPositions) {
+        queryClient.setQueryData<CollectionDetail>(key, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((item) => ({
+                  ...item,
+                  position:
+                    context.previousPositions.get(item.id) ?? item.position,
+                })),
+              }
+            : current,
+        );
+      }
+      if (clientProblemKind(error) === 'conflict') {
+        await queryClient.invalidateQueries({ queryKey: key, exact: true });
+      }
+    },
     onSuccess: commitCollection,
+    onSettled: () => {
+      reorderInFlightRef.current = false;
+    },
   });
+
+  const submitReorder = (collection: CollectionDetail, itemIds: string[]) => {
+    if (reorderInFlightRef.current) return;
+    reorderInFlightRef.current = true;
+    reorderItems.mutate({ collection, itemIds });
+  };
+
+  const retryReorder = () => {
+    const failed = reorderItems.variables;
+    if (!failed || clientProblemKind(reorderItems.error) === 'conflict') {
+      reorderItems.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    const current = queryClient.getQueryData<CollectionDetail>(key);
+    if (
+      !current ||
+      current.items.length !== failed.itemIds.length ||
+      !failed.itemIds.every((itemId) =>
+        current.items.some((item) => item.id === itemId),
+      )
+    ) {
+      reorderItems.reset();
+      void collectionQuery.refetch();
+      return;
+    }
+    submitReorder(current, failed.itemIds);
+  };
 
   const deleteCollection = useMutation({
     mutationFn: (collection: CollectionDetail) =>
@@ -436,11 +551,16 @@ export function CollectionProductPage({
   const reorder = useListItemReorder({
     itemIds: baseItemIds,
     disabled:
-      !collectionQuery.data?.capabilities.canEdit || reorderItems.isPending,
+      !collectionQuery.data?.capabilities.canEdit ||
+      reorderItems.isPending ||
+      updateItem.isPending ||
+      createItem.isPending ||
+      deleteItem.isPending ||
+      updateCollection.isPending,
     onReorder: (itemIds) => {
-      const currentCollection = collectionQuery.data;
+      const currentCollection = queryClient.getQueryData<CollectionDetail>(key);
       if (!currentCollection) return;
-      reorderItems.mutate({ collection: currentCollection, itemIds });
+      submitReorder(currentCollection, itemIds);
     },
   });
 
@@ -470,7 +590,7 @@ export function CollectionProductPage({
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!collection) return;
+    if (!collection || reorderInFlightRef.current) return;
     const data = new FormData(event.currentTarget);
     updateCollection.mutate({
       collection,
@@ -480,7 +600,7 @@ export function CollectionProductPage({
 
   function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!collection) return;
+    if (!collection || reorderInFlightRef.current) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     createItem.mutate(
@@ -575,7 +695,8 @@ export function CollectionProductPage({
                   disabled={
                     !isTitleDirty ||
                     updateCollection.isPending ||
-                    deleteCollection.isPending
+                    deleteCollection.isPending ||
+                    reorderItems.isPending
                   }
                 />
                 <button
@@ -612,11 +733,13 @@ export function CollectionProductPage({
           <button
             type="button"
             className="button-link secondary-link"
-            disabled={
-              dashboardPreferencesQuery.isPending || pinCollection.isPending
+            disabled={pinCollection.isBlocked}
+            aria-pressed={pinnedCollectionId === collection.id}
+            aria-describedby={
+              pinCollection.isSaving ? 'collection-pin-pending' : undefined
             }
             onClick={() =>
-              pinCollection.mutate(
+              pinCollection.changeSelection(
                 pinnedCollectionId === collection.id ? null : collection.id,
               )
             }
@@ -625,14 +748,15 @@ export function CollectionProductPage({
               ? t('m5s3.collection.unpinFromToday')
               : t('m5s3.collection.pinToToday')}
           </button>
+          {pinCollection.isSaving ? (
+            <small id="collection-pin-pending" role="status">
+              {t('common.saving')}
+            </small>
+          ) : null}
           {pinCollection.error ? (
             <ProblemState
               error={pinCollection.error}
-              onRetry={() => {
-                if (pinCollection.variables !== undefined) {
-                  pinCollection.mutate(pinCollection.variables);
-                }
-              }}
+              onRetry={() => void pinCollection.retryRead()}
             />
           ) : null}
         </div>
@@ -667,7 +791,7 @@ export function CollectionProductPage({
                   ? t('m5s3.common.saving')
                   : t('m5s3.collection.addItem')
               }
-              disabled={createItem.isPending}
+              disabled={createItem.isPending || reorderItems.isPending}
             />
           </form>
         ) : null}
@@ -682,10 +806,10 @@ export function CollectionProductPage({
                 activeItemId={reorder.activeItemId}
                 handleProps={reorder.handleProps}
                 onUpdateTitle={(targetItem, title) =>
-                  updateItem.mutate({ collection, item: targetItem, title })
+                  submitItemUpdate({ collection, item: targetItem, title })
                 }
                 onToggleComplete={(targetItem) =>
-                  updateItem.mutate({
+                  submitItemUpdate({
                     collection,
                     item: targetItem,
                     completed: !targetItem.completed,
@@ -694,8 +818,17 @@ export function CollectionProductPage({
                 onDelete={(targetItem) =>
                   deleteItem.mutate({ collection, item: targetItem })
                 }
-                isUpdating={updateItem.isPending}
-                isDeleting={deleteItem.isPending}
+                isUpdating={updateItem.isPending || reorderItems.isPending}
+                isTogglePending={
+                  updateItem.isPending &&
+                  updateItem.variables?.completed !== undefined &&
+                  updateItem.variables.item.id === item.id
+                }
+                isDeleting={
+                  deleteItem.isPending ||
+                  updateItem.isPending ||
+                  reorderItems.isPending
+                }
               />
             ))}
           </ol>
@@ -708,7 +841,11 @@ export function CollectionProductPage({
         {itemMutationError ? (
           <ProblemState
             error={itemMutationError}
-            onRetry={() => void collectionQuery.refetch()}
+            onRetry={() => {
+              if (updateItem.error) retryItemUpdate();
+              else if (reorderItems.error) retryReorder();
+              else void collectionQuery.refetch();
+            }}
           />
         ) : null}
       </section>

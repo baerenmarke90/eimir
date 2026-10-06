@@ -22,7 +22,7 @@ import {
   type PlanningRelationTarget,
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
-import { resolvedLocale, useTranslation } from '../i18n';
+import { i18n, resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
@@ -103,7 +103,7 @@ async function loadLinkedRelationTargets(
             return {
               id: heartMoment.id,
               kind: 'HEART_MOMENT',
-              label: heartMoment.text,
+              label: heartMoment.text || i18n.t('heartMomentProduct.untitled'),
               effectiveDate: heartMoment.happenedOn,
             };
           }

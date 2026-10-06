@@ -1,0 +1,104 @@
+.product-tour {
+  position: fixed;
+  z-index: 60;
+  right: max(var(--space-3), env(safe-area-inset-right));
+  bottom: calc(var(--shell-floating-nav-footprint) + var(--space-3));
+  left: max(var(--space-3), env(safe-area-inset-left));
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  max-width: 30rem;
+  max-height: calc(
+    100dvh -
+    var(--shell-floating-nav-footprint) -
+    var(--space-6)
+  );
+  margin-inline: auto;
+  overflow: auto;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.product-tour-copy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.product-tour-eyebrow {
+  color: var(--color-brand-text);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.product-tour h2,
+.product-tour p {
+  margin: 0;
+}
+
+.product-tour h2 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.product-tour h2:focus {
+  outline: none;
+}
+
+.product-tour p {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.product-tour-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  background: var(--color-surface-raised);
+}
+
+@media (max-width: 839px) {
+  .product-shell:has(+ .product-tour) .product-main {
+    /* Leave enough scroll room for every More destination, even when the
+       invitation fills most of a narrow viewport at large text sizes. */
+    padding-bottom: calc(var(--shell-content-bottom-clearance) + 100dvh);
+  }
+}
+
+@media (min-width: 840px) {
+  .product-tour {
+    right: var(--space-6);
+    bottom: var(--space-6);
+    left: auto;
+    margin: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .product-tour[data-invite="true"] {
+    top: var(--space-2);
+    bottom: auto;
+    max-height: 40dvh;
+  }
+}
+
+@media (max-height: 560px) {
+  .product-tour {
+    top: var(--space-2);
+    bottom: auto;
+    max-height: calc(100dvh - var(--space-4));
+  }
+}
+
+@media (forced-colors: active) {
+  .product-tour {
+    border: 1px solid CanvasText;
+  }
+}

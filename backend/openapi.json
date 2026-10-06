@@ -2926,6 +2926,16 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -2989,6 +2999,16 @@
             "title": "Spaceid",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -3011,6 +3031,7 @@
           "spaceId",
           "authorId",
           "text",
+          "tags",
           "emotion",
           "visibility",
           "happenedOn",
@@ -3094,6 +3115,23 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "text": {
             "anyOf": [
@@ -3573,6 +3611,16 @@
             ],
             "title": "Happenedon"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3635,6 +3683,16 @@
             "title": "Spaceid",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3655,6 +3713,7 @@
           "authorId",
           "title",
           "body",
+          "tags",
           "happenedOn",
           "version",
           "createdAt",
@@ -3779,6 +3838,23 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "title": {
             "anyOf": [
@@ -4457,6 +4533,66 @@
         "title": "PartnerEnergyVisible",
         "type": "object"
       },
+      "PartnerNicknameUpdate": {
+        "properties": {
+          "nickname": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          }
+        },
+        "required": [
+          "nickname"
+        ],
+        "title": "PartnerNicknameUpdate",
+        "type": "object"
+      },
+      "PartnerNicknameView": {
+        "description": "The viewer's private label for the currently active partner.",
+        "properties": {
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          },
+          "partnerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnerid"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "partnerId",
+          "nickname",
+          "version"
+        ],
+        "title": "PartnerNicknameView",
+        "type": "object"
+      },
       "PartnerPresenceView": {
         "description": "Privacy-bounded state of the other active partner in this Space.",
         "properties": {
@@ -4795,6 +4931,14 @@
           "OTHER"
         ],
         "title": "PersonRelationship",
+        "type": "string"
+      },
+      "PhotoParentType": {
+        "enum": [
+          "MEMORY",
+          "HEART_MOMENT"
+        ],
+        "title": "PhotoParentType",
         "type": "string"
       },
       "PlaceCreate": {
@@ -8797,6 +8941,73 @@
           "attachment"
         ],
         "title": "SharedHeartMomentSummary",
+        "type": "object"
+      },
+      "SharedPhoto": {
+        "properties": {
+          "attachment": {
+            "$ref": "#/components/schemas/AttachmentSummary"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "parentType": {
+            "$ref": "#/components/schemas/PhotoParentType"
+          }
+        },
+        "required": [
+          "parentType",
+          "parentId",
+          "effectiveDate",
+          "attachment"
+        ],
+        "title": "SharedPhoto",
+        "type": "object"
+      },
+      "SharedPhotoPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SharedPhoto"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "totalCount": {
+            "minimum": 0.0,
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "totalCount",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "SharedPhotoPage",
         "type": "object"
       },
       "SignInRequest": {
@@ -22326,6 +22537,165 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/partner-nickname": {
+      "get": {
+        "operationId": "getPartnerNickname",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerNicknameView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Partner Nickname",
+        "tags": [
+          "profiles"
+        ]
+      },
+      "put": {
+        "operationId": "setPartnerNickname",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerNicknameUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerNicknameView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Partner Nickname",
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/partner-quick-actions": {
       "post": {
         "operationId": "sendPartnerQuickAction",
@@ -22415,6 +22785,107 @@
         "summary": "Send Partner Quick Action",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photos": {
+      "get": {
+        "description": "Browse READY images from currently shared Memory and HeartMoment parents.\n\nOwner-private media is excluded even for its owner. Media bytes still use\nthe existing parent-bound attachment read authorization.",
+        "operationId": "getSharedPhotos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPhotoPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Shared Photos",
+        "tags": [
+          "story"
         ]
       }
     },

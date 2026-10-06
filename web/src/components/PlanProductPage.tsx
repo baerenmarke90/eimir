@@ -8,7 +8,7 @@ import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { normalizeClientError } from '../client/problemDetails';
 import { usePartnerNickname } from '../client/partnerNickname';
-import { sharedAchievementKind } from '../client/sharedAchievements';
+import { formatCalendarDate } from '../client/formatRecency';
 import { appRoutePath } from '../client/routes';
 import {
   planScheduleLabel,
@@ -33,6 +33,7 @@ import { PageHeader } from './PageHeader';
 import { PlanScheduleFields } from './PlanScheduleFields';
 import { PlanStoryContinuation } from './PlanStoryContinuation';
 import { ProblemState } from './ProblemState';
+import { usePlanCompletion } from './usePlanCompletion';
 import { UiState } from './UiState';
 import './SharedPlanningPages.css';
 import './PlanningReference.css';
@@ -63,9 +64,6 @@ export function PlanProductPage({
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [celebratedPlanKey, setCelebratedPlanKey] = useState<string | null>(
-    null,
-  );
   const key = authorSummaryQueryKeys.planDetail(spaceId, planId);
 
   const planQuery = useQuery({
@@ -150,37 +148,8 @@ export function PlanProductPage({
       ),
     onSuccess: commitPlan,
   });
-  const completeMutation = useMutation({
-    mutationFn: async ({
-      plan,
-      experiencedOn,
-    }: {
-      plan: PlanDetail;
-      experiencedOn: Date;
-    }) => {
-      try {
-        const response = await apis.plans.completePlanRaw({
-          spaceId,
-          planId: plan.id,
-          ifMatch: planningIfMatch(plan),
-          planComplete: { experiencedOn },
-        });
-        return {
-          completedPlan: await response.value(),
-          achievement: sharedAchievementKind(response.raw),
-        };
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
-    },
-    onSuccess: async ({ completedPlan, achievement }) => {
-      setCelebratedPlanKey(null);
-      await commitPlan(completedPlan);
-      if (achievement === 'plan-completed') {
-        setCelebratedPlanKey(`${spaceId}:${completedPlan.id}`);
-      }
-    },
-  });
+  const completion = usePlanCompletion({ apis, spaceId, planId });
+  const completing = completion.isPending;
   const returnMutation = useMutation({
     mutationFn: (plan: PlanDetail) =>
       apiCall(() =>
@@ -224,6 +193,13 @@ export function PlanProductPage({
     },
   });
 
+  const otherWritePending =
+    updateMutation.isPending ||
+    scheduleMutation.isPending ||
+    unscheduleMutation.isPending ||
+    returnMutation.isPending ||
+    deleteMutation.isPending;
+
   if (!planId)
     return (
       <UiState
@@ -246,7 +222,7 @@ export function PlanProductPage({
 
   function submitEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!plan) return;
+    if (!plan || completing) return;
     const data = new FormData(event.currentTarget);
     const description = String(data.get('description')).trim();
     const placeId = String(data.get('placeId')).trim();
@@ -262,7 +238,7 @@ export function PlanProductPage({
 
   function submitSchedule(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!plan) return;
+    if (!plan || completing) return;
     const data = new FormData(event.currentTarget);
     const schedule = planScheduleFromInputs(
       String(data.get('plannedDate') ?? ''),
@@ -279,13 +255,14 @@ export function PlanProductPage({
     const data = new FormData(event.currentTarget);
     const experiencedOn = dateFromInput(String(data.get('experiencedOn')));
     if (!experiencedOn) return;
-    completeMutation.mutate({ plan, experiencedOn });
+    if (otherWritePending) return;
+    completion.complete({ plan, experiencedOn });
   }
 
   const lifecycleError =
     scheduleMutation.error ||
     unscheduleMutation.error ||
-    completeMutation.error ||
+    completion.error ||
     returnMutation.error;
 
   const placeName = plan.placeId
@@ -343,6 +320,7 @@ export function PlanProductPage({
               icon="edit"
               className="tertiary"
               label={t('common.edit')}
+              disabled={completing}
               onClick={() => setIsEditing(true)}
             />
           ) : undefined
@@ -373,6 +351,13 @@ export function PlanProductPage({
                 ),
           })}
         </p>
+        {completion.pendingDay ? (
+          <p className="planen-detail-pending" role="status">
+            {t('m5s3.plan.completePending', {
+              date: formatCalendarDate(completion.pendingDay),
+            })}
+          </p>
+        ) : null}
         {hasSubfacts ? (
           <div className="planen-detail-subfacts">
             {plan.experiencedOn ? (
@@ -432,7 +417,7 @@ export function PlanProductPage({
                 <button
                   form="plan-edit-form"
                   type="submit"
-                  disabled={updateMutation.isPending}
+                  disabled={updateMutation.isPending || completing}
                 >
                   {updateMutation.isPending
                     ? t('m5s3.common.saving')
@@ -481,7 +466,7 @@ export function PlanProductPage({
                         type="button"
                         className="danger"
                         onClick={() => deleteMutation.mutate(plan)}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteMutation.isPending || completing}
                       >
                         {deleteMutation.isPending
                           ? t('m5s3.common.deleting')
@@ -531,19 +516,17 @@ export function PlanProductPage({
           </div>
         ) : null}
 
-        {plan.status === 'COMPLETED' && completeMutation.isSuccess ? (
+        {plan.status === 'COMPLETED' && completion.isConfirmed ? (
           <PlanStoryContinuation
             apis={apis}
             spaceId={spaceId}
             plan={plan}
-            focusOnMount={completeMutation.isSuccess}
-            sharedAchievementEnabled={
-              celebratedPlanKey === `${spaceId}:${plan.id}`
-            }
+            focusOnMount
+            sharedAchievementEnabled={completion.hasSharedAchievement}
           />
         ) : null}
 
-        {plan.status === 'COMPLETED' && !completeMutation.isSuccess ? (
+        {plan.status === 'COMPLETED' && !completion.isConfirmed ? (
           <section className="planen-completed-result">
             <p>{t('m5s3.plan.completedBody')}</p>
           </section>
@@ -555,15 +538,23 @@ export function PlanProductPage({
             <section className="planning-subsection">
               <h2>{t('m5s3.plan.lifecycleHeading')}</h2>
               <form className="form-grid" onSubmit={submitSchedule}>
-                <PlanScheduleFields
-                  idPrefix="plan-schedule"
-                  defaultDate={planScheduleDateInput(plan)}
-                  defaultTime={planScheduleTimeInput(plan)}
-                  defaultEnd={localDateTimeInput(plan.plannedEnd)}
-                  includeEnd
-                />
+                <fieldset
+                  className="planen-lifecycle-fieldset"
+                  disabled={completing}
+                >
+                  <PlanScheduleFields
+                    idPrefix="plan-schedule"
+                    defaultDate={planScheduleDateInput(plan)}
+                    defaultTime={planScheduleTimeInput(plan)}
+                    defaultEnd={localDateTimeInput(plan.plannedEnd)}
+                    includeEnd
+                  />
+                </fieldset>
                 <div className="form-actions">
-                  <button type="submit" disabled={scheduleMutation.isPending}>
+                  <button
+                    type="submit"
+                    disabled={scheduleMutation.isPending || completing}
+                  >
                     {plan.status === 'PLANNED'
                       ? t('m5s3.plan.reschedule')
                       : t('m5s3.plan.schedule')}
@@ -573,7 +564,7 @@ export function PlanProductPage({
                       type="button"
                       className="secondary"
                       onClick={() => unscheduleMutation.mutate(plan)}
-                      disabled={unscheduleMutation.isPending}
+                      disabled={unscheduleMutation.isPending || completing}
                     >
                       {t('m5s3.plan.unschedule')}
                     </button>
@@ -586,7 +577,7 @@ export function PlanProductPage({
                   type="button"
                   className="tertiary"
                   onClick={() => returnMutation.mutate(plan)}
-                  disabled={returnMutation.isPending}
+                  disabled={returnMutation.isPending || completing}
                 >
                   {t('m5s3.plan.returnToWish')}
                 </button>
@@ -610,14 +601,15 @@ export function PlanProductPage({
                   name="experiencedOn"
                   type="date"
                   required
+                  readOnly={completing}
                   defaultValue={dateOnlyInput(new Date())}
                 />
                 <button
                   type="submit"
                   className="planen-complete-cta"
-                  disabled={completeMutation.isPending}
+                  aria-disabled={completing || otherWritePending}
                 >
-                  {completeMutation.isPending
+                  {completing
                     ? t('m5s3.common.saving')
                     : t('m5s3.plan.complete')}
                 </button>

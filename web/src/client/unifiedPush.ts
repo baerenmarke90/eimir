@@ -344,13 +344,13 @@ export function useUnifiedPush({
         }
         if (!live) return;
 
-        if (loaded.failure === 'unavailable') {
-          setState('unavailable');
-          return;
-        }
-        if (loaded.failure === 'unreachable') {
-          setError('PUSH_DEVICE_STATUS_UNAVAILABLE');
-          setState('error');
+        if (!loaded.configuration) {
+          if (loaded.failure === 'unreachable') {
+            setError('PUSH_DEVICE_STATUS_UNAVAILABLE');
+            setState('error');
+          } else {
+            setState('unavailable');
+          }
           return;
         }
         if (!registeredHere) {

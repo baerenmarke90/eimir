@@ -4,8 +4,10 @@ import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
+import { ResponseError } from '../api/generated/runtime';
 import { notificationUnreadCountQueryKey } from './notificationQueries';
 import {
+  revokeDevicePushBeforeSignOut,
   stopNativePushForSignedOutAccount,
   useUnifiedPush,
 } from './unifiedPush';
@@ -14,14 +16,21 @@ const native = vi.hoisted(() => {
   const listeners = new Map<string, (event: unknown) => void>();
   return {
     listeners,
-    status: vi.fn(async () => ({
-      accountId: null,
-      enabled: false,
-      permissionGranted: true,
-    })),
+    status: vi.fn(
+      async (): Promise<{
+        accountId: string | null;
+        enabled: boolean;
+        permissionGranted: boolean;
+      }> => ({
+        accountId: null,
+        enabled: false,
+        permissionGranted: true,
+      }),
+    ),
     enable: vi.fn(async () => undefined),
     refresh: vi.fn(async () => ({ enabled: true })),
     disable: vi.fn(async () => undefined),
+    openNotificationSettings: vi.fn(async () => undefined),
     addListener: vi.fn(
       async (event: string, callback: (value: unknown) => void) => {
         listeners.set(event, callback);
@@ -68,8 +77,8 @@ function wrapper({ children }: PropsWithChildren) {
   );
 }
 
-function setup(spaceId = 'space-a') {
-  const api = {
+function createApi() {
+  return {
     getUnifiedPushConfiguration: vi.fn(async () => ({
       providerKey: 'unifiedpush',
       vapidPublicKey: 'A'.repeat(87),
@@ -77,6 +86,14 @@ function setup(spaceId = 'space-a') {
     registerOwnPushEndpoint: vi.fn(async () => ({ id: 'endpoint-id' })),
     revokeOwnPushEndpoint: vi.fn(async () => undefined),
   };
+}
+
+function setup(
+  spaceId = 'space-a',
+  prepare?: (api: ReturnType<typeof createApi>) => void,
+) {
+  const api = createApi();
+  prepare?.(api);
   const queryClient = new QueryClient();
   const hook = renderHook(
     ({ spaceId: activeSpaceId }) =>
@@ -105,7 +122,31 @@ beforeEach(() => {
   native.listeners.clear();
   app.listeners.clear();
   vi.clearAllMocks();
+  native.status.mockReset().mockResolvedValue({
+    accountId: null,
+    enabled: false,
+    permissionGranted: true,
+  });
+  native.enable.mockReset().mockResolvedValue(undefined);
+  native.refresh.mockReset().mockResolvedValue({ enabled: true });
+  native.disable.mockReset().mockResolvedValue(undefined);
+  app.getLaunchUrl.mockReset().mockResolvedValue(null);
 });
+
+function httpError(status: number) {
+  return new ResponseError(new Response(null, { status }));
+}
+
+function emitEndpoint() {
+  act(() =>
+    native.listeners.get('endpoint')?.({
+      accountId,
+      endpoint: 'https://push.example.test/id',
+      p256dh: 'public-key',
+      auth: 'auth-secret',
+    }),
+  );
+}
 
 it('registers a device endpoint, refreshes the current Space, routes a tap, and revokes on disable', async () => {
   const { api, queryClient, result, rerender } = setup();
@@ -285,4 +326,206 @@ it('waits for the prior account to stop before checking a new sign-in', async ()
   await act(async () => finishDisable?.());
   await waitFor(() => expect(native.status).toHaveBeenCalledOnce());
   await waitFor(() => expect(nextLogin.result.current.state).toBe('off'));
+});
+
+it('keeps an unconfigured installation unavailable without enabling the device', async () => {
+  const { result } = setup('space-a', (api) => {
+    api.getUnifiedPushConfiguration.mockRejectedValue(httpError(503));
+  });
+  await waitFor(() => expect(result.current.state).toBe('unavailable'));
+  expect(result.current.error).toBeNull();
+  expect(result.current.registered).toBe(false);
+  expect(native.enable).not.toHaveBeenCalled();
+});
+
+it('retries an unreachable status check when the user enables Push', async () => {
+  const { api, result } = setup('space-a', (api) => {
+    api.getUnifiedPushConfiguration.mockRejectedValueOnce(new Error('offline'));
+  });
+  await waitFor(() => expect(result.current.state).toBe('error'));
+  expect(result.current.error).toBe('PUSH_DEVICE_STATUS_UNAVAILABLE');
+  expect(result.current.registered).toBe(false);
+  expect(native.enable).not.toHaveBeenCalled();
+
+  await act(async () => result.current.enable());
+  expect(api.getUnifiedPushConfiguration).toHaveBeenCalledTimes(2);
+  expect(native.enable).toHaveBeenCalledOnce();
+  expect(result.current.error).toBeNull();
+});
+
+it('shows transport absence if an unreachable status retry returns 503', async () => {
+  const { result } = setup('space-a', (api) => {
+    api.getUnifiedPushConfiguration
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce(httpError(503));
+  });
+  await waitFor(() => expect(result.current.state).toBe('error'));
+  await act(async () => result.current.enable());
+  expect(result.current.state).toBe('unavailable');
+  expect(result.current.error).toBeNull();
+  expect(native.enable).not.toHaveBeenCalled();
+});
+
+it('stops native receipt after a rejected endpoint without retrying registration', async () => {
+  const { api, result } = setup('space-a', (api) => {
+    api.registerOwnPushEndpoint.mockRejectedValue(httpError(422));
+  });
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  await act(async () => result.current.enable());
+  emitEndpoint();
+  await waitFor(() =>
+    expect(result.current.error).toBe('PUSH_ENDPOINT_UNSUPPORTED'),
+  );
+  expect(result.current.state).toBe('error');
+  expect(result.current.registered).toBe(false);
+  expect(native.disable).toHaveBeenCalledOnce();
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+
+  emitEndpoint();
+  await act(async () => undefined);
+  expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce();
+});
+
+it('retains a failed revoke for later cleanup while stopping native receipt', async () => {
+  const { api, result } = setup('space-a', (api) => {
+    api.revokeOwnPushEndpoint.mockRejectedValue(new Error('offline'));
+  });
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  window.localStorage.setItem(storageKey, 'endpoint-id');
+  await act(async () => result.current.disable());
+  expect(native.disable).toHaveBeenCalledOnce();
+  expect(api.revokeOwnPushEndpoint).toHaveBeenCalledOnce();
+  expect(result.current.state).toBe('off');
+  expect(result.current.registered).toBe(false);
+  expect(result.current.error).toBe('PUSH_DEVICE_CLEANUP_PENDING');
+  expect(window.localStorage.getItem(storageKey)).toBe('endpoint-id');
+});
+
+it('clears an endpoint already absent on the server during disable', async () => {
+  const { result } = setup('space-a', (api) => {
+    api.revokeOwnPushEndpoint.mockRejectedValue(httpError(404));
+  });
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  window.localStorage.setItem(storageKey, 'endpoint-id');
+  await act(async () => result.current.disable());
+  expect(result.current.state).toBe('off');
+  expect(result.current.error).toBeNull();
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+});
+
+it('clears a stale endpoint already absent on the server during startup', async () => {
+  window.localStorage.setItem(storageKey, 'stale-endpoint');
+  const { result } = setup('space-a', (api) => {
+    api.revokeOwnPushEndpoint.mockRejectedValue(httpError(404));
+  });
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  expect(result.current.error).toBeNull();
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+});
+
+it('opens system settings after denial and rechecks permission on resume without prompting', async () => {
+  const { result } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  native.enable.mockRejectedValueOnce(
+    new Error('NOTIFICATION_PERMISSION_DENIED'),
+  );
+  native.status.mockResolvedValue({
+    accountId: null,
+    enabled: false,
+    permissionGranted: false,
+  });
+  await act(async () => result.current.enable());
+  expect(result.current.error).toBe('NOTIFICATION_PERMISSION_DENIED');
+  expect(result.current.registered).toBe(false);
+  await act(async () => result.current.openSettings());
+  expect(native.openNotificationSettings).toHaveBeenCalledOnce();
+
+  await act(async () => app.listeners.get('resume')?.({ url: '' }));
+  expect(result.current.error).toBe('NOTIFICATION_PERMISSION_DENIED');
+  native.status.mockResolvedValue({
+    accountId: null,
+    enabled: false,
+    permissionGranted: true,
+  });
+  await act(async () => app.listeners.get('resume')?.({ url: '' }));
+  expect(result.current.state).toBe('off');
+  expect(result.current.error).toBeNull();
+  expect(native.enable).toHaveBeenCalledOnce();
+});
+
+it('retains an active registration during an app-level permission block', async () => {
+  native.status.mockResolvedValue({
+    accountId,
+    enabled: true,
+    permissionGranted: false,
+  });
+  const { result } = setup();
+  await waitFor(() =>
+    expect(result.current.error).toBe('NOTIFICATION_PERMISSION_DENIED'),
+  );
+  expect(result.current.registered).toBe(true);
+  expect(native.refresh).not.toHaveBeenCalled();
+  native.status.mockResolvedValue({
+    accountId,
+    enabled: true,
+    permissionGranted: true,
+  });
+  await act(async () => app.listeners.get('resume')?.({ url: '' }));
+  expect(result.current.state).toBe('on');
+  expect(result.current.registered).toBe(true);
+  expect(native.enable).not.toHaveBeenCalled();
+});
+
+it('waits for in-flight registration and revokes its endpoint before server sign-out', async () => {
+  const { api, result } = setup();
+  await waitFor(() => expect(result.current.state).toBe('off'));
+  let finishRegistration: ((value: { id: string }) => void) | undefined;
+  api.registerOwnPushEndpoint.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishRegistration = resolve;
+      }),
+  );
+  await act(async () => result.current.enable());
+  emitEndpoint();
+  await waitFor(() =>
+    expect(api.registerOwnPushEndpoint).toHaveBeenCalledOnce(),
+  );
+  const serverSignOut = vi.fn();
+  let signingOut: Promise<void> | undefined;
+  act(() => {
+    signingOut = revokeDevicePushBeforeSignOut(
+      apiBaseUrl,
+      accountId,
+      api as unknown as NotificationsApi,
+    ).then(serverSignOut);
+    stopNativePushForSignedOutAccount();
+  });
+  expect(serverSignOut).not.toHaveBeenCalled();
+  expect(api.revokeOwnPushEndpoint).not.toHaveBeenCalled();
+  await act(async () => {
+    finishRegistration?.({ id: 'endpoint-id' });
+    await signingOut;
+  });
+  expect(api.revokeOwnPushEndpoint).toHaveBeenCalledWith({
+    endpointId: 'endpoint-id',
+  });
+  expect(api.revokeOwnPushEndpoint.mock.invocationCallOrder[0]).toBeLessThan(
+    serverSignOut.mock.invocationCallOrder[0],
+  );
+  expect(window.localStorage.getItem(storageKey)).toBeNull();
+});
+
+it('lets server sign-out continue after failed endpoint cleanup and retains its retry ID', async () => {
+  const api = createApi();
+  api.revokeOwnPushEndpoint.mockRejectedValueOnce(new Error('offline'));
+  window.localStorage.setItem(storageKey, 'endpoint-id');
+  const serverSignOut = vi.fn();
+  await revokeDevicePushBeforeSignOut(
+    apiBaseUrl,
+    accountId,
+    api as unknown as NotificationsApi,
+  ).then(serverSignOut);
+  expect(serverSignOut).toHaveBeenCalledOnce();
+  expect(window.localStorage.getItem(storageKey)).toBe('endpoint-id');
 });

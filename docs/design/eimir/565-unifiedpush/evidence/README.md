@@ -8,8 +8,6 @@ root text size. The account address and preferences are test data. The control p
 hierarchy and uses the existing button and token styles.
 
 This is component-level visual evidence, not an Android screenshot or proof of
-Push delivery. Device acceptance remains open: test distributor selection,
-permission denial, encrypted wake delivery with the app foreground/background/
-terminated, generic notification appearance and tap navigation, disable and
-re-enable, logout/account switch, and a denied/unavailable backend origin on a
-physical device or emulator with a configured distributor.
+Push delivery. The separate [2026-10-07 device verification](device-verification-2026-10-07.md)
+records physical Pixel captures, executed acceptance cases, automated checks,
+and the remaining limitations against implementation commit `25ef1034`.

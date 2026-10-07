@@ -3,7 +3,7 @@
 Recorded on 2026-10-06 before continuing UI work on PR #1271. The PR already had a first device
 control implemented without this preflight, so the preflight is retroactive for that part. It
 governs every further UI change in the slice. Baseline: `main` at
-`4aa08065feb5bd1d18b4b3b0ea8f88ea2b6e8f8b`, merged into the PR branch at `f215444f`.
+`4aa0806523a55dfafbee94d4479c6ffe06825303`, merged into the PR branch at `f215444f`.
 
 ![Generated whole-screen Compact reference](unifiedpush-device-control-compact.webp)
 

@@ -39,7 +39,7 @@ const mockApis = {
 describe('useAttachmentDrafts context and generation binding (#700)', () => {
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
-  let revokeObjectURLSpy: ReturnType<typeof vi.fn>;
+  let revokeObjectURLSpy: ReturnType<typeof vi.fn<typeof URL.revokeObjectURL>>;
   let urlCounter = 0;
 
   beforeEach(() => {
@@ -570,7 +570,7 @@ describe('useAttachmentDrafts context and generation binding (#700)', () => {
 describe('useAttachmentDrafts React commit lifecycle and speculative render safety (#739)', () => {
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
-  let revokeObjectURLSpy: ReturnType<typeof vi.fn>;
+  let revokeObjectURLSpy: ReturnType<typeof vi.fn<typeof URL.revokeObjectURL>>;
   let urlCounter = 0;
 
   beforeEach(() => {

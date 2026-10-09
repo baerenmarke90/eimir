@@ -355,6 +355,10 @@
   color: var(--color-text-secondary);
 }
 
+.plan-story-continuation .shared-achievement-copy p {
+  color: var(--color-text);
+}
+
 .planen-completed-result p {
   margin: 0;
 }

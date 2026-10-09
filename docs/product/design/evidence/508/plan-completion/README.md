@@ -99,6 +99,18 @@ per case on this slower environment; repository timeouts and assertions were
 unchanged. Hosted QA remains responsible for the pinned browser and normal
 repository limits.
 
+Pinned Chromium CI then identified the existing confirmed celebration body at
+4.36:1 on its tinted surface (390 px Light), while all 18 other cases passed.
+The Plan continuation now uses the existing primary text token for that body;
+the full Axe check remains enabled. This is a contrast correction within the
+existing whole-screen reference and semantic-token contract, not a new
+composition or shared-component redesign.
+All five affected Light/Dark and completion-to-confirmation browser cases pass
+after that correction, including the complete Axe check. The three confirmed
+captures were refreshed again. PR #1298 is merged as
+`main@5e6999492ea81d5a352d7194f36b28f8abe7fe6d`; the final completion branch
+includes that main state for its hosted revalidation.
+
 ## Fix found while capturing evidence
 
 At 320 px with 200 % text the existing Plan detail overflowed horizontally

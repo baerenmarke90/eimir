@@ -185,31 +185,30 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             findings.extend(check_documentation_file(path))
         self.assertEqual(findings, [])
 
-    def test_plan_completion_quotes_do_not_exempt_surrounding_or_other_prose(
-        self,
-    ) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            path = (
-                root
-                / "docs/product/design/references/508/plan-completion-generation.md"
-            )
-            path.parent.mkdir(parents=True)
-            path.write_text(
-                'Preserve localized status: "Abschluss für den 11.09.2026 wird gespeichert …".\n'
-                "Die Entscheidung wird im Client getroffen.\n",
-                encoding="utf-8",
-            )
-            findings = check_documentation_file(path, root)
-            self.assertEqual(len(findings), 1)
-            self.assertIn("Die Entscheidung", findings[0])
+    def test_completion_quotes_do_not_exempt_surrounding_or_other_prose(self) -> None:
+        from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
-            other = root / "docs/other.md"
-            other.write_text(
-                'Status: "Abschluss für den 11.09.2026 wird gespeichert …".\n',
-                encoding="utf-8",
+        for name in ("plan", "wish"):
+            logical_path = Path(
+                f"docs/product/design/references/508/{name}-completion-generation.md"
             )
-            self.assertEqual(len(check_documentation_file(other, root)), 1)
+            product_copy = ALLOWED_DOCUMENTATION_TEXTS_BY_PATH[logical_path][0]
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                path = root / logical_path
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    f'Status: "{product_copy}".\n'
+                    "Die Entscheidung wird im Client getroffen.\n",
+                    encoding="utf-8",
+                )
+                findings = check_documentation_file(path, root)
+                self.assertEqual(len(findings), 1)
+                self.assertIn("Die Entscheidung", findings[0])
+
+                other = root / "docs/other.md"
+                other.write_text(f'Status: "{product_copy}".\n', encoding="utf-8")
+                self.assertEqual(len(check_documentation_file(other, root)), 1)
 
     def test_python_comment_and_identifier_are_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

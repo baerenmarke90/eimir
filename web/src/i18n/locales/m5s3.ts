@@ -81,6 +81,7 @@ const m5s3 = {
       'Wenn dieser Wunsch einfach so Wirklichkeit geworden ist, könnt ihr ihn direkt als erfüllt markieren.',
     complete: 'Als erfüllt markieren',
     completing: 'Wird abgeschlossen …',
+    completePending: 'Wunsch wird als erfüllt gespeichert …',
     completionTitle: 'Wunsch erfüllt',
     completionIntro:
       'Möchtet ihr daraus auch eine Erinnerung für eure gemeinsame Geschichte festhalten?',

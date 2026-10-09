@@ -448,6 +448,14 @@ async function prepareScenario(
       .evaluate((node) => getComputedStyle(node).animationName);
     expect(animationName).toBe('none');
   }
+  // Measure the settled success surface, after its non-blocking entrance fade.
+  await page
+    .locator('.shared-achievement-confirmation')
+    .evaluate(async (node) => {
+      await Promise.all(
+        node.getAnimations().map((animation) => animation.finished),
+      );
+    });
 }
 
 async function captureEvidence(

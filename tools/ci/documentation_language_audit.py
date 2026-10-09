@@ -45,6 +45,18 @@ PLAN_COMPLETION_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact localized strings in the recorded Wish Imagegen prompt only.
+    Path("docs/product/design/references/508/wish-completion-generation.md"): (
+        "Wunsch wird als erfüllt gespeichert …",
+        "Wunsch weiterführen",
+        "Nordlichter sehen",
+        "GEMEINSAMER WUNSCH",
+        "Zurück zu Planen",
+        "Schon erlebt?",
+        "Wird abgeschlossen …",
+        "Daraus einen Plan machen",
+        "Als Plan weiterführen",
+    ),
     # These three records quote the actual localized UI and the exact Imagegen
     # prompts. Only those literals are exempt; English surrounding prose and
     # every other document remain audited.

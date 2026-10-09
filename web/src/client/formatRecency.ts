@@ -204,3 +204,19 @@ export function formatCompactCalendarDate(
     timeZone: 'UTC',
   }).format(date);
 }
+
+/**
+ * Full calendar date for a day-only value, e.g. the day a Plan is completed
+ * on. Reading the UTC components preserves the encoded day on every device.
+ */
+export function formatCalendarDate(
+  date: Date,
+  locale = resolvedLocale(),
+): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}

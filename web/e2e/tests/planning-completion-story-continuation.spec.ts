@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -14,10 +17,18 @@ const EXPERIENCED_ON = '2026-09-11';
 type MockOptions = {
   sharedAchievementsEnabled?: boolean;
   completionFailuresBeforeSuccess?: number;
+  /** Holds every completion response until `releaseCompletion()`. */
+  holdCompletion?: boolean;
+  /** HTTP status of the failing completion attempts (default 500). */
+  failureStatus?: number;
+  /** A 409 means another member already completed the Plan. */
+  conflictCompletesPlan?: boolean;
 };
 
 type MockState = {
   completionCalls: number;
+  planReads: number;
+  releaseCompletion: () => void;
 };
 
 async function installMocks(
@@ -28,7 +39,14 @@ async function installMocks(
   const sharedAchievementsEnabled = options.sharedAchievementsEnabled ?? true;
   const completionFailuresBeforeSuccess =
     options.completionFailuresBeforeSuccess ?? 0;
-  const state: MockState = { completionCalls: 0 };
+  const gates: Array<() => void> = [];
+  const state: MockState = {
+    completionCalls: 0,
+    planReads: 0,
+    releaseCompletion: () => {
+      for (const open of gates.splice(0)) open();
+    },
+  };
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const method = request.method();
@@ -199,6 +217,7 @@ async function installMocks(
       method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}`
     ) {
+      state.planReads += 1;
       await fulfillJson({
         capabilities: { canComment: true, canDelete: true, canEdit: true },
         createdAt: TEST_NOW,
@@ -225,15 +244,22 @@ async function installMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/plans/${PLAN_ID}/complete`
     ) {
       state.completionCalls += 1;
+      if (options.holdCompletion) {
+        await new Promise<void>((open) => gates.push(open));
+      }
       if (state.completionCalls <= completionFailuresBeforeSuccess) {
+        const failureStatus = options.failureStatus ?? 500;
+        if (failureStatus === 409 && options.conflictCompletesPlan) {
+          completed = true;
+        }
         await fulfillJson(
           {
             code: 'E2E_PLAN_COMPLETE_FAILED',
             detail: 'Synthetic completion failure.',
-            status: 500,
+            status: failureStatus,
             title: 'Synthetic completion failure',
           },
-          500,
+          failureStatus,
         );
         return;
       }
@@ -301,11 +327,24 @@ async function signIn(page: Page): Promise<void> {
 }
 
 async function assertNoHorizontalOverflow(page: Page): Promise<void> {
-  const dimensions = await page.evaluate(() => ({
-    clientWidth: document.documentElement.clientWidth,
-    scrollWidth: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  const dimensions = await page.evaluate(() => {
+    const clientWidth = document.documentElement.clientWidth;
+    return {
+      clientWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      overflowing: Array.from(document.body.querySelectorAll('*'))
+        .filter((node) => node.getBoundingClientRect().right > clientWidth + 1)
+        .slice(0, 8)
+        .map(
+          (node) =>
+            `${node.tagName.toLowerCase()}.${String(node.className).slice(0, 60)}[${(node.textContent ?? '').slice(0, 30)}|r=${Math.round(node.getBoundingClientRect().right)}]`,
+        ),
+    };
+  });
+  expect(
+    dimensions.scrollWidth,
+    `Overflowing elements: ${dimensions.overflowing.join(', ')}`,
+  ).toBeLessThanOrEqual(dimensions.clientWidth);
 }
 
 async function assertNoWcagViolations(page: Page): Promise<void> {
@@ -521,4 +560,296 @@ test('failed completion shows no celebration and a deliberate retry celebrates e
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(1);
   expect(state.completionCalls).toBe(2);
+});
+
+const EVIDENCE_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'docs',
+  'product',
+  'design',
+  'evidence',
+  '508',
+  'plan-completion',
+);
+
+async function savePlanCompletionEvidence(
+  page: Page,
+  testInfo: TestInfo,
+  fileName: string,
+): Promise<void> {
+  const outputPath = testInfo.outputPath(fileName);
+  // The off-screen skip link would otherwise be stitched into the capture.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: outputPath, fullPage: true });
+  fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+  fs.copyFileSync(outputPath, path.join(EVIDENCE_DIR, fileName));
+}
+
+function pendingStatus(page: Page) {
+  return page.getByRole('status').filter({
+    hasText: m5s3.plan.completePending.split('{{date}}')[0],
+  });
+}
+
+async function openActionsAndChooseDay(page: Page): Promise<void> {
+  await page.getByText(m5s3.plan.actionsHeading).click();
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+}
+
+async function assertCompetingWritesLocked(page: Page): Promise<void> {
+  await expect(page.getByLabel(m5s3.plan.experiencedOn)).toHaveAttribute(
+    'readonly',
+    '',
+  );
+  for (const name of [
+    m5s3.plan.reschedule,
+    m5s3.plan.unschedule,
+    de.common.edit,
+  ]) {
+    await expect(page.getByRole('button', { name })).toBeDisabled();
+  }
+  await expect(page.getByLabel(m5s3.plan.plannedDate)).toBeDisabled();
+  const action = page.getByRole('button', { name: m5s3.common.saving });
+  await expect(action).toHaveAttribute('aria-disabled', 'true');
+  await expect(action).toBeFocused();
+}
+
+type PendingScenario = VisualScenario & { evidence: string };
+
+const pendingScenarios: PendingScenario[] = [
+  {
+    name: '390-light',
+    evidence: 'plan-completion-pending-390-light',
+    viewport: { width: 390, height: 844 },
+    theme: 'light',
+  },
+  {
+    name: '390-dark',
+    evidence: 'plan-completion-pending-390-dark',
+    viewport: { width: 390, height: 844 },
+    theme: 'dark',
+  },
+  {
+    name: '320-dark-200-percent-reduced-motion',
+    evidence: 'plan-completion-pending-320-dark-200pct',
+    viewport: { width: 320, height: 900 },
+    theme: 'dark',
+    reducedMotion: true,
+    fontScale: 2,
+  },
+  {
+    name: '1280-expanded-light',
+    evidence: 'plan-completion-pending-1280-light',
+    viewport: { width: 1280, height: 900 },
+    theme: 'light',
+  },
+];
+
+for (const scenario of pendingScenarios) {
+  test(`pending Plan completion claims one request and confirms only from the server: ${scenario.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(scenario.viewport);
+    await page.emulateMedia({
+      reducedMotion: scenario.reducedMotion ? 'reduce' : 'no-preference',
+    });
+    await page.addInitScript((theme) => {
+      window.localStorage.setItem('eimir.theme', theme);
+    }, scenario.theme);
+    const state = await installMocks(page, { holdCompletion: true });
+    await signIn(page);
+    await page.goto(`/plan/plans/${PLAN_ID}`);
+    if (scenario.fontScale) {
+      await page.addStyleTag({
+        content: `html { font-size: ${scenario.fontScale * 100}% !important; }`,
+      });
+    }
+    await openActionsAndChooseDay(page);
+
+    // Two activations in the same task still make one authoritative request.
+    const completeAction = page.getByRole('button', {
+      name: m5s3.plan.complete,
+    });
+    await completeAction.focus();
+    await completeAction.evaluate((button) => {
+      (button as HTMLButtonElement).click();
+      (button as HTMLButtonElement).click();
+    });
+
+    await expect(pendingStatus(page)).toHaveCount(1);
+    await expect(pendingStatus(page)).toBeVisible();
+    await expect(pendingStatus(page)).toContainText('11.09.2026');
+    await assertCompetingWritesLocked(page);
+    await expect(page.getByLabel(m5s3.plan.experiencedOn)).toHaveValue(
+      EXPERIENCED_ON,
+    );
+    // Not claimed before the server answers.
+    await expect(
+      page.getByText(m5s3.plan.completedTitle, { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: m5s3.planStory.memoryAction }),
+    ).toHaveCount(0);
+    expect(state.completionCalls).toBe(1);
+    await assertNoHorizontalOverflow(page);
+    if (scenario.name === '390-light' || scenario.name === '390-dark') {
+      await assertNoWcagViolations(page);
+    }
+    await expect(page.locator('html')).toHaveAttribute(
+      'data-theme',
+      scenario.theme,
+    );
+    await savePlanCompletionEvidence(
+      page,
+      testInfo,
+      `${scenario.evidence}.png`,
+    );
+
+    state.releaseCompletion();
+    await expect(
+      page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+    ).toBeVisible();
+    await expect(pendingStatus(page)).toHaveCount(0);
+    await expect(
+      page.getByRole('button', { name: m5s3.planStory.memoryAction }),
+    ).toBeVisible();
+    expect(state.completionCalls).toBe(1);
+    await assertNoHorizontalOverflow(page);
+    if (scenario.reducedMotion) {
+      const animationName = await page
+        .locator('.shared-achievement-confirmation')
+        .evaluate((node) => getComputedStyle(node).animationName);
+      expect(animationName).toBe('none');
+    }
+    if (scenario.name !== '390-dark') {
+      await savePlanCompletionEvidence(
+        page,
+        testInfo,
+        `${scenario.evidence.replace('-pending-', '-confirmed-')}.png`,
+      );
+    }
+  });
+}
+
+test('failed pending completion removes the status, keeps the day and retries only deliberately', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eimir.theme', 'light');
+  });
+  const state = await installMocks(page, {
+    holdCompletion: true,
+    completionFailuresBeforeSuccess: 1,
+  });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+  await openActionsAndChooseDay(page);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+  await expect(pendingStatus(page)).toBeVisible();
+
+  state.releaseCompletion();
+  await expect(pendingStatus(page)).toHaveCount(0);
+  await expect(
+    page.getByRole('alert').filter({ hasText: de.states.server.title }),
+  ).toBeVisible();
+  await expect(page.getByLabel(m5s3.plan.experiencedOn)).toHaveValue(
+    EXPERIENCED_ON,
+  );
+  await expect(
+    page.getByRole('button', { name: m5s3.plan.complete }),
+  ).toHaveAttribute('aria-disabled', 'false');
+  await expect(
+    page.getByRole('button', { name: m5s3.plan.complete }),
+  ).toBeFocused();
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+  expect(state.completionCalls).toBe(1);
+  await assertNoWcagViolations(page);
+  await savePlanCompletionEvidence(
+    page,
+    testInfo,
+    'plan-completion-failure-390-light.png',
+  );
+
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+  await expect(pendingStatus(page)).toBeVisible();
+  state.releaseCompletion();
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(1);
+  expect(state.completionCalls).toBe(2);
+});
+
+test('a completion conflict is recovered from a fresh read without celebration or a replayed request', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    window.localStorage.setItem('eimir.theme', 'light');
+  });
+  const state = await installMocks(page, {
+    holdCompletion: true,
+    completionFailuresBeforeSuccess: 1,
+    failureStatus: 409,
+    conflictCompletesPlan: true,
+  });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+  await openActionsAndChooseDay(page);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+  await expect(pendingStatus(page)).toBeVisible();
+  const readsBeforeConflict = state.planReads;
+
+  state.releaseCompletion();
+  await expect(page.getByText(m5s3.plan.completedBody)).toBeVisible();
+  await expect(pendingStatus(page)).toHaveCount(0);
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: m5s3.planStory.memoryAction }),
+  ).toHaveCount(0);
+  expect(state.planReads).toBeGreaterThan(readsBeforeConflict);
+  expect(state.completionCalls).toBe(1);
+  await savePlanCompletionEvidence(
+    page,
+    testInfo,
+    'plan-completion-conflict-recovered-390-light.png',
+  );
+});
+
+test('keyboard activation sends one completion and keeps focus on the action while it is pending', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await installMocks(page, { holdCompletion: true });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+  await openActionsAndChooseDay(page);
+
+  const complete = page.getByRole('button', { name: m5s3.plan.complete });
+  await complete.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
+
+  await expect(pendingStatus(page)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.common.saving }),
+  ).toBeFocused();
+  expect(state.completionCalls).toBe(1);
+
+  state.releaseCompletion();
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toBeFocused();
+  expect(state.completionCalls).toBe(1);
 });

@@ -94,7 +94,7 @@
     },
     "planning-completion-story-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 12
+      "baselineTests": 19
     },
     "planning-focused-create.spec.ts": {
       "disposition": "PR_CRITICAL",

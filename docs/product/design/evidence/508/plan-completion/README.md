@@ -47,7 +47,7 @@ two requests; the retry celebrates once), a 409 conflict that refetches the Plan
 confirmed heading). The existing continuation, "Später", Memory capture,
 disabled-achievement and visual cases remain in the same spec (19 cases).
 
-## Component and build verification
+## Initial component and build verification
 
 Nine production-component cases in `PlanCompletionFeedback.test.tsx` cover:
 synchronous duplicate suppression and the exact request (`If-Match`, day), the
@@ -67,6 +67,37 @@ failed under four parallel workers; all seven passed when rerun serially. The
 retained full-regression `product-reflow` cases and the 390 px Light axe
 contrast case of the existing continuation visuals fail identically on
 unmodified `origin/main`, so they are not caused by this slice.
+
+## October 9 review follow-up
+
+The focused production-component suite now passes 13 cases. Four added
+regressions hold the conflict-recovery read open, dispatch completion and
+scheduling in the same task in both orders, and replace the initiating query
+after a cache clear without changing Space. A failed completion removes the
+saving status immediately, but further writes remain locked until its recovery
+read settles. The next explicit completion uses the refreshed version. The
+synchronous mutation-cache guard prevents competing writes before React
+rerenders; a response for a replaced query cannot claim a celebration.
+
+The full Web run passed 1,375 cases, with one existing skip and three 5-second
+timeouts under concurrent validation. All 41 cases in those three unchanged
+test files passed on an isolated serial rerun. Typecheck, changed-file lint,
+format, production build and the engineering/documentation language audits
+pass. The language-audit regression proves that only exact localized product
+quotes in these three evidence/reference records are allowed; surrounding
+engineering prose and the same quote in another document remain audited.
+
+Dependency audit failures already present on the base are repaired separately
+in PR #1298; the existing audit policies are retained.
+
+All 19 browser cases passed again, including the held request, deliberate retry,
+conflict, keyboard/focus, Light/Dark, Expanded, reduced motion and 320 px/200 %
+text cases. The nine completion captures above were refreshed from that run.
+Local QA used Chromium 153 because the pinned Playwright Chromium download
+returned an empty archive. An external temporary config allowed 120 seconds
+per case on this slower environment; repository timeouts and assertions were
+unchanged. Hosted QA remains responsible for the pinned browser and normal
+repository limits.
 
 ## Fix found while capturing evidence
 

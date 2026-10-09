@@ -43,7 +43,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             path.write_text("## Summary\n", encoding="utf-8")
             self.assertEqual(check_file(path), [])
 
-    def test_localized_product_fixture_is_allowed_without_excluding_test_file(self) -> None:
+    def test_localized_product_fixture_is_allowed_without_excluding_test_file(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "localized.test.ts"
             path.write_text(
@@ -96,9 +98,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.py"
             path.write_text(
-                "class TestRegistration:\n"
-                "    pass\n\n"
-                "SPACE_ENDPOINTS = ()\n",
+                "class TestRegistration:\n    pass\n\nSPACE_ENDPOINTS = ()\n",
                 encoding="utf-8",
             )
             self.assertEqual(check_file(path), [])
@@ -115,7 +115,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             path.write_text('sample = "Aktueller `main`"\n', encoding="utf-8")
             self.assertEqual(check_file(path), [])
 
-    def test_stable_markdown_link_target_is_not_treated_as_documentation_prose(self) -> None:
+    def test_stable_markdown_link_target_is_not_treated_as_documentation_prose(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             path = root / "docs" / "example.md"
@@ -126,7 +128,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             )
             self.assertEqual(check_documentation_file(path, root), [])
 
-    def test_stable_json_contract_target_is_not_treated_as_documentation_prose(self) -> None:
+    def test_stable_json_contract_target_is_not_treated_as_documentation_prose(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             path = root / "docs" / "manifest.json"
@@ -149,7 +153,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             findings = check_documentation_file(path, root)
             self.assertEqual(len(findings), 1)
 
-    def test_frozen_review_snapshots_are_outside_active_documentation_scope(self) -> None:
+    def test_frozen_review_snapshots_are_outside_active_documentation_scope(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             frozen = root / "docs" / "reviews" / "snapshot.md"
@@ -178,6 +184,32 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         for path in documentation_files():
             findings.extend(check_documentation_file(path))
         self.assertEqual(findings, [])
+
+    def test_plan_completion_quotes_do_not_exempt_surrounding_or_other_prose(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = (
+                root
+                / "docs/product/design/references/508/plan-completion-generation.md"
+            )
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                'Preserve localized status: "Abschluss für den 11.09.2026 wird gespeichert …".\n'
+                "Die Entscheidung wird im Client getroffen.\n",
+                encoding="utf-8",
+            )
+            findings = check_documentation_file(path, root)
+            self.assertEqual(len(findings), 1)
+            self.assertIn("Die Entscheidung", findings[0])
+
+            other = root / "docs/other.md"
+            other.write_text(
+                'Status: "Abschluss für den 11.09.2026 wird gespeichert …".\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(len(check_documentation_file(other, root)), 1)
 
     def test_python_comment_and_identifier_are_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -266,7 +298,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
     def test_exception_diagnostic_is_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.py"
-            path.write_text('raise ValueError("Der Wert ist ungueltig")\n', encoding="utf-8")
+            path.write_text(
+                'raise ValueError("Der Wert ist ungueltig")\n', encoding="utf-8"
+            )
             findings = check_file(path)
             self.assertEqual(len(findings), 1)
 

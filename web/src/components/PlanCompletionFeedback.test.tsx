@@ -97,8 +97,10 @@ function setup() {
     writes.push(write);
     return write.promise;
   });
+  const scheduled = deferred<PlanDetail>();
+  const schedulePlan = vi.fn(() => scheduled.promise);
   const apis = {
-    plans: { getPlan, completePlanRaw },
+    plans: { getPlan, completePlanRaw, schedulePlan },
     places: {
       listPlaces: vi.fn(async () => ({
         items: [],
@@ -126,6 +128,7 @@ function setup() {
     writes,
     getPlan,
     completePlanRaw,
+    schedulePlan,
     view,
     tree,
     setServer: (next: PlanDetail) => {
@@ -278,6 +281,85 @@ it('recovers a conflict from a fresh read without replaying the stale version', 
     screen.queryByRole('button', { name: m5s3.planStory.memoryAction }),
   ).toBeNull();
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
+});
+
+it('keeps competing writes locked until a conflict recovery read returns the current version', async () => {
+  const h = setup();
+  await openAndSubmit(h);
+  const read = deferred<PlanDetail>();
+  h.getPlan.mockImplementation(() => read.promise);
+  await act(async () =>
+    h.writes[0].reject(new ClientProblemError('conflict', 409, 'CONFLICT')),
+  );
+  await waitFor(() => expect(h.getPlan).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(pendingCopy())).toBeNull();
+  expect(screen.getByText(de.states.conflict.title)).toBeDefined();
+
+  expect(completeButton().getAttribute('aria-disabled')).toBe('true');
+  expect(
+    screen
+      .getByRole('button', { name: m5s3.plan.reschedule })
+      .hasAttribute('disabled'),
+  ).toBe(true);
+  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
+
+  const recovered = plan({ version: 5 });
+  await act(async () => read.resolve(recovered));
+  await waitFor(() =>
+    expect(completeButton().getAttribute('aria-disabled')).toBe('false'),
+  );
+  fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+  await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(2));
+  expect(h.completePlanRaw.mock.calls[1]).toMatchObject([{ ifMatch: '5' }]);
+});
+
+it.each(['completion', 'schedule'])(
+  'blocks a competing write in the same task when %s is submitted first',
+  async (first) => {
+    const h = setup();
+    await screen.findByText('Picnic in the park');
+    fireEvent.change(dateField(), { target: { value: DAY } });
+    const scheduleDate = screen.getByLabelText(m5s3.plan.plannedDate);
+    fireEvent.change(scheduleDate, { target: { value: DAY } });
+    const completeForm = completeButton().closest('form') as HTMLFormElement;
+    const scheduleForm = scheduleDate.closest('form') as HTMLFormElement;
+    const forms =
+      first === 'completion'
+        ? [completeForm, scheduleForm]
+        : [scheduleForm, completeForm];
+
+    act(() => {
+      for (const form of forms) {
+        form.dispatchEvent(
+          new Event('submit', { bubbles: true, cancelable: true }),
+        );
+      }
+    });
+    await waitFor(() =>
+      expect(
+        h.completePlanRaw.mock.calls.length + h.schedulePlan.mock.calls.length,
+      ).toBe(1),
+    );
+    expect(h.completePlanRaw).toHaveBeenCalledTimes(
+      first === 'completion' ? 1 : 0,
+    );
+    expect(h.schedulePlan).toHaveBeenCalledTimes(first === 'schedule' ? 1 : 0);
+  },
+);
+
+it('does not celebrate a late completion after the initiating cache is replaced in the same Space', async () => {
+  const h = setup();
+  await openAndSubmit(h);
+  act(() => {
+    h.queryClient.clear();
+    h.queryClient.setQueryData(h.key, completedPlan());
+  });
+  h.view.rerender(h.tree());
+  expect(await screen.findByText(m5s3.plan.completedBody)).toBeDefined();
+  await act(async () => h.writes[0].resolve(confirmed(true)));
+  expect(screen.queryByText(m5s3.plan.sharedAchievementTitle)).toBeNull();
+  expect(screen.getByText(m5s3.plan.completedBody)).toBeDefined();
 });
 
 it('keeps pending state and the duplicate guard across a remount', async () => {

@@ -98,13 +98,16 @@ export function usePlanCompletion({
         });
         void invalidateDashboard(queryClient, spaceId);
       }
-      setOutcome({
-        scope: `${spaceId}:${completedPlan.id}`,
-        status: 'confirmed',
-        achievement: achievement === 'plan-completed',
-      });
+      if (context?.isCurrentQuery()) {
+        setOutcome({
+          scope: `${spaceId}:${completedPlan.id}`,
+          status: 'confirmed',
+          achievement: achievement === 'plan-completed',
+        });
+      }
     },
-    onError: (error, { plan }, context) => {
+    onError: async (error, { plan }, context) => {
+      if (!context?.isCurrentQuery()) return;
       setOutcome({
         scope: `${spaceId}:${plan.id}`,
         status: 'failed',
@@ -113,12 +116,14 @@ export function usePlanCompletion({
       // Read the authoritative Plan before another decision; never replay the
       // stale version.
       if (
-        context?.isCurrentQuery() &&
         ['conflict', 'notFound', 'permission'].includes(
           clientProblemKind(error),
         )
       ) {
-        void queryClient.refetchQueries({ queryKey: context.key, exact: true });
+        await queryClient.refetchQueries({
+          queryKey: context.key,
+          exact: true,
+        });
       }
     },
     onSettled: (_data, _error, { plan }) => {
@@ -128,13 +133,15 @@ export function usePlanCompletion({
     },
   });
 
-  function complete(request: CompletionRequest) {
-    if (
-      !planId ||
+  function isInFlight() {
+    return (
       inFlightRef.current === scope ||
       queryClient.isMutating({ mutationKey, exact: true }) > 0
-    )
-      return;
+    );
+  }
+
+  function complete(request: CompletionRequest) {
+    if (!planId || isInFlight()) return;
     inFlightRef.current = scope;
     setOutcome(null);
     mutation.mutate(request);
@@ -143,8 +150,10 @@ export function usePlanCompletion({
   const current = outcome?.scope === scope ? outcome : null;
   return {
     complete,
+    isInFlight,
     /** The submitted day while this Plan's completion awaits the server. */
-    pendingDay: pending?.experiencedOn ?? null,
+    pendingDay:
+      current?.status === 'failed' ? null : (pending?.experiencedOn ?? null),
     isPending: activeWrites > 0 || pending !== null,
     error: current?.status === 'failed' ? current.error : null,
     isConfirmed: current?.status === 'confirmed',

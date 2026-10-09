@@ -28,10 +28,36 @@ EXCLUDED_DOCUMENTATION_PREFIXES = (Path("docs/reviews"),)
 # fixtures, or a narrowly identified English false-positive. Keeping these
 # exceptions value-based rather than excluding whole files leaves all
 # surrounding engineering prose under the audit.
+PLAN_COMPLETION_PRODUCT_COPY = (
+    "Abschluss für den 11.09.2026 wird gespeichert …",
+    "Noch ohne Termin",
+    "Wird gespeichert …",
+    "Termin ändern",
+    "Noch ohne festen Termin",
+    "Plan verwalten",
+    "Später",
+    "Zum Inhalt springen",
+    "Zurück zu Planen",
+    "Idee von Anna",
+    "Dieser Plan ist automatisch für euch beide sichtbar.",
+    "Für euch beide sichtbar",
+    "Wo steht ihr gerade?",
+)
+
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
-    Path("design/m2/PLATFORM-HANDOFF.md"): (
-        "Foto hinzufügen",
-    ),
+    # These three records quote the actual localized UI and the exact Imagegen
+    # prompts. Only those literals are exempt; English surrounding prose and
+    # every other document remain audited.
+    Path(
+        "docs/product/design/evidence/508/plan-completion/README.md"
+    ): PLAN_COMPLETION_PRODUCT_COPY,
+    Path(
+        "docs/product/design/references/508/plan-completion-generation.md"
+    ): PLAN_COMPLETION_PRODUCT_COPY,
+    Path(
+        "docs/product/design/references/508/plan-completion-preflight.md"
+    ): PLAN_COMPLETION_PRODUCT_COPY,
+    Path("design/m2/PLATFORM-HANDOFF.md"): ("Foto hinzufügen",),
     Path("design/m2/SCREEN-FLOWS.md"): (
         "Moment festhalten",
         "Erinnerung",
@@ -92,9 +118,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "Mehr",
         "Moment festhalten",
     ),
-    Path("docs/ACCESSIBILITY-QA-MATRIX.md"): (
-        "Noch nicht gespeichert",
-    ),
+    Path("docs/ACCESSIBILITY-QA-MATRIX.md"): ("Noch nicht gespeichert",),
     Path("docs/API-UI-CONTRACTS.md"): (
         "Nur für mich",
         "Für uns beide",
@@ -166,9 +190,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "Für euch",
         "Ein kleiner Moment für euch",
     ),
-    Path("docs/SCREEN-TEMPLATES.md"): (
-        "Noch nicht gespeichert",
-    ),
+    Path("docs/SCREEN-TEMPLATES.md"): ("Noch nicht gespeichert",),
     Path("docs/USER-FLOWS.md"): (
         "Für uns beide",
         "Mit Partner geteilt",
@@ -199,9 +221,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "Mit Lea geteilt",
         "Nur für mich",
     ),
-    Path("docs/design/eimir/MOBILE-FIRST-SURFACE-AUDIT.md"): (
-        "Nur für mich",
-    ),
+    Path("docs/design/eimir/MOBILE-FIRST-SURFACE-AUDIT.md"): ("Nur für mich",),
     Path("docs/m2/DEMO-SCENARIO.md"): (
         "Sonnenaufgang am See",
         "Unser erster Pastateig",
@@ -220,16 +240,12 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "Offline · Stand von …",
         "Noch nicht gespeichert",
     ),
-    Path("docs/m2/SECURITY-TEST-MATRIX.md"): (
-        "zuletzt geändert",
-    ),
+    Path("docs/m2/SECURITY-TEST-MATRIX.md"): ("zuletzt geändert",),
     Path("specification/CLEAN-ROOM-MASTER-SPEC.md"): (
         "SideBySide – die Paar-App, die euch gehört.",
         "Eure Erinnerungen sind Ende-zu-Ende verschlüsselt – selbst SideBySide kann sie nicht lesen.",
     ),
-    Path("specification/PRODUCT-SPEC.md"): (
-        "Die Paar-App, die euch gehört.",
-    ),
+    Path("specification/PRODUCT-SPEC.md"): ("Die Paar-App, die euch gehört.",),
 }
 
 # A few active documents carry fully localized copy examples on an explicitly
@@ -237,9 +253,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
 # excluding a file or a section: only the localized payload after this exact
 # English engineering label is outside the audit.
 ALLOWED_LOCALIZED_LINE_PREFIXES_BY_PATH = {
-    Path("docs/USER-FLOWS.md"): (
-        "3. Intentional de-DE message:",
-    ),
+    Path("docs/USER-FLOWS.md"): ("3. Intentional de-DE message:",),
 }
 
 MARKDOWN_LINK_TARGET = re.compile(r"(?<=\]\()[^)]+(?=\))")
@@ -297,7 +311,11 @@ def documentation_files(repo_root: Path = Path(".")) -> list[Path]:
                 logical_path == prefix or prefix in logical_path.parents
                 for prefix in EXCLUDED_DOCUMENTATION_PREFIXES
             )
-            if path.is_file() and path.suffix in DOCUMENTATION_SUFFIXES and not excluded:
+            if (
+                path.is_file()
+                and path.suffix in DOCUMENTATION_SUFFIXES
+                and not excluded
+            ):
                 files.append(path)
     return sorted(set(files))
 

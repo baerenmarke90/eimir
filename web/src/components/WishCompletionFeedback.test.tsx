@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -18,7 +22,10 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { WishProductPage } from './WishProductPage';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+});
 const SPACE = 'space-1';
 const ID = 'wish-1';
 const wish = (overrides: Partial<WishDetail> = {}): WishDetail => ({
@@ -109,6 +116,30 @@ const action = () =>
     name: (name) =>
       name === m5s3.wish.complete || name === m5s3.wish.completing,
   });
+
+it('fails an offline attempt without pausing it for automatic reconnect submission', async () => {
+  const h = setup();
+  const title = screen.getByLabelText(m5s3.wish.planTitle);
+  fireEvent.change(title, { target: { value: 'Future trip' } });
+  h.completeWish.mockRejectedValueOnce(new ClientProblemError('offline'));
+  onlineManager.setOnline(false);
+  fireEvent.click(action());
+
+  await screen.findByText(de.states.offline.title);
+  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
+  expect(title.closest('fieldset')?.disabled).toBe(false);
+  expect((title as HTMLInputElement).value).toBe('Future trip');
+
+  await act(async () => onlineManager.setOnline(true));
+  expect(h.completeWish).toHaveBeenCalledTimes(1);
+  expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
+  fireEvent.click(action());
+  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(2));
+  h.setServer(fulfilled());
+  await act(async () => h.writes[0].resolve(fulfilled()));
+  await screen.findByRole('button', { name: m5s3.wish.createMemory });
+});
 const conversion = () =>
   screen
     .getByRole('button', { name: m5s3.wish.convert })

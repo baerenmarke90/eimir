@@ -21,7 +21,7 @@ const WISH_TITLE = 'Nordlichter sehen';
 
 async function installMocks(
   page: Page,
-  options: { hold?: Promise<void>; failure?: number } = {},
+  options: { hold?: Promise<void>; failure?: number; offline?: boolean } = {},
 ) {
   let completed = false;
   let completionRequests = 0;
@@ -196,6 +196,10 @@ async function installMocks(
     ) {
       completionRequests += 1;
       await options.hold;
+      if (options.offline) {
+        await route.abort('internetdisconnected');
+        return;
+      }
       if (options.failure) {
         if (options.failure === 409) completed = true;
         await fulfillJson(
@@ -608,4 +612,35 @@ test('keyboard completion keeps action focus while pending then focuses confirme
   await expect(
     page.getByRole('heading', { name: m5s3.wish.completionTitle }),
   ).toBeFocused();
+});
+
+test('offline completion fails visibly and reconnect requires an explicit new attempt', async ({
+  page,
+}) => {
+  const options = { offline: true };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  const title = page.getByLabel(m5s3.wish.planTitle);
+  await title.fill('Future trip');
+  await page.context().setOffline(true);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(title).toBeEnabled();
+  await expect(title).toHaveValue('Future trip');
+  expect(mocks.requestCount()).toBe(1);
+
+  options.offline = false;
+  await page.context().setOffline(false);
+  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  expect(mocks.requestCount()).toBe(2);
 });

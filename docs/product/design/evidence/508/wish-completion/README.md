@@ -19,7 +19,11 @@ while pending. A server error removes the saving claim, retains input and allows
 an explicit retry. A conflict reads a partner's fulfillment without replaying
 the write or displaying our transient continuation.
 
-Thirteen component cases additionally cover both competing-write orders,
+Offline attempts fail through the existing error presentation instead of being
+paused for submission on reconnect. Reconnecting does not fulfill a Wish; a new
+explicit activation is required, with conversion input retained.
+
+Fourteen component cases additionally cover both competing-write orders,
 update/delete exclusion, the held conflict-recovery lock and fresh If-Match on
 explicit retry, pending remounts, late unmounted success, replaced query identity,
 and Space/cache-clear isolation. The shared lifecycle retains all existing Plan
@@ -48,9 +52,9 @@ success animation under reduced motion.
 
 ## Validation and limits
 
-- Full Web suite: 1,391 passed, one existing skipped test; 196 passed test files.
-- Focused Wish/Plan component regressions: 39 passed across four files.
-- Wish browser spec: all 15 passed, including six existing continuation cases.
+- Full Web suite: 1,392 passed, one existing skipped test; 196 passed test files.
+- Focused Wish/Plan component regressions: 40 passed across four files.
+- Wish browser spec: all 16 passed, including six existing continuation cases.
 - Plan browser regression spec: all 19 passed after settled-motion measurement.
 - Typecheck, lint, formatting, production build and browser inventory passed.
 - Engineering/documentation language audits and 24 audit regressions passed.

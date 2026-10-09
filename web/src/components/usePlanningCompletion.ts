@@ -54,6 +54,8 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
 
   const mutation = useMutation({
     mutationKey,
+    // Fail offline instead of holding an irreversible action for reconnect.
+    networkMode: 'always',
     retry: false,
     mutationFn: async (input: TRequest) => {
       try {

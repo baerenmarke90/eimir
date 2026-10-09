@@ -40,13 +40,13 @@ const accountDetail: ServerAdminAccountDetail = {
 
 function renderDialog({
   deleteAccount = vi.fn(),
-  onClose = vi.fn(),
-  onSuccess = vi.fn(),
+  onClose = vi.fn<() => void>(),
+  onSuccess = vi.fn<() => void>(),
   account = accountDetail,
 }: {
   deleteAccount?: ReturnType<typeof vi.fn>;
-  onClose?: ReturnType<typeof vi.fn>;
-  onSuccess?: ReturnType<typeof vi.fn>;
+  onClose?: ReturnType<typeof vi.fn<() => void>>;
+  onSuccess?: ReturnType<typeof vi.fn<() => void>>;
   account?: ServerAdminAccountDetail;
 } = {}) {
   const api = {

@@ -15,9 +15,9 @@ dependencies = [
     "argon2-cffi>=25.1",
     # Ausgehendes HTTP fuer OIDC: Discovery, JWKS und Token-Endpunkt.
     "httpx>=0.28",
-    # ID-Token-Pruefung. Signaturverfahren selbst zu schreiben waere im
-    # Auth-Pfad genau der falsche Ort fuer Eigenbau.
-    "pyjwt[crypto]>=2.10",
+    # ID Token verification uses the maintained library, including the fixed
+    # key and claim validation boundary; no custom signature implementation.
+    "pyjwt[crypto]>=2.15.1",
     # Application-controlled encryption at rest (#797): AES-256-GCM only. No
     # cryptographic primitive is implemented in this repository. Already
     # present transitively through pyjwt[crypto]; declared because the

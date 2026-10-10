@@ -48,6 +48,11 @@ import {
   loadAuthorizedMedia,
 } from './client/referenceFlow';
 import { loadInstanceAccessStatus } from './client/instanceStatus';
+import {
+  revokeDevicePushBeforeSignOut,
+  stopNativePushForSignedOutAccount,
+  useUnifiedPush,
+} from './client/unifiedPush';
 import { createServerAdminApis } from './client/serverAdmin';
 import {
   ACTIVITY_ROUTE,
@@ -256,6 +261,13 @@ function AuthenticatedApp({
     () => createM4ProductApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
   );
+  const devicePush = useUnifiedPush({
+    accountId: account.id,
+    apiBaseUrl,
+    notificationsApi: m4Apis.notifications,
+    queryClient,
+    spaceId,
+  });
   const planningApis = useMemo(
     () => createSharedPlanningApis(apiBaseUrl, tokens.accessToken),
     [apiBaseUrl, tokens.accessToken],
@@ -683,6 +695,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -694,6 +707,7 @@ function AuthenticatedApp({
                   accessToken={tokens.accessToken}
                   account={account}
                   spaceId={spaceId}
+                  devicePush={devicePush}
                 />
               }
             />
@@ -844,6 +858,7 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
   const restoredAuthReturnForAccountId = useRef<string | null>(null);
 
   const terminateSession = useCallback(() => {
+    stopNativePushForSignedOutAccount();
     clearStoredSession();
     setEntryToken(null);
     setSpaceId(null);
@@ -1024,7 +1039,19 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
     if (tokens?.accessToken) {
       try {
         const apis = createReferenceApis(config.apiBaseUrl, tokens.accessToken);
-        void apis.auth.signOutApiV1AuthSignOutPost().catch(() => {});
+        // Revoke this device's Push endpoint while the session still exists;
+        // the session is revoked afterwards.
+        const devicePushCleanup = account
+          ? revokeDevicePushBeforeSignOut(
+              config.apiBaseUrl,
+              account.id,
+              createM4ProductApis(config.apiBaseUrl, tokens.accessToken)
+                .notifications,
+            )
+          : Promise.resolve();
+        void devicePushCleanup
+          .then(() => apis.auth.signOutApiV1AuthSignOutPost())
+          .catch(() => {});
       } catch {
         // Best effort sign-out
       }

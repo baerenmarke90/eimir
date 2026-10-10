@@ -4,4 +4,6 @@
     <string name="title_activity_main">eimir.</string>
     <string name="package_name">de.sidebyside.app</string>
     <string name="custom_url_scheme">de.sidebyside.app</string>
+    <string name="push_channel_name">Benachrichtigungen</string>
+    <string name="push_notification_body">Du hast neue Nachrichten.</string>
 </resources>

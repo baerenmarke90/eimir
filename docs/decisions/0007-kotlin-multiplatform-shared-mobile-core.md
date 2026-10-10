@@ -11,8 +11,10 @@
 > (and later iOS) ship it through Capacitor. The Kotlin/Jetpack Compose client,
 > the Kotlin Multiplatform shared core and the SwiftUI plan described below were
 > never delivered as a product; the Compose client was removed in #1009 and
-> `android/` now holds only the Capacitor wrapper. The KMP issues #626-#630 are
-> closed as superseded. The text below is kept unchanged as historical context
+> `android/` now holds only the Capacitor wrapper. The KMP issues #626-#629 are
+> closed as not planned. #630 is the exception: it stays open with its KMP
+> scope discarded and is re-scoped to a Capacitor native passkey bridge (see
+> `docs/CAPACITOR-ANDROID-FOUNDATION.md` section 4). The text below is kept unchanged as historical context
 > for why that direction was considered; do not implement from it.
 
 ## Context

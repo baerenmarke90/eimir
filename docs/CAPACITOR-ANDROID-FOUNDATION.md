@@ -89,6 +89,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
+- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---

@@ -116,6 +116,7 @@ needs its own verified account-email and delivery review.
 
 [The SMTP and verified primary address delivery review](./NOTIFICATION-EMAIL-DELIVERY.md)
 supersedes the earlier read-only EMAIL description for eligible immediate
-kinds. DIGESTIBLE comments remain ineligible for individual email until #515
-delivers a reviewed digest. Existing channel defaults and owner isolation
-remain unchanged.
+kinds. DIGESTIBLE comments remain ineligible for individual email; the
+reviewed hourly [comment EMAIL digest](./NOTIFICATION-COMMENT-EMAIL-DIGEST.md)
+is a separate, explicitly opted-in path delivered by #515. Existing channel
+defaults and owner isolation remain unchanged.

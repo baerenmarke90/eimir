@@ -448,6 +448,14 @@ async function prepareScenario(
       .evaluate((node) => getComputedStyle(node).animationName);
     expect(animationName).toBe('none');
   }
+  // Measure the settled success surface, after its non-blocking entrance fade.
+  await page
+    .locator('.shared-achievement-confirmation')
+    .evaluate(async (node) => {
+      await Promise.all(
+        node.getAnimations().map((animation) => animation.finished),
+      );
+    });
 }
 
 async function captureEvidence(
@@ -785,6 +793,50 @@ test('failed pending completion removes the status, keeps the day and retries on
   await expect(
     page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
   ).toHaveCount(1);
+  expect(state.completionCalls).toBe(2);
+});
+
+test('Plan completion failure remains actionable after leaving and returning to the failed request', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await installMocks(page, {
+    holdCompletion: true,
+    completionFailuresBeforeSuccess: 1,
+  });
+  await signIn(page);
+  await page.goto(`/plan/plans/${PLAN_ID}`);
+  await openActionsAndChooseDay(page);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+  await expect(pendingStatus(page)).toBeVisible();
+  await expect.poll(() => state.completionCalls).toBe(1);
+  state.releaseCompletion();
+  await expect(
+    page.getByRole('alert').filter({ hasText: de.states.server.title }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/plan/plans/${PLAN_ID}$`));
+  const operations = page.locator('details.planen-operations');
+  await expect(operations).toBeVisible();
+  if ((await operations.getAttribute('open')) === null)
+    await operations.locator('summary').click();
+  await expect(operations).toHaveJSProperty('open', true);
+  await page.getByLabel(m5s3.plan.experiencedOn).fill(EXPERIENCED_ON);
+  await expect(
+    page.getByRole('alert').filter({ hasText: de.states.server.title }),
+  ).toBeVisible();
+  await expect(pendingStatus(page)).toHaveCount(0);
+  expect(state.completionCalls).toBe(1);
+  await page.getByRole('button', { name: m5s3.plan.complete }).click();
+  await expect(pendingStatus(page)).toBeVisible();
+  await expect.poll(() => state.completionCalls).toBe(2);
+  state.releaseCompletion();
+  await expect(
+    page.getByRole('heading', { name: m5s3.plan.sharedAchievementTitle }),
+  ).toHaveCount(1);
+  await expect(page.getByText(de.states.server.title)).toHaveCount(0);
   expect(state.completionCalls).toBe(2);
 });
 

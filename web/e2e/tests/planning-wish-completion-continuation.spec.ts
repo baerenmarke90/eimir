@@ -1,8 +1,16 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import { captureR3Evidence } from './r3-evidence';
+
+const WISH_EVIDENCE_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../docs/product/design/evidence/508/wish-completion',
+);
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -11,8 +19,12 @@ const WISH_ID = '55555555-5555-4555-8555-555555555555';
 const TEST_NOW = '2026-09-12T09:00:00Z';
 const WISH_TITLE = 'Nordlichter sehen';
 
-async function installMocks(page: Page): Promise<void> {
+async function installMocks(
+  page: Page,
+  options: { hold?: Promise<void>; failure?: number; offline?: boolean } = {},
+) {
   let completed = false;
+  let completionRequests = 0;
 
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -182,6 +194,27 @@ async function installMocks(page: Page): Promise<void> {
       method === 'POST' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/wishes/${WISH_ID}/complete`
     ) {
+      completionRequests += 1;
+      await options.hold;
+      if (options.offline) {
+        await route.abort('internetdisconnected');
+        return;
+      }
+      if (options.failure) {
+        if (options.failure === 409) completed = true;
+        await fulfillJson(
+          {
+            code:
+              options.failure === 409
+                ? 'RESOURCE_VERSION_CONFLICT'
+                : 'INTERNAL_ERROR',
+            status: options.failure,
+            title: 'Completion failed',
+          },
+          options.failure,
+        );
+        return;
+      }
       if (request.headers()['if-match'] !== '1') {
         await fulfillJson(
           {
@@ -237,6 +270,7 @@ async function installMocks(page: Page): Promise<void> {
       500,
     );
   });
+  return { requestCount: () => completionRequests };
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -380,4 +414,271 @@ test('Done dismisses the transient continuation and restores focus without offer
   await expect(
     page.getByRole('button', { name: m5s3.wish.createMemory }),
   ).toHaveCount(0);
+});
+
+function heldResponse() {
+  let release!: () => void;
+  const hold = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { hold, release };
+}
+
+async function openWish(page: Page, scenario: VisualScenario) {
+  await page.setViewportSize(scenario.viewport);
+  await page.addInitScript(
+    (theme) => localStorage.setItem('eimir.theme', theme),
+    scenario.theme,
+  );
+  await signIn(page);
+  await page.goto(`/plan/wishes/${WISH_ID}`);
+  await page.getByText(m5s3.wish.actionsHeading).click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.complete, exact: true }),
+  ).toBeEnabled();
+}
+
+async function capturePendingEvidence(
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+) {
+  const fileName = `planning-wish-completion-${name}.png`;
+  const output = testInfo.outputPath(fileName);
+  await page.screenshot({ path: output, fullPage: true });
+  await testInfo.attach(fileName, { path: output, contentType: 'image/png' });
+  fs.mkdirSync(WISH_EVIDENCE_DIR, { recursive: true });
+  fs.copyFileSync(output, path.join(WISH_EVIDENCE_DIR, fileName));
+}
+
+const pendingScenarios = [
+  ...visualScenarios,
+  {
+    name: '360-light',
+    viewport: { width: 360, height: 780 },
+    theme: 'light' as const,
+  },
+  {
+    name: '430-dark',
+    viewport: { width: 430, height: 932 },
+    theme: 'dark' as const,
+  },
+];
+for (const scenario of pendingScenarios) {
+  test(`Wish pending completion locks competing writes: ${scenario.name}`, async ({
+    page,
+  }, testInfo) => {
+    const held = heldResponse();
+    const mocks = await installMocks(page, held);
+    if (scenario.name === '320-reflow')
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openWish(page, scenario);
+    if (scenario.name === '320-reflow')
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const title = page.getByLabel(m5s3.wish.planTitle);
+    await title.fill('Keep this future Plan');
+    const complete = page.getByRole('button', {
+      name: m5s3.wish.complete,
+      exact: true,
+    });
+    await complete.focus();
+    await complete.evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    await expect.poll(mocks.requestCount).toBe(1);
+    const status = page
+      .getByRole('status', { name: '' })
+      .filter({ hasText: m5s3.wish.completePending });
+    await expect(status).toHaveCount(1);
+    await expect(status).toBeVisible();
+    await expect(
+      page.getByText(m5s3.wish.status.OPEN, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
+    ).toBeFocused();
+    await expect(
+      page.getByRole('button', { name: de.common.edit, exact: true }),
+    ).toBeDisabled();
+    await expect(title).toBeDisabled();
+    await expect(title).toHaveValue('Keep this future Plan');
+    await expect(
+      page.getByRole('button', { name: m5s3.wish.convert, exact: true }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: m5s3.wish.createMemory }),
+    ).toHaveCount(0);
+    await assertNoHorizontalOverflow(page);
+    if (scenario.name.startsWith('390')) await assertNoWcagViolations(page);
+    await capturePendingEvidence(page, testInfo, `pending-${scenario.name}`);
+    // Critical status stays visible even when operational details are collapsed.
+    await page.getByText(m5s3.wish.actionsHeading).click();
+    await expect(status).toBeVisible();
+    held.release();
+    const heading = page.getByRole('heading', {
+      name: m5s3.wish.completionTitle,
+    });
+    await expect(heading).toBeVisible();
+    await expect(heading).toBeFocused();
+    await expect(status).toHaveCount(0);
+    await assertNoHorizontalOverflow(page);
+    if (scenario.name === '320-reflow') {
+      await expect(page.locator('.eimir-motion-success')).toHaveCSS(
+        'animation-name',
+        'none',
+      );
+    }
+    if (scenario.name === '390-light')
+      await capturePendingEvidence(page, testInfo, 'confirmed-390-light');
+    await page.getByRole('button', { name: m5s3.wish.completionDone }).click();
+    await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: m5s3.common.back }),
+    ).toBeFocused();
+    expect(mocks.requestCount()).toBe(1);
+  });
+}
+
+test('failed Wish completion preserves conversion input and allows explicit retry', async ({
+  page,
+}, testInfo) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, failure: 500 as number | undefined };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  await page.getByLabel(m5s3.wish.planTitle).fill('Future trip');
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  held.release();
+  await expect(
+    page.getByRole('alert').getByText(de.states.server.title),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(page.getByLabel(m5s3.wish.planTitle)).toBeEnabled();
+  await expect(page.getByLabel(m5s3.wish.planTitle)).toHaveValue('Future trip');
+  await capturePendingEvidence(page, testInfo, 'failure-390-light');
+  options.failure = undefined;
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  expect(mocks.requestCount()).toBe(2);
+});
+
+test('conflicted Wish completion reads partner fulfillment without replay or our continuation', async ({
+  page,
+}, testInfo) => {
+  const held = heldResponse();
+  const mocks = await installMocks(page, { ...held, failure: 409 });
+  await openWish(page, visualScenarios[0]);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  held.release();
+  await expect(page.getByText(m5s3.wish.completedBody)).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toHaveCount(0);
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+  await capturePendingEvidence(page, testInfo, 'conflict-recovered-390-light');
+});
+
+test('Wish completion failure remains actionable after leaving and returning during the request', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, failure: 500 as number | undefined };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
+  const operations = page.locator('details.wish-operations');
+  await expect(operations).toBeVisible();
+  if ((await operations.getAttribute('open')) === null)
+    await operations.locator('summary').click();
+  await expect(operations).toHaveJSProperty('open', true);
+  await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
+  held.release();
+  await expect(
+    page.getByRole('alert').getByText(de.states.server.title),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+  options.failure = undefined;
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  await expect(page.getByText(de.states.server.title)).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(2);
+});
+
+test('keyboard completion keeps action focus while pending then focuses confirmed continuation', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const mocks = await installMocks(page, held);
+  await openWish(page, visualScenarios[0]);
+  const action = page.getByRole('button', {
+    name: m5s3.wish.complete,
+    exact: true,
+  });
+  await action.focus();
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Space');
+  await expect.poll(mocks.requestCount).toBe(1);
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.completing, exact: true }),
+  ).toBeFocused();
+  held.release();
+  await expect(
+    page.getByRole('heading', { name: m5s3.wish.completionTitle }),
+  ).toBeFocused();
+});
+
+test('offline completion fails visibly and reconnect requires an explicit new attempt', async ({
+  page,
+}) => {
+  const options = { offline: true };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  const title = page.getByLabel(m5s3.wish.planTitle);
+  await title.fill('Future trip');
+  await page.context().setOffline(true);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  await expect(title).toBeEnabled();
+  await expect(title).toHaveValue('Future trip');
+  expect(mocks.requestCount()).toBe(1);
+
+  options.offline = false;
+  await page.context().setOffline(false);
+  await expect(page.getByText(de.states.offline.title)).toBeVisible();
+  expect(mocks.requestCount()).toBe(1);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  expect(mocks.requestCount()).toBe(2);
 });

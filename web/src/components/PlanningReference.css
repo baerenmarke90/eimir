@@ -676,3 +676,17 @@
   cursor: wait;
   filter: none;
 }
+
+/* Long localized Wish actions must reflow at 320 px with 200 % text. */
+.wish-detail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wish-detail > * {
+  min-width: 0;
+}
+
+.wish-detail :is(h1, h2, button, label, p) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -374,6 +374,37 @@ it('keeps pending state and the duplicate guard across a remount', async () => {
   expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
 });
 
+it.each(['pending', 'failed'])(
+  'keeps a failed completion visible when the page remounts while %s',
+  async (state) => {
+    const h = setup();
+    await openAndSubmit(h);
+    if (state === 'pending') {
+      h.view.unmount();
+      render(h.tree());
+    }
+    await act(async () =>
+      h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
+    );
+    if (state === 'failed') {
+      await screen.findByText(de.states.server.title);
+      h.view.unmount();
+      render(h.tree());
+    }
+    expect(await screen.findByText(de.states.server.title)).toBeDefined();
+    expect(screen.queryByText(pendingCopy())).toBeNull();
+    expect(completeButton().getAttribute('aria-disabled')).toBe('false');
+    expect(h.queryClient.getQueryData<PlanDetail>(h.key)?.status).toBe(
+      'PLANNED',
+    );
+    expect(h.completePlanRaw).toHaveBeenCalledTimes(1);
+    fireEvent.change(dateField(), { target: { value: DAY } });
+    fireEvent.submit(completeButton().closest('form') as HTMLFormElement);
+    await waitFor(() => expect(h.completePlanRaw).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(de.states.server.title)).toBeNull();
+  },
+);
+
 it('reconciles a late response for an unmounted page without showing a celebration', async () => {
   const h = setup();
   await openAndSubmit(h);

@@ -336,6 +336,76 @@ it('keeps pending state and duplicate exclusion across a remount', async () => {
   fireEvent.click(action());
   expect(h.completeWish).toHaveBeenCalledTimes(1);
 });
+it.each(['pending', 'failed'])(
+  'keeps a failed completion visible when the page remounts while %s',
+  async (state) => {
+    const h = setup();
+    await submit(h);
+    if (state === 'pending') {
+      h.view.unmount();
+      render(h.tree());
+    }
+    await act(async () =>
+      h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
+    );
+    if (state === 'failed') {
+      await screen.findByText(de.states.server.title);
+      h.view.unmount();
+      render(h.tree());
+    }
+    expect(await screen.findByText(de.states.server.title)).toBeDefined();
+    expect(screen.queryByText(m5s3.wish.completePending)).toBeNull();
+    expect(action().getAttribute('aria-disabled')).toBeNull();
+    expect(h.queryClient.getQueryData<WishDetail>(h.key)?.status).toBe('OPEN');
+    expect(h.completeWish).toHaveBeenCalledTimes(1);
+    fireEvent.click(action());
+    await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(de.states.server.title)).toBeNull();
+  },
+);
+it('does not restore an earlier failure after a successful explicit retry and remount', async () => {
+  const h = setup();
+  await submit(h);
+  await act(async () =>
+    h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
+  );
+  await screen.findByText(de.states.server.title);
+  fireEvent.click(action());
+  await waitFor(() => expect(h.completeWish).toHaveBeenCalledTimes(2));
+  h.setServer(fulfilled());
+  await act(async () => h.writes[1].resolve(fulfilled()));
+  await screen.findByRole('button', { name: m5s3.wish.createMemory });
+  h.view.unmount();
+  render(h.tree());
+  await screen.findByText(m5s3.wish.completedBody);
+  expect(screen.queryByText(de.states.server.title)).toBeNull();
+  expect(
+    screen.queryByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeNull();
+  expect(h.completeWish).toHaveBeenCalledTimes(2);
+});
+it('drops a failed completion when its detail query is replaced without clearing mutations', async () => {
+  const h = setup();
+  await submit(h);
+  await act(async () =>
+    h.writes[0].reject(new ClientProblemError('server', 500, 'FAILED')),
+  );
+  await screen.findByText(de.states.server.title);
+  act(() => {
+    h.queryClient.removeQueries({ queryKey: h.key, exact: true });
+    h.queryClient.setQueryData(
+      h.key,
+      wish({ title: 'Fresh authorized state', version: 7 }),
+    );
+  });
+  h.view.rerender(h.tree());
+  await screen.findByText('Fresh authorized state');
+  expect(screen.queryByText(de.states.server.title)).toBeNull();
+  h.view.unmount();
+  render(h.tree());
+  await screen.findByText('Fresh authorized state');
+  expect(screen.queryByText(de.states.server.title)).toBeNull();
+});
 it('reconciles an unmounted completion without offering a transient continuation on return', async () => {
   const h = setup();
   await submit(h);

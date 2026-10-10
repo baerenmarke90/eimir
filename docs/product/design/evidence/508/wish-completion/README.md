@@ -23,11 +23,29 @@ Offline attempts fail through the existing error presentation instead of being
 paused for submission on reconnect. Reconnecting does not fulfill a Wish; a new
 explicit activation is required, with conversion input retained.
 
-Fourteen component cases additionally cover both competing-write orders,
+Eighteen component cases additionally cover both competing-write orders,
 update/delete exclusion, the held conflict-recovery lock and fresh If-Match on
 explicit retry, pending remounts, late unmounted success, replaced query identity,
 and Space/cache-clear isolation. The shared lifecycle retains all existing Plan
 component acceptance cases.
+
+## Review correction: failures across detail-page remounts
+
+The review reproduced a lost completion error in both domain adapters: leaving
+and reopening a detail page during a held request, or after its failure, restored
+the pending lock but discarded the component-local failure outcome. Four new
+component cases failed before the correction. The shared lifecycle now reads
+settled errors from the existing TanStack mutation cache, using only the latest
+attempt and the original detail-query identity. A deliberate retry clears the
+error; a later success cannot resurrect an earlier failure. Replacing the detail
+query hides the old result even when the mutation cache remains intact.
+
+Success continuations remain transient to their initiating page. This adds no
+durable draft, offline queue, automatic write retry, API or persistence contract.
+The existing in-memory cache lifetime applies; a full document reload does not
+restore mutation outcomes. Browser journeys cover leaving/returning through
+the shell and browser Back, reopening the actions disclosure, observing the
+failure, and retrying explicitly, for both Wish and Plan completion.
 
 ## Captures
 
@@ -52,10 +70,10 @@ success animation under reduced motion.
 
 ## Validation and limits
 
-- Full Web suite: 1,392 passed, one existing skipped test; 196 passed test files.
-- Focused Wish/Plan component regressions: 40 passed across four files.
-- Wish browser spec: all 16 passed, including six existing continuation cases.
-- Plan browser regression spec: all 19 passed after settled-motion measurement.
+- Full Web suite: 1,398 passed, one existing skipped test; 196 passed test files.
+- Focused Wish/Plan component regressions: 46 passed across four files.
+- Wish browser spec: all 17 passed, including six existing continuation cases.
+- Plan browser regression spec: all 20 passed after settled-motion measurement.
 - Typecheck, lint, formatting, production build and browser inventory passed.
 - Engineering/documentation language audits and 24 audit regressions passed.
 - No new dependency, API, schema, entitlement, telemetry or persisted draft store.

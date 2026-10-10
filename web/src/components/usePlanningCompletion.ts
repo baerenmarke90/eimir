@@ -1,6 +1,6 @@
 import {
+  hashKey,
   type QueryKey,
-  useIsMutating,
   useMutation,
   useMutationState,
   useQueryClient,
@@ -12,9 +12,15 @@ import {
   normalizeClientError,
 } from '../client/problemDetails';
 
+type CompletionContext = {
+  scope: string;
+  key: QueryKey;
+  isCurrentQuery: () => boolean;
+};
+
 type CompletionOutcome<TResult> =
-  | { scope: string; status: 'confirmed'; result: TResult }
-  | { scope: string; status: 'failed'; error: unknown };
+  | { context: CompletionContext; status: 'confirmed'; result: TResult }
+  | { context: CompletionContext; status: 'failed'; error: unknown };
 
 /**
  * Server-confirmed completion ownership shared by Plans and Wishes.
@@ -45,12 +51,27 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
   const [outcome, setOutcome] = useState<CompletionOutcome<TResult> | null>(
     null,
   );
-  const activeWrites = useIsMutating({ mutationKey, exact: true });
-  const pendingRequests = useMutationState({
-    filters: { mutationKey, exact: true, status: 'pending' },
-    select: (mutation) => mutation.state.variables as TRequest,
+  const completions = useMutationState({
+    filters: { mutationKey, exact: true },
+    select: (mutation) => ({
+      keyHash: hashKey(mutation.options.mutationKey ?? []),
+      status: mutation.state.status,
+      input: mutation.state.variables as TRequest | undefined,
+      error: mutation.state.error,
+      context: mutation.state.context as CompletionContext | undefined,
+    }),
   });
-  const pending = pendingRequests.at(-1) ?? null;
+  // Subscription options update after render; never expose the previous route's
+  // snapshot while the observer switches keys.
+  const currentKeyHash = hashKey(mutationKey);
+  const currentCompletions = completions.filter(
+    (completion) => completion.keyHash === currentKeyHash,
+  );
+  const pending =
+    currentCompletions
+      .filter((completion) => completion.status === 'pending')
+      .at(-1)?.input ?? null;
+  const latestCompletion = currentCompletions.at(-1);
 
   const mutation = useMutation({
     mutationKey,
@@ -74,7 +95,7 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
         queryClient
           .getQueryCache()
           .find({ queryKey: detailKey, exact: true }) === initiatingQuery;
-      return { key: detailKey, isCurrentQuery };
+      return { scope, key: detailKey, isCurrentQuery };
     },
     onSuccess: (result, _input, context) => {
       if (!context?.isCurrentQuery()) return;
@@ -86,11 +107,11 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
       });
       void invalidateDashboard(queryClient, spaceId);
       if (context.isCurrentQuery())
-        setOutcome({ scope, status: 'confirmed', result });
+        setOutcome({ context, status: 'confirmed', result });
     },
     onError: async (error, _input, context) => {
       if (!context?.isCurrentQuery()) return;
-      setOutcome({ scope, status: 'failed', error });
+      setOutcome({ context, status: 'failed', error });
       if (
         ['conflict', 'notFound', 'permission'].includes(
           clientProblemKind(error),
@@ -122,13 +143,26 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
     mutation.mutate(input);
   }
 
-  const current = outcome?.scope === scope ? outcome : null;
+  const current =
+    outcome?.context.scope === scope &&
+    outcome.context.isCurrentQuery() &&
+    latestCompletion?.context?.isCurrentQuery === outcome.context.isCurrentQuery
+      ? outcome
+      : null;
+  // The mutation cache owns settled failures across page remounts. Only the
+  // latest attempt for the still-authorized query may supply an error; success
+  // remains a transient continuation owned by the initiating page.
+  const cachedError =
+    latestCompletion?.status === 'error' &&
+    latestCompletion.context?.isCurrentQuery()
+      ? latestCompletion.error
+      : null;
   return {
     complete,
     isInFlight,
     pendingRequest: current?.status === 'failed' ? null : pending,
-    isPending: activeWrites > 0 || pending !== null,
-    error: current?.status === 'failed' ? current.error : null,
+    isPending: pending !== null,
+    error: current?.status === 'failed' ? current.error : cachedError,
     confirmedResult: current?.status === 'confirmed' ? current.result : null,
   };
 }

@@ -590,6 +590,44 @@ test('conflicted Wish completion reads partner fulfillment without replay or our
   await capturePendingEvidence(page, testInfo, 'conflict-recovered-390-light');
 });
 
+test('Wish completion failure remains actionable after leaving and returning during the request', async ({
+  page,
+}) => {
+  const held = heldResponse();
+  const options = { hold: held.hold, failure: 500 as number | undefined };
+  const mocks = await installMocks(page, options);
+  await openWish(page, visualScenarios[0]);
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect.poll(mocks.requestCount).toBe(1);
+  await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
+  await expect(page).toHaveURL(/\/more$/);
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/plan/wishes/${WISH_ID}$`));
+  const operations = page.locator('details.wish-operations');
+  await expect(operations).toBeVisible();
+  if ((await operations.getAttribute('open')) === null)
+    await operations.locator('summary').click();
+  await expect(operations).toHaveJSProperty('open', true);
+  await expect(page.getByText(m5s3.wish.completePending)).toBeVisible();
+  held.release();
+  await expect(
+    page.getByRole('alert').getByText(de.states.server.title),
+  ).toBeVisible();
+  await expect(page.getByText(m5s3.wish.completePending)).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(1);
+  options.failure = undefined;
+  await page
+    .getByRole('button', { name: m5s3.wish.complete, exact: true })
+    .click();
+  await expect(
+    page.getByRole('button', { name: m5s3.wish.createMemory }),
+  ).toBeVisible();
+  await expect(page.getByText(de.states.server.title)).toHaveCount(0);
+  expect(mocks.requestCount()).toBe(2);
+});
+
 test('keyboard completion keeps action focus while pending then focuses confirmed continuation', async ({
   page,
 }) => {

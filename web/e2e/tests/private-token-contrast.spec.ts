@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -165,6 +166,7 @@ async function installMocks(page: Page): Promise<string[]> {
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, null);
   return unexpectedRequests;
 }
 
@@ -172,6 +174,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 test('private visibility text remains WCAG AA on its semantic tinted surface', async ({

@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -221,14 +222,6 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
 
     if (
       method === 'GET' &&
-      pathname === `/api/v1/spaces/${SPACE_ID}/partner-nickname`
-    ) {
-      await fulfillJson({ nickname: null, partnerId: ALEX.id, version: 0 });
-      return;
-    }
-
-    if (
-      method === 'GET' &&
       pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
     ) {
       await fulfillJson({ items: [] });
@@ -347,6 +340,7 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, ALEX.id);
   return unexpectedRequests;
 }
 

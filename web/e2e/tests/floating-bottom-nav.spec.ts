@@ -928,13 +928,11 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(100);
-
     const cancelButton = page.getByRole('button', { name: de.common.cancel });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
     await expect(zoomShell).toHaveCount(0);
+    await cancelButton.scrollIntoViewIfNeeded();
 
     const cancelBox = await cancelButton.boundingBox();
     if (cancelBox) {

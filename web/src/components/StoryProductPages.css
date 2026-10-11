@@ -663,7 +663,7 @@
 }
 
 .momente-hero-kicker {
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -753,7 +753,7 @@
 }
 
 .momente-stream-all-link {
-  color: var(--color-brand);
+  color: var(--color-link-text);
   font-weight: 700;
   font-size: 0.92rem;
   text-decoration: none;
@@ -919,7 +919,7 @@
   gap: 0.35rem;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
 }
 
 .momente-tapestry-title {

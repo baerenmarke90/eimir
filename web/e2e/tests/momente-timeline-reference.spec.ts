@@ -753,9 +753,25 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(hasHorizontalOverflow).toBe(false);
 
     const browseLinks = page.locator('.momente-browse-link');
-    await expect(browseLinks).toHaveCount(3);
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-start', '1');
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-end', '-1');
+    await expect(browseLinks).toHaveCount(4);
+    expect(
+      await browseLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute('href')),
+      ),
+    ).toEqual([
+      '/story/photos',
+      '/story?tab=timeline&type=MILESTONE',
+      '/story/chapters',
+      '/story/years',
+    ]);
+    for (const link of await browseLinks.all()) {
+      const box = await link.boundingBox();
+      if (!box) throw new Error('Expected a visible Momente browse link');
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(320);
+    }
 
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')

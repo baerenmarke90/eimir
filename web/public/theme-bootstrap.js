@@ -46,5 +46,8 @@
   }
   var favicon = document.getElementById?.('app-favicon');
   if (favicon)
-    favicon.href = theme === 'dark' ? '/identity/app-icon-dark.png' : '/identity/app-icon-light.png';
+    favicon.href =
+      theme === 'dark'
+        ? '/identity/app-icon-dark.png'
+        : '/identity/app-icon-light.png';
 })();

@@ -1,6 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
+import appIcon from './locales/appIcon';
 import de from './locales/de';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
@@ -51,6 +52,7 @@ if (!i18n.isInitialized) {
           taskBoundary,
           taskSheets,
           accountSettings,
+          appIcon,
           navigation: { ...de.navigation, ...navigation },
           notificationSettings,
           demo,

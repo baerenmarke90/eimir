@@ -275,6 +275,10 @@
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
+    },
+    "app-icon-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
     }
   }
 }

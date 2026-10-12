@@ -96,6 +96,7 @@ def engine() -> Iterator[Engine]:
     # register the model, but only after the tables have been created, making
     # tests pass or fail accidentally depending on prior imports.
     from eimir.administration import models as _administration  # noqa: F401
+    from eimir.appearance import models as _appearance  # noqa: F401
     from eimir.attachments import binding as _binding  # noqa: F401
     from eimir.attachments import models as _attachments  # noqa: F401
     from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401

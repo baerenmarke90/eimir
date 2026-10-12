@@ -1,6 +1,6 @@
 # eimir. identity system — issue #1225
 
-**Status:** The owner-selected Web identity was merged in [PR #1244](https://github.com/baerenmarke90/eimir/pull/1244). [#1245](https://github.com/baerenmarke90/eimir/issues/1245) continues the visual fidelity review. Final Product Design acceptance remains with Philipp.
+**Status:** The owner-selected Web identity was merged in [PR #1244](https://github.com/baerenmarke90/eimir/pull/1244). The exact-poster app-icon follow-up was merged in [PR #1308](https://github.com/baerenmarke90/eimir/pull/1308), visually accepted by Philipp on 2026-10-12; #1245 is closed. The broader identity authority remains #1225.
 
 The [corporate identity document](CI.md) is the complete contract for the selected app logo, the owner icon set, its variants and states, the three color worlds, Light/Dark treatment, and the existing product-design rules inherited from Product Reference v1. It maps each rule to its delivered asset or runtime implementation.
 
@@ -21,6 +21,6 @@ The four supplied PNGs are preserved unchanged and are the visual authority for 
 - [`evidence/`](evidence/) contains four current 390/1440 px Light/Dark private-area screenshots with the poster raster icon, plus four older #1245 screenshots at those widths from the vector delivery. Earlier Today, Planen and quick-create screenshots also predate this change.
 - `verify.py` checks pixel-exact poster crops, board symbols, historical SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
 
-The standard icon and its Light/Dark treatment are Free/Core. A selectable catalog of alternative app icons is a separate Premium feature tracked in [#1307](https://github.com/baerenmarke90/eimir/issues/1307); this change adds no picker or entitlement behavior.
+The standard icon and its Light/Dark treatment are Free/Core. A selectable catalog of alternative app icons is a separate Premium feature tracked in [#1307](https://github.com/baerenmarke90/eimir/issues/1307). Its [product preflight](../1307-premium-app-icons/README.md) contains the owner-requested full poster catalog, generated Appearance reference and platform/entitlement boundaries; no picker or entitlement behavior has shipped.
 
 The implementation keeps the existing four root destinations, central add action, current content hierarchy and feature behavior. The owner images define the new identity only; other product rules remain those of [Product Reference v1](../../../product/design/product-reference-v1.md).

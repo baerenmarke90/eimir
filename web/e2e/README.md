@@ -32,6 +32,18 @@ npm run test:full -- --shard=3/4
 
 Each CI shard still runs with one Playwright worker; GitHub Actions provides the cross-runner parallelism.
 
+On a pull request, changed `FULL_REGRESSION` and `LOWER_LEVEL` files additionally
+run in full. Changed `PR_CRITICAL` files are already included in both critical
+shards' combined coverage and do not run again. The same validated inventory
+owns both selections; removed specs are omitted and renamed destinations must
+exist in the current inventory. API/inventory failures fail planning.
+
+Run the dependency-free planning regressions from this directory with:
+
+```bash
+node --test scripts/changed-specs.test.mjs
+```
+
 A visible full run is available through:
 
 ```bash

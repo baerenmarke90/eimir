@@ -971,7 +971,9 @@ test('Daily Vibe keeps a committed clear pending through return and consumes a l
   await expect(choose).toHaveAttribute('aria-disabled', 'false');
   await expect(sheet).toHaveCount(0);
   await expect(page.getByText(dailyVibe.saveError)).toHaveCount(0);
-  await expect(page.getByText(dailyVibe.saving, { exact: true })).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.saving, { exact: true })).toHaveCount(
+    0,
+  );
   await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
   expect(state.lastPatch()).toEqual({ vibe: null });
   expect(state.patchCount()).toBe(1);

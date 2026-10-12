@@ -611,7 +611,9 @@ for (const outcome of ['success', 'lost-ack'] as const) {
     fireEvent.click(own);
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(h.update).toHaveBeenCalledTimes(1);
-    expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({ vibe: null });
+    expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({
+      vibe: null,
+    });
     const cleared = {
       ...h.current,
       own: { ...h.current.own, vibe: null, vibeNote: null },

@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -106,6 +107,7 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const requestUrl = new URL(request.url());

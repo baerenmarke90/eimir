@@ -1,7 +1,7 @@
 # Premium app-icon selection — product preflight
 
 **Owner:** [#1307](https://github.com/baerenmarke90/eimir/issues/1307).<br>
-**Status:** full poster catalog requested by the Product Owner on 2026-10-12; selection UX and downgrade rule remain prepared proposals. This package changes no runtime behavior.<br>
+**Status:** full catalog confirmed and implementation continuation requested on 2026-10-12. Draft #1309 now contains the Web selection/persistence slice; installed-launcher delivery remains a separate real-device gate. See [current implementation and evidence](IMPLEMENTATION.md).<br>
 **Reviewed baseline:** `main` at `170a89faadef184c124472f544680262e159d207`, 2026-10-12.<br>
 **Authority:** [Product Reference v1](../../../product/design/product-reference-v1.md), [identity contract](../1225-identity-system/CI.md), [freemium matrix v1.4](../../../FREEMIUM-FEATURE-MATRIX.md) and [entitlement ADR 0006](../../../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md).
 
@@ -89,7 +89,7 @@ Recommended persistence for the later implementation is a narrow personal `AppIc
 
 The saved preference is a desired choice. Installation applies to a device and may still require explicit browser approval. Do not silently change launcher metadata when accounts or Spaces change. The platform proof must determine the small local bootstrap snapshot needed to retain an installation choice without storing credentials or exposing another account's setting.
 
-**Proposed downgrade rule for PO review:** retain the saved cosmetic choice and never delete it. Original remains available; saving another Premium choice requires a current grant. This avoids promising an automatic launcher reversion that Web APIs cannot verify. Read/export/deletion follow normal account-data lifecycle rules. Trial, grace and Self-Hosted license behavior inherit the existing central evaluator.
+**Implemented Web downgrade rule under the existing matrix retention guarantee:** retain the saved cosmetic choice and never delete it. Original remains available; saving another Premium choice requires a current grant. This avoids promising an automatic launcher reversion that Web APIs cannot verify. Read/export/deletion follow normal account-data lifecycle rules. Trial, grace and Self-Hosted license behavior inherit the existing central evaluator.
 
 ## 6. Reuse, business and cross-cutting review
 
@@ -99,9 +99,9 @@ The saved preference is a desired choice. Installation applies to a device and m
 
 **Cross-cutting:** allowlist IDs rather than arbitrary URLs/uploads; separate authorization from entitlement; keep public icons apart from private caches; retain privacy-safe query scoping, stale-response ownership and account cleanup; use i18n for all copy; avoid retry loops and automatic offline writes. Static candidate files are bounded public assets and should load only when needed. A later preference schema must cover account deletion, authorized export, backup/restore and migration. Native delivery has its own explicit gate.
 
-## 7. Next implementation slices and acceptance
+## 7. Original preparation sequence and acceptance
 
-1. **Approve selection UX, proposed names and the downgrade rule.** The owner has requested the complete poster catalog with all ten extra choices classified Pro. The generated image and exact crops remain review material for the interaction and naming decisions.
+1. **Review selection UX, names and the downgrade rule.** The owner has requested the complete poster catalog with all ten extra choices classified Pro. The generated image and exact crops remain review material for the interaction and naming decisions.
 2. **Prove platform delivery.** Real-device evidence for intended browser/PWA surfaces, stable app identity, icon masks, approval/cancellation and retained state. Record supported and unverified surfaces explicitly.
 3. **Preference/entitlement API.** Narrow schema/OpenAPI, membership and capability enforcement, Free reset, non-destructive reads/downgrade, invalid ID and stale-write cases.
 4. **Appearance UI.** Existing page/controls with direct preview, authoritative save, failure recovery and safe return. Test the whole open → choose → save → observe → return journey and account/Space switches.
@@ -115,4 +115,4 @@ Before shipping, verify crop equality with the poster, 16/32 px favicon renderin
 - Original is byte-identical to the accepted default asset; all ten additional assets match their recorded source-crop pixels.
 - The rendered source catalog contains eleven loaded artwork files, ten Pro labels and one Standard label. Its coverage includes all seven lower-row tiles and the three right-column treatments.
 - The updated generated reference was inspected for retained theme choice, shell/navigation, full catalog coverage, a free default, Pro alternatives, theme-correct sheet treatment and separate save/platform language.
-- No app runtime, API, theme token, entitlement evaluator or native file is changed by this package.
+- The initial preparation changed no runtime. The later owner-requested Web implementation is recorded separately in [IMPLEMENTATION.md](IMPLEMENTATION.md); installed-launcher activation and native work remain gated.

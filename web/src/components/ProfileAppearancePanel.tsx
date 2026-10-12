@@ -1,5 +1,6 @@
 import { useTranslation } from '../i18n';
 import { ThemeControl } from './ThemeControl';
+import { AppIconSettingsPanel } from './AppIconSettingsPanel';
 
 /** Appearance belongs to the centralized personal settings hierarchy. */
 export function ProfileAppearancePanel({
@@ -10,14 +11,15 @@ export function ProfileAppearancePanel({
   const { t } = useTranslation();
 
   return (
-    <section
-      id={id}
-      className="form-card"
-      aria-labelledby="profile-appearance-title"
-    >
-      <h2 id="profile-appearance-title">{t('theme.label')}</h2>
-      <p>{t('profileIdentity.appearanceIntro')}</p>
-      <ThemeControl variant="inline" />
-    </section>
+    <div id={id} className="settings-category-content">
+      <section
+        className="settings-section"
+        aria-labelledby="profile-appearance-title"
+      >
+        <h2 id="profile-appearance-title">{t('appIcon.colorMode')}</h2>
+        <ThemeControl variant="inline" />
+      </section>
+      <AppIconSettingsPanel />
+    </div>
   );
 }

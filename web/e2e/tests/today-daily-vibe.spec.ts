@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
@@ -38,6 +39,7 @@ async function installMocks(
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;

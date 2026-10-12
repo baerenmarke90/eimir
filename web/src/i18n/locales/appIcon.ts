@@ -1,0 +1,48 @@
+const appIcon = {
+  title: 'App-Icon',
+  intro: 'Ein kleines Detail, das zu dir passt.',
+  colorMode: 'Farbmodus',
+  all: 'Alle Icons ansehen',
+  current: 'Deine Auswahl',
+  choices: 'Dein App-Icon auswählen',
+  close: 'Icon-Auswahl schließen',
+  free: 'Standard',
+  pro: 'Pro',
+  proIntro: '10 zusätzliche Icons mit eimir. Pro.',
+  personal: 'Nur für dich – dein Partner wählt sein eigenes Icon.',
+  preview: 'Vorschau: {{name}}',
+  choose: '{{name}} auswählen',
+  selected: 'Ausgewählt',
+  discover: 'eimir. Pro ansehen',
+  loading: 'Deine Auswahl wird geladen …',
+  proLoading: 'Pro wird geprüft …',
+  saving: 'Wird gespeichert …',
+  saved: 'Auswahl gespeichert.',
+  browser:
+    'Deine Auswahl gilt im Browser. Das Icon auf deinem Startbildschirm bleibt vorerst gleich.',
+  unavailable: 'Deine Auswahl ist gerade nicht verfügbar.',
+  capabilityUnavailable:
+    'Pro konnte gerade nicht geprüft werden. Original bleibt verfügbar.',
+  offline: 'Offline – deine Auswahl ist noch nicht gespeichert.',
+  error: 'Deine Auswahl konnte nicht gespeichert werden. Versuche es erneut.',
+  conflict:
+    'Deine Auswahl wurde inzwischen geändert. Lade den aktuellen Stand, bevor du erneut speicherst.',
+  denied:
+    'Für dieses Icon brauchst du eimir. Pro. Deine bisherige Auswahl bleibt erhalten.',
+  retry: 'Erneut versuchen',
+  reload: 'Aktuelle Auswahl laden',
+  names: {
+    original: 'Original',
+    sunset: 'Abendrot',
+    sage: 'Salbei',
+    daylight: 'Sonnentag',
+    lavender: 'Lavendel',
+    sand: 'Sand',
+    midnight: 'Mitternacht',
+    pearl: 'Perlmutt',
+    dark: 'Dunkel',
+    monochrome: 'Monochrom',
+    minimal: 'Minimal',
+  },
+} as const;
+export default appIcon;

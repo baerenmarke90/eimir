@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -43,6 +44,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     let signupRequestSubmitted = false;
 
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -152,6 +154,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     let spacesCreated = false;
 
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -326,8 +329,9 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     // Enter via verified signup URL
     await page.goto('/auth/signup?token=secret-signup-proof');
 
-    // Sensitive token stripped immediately from URL
-    expect(page.url()).not.toContain('secret-signup-proof');
+    // Page load does not await React's passive entry cleanup. Await the actual
+    // privacy outcome rather than sampling the URL before the app has booted.
+    await expect(page).not.toHaveURL(/secret-signup-proof/);
 
     // FirstSpaceGate is displayed
     await expect(
@@ -359,6 +363,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     let spacesCreated = false;
 
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -559,8 +564,9 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     // Enter via verified signup URL
     await page.goto('/auth/signup?token=secret-signup-proof');
 
-    // Sensitive token stripped immediately from URL
-    expect(page.url()).not.toContain('secret-signup-proof');
+    // Page load does not await React's passive entry cleanup. Await the actual
+    // privacy outcome rather than sampling the URL before the app has booted.
+    await expect(page).not.toHaveURL(/secret-signup-proof/);
 
     // FirstSpaceGate must NOT be displayed
     await expect(
@@ -581,6 +587,7 @@ test.describe('Cloud Onboarding Entry Flow (#622)', () => {
     page,
   }) => {
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;

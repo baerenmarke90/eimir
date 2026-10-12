@@ -156,7 +156,7 @@ const profileIdentity = {
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',
   appearanceIntro:
-    'Wähle, ob eimir. der Systemeinstellung folgen oder dauerhaft hell beziehungsweise dunkel dargestellt werden soll.',
+    'Wähle deinen Farbmodus und das Icon, das zu dir passt.',
 } as const;
 
 export default profileIdentity;

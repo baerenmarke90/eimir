@@ -86,6 +86,7 @@ export function ShortTaskSheet({
   title,
   onClose,
   children,
+  footer,
   initialFocusRef,
   isDirty = false,
   isCloseBlocked = false,
@@ -103,6 +104,7 @@ export function ShortTaskSheet({
   title: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
   initialFocusRef?: RefObject<HTMLElement | null>;
   isDirty?: boolean;
   isCloseBlocked?: boolean;
@@ -710,6 +712,7 @@ export function ShortTaskSheet({
         </h2>
         {children}
       </div>
+      {footer ? <div className="short-task-sheet-footer">{footer}</div> : null}
     </dialog>,
     document.body,
   );

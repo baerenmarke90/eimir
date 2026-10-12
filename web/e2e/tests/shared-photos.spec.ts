@@ -189,6 +189,7 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await page.goto('/story/photos');
   await expect(
     page.getByRole('heading', { name: sharedPhotos.title, level: 1 }),
@@ -345,4 +346,115 @@ test('shared photos: empty and failed first page disclose no count, offline stat
   await page.context().setOffline(true);
   await expect(page.getByText('Du bist gerade offline')).toBeVisible();
   await page.context().setOffline(false);
+});
+
+test('shared photos: a failed next page retains loaded photos and retries the same cursor once', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const reads = await mocks(page);
+  await signIn(page);
+  const cursors: string[] = [];
+  await page.route(`**/api/v1/spaces/${SPACE}/photos?**`, async (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get('cursor');
+    if (!cursor) return route.fallback();
+    cursors.push(cursor);
+    if (cursors.length === 1) {
+      return route.fulfill({
+        status: 503,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Unavailable',
+          status: 503,
+          code: 'INTERNAL_ERROR',
+        }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: photos.slice(40),
+        totalCount: 44,
+        hasMore: false,
+        nextCursor: null,
+      }),
+    });
+  });
+
+  await page
+    .getByRole('button', { name: sharedPhotos.more, exact: true })
+    .click();
+  await expect(page.getByText(sharedPhotos.pageError)).toBeVisible();
+  await expect(page.locator('.shared-photos-tile')).toHaveCount(40);
+  expect(cursors).toEqual(['second-page']);
+  await screenshot(page, testInfo, 'story-photos-next-page-error.png');
+  await page
+    .getByRole('button', { name: sharedPhotos.retry, exact: true })
+    .click();
+  await expect(page.locator('.shared-photos-tile')).toHaveCount(44);
+  await expect(page.getByText(sharedPhotos.pageError)).toHaveCount(0);
+  expect(cursors).toEqual(['second-page', 'second-page']);
+  const ids = await page
+    .locator('.shared-photos-tile')
+    .evaluateAll((tiles) =>
+      tiles.map((tile) => tile.getAttribute('data-photo-id')),
+    );
+  expect(new Set(ids).size).toBe(44);
+  expect(reads.filter((read) => read.variant === 'original')).toHaveLength(0);
+});
+
+test('shared photos: revoked original access refreshes the projection and dismisses the affected viewer', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mocks(page);
+  await signIn(page);
+  await expect(page.locator('[data-photo-id="photo-1"] img')).toBeVisible();
+  let releaseOriginal!: () => void;
+  const originalReleased = new Promise<void>((resolve) => {
+    releaseOriginal = resolve;
+  });
+  await page.route(
+    `**/api/v1/spaces/${SPACE}/attachments/photo-1/read-access`,
+    async (route) => {
+      if (route.request().postDataJSON().variant !== 'original')
+        return route.fallback();
+      await originalReleased;
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          type: 'about:blank',
+          title: 'Not found',
+          status: 404,
+          code: 'NOT_FOUND',
+        }),
+      });
+    },
+  );
+  await page.route(`**/api/v1/spaces/${SPACE}/photos?**`, async (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        items: photos
+          .filter((photo) => photo.attachment.id !== 'photo-1')
+          .slice(0, 40),
+        totalCount: 43,
+        hasMore: true,
+        nextCursor: 'after-revocation',
+      }),
+    }),
+  );
+
+  await page.locator('[data-photo-id="photo-1"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  releaseOriginal();
+  await expect(page.locator('[data-photo-id="photo-1"]')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/\/story\/photos$/);
+  await expect(page.locator('.shared-photos-tile')).toHaveCount(40);
+  await screenshot(page, testInfo, 'story-photos-revoked-access.png');
 });

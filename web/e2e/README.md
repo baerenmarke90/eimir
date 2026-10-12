@@ -36,7 +36,10 @@ On a pull request, changed `FULL_REGRESSION` and `LOWER_LEVEL` files additionall
 run in full. Changed `PR_CRITICAL` files are already included in both critical
 shards' combined coverage and do not run again. The same validated inventory
 owns both selections; removed specs are omitted and renamed destinations must
-exist in the current inventory. API/inventory failures fail planning.
+exist in the current inventory. API/inventory failures fail planning. The unique
+file count must match PR metadata; truncated success responses (including the
+3000-file API cap), invalid statuses and unsafe current/previous paths fail closed.
+CLI failures publish no file output and redact the API token.
 
 Run the dependency-free planning regressions from this directory with:
 

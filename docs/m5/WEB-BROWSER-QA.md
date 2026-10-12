@@ -98,7 +98,12 @@ The full regression therefore remains automatic after merge while ordinary pull 
 The runner and changed-spec planner share `web/e2e/scripts/test-inventory.mjs`.
 Unknown dispositions, unclassified/current-missing specs, unsafe filenames,
 malformed API responses and pagination failures stop planning. A partial API
-result never becomes a successful empty plan. Even when the additional group is
+result never becomes a successful empty plan. The planner checks the complete
+unique file list against the PR metadata's `changed_files` count, including the
+[GitHub Files API's 3000-file limit](https://docs.github.com/en/rest/pulls/pulls#list-pull-requests-files).
+Unknown statuses, unsafe current/previous paths and duplicate or oversized pages
+also fail planning. Transport/JSON errors use fixed diagnostics, and CLI error
+output redacts the API token. Even when the additional group is
 empty, the aggregate still requires both critical shards and the planning job
 to succeed. No browser assertion, classification, retry/timeout policy or
 post-merge coverage is removed.

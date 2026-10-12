@@ -185,6 +185,14 @@ test('all paginated files are considered, including a non-critical spec on page 
     },
     inventoryRoot,
     fetchImpl: async (url, options) => {
+      if (!url.includes('/files?')) {
+        assert.equal(
+          url,
+          'https://api.fixture.invalid/repos/fixture/repository/pulls/42',
+        );
+        assert.equal(options.headers.Authorization, 'Bearer fixture-token');
+        return { ok: true, json: async () => ({ changed_files: 101 }) };
+      }
       urls.push(url);
       assert.equal(options.headers.Authorization, 'Bearer fixture-token');
       return {
@@ -253,14 +261,20 @@ test('CLI emits only safe additional paths and returns failure without partial s
     (name) => !inventory.prSpecs.includes(name),
   );
   let failed = false;
-  const server = createServer((_request, response) => {
+  const server = createServer((request, response) => {
     if (failed) {
       response.writeHead(503);
       response.end();
       return;
     }
     response.setHeader('Content-Type', 'application/json');
-    response.end(JSON.stringify([file(inventory.prSpecs[0]), file(extra)]));
+    response.end(
+      JSON.stringify(
+        request.url.includes('/files?')
+          ? [file(inventory.prSpecs[0]), file(extra)]
+          : { changed_files: 2 },
+      ),
+    );
   });
   await new Promise((done) => server.listen(0, '127.0.0.1', done));
   t.after(() => server.close());
@@ -280,4 +294,158 @@ test('CLI emits only safe additional paths and returns failure without partial s
     assert.equal(error.stderr.includes(environment.GITHUB_TOKEN), false);
     return true;
   });
+});
+
+test('unsafe paths and unknown statuses fail even for removed or non-browser files', (t) => {
+  const inventory = readTestInventory(fixture(t));
+  for (const entry of [
+    file('full.spec.ts', 'unknown'),
+    file('../full.spec.ts', 'removed'),
+    { filename: '/docs/a.md', status: 'modified' },
+    { filename: 'docs/../a.md', status: 'modified' },
+    { filename: 'docs//a.md', status: 'modified' },
+    { filename: 'docs/a\\b.md', status: 'modified' },
+    { filename: 'docs/a\n.md', status: 'modified' },
+    file('full.spec.ts', 'renamed'),
+    { ...file('full.spec.ts', 'renamed'), previous_filename: '../old.spec.ts' },
+  ]) {
+    assert.throws(
+      () => selectAdditionalChangedSpecs([entry], inventory),
+      /unsafe path or invalid status/,
+    );
+  }
+});
+
+test('short, duplicate, oversized and malformed success responses fail closed', async (t) => {
+  const inventoryRoot = fixture(t);
+  for (const [files, metadata, message] of [
+    [[], { changed_files: 1 }, /partial/],
+    [[file('full.spec.ts')], { changed_files: 2 }, /partial/],
+    [
+      [file('full.spec.ts'), file('full.spec.ts')],
+      { changed_files: 2 },
+      /duplicate/,
+    ],
+    [[file('full.spec.ts')], {}, /valid changed_files/],
+    [[file('full.spec.ts')], { changed_files: '1' }, /valid changed_files/],
+    [[file('full.spec.ts')], { changed_files: -1 }, /valid changed_files/],
+    [
+      Array.from({ length: 101 }, () => file('full.spec.ts')),
+      { changed_files: 101 },
+      /API limit/,
+    ],
+  ]) {
+    await assert.rejects(
+      resolveChangedSpecs({
+        environment,
+        inventoryRoot,
+        fetchImpl: async (url) => ({
+          ok: true,
+          json: async () => (url.includes('/files?') ? files : metadata),
+        }),
+      }),
+      message,
+    );
+  }
+});
+
+test('the GitHub 3000-file cap cannot hide a later changed spec', async (t) => {
+  const inventoryRoot = fixture(t);
+  let page = 0;
+  await assert.rejects(
+    resolveChangedSpecs({
+      environment,
+      inventoryRoot,
+      fetchImpl: async (url) => ({
+        ok: true,
+        json: async () => {
+          if (!url.includes('/files?')) return { changed_files: 3001 };
+          page += 1;
+          return page <= 30
+            ? Array.from({ length: 100 }, (_, index) => ({
+                filename: `docs/file-${(page - 1) * 100 + index}.md`,
+                status: 'modified',
+              }))
+            : [];
+        },
+      }),
+    }),
+    /partial/,
+  );
+  assert.equal(page, 31);
+});
+
+test('transport and JSON errors cannot expose external diagnostic content', async (t) => {
+  const inventoryRoot = fixture(t);
+  for (const fetchImpl of [
+    async () => {
+      throw new Error(environment.GITHUB_TOKEN);
+    },
+    async () => ({
+      ok: true,
+      json: async () => {
+        throw new Error(environment.GITHUB_TOKEN);
+      },
+    }),
+  ]) {
+    await assert.rejects(
+      resolveChangedSpecs({ environment, inventoryRoot, fetchImpl }),
+      (error) => {
+        assert.equal(error.message.includes(environment.GITHUB_TOKEN), false);
+        assert.match(error.message, /transport error|invalid JSON/);
+        return true;
+      },
+    );
+  }
+});
+
+test('CLI rejects partial success and token-bearing API diagnostics without stdout', async (t) => {
+  const inventory = readTestInventory(resolve(here, '..'));
+  const extra = inventory.actualSpecs.find(
+    (name) => !inventory.prSpecs.includes(name),
+  );
+  let mode = 'partial';
+  const server = createServer((request, response) => {
+    response.setHeader('Content-Type', 'application/json');
+    if (mode === 'status') {
+      response.writeHead(503, environment.GITHUB_TOKEN);
+      response.end();
+    } else if (mode === 'json') {
+      response.end(environment.GITHUB_TOKEN);
+    } else {
+      response.end(
+        JSON.stringify(
+          request.url.includes('/files?')
+            ? [
+                file(
+                  mode === 'path'
+                    ? `${environment.GITHUB_TOKEN}.spec.ts`
+                    : extra,
+                ),
+              ]
+            : { changed_files: 2 },
+        ),
+      );
+    }
+  });
+  await new Promise((done) => server.listen(0, '127.0.0.1', done));
+  t.after(() => server.close());
+  const env = {
+    ...process.env,
+    ...environment,
+    GITHUB_API_URL: `http://127.0.0.1:${server.address().port}`,
+  };
+  for (const scenario of ['partial', 'status', 'json', 'path']) {
+    mode = scenario;
+    await assert.rejects(run(process.execPath, [script], { env }), (error) => {
+      assert.equal(error.code, 1);
+      assert.equal(error.stdout, '');
+      assert.equal(error.stderr.includes(environment.GITHUB_TOKEN), false);
+      assert.match(
+        error.stderr,
+        /partial|request failed: 503|invalid JSON|absent or unclassified/,
+      );
+      return true;
+    });
+  }
 });

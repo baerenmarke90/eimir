@@ -50,6 +50,7 @@ ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
         "← Zurück zu Einstellungen",
         "Ein kleines Detail, das zu dir passt.",
         "Dein Browser kann eine weitere Bestätigung verlangen.",
+        "10 zusätzliche Icons mit eimir. Pro.",
     ),
     # Exact localized product copy in this generated-reference prompt only.
     Path("docs/product/design/references/508/partner-gesture/generation.md"): (

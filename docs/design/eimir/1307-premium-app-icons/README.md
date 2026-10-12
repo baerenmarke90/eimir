@@ -1,25 +1,35 @@
 # Premium app-icon selection — product preflight
 
 **Owner:** [#1307](https://github.com/baerenmarke90/eimir/issues/1307).<br>
-**Status:** prepared proposal; catalog and selection UX await Product Owner acceptance. This package changes no runtime behavior.<br>
+**Status:** full poster catalog requested by the Product Owner on 2026-10-12; selection UX and downgrade rule remain prepared proposals. This package changes no runtime behavior.<br>
 **Reviewed baseline:** `main` at `170a89faadef184c124472f544680262e159d207`, 2026-10-12.<br>
 **Authority:** [Product Reference v1](../../../product/design/product-reference-v1.md), [identity contract](../1225-identity-system/CI.md), [freemium matrix v1.4](../../../FREEMIUM-FEATURE-MATRIX.md) and [entitlement ADR 0006](../../../m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md).
 
-## 1. Confirmed decision and proposed catalog
+## 1. Confirmed decision and full poster catalog
 
 The exact original-poster icon is the Free/Core default. Normal System/Light/Dark appearance and automatic adaptation of the original brand remain Free/Core. Selecting an alternative icon is Premium personalization. This contract is the same in Cloud and Self-Hosted.
 
-Proposed first catalog:
+The Product Owner expanded the preparation to every independently illustrated icon tile in the poster. The catalog contains the free Original and ten additional Pro choices. The phone, dock and store illustrations repeat the Original rather than adding selection presets. Display names remain proposed localized labels.
 
 | Stable candidate ID | Proposed German name | Eligibility | Artwork |
 | --- | --- | --- | --- |
 | `original` | Original | Free/Core | [350 px exact default crop](candidates/original.png); the existing Dark treatment remains part of the default family |
-| `sage` | Salbei | `theme.bespoke_packs` | [147 px exact green poster crop](candidates/sage.png) |
-| `sand` | Sand | `theme.bespoke_packs` | [147 px exact earth-tone poster crop](candidates/sand.png) |
+| `sunset` | Abendrot | Pro | [Warm pink/yellow variant](candidates/sunset.png) |
+| `sage` | Salbei | Pro | [Green variant](candidates/sage.png) |
+| `daylight` | Sonnentag | Pro | [Blue/orange variant](candidates/daylight.png) |
+| `lavender` | Lavendel | Pro | [Purple variant](candidates/lavender.png) |
+| `sand` | Sand | Pro | [Earth-tone variant](candidates/sand.png) |
+| `midnight` | Mitternacht | Pro | [Lower-row dark variant](candidates/midnight.png) |
+| `pearl` | Perlmutt | Pro | [Fixed upper Light treatment](candidates/pearl.png) |
+| `dark` | Dunkel | Pro | [Fixed upper Dark treatment](candidates/dark.png) |
+| `monochrome` | Monochrom | Pro | [Upper monochrome treatment](candidates/monochrome.png) |
+| `minimal` | Minimal | Pro | [Lower-row minimal variant](candidates/minimal.png) |
 
-These are icon choices, independent of the contextual Original/Natürlich/Warm UI color worlds. The alternative artwork is fixed across Light/Dark; its filled tile supplies its own background. The standard in-app Brand remains the original family. Names and the three-item catalog are proposals rather than a new owner decision.
+All ten extra fixed selections use `theme.bespoke_packs`. These are icon choices, independent of the contextual Original/Natürlich/Warm UI color worlds. The alternative artwork is fixed across Light/Dark; its filled tile supplies its own background. The standard in-app Brand remains the original family. Selecting a fixed Perlmutt/Dunkel/Monochrom preset is Pro; automatic Light/Dark treatment of the original default remains Free/Core.
 
-The source is the unchanged [owner poster](../1225-identity-system/references/owner-app-logo.png). Crop coordinates and source fingerprint are recorded in [source-crops.json](source-crops.json). Alternative sources are only 147 px: inspect any required 180/192/512 px resampling on actual launchers before shipping. Generated mockup icons must never replace these source pixels.
+The source is the unchanged [owner poster](../1225-identity-system/references/owner-app-logo.png). Crop coordinates and source fingerprint are recorded in [source-crops.json](source-crops.json). Alternative sources are only 141–150 px: inspect any required 180/192/512 px resampling on actual launchers before shipping. Generated mockup icons must never replace these source pixels.
+
+[Exact-source catalog](catalog.html) · [rendered catalog sheet](poster-icon-catalog.png)
 
 ## 2. Current screen and generated reference
 
@@ -28,22 +38,24 @@ The inspected destination is `/more/settings/appearance`, reached through More �
 | Evidence | Role |
 | --- | --- |
 | [Current Light](evidence/appearance-current-light.png), [current Dark](evidence/appearance-current-dark.png) | Actual 390 × 844 Chromium captures using the existing authorized API fixture |
-| [Generated proposal](appearance-icon-selection-proposal.png) | Light/Free and Dark/Pro compositions, generated with the built-in Imagegen tool from the actual screens and exact source crops |
+| [Generated full-catalog proposal](appearance-icon-selection-proposal-v2.png) | Light/Free settings summary and Dark/Pro selector, generated with the built-in Imagegen tool from the actual screens and full exact-source catalog |
+| [Exact-source catalog sheet](poster-icon-catalog.png) | Eleven actual PNG crops rendered from `catalog.html`; ten Pro labels and one Standard label |
+| [Earlier three-choice proposal](appearance-icon-selection-proposal.png) | Historical preparation before the owner's full-catalog request |
 | [Generation prompt](image-prompt.md) | Reproducible brief and input-image roles |
 
-![Proposed icon selection in Appearance](appearance-icon-selection-proposal.png)
+![Full poster-icon selection in Appearance](appearance-icon-selection-proposal-v2.png)
 
-The proposal preserves the current destination and capabilities. It names the existing theme section “Farbmodus” and removes the repeated lower page heading/explanation to make room for App-Icon. A three-choice row provides direct selection without a new settings route or modal. Expanded uses the same bounded setting in the current content column; it does not need a separate dashboard composition.
+The proposal preserves the current destination and capabilities. It names the existing theme section “Farbmodus” and removes the repeated lower page heading/explanation to make room for App-Icon. The settings page shows the current icon and opens the full catalog with “Alle Icons ansehen”. The existing `ShortTaskSheet` presents eleven choices in a three-column grid with internal scrolling and a reachable completion footer. Expanded uses the same task in the primitive's centered modal, with an explicit close control; it does not need a separate dashboard composition.
 
 This image is a design reference, not implemented UI or accessibility evidence. Its generated outlines, Pro badges and exact spacing must be reconciled with shared primitives during implementation.
 
 ## 3. Mobile interaction contract
 
 - **Open:** retain More as the selected root destination and Back to Settings as the return action. The free theme selector remains first.
-- **Choose:** three named radio choices with visible selected state, keyboard arrows and at least 44 CSS px targets. A check and outline supplement color. Choosing a tile previews it; it does not write or update installation metadata.
+- **Choose:** the summary opens the existing ShortTaskSheet with eleven named radio choices, visible selected state, keyboard arrows and at least 44 CSS px targets. A check and outline supplement color. The sheet initially focuses the current choice, makes the background inert, and uses its existing named dismissal control, Escape/Back handling and opener focus restoration. Choosing a tile previews it; it does not write or update installation metadata.
 - **Free:** Original remains available. Paid choices can be previewed with a quiet Pro marker. “eimir. Pro ansehen” follows the existing `/more/profile#profile-premium` information destination used by PartnerQuickActions; it does not create a new checkout flow.
-- **Pro:** one explicit, thumb-reachable “Salbei auswählen”/equivalent action saves the selected ID. Use the existing ProMark and control/focus tokens. Ordinary Back discards an unsaved preview and restores focus/context.
-- **Pending:** prevent duplicate activation; retain the selected preview and show immediate progress. A late response must not affect a different Account or Space.
+- **Pro:** all ten additional choices carry the Pro mark. One explicit, thumb-reachable “Salbei auswählen”/equivalent action saves the selected ID. Use the existing ProMark and control/focus tokens. The completion footer stays reachable while the catalog scrolls. Ordinary Back discards an unsaved preview and restores focus/context.
+- **Pending:** prevent duplicate activation; retain the selected preview and show immediate progress. Apply the existing sheet's close-blocked/pending lifecycle. A late response must not affect a different Account or Space.
 - **Success:** “Auswahl gespeichert” means the authoritative preference write succeeded. A separate platform instruction explains any installation approval still required. Never report that the home-screen icon changed based solely on a successful save, DOM update or elapsed time.
 - **Failure/offline:** retain the preview, expose retry and the original choice. No queued Premium writes or forced reinstall. When capability lookup fails, use the known installed/default state and show a recoverable availability message rather than treating failure as a Free entitlement.
 - **Motion/accessibility:** use existing non-blocking state/focus motion and respect reduced motion. The visible labels and radio semantics carry meaning; decorative icon images have empty alt text. Pro status and errors are textual. Review 320/390/430 px, small heights, 200% text, Light/Dark and keyboard operation.
@@ -83,13 +95,13 @@ The saved preference is a desired choice. Installation applies to a device and m
 
 **Business/freemium impact reviewed:** classification is already explicit in matrix v1.4. This preparation proposes write gating for new paid choices and a non-destructive downgrade policy for later acceptance. It adds no billing behavior, user-media storage, managed compute, quotas or provider costs. Both deployment modes use the same static catalog and entitlement model.
 
-**Reuse review relevant:** considered the W3C manifest/HTML icon standards, current Chrome/WebKit behavior, existing Brand/theme/Settings primitives, native launcher APIs and third-party icon-switch plugins. Prefer platform metadata plus existing primitives after a device proof. A plugin cannot supply a portable Web launcher setter, so no new dependency or provider is selected. The built-in image-generation tool produced a planning artifact only; there is no runtime third-party image call.
+**Reuse review relevant:** considered the W3C manifest/HTML icon standards, current Chrome/WebKit behavior, existing Brand/theme/Settings and ShortTaskSheet primitives, native launcher APIs and third-party icon-switch plugins. Prefer platform metadata plus existing primitives after a device proof. Reuse ShortTaskSheet for modal ownership, Back, dismissal and focus rather than introducing another picker overlay. A plugin cannot supply a portable Web launcher setter, so no new dependency or provider is selected. The built-in image-generation tool produced a planning artifact only; there is no runtime third-party image call.
 
 **Cross-cutting:** allowlist IDs rather than arbitrary URLs/uploads; separate authorization from entitlement; keep public icons apart from private caches; retain privacy-safe query scoping, stale-response ownership and account cleanup; use i18n for all copy; avoid retry loops and automatic offline writes. Static candidate files are bounded public assets and should load only when needed. A later preference schema must cover account deletion, authorized export, backup/restore and migration. Native delivery has its own explicit gate.
 
 ## 7. Next implementation slices and acceptance
 
-1. **Approve this bounded catalog/UX and the proposed downgrade rule.** The generated image and exact crops are review material, not completed acceptance.
+1. **Approve selection UX, proposed names and the downgrade rule.** The owner has requested the complete poster catalog with all ten extra choices classified Pro. The generated image and exact crops remain review material for the interaction and naming decisions.
 2. **Prove platform delivery.** Real-device evidence for intended browser/PWA surfaces, stable app identity, icon masks, approval/cancellation and retained state. Record supported and unverified surfaces explicitly.
 3. **Preference/entitlement API.** Narrow schema/OpenAPI, membership and capability enforcement, Free reset, non-destructive reads/downgrade, invalid ID and stale-write cases.
 4. **Appearance UI.** Existing page/controls with direct preview, authoritative save, failure recovery and safe return. Test the whole open → choose → save → observe → return journey and account/Space switches.
@@ -100,6 +112,7 @@ Before shipping, verify crop equality with the poster, 16/32 px favicon renderin
 ## Preparation checks
 
 - Actual current Appearance page captured in Light/Dark at 390 × 844 with authorized mocked APIs; both capture runs passed and recorded no unexpected API request.
-- Original is byte-identical to the accepted default asset; Salbei/Sand pixels match their recorded source crops.
-- Generated reference inspected for retained theme choice, shell/navigation, visible free default, paid alternatives and separate save/platform language.
+- Original is byte-identical to the accepted default asset; all ten additional assets match their recorded source-crop pixels.
+- The rendered source catalog contains eleven loaded artwork files, ten Pro labels and one Standard label. Its coverage includes all seven lower-row tiles and the three right-column treatments.
+- The updated generated reference was inspected for retained theme choice, shell/navigation, full catalog coverage, a free default, Pro alternatives, theme-correct sheet treatment and separate save/platform language.
 - No app runtime, API, theme token, entitlement evaluator or native file is changed by this package.

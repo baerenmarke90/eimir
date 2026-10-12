@@ -22,6 +22,8 @@ async function installMocks(
     partnerState?: VibePartnerState;
     partnerVibeNote?: string | null;
     holdFirstPatch?: boolean;
+    holdFirstAck?: boolean;
+    failFirstAck?: boolean;
     failFirstPatch?: boolean;
     energyEnabled?: boolean;
   } = {},
@@ -41,6 +43,7 @@ async function installMocks(
   let etag = '"2026-10-12:check-in-1:1"';
   let lastPatch: Record<string, unknown> | null = null;
   let patchCount = 0;
+  let dailyVersion = 1;
   let releaseFirstPatch = () => {};
   const firstPatchGate = new Promise<void>((resolve) => {
     releaseFirstPatch = resolve;
@@ -215,7 +218,7 @@ async function installMocks(
             energyLevel: ownEnergy,
             vibe: ownVibe,
             vibeNote: ownVibeNote,
-            version: 1,
+            version: dailyVersion,
           },
           energy: initial.energyEnabled
             ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
@@ -271,7 +274,20 @@ async function installMocks(
         ownVibe === null
           ? { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
           : { state: 'VISIBLE', value: 'STRESSED' };
-      etag = '"2026-10-12:check-in-1:2"';
+      dailyVersion += 1;
+      etag = `"2026-10-12:check-in-1:${dailyVersion}"`;
+      if (patchCount === 1 && initial.holdFirstAck) await firstPatchGate;
+      if (patchCount === 1 && initial.failFirstAck) {
+        await json(
+          {
+            code: 'SERVICE_UNAVAILABLE',
+            status: 503,
+            title: 'Temporarily unavailable',
+          },
+          503,
+        );
+        return;
+      }
       await json(
         {
           checkedOn: '2026-10-12',
@@ -280,7 +296,7 @@ async function installMocks(
             energyLevel: ownEnergy,
             vibe: ownVibe,
             vibeNote: ownVibeNote,
-            version: 2,
+            version: dailyVersion,
           },
           energy: initial.energyEnabled
             ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
@@ -915,4 +931,48 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
     path: testInfo.outputPath('today-daily-vibe-1280-light.png'),
     fullPage: false,
   });
+});
+
+test('Daily Vibe keeps a committed clear pending through return and consumes a lost acknowledgement without replay', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page, {
+    ownVibe: 'GOOD',
+    energyEnabled: true,
+    holdFirstAck: true,
+    failFirstAck: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.getByTestId('daily-vibe-own').click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await sheet.getByRole('button', { name: dailyVibe.remove }).click();
+  await expect.poll(state.patchCount).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page.getByTestId('daily-energy-own-battery')).toHaveCount(0);
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  const choose = page.getByRole('button', { name: dailyVibe.chooseAria });
+  await expect(choose).toBeVisible();
+  await expect(choose).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByText(dailyVibe.saving, { exact: true })).toBeVisible();
+  await choose.dispatchEvent('click');
+  await expect(sheet).toHaveCount(0);
+  expect(state.patchCount()).toBe(1);
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-vibe-clear-pending-390-light.png'),
+    fullPage: true,
+  });
+  state.releaseFirstPatch();
+  await expect(choose).toHaveAttribute('aria-disabled', 'false');
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.saveError)).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.saving, { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+  expect(state.lastPatch()).toEqual({ vibe: null });
+  expect(state.patchCount()).toBe(1);
 });

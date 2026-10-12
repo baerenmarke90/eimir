@@ -2,6 +2,7 @@ import {
   hashKey,
   onlineManager,
   type QueryClient,
+  type QueryKey,
   useMutation,
   useMutationState,
   useQueryClient,
@@ -42,6 +43,16 @@ function dayContext(snapshot: DailyCheckInSnapshot | undefined) {
         snapshot.projection.dailyContextTimezone,
       ])
     : null;
+}
+
+function hasReadyProjection(client: QueryClient, key: QueryKey) {
+  const query = client.getQueryCache().find({ queryKey: key, exact: true });
+  return Boolean(
+    query?.isActive() &&
+      query.state.status === 'success' &&
+      query.state.fetchStatus === 'idle' &&
+      !query.state.isInvalidated,
+  );
 }
 
 function currentSnapshot(client: QueryClient, request: Request) {
@@ -210,9 +221,16 @@ export function useDailyCheckInWrite({
     if (!api || isInFlight()) return false;
     const admitted = client.getQueryData<DailyCheckInSnapshot>(queryKey);
     const admittedContext = dayContext(admitted);
-    if (!admitted || !admittedContext) return false;
+    if (
+      !admitted ||
+      !admittedContext ||
+      client.getQueryState(queryKey)?.status !== 'success'
+    )
+      return false;
     const etag = admitted.etag;
     const input = { ...update };
+    const queryIsCurrent = captureQueryIdentity(client, queryKey);
+    const snapshotIdentity = new WeakRef(admitted);
     mutation.mutate({
       accountId,
       spaceId,
@@ -221,7 +239,10 @@ export function useDailyCheckInWrite({
       etag,
       update: input,
       isOwned: () => activeScope.current === scope,
-      queryIsCurrent: captureQueryIdentity(client, queryKey),
+      queryIsCurrent: () =>
+        queryIsCurrent() &&
+        hasReadyProjection(client, queryKey) &&
+        snapshotIdentity.deref() === client.getQueryData(queryKey),
       perform: () => updateDailyCheckInToday(api, spaceId, etag, input),
     });
     return true;
@@ -249,7 +270,14 @@ export function useDailyCheckInWrite({
       latest.context.feedbackClaimed ||
       latest.status === 'pending' ||
       !latest.request ||
-      !canReconcile(latest.request)
+      !canReconcile(latest.request) ||
+      !hasReadyProjection(
+        client,
+        dailyCheckInTodayQueryKey(
+          latest.request.accountId,
+          latest.request.spaceId,
+        ),
+      )
     )
       return false;
     latest.context.feedbackClaimed = true;
@@ -263,6 +291,7 @@ export function useDailyCheckInWrite({
     reset,
     claimFeedback,
     isInFlight,
+    isReadReady: hasReadyProjection(client, queryKey),
     isPending: Boolean(pending),
     otherPending: Boolean(pending && pending.request?.dimension !== dimension),
     pendingUpdate:

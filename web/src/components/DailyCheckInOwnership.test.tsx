@@ -592,3 +592,120 @@ it('allows an independent server-day attempt and ignores the previous day respon
     projection: { checkedOn: tomorrow.checkedOn, own: { energyLevel: 90 } },
   });
 });
+
+for (const outcome of ['success', 'lost-ack'] as const) {
+  it(`keeps pending Vibe removal visible after return and observes a confirmed clear before a ${outcome} acknowledgement`, async () => {
+    const h = setup();
+    h.current.own.vibe = 'GOOD';
+    const first = h.mount();
+    fireEvent.click(await screen.findByTestId('daily-vibe-own'));
+    fireEvent.click(screen.getByRole('button', { name: dailyVibe.remove }));
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    first.unmount();
+    const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+    await waitFor(() => expect(h.client.getQueryState(key)).toBeUndefined());
+    h.mount();
+    const own = await screen.findByTestId('daily-vibe-own');
+    expect(within(own).getByText(dailyVibe.values.GOOD)).not.toBeNull();
+    expect(within(own).getByRole('status').textContent).toBe(dailyVibe.saving);
+    fireEvent.click(own);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(h.update).toHaveBeenCalledTimes(1);
+    expect(h.update.mock.calls[0][0].dailyCheckInUpdate).toEqual({ vibe: null });
+    const cleared = {
+      ...h.current,
+      own: { ...h.current.own, vibe: null, vibeNote: null },
+    };
+    h.get.mockResolvedValue(response(cleared, '"today:2"'));
+    await act(async () =>
+      h.client.setQueryData(key, { projection: cleared, etag: '"today:2"' }),
+    );
+    expect(await screen.findByText(dailyVibe.saving)).not.toBeNull();
+    const choose = screen.getByRole('button', { name: dailyVibe.chooseAria });
+    expect(choose.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(choose);
+    expect(h.update).toHaveBeenCalledTimes(1);
+    if (outcome === 'success') {
+      await act(async () => h.resolve(response(cleared, '"today:2"')));
+    } else {
+      await act(async () => h.reject(new ClientProblemError('server', 503)));
+    }
+    await waitFor(() => expect(h.client.isMutating()).toBe(0));
+    await waitFor(() =>
+      expect(choose.getAttribute('aria-disabled')).toBe('false'),
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(h.update).toHaveBeenCalledTimes(1);
+  });
+}
+
+it('preserves a newer authorized module/privacy projection even when the owner validator has not changed', async () => {
+  const h = setup();
+  h.current.own.vibe = 'GOOD';
+  h.current.vibe = {
+    visibilityMode: 'MUTUAL_REVEAL',
+    partner: { state: 'VISIBLE', value: 'STRESSED' },
+    partnerNote: 'Private old partner context',
+  };
+  h.mount();
+  await saveEnergy();
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  const protectedRead = { ...h.current, vibe: null };
+  await act(async () =>
+    h.client.setQueryData(key, {
+      projection: protectedRead,
+      etag: '"today:1"',
+    }),
+  );
+  const confirmedRead = {
+    ...protectedRead,
+    own: { ...protectedRead.own, energyLevel: 80, version: 2 },
+  };
+  h.get.mockResolvedValue(response(confirmedRead, '"today:2"'));
+  const late = {
+    ...h.current,
+    own: { ...h.current.own, energyLevel: 80, version: 2 },
+  };
+  await act(async () => h.resolve(response(late, '"today:2"')));
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.client.getQueryData(key)).toMatchObject({
+    etag: '"today:2"',
+    projection: { vibe: null, own: { energyLevel: 80 } },
+  });
+  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+  expect(screen.queryByText('Private old partner context')).toBeNull();
+});
+
+it('does not turn a newer denied read into a successful private projection when an older write completes', async () => {
+  const h = setup();
+  h.current.own.vibe = 'GOOD';
+  h.current.vibe = {
+    visibilityMode: 'MUTUAL_REVEAL',
+    partner: { state: 'VISIBLE', value: 'STRESSED' },
+    partnerNote: 'Private old partner context',
+  };
+  h.mount();
+  await saveEnergy();
+  await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  const key = dailyCheckInTodayQueryKey('account-1', 'space-1');
+  h.get.mockRejectedValue(new ClientProblemError('permission', 403));
+  await act(async () =>
+    h.client.refetchQueries({ queryKey: key, exact: true }),
+  );
+  expect(h.client.getQueryState(key)?.status).toBe('error');
+  await act(async () =>
+    h.resolve(
+      response(
+        {
+          ...h.current,
+          own: { ...h.current.own, energyLevel: 80, version: 2 },
+        },
+        '"today:2"',
+      ),
+    ),
+  );
+  await waitFor(() => expect(h.client.isMutating()).toBe(0));
+  expect(h.client.getQueryState(key)?.status).toBe('error');
+  expect(screen.queryByTestId('daily-vibe-partner')).toBeNull();
+});

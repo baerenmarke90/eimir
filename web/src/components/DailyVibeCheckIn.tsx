@@ -128,7 +128,7 @@ export function DailyVibeCheckIn({
     spaceId,
     dimension: 'vibe',
   });
-  const ownPending = Boolean(mutation.pendingUpdate?.vibe);
+  const ownPending = Boolean(mutation.pendingUpdate);
   const displayedOwnVibe = mutation.pendingUpdate?.vibe ?? ownVibe;
   const serverVibe = dailyQuery.data?.projection.vibe;
   const serverPartnerNote =
@@ -198,6 +198,16 @@ export function DailyVibeCheckIn({
       return;
     const submitted = mutation.request?.update;
     if (!submitted) return;
+    if (
+      submitted.vibe === null &&
+      ownVibe === null &&
+      mutation.isReadReady &&
+      dailyQuery.data?.etag !== mutation.request?.etag
+    ) {
+      mutation.reset();
+      setOpen(false);
+      return;
+    }
     setDraftVibe(submitted.vibe ?? ownVibe);
     setDraftNote(
       submitted.vibe === null
@@ -205,7 +215,15 @@ export function DailyVibeCheckIn({
         : (submitted.vibeNote ?? ''),
     );
     setOpen(true);
-  }, [mutation.error, mutation.request, ownVibe, ownVibeNote]);
+  }, [
+    mutation.error,
+    mutation.request,
+    mutation.isReadReady,
+    mutation.reset,
+    dailyQuery.data?.etag,
+    ownVibe,
+    ownVibeNote,
+  ]);
   useEffect(() => {
     if (!mutation.claimFeedback()) return;
     if (mutation.status === 'success') {
@@ -435,9 +453,11 @@ export function DailyVibeCheckIn({
         </h2>
       </div>
 
-      {mutation.otherPending ? (
+      {mutation.otherPending || (ownPending && displayedOwnVibe === null) ? (
         <p className="daily-vibe-save-status" role="status">
-          {t('dailyVibe.otherSaving')}
+          {mutation.otherPending
+            ? t('dailyVibe.otherSaving')
+            : t('dailyVibe.saving')}
         </p>
       ) : null}
 

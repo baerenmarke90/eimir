@@ -27,7 +27,12 @@ its pending card. Existing controls and localized polite status identify which
 other dimension is saving. Failure removes the preview, restores only the own
 choice/note, and offers deliberate retry with the newly authorized validator.
 A failed Vibe clear retries `{ vibe: null }`, rather than resaving the displayed
-choice. A conflict refreshes current data without replaying the stale write.
+choice. Pending clear is an operation even though its value is null: the
+confirmed card stays until an authorized read confirms removal, and the empty
+slot still shows saving until acknowledgement. If that read already confirms
+removal with a changed validator, a failed acknowledgement is consumed without
+replaying the clear or opening an unusable empty error sheet. A conflict
+refreshes current data without replaying the stale write.
 The Energy slider also adopts that refreshed own value; ordinary failed-input
 preservation does not suppress conflict/context recovery. The retained conflict
 regression verifies slider/battery agreement and a new deliberate choice with
@@ -43,7 +48,14 @@ consumer obtains its own authorized read instead of receiving the earlier
 consumer's response; the original query accepts confirmation only while the
 captured day and validator still agree. Session cache clearing retires late
 callbacks, and Account/Space/day/timezone changes cannot receive old results.
-Feedback is consumed once by an active, matching consumer.
+Feedback is consumed once by an active, matching consumer with a healthy,
+idle, non-invalidated read. The admitted snapshot identity is weak as well as
+the query identity: newer module/privacy data cannot be overwritten just
+because the owner validator is unchanged. A failed or refreshing current read
+is not changed into success by an older write response; it uses the active
+consumer's authorized read instead. Controlled assertions reproduced missing
+pending-clear status and same-validator privacy rollback on `72812b4d` before
+these additional guards. No raw snapshot is strongly retained by either guard.
 
 The own attempt uses the existing framework's five-minute inactive mutation
 lifetime within the same in-process authenticated session. There is no durable
@@ -78,6 +90,13 @@ message would obscure a quiet reliability repair. Tables/master-detail and
 administrative patterns are not part of this surface.
 
 ## Behavioral and visual evidence
+
+An additional retained browser journey commits the clear before holding its
+acknowledgement, leaves/returns, verifies the empty saving slot and one write,
+then loses acknowledgement and verifies that confirmed removal is not replayed.
+Its `today-daily-vibe-clear-pending-390-light.png` is included in the existing
+hosted product-evidence artifact. The fixture advances the owner version for
+each successful operation; failed acknowledgements do not undo server state.
 
 The retained PR-critical Vibe spec now exercises both dimensions at five
 viewport/theme/motion settings. Each journey opens an own task, holds PATCH,

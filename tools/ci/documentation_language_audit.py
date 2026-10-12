@@ -45,6 +45,14 @@ PLAN_COMPLETION_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact existing localized copy in this Daily Check-in reference prompt.
+    Path("docs/product/design/references/508/daily-check-in-owner/generation.md"): (
+        "Wird gespeichert …",
+        "Gut & entspannt",
+        "Gemeinsamer Abend",
+        "Heute",
+        "Wir",
+    ),
     # Exact localized product copy in this generated-reference prompt only.
     Path("docs/product/design/references/508/partner-gesture/generation.md"): (
         "Dein Gruß wird gesendet …",

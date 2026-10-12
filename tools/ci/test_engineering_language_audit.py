@@ -192,6 +192,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             Path("docs/product/design/references/508/plan-completion-generation.md"),
             Path("docs/product/design/references/508/wish-completion-generation.md"),
             Path("docs/product/design/references/508/partner-gesture/generation.md"),
+            Path("docs/product/design/references/508/daily-check-in-owner/generation.md"),
         ):
             product_copy = ALLOWED_DOCUMENTATION_TEXTS_BY_PATH[logical_path][0]
             with self.subTest(path=str(logical_path)), tempfile.TemporaryDirectory() as directory:

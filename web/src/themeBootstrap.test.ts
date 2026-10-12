@@ -49,7 +49,7 @@ function runBootstrap(
   const dataset: Record<string, string> = {};
   const style: Record<string, string> = {};
   const themeColor = { content: '#e6ebfa' };
-  const favicon = { href: '/favicon.svg' };
+  const favicon = { href: '/identity/app-icon-light.png' };
   const storage = new Map<string, string>();
   if (storedPreference !== null) storage.set('eimir.theme', storedPreference);
   if (legacyStoredPreference !== null)
@@ -95,7 +95,7 @@ describe('theme bootstrap', () => {
     expect(result.dataset).toEqual({ theme: 'dark', themePreference: 'dark' });
     expect(result.style.colorScheme).toBe('dark');
     expect(result.themeColor.content).toBe('#171b2f');
-    expect(result.favicon.href).toBe('/favicon-dark.svg');
+    expect(result.favicon.href).toBe('/identity/app-icon-dark.png');
   });
 
   it('keeps an explicit light preference before app startup even on a dark system', () => {
@@ -106,7 +106,7 @@ describe('theme bootstrap', () => {
     });
     expect(result.style.colorScheme).toBe('light');
     expect(result.themeColor.content).toBe('#e6ebfa');
-    expect(result.favicon.href).toBe('/favicon.svg');
+    expect(result.favicon.href).toBe('/identity/app-icon-light.png');
   });
 
   it('follows the operating-system preference in system mode', () => {

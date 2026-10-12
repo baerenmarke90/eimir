@@ -1,8 +1,11 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.3  
+**Version:** 1.4
+
 **Audit date:** 2026-09-21  
+**Revision:** 2026-10-12 — clarified alternative app-icon selection; no entitlement implementation
+
 **Audited `main` baseline:** `dfc87cd`  
 **Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
 **Entitlement architecture:** [ADR 0006](m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md)  
@@ -97,8 +100,8 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Automation Rules & Custom Triggers** | M4, M7 | **Mixed** | **Free:** Standard date alerts & digests.<br>**Premium:** Multi-step rules, custom triggers, automated recaps. | Identical | Advanced automation consumes background compute resources and provides higher-value workflow depth. |
 | **Essential data portability / Transfer Bundle & account export** | M5, M6 | **Non-paywallable** | Essential machine-readable export of the user's authorized account/Space data and own media remains available independent of Premium. Value-added narrative/print/rendered artifacts are classified separately. | Identical | Data ownership and the right to leave with one's authorized data cannot depend on a paid tier. |
 | **Official Web & Android client access** | M5 | **Free/Core** | Whole client access Free | Identical | Accessing the application via official native clients is never paywalled. |
-| **Standard Light/Dark/System appearance** | M5 | **Free/Core** | Whole feature Free | Identical | Standard platform accessibility and dark mode are basic expectations. |
-| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Premium only | Identical | Artistic color palettes, custom card styles, and bespoke widgets. |
+| **Standard Light/Dark/System appearance and baseline app icon** | M5 | **Free/Core** | Whole feature Free | Identical | Standard platform accessibility, dark mode and the default app identity are basic expectations. |
+| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Premium only; includes future user-selectable alternative app icons (#1307) | Identical | Artistic color palettes, custom card styles, bespoke widgets and optional app-icon choices. The default icon and automatic Light/Dark adaptation remain Free/Core. |
 | **Accessibility essentials & i18n localization** | M1–M5 | **Non-paywallable** | Non-paywallable | Identical | Inclusive accessibility and locale support are baseline engineering standards. |
 | **Short Audio / Voice Notes** | M7 | **Free/Core** | Whole feature Free (storage applies in Cloud) | Identical | Voice snippets add emotional intimacy to memories (#512). |
 | **Daily Questions & Shared Answers** | M7 | **Mixed** | **Free:** Daily questions & basic answer history.<br>**Premium:** 5-Year Reflection Mirror (#516), deep category packs, cross-year comparison. | Identical | Daily bonding is free; long-term analytical mirroring is Premium. |

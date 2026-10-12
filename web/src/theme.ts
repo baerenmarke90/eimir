@@ -83,7 +83,9 @@ export function applyResolvedTheme(
   const favicon = document.getElementById?.('app-favicon');
   if (favicon?.tagName === 'LINK') {
     (favicon as HTMLLinkElement).href =
-      theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg';
+      theme === 'dark'
+        ? '/identity/app-icon-dark.png'
+        : '/identity/app-icon-light.png';
   }
 }
 

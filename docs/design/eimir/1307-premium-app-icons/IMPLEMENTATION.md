@@ -114,3 +114,22 @@ Representative captures: [Free summary](evidence/app-icons-free-390-light.png),
 [430 px](evidence/app-icons-pro-430-light.png),
 [Expanded](evidence/app-icons-pro-1280-light.png),
 [large text](evidence/app-icons-pro-360-large-text.png).
+
+### Recorded validation result — 2026-10-12
+
+27 PostgreSQL icon/export/deletion tests, 29 focused client/theme/sheet/settings
+checks and all six icon browser journeys pass. The final icon suite includes
+expiry retention without an unnecessary upgrade prompt and free Original reset.
+Production build, scoped Ruff/mypy, repository format, engineering-language,
+source/proof identity, generated-client drift and clean-database migration to
+0085 pass.
+
+The first broad PR browser run completed with 246/249 passing. Three existing
+cases hit timing/load-sensitive checks: immediate URL sampling before React
+entry cleanup, Timeline progressive loading and a multi-viewport Gallery flow.
+The URL assertions now await the same removal outcome through the standard
+browser matcher. All affected Onboarding/Timeline and Gallery suites pass in
+focused follow-ups; no Timeline/Gallery assertion or runtime behavior was
+changed. This does not relabel the original broad run as green. CI on the final
+commit is the remaining automated gate; Product Acceptance and real-device
+launcher evidence remain separate.

@@ -27,9 +27,13 @@ async function capture(page: Page, info: TestInfo, name: string) {
   }
 }
 
-async function installMocks(page: Page, pro: boolean): Promise<void> {
-  let iconId = 'original';
-  let version = 0;
+async function installMocks(
+  page: Page,
+  pro: boolean,
+  initialIcon = 'original',
+): Promise<string[]> {
+  let iconId = initialIcon;
+  let version = initialIcon === 'original' ? 0 : 1;
   const writes: string[] = [];
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
@@ -387,4 +391,36 @@ test('conflict reload preserves preview and a revoked grant keeps the prior choi
     dialog.getByRole('button', { name: 'Original auswählen' }),
   ).toBeEnabled();
   expect(writes).toBe(2);
+});
+
+test('expired Pro keeps its saved choice without an upgrade prompt and permits free reset', async ({
+  page,
+}) => {
+  const writes = await installMocks(page, false, 'sage');
+  await signIn(page);
+  await expect(page.locator('#app-favicon')).toHaveAttribute(
+    'href',
+    /app-icons\/v1\/sage\.png$/,
+  );
+  await page.getByRole('button', { name: copy.all }).click();
+  const dialog = page.getByRole('dialog', { name: copy.choices });
+  await expect(dialog.getByRole('radio', { name: 'Salbei Pro' })).toBeChecked();
+  await expect(
+    dialog.getByRole('button', { name: copy.selected }),
+  ).toBeDisabled();
+  await expect(dialog.getByRole('button', { name: copy.discover })).toHaveCount(
+    0,
+  );
+  await dialog.getByRole('radio', { name: 'Sand Pro', exact: true }).check();
+  await expect(
+    dialog.getByRole('button', { name: copy.discover }),
+  ).toBeVisible();
+  await dialog.getByRole('radio', { name: 'Original Standard' }).check();
+  await dialog.getByRole('button', { name: 'Original auswählen' }).click();
+  await expect(dialog.getByText(copy.saved, { exact: true })).toBeVisible();
+  expect(writes).toEqual(['original']);
+  await expect(page.locator('#app-favicon')).toHaveAttribute(
+    'href',
+    /app-icon-light\.png$/,
+  );
 });

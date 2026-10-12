@@ -185,7 +185,7 @@ function AppIconSettings({
               </div>
             ) : null}
             {saved ? <p role="status">{t('appIcon.saved')}</p> : null}
-            {isPaid && isFree ? (
+            {isPaid && isFree && preview !== current ? (
               <button
                 type="button"
                 onClick={() => {

@@ -2,12 +2,13 @@
 
 ## Status and authority
 
-Owner continuation on 2026-10-12 after the complete catalog review; draft #1309
-continues the preparation into a reviewable Web implementation. Main baseline
-is still `170a89faadef184c124472f544680262e159d207`. The generated full-catalog
+Owner continuation and merge request on 2026-10-12 after the complete catalog
+review; #1309 delivers the browser selection slice. Its reviewed main baseline
+is `170a89faadef184c124472f544680262e159d207`. The generated full-catalog
 reference and existing Mobile Interaction Contract in [the preflight](README.md)
-remain valid for that unchanged Appearance destination. This document records
-branch behavior; it does not claim a merge, deployment or installed-device proof.
+remain valid for that unchanged Appearance destination. The owner accepted this
+browser slice for merge subject to CI. Deployment and installed-device proof
+remain separate; #1307 stays open for the latter.
 
 ## Product contract
 
@@ -123,6 +124,12 @@ expiry retention without an unnecessary upgrade prompt and free Original reset.
 Production build, scoped Ruff/mypy, repository format, engineering-language,
 source/proof identity, generated-client drift and clean-database migration to
 0085 pass.
+
+The first hosted backend integration run exposed missing registration of the
+two icon operations in the shared endpoint matrix. Both operations now use the
+existing matrix cases for anonymous access, foreign/invented/malformed Spaces
+and required If-Match. All ten selected matrix checks pass on PostgreSQL; no
+security assertion or contract-completeness gate was weakened.
 
 The first broad PR browser run completed with 246/249 passing. Three existing
 cases hit timing/load-sensitive checks: immediate URL sampling before React

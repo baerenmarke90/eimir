@@ -28,6 +28,11 @@ other dimension is saving. Failure removes the preview, restores only the own
 choice/note, and offers deliberate retry with the newly authorized validator.
 A failed Vibe clear retries `{ vibe: null }`, rather than resaving the displayed
 choice. A conflict refreshes current data without replaying the stale write.
+The Energy slider also adopts that refreshed own value; ordinary failed-input
+preservation does not suppress conflict/context recovery. The retained conflict
+regression verifies slider/battery agreement and a new deliberate choice with
+the refreshed validator. Its added assertion failed on the first runtime commit
+before this correction.
 
 The server projection retains `gcTime: 0`, private/no-store transport and its
 persistent-cache exclusion. Mutation variables/context/results contain no raw

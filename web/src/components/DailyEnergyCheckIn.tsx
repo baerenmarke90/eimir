@@ -188,6 +188,12 @@ export function DailyEnergyCheckIn({
     spaceId,
     dimension: 'energy',
   });
+  const preserveFailedDraft = Boolean(
+    mutation.error &&
+      mutation.error.kind !== 'conflict' &&
+      mutation.error.code !== 'SPACE_MODULE_DISABLED' &&
+      mutation.error.code !== 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE',
+  );
   const previousContext = useRef(mutation.scopeId);
   useEffect(() => {
     if (previousContext.current === mutation.scopeId) return;
@@ -199,19 +205,13 @@ export function DailyEnergyCheckIn({
   }, [mutation.scopeId, ownEnergy, setOpen]);
   useEffect(() => {
     const failed = mutation.request?.update.energyLevel;
-    if (
-      !mutation.error ||
-      mutation.error.kind === 'conflict' ||
-      mutation.error.code === 'SPACE_MODULE_DISABLED' ||
-      mutation.error.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE'
-    )
-      return;
+    if (!preserveFailedDraft) return;
     if (failed !== null && failed !== undefined) {
       setDraftEnergy(failed as DailyEnergyLevel);
       setDraftTouched(true);
     }
     setOpen(true);
-  }, [mutation.error, mutation.request, setOpen]);
+  }, [preserveFailedDraft, mutation.request, setOpen]);
   useEffect(() => {
     if (!mutation.claimFeedback()) return;
     if (mutation.status === 'success') {
@@ -235,7 +235,7 @@ export function DailyEnergyCheckIn({
   ]);
 
   useEffect(() => {
-    if (mutation.isPending || mutation.error || draftTouched) return;
+    if (mutation.isPending || preserveFailedDraft || draftTouched) return;
     if (ownEnergy !== null) {
       setDraftEnergy(ownEnergy as DailyEnergyLevel);
       return;
@@ -244,7 +244,7 @@ export function DailyEnergyCheckIn({
       setDraftEnergy(50);
       setDraftTouched(false);
     }
-  }, [draftTouched, mutation.isPending, mutation.error, open, ownEnergy]);
+  }, [draftTouched, mutation.isPending, preserveFailedDraft, open, ownEnergy]);
 
   useEffect(() => {
     if (online && !dailyQuery.isError) {
@@ -322,12 +322,7 @@ export function DailyEnergyCheckIn({
       : null;
   const contextUnavailable =
     mutationProblem?.code === 'DAILY_CHECK_IN_CONTEXT_UNAVAILABLE';
-  const showGenericMutationError =
-    activeMutation &&
-    Boolean(mutation.error) &&
-    mutationProblem?.kind !== 'conflict' &&
-    mutationProblem?.code !== 'SPACE_MODULE_DISABLED' &&
-    !contextUnavailable;
+  const showGenericMutationError = activeMutation && preserveFailedDraft;
 
   const badgeAria =
     displayedEnergy === null

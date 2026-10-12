@@ -652,6 +652,26 @@ describe('DailyEnergyCheckIn', () => {
         name: energyBadgeAriaValue(80),
       }),
     ).not.toBeNull();
+    await waitFor(() => expect(slider).toHaveProperty('value', '80'));
+    updateDailyCheckInTodayRaw.mockResolvedValueOnce(
+      rawResponse(
+        projection({ own: 90, partner: { state: 'VISIBLE', value: 40 } }),
+        '"2026-09-21:check-in-1:3"',
+      ),
+    );
+    setSlider(slider, 90);
+    await waitFor(() =>
+      expect(updateDailyCheckInTodayRaw).toHaveBeenCalledTimes(2),
+    );
+    expect(updateDailyCheckInTodayRaw.mock.calls[1][0]).toMatchObject({
+      ifMatch: '"2026-09-21:check-in-1:2"',
+      dailyCheckInUpdate: { energyLevel: 90 },
+    });
+    expect(
+      await screen.findByRole('button', {
+        name: energyBadgeAriaValue(90),
+      }),
+    ).not.toBeNull();
   });
 
   it('fails closed and refreshes DailyCheckIn when a slider write reports the module disabled', async () => {

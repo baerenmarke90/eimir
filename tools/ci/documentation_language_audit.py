@@ -45,6 +45,16 @@ PLAN_COMPLETION_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact localized product copy in this generated-reference prompt only.
+    Path("docs/product/design/references/508/partner-gesture/generation.md"): (
+        "Dein Gruß wird gesendet …",
+        "Kleine Gesten direkt an deinen Partner.",
+        "Ich denke an dich",
+        "ist unterwegs",
+        "Kuss schicken",
+        "Wie geht’s dir?",
+        "Mit eimir. Pro verfügbar. eimir. Pro ansehen",
+    ),
     # Exact localized strings in the recorded Wish Imagegen prompt only.
     Path("docs/product/design/references/508/wish-completion-generation.md"): (
         "Wunsch wird als erfüllt gespeichert …",

@@ -84,7 +84,7 @@
     transform var(--duration-feedback) var(--easing-standard);
 }
 
-.partner-quick-action:hover:not(:disabled) {
+.partner-quick-action:hover:not(:disabled):not([aria-disabled="true"]) {
   border-color: var(--color-border);
   background: var(--color-surface-subtle);
 }
@@ -96,13 +96,24 @@
   outline-offset: 2px;
 }
 
-.partner-quick-action:active:not(:disabled) {
+.partner-quick-action:active:not(:disabled):not([aria-disabled="true"]) {
   transform: scale(0.99);
 }
 
 .partner-quick-action:disabled {
   cursor: default;
   opacity: 0.62;
+}
+
+.partner-quick-action[aria-disabled="true"] {
+  cursor: default;
+}
+
+.partner-quick-actions-pending {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .partner-quick-action-icon {

@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { captureQueryIdentity } from '../client/queryIdentity';
 import {
   clientProblemKind,
   normalizeClientError,
@@ -86,15 +87,8 @@ export function usePlanningCompletion<TRequest, TResult, TDetail>({
       }
     },
     onMutate: async () => {
-      const initiatingQuery = queryClient
-        .getQueryCache()
-        .find({ queryKey: detailKey, exact: true });
+      const isCurrentQuery = captureQueryIdentity(queryClient, detailKey);
       await queryClient.cancelQueries({ queryKey: detailKey, exact: true });
-      const isCurrentQuery = () =>
-        Boolean(initiatingQuery) &&
-        queryClient
-          .getQueryCache()
-          .find({ queryKey: detailKey, exact: true }) === initiatingQuery;
       return { scope, key: detailKey, isCurrentQuery };
     },
     onSuccess: (result, _input, context) => {

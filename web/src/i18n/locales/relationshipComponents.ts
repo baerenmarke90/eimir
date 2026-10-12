@@ -29,11 +29,17 @@ const relationshipComponents = {
     loadingPremium: 'Pro-Aktionen werden geprüft …',
     unavailablePremium: 'Pro-Aktionen konnten gerade nicht geprüft werden.',
     retryPremium: 'Erneut prüfen',
+    sendingThinking: 'Dein Gruß wird gesendet …',
+    sendingKiss: 'Dein Kuss wird gesendet …',
+    sendingCheckIn: 'Dein Check-in wird gesendet …',
+    offline:
+      'Keine Verbindung. Bitte versuche es noch einmal. Wir senden später nicht automatisch.',
     sentThinking: 'Dein Gruß ist unterwegs.',
     sentKiss: 'Dein Kuss ist unterwegs.',
     sentCheckIn: 'Dein Check-in ist unterwegs.',
     cooldown: 'Später wieder möglich.',
-    sendError: 'Das Senden hat nicht geklappt. Bitte versuche es noch einmal.',
+    sendError:
+      'Das Senden konnte nicht bestätigt werden. Bitte versuche es noch einmal.',
   },
 
   visibilityShared: 'Mit Partner geteilt',

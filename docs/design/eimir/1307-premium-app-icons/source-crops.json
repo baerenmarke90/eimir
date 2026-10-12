@@ -1,0 +1,11 @@
+{
+  "source": "../1225-identity-system/references/owner-app-logo.png",
+  "sourceSha256": "4ff43d2c45f28c60b61fa6354e5776b281b4ef2559a7c17ea09aa510f9f0c323",
+  "baselineMain": "170a89faadef184c124472f544680262e159d207",
+  "status": "proposed-catalog",
+  "candidates": [
+    {"id": "original", "nameDe": "Original", "tier": "Free/Core", "bounds": [132, 76, 482, 426], "file": "candidates/original.png"},
+    {"id": "sage", "nameDe": "Salbei", "capability": "theme.bespoke_packs", "bounds": [199, 702, 346, 849], "file": "candidates/sage.png"},
+    {"id": "sand", "nameDe": "Sand", "capability": "theme.bespoke_packs", "bounds": [695, 702, 842, 849], "file": "candidates/sand.png"}
+  ]
+}

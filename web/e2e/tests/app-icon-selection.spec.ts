@@ -382,6 +382,7 @@ test('conflict reload preserves preview and a revoked grant keeps the prior choi
     /app-icons\/v1\/sand\.png$/,
   );
   await dialog.getByRole('radio', { name: 'Original Standard' }).check();
+  await expect(dialog.getByText(copy.denied)).toHaveCount(0);
   await expect(
     dialog.getByRole('button', { name: 'Original auswählen' }),
   ).toBeEnabled();

@@ -247,6 +247,7 @@ function AppIconSettings({
                 onChange={() => {
                   setPreview(iconId);
                   setSaved(false);
+                  if (!conflict) mutation.reset();
                 }}
               />
               <img

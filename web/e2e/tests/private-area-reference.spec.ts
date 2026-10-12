@@ -487,7 +487,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
     );
     await expect(page.locator('#app-favicon')).toHaveAttribute(
       'href',
-      colorScheme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg',
+      colorScheme === 'dark'
+        ? '/identity/app-icon-dark.png'
+        : '/identity/app-icon-light.png',
     );
     await expectPrivateReferenceStructure(page);
 

@@ -15,10 +15,12 @@ The four supplied PNGs are preserved unchanged and are the visual authority for 
 
 ## Editable assets and review evidence
 
-- [`assets/`](assets/) contains the SVG logo master and generated variants. `build-assets.py` synchronizes the Web SVG delivery assets.
+- [`assets/`](assets/) contains exact PNG crops from the owner poster and the older SVG reconstruction for historical comparison. `build-assets.py` regenerates the PNG crops and Web/PWA delivery assets from the unchanged poster.
 - [`icons.js`](icons.js), `boards.js` and `boards.css` produce the explanatory boards; the typed `EimirIcon` registry is the runtime source.
 - [`exports/`](exports/) preserves the snapshot identity, icon, palette and Compact Light/Dark boards. The editable board source contains the #1245 refinements; regenerate these PNGs with `render.sh` before using them as current visual evidence.
-- [`evidence/`](evidence/) contains four #1245 real Web screenshots of the private-area view at 390 and 1440 CSS px in Light and Dark, captured by PR browser QA with mocked API responses. Earlier Today, Planen and quick-create screenshots in that directory predate the #1245 refinements.
-- `verify.py` checks board symbols, SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
+- [`evidence/`](evidence/) contains four current 390/1440 px Light/Dark private-area screenshots with the poster raster icon, plus four older #1245 screenshots at those widths from the vector delivery. Earlier Today, Planen and quick-create screenshots also predate this change.
+- `verify.py` checks pixel-exact poster crops, board symbols, historical SVG syntax, export hashes and representative contrast pairs. `web` build and test scripts validate runtime tokens, PWA assets and behavior.
+
+The standard icon and its Light/Dark treatment are Free/Core. A selectable catalog of alternative app icons is a separate Premium feature tracked in [#1307](https://github.com/baerenmarke90/eimir/issues/1307); this change adds no picker or entitlement behavior.
 
 The implementation keeps the existing four root destinations, central add action, current content hierarchy and feature behavior. The owner images define the new identity only; other product rules remain those of [Product Reference v1](../../../product/design/product-reference-v1.md).

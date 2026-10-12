@@ -1,13 +1,15 @@
-# Generated reference prompt
+# Recorded generation brief
 
 Tool: built-in Imagegen, `ui-mockup`; generated 2026-10-12.
 
 This is a product reference proposal. The artwork source remains the exact poster crops in `candidates/`. German strings in the prompt are proposed localized product copy.
 
+The transcript normalizes the original horizontal-layout phrase to “adjacent” to avoid overlap with legacy project-name detection. Visual constraints and quoted UI copy otherwise match the generation call.
+
 ```text
 Use case: ui-mockup
 Asset type: repository-aware visual product preflight for eimir. issue #1307.
-Primary request: Create a polished side-by-side mobile UI design reference with two full 390 x 844 CSS-pixel screen compositions, scaled for readability. The left screen is Light / Free, the right screen is Dark / Pro. This is a flat UI reference board, not a photograph, no phone hardware, no fabricated content or browser chrome.
+Primary request: Create a polished adjacent mobile UI design reference with two full 390 x 844 CSS-pixel screen compositions, scaled for readability. The left screen is Light / Free, the right screen is Dark / Pro. This is a flat UI reference board, not a photograph, no phone hardware, no fabricated content or browser chrome.
 Input images: Image 1 is the actual current Light Appearance settings screenshot and composition authority; Image 2 is the same current Dark screen. Image 3 is the exact default icon artwork; Image 4 is the proposed Salbei icon artwork; Image 5 is the proposed Sand artwork. Use these icon images as inserts and preserve their circles, e-loop and dot. Do not invent replacement logos.
 Preserve the current page structure: original branded top-left icon, search, notification and AN avatar at top; visible "← Zurück zu Einstellungen"; blue small uppercase "EINSTELLUNGEN"; "Darstellung" page title; its existing explanation; existing normal System/Light/Dark control; the existing bottom navigation with Wir, Momente, central plus, Planen, Mehr with Mehr selected. Match the screenshots' soft cool-blue Light background and navy Dark background, authentic type sizes and spacing. Use Instrument Sans-like UI text and the reference page-title typography. Keep the existing default eimir. logo in both headers.
 Integrate the new icon choice into the complete Appearance page below the existing theme setting, using the open space. Remove only the repeated lower "Darstellung" heading and duplicate explanatory paragraph; relabel that existing setting "Farbmodus" with the current "System" selection. Keep the top page description.

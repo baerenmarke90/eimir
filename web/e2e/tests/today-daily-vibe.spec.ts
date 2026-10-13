@@ -807,7 +807,7 @@ for (const viewport of [
       expect(state.patchCount()).toBe(1);
       await expectNoHorizontalOverflow(page);
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-      const prefix = `daily-owner-${dimension}-${viewport.width}-${viewport.theme}`;
+      const prefix = `today-daily-owner-${dimension}-${viewport.width}-${viewport.theme}`;
       await page.screenshot({
         path: testInfo.outputPath(`${prefix}-return.png`),
         fullPage: true,

@@ -125,6 +125,12 @@ unchanged timeouts and pinned Chromium 151.0.7922.34 are used locally; CI keeps
 its existing browser/axe gate. The inventory includes all ten new browser
 journeys in the existing PR-critical spec.
 
+The current-main follow-up found that the ownership captures used a
+`daily-owner-` prefix outside the existing artifact collector's `today-*.png`
+pattern. These ten journeys now use `today-daily-owner-` for all return, error
+and confirmation captures, preserving them in the existing short-lived product
+evidence artifacts without changing assertions, runtime behavior or CI policy.
+
 ## Cross-cutting and business review
 
 The server remains responsible for authorization, module admission, current-day

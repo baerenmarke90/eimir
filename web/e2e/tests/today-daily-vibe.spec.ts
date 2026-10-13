@@ -811,6 +811,7 @@ for (const viewport of [
       await page.screenshot({
         path: testInfo.outputPath(`${prefix}-return.png`),
         fullPage: true,
+        animations: 'disabled',
       });
       state.releaseFirstPatch();
       if (dimension === 'energy') {
@@ -833,6 +834,7 @@ for (const viewport of [
       await page.screenshot({
         path: testInfo.outputPath(`${prefix}-error.png`),
         fullPage: true,
+        animations: 'disabled',
       });
       await (dimension === 'energy'
         ? page.getByTestId('daily-energy-popover')
@@ -865,6 +867,7 @@ for (const viewport of [
       await page.screenshot({
         path: testInfo.outputPath(`${prefix}-confirmed.png`),
         fullPage: true,
+        animations: 'disabled',
       });
     });
   }

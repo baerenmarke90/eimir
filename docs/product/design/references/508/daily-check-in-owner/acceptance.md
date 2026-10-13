@@ -130,6 +130,9 @@ The current-main follow-up found that the ownership captures used a
 pattern. These ten journeys now use `today-daily-owner-` for all return, error
 and confirmation captures, preserving them in the existing short-lived product
 evidence artifacts without changing assertions, runtime behavior or CI policy.
+The captures use Playwright's `animations: 'disabled'` option to record settled
+visual evidence. Normal-motion interactions and all behavioral assertions still
+execute before each capture; no delay, retry or motion-policy change is added.
 
 ## Cross-cutting and business review
 

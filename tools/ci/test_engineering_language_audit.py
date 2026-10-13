@@ -189,6 +189,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
         for logical_path in (
+            Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),
             Path("docs/product/design/references/508/plan-completion-generation.md"),
             Path("docs/product/design/references/508/wish-completion-generation.md"),
             Path("docs/product/design/references/508/partner-gesture/generation.md"),

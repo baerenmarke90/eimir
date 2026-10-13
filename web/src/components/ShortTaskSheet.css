@@ -161,6 +161,16 @@
   margin-top: var(--space-4);
 }
 
+.short-task-sheet-footer {
+  flex-shrink: 0;
+  padding: var(--space-4) var(--page-gutter)
+    max(var(--space-4), env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-raised);
+  max-height: 50dvh;
+  overflow-y: auto;
+}
+
 @keyframes short-task-sheet-enter {
   from {
     transform: translateY(calc(100% + var(--space-4)));

@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -118,6 +119,7 @@ async function installMocks(
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -1191,6 +1193,89 @@ for (const view of [
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'false');
     await expect(button).toHaveText(m5s3.collection.pinToToday);
+    await expect.poll(() => held.writes.length).toBe(2);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await page.goto('/today');
+    await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
+      0,
+    );
+    expect(held.writes).toEqual([COLLECTION_ID, null]);
+  });
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  test(`offline personal pin has no reconnect replay and requires explicit activation at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page);
+    await signIn(page);
+    const held = await holdPersonalPin(page, network);
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    const action = page.locator('.planning-collection-dashboard-action');
+    const button = action.getByRole('button').first();
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([]);
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`collection-pin-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
+    await page.context().setOffline(false);
+    const readsBeforeRetry = held.reads();
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
+    await expect(button).toBeEnabled();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(held.writes).toEqual([]);
+    await button.click();
+    await expect.poll(() => held.writes.length).toBe(1);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await page.goto('/today');
+    await expect(
+      page.locator('.today-section-pinned-collection'),
+    ).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await page.context().setOffline(false);
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect(button).toBeEnabled();
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await button.click();
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();

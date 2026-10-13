@@ -1,0 +1,129 @@
+.app-icon-settings {
+  display: grid;
+  gap: var(--space-4);
+}
+.app-icon-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+.app-icon-summary > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.app-icon-summary > button {
+  margin-inline-start: auto;
+}
+.app-icon-summary img,
+.app-icon-preview img {
+  border-radius: var(--radius-large);
+  flex-shrink: 0;
+}
+.app-icon-summary span,
+.app-icon-platform,
+.app-icon-personal,
+.app-icon-intro {
+  color: var(--color-text-secondary);
+}
+.app-icon-platform,
+.app-icon-personal,
+.app-icon-intro {
+  margin: 0;
+  font: var(--font-supporting-copy);
+}
+.app-icon-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-5) 0;
+}
+.app-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  margin: 0;
+}
+.app-icon-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-1);
+  border: 2px solid transparent;
+  border-radius: var(--radius-large);
+  cursor: pointer;
+  transition:
+    background var(--duration-feedback),
+    border-color var(--duration-feedback);
+}
+.app-icon-option.is-selected {
+  border-color: var(--color-focus);
+  background: var(--color-brand-surface);
+}
+.app-icon-option:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.app-icon-option img {
+  width: var(--space-16);
+  height: var(--space-16);
+  border-radius: var(--radius-medium);
+}
+.app-icon-name {
+  text-align: center;
+  overflow-wrap: anywhere;
+  font: var(--font-action-label);
+}
+.app-icon-tier {
+  font: var(--font-supporting-copy);
+  color: var(--color-text-secondary);
+}
+.app-icon-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.app-icon-check {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: var(--space-1);
+  color: var(--color-text);
+}
+.app-icon-grid:disabled {
+  opacity: var(--opacity-disabled);
+}
+.app-icon-footer {
+  display: grid;
+  gap: var(--space-3);
+}
+.app-icon-footer > button {
+  width: 100%;
+  min-height: 44px;
+}
+.app-icon-footer p,
+.app-icon-message p {
+  margin: 0;
+}
+.app-icon-message {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+}
+.app-icon-personal {
+  margin-top: var(--space-4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-icon-option {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .app-icon-option.is-selected {
+    border-color: Highlight;
+  }
+}

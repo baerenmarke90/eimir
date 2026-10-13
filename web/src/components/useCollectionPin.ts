@@ -1,4 +1,5 @@
 import {
+  onlineManager,
   useIsMutating,
   useMutation,
   useQuery,
@@ -14,6 +15,7 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import {
+  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -65,9 +67,12 @@ export function useCollectionPin({
 
   const mutation = useMutation({
     mutationKey,
+    networkMode: 'always',
     retry: false,
     mutationFn: (selection: Selection) => {
       if (!dashboardApi) throw new Error('Dashboard API is not available.');
+      if (!onlineManager.isOnline() || navigator.onLine === false)
+        throw new ClientProblemError('offline');
       return apiCall(() =>
         dashboardApi.updateDashboardModulePreference({
           moduleKey: PINNED_COLLECTION_MODULE_KEY,
@@ -186,6 +191,11 @@ export function useCollectionPin({
           await queryClient.invalidateQueries({
             queryKey: context.key,
             exact: true,
+            // An offline recovery read would pause and retain the write lock.
+            refetchType:
+              onlineManager.isOnline() && navigator.onLine !== false
+                ? 'active'
+                : 'none',
           });
         }
       } finally {

@@ -45,6 +45,14 @@ PLAN_COMPLETION_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact existing localized copy in this Daily Check-in reference prompt.
+    Path("docs/product/design/references/508/daily-check-in-owner/generation.md"): (
+        "Wird gespeichert …",
+        "Gut & entspannt",
+        "Gemeinsamer Abend",
+        "Heute",
+        "Wir",
+    ),
     # Exact localized UI strings in the recorded app-icon reference prompt.
     Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"): (
         "← Zurück zu Einstellungen",

@@ -2,7 +2,9 @@ import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import dailyVibe from '../../src/i18n/locales/dailyVibe';
+import dailyEnergy from '../../src/i18n/locales/dailyEnergy';
 import de from '../../src/i18n/locales/de';
+import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -21,18 +23,28 @@ async function installMocks(
     partnerState?: VibePartnerState;
     partnerVibeNote?: string | null;
     holdFirstPatch?: boolean;
+    holdFirstAck?: boolean;
+    failFirstAck?: boolean;
     failFirstPatch?: boolean;
+    energyEnabled?: boolean;
   } = {},
 ) {
   let ownVibe: string | null = initial.ownVibe ?? null;
+  let ownEnergy: number | null = 60;
+  let energyPartner:
+    | { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
+    | { state: 'VISIBLE'; value: number } = {
+    state: 'HIDDEN_UNTIL_SELF_CHECK_IN',
+  };
   let ownVibeNote: string | null = initial.ownVibeNote ?? null;
   let partnerState: VibePartnerState = initial.partnerState ?? {
     state: 'HIDDEN_UNTIL_SELF_CHECK_IN',
   };
   const partnerVibeNote = initial.partnerVibeNote ?? null;
-  let etag = '"2026-09-21:check-in-1:1"';
+  let etag = '"2026-10-12:check-in-1:1"';
   let lastPatch: Record<string, unknown> | null = null;
   let patchCount = 0;
+  let dailyVersion = 1;
   let releaseFirstPatch = () => {};
   const firstPatchGate = new Promise<void>((resolve) => {
     releaseFirstPatch = resolve;
@@ -109,7 +121,7 @@ async function installMocks(
           canManageSpaceConfiguration: true,
           dailyContextTimezone: 'Europe/Berlin',
           dailyQuestionsEnabled: false,
-          energyCheckInEnabled: false,
+          energyCheckInEnabled: initial.energyEnabled ?? false,
           energyVisibilityMode: 'MUTUAL_REVEAL',
           loveNotesEnabled: false,
           sharedAchievementsEnabled: false,
@@ -160,7 +172,7 @@ async function installMocks(
           spaceId: SPACE_ID,
           partner: { id: PARTNER_ID, displayName: 'Ben Winter' },
         },
-        relationshipDuration: { daysTogether: 250, startedOn: '2026-01-01' },
+        relationshipDuration: { daysTogether: 284, startedOn: '2026-01-01' },
         retrospective: null,
         recentShared: [],
         upcoming: [
@@ -168,7 +180,7 @@ async function installMocks(
             id: '00000000-0000-0000-0000-000000000040',
             type: 'PLAN',
             titleOrText: 'Gemeinsamer Abend',
-            scheduledAt: '2026-09-22T18:00:00Z',
+            scheduledAt: '2026-10-13T18:00:00Z',
           },
         ],
         thinkingOfYouAvailableAt: null,
@@ -202,15 +214,17 @@ async function installMocks(
     ) {
       await json(
         {
-          checkedOn: '2026-09-21',
+          checkedOn: '2026-10-12',
           dailyContextTimezone: 'Europe/Berlin',
           own: {
-            energyLevel: 60,
+            energyLevel: ownEnergy,
             vibe: ownVibe,
             vibeNote: ownVibeNote,
-            version: 1,
+            version: dailyVersion,
           },
-          energy: null,
+          energy: initial.energyEnabled
+            ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
+            : null,
           vibe: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner: partnerState,
@@ -246,6 +260,13 @@ async function installMocks(
       ownVibe = Object.hasOwn(lastPatch, 'vibe')
         ? (lastPatch.vibe as string | null)
         : ownVibe;
+      if (Object.hasOwn(lastPatch, 'energyLevel')) {
+        ownEnergy = lastPatch.energyLevel as number | null;
+        energyPartner =
+          ownEnergy === null
+            ? { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
+            : { state: 'VISIBLE', value: 40 };
+      }
       if (ownVibe === null) {
         ownVibeNote = null;
       } else if (Object.hasOwn(lastPatch, 'vibeNote')) {
@@ -255,18 +276,33 @@ async function installMocks(
         ownVibe === null
           ? { state: 'HIDDEN_UNTIL_SELF_CHECK_IN' }
           : { state: 'VISIBLE', value: 'STRESSED' };
-      etag = '"2026-09-21:check-in-1:2"';
+      dailyVersion += 1;
+      etag = `"2026-10-12:check-in-1:${dailyVersion}"`;
+      if (patchCount === 1 && initial.holdFirstAck) await firstPatchGate;
+      if (patchCount === 1 && initial.failFirstAck) {
+        await json(
+          {
+            code: 'SERVICE_UNAVAILABLE',
+            status: 503,
+            title: 'Temporarily unavailable',
+          },
+          503,
+        );
+        return;
+      }
       await json(
         {
-          checkedOn: '2026-09-21',
+          checkedOn: '2026-10-12',
           dailyContextTimezone: 'Europe/Berlin',
           own: {
-            energyLevel: 60,
+            energyLevel: ownEnergy,
             vibe: ownVibe,
             vibeNote: ownVibeNote,
-            version: 2,
+            version: dailyVersion,
           },
-          energy: null,
+          energy: initial.energyEnabled
+            ? { visibilityMode: 'MUTUAL_REVEAL', partner: energyPartner }
+            : null,
           vibe: {
             visibilityMode: 'MUTUAL_REVEAL',
             partner: partnerState,
@@ -304,6 +340,7 @@ async function signIn(page: Page) {
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -644,6 +681,198 @@ test('Daily Vibe immediately shows only the own pending Vibe and recovers a fail
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
+for (const viewport of [
+  {
+    width: 360,
+    height: 800,
+    theme: 'light',
+    reducedMotion: 'no-preference',
+    largeText: false,
+  },
+  {
+    width: 390,
+    height: 844,
+    theme: 'light',
+    reducedMotion: 'no-preference',
+    largeText: false,
+  },
+  {
+    width: 430,
+    height: 932,
+    theme: 'dark',
+    reducedMotion: 'reduce',
+    largeText: false,
+  },
+  {
+    width: 1280,
+    height: 900,
+    theme: 'dark',
+    reducedMotion: 'no-preference',
+    largeText: false,
+  },
+  {
+    width: 320,
+    height: 640,
+    theme: 'dark',
+    reducedMotion: 'reduce',
+    largeText: true,
+  },
+] as const) {
+  for (const dimension of ['energy', 'vibe'] as const) {
+    test(`DailyCheckIn retains ${dimension} ownership through route return, failure and retry at ${viewport.width}px ${viewport.theme}`, async ({
+      page,
+    }, testInfo) => {
+      const state = await installMocks(page, {
+        energyEnabled: true,
+        holdFirstPatch: true,
+        failFirstPatch: true,
+      });
+      await page.setViewportSize({
+        width: viewport.width,
+        height: viewport.height,
+      });
+      await page.emulateMedia({
+        colorScheme: viewport.theme,
+        reducedMotion: viewport.reducedMotion,
+      });
+      await signIn(page);
+      if (viewport.largeText)
+        await page.evaluate(() => {
+          document.documentElement.style.fontSize = '200%';
+        });
+      const energy = page.getByTestId('daily-energy-own-battery');
+      const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+      const note = 'An own choice survives a brief interruption';
+      if (dimension === 'energy') {
+        await energy.click();
+        const slider = page.getByRole('slider', {
+          name: dailyEnergy.changeLegend,
+        });
+        await slider.focus();
+        await slider.press('ArrowRight');
+        await slider.press('ArrowRight');
+        await slider.press('Tab');
+        await expect(energy).toHaveAttribute('data-pending', 'true');
+        await page.keyboard.press('Escape');
+      } else {
+        await page.getByRole('button', { name: dailyVibe.chooseAria }).click();
+        await sheet
+          .getByRole('button', { name: dailyVibe.values.GOOD })
+          .click();
+        await sheet.getByPlaceholder(dailyVibe.notePlaceholder).fill(note);
+        await sheet.getByRole('button', { name: dailyVibe.share }).click();
+        await expect(sheet).toHaveCount(0);
+      }
+      await expect.poll(state.patchCount).toBe(1);
+      await page
+        .getByRole('link', { name: navigation.more, exact: true })
+        .click();
+      await expect(energy).toHaveCount(0);
+      await page
+        .getByRole('link', { name: navigation.today, exact: true })
+        .click();
+      await expect(energy).toHaveAttribute(
+        'aria-label',
+        dailyEnergy.badgeAriaValue.replace(
+          '{{value}}',
+          dimension === 'energy' ? '80' : '60',
+        ),
+      );
+      await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+      await expect(
+        page.getByTestId('daily-energy-partner-battery'),
+      ).toHaveCount(0);
+      if (dimension === 'energy') {
+        const choose = page.getByRole('button', { name: dailyVibe.chooseAria });
+        await expect(choose).toHaveAttribute('aria-disabled', 'true');
+        await expect(page.getByText(dailyVibe.otherSaving)).toBeVisible();
+        await choose.dispatchEvent('click');
+        await expect(sheet).toHaveCount(0);
+        await energy.click();
+        await expect(page.getByRole('slider')).toHaveValue('80');
+        await expect(page.getByRole('slider')).toBeDisabled();
+        await expect(page.getByText(dailyEnergy.saving)).toBeVisible();
+      } else {
+        const own = page.getByTestId('daily-vibe-own');
+        await expect(own).toHaveAttribute('aria-disabled', 'true');
+        await expect(own.getByText(dailyVibe.values.GOOD)).toBeVisible();
+        await own.dispatchEvent('click');
+        await expect(sheet).toHaveCount(0);
+        await energy.click();
+        await expect(page.getByRole('slider')).toBeDisabled();
+        await expect(page.getByText(dailyEnergy.otherSaving)).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(energy).toBeFocused();
+      }
+      expect(state.patchCount()).toBe(1);
+      await expectNoHorizontalOverflow(page);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      const prefix = `today-daily-owner-${dimension}-${viewport.width}-${viewport.theme}`;
+      await page.screenshot({
+        path: testInfo.outputPath(`${prefix}-return.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      state.releaseFirstPatch();
+      if (dimension === 'energy') {
+        await expect(page.getByText(dailyEnergy.saveError)).toBeVisible();
+        await expect(page.getByRole('slider')).toHaveValue('80');
+      } else {
+        await expect(sheet).toBeVisible();
+        await expect(sheet.getByText(dailyVibe.saveError)).toBeVisible();
+        await expect(
+          sheet.getByPlaceholder(dailyVibe.notePlaceholder),
+        ).toHaveValue(note);
+        await sheet.getByText(dailyVibe.saveError).scrollIntoViewIfNeeded();
+        await expect(sheet.getByText(dailyVibe.saveError)).toBeInViewport();
+        await expect(
+          sheet.getByRole('button', { name: dailyVibe.retry, exact: true }),
+        ).toBeInViewport();
+      }
+      await expectNoHorizontalOverflow(page);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      await page.screenshot({
+        path: testInfo.outputPath(`${prefix}-error.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await (dimension === 'energy'
+        ? page.getByTestId('daily-energy-popover')
+        : sheet
+      )
+        .getByRole('button', {
+          name: dimension === 'energy' ? de.common.retry : dailyVibe.retry,
+          exact: true,
+        })
+        .click();
+      await expect.poll(state.patchCount).toBe(2);
+      if (dimension === 'energy') {
+        await expect(energy).not.toHaveAttribute('data-pending', 'true');
+        await expect(
+          page.getByTestId('daily-energy-partner-battery'),
+        ).toBeVisible();
+        expect(state.lastPatch()).toEqual({ energyLevel: 80 });
+        await page.keyboard.press('Escape');
+        await expect(energy).toBeFocused();
+      } else {
+        await expect(sheet).toHaveCount(0);
+        await expect(page.getByTestId('daily-vibe-own')).toHaveAttribute(
+          'aria-disabled',
+          'false',
+        );
+        await expect(page.getByTestId('daily-vibe-partner')).toBeVisible();
+        expect(state.lastPatch()).toEqual({ vibe: 'GOOD', vibeNote: note });
+      }
+      await expectNoHorizontalOverflow(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`${prefix}-confirmed.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+    });
+  }
+}
+
 test('Daily Vibe reflows at 320px with large text and Reduced Motion', async ({
   page,
 }, testInfo) => {
@@ -707,4 +936,50 @@ test('Daily Vibe adapts the same interaction for Expanded Web', async ({
     path: testInfo.outputPath('today-daily-vibe-1280-light.png'),
     fullPage: false,
   });
+});
+
+test('Daily Vibe keeps a committed clear pending through return and consumes a lost acknowledgement without replay', async ({
+  page,
+}, testInfo) => {
+  const state = await installMocks(page, {
+    ownVibe: 'GOOD',
+    energyEnabled: true,
+    holdFirstAck: true,
+    failFirstAck: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await page.getByTestId('daily-vibe-own').click();
+  const sheet = page.getByRole('dialog', { name: dailyVibe.sheetTitle });
+  await sheet.getByRole('button', { name: dailyVibe.remove }).click();
+  await expect.poll(state.patchCount).toBe(1);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole('link', { name: navigation.more, exact: true }).click();
+  await expect(page.getByTestId('daily-energy-own-battery')).toHaveCount(0);
+  await page.getByRole('link', { name: navigation.today, exact: true }).click();
+  const choose = page.getByRole('button', { name: dailyVibe.chooseAria });
+  await expect(choose).toBeVisible();
+  await expect(choose).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.getByText(dailyVibe.saving, { exact: true })).toBeVisible();
+  await choose.dispatchEvent('click');
+  await expect(sheet).toHaveCount(0);
+  expect(state.patchCount()).toBe(1);
+  await expectNoHorizontalOverflow(page);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('today-daily-vibe-clear-pending-390-light.png'),
+    fullPage: true,
+  });
+  state.releaseFirstPatch();
+  await expect(choose).toHaveAttribute('aria-disabled', 'false');
+  await expect(sheet).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.saveError)).toHaveCount(0);
+  await expect(page.getByText(dailyVibe.saving, { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId('daily-vibe-partner')).toHaveCount(0);
+  expect(state.lastPatch()).toEqual({ vibe: null });
+  expect(state.patchCount()).toBe(1);
 });

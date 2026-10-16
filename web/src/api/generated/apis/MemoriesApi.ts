@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -47,6 +47,7 @@ import {
 export interface CreateMemoryRequest {
     spaceId: string;
     memoryCreate: MemoryCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteMemoryRequest {
@@ -110,6 +111,10 @@ export class MemoriesApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
+
 
         let urlPath = `/api/v1/spaces/{spaceId}/memories`;
         urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
@@ -124,6 +129,7 @@ export class MemoriesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Create a Memory.  Send an `Idempotency-Key` to make the save reconcilable after a lost response: the identical request repeated with the same key returns the original Memory (`200`); the same key with a different payload is a `409` (`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the answer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.
      * Create Memory
      */
     async createMemoryRaw(requestParameters: CreateMemoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryDetail>> {
@@ -134,6 +140,7 @@ export class MemoriesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Create a Memory.  Send an `Idempotency-Key` to make the save reconcilable after a lost response: the identical request repeated with the same key returns the original Memory (`200`); the same key with a different payload is a `409` (`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the answer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.
      * Create Memory
      */
     async createMemory(requestParameters: CreateMemoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryDetail> {
@@ -371,7 +378,7 @@ export class MemoriesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Menge und Reihenfolge in einem Zug setzen.  Ein PUT, kein Hinzufuegen und Entfernen: der Client schickt den Zustand, den er gesehen hat, und `If-Match` sorgt dafuer, dass er ihn noch hat.
+     * Replace the attachment set and ordering in one operation.  This is a PUT rather than an add/remove sequence: the client submits the state it observed, while ``If-Match`` verifies that state is still current.
      * Replace Memory Attachments
      */
     async replaceMemoryAttachmentsRaw(requestParameters: ReplaceMemoryAttachmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MemoryDetail>> {
@@ -382,7 +389,7 @@ export class MemoriesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Menge und Reihenfolge in einem Zug setzen.  Ein PUT, kein Hinzufuegen und Entfernen: der Client schickt den Zustand, den er gesehen hat, und `If-Match` sorgt dafuer, dass er ihn noch hat.
+     * Replace the attachment set and ordering in one operation.  This is a PUT rather than an add/remove sequence: the client submits the state it observed, while ``If-Match`` verifies that state is still current.
      * Replace Memory Attachments
      */
     async replaceMemoryAttachments(requestParameters: ReplaceMemoryAttachmentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MemoryDetail> {

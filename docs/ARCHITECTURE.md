@@ -1,14 +1,14 @@
-# Architektur
+# Architecture
 
-## Form
+## Shape
 
-Ein **modularer Monolith**. Keine Microservices, solange keine konkrete
-technische Notwendigkeit besteht.
+A **modular monolith**. No microservices unless a concrete technical need
+requires them.
 
-```
-        Android (Kotlin/Compose)     Web (React/TypeScript)
-                    │                        │
-                    └────────  HTTPS  ───────┘
+```text
+        Web / PWA (React/TypeScript) ── same bundle ──▶ Capacitor Android wrapper
+                    │                                          │
+                    └──────────────────  HTTPS  ───────────────┘
                                  │
                            REST API v1
                                  │
@@ -25,237 +25,237 @@ technische Notwendigkeit besteht.
                    (Self-Hosted)        (Cloud)
 ```
 
-Cloud und Self-Hosted teilen denselben Core. Unterschiede liegen in den
-Adaptern — Storage, Mail, Auth, Push —, nicht in der Fachlogik.
+Cloud and Self-Hosted share the same core. Differences live in adapters —
+storage, mail, auth, push — rather than in domain logic.
 
-## Schichten
+## Layers
 
-**API** (`sidebyside.api`) — HTTP, Serialisierung, Fehlerabbildung. Enthält
-keine Fachregeln.
+**API** (`eimir.api`) — HTTP, serialization, error mapping. Contains no
+domain rules.
 
-**Domain** (`sidebyside.domain`) — Fachobjekte, Regeln, Ereignisse. Kennt
-weder HTTP noch einen konkreten Anbieter.
+**Domain** (`eimir.domain`) — domain objects, rules, and events. Knows
+neither HTTP nor a concrete provider.
 
-**Infrastructure** (`sidebyside.db`, `.media`, `.providers`) — Persistenz
-und externe Systeme hinter Schnittstellen.
+**Infrastructure** (`eimir.db`, `.media`, `.providers`) — persistence and
+external systems behind interfaces.
 
-Die Abhängigkeit zeigt nach innen: API kennt Domain, Domain kennt
-Infrastructure nur über Schnittstellen.
+Dependencies point inward: API knows Domain; Domain knows Infrastructure only
+through interfaces.
 
-## Auth-Architektur
+## Authentication architecture
 
-Profilidentität und Anmeldeverfahren bleiben getrennt. Der bestehende lokale
-Self-Hosted-Weg hält ausschließlich den Argon2-Hash in `AuthIdentity`.
-OIDC ergänzt dort den standardgemäßen Schlüssel `(issuer, subject)` und eine
-frei konfigurierbare `connection_id`; konkrete Anbieter wie Pocket ID
-benötigen dadurch kein eigenes Domain-Modell.
+Profile identity and authentication methods remain separate. The existing local
+Self-Hosted path stores only the Argon2 hash in `AuthIdentity`. OIDC adds the
+standards-based key `(issuer, subject)` and a freely configurable
+`connection_id`; concrete providers such as Pocket ID therefore need no custom
+domain model.
 
-WebAuthn ist kein generischer String-Provider. `WebAuthnCredential` hält die
-für Registration und Assertion nötigen öffentlichen Credential-Daten und den
-Signaturzähler; private Schlüssel existieren nur im Authenticator.
+WebAuthn is not modeled as a generic string provider. `WebAuthnCredential`
+stores the public credential data and signature counter needed for registration
+and assertion; private keys exist only in the authenticator.
 
-Kurzlebige Nachweise für E-Mail-Verifikation, Magic Link und Recovery sind
-drei getrennte Modelle. Gemeinsame Invarianten — Hash statt Klartext, Ablauf,
-Widerruf und einmaliger Verbrauch — werden geteilt, die Tabellen und
-Konsumwege jedoch nicht. So kann ein Token nicht zwischen Auth-Flows
-verwechselt werden. Protokolladapter und HTTP-Flows werden darauf aufgebaut,
-sind aber nicht Teil dieser Persistenzgrundlage.
+Short-lived proofs for email verification, Magic Link, and Recovery use three
+separate models. Shared invariants — hash instead of plaintext, expiry,
+revocation, and single use — are shared, but tables and consumption paths are
+not. A token therefore cannot be confused between authentication flows.
+Protocol adapters and HTTP flows are built on top of this foundation but are
+not part of the persistence model itself.
 
-## Konventionen
+## Conventions
 
-### Identifikatoren
+### Identifiers
 
-Persistente Domain-Objekte verwenden **UUIDv7**. Keine hochzählbaren
-öffentlichen IDs — eine fortlaufende Nummer verrät Bestandsgrößen und lädt
-zum Durchprobieren ein. UUIDv7 ist zeitlich sortierbar und damit als
-Primärschlüssel indexfreundlich.
+Persistent domain objects use **UUIDv7**. No incrementing public IDs: a
+sequential number leaks inventory size and invites enumeration. UUIDv7 is time
+sortable and therefore index-friendly as a primary key.
 
-### Zeit
+### Time
 
-| Bedeutung | Typ |
+| Meaning | Type |
 |---|---|
-| Technischer Zeitpunkt (`created_at`, `updated_at`) | `TIMESTAMPTZ`, immer UTC |
-| Fachlicher Tag (`happened_on`, `birthday`) | `DATE` |
+| Technical timestamp (`created_at`, `updated_at`) | `TIMESTAMPTZ`, always UTC |
+| Domain date (`happened_on`, `birthday`) | `DATE` |
 
-Ein fachlicher Tag ist kein Zeitpunkt. Ein Geburtstag hat keine Zeitzone,
-und ihn als Zeitstempel zu speichern verschiebt ihn irgendwann um einen Tag.
+A domain date is not a timestamp. A birthday has no time zone, and storing it as
+a timestamp will eventually shift it by a day.
 
-#### Welcher Tag ist heute?
+#### What day is today?
 
-Ein gespeicherter fachlicher Tag hat keine Zeitzone. Die Frage, welcher Tag
-gerade *ist*, hat sehr wohl eine — und sie entscheidet über gemeinsame Tage,
-Jahrestage und jede andere sichtbare Tagesgrenze.
+A stored domain date has no time zone. The question of which day it currently
+*is* does, and that determines shared days, anniversaries, and every other
+visible day boundary.
 
-Maßgeblich ist die Zeitzone der **lesenden Person** (`Account.timezone`),
-nicht UTC:
+The authoritative time zone is the **reading person's** time zone
+(`Account.timezone`), not UTC:
 
+```text
+today_utc()             technical purposes
+today_in(zone)          every user-visible day boundary
 ```
-today_utc()             technische Zwecke
-today_in(zone)          jede nutzersichtbare Tagesgrenze
-```
 
-`today_utc()` wäre für Menschen westlich von UTC bis zu einen Tag zu weit
-und für Menschen östlich davon einen Tag zu kurz. Ein Jahrestag träte dann
-Stunden zu früh oder zu spät ein — sichtbar falsch an genau dem Tag, an dem
-er zählt.
+`today_utc()` would be up to one day ahead for people west of UTC and one day
+behind for people east of it. An anniversary would then appear hours too early
+or too late — visibly wrong on exactly the day when it matters.
 
-Zwei Partner an zwei Orten sehen deshalb kurzzeitig verschiedene Werte. Das
-ist gewollt: jeder sieht seinen eigenen Tag. Ein unbrauchbarer Zonenname
-fällt protokolliert auf UTC zurück, statt die Antwort zu verlieren.
+Two partners in different places may therefore briefly see different values.
+That is intentional: each person sees their own day. An unusable zone name
+falls back to UTC with logging rather than failing the response.
 
-#### Zeitzone und Locale werden geschrieben, nicht geraten
+#### Time zone and locale are written, not guessed
 
-Der UTC-Rückfall beim Lesen ist eine Rückfallebene für Altbestände und
-ausdrücklich kein Normalfall. Damit er einer bleibt, gibt es genau **eine**
-Stelle, die `Account.timezone` und `Account.locale` schreibt:
-`identity.preferences.set_preferences`. Jeder künftige Schreibpfad —
-Account-Einstellungen, Import, Datenmigration — geht dort durch.
+The UTC fallback on read is a recovery layer for legacy data and explicitly not
+the normal path. To keep it that way, exactly **one** place writes
+`Account.timezone` and `Account.locale`:
+`identity.preferences.set_preferences`. Every future write path — account
+settings, import, data migration — passes through it.
 
-| Feld | Regel | Fehler |
+| Field | Rule | Error |
 |---|---|---|
-| `timezone` | exakter IANA-Name, geprüft gegen die vorhandene Zonendatenbank | `ACCOUNT_TIMEZONE_INVALID` |
-| `locale` | BCP-47-Teilmenge `sprache[-Schrift][-REGION]` | `ACCOUNT_LOCALE_INVALID` |
+| `timezone` | exact IANA name, validated against the available zone database | `ACCOUNT_TIMEZONE_INVALID` |
+| `locale` | BCP-47 subset `language[-Script][-REGION]` | `ACCOUNT_LOCALE_INVALID` |
 
-Geprüft wird gegen die Zonendatenbank und nicht gegen ein Muster:
-`Europe/Berlinn` sieht aus wie ein Zonenname und ist keiner. Die
-Schreibweise bleibt unangetastet — `europe/berlin` wird abgewiesen, nicht
-still zurechtgerückt.
+Validation uses the zone database rather than a pattern: `Europe/Berlinn`
+looks like a zone name but is not one. Casing is left untouched —
+`europe/berlin` is rejected rather than silently corrected.
 
-Für die Locale ist die Normalisierung vollständig festgelegt und damit
-deterministisch: `_` wird zu `-`, Sprache klein, Schrift mit großem
-Anfangsbuchstaben, Region groß (`de_DE` → `de-DE`, `zh-hans-cn` →
-`zh-Hans-CN`). Zweimal normalisieren ändert nichts mehr; gespeicherter und
-ausgelieferter Wert sind derselbe. Alles, was danach nicht dem Muster
-entspricht, wird abgewiesen statt korrigiert.
+Locale normalization is fully specified and therefore deterministic: `_`
+becomes `-`, language is lowercase, Script starts with an uppercase letter,
+and REGION is uppercase (`de_DE` → `de-DE`, `zh-hans-cn` → `zh-Hans-CN`).
+Normalizing twice changes nothing further; stored and returned values are the
+same. Anything that still does not match the pattern is rejected instead of
+corrected.
 
-Beide Werte werden erst vollständig geprüft und dann zugewiesen — ein
-ungültiger zweiter Wert hinterlässt keinen halb geänderten Account.
+Both values are validated completely before either is assigned, so an invalid
+second value never leaves a half-modified account.
 
 ### JSON
 
-Nach außen **camelCase**, intern **snake_case**. Die Umsetzung geschieht an
-der Serialisierungsgrenze, nicht durch Umbenennen im Domain-Code.
+Externally **camelCase**, internally **snake_case**. Conversion happens at the
+serialization boundary rather than by renaming domain code.
 
-### Optimistic Concurrency
+### Optimistic concurrency
 
-Veränderbare Domain-Objekte tragen eine `version`. Updates prüfen sie und
-antworten bei Abweichung mit **409**. Das ist zugleich die Vorbereitung auf
-späteren Offline-Sync: ohne Versionsbegriff lässt sich ein Konflikt nicht
-von einem Überschreiben unterscheiden.
+Mutable domain objects carry a `version`. Updates validate it and return
+**409** on mismatch. This also prepares for later offline synchronization:
+without a version concept, a conflict cannot be distinguished from an
+overwrite.
 
-Über HTTP läuft das als ETag und `If-Match`:
+Over HTTP this is represented through ETag and `If-Match`:
 
-```
+```text
 GET  .../profile        -> 200, ETag: "3"
 PUT  .../profile        If-Match: "3"  -> 200, ETag: "4"
 PUT  .../profile        If-Match: "3"  -> 409
 ```
 
-`If-Match` ist **Pflicht**, auch im OpenAPI-Vertrag. Ein optionaler Kopf
-wäre die Einladung, ihn wegzulassen — und damit der Weg, auf dem ein Client
-den Konfliktschutz versehentlich abschaltet. `*` und schwache Validatoren
-werden abgewiesen, weil beide keine konkrete Version benennen.
+`If-Match` is **mandatory**, including in the OpenAPI contract. An optional
+header would invite clients to omit it and thereby accidentally disable
+conflict protection. `*` and weak validators are rejected because neither
+names a concrete version.
 
-Zwei Sicherungen greifen unabhängig voneinander: konkurrierende Schreiber
-werden je Space serialisiert, sodass der 409 deterministisch entsteht und
-nicht vom zeitlichen Zufall abhängt; zusätzlich prüft die Datenbank die
-Versionsspalte im `UPDATE` selbst. Ein Lost Update entsteht auch dann nicht,
-wenn eine der beiden Sicherungen später einmal umgangen würde.
+Two independent safeguards apply: concurrent writers are serialized per Space
+so the 409 occurs deterministically rather than by timing accident; the
+database also checks the version column in the `UPDATE` itself. A lost update
+therefore does not occur even if one safeguard is bypassed later.
 
 ## Transactional Outbox
 
-Fachliche Änderung und Ereignis werden in **einer** Transaktion
-geschrieben:
+The domain change and its event are written in **one** transaction:
 
-```
+```text
 BEGIN
-  INSERT/UPDATE  Domain-Objekt
+  INSERT/UPDATE  Domain object
   INSERT         outbox_event
 COMMIT
 ```
 
-Ein Worker liest die Outbox und stellt zu. Damit kann kein Ereignis
-verlorengehen, weil die Zustellung nach dem Commit fehlschlug, und keine
-Benachrichtigung entstehen zu einer Änderung, die zurückgerollt wurde.
+A worker reads and delivers the Outbox. This prevents an event from being lost
+because delivery failed after commit and prevents a notification from being
+created for a change that was rolled back.
 
-Domain und Zustellkanal bleiben entkoppelt: die Domain kennt weder Push
-noch Mail noch eine Integration.
+Domain and delivery channel remain decoupled: the Domain knows neither push,
+mail, nor any integration.
 
 ## Job Queue
 
-PostgreSQL-basiert, ohne Redis- oder Celery-Pflicht. Nebenläufige Worker
-holen Aufgaben über `FOR UPDATE SKIP LOCKED`, sodass zwei Worker nie
-dieselbe Aufgabe greifen.
+PostgreSQL-based, without requiring Redis or Celery. Concurrent workers claim
+jobs through `FOR UPDATE SKIP LOCKED`, so two workers never take the same job.
 
-Jobs tragen `attempts`, `max_attempts`, `run_after` und `locked_until`.
-Eine hängengebliebene Sperre läuft ab und wird erneut vergeben.
+Jobs carry `attempts`, `max_attempts`, `run_after`, and `locked_until`. A stale
+lock expires and the job becomes claimable again.
 
 ## Read Models
 
-Story, Dashboard, Jahresrückblick und "Weißt du noch?" sind **abgeleitet**,
-nicht gespeichert. Es gibt keine Story-Tabelle. Doppelte Datenhaltung
-driftet auseinander, und ein zweiter Ort für denselben Inhalt ist ein
-zweiter Ort, an dem eine Sichtbarkeitsregel vergessen werden kann.
+Story, Dashboard, yearly recap, and the de-DE product feature **„Weißt du
+noch?“** are **derived**, not stored. There is no Story table. Duplicated data
+stores drift apart, and a second place holding the same content is a second
+place where a visibility rule can be forgotten.
 
-## E2EE-Bereitschaft
+## E2EE readiness
 
-Im ersten Release gibt es **keine** echte Ende-zu-Ende-Verschlüsselung.
-Der Aufbau muss sie später aufnehmen können, ohne neu gebaut zu werden.
+The first release has **no** real end-to-end encryption. The architecture must
+be able to adopt it later without being rebuilt.
 
-Deshalb trennt jedes sensible Fachobjekt zwei Bereiche:
+Every sensitive domain object therefore separates two areas:
 
 | Metadata | ProtectedPayload |
 |---|---|
 | `id`, `space_id`, `author_id` | `title`, `body` |
-| `happened_on`, `created_at` | weitere sensible Felder |
+| `happened_on`, `created_at` | additional sensitive fields |
 | `crypto_version` | |
 
-In Version 1 ist der Payload Klartext (`crypto_version = 0`). Die Grenze
-existiert aber schon in API und Persistenz, sodass ein späterer Wechsel auf
-clientseitig erzeugten Ciphertext eine Formatänderung ist und kein Umbau.
+`crypto_version = 0` is legacy plaintext. `crypto_version = 2` is an
+application-encrypted envelope (issue #797, [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)):
+the server encrypts with operator-held keys and can still read the content, so this is
+encryption at rest, not end-to-end encryption. `crypto_version = 1` remains reserved for
+client-generated ciphertext. Because the boundary already exists in API and persistence,
+a later switch to client-generated ciphertext is a format change rather than an
+architectural rewrite.
 
-Die Persistenz verwendet dafür `ProtectedPayloadJSON` mit einer konkreten
-`ProtectedPayload`-Klasse. Ein rohes Dictionary oder die Payload einer
-anderen Domäne wird bereits vor dem SQL-Bind abgewiesen. Das ist eine
-Typ- und Architekturgrenze, **keine Verschlüsselung**: Bei
-`crypto_version = 0` kann der Server den Inhalt weiterhin lesen.
+Persistence uses `ProtectedPayloadJSON` with a concrete `ProtectedPayload`
+class. A raw dictionary or payload from another domain is rejected before SQL
+binding, and this layer applies the active encryption mode: it seals on write and
+authenticates and decrypts on read, so domain code never handles ciphertext.
 
-Outbox-Ereignisse bilden die Gegenrichtung ab. Ihre Nutzlast ist kein
-beliebiges JSON-Dictionary, sondern `PublicEventPayload` mit einer zentralen
-Allowlist unkritischer Metadaten. Der JSONB-Persistenztyp weist auch bei
-direkter ORM-Nutzung rohe Dictionaries ab. Sensibler Text bleibt damit im
-ProtectedPayload und wird nicht dauerhaft in Outbox, Worker oder Logs kopiert.
+Outbox events enforce the opposite boundary. Their payload is not an arbitrary
+JSON dictionary but `PublicEventPayload` with a central allowlist of
+non-sensitive metadata. The JSONB persistence type also rejects raw
+dictionaries during direct ORM use. Sensitive text therefore remains in the
+ProtectedPayload and is not persistently copied into Outbox, worker, or logs.
 
-Ableitende Funktionen — Dashboard, Rückblicke, Regeln, Benachrichtigungen —
-sollen möglichst mit Metadaten auskommen. Was den Klartext braucht, wird
-später nicht mehr funktionieren.
+Derived functionality — Dashboard, recaps, rules, notifications — should use
+metadata whenever possible. Anything that requires plaintext will no longer
+work once real E2EE is introduced. Database indexes over payload text are not
+permitted: they would be an unencrypted copy of protected content (Search matches
+in the application instead, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)).
 
-Siehe [SECURITY.md](SECURITY.md).
+See [SECURITY.md](SECURITY.md).
 
-## Provider-Rahmen
+## Provider framework
 
-Externe Anbieter ausschließlich über Adapter: Karten, Geocoding, Orte,
-Discovery, Rezepte, Unterhaltung, externe Medien, Standortverlauf.
+External providers are used exclusively through adapters: maps, geocoding,
+places, discovery, recipes, entertainment, external media, and location
+history.
 
-Der Domain-Code kennt keinen konkreten Anbieter. Externe Daten werden vor
-dem Eintritt in die Domain in eigene, normalisierte Formen überführt.
+Domain code knows no concrete provider. External data is transformed into
+eimir.-owned normalized forms before entering the Domain.
 
-Die Verträge heißen `MapProvider`, `GeocodingProvider`, `PlacesProvider`,
+The contracts are named `MapProvider`, `GeocodingProvider`, `PlacesProvider`,
 `DiscoveryProvider`, `RecipeProvider`, `EntertainmentProvider`,
-`ExternalMediaProvider` und `LocationHistoryProvider`. Sie geben nur eigene,
-immutable Modelle wie `GeoPoint`, `MapRoute`, `PlaceCandidate`, `RecipeItem`
-oder `EntertainmentItem` zurück; DTOs einzelner Anbieter enden im Adapter.
+`ExternalMediaProvider`, and `LocationHistoryProvider`. They return only
+eimir.-owned immutable models such as `GeoPoint`, `MapRoute`,
+`PlaceCandidate`, `RecipeItem`, or `EntertainmentItem`; provider-specific DTOs
+end at the adapter boundary.
 
-Eine `ProviderRegistry` verbindet Interface und frei konfigurierbaren Namen
-erst an der Composition Root. Damit kann Cloud oder Self-Hosted einen Adapter
-wechseln, ohne Domain-Code zu ändern. M0 implementiert ausdrücklich keinen
-kommerziellen Anbieter und keine darauf aufbauende M6-/M7-Funktion.
+A `ProviderRegistry` binds an interface to a freely configurable provider name
+only at the Composition Root. Cloud or Self-Hosted can therefore switch an
+adapter without changing Domain code. M0 deliberately implements no commercial
+provider and no dependent M6/M7 functionality.
 
-## Was bewusst fehlt
+## Deliberately absent
 
-- **Keine generische Universaltabelle** (`items(type, content, ...)`) für
-  alle Domänen. Fachbereiche bekommen eigene Modelle.
-- **Kein SQLite.** Ein zweiter Dialekt im Test prüft nicht, was in
-  Produktion läuft.
-- **Keine unkontrollierte Universalrelation** ohne referenzielle
-  Integrität. Beziehungen sind echte Fremdschlüsseltabellen.
+- **No generic universal table** such as `items(type, content, ...)` across all
+  domains. Domain areas receive their own models.
+- **No SQLite.** A second test dialect does not test what runs in production.
+- **No uncontrolled universal relation** without referential integrity.
+  Relationships use real foreign-key tables.

@@ -6,6 +6,7 @@
 
 Name | Type
 ------------ | -------------
+`availableYears` | Array&lt;number&gt;
 `hasMore` | boolean
 `items` | [Array&lt;StoryItem&gt;](StoryItem.md)
 `nextCursor` | string
@@ -17,6 +18,7 @@ import type { StoryPage } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "availableYears": null,
   "hasMore": null,
   "items": null,
   "nextCursor": null,

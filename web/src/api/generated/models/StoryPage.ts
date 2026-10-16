@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -27,6 +27,12 @@ import {
  * @interface StoryPage
  */
 export interface StoryPage {
+    /**
+     * 
+     * @type {Array<number>}
+     * @memberof StoryPage
+     */
+    availableYears?: Array<number>;
     /**
      * 
      * @type {boolean}
@@ -67,6 +73,7 @@ export function StoryPageFromJSONTyped(json: any, ignoreDiscriminator: boolean):
     }
     return {
         
+        'availableYears': json['availableYears'] == null ? undefined : json['availableYears'],
         'hasMore': json['hasMore'],
         'items': ((json['items'] as Array<any>).map(StoryItemFromJSON)),
         'nextCursor': json['nextCursor'],
@@ -84,6 +91,7 @@ export function StoryPageToJSONTyped(value?: StoryPage | null, ignoreDiscriminat
 
     return {
         
+        'availableYears': value['availableYears'],
         'hasMore': value['hasMore'],
         'items': ((value['items'] as Array<any>).map(StoryItemToJSON)),
         'nextCursor': value['nextCursor'],

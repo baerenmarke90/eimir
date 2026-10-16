@@ -1,158 +1,92 @@
-# Android
+# Capacitor Android Wrapper (`eimir.`)
 
-Der native Kotlin-/Jetpack-Compose-Client wird langfristig in M5 vollständig
-produktisiert. Für **M2-S8 / G2** existiert hier bewusst vorher nur ein dünner
-vertikaler Referenzflow. Er beweist denselben Memory-/Bild-/Story-Vertrag wie
-der Web-Slice, ohne Navigation, Offline-Sync oder Client-Parität vorzuziehen.
+This directory contains the canonical (and only) Android Gradle project for **eimir.**: a Capacitor wrapper around the React/Vite Web product in `web/` (Issues `#1044`, `#1008`, `#1009`; ADR 0011). It holds no product UI code; native code is limited to bounded platform capabilities.
 
-Android spricht ausschließlich über die versionierte REST-/OpenAPI-
-Schnittstelle mit dem gemeinsamen Application Core und erhält keine eigene
-Fach- oder Privacy-Logik.
+## Overview
 
-## Generierte API-Modelle
+- **Application ID (Release)**: `de.sidebyside.app`
+- **Application ID (Debug)**: `de.sidebyside.app.debug` (`applicationIdSuffix ".debug"`)
+- **Package / Namespace**: `de.eimir.app`
+- **Main Activity**: `de.eimir.app.MainActivity`
+- **SDK Target**: `minSdkVersion = 26`, `compileSdkVersion = 36`, `targetSdkVersion = 36`
 
-`api/generated/` enthält die Kotlin-Datenklassen aus `backend/openapi.json`
-und wird **nicht von Hand bearbeitet**. Erzeugen mit
-`tools/openapi/generate.sh`; CI prüft den eingecheckten Stand gegen den
-Vertrag.
+## Asset Synchronization
 
-Für den S8-Build wird daraus unverändert eine temporäre Compile-Source-Root
-unter `app/build/generated/` vorbereitet. Die zwei generator-owned Passkey-
-Request-Modelle mit `Map<String, Any>` werden in diesem fachfremden Slice aus
-der Compile-Kopie ausgelassen, weil kotlinx.serialization dafür keinen
-konkreten `Any`-Serializer erzeugen kann. Der Generatorbefund ist separat in
-#138 dokumentiert; die Quelldateien selbst bleiben unverändert. Alle für S8
-benötigten DTOs und insbesondere die mit #119 reparierte `StoryItem`-Union
-kommen weiterhin direkt aus dem generierten Vertrag. Es gibt keine zweite
-handgeschriebene DTO-Schicht.
-
-## M2-S8 Referenzflow
-
-Der Slice führt genau einen kritischen Flow aus:
-
-1. Passwort-Anmeldung gegen `/api/v1/auth/sign-in`,
-2. Bearer-Token ausschließlich im flüchtigen ViewModel-State,
-3. Memory gegen den veröffentlichten Vertrag anlegen,
-4. Bild über Android Photo Picker auswählen,
-5. `UploadDescriptor` für `STREAM` oder `SIGNED_UPLOAD` ausführen,
-6. Upload finalisieren und bis `READY` prüfen,
-7. Attachment mit `If-Match` an die Memory binden,
-8. gemeinsame `/timeline` laden und den generierten `StoryItem` behandeln,
-9. autorisierten `ReadDescriptor` ausführen und das Bild minimal anzeigen.
-
-Bei `STREAM` geht der Bearer-Token an die SideBySide-API. Bei
-`SIGNED_UPLOAD`/`SIGNED_URL` wird er bewusst **nicht** an den Storage-Endpunkt
-weitergereicht. Das App-Manifest erlaubt keine Cleartext-Verbindungen; ein
-realer Remote-Betrieb verwendet daher HTTPS.
-
-## Betreiberkonfiguration
-
-Normale Nutzer geben keine technischen URLs oder IDs ein. Für den Referenzflow
-werden die Werte beim Build als Gradle Properties gesetzt:
+Web assets are built from the `web/` package and synchronized into `app/src/main/assets/public/` using Capacitor CLI:
 
 ```bash
-./gradlew -PsbsApiBaseUrl=https://sidebyside.example \
-  -PsbsSpaceId=00000000-0000-0000-0000-000000000000 \
-  :app:assembleDebug
+cd ../web
+
+# 1. Build web production bundle with explicit API base URL:
+VITE_EIMIR_API_BASE_URL="https://api.eimir.example.com" npm run cap:build:web
+
+# 2. Sync web bundle and plugins into this Android project:
+npm run cap:sync
 ```
 
-Ohne gültige Konfiguration zeigt die Oberfläche nur einen verständlichen
-Betreiberhinweis und startet keine API-Anfrage.
+> **Note**: `app/src/main/assets/public` is intentionally ignored by git and populated automatically via `cap:sync` / `cap:copy`.
 
-## Reproduzierbarer Gradle-Build
+## Building the Android Application
 
-Der eingecheckte Gradle Wrapper ist die einzige unterstützte Gradle-
-Einstiegsstelle für Android. Aktuell sind **Gradle 9.5.0**, AGP 9.3.0 und
-JDK 17 festgelegt. `gradle/wrapper/gradle-wrapper.properties` bindet die
-Gradle-9.5.0-Binärdistribution an deren offiziellen SHA-256; CI validiert
-zusätzlich den eingecheckten Wrapper-JAR gegen den offiziellen Wrapper-
-SHA-256. `gradle/actions/setup-gradle` wird in CI nur noch für Cache und
-Wrapper-Validierung verwendet und installiert keine separate Gradle-Version.
-
-Mit installiertem JDK 17 und Android SDK 37.1:
+Requires **Java 21** and Android SDK installed (e.g. at `$ANDROID_HOME` or configured in `local.properties`).
 
 ```bash
-./gradlew --version
-./gradlew --no-daemon --dependency-verification strict :app:testDebugUnitTest
-./gradlew --no-daemon --dependency-verification strict :app:lintDebug
-./gradlew --no-daemon --dependency-verification strict :app:assembleDebug
+# Build Debug APK:
+./gradlew assembleDebug
+
+# Build Unsigned Release Artifacts (APK + AAB) with strict dependency verification:
+./gradlew --dependency-verification strict \
+  -PeimirVersionCode=1 \
+  -PeimirVersionName="0.1.0" \
+  :app:assembleRelease :app:bundleRelease
+
+# Build Signed Release Artifacts:
+EIMIR_RELEASE_KEYSTORE="/path/to/keystore.jks" \
+EIMIR_RELEASE_KEYSTORE_PASSWORD="password" \
+EIMIR_RELEASE_KEY_ALIAS="key-alias" \
+EIMIR_RELEASE_KEY_PASSWORD="key-password" \
+./gradlew --dependency-verification strict \
+  -PeimirVersionCode=1 \
+  -PeimirVersionName="0.1.0" \
+  :app:assembleRelease :app:bundleRelease
 ```
 
-Gradle Dependency Verification läuft mit `gradle/verification-metadata.xml`.
-Der Default-Modus von Gradle ist bereits `strict`; CI gibt den Modus zusätzlich
-explizit an. Die Datei enthält konkrete SHA-256-Werte für die tatsächlich
-aufgelösten Build-, Plugin-, Test- und Runtime-Artefakte. Es gibt keine
-Wildcards oder pauschalen Trust-Ausnahmen. Signaturprüfung ist derzeit nicht
-aktiviert: die verwendeten Google-Maven-/Maven-Central-Artefakte bieten keine
-für den gesamten Graphen konsistente PGP-Abdeckung; vollständige SHA-256-
-Prüfung vermeidet deshalb Ausnahmen für unsignierte Artefakte. CI führt einen
-Negativtest aus, der Checksums nur in der Arbeitskopie manipuliert und belegt,
-dass Gradle den Build anschließend wegen Dependency Verification ablehnt.
+### Release Properties & Signing Configuration
 
-### Wrapper aktualisieren
+`app/build.gradle` evaluates:
+- `eimirVersionCode` (Gradle property, fallback `sbsVersionCode`, default `1`)
+- `eimirVersionName` (Gradle property, default `"0.1.0"`)
+- Keystore file: `eimirReleaseKeystore` property or `EIMIR_RELEASE_KEYSTORE` env var (fallback `sbsReleaseKeystore` / `SBS_RELEASE_KEYSTORE`)
+- Keystore password: `eimirReleaseKeystorePassword` property or `EIMIR_RELEASE_KEYSTORE_PASSWORD` env var (fallback `sbsReleaseKeystorePassword` / `SBS_RELEASE_KEYSTORE_PASSWORD`)
+- Key alias: `eimirReleaseKeyAlias` property or `EIMIR_RELEASE_KEY_ALIAS` env var (fallback `sbsReleaseKeyAlias` / `SBS_RELEASE_KEY_ALIAS`)
+- Key password: `eimirReleaseKeyPassword` property or `EIMIR_RELEASE_KEY_PASSWORD` env var (fallback `sbsReleaseKeyPassword` / `SBS_RELEASE_KEY_PASSWORD`)
 
-Wrapper-Upgrades sind security-sensitiv und werden nur zusammen mit einer
-bewussten Gradle-/AGP-Kompatibilitätsprüfung durchgeführt. Die neue
-Distribution- und Wrapper-JAR-Checksum zuerst unabhängig auf Gradles offizieller
-Release-Checksum-Seite prüfen. Anschließend aus `android/`:
+Supply-chain dependencies are strictly verified against `gradle/verification-metadata.xml`.
 
-```bash
-./gradlew wrapper \
-  --gradle-version <VERSION> \
-  --distribution-type bin \
-  --gradle-distribution-sha256-sum <OFFICIAL_BIN_SHA256>
-sha256sum gradle/wrapper/gradle-wrapper.jar
+## Legacy Native Storage Cleanup
+
+The retired Kotlin/Compose client persisted a Room read cache and a remembered
+Space preference inside the same Android application sandbox. Because
+`de.sidebyside.app` is intentionally preserved for store-update continuity,
+Android also preserves that sandbox during an in-place upgrade.
+
+`LegacyNativeDataCleanup` therefore runs from `MainActivity` at start until it
+has succeeded once. It only deletes the retired database, its journal/WAL sidecars, the old Space
+preference and the former owner-only cache Keystore entry. It never reads or
+migrates cached product content. Only when all three removals succeeded does it
+store a completion marker (`eimir_native_migrations` /
+`legacy_cleanup_v1_done`); later starts then skip it, so the retired names are
+not a permanent destructive hook. A failed removal writes no marker and is
+retried on the next start. This bounded migration code is not a product-data store or a second client.
+
+## Deep Linking & OIDC Callback
+
+The Android manifest registers an intent filter for:
 ```
-
-Danach den erwarteten Wrapper-JAR-SHA in den Android-CI-Workflows aktualisieren,
-den vollständigen Wrapper-Diff prüfen und alle Android-/G2-Gates ausführen.
-Ein Wrapper-JAR wird nie aus einer inoffiziellen Quelle übernommen.
-
-### Dependency Verification pflegen
-
-Eine legitime Dependency-Änderung scheitert zunächst erwartungsgemäß an einem
-noch nicht freigegebenen Artefakt. Nachdem Koordinate, Version und Quelle der
-Änderung geprüft wurden, kann die Metadata-Datei mit Gradles nativer Funktion
-ergänzt werden:
-
-```bash
-./gradlew --write-verification-metadata sha256 \
-  :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+de.sidebyside.app://recent-authentication/oidc
 ```
+This enables secure OIDC login flows through `@capacitor/browser` and `@capacitor/app`.
 
-`gradle/verification-metadata.xml` danach **nicht blind übernehmen**: Diff auf
-unerwartete Komponenten/Versionen, zusätzliche Artefakte, Wildcards oder
-Trust-Ausnahmen prüfen und anschließend wieder einen normalen Strict-Build
-sowie den CI-Negativtest laufen lassen. Nicht mehr benötigte alte Einträge
-sollen bei Dependency-Wechseln entfernt werden, damit die Datei eine enge
-Allowlist bleibt.
+## Documentation
 
-### Dependency Locking
-
-Dependency Locking wurde für #185 geprüft und bewusst nicht zusätzlich
-aktiviert. Der aktuelle Android-Build verwendet keine dynamischen Versionen,
-Versionsbereiche oder `SNAPSHOT`-Dependencies; direkte Versionen und die
-Compose-BOM sind fest versioniert. Die strikte Verification-Metadata lässt
-außerdem neu aufgelöste, noch nicht freigegebene transitive Artefakte nicht
-stillschweigend zu. Lockfiles würden für den aktuellen Scope einen zweiten,
-konfigurationsreichen Versionszustand pflegen, ohne das konkrete #185-Risiko
-weiter zu schließen. Sobald dynamische Versionen eingeführt oder andere
-Reproduzierbarkeitsanforderungen entstehen, ist Locking separat neu zu
-bewerten.
-
-Die fokussierten Tests decken Flow-Orchestrierung, Bearer-Trennung bei
-Stream-/Signed-Deskriptoren, echte `StoryItem`-Deserialisierung und Compose-
-Semantics bei großer Systemschrift ab.
-
-## Bewusste S8-Grenzen
-
-- kein persistenter Token-, Read- oder Offline-Cache,
-- kein Room/Paging und kein WorkManager,
-- keine vollständige Navigation oder Deep Links,
-- kein Offline Write Sync,
-- kein Export/Import und keine globale Suche,
-- keine Wishes/Plans/Places/Private Area oder M3+-Funktionen,
-- kein Video; #88 bleibt Future-Backlog.
-
-Diese Punkte gehören in spätere, ausdrücklich freigegebene Milestones und
-werden durch den technischen G2-Nachweis nicht stillschweigend entschieden.
+For full architectural details, lifecycle handling, troubleshooting, and verification evidence, see [docs/CAPACITOR-ANDROID-FOUNDATION.md](../docs/CAPACITOR-ANDROID-FOUNDATION.md).

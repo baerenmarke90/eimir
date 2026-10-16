@@ -1,98 +1,94 @@
 #!/usr/bin/env bash
 #
-# Erzeugt die Client-API-Schichten aus dem versionierten OpenAPI-Vertrag.
+# Generate the canonical Web API client from the versioned OpenAPI contract.
 #
-#   tools/openapi/generate.sh          erzeugt neu
-#   tools/openapi/generate.sh --check  prueft nur auf Drift (CI)
+#   tools/openapi/generate.sh              regenerate the client
+#   tools/openapi/generate.sh --check      check the committed client for drift (CI)
+#   tools/openapi/generate.sh --check-web  alias of --check, kept for CI compatibility
 #
-# Der Vertrag `backend/openapi.json` ist die einzige Quelle. Er wird hier
-# nicht erzeugt, sondern gelesen: wer ihn aendert, aendert ihn im Backend,
-# und der bestehende Contract-Check haelt ihn an der echten ASGI-App fest.
+# `backend/openapi.json` is the single source of truth consumed here. This
+# script does not produce the contract; backend code owns it, and the existing
+# contract check keeps the committed document aligned with the real ASGI app.
 #
-# Der Generator laeuft in seinem offiziellen Container, festgenagelt auf
-# Version und Digest. Damit braucht niemand lokal ein JDK, und ein Lauf auf
-# einem anderen Rechner erzeugt dieselben Dateien.
+# The Android app is the Capacitor wrapper around the Web product and consumes
+# this same TypeScript client; there is no second generated client.
+#
+# The generator runs in its official container pinned by version and digest.
+# This avoids requiring a local JDK and keeps generated output reproducible
+# across developer machines.
 set -euo pipefail
 
-wurzel="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$wurzel"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$root"
 
 # shellcheck source=/dev/null
 source tools/openapi/generator.env
 image="openapitools/openapi-generator-cli:${OPENAPI_GENERATOR_VERSION}@${OPENAPI_GENERATOR_DIGEST}"
 
-vertrag="backend/openapi.json"
-ts_ziel="web/src/api/generated"
-kt_ziel="android/api/generated"
+contract="backend/openapi.json"
+ts_target="web/src/api/generated"
 
-pruefmodus="${1:-}"
+mode="${1:-}"
+case "$mode" in
+  "" | --check | --check-web) ;;
+  *)
+    echo "Unknown argument: $mode" >&2
+    echo "Usage: tools/openapi/generate.sh [--check|--check-web]" >&2
+    exit 2
+    ;;
+esac
 
-if [ ! -f "$vertrag" ]; then
-  echo "Vertrag fehlt: $vertrag" >&2
+if [ ! -f "$contract" ]; then
+  echo "OpenAPI contract is missing: $contract" >&2
   exit 1
 fi
 
-# Der Container laeuft als der aufrufende Benutzer, sonst gehoeren die
-# erzeugten Dateien root und der naechste Lauf scheitert am Schreibrecht.
-lauf() {
+# Run the container as the invoking user so generated files do not become
+# root-owned and make the next local run fail with permission errors.
+run_generator() {
   docker run --rm \
     --user "$(id -u):$(id -g)" \
-    --volume "$wurzel:/local" \
+    --volume "$root:/local" \
     --workdir /local \
     "$image" "$@"
 }
 
-erzeugen() {
-  local ausgabe_ts="$1"
-  local ausgabe_kt="$2"
+generate_client() {
+  local output_ts="$1"
 
-  rm -rf "$ausgabe_ts" "$ausgabe_kt"
+  rm -rf "$output_ts"
 
-  lauf generate \
-    --input-spec "$vertrag" \
+  run_generator generate \
+    --input-spec "$contract" \
     --generator-name typescript-fetch \
     --config tools/openapi/typescript-fetch.yaml \
-    --output "$ausgabe_ts" \
+    --output "$output_ts" \
     --skip-validate-spec \
     >/dev/null
 
-  lauf generate \
-    --input-spec "$vertrag" \
-    --generator-name kotlin \
-    --config tools/openapi/kotlin-models.yaml \
-    --output "$ausgabe_kt" \
-    --global-property models,modelDocs=false,modelTests=false \
-    --skip-validate-spec \
-    >/dev/null
-
-  # Der Generator legt in jedem Ausgabeverzeichnis eine Datei mit seiner
-  # Versionsnummer ab. Sie wuerde bei jedem Versionswechsel als Diff
-  # auftauchen, ohne etwas ueber den erzeugten Code auszusagen - die
-  # Version steht bereits nachvollziehbar in generator.env.
-  find "$ausgabe_ts" "$ausgabe_kt" -name '.openapi-generator' -type d -exec rm -rf {} + 2>/dev/null || true
-  find "$ausgabe_ts" "$ausgabe_kt" -name '.openapi-generator-ignore' -delete 2>/dev/null || true
+  # The generator creates metadata containing its version in every output
+  # directory. Keeping that file would create unrelated diffs on each version
+  # bump; generator.env already records the generator version explicitly.
+  find "$output_ts" -name '.openapi-generator' -type d -exec rm -rf {} + 2>/dev/null || true
+  find "$output_ts" -name '.openapi-generator-ignore' -delete 2>/dev/null || true
 }
 
-if [ "$pruefmodus" = "--check" ]; then
-  # Der Vergleichslauf muss innerhalb des Repos liegen: der Container sieht
-  # nur dieses Verzeichnis. Er darf den Arbeitsbaum nicht veraendern, sonst
-  # repariert er in CI genau den Zustand, den er melden soll.
-  temp="$wurzel/.openapi-check"
+if [ "$mode" = "--check" ] || [ "$mode" = "--check-web" ]; then
+  # The comparison output must live inside the repository because that is the
+  # only directory mounted into the container. It must not mutate committed
+  # output; otherwise CI would repair the exact drift it is supposed to report.
+  temp="$root/.openapi-check"
   trap 'rm -rf "$temp"' EXIT
-  erzeugen ".openapi-check/ts" ".openapi-check/kt"
-  abweichung=0
-  diff -r -q "$temp/ts" "$ts_ziel" >/dev/null 2>&1 || abweichung=1
-  diff -r -q "$temp/kt" "$kt_ziel" >/dev/null 2>&1 || abweichung=1
-  if [ "$abweichung" -ne 0 ]; then
-    echo "Der eingecheckte Client-Code weicht vom Vertrag ab."
-    echo "Erzeugen mit: tools/openapi/generate.sh"
-    diff -r "$ts_ziel" "$temp/ts" || true
-    diff -r "$kt_ziel" "$temp/kt" || true
+  generate_client ".openapi-check/ts"
+  if ! diff -r -q "$temp/ts" "$ts_target" >/dev/null 2>&1; then
+    echo "Committed Web client code differs from the OpenAPI contract."
+    echo "Regenerate with: tools/openapi/generate.sh"
+    diff -r "$ts_target" "$temp/ts" || true
     exit 1
   fi
-  echo "Client-Code stimmt mit dem OpenAPI-Vertrag ueberein."
+  echo "Web client code matches the OpenAPI contract."
   exit 0
 fi
 
-erzeugen "$ts_ziel" "$kt_ziel"
-echo "Erzeugt: $ts_ziel und $kt_ziel"
+generate_client "$ts_target"
+echo "Generated: $ts_target"

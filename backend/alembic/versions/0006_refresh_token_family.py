@@ -25,8 +25,8 @@ def upgrade() -> None:
         "consumed_refresh_tokens",
         sa.Column("id", UUID, nullable=False),
         sa.Column("device_session_id", UUID, nullable=False),
-        # Nur der Hash. Diese Tabelle darf keine zweite Quelle fuer
-        # Anmeldenachweise werden.
+        # Store only the hash. This table must not become a second source of
+        # authentication proofs.
         sa.Column("token_hash", sa.String(length=64), nullable=False),
         sa.Column(
             "consumed_at",
@@ -49,13 +49,13 @@ def upgrade() -> None:
         ["device_session_id"],
     )
 
-    # Die bisher einzige gemerkte Vorgaengergeneration wird uebernommen,
-    # damit ein Upgrade die schon erreichte Replay-Erkennung nicht kurz
-    # verliert. Die Schleife laeuft in Python, weil die ID ein UUIDv7 sein
-    # muss; PostgreSQL 17 bringt dafuer keine eigene Funktion mit. Es gibt
-    # hoechstens eine Zeile je Geraetesitzung.
-    verbindung = op.get_bind()
-    bestand = verbindung.execute(
+    # Carry over the single predecessor generation previously retained so an
+    # upgrade does not temporarily lose replay detection already achieved.
+    # This loop runs in Python because IDs must be UUIDv7 and PostgreSQL 17
+    # does not provide a native generator for them. There is at most one row
+    # per device session.
+    connection = op.get_bind()
+    existing = connection.execute(
         sa.text(
             """
             SELECT id, previous_refresh_token_hash
@@ -64,8 +64,8 @@ def upgrade() -> None:
             """
         )
     ).fetchall()
-    for sitzung_id, token_hash in bestand:
-        verbindung.execute(
+    for session_id, token_hash in existing:
+        connection.execute(
             sa.text(
                 """
                 INSERT INTO consumed_refresh_tokens
@@ -75,7 +75,7 @@ def upgrade() -> None:
             ),
             {
                 "id": uuid7(),
-                "device_session_id": sitzung_id,
+                "device_session_id": session_id,
                 "token_hash": token_hash,
             },
         )
@@ -89,21 +89,21 @@ def downgrade() -> None:
         sa.Column("previous_refresh_token_hash", sa.String(length=64), nullable=True),
     )
 
-    # Zurueck bleibt nur das alte Ein-Slot-Fenster: die jeweils juengste
-    # verbrauchte Generation. Aeltere Generationen sind danach nicht mehr
-    # zuordenbar - genau die Luecke, die dieses Upgrade schliesst.
+    # The downgrade leaves only the old single-slot window: the most recently
+    # consumed generation. Older generations can no longer be attributed,
+    # which is exactly the gap this upgrade closes.
     op.execute(
         sa.text(
             """
-            UPDATE device_sessions AS ziel
-               SET previous_refresh_token_hash = juengste.token_hash
+            UPDATE device_sessions AS target
+               SET previous_refresh_token_hash = newest.token_hash
               FROM (
                     SELECT DISTINCT ON (device_session_id)
                            device_session_id, token_hash
                       FROM consumed_refresh_tokens
                      ORDER BY device_session_id, consumed_at DESC, id DESC
-                   ) AS juengste
-             WHERE ziel.id = juengste.device_session_id
+                   ) AS newest
+             WHERE target.id = newest.device_session_id
             """
         )
     )

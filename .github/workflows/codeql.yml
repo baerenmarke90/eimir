@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '23 4 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,8 +17,180 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: CodeQL Change Detection
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      run_analysis: ${{ steps.matrix.outputs.run_analysis }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Select CodeQL languages
+        id: matrix
+        env:
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          full_matrix='{"include":[{"language":"python","build-mode":"none"},{"language":"javascript-typescript","build-mode":"none"}]}'
+          # Scheduled and manual runs remain the periodic full-repository safety net.
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ] || [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+            echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The active main code-scanning ruleset expects every established
+          # CodeQL configuration before merge. Keep draft PR iterations
+          # language-scoped, then run the complete matrix once a PR is ready.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ "$PR_DRAFT" != "true" ]; then
+            echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+            echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              head_sha="$PR_HEAD_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BASE_SHA"
+              head_sha="$PUSH_HEAD_SHA"
+              ;;
+            *)
+              echo "Unknown event type; running all CodeQL languages."
+              echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
+            || [[ "$base_sha" =~ ^0+$ ]] \
+            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
+            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
+            echo "CodeQL diff range is unavailable; running all languages."
+            echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+            echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if ! git merge-base "$base_sha" "$head_sha" >/dev/null 2>&1; then
+              echo "Pull-request merge base is unavailable; running all CodeQL languages."
+              echo "matrix=$full_matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git diff --name-only --no-renames "$base_sha...$head_sha" > /tmp/codeql-changed-files.txt
+          else
+            git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/codeql-changed-files.txt
+          fi
+
+          echo "Changed files:"
+          cat /tmp/codeql-changed-files.txt
+
+          matrix=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          changed = [
+              line.strip().replace("\\", "/")
+              for line in Path("/tmp/codeql-changed-files.txt").read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+
+          all_languages = ("python", "javascript-typescript")
+          selected: set[str] = set()
+          fail_closed = False
+
+          safe_exact = {
+              ".env.example",
+              ".gitleaksignore",
+              ".gitignore",
+              "AGENTS.md",
+              "CLA.md",
+              "COMMERCIAL-LICENSE.md",
+              "CONTRIBUTING.md",
+              "LICENSE",
+              "PROVENANCE.md",
+              "README.md",
+              "TRADEMARKS.md",
+              "compose.yaml",
+          }
+          safe_prefixes = (
+              ".github/ISSUE_TEMPLATE/",
+              ".github/PULL_REQUEST_TEMPLATE/",
+              ".github/workflows/",
+              "deploy/",
+              "docs/",
+              "specification/",
+          )
+
+          for path in changed:
+              if path == ".github/workflows/codeql.yml" or path.startswith(".github/codeql/"):
+                  fail_closed = True
+                  break
+              if path.startswith("backend/") or path.startswith("scripts/") or path.startswith("tools/"):
+                  selected.add("python")
+                  continue
+              if path.startswith("web/"):
+                  selected.add("javascript-typescript")
+                  continue
+              if path in safe_exact or path.startswith(safe_prefixes):
+                  continue
+              # New repository surfaces are intentionally fail-closed so a new
+              # source tree cannot silently bypass CodeQL.
+              fail_closed = True
+              break
+
+          if fail_closed:
+              selected = set(all_languages)
+
+          include = []
+          for language in all_languages:
+              if language not in selected:
+                  continue
+              include.append(
+                  {
+                      "language": language,
+                      "build-mode": "none",
+                  }
+              )
+
+          print(json.dumps({"include": include}, separators=(",", ":")))
+          PY
+          )
+
+          if [ "$matrix" = '{"include":[]}' ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              matrix='{"include":[{"language":"python","build-mode":"none"}]}'
+              echo "No CodeQL-owned source surface changed in this pull request; running the Python baseline for merge protection."
+            else
+              echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+              echo "run_analysis=false" >> "$GITHUB_OUTPUT"
+              echo "No CodeQL-owned source surface changed on main."
+              exit 0
+            fi
+          fi
+
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "run_analysis=true" >> "$GITHUB_OUTPUT"
+
   analyze:
     name: CodeQL (${{ matrix.language }})
+    needs: changes
+    if: needs.changes.outputs.run_analysis == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -24,14 +198,7 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - language: python
-            build-mode: none
-          - language: javascript-typescript
-            build-mode: none
-          - language: java-kotlin
-            build-mode: manual
+      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -43,37 +210,6 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           config-file: ./.github/codeql/codeql-config.yml
-
-      - name: Set up JDK 17 for Android analysis
-        if: matrix.language == 'java-kotlin'
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle cache and validate wrapper
-        if: matrix.language == 'java-kotlin'
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-
-      - name: Verify pinned Gradle wrapper JAR
-        if: matrix.language == 'java-kotlin'
-        working-directory: android
-        shell: bash
-        run: |
-          printf '%s  %s\n' \
-            '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7' \
-            'gradle/wrapper/gradle-wrapper.jar' \
-            | sha256sum --check --strict -
-
-      - name: Install Android SDK 37.1
-        if: matrix.language == 'java-kotlin'
-        run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.1" "build-tools;36.0.0"
-
-      - name: Build Android sources for CodeQL
-        if: matrix.language == 'java-kotlin'
-        working-directory: android
-        run: ./gradlew --no-daemon --no-build-cache --stacktrace --dependency-verification strict :app:clean :app:compileDebugKotlin
 
       - name: Analyze
         uses: github/codeql-action/analyze@db488ddef3bf6cb639b32c2e9a7c0a7ea8271d28 # v4.37.8

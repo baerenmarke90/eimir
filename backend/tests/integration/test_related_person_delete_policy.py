@@ -1,4 +1,4 @@
-"""PostgreSQL-Gate fuer die explizite RelatedPerson-Loeschpolicy."""
+"""PostgreSQL gate for the explicit RelatedPerson deletion policy."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.relationship import service as relationship_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -54,31 +54,31 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
-    fremd = make_account(session, "Fremd")
+    outsider = make_account(session, "Fremd")
     space = make_space(session, anna)
     relationship_service.add_member(session, space.id, ben)
-    fremder_space = make_space(session, fremd)
+    outsider_space = make_space(session, outsider)
     session.flush()
     return {
         "anna": anna,
         "ben": ben,
-        "fremd": fremd,
+        "outsider": outsider,
         "space": space,
-        "fremder_space": fremder_space,
+        "outsider_space": outsider_space,
         "token_a": sign_in(session, anna),
         "token_b": sign_in(session, ben),
-        "token_fremd": sign_in(session, fremd),
+        "token_outsider": sign_in(session, outsider),
     }
 
 
-def create_person(client, paar):  # type: ignore[no-untyped-def]
+def create_person(client, couple):  # type: ignore[no-untyped-def]
     response = client.post(
-        persons_path(paar["space"].id),
+        persons_path(couple["space"].id),
         json=person_body(),
-        headers=auth(paar["token_a"]),
+        headers=auth(couple["token_a"]),
     )
     assert response.status_code == 201
     return response.json()
@@ -86,7 +86,7 @@ def create_person(client, paar):  # type: ignore[no-untyped-def]
 
 def create_date(
     client,
-    paar,
+    couple,
     *,
     token_key: str,
     label: str,
@@ -94,33 +94,42 @@ def create_date(
     related_person_id: str | None,
 ):  # type: ignore[no-untyped-def]
     response = client.post(
-        dates_path(paar["space"].id),
+        dates_path(couple["space"].id),
         json=date_body(
             label=label,
             visibility=visibility,
             related_person_id=related_person_id,
         ),
-        headers=auth(paar[token_key]),
+        headers=auth(couple[token_key]),
     )
     assert response.status_code == 201
     return response.json()
 
 
-def delete_person(client, paar, person, policy: str, *, token_key: str = "token_a"):  # type: ignore[no-untyped-def]
+def delete_person(
+    client,
+    couple,
+    person,
+    policy: str,
+    *,
+    token_key: str = "token_a",
+):  # type: ignore[no-untyped-def]
     return client.delete(
-        f"{persons_path(paar['space'].id)}/{person['id']}?deletePolicy={policy}",
-        headers=if_match(paar[token_key], person["version"]),
+        f"{persons_path(couple['space'].id)}/{person['id']}?deletePolicy={policy}",
+        headers=if_match(couple[token_key], person["version"]),
     )
 
 
 class TestPreserve:
-    def test_erhaelt_alle_terminklassen_und_entfernt_nur_die_verknuepfung(
-        self, client, paar
+    def test_preserves_all_date_classes_and_only_removes_links(
+        self,
+        client,
+        couple,
     ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+        person = create_person(client, couple)
         shared = create_date(
             client,
-            paar,
+            couple,
             token_key="token_a",
             label="Geteilt",
             visibility="SHARED",
@@ -128,7 +137,7 @@ class TestPreserve:
         )
         own_private = create_date(
             client,
-            paar,
+            couple,
             token_key="token_a",
             label="Privat Anna",
             visibility="PRIVATE",
@@ -136,7 +145,7 @@ class TestPreserve:
         )
         partner_private = create_date(
             client,
-            paar,
+            couple,
             token_key="token_b",
             label="Privat Ben",
             visibility="PRIVATE",
@@ -144,20 +153,20 @@ class TestPreserve:
         )
         unrelated = create_date(
             client,
-            paar,
+            couple,
             token_key="token_a",
             label="Ohne Bezug",
             visibility="SHARED",
             related_person_id=None,
         )
 
-        response = delete_person(client, paar, person, "preserve")
+        response = delete_person(client, couple, person, "preserve")
         assert response.status_code == 204
         assert response.content == b""
 
         person_after = client.get(
-            f"{persons_path(paar['space'].id)}/{person['id']}",
-            headers=auth(paar["token_a"]),
+            f"{persons_path(couple['space'].id)}/{person['id']}",
+            headers=auth(couple["token_a"]),
         )
         assert person_after.status_code == 404
 
@@ -168,8 +177,8 @@ class TestPreserve:
             (unrelated["id"], "token_a"),
         ):
             date_after = client.get(
-                f"{dates_path(paar['space'].id)}/{date_id}",
-                headers=auth(paar[token_key]),
+                f"{dates_path(couple['space'].id)}/{date_id}",
+                headers=auth(couple[token_key]),
             )
             assert date_after.status_code == 200
             assert date_after.json()["relatedPersonId"] is None
@@ -177,41 +186,43 @@ class TestPreserve:
         assert (
             shared["version"] + 1
             == client.get(
-                f"{dates_path(paar['space'].id)}/{shared['id']}",
-                headers=auth(paar["token_a"]),
+                f"{dates_path(couple['space'].id)}/{shared['id']}",
+                headers=auth(couple["token_a"]),
             ).json()["version"]
         )
         assert (
             own_private["version"] + 1
             == client.get(
-                f"{dates_path(paar['space'].id)}/{own_private['id']}",
-                headers=auth(paar["token_a"]),
+                f"{dates_path(couple['space'].id)}/{own_private['id']}",
+                headers=auth(couple["token_a"]),
             ).json()["version"]
         )
         assert (
             partner_private["version"] + 1
             == client.get(
-                f"{dates_path(paar['space'].id)}/{partner_private['id']}",
-                headers=auth(paar["token_b"]),
+                f"{dates_path(couple['space'].id)}/{partner_private['id']}",
+                headers=auth(couple["token_b"]),
             ).json()["version"]
         )
         assert (
             unrelated["version"]
             == client.get(
-                f"{dates_path(paar['space'].id)}/{unrelated['id']}",
-                headers=auth(paar["token_a"]),
+                f"{dates_path(couple['space'].id)}/{unrelated['id']}",
+                headers=auth(couple["token_a"]),
             ).json()["version"]
         )
 
 
 class TestCascade:
-    def test_loescht_alle_verknuepften_termine_aber_keine_unverknuepften(
-        self, client, paar
+    def test_deletes_all_linked_dates_but_not_unlinked_dates(
+        self,
+        client,
+        couple,
     ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+        person = create_person(client, couple)
         own = create_date(
             client,
-            paar,
+            couple,
             token_key="token_a",
             label="Anna",
             visibility="SHARED",
@@ -219,7 +230,7 @@ class TestCascade:
         )
         partner_private = create_date(
             client,
-            paar,
+            couple,
             token_key="token_b",
             label="Ben privat",
             visibility="PRIVATE",
@@ -227,93 +238,101 @@ class TestCascade:
         )
         unrelated = create_date(
             client,
-            paar,
+            couple,
             token_key="token_a",
             label="Bleibt",
             visibility="SHARED",
             related_person_id=None,
         )
 
-        response = delete_person(client, paar, person, "cascade")
+        response = delete_person(client, couple, person, "cascade")
         assert response.status_code == 204
         assert response.content == b""
 
         assert (
             client.get(
-                f"{dates_path(paar['space'].id)}/{own['id']}",
-                headers=auth(paar["token_a"]),
+                f"{dates_path(couple['space'].id)}/{own['id']}",
+                headers=auth(couple["token_a"]),
             ).status_code
             == 404
         )
         assert (
             client.get(
-                f"{dates_path(paar['space'].id)}/{partner_private['id']}",
-                headers=auth(paar["token_b"]),
+                f"{dates_path(couple['space'].id)}/{partner_private['id']}",
+                headers=auth(couple["token_b"]),
             ).status_code
             == 404
         )
         assert (
             client.get(
-                f"{dates_path(paar['space'].id)}/{unrelated['id']}",
-                headers=auth(paar["token_a"]),
+                f"{dates_path(couple['space'].id)}/{unrelated['id']}",
+                headers=auth(couple["token_a"]),
             ).status_code
             == 200
         )
 
 
 class TestDeletePolicyValidation:
-    def test_fehlende_policy_wird_abgelehnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+    def test_missing_policy_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
         response = client.delete(
-            f"{persons_path(paar['space'].id)}/{person['id']}",
-            headers=if_match(paar["token_a"], person["version"]),
+            f"{persons_path(couple['space'].id)}/{person['id']}",
+            headers=if_match(couple["token_a"], person["version"]),
         )
         assert response.status_code == 422
         assert (
             client.get(
-                f"{persons_path(paar['space'].id)}/{person['id']}",
-                headers=auth(paar["token_a"]),
+                f"{persons_path(couple['space'].id)}/{person['id']}",
+                headers=auth(couple["token_a"]),
             ).status_code
             == 200
         )
 
-    def test_unbekannte_policy_wird_abgelehnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
-        response = delete_person(client, paar, person, "everything")
+    def test_unknown_policy_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
+        response = delete_person(client, couple, person, "everything")
         assert response.status_code == 422
 
-    def test_partner_darf_geteilte_person_weiterhin_nicht_loeschen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
-        response = delete_person(client, paar, person, "preserve", token_key="token_b")
+    def test_partner_still_cannot_delete_shared_person(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
+        response = delete_person(client, couple, person, "preserve", token_key="token_b")
         assert response.status_code == 403
         assert response.json()["code"] == "NOT_RESOURCE_OWNER"
 
-    def test_fremder_space_bleibt_404(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+    def test_foreign_space_remains_404(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
         response = client.delete(
-            f"{persons_path(paar['fremder_space'].id)}/{person['id']}?deletePolicy=preserve",
-            headers=if_match(paar["token_fremd"], person["version"]),
+            f"{persons_path(couple['outsider_space'].id)}/{person['id']}?deletePolicy=preserve",
+            headers=if_match(couple["token_outsider"], person["version"]),
         )
         assert response.status_code == 404
         assert response.json()["code"] == "RELATED_PERSON_NOT_FOUND"
 
-    def test_veraltetes_if_match_bleibt_versionskonflikt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+    def test_stale_if_match_remains_version_conflict(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
         updated = client.put(
-            f"{persons_path(paar['space'].id)}/{person['id']}",
+            f"{persons_path(couple['space'].id)}/{person['id']}",
             json={**person_body(), "displayName": "Lisa Marie"},
-            headers=if_match(paar["token_a"], person["version"]),
+            headers=if_match(couple["token_a"], person["version"]),
         )
         assert updated.status_code == 200
 
-        response = delete_person(client, paar, person, "preserve")
+        response = delete_person(client, couple, person, "preserve")
         assert response.status_code == 409
         assert response.json()["code"] == "VERSION_CONFLICT"
 
-    def test_anonym_bleibt_401(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+    def test_anonymous_remains_401(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple)
         response = client.delete(
-            f"{persons_path(paar['space'].id)}/{person['id']}?deletePolicy=preserve",
+            f"{persons_path(couple['space'].id)}/{person['id']}?deletePolicy=preserve",
             headers={"If-Match": f'"{person["version"]}"'},
         )
         assert response.status_code == 401
@@ -322,21 +341,24 @@ class TestDeletePolicyValidation:
 
 class TestDeletePrivacy:
     @pytest.mark.parametrize("partner_private_count", [0, 1, 3])
-    def test_antwort_verraet_keine_privaten_partnertermine(
-        self, client, paar, partner_private_count: int
+    def test_response_reveals_no_private_partner_dates(
+        self,
+        client,
+        couple,
+        partner_private_count: int,
     ) -> None:  # type: ignore[no-untyped-def]
-        person = create_person(client, paar)
+        person = create_person(client, couple)
         for index in range(partner_private_count):
             create_date(
                 client,
-                paar,
+                couple,
                 token_key="token_b",
                 label=f"Partner privat {index}",
                 visibility="PRIVATE",
                 related_person_id=person["id"],
             )
 
-        response = delete_person(client, paar, person, "preserve")
+        response = delete_person(client, couple, person, "preserve")
         assert response.status_code == 204
         assert response.content == b""
         assert "content-type" not in response.headers

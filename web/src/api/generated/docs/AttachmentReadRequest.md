@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `parentId` | string
 `parentType` | string
+`variant` | string
 
 ## Example
 
@@ -18,6 +19,7 @@ import type { AttachmentReadRequest } from ''
 const example = {
   "parentId": null,
   "parentType": null,
+  "variant": null,
 } satisfies AttachmentReadRequest
 
 console.log(example)

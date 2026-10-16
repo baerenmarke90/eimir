@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -38,6 +38,12 @@ export interface PartnerProfileView {
      * @type {Date}
      * @memberof PartnerProfileView
      */
+    birthday: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PartnerProfileView
+     */
     createdAt: Date;
     /**
      * 
@@ -59,10 +65,22 @@ export interface PartnerProfileView {
     preferences: Array<ProfilePreferenceView>;
     /**
      * 
+     * @type {string}
+     * @memberof PartnerProfileView
+     */
+    profileAttachmentId: string | null;
+    /**
+     * 
      * @type {Date}
      * @memberof PartnerProfileView
      */
     updatedAt: Date;
+    /**
+     * 
+     * @type {number}
+     * @memberof PartnerProfileView
+     */
+    version: number;
 }
 
 /**
@@ -70,11 +88,14 @@ export interface PartnerProfileView {
  */
 export function instanceOfPartnerProfileView(value: object): value is PartnerProfileView {
     if (!('accountId' in value) || value['accountId'] === undefined) return false;
+    if (!('birthday' in value) || value['birthday'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('preferences' in value) || value['preferences'] === undefined) return false;
+    if (!('profileAttachmentId' in value) || value['profileAttachmentId'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
+    if (!('version' in value) || value['version'] === undefined) return false;
     return true;
 }
 
@@ -89,11 +110,14 @@ export function PartnerProfileViewFromJSONTyped(json: any, ignoreDiscriminator: 
     return {
         
         'accountId': json['accountId'],
+        'birthday': (json['birthday'] == null ? null : new Date(json['birthday'])),
         'createdAt': (new Date(json['createdAt'])),
         'displayName': json['displayName'],
         'id': json['id'],
         'preferences': ((json['preferences'] as Array<any>).map(ProfilePreferenceViewFromJSON)),
+        'profileAttachmentId': json['profileAttachmentId'],
         'updatedAt': (new Date(json['updatedAt'])),
+        'version': json['version'],
     };
 }
 
@@ -109,11 +133,14 @@ export function PartnerProfileViewToJSONTyped(value?: PartnerProfileView | null,
     return {
         
         'accountId': value['accountId'],
+        'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'createdAt': value['createdAt'].toISOString(),
         'displayName': value['displayName'],
         'id': value['id'],
         'preferences': ((value['preferences'] as Array<any>).map(ProfilePreferenceViewToJSON)),
+        'profileAttachmentId': value['profileAttachmentId'],
         'updatedAt': value['updatedAt'].toISOString(),
+        'version': value['version'],
     };
 }
 

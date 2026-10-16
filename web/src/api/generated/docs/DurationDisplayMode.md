@@ -1,7 +1,7 @@
 
 # DurationDisplayMode
 
-Wie die gemeinsame Zeit dargestellt wird.
+How shared relationship time is displayed.
 
 ## Properties
 

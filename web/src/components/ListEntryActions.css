@@ -1,0 +1,54 @@
+.list-entry-icon-button {
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.list-entry-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.list-entry-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.list-entry-drag-handle:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.list-entry-dragging {
+  opacity: 0.72;
+}
+
+button.list-entry-icon-button.list-entry-add-button {
+  color: var(--color-brand);
+  background: var(--color-brand-surface);
+  border: 1px solid var(--color-brand);
+  border-radius: var(--radius-medium);
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+button.list-entry-icon-button.list-entry-add-button:hover:not(:disabled) {
+  background: var(--color-brand);
+  color: var(--color-surface, #ffffff);
+  border-color: var(--color-brand);
+}

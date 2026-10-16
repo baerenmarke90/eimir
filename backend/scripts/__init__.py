@@ -1,1 +1,1 @@
-"""Repository-interne Pruefwerkzeuge."""
+"""Repository-internal validation tools."""

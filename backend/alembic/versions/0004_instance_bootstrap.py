@@ -41,8 +41,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("singleton_key", name="pk_instance_bootstrap_state"),
     )
 
-    # Bestehende Installationen sind bereits in Betrieb und duerfen durch
-    # das Upgrade keinen neuen Bootstrap-Zugang erhalten.
+    # Existing installations are already operational and must not receive new
+    # bootstrap access as a result of the upgrade.
     op.execute(
         sa.text(
             """

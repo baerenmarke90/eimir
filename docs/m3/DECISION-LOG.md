@@ -1,153 +1,153 @@
 # M3 Decision Log
 
-**Stand:** 26.08.2026  
-**Status S0:** alle M3-D01 bis M3-D32 sind `DECIDED`  
-**Regel:** Keine M3-Grundsatzfrage wird stillschweigend im Runtime-Code entschieden.
+**As of:** August 26, 2026  
+**S0 status:** all M3-D01 through M3-D32 are `DECIDED`  
+**Rule:** No fundamental M3 question is decided silently in runtime code.
 
-Dieses Log ist die kompakte Uebersicht. Die vollstaendigen Verträge stehen in den verlinkten Decision-Dokumenten.
+This log is the compact overview. The complete contracts are in the linked decision documents.
 
 ## Status
 
-- `OPEN` – Entscheidung fehlt.
-- `PROPOSED` – bevorzugte Option ist dokumentiert, aber nicht bindend.
-- `DECIDED` – durch Source oder explizite Projektentscheidung bindend.
+- `OPEN` – decision missing.
+- `PROPOSED` – preferred option documented, but not binding.
+- `DECIDED` – binding through source or explicit project decision.
 
-## Prioritaet
+## Priority
 
-- `BLOCKING` – vor dem ersten betroffenen Runtime-Slice entscheiden.
-- `BEFORE_CLIENTS` – vor stabiler Web-/Android-Integration entscheiden.
-- `BEFORE_GATE` – vor dem finalen G3-Nachweis entscheiden.
-- `LATER` – Entscheidung darf die Umsetzung bewusst in einen spaeteren Scope verschieben.
+- `BLOCKING` – decide before the first affected runtime slice.
+- `BEFORE_CLIENTS` – decide before stable Web/Android integration.
+- `BEFORE_GATE` – decide before final G3 evidence.
+- `LATER` – decision may deliberately move implementation to a later scope.
 
-## Decision-Matrix
+## Decision matrix
 
-| ID | Prioritaet | Status | Thema | Verbindliche Entscheidung |
+| ID | Priority | Status | Topic | Binding decision |
 |---|---|---|---|---|
-| M3-D01 | BLOCKING | DECIDED | Shared Writes | Wish, Plan, Place, Chapter und gemeinsame Collection: collaborative write fuer beide aktiven Space-Mitglieder; `createdBy` ist Attribution, keine ACL. #162 |
-| M3-D02 | BLOCKING | DECIDED | Wish -> Plan | Hoechstens ein originärer Plan je Wish; atomare Conversion mit Wish-Row-Lock + Unique; Retry auf PLANNED liefert denselben Plan. #162 |
-| M3-D03 | BLOCKING | DECIDED | Plan -> Wish | Nur source-bound IDEA/PLANNED; denselben Wish auf OPEN reaktivieren, Plan loeschen, keine Payload zurueckkopieren. #162 |
-| M3-D04 | BLOCKING | DECIDED | Plan Lifecycle | IDEA->PLANNED, PLANNED->IDEA, IDEA/PLANNED->COMPLETED; COMPLETED terminal; explizite Operationsrouten. #162 |
-| M3-D05 | BLOCKING | DECIDED | Wish/Plan Delete | State-basierte Delete-Matrix; keine Cascade auf fachliche Originale. #162 |
-| M3-D06 | BLOCKING | DECIDED | Place Privacy | Place-Inhalt inklusive Adresse/Koordinaten ist geschuetzter Shared Content; exakte Werte nur im autorisierten Space, keine Telemetrie. #163 |
-| M3-D07 | BLOCKING | DECIDED | Place Identity | Keine automatische/implizite Deduplizierung oder Zusammenfuehrung. #163 |
-| M3-D08 | BLOCKING | DECIDED | Relation Contract | Typisierte FK-Relationen; Plan/Chapter verwenden kanonisches `placeId`, Content-Relations eigene Join-Tabellen; externe API typisiert. #163 |
-| M3-D09 | BLOCKING | DECIDED | Relation Privacy | Keine Relation auf OWNER_ONLY/private Targets; nicht lesbare Targets privacy-sicher 404; SHARED->PRIVATE entfernt Relations atomar. #163 |
-| M3-D10 | BLOCKING | DECIDED | Chapter Ordering | Keine persistierte manuelle Reihenfolge in M3; deterministisch aus Ereignisdatum/createdAt abgeleitet. #163 |
-| M3-D11 | BLOCKING | DECIDED | Chapter Dates | `startOn`/`endOn` unabhaengig optional; falls beide gesetzt: `endOn >= startOn`. #163 |
-| M3-D12 | BLOCKING | DECIDED | Chapter Delete | Chapter-Delete entfernt Relations, nie Memory/HeartMoment/Milestone-Originale. Source-bound. |
-| M3-D13 | BLOCKING | DECIDED | Collection Ownership | Root bekommt `createdBy`; Root/Items collaborative write; Attribution ist keine ACL. #164 |
-| M3-D14 | BLOCKING | DECIDED | Collection Concurrency | Root-Version schuetzt Struktur/Order, Item-Version schuetzt Inhalt; atomarer Full-List-Reorder mit contiguous Integerpositionen. #164 |
-| M3-D15 | BLOCKING | DECIDED | Collection Delete | CollectionItem ist Child; Parent-Delete darf Items cascaden, keine anderen Originale. #164 |
-| M3-D16 | BLOCKING | DECIDED | Private Payload | PrivateNote title/body; GiftIdea inhaltliche Felder; PrivateCollection-/Item-Titel sind geschuetzter Owner-only Content. #164 |
-| M3-D17 | BLOCKING | DECIDED | GiftIdea Status | `IDEA | BOUGHT | GIVEN` mit explizit validierten Transitionen. #164 |
-| M3-D18 | BLOCKING | DECIDED | Private Collection | Vollstaendiges Root-/Item-Schema mit IDs/Timestamps/Version; Root-Version fuer Order, Item-Version fuer Inhalt. #164 |
-| M3-D19 | BLOCKING | DECIDED | Private API | Space-scoped `/private/...`; Owner nur aus Auth Context; fremd/unbekannt/Partner identisch 404. #164 |
-| M3-D20 | LATER | DECIDED | Search | Keine globale Volltextsuche in M3; M4-A. Domainlokale Filter bleiben erlaubt. Roadmap. |
-| M3-D21 | BEFORE_CLIENTS | DECIDED | Export | M3 implementiert Export nicht; gemeinsamer Export enthaelt nie Owner-only, persoenlicher Export spaeter nur eigene Private Area. #165 |
-| M3-D22 | BEFORE_CLIENTS | DECIDED | Client Cache | Kein persistenter Private-Read-Cache in M3; M5 muss Account+Space+Owner namespacen und bei Logout/Wechsel loeschen. #165 |
-| M3-D23 | BLOCKING | DECIDED | Events | Minimaler redigierter Event-Envelope; OWNER_ONLY ohne fachlichen `safeState`; keine ProtectedPayloads/Private Counts. #164 |
-| M3-D24 | BEFORE_GATE | DECIDED | G3 Evidence | G3 ist Domain/API/PostgreSQL-Gate mit fuenf realen HTTP-E2E-Flows; volle Client-Paritaet/Accessibility bleibt M5/G4. #165 |
-| M3-D25 | BEFORE_CLIENTS | DECIDED | Private IA | Sekundaerer persoenlicher Bereich `Mehr / Mein Bereich`; keine gemeinsamen Counts/Badges; Security bleibt serverseitig. #165 |
-| M3-D26 | BLOCKING | DECIDED | Relation Races | Relation Create sperrt Parent->Target, revalidiert Privacy und wird durch FK/Unique abgesichert; Delete/Privacy-Races deterministisch. #163 |
-| M3-D27 | LATER | DECIDED | Plan Richness | Checklist/Plan-Medien/strukturierte Zusatznotizen werden bewusst nicht in M3 vorgezogen; spaeter eigener Scope. #165 |
-| M3-D28 | BLOCKING | DECIDED | Location Leakage | Lat/Lon als Paar, Wertebereiche und max. 6 Nachkommastellen; keine Logs/Analytics/Events/Provideranreicherung. #163 |
-| M3-D29 | BEFORE_CLIENTS | DECIDED | Collection Multi-select | Reiner Client-Batchselection-State; kein persistiertes Domainfeld/Selection-Modell. #165 |
-| M3-D30 | BLOCKING | DECIDED | Direct Plan Create | Erlaubt; startet immer IDEA ohne `sourceWishId`, Plantermine oder `experiencedOn`. #162 |
-| M3-D31 | BLOCKING | DECIDED | Chapter/Place | `Chapter.placeId` ist einzige kanonische Wahrheit; keine parallele `place_chapters`-Tabelle. #163 |
-| M3-D32 | BLOCKING | DECIDED | Private Item Auth | PrivateCollectionItem dupliziert owner/space nicht; Autorisierung immer ueber owner-scoped Parent-Join. #164 |
+| M3-D01 | BLOCKING | DECIDED | Shared Writes | Wish, Plan, Place, Chapter, and shared Collection use collaborative write for both active Space members; `createdBy` is Attribution, not an ACL. #162 |
+| M3-D02 | BLOCKING | DECIDED | Wish -> Plan | At most one originating Plan per Wish; atomic conversion with Wish Row Lock + Unique; retry on PLANNED returns the same Plan. #162 |
+| M3-D03 | BLOCKING | DECIDED | Plan -> Wish | Source-bound IDEA/PLANNED only; reactivate the same Wish to OPEN, delete the Plan, and do not copy payload back. #162 |
+| M3-D04 | BLOCKING | DECIDED | Plan Lifecycle | IDEA->PLANNED, PLANNED->IDEA, IDEA/PLANNED->COMPLETED; COMPLETED terminal; explicit operation routes. #162 |
+| M3-D05 | BLOCKING | DECIDED | Wish/Plan Delete | State-based Delete matrix; no cascade onto domain originals. #162 |
+| M3-D06 | BLOCKING | DECIDED | Place Privacy | Place content including address/coordinates is protected shared content; exact values only within the authorized Space, no telemetry. #163 |
+| M3-D07 | BLOCKING | DECIDED | Place Identity | No automatic/implicit deduplication or merge. #163 |
+| M3-D08 | BLOCKING | DECIDED | Relation Contract | Typed FK relations; Plan/Chapter use canonical `placeId`, content relations use dedicated Join tables; external API is typed. #163 |
+| M3-D09 | BLOCKING | DECIDED | Relation Privacy | No relation to OWNER_ONLY/private targets; unreadable targets return Privacy-safe 404; SHARED->PRIVATE removes Relations atomically. #163 |
+| M3-D10 | BLOCKING | DECIDED | Chapter Ordering | No persisted manual ordering in M3; deterministically derived from event date/createdAt. #163 |
+| M3-D11 | BLOCKING | DECIDED | Chapter Dates | `startOn`/`endOn` independently optional; if both are set: `endOn >= startOn`. #163 |
+| M3-D12 | BLOCKING | DECIDED | Chapter Delete | Chapter Delete removes Relations, never Memory/HeartMoment/Milestone originals. Source-bound. |
+| M3-D13 | BLOCKING | DECIDED | Collection Ownership | Root receives `createdBy`; Root/Items use collaborative write; Attribution is not an ACL. #164 |
+| M3-D14 | BLOCKING | DECIDED | Collection Concurrency | Root version protects structure/order, Item version protects content; atomic full-list Reorder with contiguous integer positions. #164 |
+| M3-D15 | BLOCKING | DECIDED | Collection Delete | CollectionItem is a Child; Parent Delete may cascade Items, no other originals. #164 |
+| M3-D16 | BLOCKING | DECIDED | Private Payload | PrivateNote title/body; GiftIdea content fields; PrivateCollection/Item titles are protected owner-only content. #164 |
+| M3-D17 | BLOCKING | DECIDED | GiftIdea Status | `IDEA | BOUGHT | GIVEN` with explicitly validated transitions. #164 |
+| M3-D18 | BLOCKING | DECIDED | Private Collection | Complete root/item schema with IDs/timestamps/version; root version for order, Item version for content. #164 |
+| M3-D19 | BLOCKING | DECIDED | Private API | Space-scoped `/private/...`; Owner only from Auth Context; foreign/unknown/partner cases all return identical 404. #164 |
+| M3-D20 | LATER | DECIDED | Search | No global full-text Search in M3; M4-A. Domain-local filters remain allowed. Roadmap. |
+| M3-D21 | BEFORE_CLIENTS | DECIDED | Export | M3 does not implement Export; shared Export never contains owner-only content, personal Export later includes only the caller's own Private Area. #165 |
+| M3-D22 | BEFORE_CLIENTS | DECIDED | Client Cache | No persistent Private read cache in M3; M5 must namespace by Account+Space+Owner and clear on logout/switch. #165 |
+| M3-D23 | BLOCKING | DECIDED | Events | Minimal redacted Event envelope; OWNER_ONLY without domain `safeState`; no ProtectedPayloads/private counts. #164 |
+| M3-D24 | BEFORE_GATE | DECIDED | G3 Evidence | G3 is a Domain/API/PostgreSQL gate with five real HTTP E2E flows; full client parity/Accessibility remains M5/G4. #165 |
+| M3-D25 | BEFORE_CLIENTS | DECIDED | Private IA | Secondary personal area `Mehr / Mein Bereich`; no shared counts/badges; Security remains server-side. #165 |
+| M3-D26 | BLOCKING | DECIDED | Relation Races | Relation Create locks Parent->Target, revalidates Privacy, and is protected by FK/Unique; Delete/Privacy races are deterministic. #163 |
+| M3-D27 | LATER | DECIDED | Plan Richness | Checklist/Plan media/structured additional notes are deliberately not pulled into M3; later explicit scope. #165 |
+| M3-D28 | BLOCKING | DECIDED | Location Leakage | Lat/Lon as a pair, ranges and max. 6 decimal places; no logs/Analytics/Events/Provider enrichment. #163 |
+| M3-D29 | BEFORE_CLIENTS | DECIDED | Collection Multi-select | Pure client batch-selection state; no persisted Domain field/selection model. #165 |
+| M3-D30 | BLOCKING | DECIDED | Direct Plan Create | Allowed; always starts as IDEA without `sourceWishId`, Plan dates, or `experiencedOn`. #162 |
+| M3-D31 | BLOCKING | DECIDED | Chapter/Place | `Chapter.placeId` is the single canonical truth; no parallel `place_chapters` table. #163 |
+| M3-D32 | BLOCKING | DECIDED | Private Item Auth | PrivateCollectionItem does not duplicate owner/space; Authorization always goes through the owner-scoped Parent Join. #164 |
 
-## Verbindliche Decision-Dokumente
+## Binding decision documents
 
 ### Wish / Plan – #162
 
 [`decisions/WISH-PLAN-LIFECYCLE.md`](./decisions/WISH-PLAN-LIFECYCLE.md)
 
-Enthaelt:
+Contains:
 
-- Wish-/Plan-Statusautomaten;
-- Wish->Plan-Atomizitaet und Idempotenz;
+- Wish/Plan state machines;
+- Wish->Plan atomicity and idempotency;
 - Return-to-Wish;
 - Direct Plan Create;
-- Delete-Matrix;
-- Locking, DB-Constraints, Fehlercodes und Pflichtests.
+- Delete matrix;
+- locking, DB constraints, error codes, and mandatory tests.
 
 ### Place / Relations / Chapters – #163
 
 [`decisions/PLACE-RELATIONS-CHAPTERS.md`](./decisions/PLACE-RELATIONS-CHAPTERS.md)
 
-Enthaelt:
+Contains:
 
-- Place Protected Content und Koordinatenregeln;
-- keine automatische Deduplizierung;
-- freigegebene typisierte Relationstabellen;
-- kanonische Plan-/Chapter-Place-FKs;
-- Relation Privacy und SHARED->PRIVATE-Cleanup;
-- Chapter-Dates und abgeleitete Reihenfolge;
-- Delete-/Race-Matrix und Tests.
+- Place Protected Content and coordinate rules;
+- no automatic deduplication;
+- approved typed relation tables;
+- canonical Plan/Chapter Place FKs;
+- Relation Privacy and SHARED->PRIVATE Cleanup;
+- Chapter dates and derived ordering;
+- Delete/race matrix and tests.
 
 ### Collections / Private Area – #164
 
 [`decisions/COLLECTIONS-PRIVATE-AREA.md`](./decisions/COLLECTIONS-PRIVATE-AREA.md)
 
-Enthaelt:
+Contains:
 
-- Shared Collection Write-/Ownership-Modell;
-- atomaren Reorder-/Versionierungsvertrag;
-- Collection-Delete-Cascade;
-- Private ProtectedPayload-Grenzen;
-- GiftIdea Statusenum;
-- PrivateCollection Root-/Child-Schema;
+- Shared Collection write/ownership model;
+- atomic Reorder/versioning contract;
+- Collection Delete cascade;
+- Private ProtectedPayload boundaries;
+- GiftIdea status enum;
+- PrivateCollection root/child schema;
 - owner-scoped Private API;
-- M3 Event-/Redaction-Vertrag.
+- M3 Event/Redaction contract.
 
 ### G3 / Clients / Export / Cache – #165
 
 [`decisions/G3-CLIENT-BOUNDARIES.md`](./decisions/G3-CLIENT-BOUNDARIES.md)
 
-Enthaelt:
+Contains:
 
-- fuenf verpflichtende reale G3-E2E-Flows;
-- Gate-blockierende Privacy-/Security-Kriterien;
-- G3 vs. M5/G4-Abgrenzung;
-- spaetere Export-/Cache-Privacy-Vertraege;
-- Private-Area-IA;
-- Plan-Richness bewusst spaeter;
-- Multi-select als Clientzustand.
+- five mandatory real G3 E2E flows;
+- gate-blocking Privacy/Security criteria;
+- G3 vs. M5/G4 boundary;
+- later Export/cache Privacy contracts;
+- Private Area IA;
+- Plan Richness deliberately later;
+- multi-select as client state.
 
-## Source-bound Entscheidungen
+## Source-bound decisions
 
 ### M3-D12 – Chapter Delete
 
-Beim Loeschen eines Chapters werden seine Relations entfernt. Memories, HeartMoments und Milestones bleiben als Originalressourcen erhalten.
+Deleting a Chapter removes its Relations. Memories, HeartMoments, and Milestones remain as original resources.
 
-Folgen:
+Consequences:
 
-- keine FK-Cascade von Chapter auf Originalinhalte;
-- Join-Zeilen duerfen `ON DELETE CASCADE` zum Chapter besitzen;
-- Tests beweisen, dass Originale nach Chapter-Delete weiter lesbar sind.
+- no FK cascade from Chapter to original content;
+- Join rows may use `ON DELETE CASCADE` toward the Chapter;
+- tests prove originals remain readable after Chapter Delete.
 
-### M3-D20 – Globale Suche
+### M3-D20 – Global Search
 
-Globale Volltextsuche wird in M3 nicht vorgezogen. Die Roadmap ordnet Search M4-A zu. M3 darf domainlokale Filter/Sortierung liefern, aber kein allgemeines Search-Read-Model bauen.
+Global full-text Search is not pulled into M3. The Roadmap assigns Search to M4-A. M3 may provide Domain-local filtering/sorting but must not build a general Search Read Model.
 
-## S0-Abschluss
+## S0 completion
 
-Mit Merge der Decision-PRs #162 sowie #163/#164/#165 gilt:
+With merge of Decision PRs #162 and #163/#164/#165:
 
-- alle `BLOCKING`-Entscheidungen sind `DECIDED`;
-- alle `BEFORE_CLIENTS`-/`BEFORE_GATE`-Grenzen sind frueh festgelegt;
-- bewusst spaetere Funktionen sind explizit als solche entschieden;
-- kein Runtime-Slice muss fachliche Kernsemantik erfinden.
+- all `BLOCKING` decisions are `DECIDED`;
+- all `BEFORE_CLIENTS`/`BEFORE_GATE` boundaries are defined early;
+- deliberately later features are explicitly decided as such;
+- no runtime slice must invent core Domain semantics.
 
-**Wichtig:** S0-Abschluss ist keine automatische M3-Runtime-Freigabe. Die in `docs/m3/README.md` dokumentierten Projekt-/Gate-Startbedingungen bleiben separat verbindlich.
+**Important:** S0 completion is not automatic M3 runtime release. The project/gate start conditions documented in `docs/m3/README.md` remain separately binding.
 
-## Closure-Regel fuer spaetere Aenderungen
+## Closure rule for later changes
 
-Eine bereits `DECIDED`e Semantik wird nicht stillschweigend in einem Runtime-PR veraendert. Eine Aenderung braucht mindestens:
+A semantics already marked `DECIDED` is not silently changed in a runtime PR. A change requires at least:
 
-- explizite neue Projektentscheidung/ADR oder Decision-PR;
-- Auswirkungen auf Persistenz/API;
-- Delete-/Concurrency-Folge;
-- Privacy-/Tenant-Folge;
-- verpflichtende Tests;
-- Migration-/Kompatibilitaetsbetrachtung, falls Runtime bereits existiert.
+- explicit new project decision/ADR or Decision PR;
+- persistence/API impact;
+- Delete/Concurrency consequence;
+- Privacy/Tenant consequence;
+- mandatory tests;
+- migration/compatibility review if runtime already exists.

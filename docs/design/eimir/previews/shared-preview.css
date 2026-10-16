@@ -1,0 +1,576 @@
+/*
+ * Shared styles for Phase 3 visual design checkpoint previews
+ * References tokens, typography and components directly from eimir. design system.
+ */
+
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./fonts/literata-latin-variable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./fonts/instrument-sans-latin-variable.woff2") format("woff2");
+}
+
+/* Base resets & layout */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  color: var(--color-text);
+  background-color: var(--color-background);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* App Header Mock */
+.mock-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 var(--space-6);
+  background: var(--color-header-surface);
+  border-bottom: 1px solid var(--color-header-border);
+  backdrop-filter: blur(12px);
+}
+
+.mock-logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.mock-logo .brand-dot {
+  color: var(--color-brand);
+}
+
+.mock-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mock-nav-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--motion-fast);
+}
+
+.mock-nav-item:hover {
+  color: var(--color-text);
+  background: var(--color-surface-subtle);
+}
+
+.mock-nav-item.active {
+  color: var(--color-brand-strong);
+  background: var(--color-brand-surface);
+}
+
+.mock-user-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mock-avatar-chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-brand-surface);
+  color: var(--color-brand-strong);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border: 1.5px solid var(--color-surface);
+  box-shadow: 0 2px 6px var(--color-shadow-soft);
+}
+
+.preview-container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-12);
+}
+
+@media (max-width: 600px) {
+  .mock-header {
+    padding: 0 var(--space-4);
+    height: 56px;
+  }
+  .preview-container {
+    padding: var(--space-4) var(--space-4) var(--space-8);
+  }
+  .mock-nav-item {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.82rem;
+  }
+}
+
+/* =========================================================================
+ * DIRECTION B SPECIFIC STYLES: The Living Sanctuary & Memory Tapestry
+ * ========================================================================= */
+
+/* B: Living Sanctuary Masthead (Unboxed & Atmospheric) */
+.sanctuary-masthead {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6) 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+@media (min-width: 768px) {
+  .sanctuary-masthead {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-8) 0 var(--space-6);
+  }
+}
+
+.sanctuary-presence-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.sanctuary-avatars-aura {
+  position: relative;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle, var(--color-brand-glow) 0%, transparent 70%);
+}
+
+.sanctuary-avatars-aura .partner-avatar-pair-large .partner-avatar {
+  width: 62px;
+  height: 62px;
+  box-shadow: 0 4px 16px var(--color-shadow-card), 0 0 0 3px var(--color-surface);
+}
+
+.sanctuary-greeting-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sanctuary-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-brand-strong);
+}
+
+.sanctuary-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-shared);
+  box-shadow: 0 0 6px var(--color-shared);
+}
+
+.sanctuary-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.8vw, 2.6rem);
+  font-weight: 750;
+  line-height: 1.15;
+  color: var(--color-text);
+  letter-spacing: -0.025em;
+}
+
+.sanctuary-duration-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--motion-fast);
+}
+
+.sanctuary-duration-link:hover {
+  color: var(--color-brand-strong);
+}
+
+.sanctuary-hearth-action {
+  display: flex;
+  align-items: center;
+}
+
+/* B: Heroic Keepsake Focal Point ("Vor einem Jahr") */
+.sanctuary-keepsake-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 12px 36px var(--color-shadow-card);
+  overflow: hidden;
+}
+
+@media (min-width: 840px) {
+  .sanctuary-keepsake-hero {
+    grid-template-columns: 1.15fr 1fr;
+    align-items: center;
+    padding: var(--space-6) var(--space-7);
+    gap: var(--space-8);
+  }
+}
+
+.sanctuary-keepsake-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-large);
+  overflow: hidden;
+  box-shadow: 0 8px 24px var(--color-shadow-soft);
+}
+
+.sanctuary-keepsake-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.sanctuary-keepsake-media:hover img {
+  transform: scale(1.03);
+}
+
+.sanctuary-keepsake-badge {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-overlay);
+  backdrop-filter: blur(8px);
+  color: var(--color-brand-strong);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}
+
+.sanctuary-keepsake-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sanctuary-keepsake-quote {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.sanctuary-keepsake-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* B: Organic Rhythm Timeline (Demnächst) */
+.sanctuary-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.sanctuary-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.sanctuary-section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.sanctuary-agenda-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .sanctuary-agenda-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.sanctuary-agenda-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 4px 16px var(--color-shadow-soft);
+  transition: all var(--motion-fast);
+}
+
+.sanctuary-agenda-item:hover {
+  border-color: var(--color-brand-glow);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--color-shadow-card);
+}
+
+.sanctuary-agenda-date-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-strong);
+}
+
+.sanctuary-agenda-date-day {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.sanctuary-agenda-date-month {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.sanctuary-agenda-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sanctuary-agenda-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sanctuary-agenda-sub {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* B: Story / Momente Keepsake Tapestry Layout */
+.tapestry-masthead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+@media (min-width: 768px) {
+  .tapestry-masthead {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+}
+
+.tapestry-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.tapestry-subtitle {
+  margin: var(--space-1) 0 0;
+  font-size: 1.05rem;
+  color: var(--color-text-secondary);
+}
+
+.tapestry-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 880px) {
+  .tapestry-grid {
+    grid-template-columns: 1.35fr 1fr;
+  }
+}
+
+.tapestry-card-memory {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 8px 30px var(--color-shadow-card);
+  overflow: hidden;
+}
+
+.tapestry-photo-feature {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.tapestry-photo-feature img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tapestry-card-body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tapestry-heart-note {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-radius: var(--radius-card);
+  background: radial-gradient(
+    ellipse at 80% 20%,
+    var(--color-brand-surface) 0%,
+    var(--color-surface) 90%
+  );
+  border: 1px solid var(--color-brand-glow);
+  box-shadow: 0 8px 30px var(--color-shadow-card);
+}
+
+.tapestry-heart-quote {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--color-text);
+  margin: var(--space-4) 0;
+}
+
+.tapestry-author-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+/* B: Immersive Creation Canvas */
+.sanctuary-create-card {
+  max-width: 680px;
+  margin: var(--space-4) auto;
+  padding: var(--space-8);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 16px 48px var(--color-shadow-card);
+}
+
+.sanctuary-create-header {
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.sanctuary-create-title {
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 750;
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+
+.sanctuary-create-sub {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.sanctuary-privacy-pill-selector {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+  margin: var(--space-4) auto var(--space-6);
+  gap: 4px;
+}
+
+.privacy-pill-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all var(--motion-fast);
+}
+
+.privacy-pill-option.selected {
+  background: var(--color-surface);
+  color: var(--color-shared);
+  box-shadow: 0 2px 8px var(--color-shadow-soft);
+}

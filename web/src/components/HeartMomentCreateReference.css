@@ -1,0 +1,446 @@
+/*
+ * #862 — "Neuer Herzmoment" Product Reference.
+ *
+ * This layer is deliberately scoped to the Heart Moment create route. The
+ * shared `.immersive-create-*` primitives are used for behavior and base
+ * semantics, but their global presentation is not changed: Memory, Milestone
+ * and Chapter create surfaces must not inherit this Product Reference pass.
+ *
+ * The accepted reference governs composition, hierarchy and visual rhythm.
+ * Colors continue to come exclusively from the accepted eimir. theme tokens;
+ * palette redesign is explicitly outside #862.
+ */
+
+.heart-moment-create-page {
+  display: grid;
+  gap: clamp(var(--space-6), 5vw, var(--space-10));
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+}
+
+.heart-moment-create-header {
+  display: grid;
+  gap: clamp(var(--space-6), 5vw, var(--space-8));
+  width: 100%;
+}
+
+.heart-moment-create-topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+
+.heart-moment-create-back {
+  justify-self: start;
+  min-width: 0;
+}
+
+.heart-moment-create-identity {
+  justify-self: center;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.heart-moment-create-topline-spacer {
+  width: 1px;
+  justify-self: end;
+}
+
+.heart-moment-create-title-lockup {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.heart-moment-create-heart {
+  display: grid;
+  width: 3.35rem;
+  height: 3.35rem;
+  place-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  box-shadow: var(--shadow-raised);
+}
+
+.heart-moment-create-heart svg {
+  width: 1.55rem;
+  height: 1.55rem;
+  fill: currentColor;
+}
+
+.heart-moment-create-title-lockup h1 {
+  max-width: 18ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 7.2vw, 2.65rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.heart-moment-create-privacy-summary {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+/* Flatten only the shared outer create card. The accepted reference is one
+ * calm continuous form, with hierarchy created by the media and field cards
+ * inside it rather than a card around the complete screen. */
+.heart-moment-create-card.immersive-create-card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.heart-moment-create-form.immersive-create-form {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.heart-moment-create-media,
+.heart-moment-create-field,
+.heart-moment-create-visibility {
+  min-width: 0;
+}
+
+/* Hero media area: visually prominent but still optional. AttachmentDraftPicker
+ * keeps the existing upload lifecycle, validation and accessibility behavior. */
+.heart-moment-create-media .attachment-draft-picker {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.heart-moment-create-media .attachment-draft-picker > label:not(.file-picker) {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.heart-moment-create-media .file-picker {
+  display: grid;
+  min-width: 0;
+  min-height: clamp(10.5rem, 42vw, 13rem);
+  place-items: center;
+  align-content: center;
+  gap: var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  background: linear-gradient(
+    180deg,
+    var(--color-surface) 0%,
+    var(--color-surface-panel-tint) 100%
+  );
+  box-shadow: var(--shadow-raised);
+  text-align: center;
+}
+
+.heart-moment-create-media .file-picker:hover {
+  border-color: var(--color-brand);
+  background: var(--color-surface);
+}
+
+.heart-moment-create-media .file-picker-icon {
+  display: grid;
+  width: 3.1rem;
+  height: 3.1rem;
+  place-items: center;
+  margin-inline: auto;
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.heart-moment-create-media .file-picker > span:not(.file-picker-icon) {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+  min-width: 0;
+}
+
+.heart-moment-create-media .file-picker strong,
+.heart-moment-create-media .file-picker small {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+
+.heart-moment-create-media .file-picker strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.heart-moment-create-media .file-picker small {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.heart-moment-create-media .attachment-draft-list {
+  margin-top: var(--space-2);
+}
+
+/* The data contract has one Heart Moment text field, emotion and date. #862
+ * must not invent a second backend title/note property, so these existing
+ * fields are translated into the reference's stacked-card composition. */
+.heart-moment-create-field {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.heart-moment-create-field > label {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.heart-moment-create-field :is(input, select, textarea) {
+  min-width: 0;
+  border-color: var(--color-border);
+  background: var(--color-surface-panel-tint);
+}
+
+.heart-moment-create-note textarea {
+  min-height: 8.5rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.heart-moment-create-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.heart-moment-create-visibility {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.heart-moment-create-visibility > legend {
+  margin-bottom: var(--space-1);
+  padding: 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.heart-moment-create-visibility-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: var(--space-3);
+}
+
+.heart-moment-create-visibility-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 7.25rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: var(--shadow-raised);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.heart-moment-create-visibility-option:hover {
+  border-color: var(--color-text-muted);
+  transform: translateY(-1px);
+}
+
+.heart-moment-create-visibility-option:has(input:checked) {
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+  box-shadow:
+    0 0 0 1px var(--color-brand),
+    var(--shadow-raised);
+}
+
+.heart-moment-create-visibility-option:focus-within {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.heart-moment-create-visibility-option > input {
+  margin: 0.1rem 0 0;
+}
+
+.heart-moment-create-visibility-option > span {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.heart-moment-create-visibility .heart-moment-create-visibility-option strong {
+  font-size: 0.96rem;
+  line-height: 1.3;
+}
+
+.heart-moment-create-visibility .heart-moment-create-visibility-option small {
+  color: var(--color-text-secondary);
+  font-size: 0.79rem;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.heart-moment-create-actions.form-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+.heart-moment-create-actions > button[type="submit"] {
+  width: 100%;
+  min-height: 54px;
+  border-radius: var(--radius-large);
+  font-size: 1rem;
+  box-shadow: var(--shadow-raised);
+}
+
+.heart-moment-create-actions > .secondary-link {
+  width: 100%;
+  min-height: 48px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (max-width: 620px) {
+  .heart-moment-create-page {
+    gap: var(--space-8);
+  }
+
+  .heart-moment-create-header {
+    gap: var(--space-6);
+  }
+
+  .heart-moment-create-title-lockup h1 {
+    font-size: clamp(2rem, 10vw, 2.4rem);
+  }
+
+  .heart-moment-create-media .file-picker {
+    min-height: 10.75rem;
+    padding: var(--space-5);
+  }
+
+  .heart-moment-create-field-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .heart-moment-create-form.immersive-create-form {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 350px) {
+  .heart-moment-create-topline {
+    grid-template-columns: 1fr auto;
+  }
+
+  .heart-moment-create-identity {
+    justify-self: end;
+  }
+
+  .heart-moment-create-topline-spacer {
+    display: none;
+  }
+
+  .heart-moment-create-visibility-options {
+    grid-template-columns: 1fr;
+  }
+
+  .heart-moment-create-visibility-option {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 620px) and (max-height: 700px) {
+  .heart-moment-create-page,
+  .heart-moment-create-header {
+    gap: var(--space-5);
+  }
+
+  .heart-moment-create-heart {
+    width: 2.8rem;
+    height: 2.8rem;
+  }
+
+  .heart-moment-create-media .file-picker {
+    min-height: 8.5rem;
+  }
+
+  .heart-moment-create-note textarea {
+    min-height: 7rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heart-moment-create-visibility-option {
+    transition: none;
+  }
+
+  .heart-moment-create-visibility-option:hover {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .heart-moment-create-heart,
+  .heart-moment-create-media .file-picker,
+  .heart-moment-create-field,
+  .heart-moment-create-visibility-option {
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+
+  .heart-moment-create-visibility-option:has(input:checked) {
+    border: 2px solid Highlight;
+    background: Canvas;
+    box-shadow: none;
+  }
+}

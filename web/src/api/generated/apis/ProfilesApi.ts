@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,6 +14,16 @@
 
 import * as runtime from '../runtime';
 import {
+    type PartnerNicknameUpdate,
+    PartnerNicknameUpdateFromJSON,
+    PartnerNicknameUpdateToJSON,
+} from '../models/PartnerNicknameUpdate';
+import {
+    type PartnerNicknameView,
+    PartnerNicknameViewFromJSON,
+    PartnerNicknameViewToJSON,
+} from '../models/PartnerNicknameView';
+import {
     type PartnerProfileView,
     PartnerProfileViewFromJSON,
     PartnerProfileViewToJSON,
@@ -23,6 +33,11 @@ import {
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type ProfileIdentityUpdate,
+    ProfileIdentityUpdateFromJSON,
+    ProfileIdentityUpdateToJSON,
+} from '../models/ProfileIdentityUpdate';
 import {
     type ProfilePreferenceCreate,
     ProfilePreferenceCreateFromJSON,
@@ -50,7 +65,16 @@ export interface DeleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPref
     ifMatch: string;
 }
 
+export interface GetPartnerNicknameRequest {
+    spaceId: string;
+}
+
 export interface GetPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRequest {
+    accountId: string;
+    spaceId: string;
+}
+
+export interface GetProfileAvatarContentRequest {
     accountId: string;
     spaceId: string;
 }
@@ -62,6 +86,19 @@ export interface GetProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPrefere
 
 export interface ListProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRequest {
     spaceId: string;
+}
+
+export interface SetPartnerNicknameRequest {
+    spaceId: string;
+    ifMatch: string;
+    partnerNicknameUpdate: PartnerNicknameUpdate;
+}
+
+export interface UpdateProfileIdentityRequest {
+    accountId: string;
+    spaceId: string;
+    ifMatch: string;
+    profileIdentityUpdate: ProfileIdentityUpdate;
 }
 
 export interface UpdateProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdPutRequest {
@@ -195,6 +232,51 @@ export class ProfilesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getPartnerNickname without sending the request
+     */
+    async getPartnerNicknameRequestOpts(requestParameters: GetPartnerNicknameRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPartnerNickname().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-nickname`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Partner Nickname
+     */
+    async getPartnerNicknameRaw(requestParameters: GetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerNicknameView>> {
+        const requestOptions = await this.getPartnerNicknameRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerNicknameViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Partner Nickname
+     */
+    async getPartnerNickname(requestParameters: GetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerNicknameView> {
+        const response = await this.getPartnerNicknameRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet without sending the request
      */
     async getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRequestOpts(requestParameters: GetPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRequest): Promise<runtime.RequestOpts> {
@@ -245,6 +327,60 @@ export class ProfilesApi extends runtime.BaseAPI {
     async getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet(requestParameters: GetPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerProfileView> {
         const response = await this.getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGetRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for getProfileAvatarContent without sending the request
+     */
+    async getProfileAvatarContentRequestOpts(requestParameters: GetProfileAvatarContentRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['accountId'] == null) {
+            throw new runtime.RequiredError(
+                'accountId',
+                'Required parameter "accountId" was null or undefined when calling getProfileAvatarContent().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getProfileAvatarContent().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/profiles/{accountId}/avatar/content`;
+        urlPath = urlPath.replace('{accountId}', encodeURIComponent(String(requestParameters['accountId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Stream only the current avatar after current-Space profile authorization.  Avatar identity is Account-global while its backing Attachment remains Space-scoped. The caller therefore never supplies an arbitrary attachment ID here. We first prove that the subject has a readable profile in the caller\'s current Space and only then resolve that Account\'s one current avatar binding. This deliberately permits the same current avatar to appear in another Space where the same Account is an active member without making any other source-Space attachment readable.
+     * Get Profile Avatar Content
+     */
+    async getProfileAvatarContentRaw(requestParameters: GetProfileAvatarContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.getProfileAvatarContentRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Stream only the current avatar after current-Space profile authorization.  Avatar identity is Account-global while its backing Attachment remains Space-scoped. The caller therefore never supplies an arbitrary attachment ID here. We first prove that the subject has a readable profile in the caller\'s current Space and only then resolve that Account\'s one current avatar binding. This deliberately permits the same current avatar to appear in another Space where the same Account is an active member without making any other source-Space attachment readable.
+     * Get Profile Avatar Content
+     */
+    async getProfileAvatarContent(requestParameters: GetProfileAvatarContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getProfileAvatarContentRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -342,6 +478,148 @@ export class ProfilesApi extends runtime.BaseAPI {
      */
     async listProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGet(requestParameters: ListProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProfilePreferenceView>> {
         const response = await this.listProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for setPartnerNickname without sending the request
+     */
+    async setPartnerNicknameRequestOpts(requestParameters: SetPartnerNicknameRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        if (requestParameters['partnerNicknameUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'partnerNicknameUpdate',
+                'Required parameter "partnerNicknameUpdate" was null or undefined when calling setPartnerNickname().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/partner-nickname`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PartnerNicknameUpdateToJSON(requestParameters['partnerNicknameUpdate']),
+        };
+    }
+
+    /**
+     * Set Partner Nickname
+     */
+    async setPartnerNicknameRaw(requestParameters: SetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerNicknameView>> {
+        const requestOptions = await this.setPartnerNicknameRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerNicknameViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Partner Nickname
+     */
+    async setPartnerNickname(requestParameters: SetPartnerNicknameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerNicknameView> {
+        const response = await this.setPartnerNicknameRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateProfileIdentity without sending the request
+     */
+    async updateProfileIdentityRequestOpts(requestParameters: UpdateProfileIdentityRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['accountId'] == null) {
+            throw new runtime.RequiredError(
+                'accountId',
+                'Required parameter "accountId" was null or undefined when calling updateProfileIdentity().'
+            );
+        }
+
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateProfileIdentity().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateProfileIdentity().'
+            );
+        }
+
+        if (requestParameters['profileIdentityUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'profileIdentityUpdate',
+                'Required parameter "profileIdentityUpdate" was null or undefined when calling updateProfileIdentity().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/profiles/{accountId}`;
+        urlPath = urlPath.replace('{accountId}', encodeURIComponent(String(requestParameters['accountId'])));
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ProfileIdentityUpdateToJSON(requestParameters['profileIdentityUpdate']),
+        };
+    }
+
+    /**
+     * Change only the authenticated account\'s current presentation identity.
+     * Update Profile Identity
+     */
+    async updateProfileIdentityRaw(requestParameters: UpdateProfileIdentityRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerProfileView>> {
+        const requestOptions = await this.updateProfileIdentityRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerProfileViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Change only the authenticated account\'s current presentation identity.
+     * Update Profile Identity
+     */
+    async updateProfileIdentity(requestParameters: UpdateProfileIdentityRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerProfileView> {
+        const response = await this.updateProfileIdentityRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

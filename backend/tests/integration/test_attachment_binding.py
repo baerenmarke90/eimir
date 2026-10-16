@@ -1,8 +1,7 @@
-"""Bindung von Attachments an Memory und HeartMoment.
+"""Binding attachments to Memory and HeartMoment.
 
-Der Kern ist eine einzige Zusage: nach der Bindung folgt die Lesbarkeit
-ausschliesslich dem Parent. Der Attachment-Owner ist dann kein alternativer
-Lesepfad mehr.
+The core guarantee is singular: after binding, readability follows exclusively
+from the parent. The attachment owner is no longer an alternative read path.
 """
 
 from __future__ import annotations
@@ -17,24 +16,24 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import cleanup, service
-from sidebyside.attachments.models import Attachment, AttachmentStatus
-from sidebyside.core.clock import now
-from sidebyside.media import build_storage_key, get_media_store
-from sidebyside.relationship import service as relationship_service
+from eimir.attachments import cleanup, service
+from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.core.clock import now
+from eimir.media import build_storage_key, get_media_store
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
 
-def basis(space_id: object) -> str:
+def base_path(space_id: object) -> str:
     return f"/api/v1/spaces/{space_id}"
 
 
-def bild() -> bytes:
-    puffer = io.BytesIO()
-    Image.new("RGB", (32, 24), (10, 20, 30)).save(puffer, "JPEG")
-    return puffer.getvalue()
+def image_bytes() -> bytes:
+    buffer = io.BytesIO()
+    Image.new("RGB", (32, 24), (10, 20, 30)).save(buffer, "JPEG")
+    return buffer.getvalue()
 
 
 def if_match(token: str, version: int) -> dict[str, str]:
@@ -42,7 +41,7 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
     space = make_space(session, anna)
@@ -57,389 +56,480 @@ def paar(session: Session):  # type: ignore[no-untyped-def]
     }
 
 
-def fertiges_attachment(client, paar, session, *, token_key: str = "token_a") -> str:  # type: ignore[no-untyped-def]
-    inhalt = bild()
-    angelegt = client.post(
-        f"{basis(paar['space'].id)}/attachments",
+def ready_attachment(
+    client,
+    couple,
+    session,
+    *,
+    token_key: str = "token_a",
+) -> str:  # type: ignore[no-untyped-def]
+    content = image_bytes()
+    created = client.post(
+        f"{base_path(couple['space'].id)}/attachments",
         json={
             "mediaType": "IMAGE",
             "originalName": "bild.jpg",
             "expectedMimeType": "image/jpeg",
-            "expectedSize": len(inhalt),
+            "expectedSize": len(content),
         },
-        headers=auth(paar[token_key]),
+        headers=auth(couple[token_key]),
     ).json()
-    kennung = angelegt["attachment"]["id"]
+    attachment_id = created["attachment"]["id"]
     client.put(
-        f"{basis(paar['space'].id)}/attachments/{kennung}/content",
-        content=inhalt,
-        headers=auth(paar[token_key]),
+        f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
+        content=content,
+        headers=auth(couple[token_key]),
     )
     client.post(
-        f"{basis(paar['space'].id)}/attachments/{kennung}/finalize",
+        f"{base_path(couple['space'].id)}/attachments/{attachment_id}/finalize",
         json={},
-        headers=auth(paar[token_key]),
+        headers=auth(couple[token_key]),
     )
-    service.validate(session, UUID(kennung))
+    service.validate(session, UUID(attachment_id))
     session.flush()
-    return kennung
+    return attachment_id
 
 
-def memory(client, paar, *, token_key: str = "token_a") -> dict[str, Any]:  # type: ignore[no-untyped-def]
+def memory(
+    client,
+    couple,
+    *,
+    token_key: str = "token_a",
+) -> dict[str, Any]:  # type: ignore[no-untyped-def]
     return client.post(
-        f"{basis(paar['space'].id)}/memories",
+        f"{base_path(couple['space'].id)}/memories",
         json={"title": "Urlaub", "body": "Text", "happenedOn": "2025-06-13"},
-        headers=auth(paar[token_key]),
+        headers=auth(couple[token_key]),
     ).json()
 
 
-def heart_moment(client, paar, *, visibility: str = "SHARED", attachment_id: str | None = None):  # type: ignore[no-untyped-def]
-    koerper: dict[str, Any] = {
+def heart_moment(
+    client,
+    couple,
+    *,
+    visibility: str = "SHARED",
+    attachment_id: str | None = None,
+):  # type: ignore[no-untyped-def]
+    body: dict[str, Any] = {
         "text": "Danke fuer heute.",
         "emotion": "LOVED",
         "visibility": visibility,
         "happenedOn": "2025-06-13",
     }
     if attachment_id is not None:
-        koerper["attachmentId"] = attachment_id
+        body["attachmentId"] = attachment_id
     return client.post(
-        f"{basis(paar['space'].id)}/heart-moments", json=koerper, headers=auth(paar["token_a"])
+        f"{base_path(couple['space'].id)}/heart-moments",
+        json=body,
+        headers=auth(couple["token_a"]),
     )
 
 
-class TestGalerie:
-    def test_reihenfolge_bleibt_stabil(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        zwei = fertiges_attachment(client, paar, session)
-        drei = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+class TestGallery:
+    def test_order_remains_stable(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        first = ready_attachment(client, couple, session)
+        second = ready_attachment(client, couple, session)
+        third = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
 
-        gesetzt = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+        updated = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={
                 "attachments": [
-                    {"attachmentId": drei, "position": 0},
-                    {"attachmentId": eins, "position": 1},
-                    {"attachmentId": zwei, "position": 2},
+                    {"attachmentId": third, "position": 0},
+                    {"attachmentId": first, "position": 1},
+                    {"attachmentId": second, "position": 2},
                 ]
             },
-            headers=if_match(paar["token_a"], m["version"]),
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert gesetzt.status_code == 200
-        assert [a["id"] for a in gesetzt.json()["attachments"]] == [drei, eins, zwei]
+        assert updated.status_code == 200
+        assert [item["id"] for item in updated.json()["attachments"]] == [
+            third,
+            first,
+            second,
+        ]
 
-        erneut = client.get(
-            f"{basis(paar['space'].id)}/memories/{m['id']}", headers=auth(paar["token_a"])
+        fetched = client.get(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}",
+            headers=auth(couple["token_a"]),
         )
-        assert [a["id"] for a in erneut.json()["attachments"]] == [drei, eins, zwei]
-        assert [a["position"] for a in erneut.json()["attachments"]] == [0, 1, 2]
+        assert [item["id"] for item in fetched.json()["attachments"]] == [
+            third,
+            first,
+            second,
+        ]
+        assert [item["position"] for item in fetched.json()["attachments"]] == [0, 1, 2]
 
-    def test_tausch_der_plaetze_funktioniert(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """Eindeutige Positionen duerfen sich beim Tausch nicht selbst blockieren."""
-        eins = fertiges_attachment(client, paar, session)
-        zwei = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+    def test_swapping_positions_works(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        """Unique positions must not block each other during a swap."""
+        first = ready_attachment(client, couple, session)
+        second = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
 
-        erst = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+        initial = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={
                 "attachments": [
-                    {"attachmentId": eins, "position": 0},
-                    {"attachmentId": zwei, "position": 1},
+                    {"attachmentId": first, "position": 0},
+                    {"attachmentId": second, "position": 1},
                 ]
             },
-            headers=if_match(paar["token_a"], m["version"]),
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert erst.status_code == 200
+        assert initial.status_code == 200
 
-        getauscht = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+        swapped = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={
                 "attachments": [
-                    {"attachmentId": zwei, "position": 0},
-                    {"attachmentId": eins, "position": 1},
+                    {"attachmentId": second, "position": 0},
+                    {"attachmentId": first, "position": 1},
                 ]
             },
-            headers=if_match(paar["token_a"], erst.json()["version"]),
+            headers=if_match(couple["token_a"], initial.json()["version"]),
         )
-        assert getauscht.status_code == 200
-        assert [a["id"] for a in getauscht.json()["attachments"]] == [zwei, eins]
+        assert swapped.status_code == 200
+        assert [item["id"] for item in swapped.json()["attachments"]] == [second, first]
 
-    def test_luecken_in_den_positionen_werden_abgewiesen(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 3}]},
-            headers=if_match(paar["token_a"], m["version"]),
+    def test_gaps_in_positions_are_rejected(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 3}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_dasselbe_attachment_zweimal_wird_abgewiesen(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+    def test_same_attachment_twice_is_rejected(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={
                 "attachments": [
-                    {"attachmentId": eins, "position": 0},
-                    {"attachmentId": eins, "position": 1},
+                    {"attachmentId": attachment_id, "position": 0},
+                    {"attachmentId": attachment_id, "position": 1},
                 ]
             },
-            headers=if_match(paar["token_a"], m["version"]),
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_entfernen_gibt_das_attachment_zum_aufraeumen_frei(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
-        gesetzt = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+    def test_removing_attachment_releases_it_for_cleanup(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
+        updated = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        geleert = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+        cleared = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={"attachments": []},
-            headers=if_match(paar["token_a"], gesetzt.json()["version"]),
+            headers=if_match(couple["token_a"], updated.json()["version"]),
         )
-        assert geleert.status_code == 200
-        assert geleert.json()["attachments"] == []
+        assert cleared.status_code == 200
+        assert cleared.json()["attachments"] == []
 
-        zeile = session.execute(select(Attachment).where(Attachment.id == UUID(eins))).scalar_one()
-        assert zeile.status == AttachmentStatus.DELETING.value
+        row = session.execute(
+            select(Attachment).where(Attachment.id == UUID(attachment_id))
+        ).scalar_one()
+        assert row.status == AttachmentStatus.DELETING.value
 
 
-class TestExklusiveBindung:
-    def test_ein_attachment_gehoert_hoechstens_einem_parent(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        erste = memory(client, paar)
-        zweite = memory(client, paar)
+class TestExclusiveBinding:
+    def test_attachment_belongs_to_at_most_one_parent(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        first = memory(client, couple)
+        second = memory(client, couple)
 
         client.put(
-            f"{basis(paar['space'].id)}/memories/{erste['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], erste["version"]),
+            f"{base_path(couple['space'].id)}/memories/{first['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], first["version"]),
         )
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{zweite['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], zweite["version"]),
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{second['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], second["version"]),
         )
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "ATTACHMENT_ALREADY_LINKED"
+        assert response.status_code == 409
+        assert response.json()["code"] == "ATTACHMENT_ALREADY_LINKED"
 
-    def test_nicht_gleichzeitig_an_memory_und_heart_moment(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """Das kann keine einzelne Tabelle wissen - deshalb geprueft."""
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+    def test_not_bound_to_memory_and_heart_moment_simultaneously(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """No single table can know this, so the service enforces it."""
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
         client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        antwort = heart_moment(client, paar, attachment_id=eins)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "ATTACHMENT_ALREADY_LINKED"
+        response = heart_moment(client, couple, attachment_id=attachment_id)
+        assert response.status_code == 409
+        assert response.json()["code"] == "ATTACHMENT_ALREADY_LINKED"
 
-    def test_erneutes_setzen_derselben_menge_ist_kein_konflikt(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
-        erst = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+    def test_reapplying_same_set_is_not_a_conflict(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
+        first = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        nochmal = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], erst.json()["version"]),
+        repeated = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], first.json()["version"]),
         )
-        assert nochmal.status_code == 200
+        assert repeated.status_code == 200
 
 
-class TestBindbarkeit:
-    def test_nur_ready_ist_bindbar(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        inhalt = bild()
-        angelegt = client.post(
-            f"{basis(paar['space'].id)}/attachments",
+class TestBindingEligibility:
+    def test_only_ready_attachment_is_bindable(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        content = image_bytes()
+        created = client.post(
+            f"{base_path(couple['space'].id)}/attachments",
             json={
                 "mediaType": "IMAGE",
                 "originalName": "bild.jpg",
                 "expectedMimeType": "image/jpeg",
-                "expectedSize": len(inhalt),
+                "expectedSize": len(content),
             },
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         ).json()
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": angelegt["attachment"]["id"], "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": created["attachment"]["id"], "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "ATTACHMENT_NOT_READY"
+        assert response.status_code == 409
+        assert response.json()["code"] == "ATTACHMENT_NOT_READY"
 
-    def test_abgelaufenes_fenster_ist_nicht_mehr_bindbar(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        zeile = session.execute(select(Attachment).where(Attachment.id == UUID(eins))).scalar_one()
-        zeile.ready_at = now() - service.BINDING_WINDOW - timedelta(minutes=1)
+    def test_expired_binding_window_is_not_bindable(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        row = session.execute(
+            select(Attachment).where(Attachment.id == UUID(attachment_id))
+        ).scalar_one()
+        row.ready_at = now() - service.BINDING_WINDOW - timedelta(minutes=1)
         session.flush()
 
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 409
+        assert response.status_code == 409
 
-    def test_fremdes_attachment_ist_nicht_bindbar(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        von_ben = fertiges_attachment(client, paar, session, token_key="token_b")
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": von_ben, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+    def test_foreign_attachment_is_not_bindable(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        from_ben = ready_attachment(client, couple, session, token_key="token_b")
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": from_ben, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 404
+        assert response.status_code == 404
 
-    def test_unbekanntes_attachment_endet_wie_ein_fremdes(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = memory(client, paar)
-        antwort = client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
+    def test_unknown_attachment_matches_foreign_attachment(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        created_memory = memory(client, couple)
+        response = client.put(
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
             json={"attachments": [{"attachmentId": str(uuid4()), "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        assert antwort.status_code == 404
+        assert response.status_code == 404
 
 
-class TestLesbarkeitFolgtDemParent:
-    def test_partner_liest_attachment_einer_gemeinsamen_memory(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+class TestReadabilityFollowsParent:
+    def test_partner_reads_attachment_of_shared_memory(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
         client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
 
-        inhalt = client.get(
-            f"{basis(paar['space'].id)}/attachments/{eins}/content",
-            headers=auth(paar["token_b"]),
+        content = client.get(
+            f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
+            headers=auth(couple["token_b"]),
         )
-        assert inhalt.status_code == 200
+        assert content.status_code == 200
 
-    def test_privater_heart_moment_sperrt_auch_sein_attachment(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        hm = heart_moment(client, paar, attachment_id=eins).json()
+    def test_private_heart_moment_also_blocks_its_attachment(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        heart = heart_moment(client, couple, attachment_id=attachment_id).json()
 
-        # Solange SHARED: der Partner darf.
+        # While SHARED, the partner may read it.
         assert (
             client.get(
-                f"{basis(paar['space'].id)}/attachments/{eins}/content",
-                headers=auth(paar["token_b"]),
+                f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
+                headers=auth(couple["token_b"]),
             ).status_code
             == 200
         )
 
         client.patch(
-            f"{basis(paar['space'].id)}/heart-moments/{hm['id']}/visibility",
+            f"{base_path(couple['space'].id)}/heart-moments/{heart['id']}/visibility",
             json={"visibility": "PRIVATE"},
-            headers=if_match(paar["token_a"], hm["version"]),
+            headers=if_match(couple["token_a"], heart["version"]),
         )
 
-        gesperrt = client.get(
-            f"{basis(paar['space'].id)}/attachments/{eins}/content",
-            headers=auth(paar["token_b"]),
+        blocked = client.get(
+            f"{base_path(couple['space'].id)}/attachments/{attachment_id}/content",
+            headers=auth(couple["token_b"]),
         )
-        assert gesperrt.status_code == 404
+        assert blocked.status_code == 404
 
-    def test_owner_ist_nach_der_bindung_kein_eigener_lesepfad(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """Ben laedt hoch, Ben bindet an seinen privaten HeartMoment.
+    def test_owner_is_not_separate_read_path_after_binding(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Ben uploads and binds the file to his private HeartMoment.
 
-        Danach darf Anna nicht lesen - obwohl sie im selben Space ist.
+        Anna must not be able to read it afterwards, even though she belongs to
+        the same Space.
         """
-        von_ben = fertiges_attachment(client, paar, session, token_key="token_b")
-        angelegt = client.post(
-            f"{basis(paar['space'].id)}/heart-moments",
+        from_ben = ready_attachment(client, couple, session, token_key="token_b")
+        created = client.post(
+            f"{base_path(couple['space'].id)}/heart-moments",
             json={
                 "text": "Nur fuer mich.",
                 "emotion": "SEEN",
                 "visibility": "PRIVATE",
                 "happenedOn": "2025-06-13",
-                "attachmentId": von_ben,
+                "attachmentId": from_ben,
             },
-            headers=auth(paar["token_b"]),
+            headers=auth(couple["token_b"]),
         )
-        assert angelegt.status_code == 201
+        assert created.status_code == 201
 
         assert (
             client.get(
-                f"{basis(paar['space'].id)}/attachments/{von_ben}/content",
-                headers=auth(paar["token_a"]),
+                f"{base_path(couple['space'].id)}/attachments/{from_ben}/content",
+                headers=auth(couple["token_a"]),
             ).status_code
             == 404
         )
 
-    def test_falsche_parentangabe_wird_abgewiesen(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+    def test_wrong_parent_reference_is_rejected(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
         client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        antwort = client.post(
-            f"{basis(paar['space'].id)}/attachments/{eins}/read-access",
+        response = client.post(
+            f"{base_path(couple['space'].id)}/attachments/{attachment_id}/read-access",
             json={"parentType": "MEMORY", "parentId": str(uuid4())},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 404
+        assert response.status_code == 404
 
-    def test_none_ist_nach_der_bindung_unzulaessig(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """M2-D24 gilt nur fuer ungebundene Uploads."""
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+    def test_none_is_not_allowed_after_binding(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """M2-D24 applies only to unbound uploads."""
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
         client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
-        antwort = client.post(
-            f"{basis(paar['space'].id)}/attachments/{eins}/read-access",
+        response = client.post(
+            f"{base_path(couple['space'].id)}/attachments/{attachment_id}/read-access",
             json={"parentType": "NONE"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 404
+        assert response.status_code == 404
 
 
-class TestCleanupRespektiertBindung:
-    def test_gebundenes_attachment_laeuft_nicht_ab(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """Seit der Bindung folgt die Lebensdauer dem Parent (M2-D20)."""
-        eins = fertiges_attachment(client, paar, session)
-        m = memory(client, paar)
+class TestCleanupRespectsBinding:
+    def test_bound_attachment_does_not_expire(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        """After binding, lifetime follows the parent (M2-D20)."""
+        attachment_id = ready_attachment(client, couple, session)
+        created_memory = memory(client, couple)
         client.put(
-            f"{basis(paar['space'].id)}/memories/{m['id']}/attachments",
-            json={"attachments": [{"attachmentId": eins, "position": 0}]},
-            headers=if_match(paar["token_a"], m["version"]),
+            f"{base_path(couple['space'].id)}/memories/{created_memory['id']}/attachments",
+            json={"attachments": [{"attachmentId": attachment_id, "position": 0}]},
+            headers=if_match(couple["token_a"], created_memory["version"]),
         )
 
-        zeile = session.execute(select(Attachment).where(Attachment.id == UUID(eins))).scalar_one()
-        zeile.ready_at = now() - service.BINDING_WINDOW - timedelta(hours=5)
+        row = session.execute(
+            select(Attachment).where(Attachment.id == UUID(attachment_id))
+        ).scalar_one()
+        row.ready_at = now() - service.BINDING_WINDOW - timedelta(hours=5)
         session.flush()
 
         cleanup.run_media_cleanup(session, {})
         session.flush()
 
-        session.refresh(zeile)
-        assert zeile.status == AttachmentStatus.READY.value
-        assert get_media_store().exists(build_storage_key(zeile.space_id, zeile.id, "original"))
+        session.refresh(row)
+        assert row.status == AttachmentStatus.READY.value
+        assert get_media_store().exists(build_storage_key(row.space_id, row.id, "original"))
 
-    def test_ungebundenes_laeuft_weiterhin_ab(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        eins = fertiges_attachment(client, paar, session)
-        zeile = session.execute(select(Attachment).where(Attachment.id == UUID(eins))).scalar_one()
-        zeile.ready_at = now() - service.BINDING_WINDOW - timedelta(minutes=1)
+    def test_unbound_attachment_still_expires(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        attachment_id = ready_attachment(client, couple, session)
+        row = session.execute(
+            select(Attachment).where(Attachment.id == UUID(attachment_id))
+        ).scalar_one()
+        row.ready_at = now() - service.BINDING_WINDOW - timedelta(minutes=1)
         session.flush()
 
         cleanup.run_media_cleanup(session, {})
@@ -447,7 +537,8 @@ class TestCleanupRespektiertBindung:
 
         assert (
             client.get(
-                f"{basis(paar['space'].id)}/attachments/{eins}", headers=auth(paar["token_a"])
+                f"{base_path(couple['space'].id)}/attachments/{attachment_id}",
+                headers=auth(couple["token_a"]),
             ).status_code
             == 404
         )

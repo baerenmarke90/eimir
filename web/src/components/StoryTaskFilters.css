@@ -1,0 +1,135 @@
+/* Keep compact browsing usable when text grows on a narrow screen. */
+.story-page .momente-tabs {
+  box-sizing: border-box;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.story-page .momente-tabs-container-timeline {
+  display: grid;
+  grid-template-columns: minmax(0, auto) 44px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.story-page .momente-tabs-container-timeline .momente-tabs {
+  min-width: 0;
+  width: 100%;
+}
+
+.story-page .story-task-filter-trigger {
+  position: relative;
+  display: inline-grid;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  place-items: center;
+  align-self: center;
+  padding: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.story-page .story-task-filter-trigger:hover {
+  border-color: var(--color-brand);
+  color: var(--color-text);
+}
+
+.story-page .story-task-filter-trigger.is-active {
+  border-color: var(--color-brand);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-strong);
+}
+
+.story-page .story-task-filter-trigger:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.story-filter-active-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: inline-grid;
+  min-width: 19px;
+  height: 19px;
+  place-items: center;
+  border: 2px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  padding-inline: 4px;
+  background: var(--color-brand);
+  color: var(--color-on-brand, white);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.story-page .story-filter-container {
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.story-task-filter-sheet .story-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.story-task-filter-sheet select {
+  width: 100%;
+  min-height: 44px;
+}
+
+.story-task-filter-sheet .short-task-sheet-actions > button {
+  min-height: 44px;
+}
+
+.story-page .story-task-active-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.story-task-active-scope .active-chip {
+  min-height: 44px;
+  color: var(--color-link-text);
+}
+
+.story-page .momente-tab-btn {
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-content: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.story-task-active-scope .active-chip {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 420px) {
+  .story-page .momente-tabs-container-timeline {
+    grid-template-columns: minmax(0, 1fr) 44px;
+    justify-content: stretch;
+  }
+}

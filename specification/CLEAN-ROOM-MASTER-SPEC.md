@@ -1,110 +1,109 @@
 # SIDEBYSIDE NEXT – CLEAN-ROOM MASTER SPECIFICATION
 
-## 0. Auftrag
+## 0. Assignment
 
-Du sollst **SideBySide Next** als vollständig neue, unabhängige Anwendung implementieren.
+You must implement **SideBySide Next** as a completely new, independent application.
 
-SideBySide Next ist eine private Paar-App für zwei Partner. Sie soll langfristig sowohl als:
+SideBySide Next is a private couple app for two partners. In the long term it is intended to be offered both as:
 
-1. **SideBySide Cloud** – kommerziell betriebener SaaS-Dienst
-2. **SideBySide Self-Hosted** – selbst betriebene Installation
+1. **SideBySide Cloud** – commercially operated SaaS service
+2. **SideBySide Self-Hosted** – self-operated installation
 
-angeboten werden.
+The project is a **Clean-Room reimplementation**.
 
-Das Projekt ist eine **Clean-Room-Neuimplementierung**.
+An older application named SideBySide Classic exists and historically originated from SharedMoments. That older codebase may be treated only as historical background.
 
-Es existiert eine ältere Anwendung namens SideBySide Classic, die historisch aus SharedMoments hervorgegangen ist. Diese ältere Codebasis darf ausschließlich als historischer Hintergrund verstanden werden.
+## ABSOLUTE CLEAN-ROOM RULE
 
-## ABSOLUTE CLEAN-ROOM-REGEL
+While implementing SideBySide Next, you must **not read, copy, port, or use as an implementation template any source code from SharedMoments or SideBySide Classic.**
 
-Während der Implementierung von SideBySide Next darfst du **keinen Sourcecode von SharedMoments oder SideBySide Classic lesen, kopieren, portieren oder als Implementierungsvorlage verwenden.**
+If an old repository exists on the system:
 
-Wenn sich ein altes Repository auf dem System befindet:
+- DO NOT open it
+- DO NOT search it
+- DO NOT analyze it with grep/ripgrep
+- DO NOT import it
+- DO NOT copy files from it
+- DO NOT adopt code from it
+- DO NOT write there
+- DO NOT commit there
 
-- NICHT öffnen
-- NICHT durchsuchen
-- NICHT mit grep/ripgrep analysieren
-- NICHT importieren
-- NICHT Dateien daraus kopieren
-- NICHT Code daraus übernehmen
-- NICHT dort schreiben
-- NICHT dort committen
+In particular, the following must not be adopted:
 
-Insbesondere dürfen nicht übernommen werden:
-
-- Python-Code
-- Flask-Routen
-- SQLAlchemy-Models
+- Python code
+- Flask routes
+- SQLAlchemy models
 - db_queries.py
-- Jinja-Templates
+- Jinja templates
 - CSS
 - JavaScript
-- Kotlin-Code der alten Android-App
-- alte `/api/v2/...`-Implementierungen
-- Datenbankmigrationen
-- Codekommentare
-- alter Fragen-Seed
-- Übersetzungstabellen als Bulk-Datensatz
-- Demo-Inhalte
-- alte Screenshots
-- Assets ungeklärter Herkunft
+- Kotlin code from the old Android app
+- old `/api/v2/...` implementations
+- database migrations
+- code comments
+- old question seed
+- translation tables as a bulk dataset
+- demo content
+- old screenshots
+- assets of unclear provenance
 
-Du implementierst ausschließlich anhand dieser Spezifikation.
+Implement exclusively from this specification.
 
-Wenn die aktuelle Working Directory das alte SideBySide-/SharedMoments-Projekt ist, ändere dort NICHTS. Wechsle bzw. erstelle stattdessen einen neuen isolierten Workspace, z. B.:
+If the current working directory is the old SideBySide/SharedMoments project, change NOTHING there. Switch to or create a new isolated workspace instead, for example:
 
-~/Projekte/SideBySide-Next
+`~/Projekte/SideBySide-Next`
 
-Das alte Repository muss unangetastet bleiben.
+The old repository must remain untouched.
 
 ---
 
-# 1. Produktvision
+# 1. Product vision
 
-SideBySide ist ein **privater digitaler Begleiter für das gemeinsame Leben eines Paares**.
+SideBySide is a **private digital companion for a couple's shared life**.
 
-Langfristig soll die App – soweit die Nutzer Funktionen freiwillig aktivieren – wissen bzw. verwalten können:
+In the long term, where users voluntarily enable the corresponding functions, the app should know or manage:
 
-- gemeinsame Erinnerungen
-- besondere emotionale Momente
-- Meilensteine
-- gemeinsame Geschichte
-- Wünsche
-- Pläne
-- gemeinsame Orte
-- gemeinsame Listen
-- persönliche/private Inhalte
-- wichtige Termine
-- Partnerpräferenzen
-- Geburtstage und wichtige Personen
-- Paarfragen
-- gemeinsames Befinden
-- Einkaufslisten
-- Rezeptideen
-- Freizeit- und Veranstaltungsvorschläge
-- externe Fotos
-- optionale Standortinformationen
-- kontextbezogene Hinweise
+- shared Memories
+- special emotional moments
+- Milestones
+- shared history
+- Wishes
+- Plans
+- shared Places
+- shared Lists
+- personal/private content
+- important dates
+- partner preferences
+- birthdays and important people
+- couple questions
+- shared well-being
+- Shopping Lists
+- recipe ideas
+- leisure and Event suggestions
+- external photos
+- optional location information
+- contextual hints
 
-Produktpositionierung:
+Product positioning, intentional de-DE copy:
 
 > SideBySide – die Paar-App, die euch gehört.
 
-Privacy ist ein Kernelement.
+Privacy is a Core element.
 
-Keine Werbung.
-Kein Verkauf persönlicher Daten.
-Kein unnötiges Tracking.
-Sensible Inhalte dürfen nicht für Analytics verwendet werden.
+No advertising.
+No sale of personal data.
+No unnecessary tracking.
+Sensitive content must not be used for Analytics.
 
 ---
 
-# 2. Grundarchitektur
+# 2. Core architecture
 
-Implementiere einen **modularen Monolithen**, keine Microservice-Landschaft.
+Implement a **modular monolith**, not a Microservice landscape.
 
-Zielarchitektur:
+Target architecture:
 
+```text
                          SideBySide Next
 
                  ┌────────────┴────────────┐
@@ -128,12 +127,13 @@ Zielarchitektur:
                    │                 │
                Filesystem            S3
               Self-Hosted           Cloud
+```
 
-Keine Microservices, solange keine konkrete technische Notwendigkeit dafür besteht.
+No Microservices unless a concrete technical necessity exists.
 
 ---
 
-# 3. Verbindlicher Technologiestack
+# 3. Binding technology stack
 
 Backend:
 - Python
@@ -145,8 +145,8 @@ Backend:
 API:
 - REST
 - JSON
-- Versionierung unter `/api/v1/...`
-- OpenAPI als verbindlicher Vertrag
+- versioning under `/api/v1/...`
+- OpenAPI as the binding contract
 
 Web:
 - React
@@ -154,86 +154,91 @@ Web:
 - Vite
 - React Router
 - TanStack Query
-- eigenes neues Designsystem
+- a new, independently created Design System
 
 Android:
 - Kotlin
 - Jetpack Compose
 - Material 3
-- OkHttp/Retrofit oder vergleichbare saubere HTTP-Schicht
-- Room für lokalen Read-Cache
+- OkHttp/Retrofit or an equivalent clean HTTP layer
+- Room for local Read Cache
 - WorkManager
-- Android Keystore / sichere Credential-Speicherung
+- Android Keystore / secure credential storage
 
 Infrastructure:
 - Docker
-- Docker Compose für Self-Hosted
-- stateless API/Web für Cloud
-- PostgreSQL auch Self-Hosted
-- KEIN SQLite-Support erforderlich
-- KEIN Redis als Pflicht
-- KEIN Celery als Pflicht
+- Docker Compose for Self-Hosted
+- stateless API/Web for Cloud
+- PostgreSQL for Self-Hosted as well
+- NO SQLite support required
+- NO mandatory Redis
+- NO mandatory Celery
 
 Background Jobs:
-- PostgreSQL-basierte Job Queue
+- PostgreSQL-based Job Queue
 - Worker
-- `FOR UPDATE SKIP LOCKED` oder vergleichbares robustes Verfahren
+- `FOR UPDATE SKIP LOCKED` or an equivalent robust mechanism
 
 ---
 
-# 4. Technische Konventionen
+# 4. Technical conventions
 
 ## IDs
 
-Persistente Domain-Entities verwenden UUIDv7, sofern die eingesetzten Libraries dies sauber unterstützen.
+Persistent Domain Entities use UUIDv7 where the selected libraries support it cleanly.
 
-Keine hochzählbaren öffentlichen IDs.
+No incrementing public IDs.
 
-## Zeit
+## Time
 
-Technische Zeitpunkte:
+Technical timestamps:
 - UTC
 - PostgreSQL `TIMESTAMPTZ`
 
-Reine fachliche Tage:
+Pure Domain calendar dates:
 - PostgreSQL `DATE`
 
-Beispiele:
+Examples:
 
+```text
 created_at  = Timestamp
 updated_at  = Timestamp
 happened_on = Date
 birthday    = Date
+```
 
 ## JSON
 
-Externe API:
+External API:
 - camelCase
 
-Interner Python-Code:
+Internal Python code:
 - snake_case
 
 ## Optimistic Concurrency
 
-Veränderbare Domain-Objekte erhalten eine Versionsinformation.
+Mutable Domain objects receive version information.
 
-Updates sollen später Konflikte erkennen können, z. B. über:
+Updates must later be able to detect conflicts, for example through:
 
+```text
 If-Match / Version
+```
 
-Konflikt:
+Conflict:
 HTTP 409
 
-Das dient auch als Vorbereitung auf späteren Offline-Sync.
+This also prepares for later Offline Sync.
 
 ---
 
-# 5. Einheitliches API-Fehlerformat
+# 5. Uniform API error format
 
-Verwende ein einheitliches Problem-Details-artiges Schema.
+Use a consistent Problem-Details-like schema.
 
-Beispiel:
+Example:
 
+```json
 {
   "type": "validation_error",
   "title": "Invalid request",
@@ -241,89 +246,100 @@ Beispiel:
   "detail": "The title must not be empty.",
   "code": "MEMORY_TITLE_REQUIRED"
 }
+```
 
-HTTP-Konvention:
+HTTP convention:
 
-Create       201
-Get          200
-Update       200
-Delete       204
-Validation   400/422
+```text
+Create          201
+Get             200
+Update          200
+Delete          204
+Validation      400/422
 Unauthenticated 401
-Forbidden    403
-Not Found    404
-Conflict     409
-Rate Limit   429
+Forbidden       403
+Not Found       404
+Conflict        409
+Rate Limit      429
+```
 
-Bei privacy-relevanten Ressourcen soll häufig bewusst `404` statt `403` verwendet werden, damit die Existenz fremder/private Ressourcen nicht geleakt wird.
+For Privacy-relevant resources, deliberately use `404` instead of `403` where appropriate so the existence of foreign/private resources is not leaked.
 
 ---
 
-# 6. Multi-Tenancy – zentrale Sicherheitsinvariante
+# 6. Multi-Tenancy – central Security invariant
 
-Das zentrale Mandantenobjekt heißt:
+The central tenant object is named:
 
+```text
 Space
+```
 
-Ein Space repräsentiert den privaten gemeinsamen Raum eines Paares.
+A Space represents the private shared area of a couple.
 
-Jeder gemeinsame Datensatz muss genau einem `space_id` zugeordnet sein.
+Every shared record must belong to exactly one `space_id`.
 
-Grundmodell:
+Base model:
 
+```text
 Account A ──┐
             ├── Membership ── Space
 Account B ──┘
+```
 
-Ein normaler Paar-Space hat maximal zwei aktive Partner.
+A normal couple Space has at most two active partners.
 
-Ein Account darf technisch mehreren Spaces angehören, auch wenn die normale UI zunächst nur einen aktiven Paar-Space in den Vordergrund stellt.
+An Account may technically belong to multiple Spaces even if the normal UI initially emphasizes only one active couple Space.
 
-Jeder Zugriff auf Space-Daten benötigt:
+Every access to Space data requires:
 
-1. authentifizierten Account
-2. aktive Membership
-3. Prüfung, dass die Ressource tatsächlich diesem Space gehört
-4. ggf. zusätzliche Resource-/Owner-Berechtigung
+1. authenticated Account
+2. active Membership
+3. verification that the resource actually belongs to that Space
+4. additional Resource/Owner authorization where applicable
 
-Es darf KEINEN Datenzugriff nur anhand einer Resource-ID ohne Tenant-Prüfung geben.
+There must be NO data access based only on a Resource ID without Tenant verification.
 
-Beispiel:
+Example:
 
+```text
 GET /api/v1/spaces/{spaceId}/memories/{memoryId}
+```
 
-muss prüfen:
+must verify:
 
-- current account
-- membership in spaceId
-- memory.spaceId == spaceId
-- resource permission
+- current Account
+- Membership in `spaceId`
+- `memory.spaceId == spaceId`
+- Resource permission
 
-Cross-Tenant-Schutz ist Release-kritisch.
+Cross-Tenant protection is Release-critical.
 
 ---
 
-# 7. Privacy-Klassen
+# 7. Privacy classes
 
-Jede Domain muss ihre Daten einer dieser Klassen zuordnen:
+Every Domain must classify its data into one of these classes:
 
+```text
 SPACE_SHARED
 OWNER_ONLY
 TEMPORARY_SHARED
 EPHEMERAL_CONTEXT
 SYSTEM_METADATA
+```
 
-Es gibt keine implizite PUBLIC-Klasse.
+There is no implicit PUBLIC class.
 
-Private Informationen müssen serverseitig geschützt werden.
+Private information must be protected server-side.
 
-Ein Ausblenden ausschließlich im Client reicht niemals.
+Hiding it only in the Client is never sufficient.
 
 ---
 
-# 8. Kern-Domainmodell
+# 8. Core Domain model
 
-Plane mindestens folgende fachliche Domains:
+Plan at least the following Domain areas:
 
 Identity:
 - Account
@@ -394,22 +410,25 @@ Later:
 - ShoppingList
 - ShoppingItem
 
-Keine generische Universal-Tabelle wie:
+Do not use a generic universal table such as:
 
+```text
 items(type, content, misc, ...)
+```
 
-für sämtliche Domains.
+for every Domain.
 
-Wichtige Fachbereiche bekommen eigene Modelle.
+Important Domain areas receive dedicated models.
 
 ---
 
-# 9. Accounts und Authentifizierung
+# 9. Accounts and authentication
 
-Account enthält Profilidentität, aber keine vermischten Auth-Geheimnisse.
+Account contains profile identity but not mixed Auth secrets.
 
-Konzeptionell:
+Conceptually:
 
+```text
 Account
 - id
 - displayName
@@ -419,38 +438,42 @@ Account
 - timezone
 - createdAt
 - updatedAt
+```
 
-Auth-Identitäten separat.
+Auth identities are separate.
 
 ## Cloud
 
-Vorgesehen:
-- E-Mail-Verifikation
+Planned:
+- email verification
 - Magic Link
 - Passkey
 - Recovery
 
-Keine Passwortpflicht für Cloud.
+No mandatory password for Cloud.
 
 ## Self-Hosted
 
-Zusätzlich:
-- lokaler Passwortlogin
+Additionally:
+- local password login
 - Passkey
 - OIDC
 
-Pocket ID muss dadurch später als normaler OIDC-Provider möglich sein.
+Pocket ID must therefore later be possible as a normal OIDC Provider.
 
 ## Native Auth
 
-Android nutzt Bearer Tokens.
+Android uses Bearer Tokens.
 
+```text
 Authorization: Bearer <access-token>
+```
 
-Kein Web-Session-Cookie als primäre Native-Authentifizierung.
+Do not use a Web Session Cookie as the primary Native authentication mechanism.
 
 DeviceSession:
 
+```text
 - accountId
 - refreshTokenHash
 - deviceName
@@ -459,14 +482,15 @@ DeviceSession:
 - lastUsedAt
 - expiresAt
 - revokedAt
+```
 
 Refresh Tokens:
-- nur gehasht persistieren
+- persist only as hashes
 - Rotation
-- Replay möglichst erkennen
+- detect Replay where possible
 
 Access Token:
-- kurzlebig, z. B. ungefähr 15 Minuten
+- short-lived, for example roughly 15 minutes
 
 ---
 
@@ -474,74 +498,77 @@ Access Token:
 
 Workflow:
 
-Account A erstellt Space
-→ Invitation erzeugen
-→ einmaliger Token
-→ Partner öffnet Link
-→ Login/Registrierung
+```text
+Account A creates Space
+→ create Invitation
+→ one-time token
+→ partner opens link
+→ sign-in/registration
 → Accept
 → Membership
+```
 
 Invitation Token:
-- zufällig
-- ausreichend Entropie
-- nur gehasht speichern
-- Ablaufdatum
-- widerrufbar
-- nur einmal verwendbar
+- random
+- sufficient entropy
+- store only as a hash
+- expiration date/time
+- revocable
+- one-time use only
 
 Tests:
 - expired
 - revoked
 - reused
-- full space
+- full Space
 - race condition
 - invalid token
 
 ---
 
-# 11. Partnerprofile und Preferences
+# 11. Partner profiles and preferences
 
-Partnerprofile sind Foundation.
+Partner profiles are Foundation.
 
-Zwei Dinge strikt trennen:
+Strictly separate two concepts:
 
 ## SELF_PROFILE
 
-Informationen, die ein Nutzer über sich selbst für den Partner freigibt.
+Information a user shares about themselves with their partner.
 
-Mögliche Angaben:
+Possible fields:
 
-- Geburtstag
-- Lieblingsblumen
-- Lieblingsessen
-- Lieblingsgetränke
-- Lieblingsfarben
-- Filmgenres
-- Seriengenres
-- Musik
-- Hobbys
-- Aktivitäten
-- Reisevorlieben
-- Restaurants
-- Abneigungen
-- optional weitere Eigenschaften
+- birthday
+- favorite flowers
+- favorite food
+- favorite drinks
+- favorite colors
+- movie genres
+- series genres
+- music
+- hobbies
+- activities
+- travel preferences
+- restaurants
+- dislikes
+- optionally additional attributes
 
 ## PRIVATE_PARTNER_NOTE
 
-Private Informationen, die ein Nutzer sich über seinen Partner merkt.
+Private information a user remembers about their partner for themselves.
 
-Beispiel:
-- Geschenkidee
-- private Notiz
-- Überraschungsplanung
+Example:
+- gift idea
+- private note
+- surprise planning
 
-Diese dürfen niemals im sichtbaren Partnerprofil auftauchen.
+These must never appear in the visible partner profile.
 
 ## ProfilePreference
 
-Konzeptionell:
+Conceptually:
 
+```text
 - accountId
 - spaceId
 - category
@@ -550,9 +577,11 @@ Konzeptionell:
 - value
 - visibility
 - updatedAt
+```
 
-Categories mindestens:
+Categories at minimum:
 
+```text
 FOOD
 DRINK
 FLOWERS
@@ -565,32 +594,38 @@ TRAVEL
 RESTAURANTS
 COLORS
 OTHER
+```
 
 Sentiment:
 
+```text
 LOVE
 LIKE
 NEUTRAL
 DISLIKE
 AVOID
+```
 
-Beispiel:
+Example:
 
+```text
 category = DRINK
 topic = favorite_drink
 sentiment = LOVE
 value = "Coca Cola Zero"
+```
 
-Die Architektur muss später Empfehlungen und Regeln auf diesen Daten ermöglichen.
+The architecture must later support recommendations and Rules based on these data.
 
 ---
 
-# 12. Related Persons und Important Dates
+# 12. Related Persons and Important Dates
 
-Kinder/Familienmitglieder sind keine SideBySide-Accounts.
+Children/family members are not SideBySide Accounts.
 
 RelatedPerson:
 
+```text
 - id
 - spaceId
 - createdBy
@@ -599,21 +634,25 @@ RelatedPerson:
 - birthday?
 - birthdayYearKnown
 - visibility
+```
 
-Relationship z. B.:
+Relationship, for example:
 
+```text
 CHILD
 PARENT
 SIBLING
 FRIEND
 OTHER
+```
 
-Datensparsamkeit:
+Data minimization:
 
-Standardmäßig keine Adressen, Schulen, Telefonnummern etc. für Dritte speichern.
+By default, do not store addresses, schools, phone numbers, etc. for third parties.
 
 ImportantDate:
 
+```text
 - id
 - spaceId
 - relatedPersonId?
@@ -622,41 +661,48 @@ ImportantDate:
 - repeats
 - label
 - visibility
+```
 
-Typen:
+Types:
 
+```text
 BIRTHDAY
 ANNIVERSARY
 CUSTOM
+```
 
-Damit soll später regelbasiert möglich sein:
+This should later allow Rule-based behavior such as the intentional de-DE user-facing example:
 
-"Lisa hat in 7 Tagen Geburtstag."
+`"Lisa hat in 7 Tagen Geburtstag."`
 
 ---
 
 # 13. SpaceProfile
 
-Enthält beziehungsbezogene Informationen.
+Contains relationship-related information.
 
-Mindestens:
+At minimum:
 
-- relationshipStartedOn?
-- showRelationshipDuration
-- durationDisplayMode
-- optional gemeinsamer Song später
+- `relationshipStartedOn?`
+- `showRelationshipDuration`
+- `durationDisplayMode`
+- optional shared song later
 
-Die Anzeige gemeinsamer Tage/Beziehungsdauer gehört zum MVP, ist aber optional abschaltbar.
+Displaying shared days/relationship duration belongs to the MVP but can optionally be disabled.
 
-Mögliche Darstellung:
+Possible intentional localized display:
 
+```text
 4 Jahre, 3 Monate
+```
 
-oder:
+or:
 
+```text
 1.568 gemeinsame Tage
+```
 
-Wenn deaktiviert, erscheint sie nicht.
+When disabled, it does not appear.
 
 ---
 
@@ -664,6 +710,7 @@ Wenn deaktiviert, erscheint sie nicht.
 
 Memory:
 
+```text
 - id
 - spaceId
 - authorId
@@ -673,28 +720,29 @@ Memory:
 - createdAt
 - updatedAt
 - version
+```
 
-Funktionen:
+Functions:
 
-- erstellen
-- lesen
-- bearbeiten
-- löschen
-- mehrere Bilder/Medien
-- Galerie
-- Autor anzeigen
+- create
+- read
+- update
+- delete
+- multiple images/media
+- Gallery
+- display author
 - Story
-- Suche
-- Kommentare
-- Kapitel-/Ortsverknüpfung später
+- Search
+- Comments
+- later Chapter/Place relation
 
-Das fachliche Ereignisdatum ist getrennt vom Erstellungszeitpunkt zu speichern.
+Store the Domain event date separately from the creation timestamp.
 
-Autorschaft ist relevant.
+Authorship matters.
 
-Grundregel:
-Der Autor darf persönlichen Text bearbeiten/löschen.
-Partner darf gemeinsame Erinnerung lesen.
+Base rule:
+The author may edit/delete personal text.
+The partner may read the shared Memory.
 
 ---
 
@@ -702,6 +750,7 @@ Partner darf gemeinsame Erinnerung lesen.
 
 HeartMoment:
 
+```text
 - id
 - spaceId
 - authorId
@@ -713,47 +762,53 @@ HeartMoment:
 - createdAt
 - updatedAt
 - version
+```
 
-Emotionen initial:
+Initial emotions:
 
+```text
 LOVED
 SEEN
 APPRECIATED
 SUPPORTED
 GRATEFUL
 HAPPY
+```
 
 Visibility:
 
+```text
 SHARED
 PRIVATE
+```
 
-PRIVATE bedeutet:
+PRIVATE means:
 
-Der Partner darf den Inhalt NICHT erhalten über:
+The partner must NOT receive the content through:
 
 - GET by ID
-- Listen
-- Suche
+- Lists
+- Search
 - Dashboard
 - Story
-- Kommentare
+- Comments
 - Notifications
-- Export des Partners
-- indirekte Relation
+- partner Export
+- indirect Relation
 
-Nur Owner.
+Owner only.
 
-SHARED darf in Story erscheinen und kommentiert werden.
+SHARED may appear in Story and may receive Comments.
 
 ---
 
 # 16. Milestones
 
-Eigenständiges Domainmodell.
+Dedicated Domain model.
 
 Milestone:
 
+```text
 - id
 - spaceId
 - authorId
@@ -762,36 +817,42 @@ Milestone:
 - happenedOn
 - timestamps
 - version
+```
 
-Nutzung:
+Usage:
 - Story
-- Kapitel
-- Suche
-- Jahresrückblick
+- Chapter
+- Search
+- Year in Review
 
-Keine Modellierung als spezieller Listentyp.
+Do not model as a special List type.
 
 ---
 
 # 17. Attachments / MediaStore
 
-Storage muss abstrahiert sein.
+Storage must be abstracted.
 
-Interface sinngemäß:
+Interface conceptually:
 
+```text
 createUpload()
 finalizeUpload()
 open()
 delete()
 createReadUrl()
+```
 
-Implementierungen:
+Implementations:
 
+```text
 LocalMediaStore
 S3MediaStore
+```
 
 Attachment:
 
+```text
 - id
 - spaceId
 - ownerId
@@ -806,55 +867,66 @@ Attachment:
 - cryptoVersion
 - encrypted
 - createdAt
+```
 
-Storage Keys niemals direkt aus User-Dateinamen ableiten.
+Never derive Storage Keys directly from user filenames.
 
-Beispiel:
+Example:
 
+```text
 spaces/{spaceUuid}/attachments/{attachmentUuid}/original
+```
 
-Upload Lifecycle:
+Upload lifecycle:
 
+```text
 PENDING
 → upload
 → validation
 → READY
+```
 
-Fehler:
+Failure:
+
+```text
 FAILED
+```
 
-Prüfen:
-- tatsächlicher MIME-Type
-- Größe
-- erlaubter Medientyp
-- Bilddimensionen
-- Space-Zuordnung
+Validate:
+- actual MIME type
+- size
+- permitted media type
+- image dimensions
+- Space assignment
 
-Cloud-Medien sind nicht öffentlich.
+Cloud media are not public.
 
-Lesen:
+Reading:
+
+```text
 Authorization
-→ kurzlebige signed URL oder autorisierte Streaming-Route
+→ short-lived signed URL or authorized streaming route
+```
 
 ---
 
-# 18. E2EE-READINESS – STUFE 1 IST PFLICHT
+# 18. E2EE READINESS – LEVEL 1 IS MANDATORY
 
-Es wird im ersten Release noch KEINE echte Ende-zu-Ende-Verschlüsselung implementiert.
+The first Release does NOT implement real end-to-end encryption.
 
-Die Architektur muss jedoch von Tag 1 E2EE-ready sein.
+However, the architecture must be E2EE-ready from day one.
 
-Wichtig:
+Important:
 
-Stufe 1 darf NICHT als echte E2EE vermarktet werden.
+Level 1 must NOT be marketed as real E2EE.
 
-Die tatsächliche E2EE wird später ein eigener Security-Milestone.
+Actual E2EE becomes a separate later Security milestone.
 
-## Architekturregel
+## Architecture rule
 
-Sensible Inhalte und Metadaten logisch trennen.
+Logically separate sensitive content from metadata.
 
-Beispiel:
+Example:
 
 Memory
 
@@ -870,28 +942,30 @@ Metadata:
 ProtectedPayload:
 - title
 - body
-- weitere sensible Felder
+- additional sensitive fields
 
-In Version 1 darf ProtectedPayload noch Klartext sein.
+In version 1, ProtectedPayload may still be plaintext.
 
-Die API und Persistenz dürfen jedoch nicht so konstruiert sein, dass ein späterer Wechsel zu:
+However, API and persistence must not be designed so that a later transition to:
 
+```text
 ProtectedPayload
-→ clientseitige Verschlüsselung
+→ client-side encryption
 → Ciphertext
+```
 
-eine komplette Neuarchitektur erfordert.
+requires a complete rearchitecture.
 
-Attachments ebenfalls:
+Attachments likewise:
 
 - cryptoVersion
 - encrypted
 
-Storage darf keinen Klartext voraussetzen.
+Storage must not assume plaintext.
 
-Dashboard, Rückblicke, Notification-System und Rule Engine sollen möglichst nicht zwingend auf sensible Klartexte angewiesen sein.
+Dashboard, recaps, Notification system, and Rule Engine should avoid mandatory dependence on sensitive plaintext wherever possible.
 
-Späterer E2EE-Milestone reservieren für:
+Reserve a later E2EE milestone for:
 
 - Device Keys
 - Account Keys
@@ -900,22 +974,23 @@ Späterer E2EE-Milestone reservieren für:
 - Device Verification
 - Recovery
 - Key Rotation
-- verschlüsselte Payloads
-- verschlüsselte Attachments
-- lokale Suche
+- encrypted Payloads
+- encrypted Attachments
+- local Search
 - Web Crypto
 - Android Crypto
-- Migration bestehender Daten
-- externer Security Audit
+- migration of existing data
+- external Security Audit
 
-Noch NICHT implementieren.
+Do NOT implement yet.
 
 ---
 
-# 19. Kommentare
+# 19. Comments
 
 Comment:
 
+```text
 - id
 - spaceId
 - authorId
@@ -924,38 +999,44 @@ Comment:
 - body
 - createdAt
 - updatedAt
+```
 
-Zulässige Targets in Version 1 kontrolliert enumerieren.
+Strictly enumerate permitted targets in version 1.
 
-Mindestens:
+At minimum:
 - shared Memory
 - Milestone
 - shared HeartMoment
 
-Keine Kommentare auf private Inhalte.
+No Comments on private content.
 
-Kommentar auf fremdem gemeinsamen Content:
+Comment on another person's shared content:
 
+```text
 → Domain Event
-→ Notification für Content-Autor
+→ Notification for content author
 → optional Push
+```
 
 ---
 
 # 20. Transactional Outbox / Domain Events
 
-Domain Events sind Foundation.
+Domain Events are Foundation.
 
-Bei relevanten Änderungen:
+For relevant changes:
 
+```text
 DB Transaction
 ├── Domain Entity
 └── OutboxEvent
+```
 
-Worker verarbeitet OutboxEvent.
+Worker processes OutboxEvent.
 
-Beispiele:
+Examples:
 
+```text
 MEMORY_CREATED
 HEART_MOMENT_CREATED
 PLAN_COMPLETED
@@ -963,40 +1044,45 @@ IMPORTANT_DATE_APPROACHING
 PARTNER_THINKING_OF_YOU
 REMINDER_DUE
 PROFILE_PREFERENCE_CHANGED
+```
 
-Später:
+Later:
 
+```text
 SHOPPING_CONTEXT_ENTERED
 NEW_RELEVANT_MOVIE
 NEARBY_EVENT_FOUND
 IMMICH_MEMORY_FOUND
+```
 
-Keine enge Kopplung zwischen Domain und Push/Integration.
+No tight coupling between Domain and Push/Integration.
 
 ---
 
 # 21. Story
 
-Die Story ist KEINE persistierte Story-Tabelle.
+Story is NOT a persisted Story table.
 
-Sie ist ein Read Model aus:
+It is a Read Model composed from:
 
 - Memory
 - shared HeartMoment
 - Milestone
 
-angereichert um:
+enriched with:
 
 - Author
 - Attachment
 - Chapter
 - Place
 
-API z. B.:
+API, for example:
 
+```text
 GET /api/v1/spaces/{spaceId}/timeline
+```
 
-Filter:
+Filters:
 - type
 - year
 - q
@@ -1004,35 +1090,35 @@ Filter:
 - cursor
 - limit
 
-Cursor-basierte Pagination.
+Cursor-based Pagination.
 
-Story:
-- nach Typ filtern
-- nach Jahr filtern
-- suchen
-- chronologisch auf/absteigend
-- monatsweise Gruppierung
+Story supports:
+- filtering by type
+- filtering by year
+- Search
+- chronological ascending/descending order
+- grouping by month
 
-Private Inhalte niemals einbeziehen.
+Never include private content.
 
-Zeitliche Sortierung primär nach happenedOn, sonst geeigneter Fallback.
+Chronological ordering primarily uses `happenedOn`, otherwise a suitable fallback.
 
 ---
 
-# 22. "Weißt du noch?"
+# 22. `"Weißt du noch?"`
 
-Automatischer Rückblick aus historischen gemeinsamen Inhalten.
+Automatic retrospective from historical shared content.
 
-Kein duplizierter Inhalt.
+No duplicated content.
 
-Beispiel:
-- heute vor 1 Jahr
-- heute vor 2 Jahren
-- ähnliche historische Daten
+Examples:
+- today one year ago
+- today two years ago
+- similar historical dates
 
-Der Rückblick referenziert Originalcontent.
+The retrospective references original content.
 
-Das Feature soll E2EE-kompatibel bleiben, indem der Server möglichst nur Metadaten für die Auswahl benötigt.
+The feature should remain E2EE-compatible by requiring only metadata for server-side selection wherever possible.
 
 ---
 
@@ -1040,6 +1126,7 @@ Das Feature soll E2EE-kompatibel bleiben, indem der Server möglichst nur Metada
 
 Wish:
 
+```text
 - id
 - spaceId
 - title
@@ -1047,28 +1134,33 @@ Wish:
 - createdAt
 - updatedAt
 - version
+```
 
-Fachzustände:
+Domain states:
 
+```text
 OPEN
 PLANNED
 COMPLETED
+```
 
-Benutzerworkflow:
+User workflow:
 
-Wunsch
-→ als Plan angehen
+```text
+Wish
+→ continue as Plan
 → Plan
-→ erlebt
+→ experienced
+```
 
-Ein nicht abgeschlossener Plan kann ggf. wieder in den Wunschzustand zurückgeführt werden.
+A non-completed Plan may be returned to the Wish state where applicable.
 
-Funktionen:
-- Suche
-- Filter
-- Sortierung
-- Fortschritt
-- Autor
+Functions:
+- Search
+- filtering
+- ordering
+- progress
+- author
 
 ---
 
@@ -1076,6 +1168,7 @@ Funktionen:
 
 Plan:
 
+```text
 - id
 - spaceId
 - sourceWishId?
@@ -1090,21 +1183,26 @@ Plan:
 - createdAt
 - updatedAt
 - version
+```
 
 Status:
 
+```text
 IDEA
 PLANNED
 COMPLETED
+```
 
 Workflow:
 
+```text
 Wish
 → Plan
 → Completed
 → optional Chapter
+```
 
-Transitions explizit modellieren und testen.
+Model and test transitions explicitly.
 
 ---
 
@@ -1112,6 +1210,7 @@ Transitions explizit modellieren und testen.
 
 Place:
 
+```text
 - id
 - spaceId
 - name
@@ -1122,16 +1221,17 @@ Place:
 - createdBy
 - timestamps
 - version
+```
 
-Position optional.
+Position is optional.
 
-Nutzer soll später:
-- Adresse/Ort suchen
-- aktuelle Position verwenden
-- Kartenposition wählen
-- Ort ohne Koordinaten speichern
+Later, users should be able to:
+- search for an address/Place
+- use current position
+- choose a map position
+- save a Place without coordinates
 
-Places können verbunden werden mit:
+Places can be connected with:
 - Memories
 - HeartMoments
 - Milestones
@@ -1142,19 +1242,22 @@ Places können verbunden werden mit:
 
 # 26. Content Relations
 
-Nach außen gemeinsamer Relation Service.
+Expose a shared Relation Service externally.
 
-In PostgreSQL nach Möglichkeit echte Foreign Keys verwenden.
+In PostgreSQL, use real Foreign Keys wherever possible.
 
-Keine unkontrollierte Universalrelation mit:
+Do not use an uncontrolled universal Relation with:
 
+```text
 targetType
 targetId
+```
 
-ohne Referential Integrity.
+without Referential Integrity.
 
-Intern dürfen klare Relationstabellen existieren:
+Internally, explicit Relation tables may exist:
 
+```text
 chapter_memories
 chapter_heart_moments
 chapter_milestones
@@ -1164,6 +1267,7 @@ place_heart_moments
 place_milestones
 place_plans
 place_chapters
+```
 
 ---
 
@@ -1171,6 +1275,7 @@ place_chapters
 
 Chapter:
 
+```text
 - id
 - spaceId
 - title
@@ -1181,32 +1286,40 @@ Chapter:
 - createdBy
 - timestamps
 - version
+```
 
-Kapitel bündelt:
-- Erinnerungen
-- Herzmomente
-- Meilensteine
+Chapter groups:
+- Memories
+- HeartMoments
+- Milestones
 
-Löschregel:
+Delete rule:
 
-Chapter löschen
-→ Beziehungen entfernen
-→ Originalinhalte NICHT löschen
+```text
+Delete Chapter
+→ remove Relations
+→ DO NOT delete original content
+```
 
 ---
 
 # 28. Collections
 
-Normale frei definierbare gemeinsame Listen:
+Normal freely definable shared Lists:
 
 Collection:
+
+```text
 - id
 - spaceId
 - title
 - icon
 - timestamps
+```
 
 CollectionItem:
+
+```text
 - id
 - collectionId
 - title
@@ -1214,15 +1327,16 @@ CollectionItem:
 - position
 - createdBy
 - timestamps
+```
 
-Anwendungsfälle:
+Use cases:
 - TrashTV
-- Filme
-- Restaurants
-- Reiseideen
-- sonstige Checklisten
+- movies
+- restaurants
+- travel ideas
+- other checklists
 
-Funktionen:
+Functions:
 - create
 - edit
 - complete/reopen
@@ -1231,16 +1345,17 @@ Funktionen:
 - bulk delete
 - reorder
 
-Einkaufsliste ist später eine eigene Domain und NICHT einfach eine Collection.
+The Shopping List is a separate later Domain and is NOT simply a Collection.
 
 ---
 
 # 29. Private Area
 
-Harte Privacy-Domain.
+Hard Privacy Domain.
 
 ## PrivateNote
 
+```text
 - id
 - spaceId
 - ownerId
@@ -1249,9 +1364,11 @@ Harte Privacy-Domain.
 - pinned
 - timestamps
 - version
+```
 
 ## GiftIdea
 
+```text
 - id
 - spaceId
 - ownerId
@@ -1266,182 +1383,216 @@ Harte Privacy-Domain.
 - pinned
 - timestamps
 - version
+```
 
 ## PrivateCollection
 
+```text
 - id
 - spaceId
 - ownerId
 - title
 - icon
+```
 
 PrivateCollectionItem:
+
+```text
 - title
 - completed
 - position
+```
 
-OWNER_ONLY.
+`OWNER_ONLY`.
 
-Partner darf sie niemals sehen, auch nicht:
-- über ID
-- Suche
+The partner must never see them, including through:
+- ID
+- Search
 - Story
 - Dashboard
-- direkten Link
-- API-Manipulation
+- direct link
+- API manipulation
 
 ---
 
 # 30. Reminders
 
 Reminder:
+
+```text
 - id
 - spaceId
 - title
 - description?
 - source
 - createdBy
+```
 
 ReminderSchedule:
+
+```text
 - reminderId
 - type
-- entsprechende Parameter
+- corresponding parameters
+```
 
 Schedule Types:
 
+```text
 ONCE
 ANNUAL
 RELATIONSHIP_DAY_COUNT
+```
 
 ReminderOffset:
+
+```text
 - reminderId
 - daysBefore
+```
 
-Keine CSV-Strings wie `"0,1,3,7"`.
+Do not use CSV strings such as `"0,1,3,7"`.
 
 ReminderPreference:
+
+```text
 - accountId
 - reminderId
 - muted
+```
 
-Automatisch erzeugte Reminder müssen ihre Quelle kennen und sollen nicht wie frei editierbare manuelle Reminder behandelt werden.
+Automatically generated Reminders must know their source and should not be treated as freely editable manual Reminders.
 
 ---
 
 # 31. Rule & Suggestion Engine
 
-Die Architektur muss deterministische Regeln unterstützen.
+The architecture must support deterministic Rules.
 
-Grundmodell:
+Base model:
 
+```text
 Trigger
 +
 Conditions
 +
 Action
+```
 
-Keine frei ausführbaren User-Skripte.
+No freely executable user scripts.
 
-Kontrollierter Rule-Katalog.
+Controlled Rule catalog.
 
 RulePreference:
 
+```text
 - accountId
 - spaceId
 - ruleKey
 - enabled
 - parameters
+```
 
-Beispiel:
+Example:
 
+```text
 birthday_reminder
 enabled = true
 daysBefore = [14, 7, 1]
+```
 
-Beispielregeln später:
+Possible later Rules:
 
+```text
 IMPORTANT_DATE_APPROACHING
 + BIRTHDAY
 + 7 days
-→ notification
+→ Notification
 
 SHOPPING_CONTEXT_ENTERED
 + partner favorite drink exists
 + locationSuggestions enabled
-→ local suggestion
+→ local Suggestion
+```
 
-Keine KI notwendig.
+No AI required.
 
 ---
 
 # 32. Notifications
 
-Trennen:
+Separate:
 
+```text
 Activity
 → Notification
 → optional PushDelivery
+```
 
-Activity = Space-Ereignis
+Activity = Space event
 
-Notification = Empfängerzustand
+Notification = recipient state
 
-PushDelivery = technischer Versandkanal
+PushDelivery = technical delivery channel
 
-Funktionen:
+Functions:
 - unread count
-- als gelesen markieren
-- alle gelesen
-- Zielinhalt öffnen
+- mark as read
+- mark all as read
+- open target content
 
-Push-Nachrichten sollen standardmäßig keine sensiblen Texte enthalten.
+Push messages should contain no sensitive text by default.
 
-Bevorzugt z. B.:
+Prefer intentional de-DE product copy such as:
 
-"Neue Aktivität in SideBySide"
+`"Neue Aktivität in SideBySide"`
 
-statt eines privaten Originaltexts.
+instead of private original text.
 
 ---
 
-# 33. "Ich denke an dich"
+# 33. `"Ich denke an dich"`
 
-Kleines Partner-Signal.
+Small partner signal.
 
-A sendet
+```text
+A sends
 → Activity
 → Notification B
 → optional Push
+```
 
-Kein Freitext erforderlich.
+No free text required.
 
-Cooldown und Rate Limit.
+Cooldown and Rate Limit.
 
-Soll auch als Testfall für Event-/Notification-Pipeline dienen.
+It should also serve as a test case for the Event/Notification pipeline.
 
 ---
 
 # 34. Dashboard
 
-Dashboard ist ein Read Model, keine redundante Datenhaltung.
+Dashboard is a Read Model, not redundant persistence.
 
-API z. B.:
+API, for example:
 
+```text
 GET /api/v1/spaces/{spaceId}/dashboard
+```
 
-Kann enthalten:
+May contain:
 
 - Space Summary
-- Partner
-- Beziehungsdauer optional
-- "Ich denke an dich"
-- "Weißt du noch?"
-- Demnächst
-- Zuletzt bei uns
-- Daily Question später
-- Year Summary später
+- partner
+- optional relationship duration
+- `"Ich denke an dich"`
+- `"Weißt du noch?"`
+- upcoming items
+- recent shared items
+- Daily Question later
+- Year Summary later
 
-Alle Daten aus echten Domains ableiten.
+Derive all data from real Domains.
 
 ---
 
@@ -1450,15 +1601,17 @@ Alle Daten aus echten Domains ableiten.
 Version 1:
 PostgreSQL Full Text Search.
 
-Kein Elasticsearch/OpenSearch erforderlich.
+No Elasticsearch/OpenSearch required.
 
-Search Service abstrahieren, damit später austauschbar.
+Abstract the Search Service so it can be replaced later.
 
-API z. B.:
+API, for example:
 
+```text
 GET /api/v1/spaces/{spaceId}/search?q=...
+```
 
-Mindestens:
+At minimum:
 - Memories
 - HeartMoments
 - Milestones
@@ -1466,21 +1619,22 @@ Mindestens:
 - Plans
 - Places
 - Collections
-- später Questions
-- eigene private Inhalte
+- later Questions
+- current user's private content
 
-Security Filter muss serverseitig stattfinden.
+Security filtering must happen server-side.
 
-Private Treffer des Partners dürfen nie erzeugt und anschließend nur im Client ausgeblendet werden.
+Private partner results must never be generated and then merely hidden in the Client.
 
 ---
 
 # 36. Export / Portability
 
-Versioniertes eigenes SideBySide Transfer Bundle.
+Versioned SideBySide Transfer Bundle.
 
-Beispiel:
+Example:
 
+```text
 sidebyside-export.zip
 ├── manifest.json
 ├── accounts.json
@@ -1495,6 +1649,7 @@ sidebyside-export.zip
 ├── collections.json
 ├── private/
 └── media/
+```
 
 Manifest:
 - formatVersion
@@ -1502,78 +1657,84 @@ Manifest:
 - applicationVersion
 - checksums
 
-NICHT exportieren:
-- Passwörter
+DO NOT export:
+- passwords
 - Passkeys
 - Refresh Tokens
 - Sessions
 - Push Tokens
 - Security Logs
 
-Notifications müssen nicht Teil des portablen Nutzerdatensatzes sein.
+Notifications do not need to be part of the portable user dataset.
 
 ---
 
-# 37. Migration aus SideBySide Classic
+# 37. Migration from SideBySide Classic
 
-Späterer Ablauf:
+Later flow:
 
+```text
 SideBySide Classic
-→ neutrales Transferformat
-→ normaler SideBySide-Next-Importer
+→ neutral Transfer format
+→ normal SideBySide Next Importer
+```
 
-KEIN direkter Import der alten Datenbank in das neue ORM.
+NO direct import of the old database into the new ORM.
 
-Der neue Importer kennt nur das neutrale Datenaustauschformat.
+The new Importer knows only the neutral data-exchange format.
 
-Der Classic-Exporter wird separat und erst später behandelt.
+The Classic Exporter is handled separately and only later.
 
-Während der Clean-Room-Implementierung NICHT den alten Sourcecode dafür lesen.
+During Clean-Room implementation, DO NOT read old source code for this purpose.
 
 ---
 
-# 38. Feature Flags vs Entitlements
+# 38. Feature Flags vs. Entitlements
 
-Strikt trennen:
+Strictly separate:
 
 FeatureConfiguration
-= technische/administrative Aktivierung
+= technical/administrative activation
 
 Entitlement
-= tarifliche Berechtigung
+= commercial eligibility
 
-Ein deaktiviertes Feature löscht seine Daten niemals automatisch.
+A disabled feature never automatically deletes its data.
 
-Billing darf nicht tief in den Application Core eingebaut werden.
+Billing must not be deeply embedded in the Application Core.
 
-Core fragt z. B.:
+Core asks, for example:
 
+```text
 entitlements.has(space, "feature_name")
+```
 
-aber kennt Google Play/Stripe/etc. nicht.
+but does not know Google Play/Stripe/etc.
 
 ---
 
-# 39. Cloud und Self-Hosted
+# 39. Cloud and Self-Hosted
 
-Gleicher Application Core.
+Same Application Core.
 
 ## Self-Hosted
 
-Ziel:
+Target:
 
+```text
 docker compose up -d
+```
 
-Komponenten:
+Components:
 
 - sidebyside-api
 - sidebyside-web
 - sidebyside-worker
 - postgres
 
-Persistenz:
+Persistence:
 - PostgreSQL volume
-- Media volume oder S3
+- Media volume or S3
 
 Optional:
 - SMTP
@@ -1592,18 +1753,19 @@ Optional:
 - Push
 - Billing
 
-Provider-neutral entwickeln.
+Develop Provider-neutrally.
 
-Nicht direkt Scaleway/Google/AWS in Domain-Code einbauen.
+Do not embed Scaleway/Google/AWS directly into Domain code.
 
 ---
 
 # 40. Provider Framework
 
-Externe Anbieter nur über Adapter.
+External Providers only through adapters.
 
-Definiere Interfaces für:
+Define interfaces for:
 
+```text
 MapProvider
 GeocodingProvider
 PlacesProvider
@@ -1612,9 +1774,11 @@ RecipeProvider
 EntertainmentProvider
 ExternalMediaProvider
 LocationHistoryProvider
+```
 
 IntegrationConnection:
 
+```text
 - id
 - spaceId
 - accountId
@@ -1626,22 +1790,26 @@ IntegrationConnection:
 - lastSyncAt?
 - syncCursor?
 - timestamps
+```
 
-Credentials nicht als Klartext in normaler DB-Konfiguration speichern.
+Do not store credentials as plaintext in normal database configuration.
 
 SharingMode:
 
+```text
 PRIVATE
 SPACE_SHARED
+```
 
-Externe Verbindungen sind nicht automatisch mit dem Partner geteilt.
+External connections are not automatically shared with the partner.
 
 ---
 
-# 41. Normalisierte externe Daten
+# 41. Normalized external data
 
-Beispiel DiscoveryItem:
+Example DiscoveryItem:
 
+```text
 - externalId
 - title
 - category
@@ -1654,85 +1822,95 @@ Beispiel DiscoveryItem:
 - source
 - sourceUrl?
 - imageUrl?
+```
 
-SideBySide-Domains dürfen nicht überall die proprietären Datenmodelle externer APIs kennen.
+SideBySide Domains must not depend everywhere on proprietary data models of external APIs.
 
 ---
 
 # 42. Location & Context Framework
 
-Vier Konzepte strikt trennen:
+Strictly separate four concepts:
 
 Place
-= gemeinsam gespeicherter Ort
+= shared stored Place
 
 LocationHistory
-= externer Verlauf, z. B. Dawarich
+= external history, for example Dawarich
 
 Presence
-= aktueller/kurzfristiger Standort
+= current/short-lived location
 
 Context
-= abgeleitete Situation, z. B. "wahrscheinlich Supermarkt"
+= derived situation, for example `"probably supermarket"`
 
-Standortfunktionen standardmäßig:
+Location features default to:
 
+```text
 OFF
+```
 
-Explizites Opt-in erforderlich.
+Explicit opt-in required.
 
-Wo möglich:
-- lokale Android-Geofencing-/Context-Auswertung
-- keine permanente Cloud-Standortverfolgung
+Where possible:
+- local Android Geofencing/Context evaluation
+- no permanent Cloud location tracking
 
-Serverseitige Location:
-- minimal notwendige Genauigkeit
-- kurze Retention
-- kein Standort in normalen Logs
-- jederzeit widerrufbar
+Server-side location:
+- minimum necessary precision
+- short Retention
+- no location in normal logs
+- revocable at any time
 
 ---
 
-# 43. Partnerentfernung – später
+# 43. Partner distance – later
 
-Optionales Future Feature.
+Optional future feature.
 
 Default:
+
+```text
 OFF
+```
 
-Nur bei bewusster Aktivierung.
+Only after deliberate activation.
 
-Mögliche Anzeige:
-- 18 km voneinander entfernt
-- in der Nähe
+Possible display:
+- 18 km apart
+- nearby
 
-Keine permanente historische Speicherung daraus.
+Do not persist permanent historical data from this feature.
 
-Falls PresenceSnapshot nötig:
+If PresenceSnapshot is required:
 
+```text
 - accountId
 - spaceId
 - approximateLocation
 - accuracy
 - capturedAt
 - expiresAt
+```
 
-Kurze TTL.
+Short TTL.
 
-Dawarich bleibt getrennte Location-History-Integration.
+Dawarich remains a separate Location History integration.
 
 ---
 
-# 44. Shopping Domain – für später vorbereiten
+# 44. Shopping Domain – prepare for later
 
-Einkaufsliste NICHT als normale Collection modellieren.
+Do NOT model the Shopping List as a normal Collection.
 
-Spätere eigene Domain:
+Later dedicated Domain:
 
+```text
 ShoppingList
 ShoppingItem
+```
 
-ShoppingItem soll perspektivisch unterstützen:
+ShoppingItem should eventually support:
 
 - name
 - quantity?
@@ -1743,22 +1921,23 @@ ShoppingItem soll perspektivisch unterstützen:
 - addedBy
 - recipeReference?
 
-Damit später:
+This later allows:
 
-Rezept
-→ Zutaten auswählen
-→ Einkaufsliste
+```text
+Recipe
+→ select ingredients
+→ Shopping List
+```
 
-möglich ist.
-
-Noch NICHT Bestandteil des ersten Kern-MVP.
+Not yet part of the first Core MVP.
 
 ---
 
-# 45. "Was kochen wir heute?" – später
+# 45. `"Was kochen wir heute?"` – later
 
-Späteres System:
+Later system:
 
+```text
 Partner Preferences
 +
 RecipeProvider
@@ -1766,18 +1945,20 @@ RecipeProvider
 Recipe Favorites
 +
 ShoppingList
-→ Empfehlungen
+→ recommendations
+```
 
-Keine harte Bindung an Chefkoch.
+No hard dependency on Chefkoch.
 
-Vor Integration eines konkreten Anbieters kommerzielle API-/Lizenzbedingungen prüfen.
+Before integrating a concrete Provider, review commercial API/licensing terms.
 
 ---
 
-# 46. Veranstaltungen/Freizeit – später
+# 46. Events/leisure – later
 
 Discovery:
 
+```text
 Location
 +
 Radius
@@ -1785,92 +1966,103 @@ Radius
 DiscoveryProvider(s)
 +
 Space Preferences
-→ Vorschläge
+→ Suggestions
+```
 
-Radius z. B.:
+Radius, for example:
+
+```text
 10 km
 25 km
 50 km
 100 km
+```
 
-Später mögliche Faktoren:
-- Datum
-- Wochenende
-- Preis
-- Interessen
-- Wetter
-- Entfernung
+Possible later factors:
+- date
+- weekend
+- price
+- interests
+- weather
+- distance
 
 Provider-neutral.
 
 ---
 
-# 47. Filme/Serien – später
+# 47. Movies/series – later
 
 EntertainmentProvider.
 
-ProfilePreference kann z. B. Filmgenres enthalten.
+ProfilePreference may contain movie genres, for example.
 
-Später möglich:
+Possible later flow:
 
-Partner A mag Thriller
-Partner B mag Thriller
+```text
+Partner A likes thrillers
+Partner B likes thrillers
 +
-neuer Thriller
-→ relevante Suggestion
+new thriller
+→ relevant Suggestion
+```
 
-Keine KI erforderlich.
+No AI required.
 
 ---
 
-# 48. Immich – später
+# 48. Immich – later
 
-Immich wird über:
+Immich is integrated through:
 
+```text
 ExternalMediaProvider
+```
 
-angebunden.
+Possible functions:
 
-Mögliche Funktionen:
+- find photos from a date
+- find photos from a Place
+- browse album
+- select photo for a Memory
+- retrospective with external photos
 
-- Fotos eines Datums finden
-- Fotos eines Ortes finden
-- Album durchsuchen
-- Foto für Erinnerung auswählen
-- Rückblick mit externen Fotos
+Do not automatically copy external images.
 
-Externe Bilder nicht automatisch kopieren.
+Later deliberate choice between:
 
-Später bewusste Wahl zwischen:
-
+```text
 REFERENCE
 IMPORT
+```
 
 ---
 
-# 49. Dawarich – später
+# 49. Dawarich – later
 
-Dawarich wird:
+Dawarich uses:
 
+```text
 LocationHistoryProvider
+```
 
-Mögliche Funktionen:
-- Wo waren wir an Datum X?
-- Welche gemeinsamen Orte wurden besucht?
-- Orte für Erinnerungen vorschlagen
+Possible functions:
+- Where were we on date X?
+- Which shared Places were visited?
+- Suggest Places for Memories
 
-SideBySide muss vollständig ohne Dawarich funktionieren.
+SideBySide must function completely without Dawarich.
 
 ---
 
-# 50. Daily Check-in – später
+# 50. Daily Check-in – later
 
 Optional.
 
-Kein medizinisches Diagnosesystem.
+Not a medical diagnosis system.
 
 DailyCheckIn:
 
+```text
 - accountId
 - spaceId
 - localDate
@@ -1879,63 +2071,68 @@ DailyCheckIn:
 - note?
 - visibility
 - createdAt
+```
 
-Mögliche einfache Stufen:
+Possible intentional de-DE display levels:
 
+```text
 sehr schlecht
 schlecht
 neutral
 gut
 sehr gut
+```
 
-Partnerdarstellung nur nach freiwilliger Freigabe.
+Partner display only after voluntary sharing.
 
-Feature vollständig deaktivierbar.
+Feature can be completely disabled.
 
 ---
 
-# 51. Unsere Fragen – nach dem Core
+# 51. `Unsere Fragen` – after the Core
 
-Eigenständige spätere Domain:
+Dedicated later Domain:
 
+```text
 Question
 QuestionAssignment
 QuestionAnswer
 QuestionFavorite
+```
 
-Zentrale Reveal-Regel:
+Central reveal rule:
 
-Beide beantworten unabhängig.
+Both answer independently.
 
-Bevor beide geantwortet haben, darf kein Partner die Antwort des anderen sehen.
+Before both have answered, neither partner may see the other's answer.
 
-Es soll vor Reveal möglichst auch nicht verraten werden, ob der Partner bereits geantwortet hat.
+Before reveal, it should also avoid disclosing whether the partner has already answered wherever possible.
 
-Funktionen später:
-- tägliche Frage
-- Kategorien
-- Archiv
-- Suche
-- offen/beantwortet
-- persönliche Favoriten
-- Jahres-/Monatsfilter
-- heutige Frage wechseln
-- eigene Frage erstellen
-- Frage terminieren
-- Frage in Pool
-- beantwortete Frage → HeartMoment
+Later functions:
+- Daily Question
+- categories
+- archive
+- Search
+- open/answered
+- personal Favorites
+- yearly/monthly filters
+- change today's question
+- create custom question
+- schedule question
+- add question to pool
+- answered question → HeartMoment
 
-Bestehenden Fragenkatalog NICHT übernehmen.
+Do NOT adopt the existing question catalog.
 
-Es wird später ein komplett neuer redaktioneller Fragenpool erstellt.
+A completely new editorial question pool will be created later.
 
 ---
 
-# 52. Unser Jahr – nach dem Core
+# 52. `Unser Jahr` – after the Core
 
-Kein persistierter Jahresrückblick erforderlich.
+No persisted Year Recap is required.
 
-YearRecapQueryService berechnet:
+YearRecapQueryService calculates:
 
 - Memories count
 - HeartMoments
@@ -1945,16 +2142,16 @@ YearRecapQueryService berechnet:
 - Places
 - completed Wishes
 - completed Plans
-- Monatsgruppen
-- Highlights
+- month groups
+- highlights
 - Cover Media
 
-Später:
-- Monatsrückblicke
+Later:
+- monthly recaps
 - PDF/Print
-- Teilen
+- sharing
 
-Leere Statistiken müssen nicht angezeigt werden.
+Empty statistics need not be displayed.
 
 ---
 
@@ -1962,51 +2159,53 @@ Leere Statistiken müssen nicht angezeigt werden.
 
 MVP:
 
-Offline Read Cache = JA
-Offline Write = NEIN
+```text
+Offline Read Cache = YES
+Offline Write = NO
+```
 
-Android darf zuletzt geladene Daten lokal anzeigen.
+Android may display the last loaded data locally.
 
-Ohne Verbindung beim Schreiben:
-klare Meldung, dass noch nichts gespeichert wurde.
+When writing without connectivity:
+show a clear message that nothing has been saved yet.
 
-Full Offline Sync / Outbox erst später.
+Full Offline Sync / Outbox only later.
 
-Die Optimistic-Concurrency-Architektur soll dies vorbereiten.
+The Optimistic Concurrency architecture should prepare for this.
 
 ---
 
-# 54. Öffentliche Share Links
+# 54. Public Share Links
 
-Nicht Teil von SideBySide Next 1.0.
+Not part of SideBySide Next 1.0.
 
-Keine öffentlichen Freigabelinks im MVP.
+No public Share Links in the MVP.
 
-Später neu bewerten.
+Reevaluate later.
 
 ---
 
 # 55. AI
 
-Keine AI-Funktionen im MVP.
+No AI features in the MVP.
 
-Keine:
+No:
 - AI Text Enhancement
 - AI Coach
 - AI Image Analysis
 - AI Question Generation
 
-Später optional möglich.
+Optional later.
 
-Core darf nicht davon abhängen.
+The Core must not depend on them.
 
 ---
 
 # 56. Product Analytics
 
-Keine privaten Inhalte erfassen.
+Do not collect private content.
 
-Erlaubte technische/produktbezogene Beispiele:
+Allowed technical/product examples:
 
 - appVersion
 - screenOpened
@@ -2020,22 +2219,22 @@ Erlaubte technische/produktbezogene Beispiele:
 - D30 active
 - subscriptionState
 
-NICHT erfassen:
+DO NOT collect:
 
 - Memory body
 - HeartMoment text
 - QuestionAnswer
 - PrivateNote
 - GiftIdea
-- persönliche Standortbeschreibung
+- personal location description
 
-Keine Meta-/TikTok-SDK-Pflicht im Produkt.
+No mandatory Meta/TikTok SDK in the product.
 
 ---
 
-# 57. Logging und Observability
+# 57. Logging and Observability
 
-Logs dürfen enthalten:
+Logs may contain:
 
 - requestId
 - accountId
@@ -2045,106 +2244,110 @@ Logs dürfen enthalten:
 - status
 - errorCode
 
-Nicht loggen:
+Do not log:
 
 - Memory.body
 - HeartMoment.text
 - QuestionAnswer
 - PrivateNote.body
-- GiftIdea-Inhalt
-- sensible ProfilePreference-Werte
-- präzise Location
+- GiftIdea content
+- sensitive ProfilePreference values
+- precise location
 
-Error Tracking ebenfalls scrubben.
+Scrub Error Tracking as well.
 
 ---
 
 # 58. Delete / Data Retention
 
-Grundregel:
+Base rule:
 
-Beim Löschen von:
+When deleting:
 - Chapter
 - Place
 - Collection
 
-werden Verknüpfungen entfernt, aber nicht automatisch fremde Originalinhalte gelöscht.
+remove Relations, but do not automatically delete foreign original content.
 
-Account- und Space-Löschung müssen explizite Prozesse erhalten.
+Account and Space deletion require explicit processes.
 
-Vor Cloud-Launch müssen konkrete Retention-Fristen separat festgelegt werden.
+Concrete Retention periods must be defined separately before Cloud launch.
 
-Portabilität und vollständige Löschung müssen technisch möglich sein.
+Portability and complete deletion must be technically possible.
 
 ---
 
 # 59. Security
 
-Security ist Release Gate.
+Security is a Release Gate.
 
-Zwingende Tests:
+Mandatory tests:
 
 - Cross-Tenant / IDOR
 - private resource leakage
 - malformed IDs
-- invitation abuse
-- token replay
-- refresh rotation
-- revoked sessions
-- rate limiting
+- Invitation abuse
+- token Replay
+- Refresh Rotation
+- revoked Sessions
+- Rate Limiting
 - upload abuse
 - malicious media
 - XSS
-- CSRF bei Browser-Flows
-- SQL injection
+- CSRF for Browser flows
+- SQL Injection
 - signed URL expiration
-- backup authorization
-- search privacy leaks
+- Backup Authorization
+- Search Privacy leaks
 
-Tenant Isolation Test:
+Tenant Isolation test:
 
-User A / Space A = erlaubt
-User B / Space A = erlaubt
-User C / Space B = niemals Zugriff
-anonymous = niemals Zugriff
+```text
+User A / Space A = allowed
+User B / Space A = allowed
+User C / Space B = never allowed
+anonymous = never allowed
+```
 
-Private Isolation zusätzlich testen über:
+Additionally test Private Isolation through:
 
-- list
-- search
-- dashboard
-- timeline
-- notifications
-- export
-- relations
-- attachments
-- update/delete
+- List
+- Search
+- Dashboard
+- Timeline
+- Notifications
+- Export
+- Relations
+- Attachments
+- Update/Delete
 
 ---
 
 # 60. Tests
 
-Vier Ebenen:
+Four levels:
 
 1. Unit Tests
 2. Integration Tests
 3. API Contract Tests
 4. End-to-End Tests
 
-Zusätzlich eigene:
+Additionally, a dedicated:
 
+```text
 SECURITY & PRIVACY TEST SUITE
+```
 
-Ein Feature gilt nicht als fertig, solange Cross-Tenant- und ggf. Privacy-Tests fehlen.
+A feature is not complete while Cross-Tenant and, where applicable, Privacy tests are missing.
 
 ---
 
-# 61. Definition of Done pro Domain Feature
+# 61. Definition of Done per Domain feature
 
-Ein Feature gilt erst als fertig, wenn vorhanden:
+A feature is complete only when it includes:
 
-- Datenmodell
-- Migration
+- data model
+- migration
 - Domain Service
 - Authorization
 - API
@@ -2154,24 +2357,24 @@ Ein Feature gilt erst als fertig, wenn vorhanden:
 - Unit Tests
 - Integration Tests
 - Cross-Tenant Tests
-- Privacy Tests falls relevant
-- Export-Unterstützung falls persistente Nutzerdaten
+- Privacy Tests where relevant
+- Export support for persistent user data
 - Web UI
 - Android UI
 - Error Handling
-- Dokumentation
+- documentation
 
-Ein funktionierender Button allein bedeutet NICHT "fertig".
+A working button alone does NOT mean "done".
 
 ---
 
-# 62. Client-Parität
+# 62. Client parity
 
-Eine Kernfunktion gilt erst als produktreif, wenn Web und Android dasselbe fachliche Verhalten besitzen.
+A Core function is production-ready only when Web and Android exhibit the same Domain behavior.
 
-Nicht zwingend identische UI.
+The UI need not be identical.
 
-Aber identisch bei:
+But behavior must match for:
 
 - Create
 - Read
@@ -2186,103 +2389,103 @@ Aber identisch bei:
 
 # 63. CI/CD
 
-Bei jedem Commit mindestens:
+For every commit at minimum:
 
 - formatting
 - lint
 - type check
-- unit tests
-- integration tests
-- security/privacy tests
+- Unit Tests
+- Integration Tests
+- Security/Privacy tests
 - dependency scan
 - secret scan
-- backend build
-- web build
-- Android build sobald vorhanden
+- Backend build
+- Web build
+- Android build once available
 
-Später zusätzlich:
+Later additionally:
 - container scan
 - SBOM
 - license scan
 
-Keine roten Tests ignorieren.
+Do not ignore failing tests.
 
 ---
 
-# 64. Dependency- und Asset-Provenienz
+# 64. Dependency and asset provenance
 
-Alle neuen Abhängigkeiten dokumentieren:
+Document all new dependencies:
 
-- Name
-- Version
-- Quelle
-- Lizenz
+- name
+- version
+- source
+- license
 
-Alle Assets dokumentieren:
+Document all assets:
 
-- Ursprung
-- Lizenz
-- Ersteller
+- origin
+- license
+- creator
 
-Keine Assets ungeklärter Herkunft aufnehmen.
+Do not include assets of unclear provenance.
 
-Branding-Assets nur verwenden, wenn sie ausdrücklich als für SideBySide Next freigegeben bereitgestellt werden.
+Use Branding assets only when they are explicitly provided as approved for SideBySide Next.
 
-Noch KEINE endgültige Lizenz für den eigenen neuen Sourcecode festlegen.
+Do NOT choose a final license for the project's own new source code yet.
 
-Keine automatische MIT-/Apache-/AGPL-LICENSE-Datei hinzufügen, solange ich das nicht ausdrücklich entscheide.
+Do not automatically add an MIT/Apache/AGPL LICENSE file until explicitly decided.
 
-Third-Party-Lizenzpflichten selbstverständlich erfüllen.
+Of course, comply with Third-Party license obligations.
 
 ---
 
 # 65. PROVENANCE
 
-Von Anfang an `PROVENANCE.md` pflegen.
+Maintain `PROVENANCE.md` from the beginning.
 
-Sinngemäß dokumentieren:
+Document conceptually:
 
-SideBySide Next is an independently implemented software project based on a functional product specification. No source code from SharedMoments or SideBySide Classic is to be copied into the implementation.
+> SideBySide Next is an independently implemented software project based on a functional product specification. No source code from SharedMoments or SideBySide Classic is to be copied into the implementation.
 
-Dokumentieren:
-- Startdatum
-- Spezifikationsversion
-- Dependencies
-- Assets
-- Contributors
-- relevante Herkunft
-- ggf. AI-assisted development intern
+Document:
+- start date
+- specification version
+- dependencies
+- assets
+- contributors
+- relevant provenance
+- optionally AI-assisted development internally
 
-Nicht behaupten, dass diese technische Dokumentation allein eine bestimmte juristische Lizenzfolge garantiert.
+Do not claim that this technical documentation alone guarantees a particular legal licensing outcome.
 
 ---
 
-# 66. Freemium-Architektur
+# 66. Freemium architecture
 
-Noch keine harten Produktpreise in Domain-Code einbauen.
+Do not embed fixed product prices in Domain code yet.
 
-Entitlement-System flexibel halten.
+Keep the Entitlement system flexible.
 
-Arbeitshypothese Cloud:
+Cloud working hypothesis:
 
 Free:
 - 1 Space
-- Textfeatures weitgehend unbegrenzt
-- begrenzter Media Storage
-- begrenzte Zahl bestimmter Komfortfeatures
+- text features largely unlimited
+- limited Media Storage
+- limited number of selected convenience features
 
 Premium:
-- mehr Storage
-- erweiterte Komfort-/Rückblickfunktionen
-- Premium-Services
+- more Storage
+- extended convenience/recap features
+- Premium services
 
-Persönliche Erinnerungen NICHT künstlich nach Stückzahl limitieren.
+Do NOT artificially limit personal Memories by item count.
 
 Self-Hosted:
-- grundsätzlich sinnvoll nutzbar
-- nicht künstlich funktionskastrieren
+- must remain meaningfully usable
+- do not artificially cripple functionality
 
-Spätere Supporter-Dienste können sein:
+Possible later supporter services:
 - Push Relay
 - Offsite Backup
 - Health Monitoring
@@ -2292,30 +2495,30 @@ Spätere Supporter-Dienste können sein:
 
 ---
 
-# 67. Spätere echte E2EE
+# 67. Later real E2EE
 
-Echte E2EE ist NICHT MVP.
+Real E2EE is NOT MVP.
 
-Aber die Architektur muss sie vorbereiten.
+But the architecture must prepare for it.
 
-Später möglicher Marketing-Claim erst nach tatsächlicher Umsetzung und Audit:
+A possible later marketing claim only after actual implementation and Audit, intentional de-DE copy:
 
-"Eure Erinnerungen sind Ende-zu-Ende verschlüsselt – selbst SideBySide kann sie nicht lesen."
+> "Eure Erinnerungen sind Ende-zu-Ende verschlüsselt – selbst SideBySide kann sie nicht lesen."
 
-Diesen Claim VORHER niemals verwenden.
+Never use this claim BEFORE actual implementation and Audit.
 
 ---
 
-# 68. Entwicklungs-Milestones
+# 68. Development milestones
 
 ## M0 – Clean Foundation
 
-- isoliertes neues Projekt
-- Repository-Struktur
-- Backend-Grundgerüst
+- isolated new project
+- repository structure
+- Backend foundation
 - PostgreSQL
 - Alembic
-- API-Konventionen
+- API conventions
 - UUIDv7
 - Error Model
 - Domain Event Foundation
@@ -2327,15 +2530,15 @@ Diesen Claim VORHER niemals verwenden.
 - Provenance
 - Dependency Documentation
 
-Ergebnis:
-neue unabhängige technische Plattform läuft.
+Outcome:
+a new independent technical platform is running.
 
 ## M1 – Identity & Relationship
 
 - Accounts
-- E-Mail/Auth Identities
+- email/Auth Identities
 - Sessions
-- Passkey-fähige Auth-Architektur
+- Passkey-capable Auth architecture
 - Self-Hosted OIDC-ready
 - Spaces
 - Memberships
@@ -2348,8 +2551,8 @@ neue unabhängige technische Plattform läuft.
 - RelatedPersons
 - ImportantDates
 
-Ergebnis:
-zwei Partner können sicher einen Space benutzen.
+Outcome:
+two partners can safely use a Space.
 
 ## M2 – Memory Core
 
@@ -2360,11 +2563,11 @@ zwei Partner können sicher einen Space benutzen.
 - Milestones
 - Comments
 - Story
-- "Weißt du noch?"
+- `"Weißt du noch?"`
 - Security Tests
 
-Ergebnis:
-SideBySide ist bereits als echte Paar-/Erinnerungs-App nutzbar.
+Outcome:
+SideBySide is already usable as a real couple/Memory app.
 
 ## M3 – Shared Life
 
@@ -2386,29 +2589,29 @@ SideBySide ist bereits als echte Paar-/Erinnerungs-App nutzbar.
 - Activity
 - Notifications
 - Push abstraction
-- "Ich denke an dich"
+- `"Ich denke an dich"`
 - Dashboard
 - Search
 - Rule/Suggestion Engine
 
-Nach M4 ist der funktionale Core weitgehend komplett.
+After M4, the functional Core is largely complete.
 
 ## M5 – Clients & Portability
 
-- versionierter Export
-- normaler Import
-- vorbereiteter Classic-Migrationspfad
-- React Web Client vollständig
-- Android Native Client vollständig
+- versioned Export
+- normal Import
+- prepared Classic migration path
+- complete React Web Client
+- complete Native Android Client
 - Read Cache
-- Client-Parität
+- Client parity
 - responsive UX
 - Accessibility Basics
 
 ## M6 – Rich Relationship Features
 
-- Unsere Fragen
-- komplett neuer Fragenpool
+- `Unsere Fragen`
+- completely new question pool
 - Year Recap
 - Month Recap
 - Daily Check-in
@@ -2416,12 +2619,12 @@ Nach M4 ist der funktionale Core weitgehend komplett.
 
 ## M7 – Integrations
 
-- Discovery Provider / Veranstaltungen
+- Discovery Provider / Events
 - Shopping Domain
 - Recipe Provider
-- "Was kochen wir heute?"
+- `"Was kochen wir heute?"`
 - Entertainment Provider
-- Film-/Serien-Releases
+- movie/series releases
 - Immich Provider
 - Dawarich Provider
 - Maps / Places / Geocoding Provider
@@ -2431,8 +2634,8 @@ Nach M4 ist der funktionale Core weitgehend komplett.
 - opt-in Location Context
 - Geofencing
 - Shopping Context
-- kontextbezogene Suggestions
-- optionale Partnerentfernung
+- contextual Suggestions
+- optional partner distance
 - Ephemeral Presence
 
 ## M9 – Productization
@@ -2444,7 +2647,7 @@ Nach M4 ist der funktionale Core weitgehend komplett.
 - Managed DB
 - Entitlements
 - Billing Adapter
-- Datenschutzfunktionen
+- Privacy functions
 - Security Hardening
 - Penetration Tests
 - Observability
@@ -2453,59 +2656,60 @@ Nach M4 ist der funktionale Core weitgehend komplett.
 
 ## MX – Future E2EE
 
-Erst später:
-echte Ende-zu-Ende-Verschlüsselung.
+Only later:
+real end-to-end encryption.
 
 ---
 
-# 69. Was NICHT zum ersten MVP gehört
+# 69. What does NOT belong in the first MVP
 
-Nicht in den ersten Kern ziehen:
+Do not pull into the first Core:
 
-- echte E2EE
+- real E2EE
 - Full Offline Write Sync
 - AI
-- öffentliche Share Links
-- komplexe Filmempfehlungen
+- public Share Links
+- complex movie recommendations
 - Event Discovery
-- Rezeptintegration
+- recipe integration
 - Shopping Automation
 - Immich
 - Dawarich
-- Google Maps Integration
+- Google Maps integration
 - Geofencing
-- Partner Distance
+- partner distance
 - Daily Check-in
-- Our Questions
+- `Unsere Fragen`
 - Year Recap
 
-Die Architektur muss Erweiterungen ermöglichen, aber der Core soll zuerst sauber und sicher werden.
+The architecture must allow extensions, but the Core should first become clean and secure.
 
 ---
 
-# 70. Sofortiger Start – PHASE D
+# 70. Immediate start – PHASE D
 
-Du darfst jetzt mit der **Clean-Room-Implementierung** beginnen.
+You may now begin the **Clean-Room implementation**.
 
-Arbeite NICHT am alten SideBySide-/SharedMoments-Repository.
+Do NOT work in the old SideBySide/SharedMoments repository.
 
-## D0 – Isolation prüfen
+## D0 – Verify isolation
 
-Als allererstes:
+First of all:
 
-1. `pwd`
-2. prüfen, ob aktueller Ordner SideBySide Classic / SharedMoments ist
-3. falls ja: KEINE Änderung dort
-4. neuen isolierten Workspace verwenden, bevorzugt:
+1. run `pwd`
+2. verify whether the current directory is SideBySide Classic / SharedMoments
+3. if so: make NO changes there
+4. use a new isolated workspace, preferably:
 
    `~/Projekte/SideBySide-Next`
 
-5. sicherstellen, dass keine Dateien aus Classic kopiert werden
+5. ensure no files are copied from Classic
 
-## D1 – neues Projekt initialisieren
+## D1 – Initialize new project
 
-Neue Struktur:
+New structure:
 
+```text
 sidebyside-next/
 ├── backend/
 ├── web/
@@ -2514,16 +2718,17 @@ sidebyside-next/
 ├── docs/
 ├── specification/
 └── tools/
+```
 
-Git initialisieren, falls dort noch kein neues Repo existiert.
+Initialize Git if no new repository exists there yet.
 
-Keinen Remote anlegen und nicht pushen, solange ich es nicht ausdrücklich sage.
+Do not add a remote and do not push until explicitly instructed.
 
-Lokale, logisch kleine Commits sind nach grünen Tests erlaubt.
+Local, logically small commits are allowed after green tests.
 
-## D2 – Dokumentation zuerst
+## D2 – Documentation first
 
-Erstelle mindestens:
+Create at minimum:
 
 - README.md
 - PROVENANCE.md
@@ -2533,13 +2738,13 @@ Erstelle mindestens:
 - docs/DEPENDENCIES.md
 - specification/PRODUCT-SPEC.md
 
-Diese Dateien basieren ausschließlich auf diesem Master Prompt.
+These files are based exclusively on this Master Specification.
 
-Nicht den alten Code konsultieren.
+Do not consult old code.
 
-## D3 – M0 implementieren
+## D3 – Implement M0
 
-Danach M0 beginnen:
+Then begin M0:
 
 - FastAPI skeleton
 - SQLAlchemy 2
@@ -2549,26 +2754,26 @@ Danach M0 beginnen:
 - Problem Details error handling
 - UUIDv7 support
 - UTC conventions
-- base entity conventions
+- base Entity conventions
 - transaction handling
 - OutboxEvent
 - Job foundation
-- domain-event contracts
+- Domain Event contracts
 - MediaStore interfaces
-- provider interfaces
-- E2EE-ready protected-payload abstraction
+- Provider interfaces
+- E2EE-ready ProtectedPayload abstraction
 - initial CI
 - tests
 
-## D4 – PostgreSQL lokal
+## D4 – PostgreSQL locally
 
-Erstelle für Development eine Docker-Compose-Konfiguration mit PostgreSQL.
+Create a Docker Compose configuration for Development with PostgreSQL.
 
-Kein SQLite-Fallback.
+No SQLite fallback.
 
-## D5 – erste Security Foundation
+## D5 – First Security foundation
 
-Implementiere vor echten Content-Domains:
+Before real content Domains, implement:
 
 - Account skeleton
 - Space
@@ -2577,90 +2782,89 @@ Implementiere vor echten Content-Domains:
 - Membership Guard
 - Security tests
 
-Noch bevor Memory etc. implementiert werden.
+Do this before Memory etc. are implemented.
 
-## D6 – Arbeitsweise
+## D6 – Working method
 
-Arbeite inkrementell.
+Work incrementally.
 
-Nach jedem Block:
+After each block:
 
-1. Tests ausführen
-2. Lint/Typecheck ausführen
-3. `git diff --check`
-4. `git status`
-5. kurz zusammenfassen:
-   - was geändert wurde
-   - warum
-   - welche Tests liefen
-   - Ergebnis
-   - nächster Schritt
+1. run tests
+2. run Lint/Typecheck
+3. run `git diff --check`
+4. run `git status`
+5. briefly summarize:
+   - what changed
+   - why
+   - which tests ran
+   - result
+   - next step
 
-Bei Fehlern:
-- Ursache untersuchen
-- nicht einfach Tests deaktivieren
-- nicht Sicherheitsprüfungen umgehen
+On errors:
+- investigate the cause
+- do not simply disable tests
+- do not bypass Security checks
 
-## D7 – keine unnötigen Rückfragen
+## D7 – No unnecessary clarification questions
 
-Wenn eine Entscheidung durch diese Spezifikation eindeutig festgelegt ist, entscheide nicht erneut und frage nicht nach.
+If a decision is unambiguously defined by this specification, do not decide it again and do not ask about it.
 
-Frage mich nur, wenn:
-- eine echte Produktentscheidung fehlt
-- eine sicherheitsrelevante Entscheidung nicht aus der Spezifikation hervorgeht
-- eine Handlung externe Credentials benötigt
-- ein Remote/GitHub-Repo erstellt werden soll
-- Kosten verursacht werden könnten
-- eine endgültige Sourcecode-Lizenz gewählt werden müsste
-- ein alter Classic-Sourcezugriff vermeintlich nötig wäre
+Ask only when:
+- a real product decision is missing
+- a Security-relevant decision cannot be derived from the specification
+- an action requires external credentials
+- a remote/GitHub repository would need to be created
+- costs could be incurred
+- a final source-code license would need to be chosen
+- access to old Classic source appears necessary
 
-Falls du glaubst, Classic-Sourcecode zu benötigen:
+If you believe Classic source code is needed:
 STOP.
-Nicht öffnen.
-Erkläre stattdessen, welche funktionale Information in der Spezifikation fehlt.
+Do not open it.
+Instead explain which functional information is missing from the specification.
 
 ---
 
-# 71. Priorität
+# 71. Priority
 
-Die Priorität lautet:
+Priority order:
 
-1. Clean-Room-Trennung
-2. Sicherheit / Tenant Isolation
-3. sauberes Domainmodell
-4. stabile API
-5. Tests
-6. Portabilität
+1. Clean-Room separation
+2. Security / Tenant Isolation
+3. clean Domain model
+4. stable API
+5. tests
+6. Portability
 7. Web/Android UX
-8. Erweiterungen
-9. Cloud-Monetarisierung
+8. extensions
+9. Cloud monetization
 
-Keine schnelle Abkürzung darf Tenant Isolation oder Privacy schwächen.
+No shortcut may weaken Tenant Isolation or Privacy.
 
 ---
 
-# 72. Erfolgsdefinition
+# 72. Definition of success
 
-SideBySide Next soll am Ende:
+At completion, SideBySide Next should:
 
-- vollständig unabhängig implementiert sein
-- keine SharedMoments-/Classic-Codebasis benötigen
-- Cloud-fähig sein
-- Self-Hosted-fähig sein
-- Multi-Tenant sicher sein
-- Android nativ unterstützen
-- Web unterstützen
-- providerneutral sein
-- später E2EE nachrüstbar sein
-- Erweiterungen ohne grundlegenden Umbau erlauben
-- saubere Provenienz besitzen
+- be implemented completely independently
+- require no SharedMoments/Classic codebase
+- support Cloud operation
+- support Self-Hosted operation
+- be secure in a Multi-Tenant environment
+- support Native Android
+- support Web
+- be Provider-neutral
+- allow E2EE to be added later
+- allow extensions without fundamental rearchitecture
+- have clean Provenance
 
-Beginne jetzt mit D0 und D1.
+Begin with D0 and D1.
 
-Zeige mir zunächst:
-1. welche isolierte Working Directory du verwendest,
-2. die geplante initiale Verzeichnisstruktur,
-3. dass das Classic-Repository nicht verändert wird,
+First show:
+1. which isolated working directory you use,
+2. the planned initial directory structure,
+3. that the Classic repository is not modified,
 
-und fahre anschließend direkt mit M0 fort, solange kein echter Blocker auftritt.
-
+then continue directly with M0 unless a real blocker occurs.

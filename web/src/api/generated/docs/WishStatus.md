@@ -1,7 +1,7 @@
 
 # WishStatus
 
-Der Statusautomat aus M3-D02/D03/D04.  Vollstaendig aufgefuehrt, aber in M3-S1 erreicht ein Wish nur `OPEN`: die beiden anderen Zustaende entstehen ausschliesslich aus dem noch nicht gebauten Wish->Plan-Vertrag. Die Werte stehen trotzdem schon in Modell und Datenbank, damit der spaetere Slice keine Statusmigration ueber bestehende Zeilen fahren muss.
+State machine defined by M3-D02/D03/D04.  The complete set is declared here. A wish begins at ``OPEN`` and reaches the other states only through the wish-to-plan lifecycle. Keeping the values in the model and database avoids a later status-type migration over existing rows.
 
 ## Properties
 

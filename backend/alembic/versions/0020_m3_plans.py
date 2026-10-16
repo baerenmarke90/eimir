@@ -41,23 +41,23 @@ def _plan_status() -> sa.Enum:
 
 
 def upgrade() -> None:
-    # Traegt den zusammengesetzten Fremdschluessel unten. Ohne diese
-    # Eindeutigkeit koennte `plans` nur auf `wishes.id` zeigen - und damit
-    # auch auf einen Wish aus einem fremden Space.
+    # Supports the composite foreign key below. Without this uniqueness,
+    # `plans` could reference only `wishes.id`, including a wish from another
+    # space.
     op.create_unique_constraint("uq_wishes_id_space_id", "wishes", ["id", "space_id"])
 
     op.create_table(
         "plans",
         sa.Column("id", UUID, nullable=False),
         sa.Column("space_id", UUID, nullable=False),
-        # Wie bei `wishes`: Attribution und Audit, keine ACL.
+        # As with `wishes`: attribution and audit, not an ACL.
         sa.Column("owner_id", UUID, nullable=False),
         sa.Column("privacy_class", _privacy_class(), nullable=False),
         sa.Column("status", _plan_status(), server_default=sa.text("'IDEA'"), nullable=False),
         sa.Column("source_wish_id", UUID, nullable=True),
         sa.Column("planned_start", sa.DateTime(timezone=True), nullable=True),
         sa.Column("planned_end", sa.DateTime(timezone=True), nullable=True),
-        # DATE und nicht TIMESTAMPTZ: ein erlebter Tag hat keine Zeitzone.
+        # DATE rather than TIMESTAMPTZ: an experienced day has no time zone.
         sa.Column("experienced_on", sa.Date(), nullable=True),
         sa.Column("crypto_version", sa.SmallInteger(), server_default=sa.text("0"), nullable=False),
         sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
@@ -84,22 +84,22 @@ def upgrade() -> None:
             name="fk_plans_owner_id_accounts",
             ondelete="CASCADE",
         ),
-        # Zusammengesetzt und ohne ON DELETE. `source_wish_id` darf NULL
-        # sein; PostgreSQL prueft einen Fremdschluessel mit NULL-Anteil
-        # nicht, Direct Plans bleiben also frei. Fuer einen source Plan ist
-        # das die letzte Grenze gegen einen Wish aus einem fremden Space -
-        # und gegen einen Wish, der unter seinem Plan verschwindet.
+        # Composite and without ON DELETE. `source_wish_id` may be NULL;
+        # PostgreSQL does not check a foreign key containing NULL, so direct
+        # plans remain independent. For a sourced plan, this is the final
+        # boundary against a wish from another space and against deleting a
+        # wish while its plan still references it.
         sa.ForeignKeyConstraint(
             ["source_wish_id", "space_id"],
             ["wishes.id", "wishes.space_id"],
             name="fk_plans_source_wish_id_wishes",
         ),
-        # Hoechstens ein originaerer Plan je Wish (M3-D02). Mehrere NULL
-        # sind in PostgreSQL erlaubt.
+        # At most one originating plan per wish (M3-D02). PostgreSQL permits
+        # multiple NULL values.
         sa.UniqueConstraint("source_wish_id", name="uq_plans_source_wish_id"),
         sa.CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         sa.CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
-        # Die Datumsinvarianten aus M3-D04.
+        # Date invariants from M3-D04.
         sa.CheckConstraint(
             "planned_end IS NULL OR planned_start IS NOT NULL",
             name="planned_end_needs_start",

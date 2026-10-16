@@ -1,13 +1,13 @@
-# M3 Collections und Private Area – verbindliche Entscheidungen
+# M3 Collections and Private Area – Binding Decisions
 
-**Status:** `DECIDED` – wirksam mit Merge dieses Decision-PRs  
-**Datum:** 26.08.2026  
+**Status:** `DECIDED` – effective with merge of this decision PR  
+**Date:** August 26, 2026  
 **Tracking:** #164  
-**Betrifft:** M3-D13, D14, D15, D16, D17, D18, D19, D23, D32
+**Covers:** M3-D13, D14, D15, D16, D17, D18, D19, D23, D32
 
-Dieses Dokument schliesst die blockierenden M3-Entscheidungen fuer gemeinsame Collections und die harte `OWNER_ONLY`-Private-Area. Es enthaelt keinen Runtime-Code und aendert die bestehende M3-Gate-Regel nicht.
+This document closes the blocking M3 decisions for shared Collections and the hard `OWNER_ONLY` Private Area. It contains no runtime code and does not change the existing M3 gate rule.
 
-## 1. Verbindliche Quellen
+## 1. Binding sources
 
 - `specification/CLEAN-ROOM-MASTER-SPEC.md`
 - `specification/PRODUCT-SPEC.md`
@@ -15,31 +15,30 @@ Dieses Dokument schliesst die blockierenden M3-Entscheidungen fuer gemeinsame Co
 - `docs/ROADMAP.md`
 - `docs/m3/README.md`
 - `docs/m3/DOMAIN-MODEL.md`
-- M3-D01 aus #162: collaborative write fuer gemeinsame M3-Ressourcen
+- M3-D01 from #162: collaborative write for shared M3 resources
 
 Source-bound:
 
-- `Collection`/`CollectionItem` sind `SPACE_SHARED`.
-- ShoppingList/ShoppingItem bleiben eigene spaetere Domains.
-- `PrivateNote`, `GiftIdea`, `PrivateCollection`, `PrivateCollectionItem` sind `OWNER_ONLY`.
-- Owner-only muss serverseitig gelten; Partnerzugriff darf keine Existenz leaken.
-- veraenderbare Domainobjekte besitzen Optimistic Concurrency.
-- `GiftIdea.status` existiert, seine Werte waren bisher nicht source-bound.
+- `Collection`/`CollectionItem` are `SPACE_SHARED`.
+- ShoppingList/ShoppingItem remain separate later Domains.
+- `PrivateNote`, `GiftIdea`, `PrivateCollection`, `PrivateCollectionItem` are `OWNER_ONLY`.
+- Owner-only must be enforced server-side; partner access must not leak existence.
+- mutable Domain objects use Optimistic Concurrency.
+- `GiftIdea.status` exists, but its values were not previously source-bound.
 
-## 2. M3-D13 – Collection Ownership und Shared Writes
+## 2. M3-D13 – Collection ownership and shared writes
 
-### Entscheidung
+### Decision
 
-Gemeinsame Collections verwenden die M3-D01-Regel **collaborative write**.
+Shared Collections use the M3-D01 **collaborative write** rule.
 
-Persistenz:
+Persistence:
 
 ```text
 Collection
 - id
 - spaceId
 - title
-- icon?
 - createdBy
 - createdAt
 - updatedAt
@@ -57,37 +56,37 @@ CollectionItem
 - version
 ```
 
-Regeln:
+Rules:
 
-- `createdBy` wird bei Root und Item serverseitig gesetzt und bleibt unveraenderlich;
-- beide aktiven Space-Mitglieder duerfen Collection-Titel/Icon aendern;
-- beide duerfen Items erstellen, umbenennen, abhaken und loeschen;
-- beide duerfen die gesamte Collection loeschen;
-- `createdBy` ist Attribution/Audit, keine ACL;
-- ShoppingList wird nicht als Spezial-Collection modelliert.
+- `createdBy` is set server-side on both root and Item and remains immutable;
+- both active Space members may change Collection title;
+- both may create, rename, complete, and delete Items;
+- both may delete the entire Collection;
+- `createdBy` is Attribution/Audit, not an ACL;
+- ShoppingList is not modeled as a special Collection.
 
-## 3. M3-D14 – Collection Concurrency, Versionierung und Reorder
+## 3. M3-D14 – Collection Concurrency, versioning, and Reorder
 
-### Zwei Concurrency-Grenzen
+### Two Concurrency boundaries
 
-M3 trennt **Item-Inhalt** und **Aggregate-Reihenfolge**:
+M3 separates **Item content** from **aggregate order**:
 
-- `Collection.version` schuetzt Root-Felder sowie die Reihenfolge/Struktur der Itemliste;
-- `CollectionItem.version` schuetzt Item-Inhalt (`title`, `completed`).
+- `Collection.version` protects root fields plus Item-list order/structure;
+- `CollectionItem.version` protects Item content (`title`, `completed`).
 
-`position` ist vom Collection-Aggregat verwaltetes Ordnungsfeld. Ein Reorder braucht daher die Collection-Version, nicht N unabhaengige Item-Versionen.
+`position` is an order field managed by the Collection aggregate. Reorder therefore requires the Collection version, not N independent Item versions.
 
 ### Position
 
-- integer, nullfrei;
-- kanonisch contiguous `0..n-1` pro Collection;
+- integer, non-null;
+- canonical contiguous `0..n-1` per Collection;
 - Unique Constraint `(collection_id, position)`;
-- Create fuegt am Ende ein und erhoeht `Collection.version`;
-- Delete verdichtet die Positionen transaktional und erhoeht `Collection.version`.
+- Create appends at the end and increments `Collection.version`;
+- Delete compacts positions transactionally and increments `Collection.version`.
 
-Die Runtime darf die Unique-Grenze beim Umsortieren nicht durch naive sequentielle Positionsupdates verletzen. Der PostgreSQL-Slice muss deshalb entweder einen `DEFERRABLE` Unique Constraint bis zum Transaktionsende verwenden oder eine gleichwertige kollisionsfreie temporaere Renummerierung innerhalb derselben Transaktion. Sichtbar und nach Commit zulaessig ist ausschliesslich die kanonische Reihenfolge `0..n-1`.
+Runtime must not violate the Unique boundary during Reorder through naive sequential position updates. The PostgreSQL slice must therefore either use a `DEFERRABLE` Unique Constraint until transaction end or an equivalent collision-free temporary renumbering strategy within the same transaction. Only canonical order `0..n-1` is visible and valid after commit.
 
-### Atomarer Reorder
+### Atomic Reorder
 
 ```text
 PUT /api/v1/spaces/{spaceId}/collections/{collectionId}/order
@@ -98,15 +97,15 @@ If-Match: "<collection-version>"
 }
 ```
 
-Vertrag:
+Contract:
 
-- Request muss **exakt** alle aktuell vorhandenen Item-IDs einmal enthalten;
-- keine fremde/cross-collection ID;
-- Collection `FOR UPDATE` sperren;
-- aktuelle Itemmenge innerhalb derselben Transaktion revalidieren;
-- alle Positionen atomar neu schreiben;
-- `Collection.version` genau einmal erhoehen;
-- kein sichtbarer Zwischenzustand mit doppelten/fehlenden Positionen.
+- request must contain **exactly** all currently existing Item IDs once;
+- no foreign/Cross-Collection ID;
+- lock Collection `FOR UPDATE`;
+- revalidate the current Item set within the same transaction;
+- rewrite all positions atomically;
+- increment `Collection.version` exactly once;
+- no visible intermediate state with duplicate/missing positions.
 
 ### Item Update
 
@@ -115,39 +114,39 @@ PATCH /collections/{collectionId}/items/{itemId}
 If-Match: "<item-version>"
 ```
 
-- Title/Completed aendern `CollectionItem.version`;
-- Completion allein aendert nicht automatisch die Collection-Reihenfolge oder Root-Version.
+- changing Title/Completed increments `CollectionItem.version`;
+- Completion alone does not automatically change Collection order or root version.
 
 ### Item Delete
 
-Item-Delete veraendert die Itemmenge und damit das Order-Aggregat:
+Item Delete changes the Item set and therefore the order aggregate:
 
-- Collection `FOR UPDATE` sperren, danach Item sperren;
-- `If-Match` prueft die Item-Version;
-- Item loeschen;
-- Positionen verdichten;
-- `Collection.version` erhoehen.
+- lock Collection `FOR UPDATE`, then lock Item;
+- `If-Match` checks the Item version;
+- delete Item;
+- compact positions;
+- increment `Collection.version`.
 
-Eine separate Collection-Version im Delete-Request ist nicht erforderlich: Der Collection-Lock serialisiert Delete gegen Reorder/Add/Delete. Wenn Delete zuerst committet, scheitert ein bereits mit alter Root-Version gestarteter Reorder mit `409`; wenn Reorder zuerst committet, darf der anschliessende Delete bei weiterhin aktueller Item-Version erfolgreich sein und die neue Reihenfolge erneut konsistent verdichten.
+A separate Collection version in the Delete request is not required: the Collection lock serializes Delete against Reorder/Add/Delete. If Delete commits first, a Reorder already started with the old root version fails with `409`; if Reorder commits first, a subsequent Delete may succeed when the Item version is still current and must compact the new order consistently again.
 
 ## 4. M3-D15 – Collection Delete
 
-### Entscheidung
+### Decision
 
-`CollectionItem` ist ein echtes Child des Collection-Aggregats.
+`CollectionItem` is a true Child of the Collection aggregate.
 
 ```text
 DELETE Collection
-  -> CollectionItems mitloeschen
-  -> keine anderen Domainressourcen loeschen
+  -> delete CollectionItems with it
+  -> delete no other Domain resources
 ```
 
-- FK `collection_items.collection_id -> collections.id` mit `ON DELETE CASCADE` ist zulaessig;
-- Items werden ausserhalb ihrer Collection nicht referenziert;
-- ein Collection-Delete ist versioniert (`If-Match`);
-- es gibt keine versteckten Relationen zu ShoppingList oder anderen Originalressourcen.
+- FK `collection_items.collection_id -> collections.id` with `ON DELETE CASCADE` is allowed;
+- Items are not referenced outside their Collection;
+- Collection Delete is versioned (`If-Match`);
+- there are no hidden Relations to ShoppingList or other original resources.
 
-## 5. M3-D16 – ProtectedPayload der Private Area
+## 5. M3-D16 – ProtectedPayload for Private Area
 
 ### PrivateNote
 
@@ -156,12 +155,12 @@ Protected content:
 - `title`
 - `body`
 
-Strukturelle Owner-only-Metadaten:
+Structural owner-only metadata:
 
 - `pinned`
-- technische IDs/Timestamps/Version
+- technical IDs/timestamps/version
 
-`pinned` ist nicht oeffentlich/sicher, sondern bleibt trotz struktureller Speicherung streng owner-only.
+`pinned` is not public/safe; despite structural storage it remains strictly owner-only.
 
 ### GiftIdea
 
@@ -175,35 +174,34 @@ Protected content:
 - `priceText`
 - `url`
 
-Strukturelle Owner-only-Metadaten:
+Structural owner-only metadata:
 
 - `status`
 - `pinned`
-- technische IDs/Timestamps/Version
+- technical IDs/timestamps/version
 
-Auch strukturelle Felder duerfen niemals Partnern, Shared Counts, Logs oder Events offenbart werden.
+Structural fields also must never be disclosed to partners, Shared counts, logs, or Events.
 
-`url` ist ausschliesslich gespeicherter Nutzerinhalt. M3 fuehrt **keinen serverseitigen Fetch, Preview, OpenGraph-Aufruf oder Redirect-Check** aus.
+`url` is stored user content only. M3 performs **no server-side fetch, Preview, OpenGraph call, or Redirect check**.
 
 ### PrivateCollection
 
 Protected content:
 
-- Root `title`
-- Root `icon`, sofern nutzerdefiniert/fachlich
+- root `title`
 - Item `title`
 
-Strukturelle Owner-only-Metadaten:
+Structural owner-only metadata:
 
 - Item `completed`
 - Item `position`
-- technische IDs/Timestamps/Version
+- technical IDs/timestamps/version
 
-## 6. M3-D17 – GiftIdea Status
+## 6. M3-D17 – GiftIdea status
 
 ### Enum
 
-M3 verwendet genau:
+M3 uses exactly:
 
 ```text
 IDEA
@@ -211,33 +209,33 @@ BOUGHT
 GIVEN
 ```
 
-Startzustand:
+Initial state:
 
 ```text
 IDEA
 ```
 
-Erlaubte Transitionen:
+Allowed transitions:
 
 ```text
 IDEA   -> BOUGHT
-IDEA   -> GIVEN       # z. B. selbstgemacht, Erlebnis, kein Kauf
-BOUGHT -> IDEA        # Kauf rueckgaengig / Korrektur
+IDEA   -> GIVEN       # e.g. handmade, experience, no purchase
+BOUGHT -> IDEA        # undo purchase / correction
 BOUGHT -> GIVEN
-GIVEN  -> BOUGHT      # reine Statuskorrektur
+GIVEN  -> BOUGHT      # pure status correction
 ```
 
-Nicht erlaubt:
+Not allowed:
 
 ```text
 GIVEN -> IDEA
 ```
 
-Fuer eine vollstaendige Ruecksetzung auf eine neue Idee wird eine neue GiftIdea oder eine bewusste zweistufige Korrektur verwendet. Es gibt kein `ARCHIVED` im M3-Kern; Delete/Pinning decken diese Basisfaelle ab.
+For a complete reset to a new idea, create a new GiftIdea or use a deliberate two-step correction. There is no `ARCHIVED` in the M3 Core; Delete/Pinning cover these baseline cases.
 
-Statusaenderung ist eine explizite versionierte Domainoperation oder streng validiertes Feldupdate; freie unbekannte Enumwerte sind unzulaessig.
+Status change is an explicit versioned Domain operation or a strictly validated field update; free unknown enum values are invalid.
 
-## 7. M3-D18 / D32 – PrivateCollection Persistenz und Autorisierung
+## 7. M3-D18 / D32 – PrivateCollection persistence and Authorization
 
 ### Root
 
@@ -247,7 +245,6 @@ PrivateCollection
 - spaceId
 - ownerId
 - title
-- icon?
 - createdAt
 - updatedAt
 - version
@@ -267,13 +264,13 @@ PrivateCollectionItem
 - version
 ```
 
-### Entscheidung zur Owner-/Space-Persistenz
+### Owner/Space persistence decision
 
-`PrivateCollectionItem` dupliziert **nicht** `ownerId` und `spaceId`.
+`PrivateCollectionItem` does **not** duplicate `ownerId` and `spaceId`.
 
-Owner/Space werden ausschliesslich ueber den autorisierten Parent abgeleitet. Dadurch gibt es keine zwei potenziell widerspruechlichen Wahrheitsquellen.
+Owner/Space are derived exclusively through the authorized Parent. This avoids two potentially contradictory sources of truth.
 
-Jeder Item-Zugriff muss deshalb query-seitig mindestens semantisch so aussehen:
+Every Item access must therefore use a query semantically equivalent to at least:
 
 ```text
 item
@@ -284,28 +281,28 @@ WHERE parent.id = :collectionId
   AND parent.owner_id = :currentAccountId
 ```
 
-Ein direkter Query nur auf `item.id` ohne owner-scoped Parent ist verboten.
+A direct query on `item.id` without an owner-scoped Parent is forbidden.
 
 ### Private Reorder
 
-PrivateCollection verwendet dasselbe Concurrency-Modell wie Shared Collection:
+PrivateCollection uses the same Concurrency model as Shared Collection:
 
-- Root-Version schuetzt Reihenfolge/Itemmenge;
-- Item-Version schuetzt Title/Completed;
-- Position contiguous `0..n-1`;
-- atomarer Full-List-Reorder mit derselben kollisionsfreien PostgreSQL-Strategie;
-- Item-Delete sperrt Root -> Item, prueft die Item-Version, verdichtet Positionen und erhoeht die Root-Version;
-- Owner-only.
+- root version protects order/Item set;
+- Item version protects Title/Completed;
+- positions contiguous `0..n-1`;
+- atomic full-list Reorder with the same collision-free PostgreSQL strategy;
+- Item Delete locks root -> Item, checks Item version, compacts positions, and increments root version;
+- owner-only.
 
 ### Delete
 
-`PrivateCollectionItem` ist Parent-Child und darf bei Root-Delete per FK-Cascade geloescht werden. Keine andere Domainresource wird mitgeloescht.
+`PrivateCollectionItem` is Parent-Child and may be deleted by FK Cascade when the root is deleted. No other Domain resource is deleted with it.
 
 ## 8. M3-D19 – Private API
 
-### Route Namespace
+### Route namespace
 
-Private Ressourcen bleiben space-scoped, Owner wird **immer aus dem Auth Context** abgeleitet:
+Private resources remain Space-scoped; owner is **always derived from Auth Context**:
 
 ```text
 /api/v1/spaces/{spaceId}/private/notes
@@ -313,7 +310,7 @@ Private Ressourcen bleiben space-scoped, Owner wird **immer aus dem Auth Context
 /api/v1/spaces/{spaceId}/private/collections
 ```
 
-Beispiele:
+Examples:
 
 ```text
 GET    /private/notes
@@ -335,9 +332,9 @@ PATCH  /private/collections/{collectionId}
 DELETE /private/collections/{collectionId}
 ```
 
-Child-Routen liegen unter dem autorisierten Parent.
+Child routes are nested beneath the authorized Parent.
 
-Nicht erlaubt in Request-Bodies:
+Not allowed in request bodies:
 
 ```text
 ownerId
@@ -345,29 +342,29 @@ spaceId
 privacyClass
 ```
 
-### 404-Regel
+### 404 rule
 
-Fuer den aktuellen Account muessen diese Faelle semantisch ununterscheidbar sein:
+For the current Account, these cases must be semantically indistinguishable:
 
-- unbekannte ID;
-- private Resource des Partners;
-- private Resource in anderem Space;
-- Item unter fremdem privaten Parent.
+- unknown ID;
+- partner's private resource;
+- private resource in another Space;
+- Item under a foreign private Parent.
 
-Antwort: privacy-sicher `404` ohne bestaetigende Zusatzdetails.
+Response: Privacy-safe `404` without confirming additional details.
 
-### Listen, Counts und Pagination
+### Lists, counts, and pagination
 
-- Listen enthalten ausschliesslich `ownerId=currentAccount`;
-- Counts/Pagination-Totals werden erst **nach Owner-Filterung** gebildet;
-- kein Shared Dashboard/Collection-Count erwaehnt private Ressourcen;
-- M3 baut keinen globalen privaten Suchindex.
+- Lists contain only `ownerId=currentAccount`;
+- counts/pagination totals are calculated only **after owner filtering**;
+- no Shared Dashboard/Collection count mentions private resources;
+- M3 builds no global private Search index.
 
-## 9. M3-D23 – Domain Events und Redaction
+## 9. M3-D23 – Domain Events and Redaction
 
 ### Envelope
 
-M3 friert folgenden minimalen Envelope ein:
+M3 freezes the following minimal envelope:
 
 ```text
 eventId
@@ -382,32 +379,32 @@ privacyClass
 safeState?
 ```
 
-### Shared Resources
+### Shared resources
 
-Bei `SPACE_SHARED` darf `safeState` ausschliesslich kleine, nicht inhaltliche Enum-/Lifecycle-Werte tragen, wenn ein konkreter Consumer sie benoetigt.
+For `SPACE_SHARED`, `safeState` may carry only small, non-content enum/lifecycle values when a concrete consumer requires them.
 
-### OWNER_ONLY Resources
+### OWNER_ONLY resources
 
-Bei `OWNER_ONLY` gilt:
+For `OWNER_ONLY`:
 
 - `privacyClass=OWNER_ONLY`;
-- `actorId` ist der Owner/Actor;
-- `safeState` bleibt standardmaessig `null`;
-- keine Status-, Pin-, Count-, Titel-, URL-, Preis-, Recipient- oder andere fachliche Information im Event;
-- Consumer muessen `OWNER_ONLY` explizit behandeln und duerfen daraus keine Partnernotification, Shared Activity oder Dashboard-Sicht erzeugen.
+- `actorId` is the Owner/Actor;
+- `safeState` is `null` by default;
+- no status, pin, count, title, URL, price, recipient, or other Domain information in the Event;
+- consumers must explicitly handle `OWNER_ONLY` and must not create partner notifications, Shared Activity, or Dashboard visibility from it.
 
-### Niemals in Events/Logs
+### Never in Events/logs
 
-- Collection-/Item-Titel;
+- Collection/Item titles;
 - PrivateNote title/body;
-- GiftIdea-Felder inklusive `status`, `url`, `priceText`, `recipient`;
-- PrivateCollection-/Item-Titel oder Completion;
-- Place-Adresse/Koordinaten;
-- private Counts.
+- GiftIdea fields including `status`, `url`, `priceText`, `recipient`;
+- PrivateCollection/Item titles or Completion;
+- Place address/coordinates;
+- private counts.
 
-## 10. Fehlercodes
+## 10. Error codes
 
-Mindestens:
+At minimum:
 
 ```text
 COLLECTION_NOT_FOUND                    404
@@ -422,47 +419,47 @@ PRIVATE_COLLECTION_ITEM_NOT_FOUND       404
 RESOURCE_VERSION_CONFLICT               409
 ```
 
-Es gibt keinen Fehlercode wie `PRIVATE_RESOURCE_OWNED_BY_PARTNER`.
+There is no error code such as `PRIVATE_RESOURCE_OWNED_BY_PARTNER`.
 
-## 11. Verpflichtende Tests
+## 11. Mandatory tests
 
 ### Shared Collection
 
-- beide Partner duerfen Root und Items schreiben;
-- `createdBy` bleibt unveraenderlich;
-- Item-Completion mit stale Version -> 409;
-- Reorder mit stale Collection-Version -> 409;
-- Reorder muss exakt aktuelle Itemmenge enthalten;
-- paralleler Reorder -> genau einer gewinnt;
-- Reorder vs. Item-Delete -> deterministischer 409/Erfolg, keine Positionsduplikate;
-- Parent-Delete cascadiert nur Items;
-- Cross-Tenant CRUD/Itemzugriff -> fail-closed.
+- both partners may write root and Items;
+- `createdBy` remains immutable;
+- Item Completion with stale version -> 409;
+- Reorder with stale Collection version -> 409;
+- Reorder must contain exactly the current Item set;
+- parallel Reorder -> exactly one wins;
+- Reorder vs. Item Delete -> deterministic 409/success, no duplicate positions;
+- Parent Delete cascades only Items;
+- Cross-Tenant CRUD/Item access -> fail closed.
 
 ### PrivateNote / GiftIdea
 
-- Owner CRUD funktioniert;
-- Partner GET/LIST/PATCH/DELETE -> privacy-sicher 404/kein Listeneintrag;
-- fremde Space-ID semantisch identisch;
-- Counts/Pagination leaken nichts;
-- GiftIdea startet IDEA;
-- alle erlaubten/verbotenen Statuskanten getestet;
-- URL wird niemals serverseitig gefetcht.
+- Owner CRUD works;
+- partner GET/LIST/PATCH/DELETE -> Privacy-safe 404/no List entry;
+- foreign Space ID is semantically identical;
+- counts/pagination leak nothing;
+- GiftIdea starts in IDEA;
+- all allowed/forbidden status edges tested;
+- URL is never fetched server-side.
 
 ### PrivateCollection
 
-- Owner-only Root und Child;
-- Item-Query ohne autorisierten Parent ist im Service/Repository nicht moeglich;
-- Reorder/Delete-Concurrency wie Shared Collection;
-- Parent-Delete cascadiert Child-Items;
-- Partner kennt weder Parent noch Item ueber IDs/Counts/Fehler.
+- owner-only root and Child;
+- Item query without authorized Parent is impossible in Service/Repository;
+- Reorder/Delete Concurrency same as Shared Collection;
+- Parent Delete cascades Child Items;
+- partner learns neither Parent nor Item existence through IDs/counts/errors.
 
 ### Events
 
-- Shared Events enthalten keine ProtectedPayloads;
-- Private Events enthalten kein `safeState` mit fachlichen Daten;
-- keine Partnernotification/Shared Activity aus OWNER_ONLY Events;
-- Log-/Error-Capture-Tests redigieren private Inhalte.
+- Shared Events contain no ProtectedPayloads;
+- Private Events contain no `safeState` with Domain data;
+- no partner notification/Shared Activity from OWNER_ONLY Events;
+- log/Error-capture tests redact private content.
 
 ## 12. Reuse-before-build
 
-Fuer diese reine Domain-/Privacyentscheidung nicht relevant. Falls fuer spaeteres Ordering/Ranking eine technische Hilfskomponente erforderlich wird, erfolgt vor Eigenbau eine aktuelle Reuse-Pruefung. Das M3-Modell setzt fuer die Basis lediglich PostgreSQL-Transaktionen, FKs, Unique Constraints und Optimistic Concurrency voraus.
+Not relevant for this pure Domain/Privacy decision. If later ordering/ranking requires a technical helper component, a current Reuse review is performed before in-house implementation. The M3 model requires only PostgreSQL transactions, FKs, Unique Constraints, and Optimistic Concurrency for the baseline.

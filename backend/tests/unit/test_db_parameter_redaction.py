@@ -1,46 +1,46 @@
-"""Gebundene Parameter duerfen nicht ins Anwendungslog geraten.
+"""Bound parameters must not reach the application log.
 
-Die Anwendung protokolliert unbehandelte Fehler mit `log.exception`. Ohne
-`hide_parameters` schreibt SQLAlchemy die gebundenen Werte in jede
-Datenbank-Fehlermeldung - und damit genau das in das Log, was hinter der
-ProtectedPayload-Grenze liegen soll: Titel, Texte, Adressen und die
-Koordinaten eines Ortes.
+The application logs unhandled failures with `log.exception`. Without
+`hide_parameters`, SQLAlchemy writes bound values into every database error
+message and therefore into the log, exactly where content behind the
+ProtectedPayload boundary must not appear: titles, text, addresses, and place
+coordinates.
 
-M3-D28 verbietet Ortsdaten in Logs ausdruecklich. Fuer die uebrigen
-geschuetzten Inhalte gilt dasselbe seit M2, es stand nur nirgends fest.
+M3-D28 explicitly forbids place data in logs. The same rule has applied to the
+other protected content since M2, even though it was not documented there.
 """
 
 from __future__ import annotations
 
 from sqlalchemy import Engine
 
-from sidebyside.db.session import get_engine
+from eimir.db.session import get_engine
 
 
 def _engine() -> Engine:
     return get_engine()
 
 
-def test_die_engine_verschweigt_gebundene_parameter() -> None:
+def test_engine_hides_bound_parameters() -> None:
     assert _engine().hide_parameters is True
 
 
-def test_eine_datenbankfehlermeldung_traegt_keine_werte() -> None:
-    """Die Gegenprobe an einem echten Fehlertext.
+def test_database_error_message_does_not_expose_values() -> None:
+    """Counter-check using a real SQLAlchemy error message.
 
-    Kein Datenbankzugriff noetig: SQLAlchemy entscheidet beim Bauen der
-    Fehlermeldung, ob die Parameter mitgehen.
+    No database access is required: SQLAlchemy decides while constructing the
+    error message whether parameters are included.
     """
     from sqlalchemy.exc import StatementError
 
-    fehler = StatementError(
+    error = StatementError(
         "boom",
         "INSERT INTO places (latitude, longitude) VALUES (%(lat)s, %(lon)s)",
         {"lat": "52.520008", "lon": "13.404954"},
         Exception("boom"),
         hide_parameters=_engine().hide_parameters,
     )
-    text = str(fehler)
+    text = str(error)
     assert "52.520008" not in text
     assert "13.404954" not in text
     assert "SQL parameters hidden" in text

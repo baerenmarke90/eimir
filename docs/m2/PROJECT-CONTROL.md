@@ -1,50 +1,50 @@
 # M2 Project Control
 
-**Stand:** 26.08.2026  
-**Status:** M2 abgeschlossen; G2 bestanden; M3 freigegeben  
-**Aktueller `main`:** `3a7adc28643ef00de51db678ec77a82be652283d` (Merge von #170)
+**As of:** August 26, 2026  
+**Status:** M2 complete; G2 passed; M3 released  
+**Current `main`:** `3a7adc28643ef00de51db678ec77a82be652283d` (merge of #170)
 
-## Verbindlicher Gate-Stand
+## Binding gate state
 
-Der datierte [finale G2 Gate Review](../reviews/2026-08-26-g2-final-gate-review.md) ist die aktuelle Gate-Entscheidung:
+The dated [final G2 Gate Review](../reviews/2026-08-26-g2-final-gate-review.md) is the current gate decision:
 
-- **G2: BESTANDEN**
-- **M2: ABGESCHLOSSEN**
-- **M3: FREIGEGEBEN**
-- die M3-S0-Readiness ist abgeschlossen; alle M3-D01 bis M3-D32 stehen auf `DECIDED`
-- M3-Runtime-Slices dürfen gemäß `docs/m3/README.md` und `docs/m3/DELIVERY-PLAN.md` beginnen, sobald der jeweilige produktive REST-/OpenAPI-Vertrag contract-testbar konkretisiert ist
-- öffentliche/Managed-Exposition ist noch nicht freigegeben; #59 und #60 bleiben Pre-Exposure-Gates
-- #25 bleibt Repository-Hardening
+- **G2: PASSED**
+- **M2: COMPLETE**
+- **M3: RELEASED**
+- M3-S0 readiness is complete; all M3-D01 through M3-D32 are `DECIDED`
+- M3 runtime slices may start according to `docs/m3/README.md` and `docs/m3/DELIVERY-PLAN.md` once the respective production REST/OpenAPI contract is concretely contract-testable
+- public/Managed exposure is not yet released; #59 and #60 remain Pre-Exposure gates
+- #25 remains Repository Hardening
 
-Ältere datierte Reviews bleiben historische Snapshots und werden nicht umgeschrieben. Insbesondere der frühere G2-Zwischenreview bleibt unverändert als Nachweis des damaligen, noch unvollständigen Gate-Stands erhalten.
+Older dated reviews remain historical snapshots and are not rewritten. In particular, the earlier G2 interim review remains unchanged as evidence of the then-incomplete gate state.
 
-## Milestone-Grenzen
+## Milestone boundaries
 
-### M2 – Erinnern / Story Alpha
+### M2 – Memories / Story Alpha
 
-M2 liefert Domain und API für Attachment, Memory, HeartMoment, Milestone, Comment und Story sowie **minimale vertikale Referenzflows** auf Web und Android. Diese Referenzflows beweisen den kritischen End-to-End-Vertrag; sie bedeuten noch keine vollständige Client-Parität.
+M2 delivers Domain and API for Attachment, Memory, HeartMoment, Milestone, Comment, and Story plus **minimal vertical reference flows** on Web and Android. These reference flows prove the critical end-to-end contract; they do not yet provide full client parity.
 
-Der G2-Mindestnachweis wurde vollständig erbracht:
+The minimum G2 evidence was fully delivered:
 
-- M2-Domain und versionierter API-Vertrag vollständig für den G2-Scope; Attachment/Media ist auf Bilder begrenzt,
-- Tenant-/Owner-only-/Media-Security-Gates grün,
-- realer kritischer Memory/Media/Story-Flow auf Web und Android gegen denselben SideBySide-Stack validiert,
-- keine hohe/kritische offene M2-Security-/Privacy-/Datenintegritätslücke,
-- aktuelle CI-, Secret-Scan-, Supply-Chain- und Deployment-Gates grün.
+- M2 Domain and versioned API contract complete for the G2 scope; Attachment/Media is limited to images,
+- Tenant/owner-only/Media Security gates green,
+- real critical Memory/Media/Story flow on Web and Android validated against the same eimir. stack,
+- no high/critical open M2 Security/Privacy/data-integrity gap,
+- current CI, Secret Scan, Supply Chain, and Deployment gates green.
 
-Die manuelle Accessibility-Abnahme ist bewusst **kein G2-Blocker mehr**. Sie wurde nicht als bestanden behauptet und bleibt Teil von M5/G4 als finale Client-/Release-QA.
+Manual Accessibility acceptance is deliberately **no longer a G2 blocker**. It was not claimed as passed and remains part of M5/G4 as final client/release QA.
 
-Globale Volltextsuche ist kein G2-Bestandteil. Story benötigt für G2 `type`, `year`, `order`, `cursor` und `limit`; globale Suche gehört zu M4-A.
+Global full-text Search is not part of G2. Story requires `type`, `year`, `order`, `cursor`, and `limit` for G2; global Search belongs to M4-A.
 
-### M3 – Planen & Private Area
+### M3 – Planning & Private Area
 
-Wishes, Plans, Places, Chapters, Collections und Private Area. Die fachliche S0-Readiness ist abgeschlossen; alle M3-D01 bis M3-D32 stehen auf `DECIDED`. Verbindliche nächste Quelle ist das [M3 Technical Readiness Package](../m3/README.md) mit dem [M3 Delivery Plan](../m3/DELIVERY-PLAN.md).
+Wishes, Plans, Places, Chapters, Collections, and Private Area. Domain-level S0 readiness is complete; all M3-D01 through M3-D32 are `DECIDED`. The binding next source is the [M3 Technical Readiness Package](../m3/README.md) with the [M3 Delivery Plan](../m3/DELIVERY-PLAN.md).
 
-Private Area ist eine Security-Domain mit harter `OWNER_ONLY`-Semantik, kein rein visueller Ordner. Runtime startet sliceweise und erst mit eindeutig contract-testbarem produktivem REST-/OpenAPI-Vertrag.
+Private Area is a Security Domain with hard `OWNER_ONLY` semantics, not merely a visual folder. Runtime starts slice by slice and only with an unambiguously contract-testable production REST/OpenAPI contract.
 
-### M4 – Begleiten
+### M4 – Engagement
 
-Der Milestone bleibt fachlich zusammenhängend, wird aber intern in drei lieferbare Slices getrennt:
+The milestone remains one coherent domain scope but is internally split into three deliverable slices:
 
 - **M4-A:** Search + Dashboard Read Models
 - **M4-B:** Activity + Notifications
@@ -52,87 +52,87 @@ Der Milestone bleibt fachlich zusammenhängend, wird aber intern in drei lieferb
 
 ### M5 – Client Completion & Parity
 
-M5 vervollständigt Web und Android: vollständige Domainintegration, Navigation, Deep Links, Read Cache, Export/Import, Accessibility, Performance und systematische Feature-Parität. Die M2-Referenzflows werden hier produktreif vervollständigt; die verschobene manuelle Accessibility-Abnahme findet hier statt.
+M5 completes Web and Android: complete Domain integration, navigation, Deep Links, Read Cache, Export/Import, Accessibility, Performance, and systematic feature parity. The M2 reference flows are completed to production readiness here; the deferred manual Accessibility acceptance takes place here.
 
 ### M6–M9
 
-M6 Rich Features, M7 Integrationen, M8 freiwilliger Context und M9 Productization bleiben in ihrer Reihenfolge bestehen. M9 ist das Launch-Gate für Managed/Self-Hosted-Betrieb einschließlich Pre-Exposure-Härtungen, Backup/Restore, Update/Rollback, Retention/Löschung, Monitoring, Entitlements und Supportfähigkeit.
+M6 Rich Features, M7 Integrations, M8 optional Context, and M9 Productization remain in their existing order. M9 is the launch gate for Managed/Self-Hosted operation including Pre-Exposure hardening, Backup/Restore, Update/Rollback, Retention/deletion, Monitoring, Entitlements, and support readiness.
 
-## Privacy-Begriffe
+## Privacy terminology
 
-- `SHARED` / `PRIVATE`: öffentliche fachliche Domainwerte, wenn eine Ressource eine Nutzerentscheidung zur Sichtbarkeit besitzt.
-- `SPACE_SHARED` / `OWNER_ONLY`: interne Authorization-/Privacy-Klassen.
-- Clients schreiben `privacyClass` nicht redundant als zweite Wahrheitsquelle.
-- `PRIVATE` wird serverseitig als `OWNER_ONLY` durchgesetzt; Clientfilter sind keine Sicherheitsgrenze.
+- `SHARED` / `PRIVATE`: public domain values where a resource exposes a user visibility choice.
+- `SPACE_SHARED` / `OWNER_ONLY`: internal Authorization/Privacy classes.
+- Clients do not redundantly write `privacyClass` as a second source of truth.
+- `PRIVATE` is enforced server-side as `OWNER_ONLY`; client filters are not a security boundary.
 
-## M2-S0 — abgeschlossen
+## M2-S0 — complete
 
-1. **#67 Planning** — Projektsteuerung auf G1=bestanden und die hier definierten Milestone-Grenzen synchronisiert.
-2. **#68 Domain/Privacy** — Memory-, Comment-, HeartMoment- und Event-/Delete-Entscheidungen geschlossen.
-3. **#69 Media** — Attachment-Relation, Limits, Validation, Retention, Uploadtransport und Orphan-Regeln geschlossen.
-4. **#70 API** — Routen, DTOs, Error Codes, Concurrency, Pagination und Story-Sortierung in den versionierten Contract überführt.
-5. **#78 Media-Metadaten** — M2-D14 (Strippen beim Ingest) und M2-D15 (eine abgeleitete Variante, kein Transcoding) entschieden. Beide waren als `BEFORE_CLIENTS` eingestuft, griffen aber in den Ingest-Pfad und wurden deshalb auf `BLOCKING` gehoben.
-6. **#85 Media-Reihenfolge** — M2-D23: Bilder zuerst mit Pillow und pillow-heif. Video wurde zunächst als eigener Slice vorgesehen und ist inzwischen als Future-Backlog #88 außerhalb von M2/G2 verschoben.
+1. **#67 Planning** — synchronized project control to G1=passed and the milestone boundaries defined here.
+2. **#68 Domain/Privacy** — closed Memory, Comment, HeartMoment, and Event/Delete decisions.
+3. **#69 Media** — closed Attachment relation, limits, validation, Retention, upload transport, and orphan rules.
+4. **#70 API** — moved routes, DTOs, error codes, Concurrency, Pagination, and Story sorting into the versioned contract.
+5. **#78 Media metadata** — decided M2-D14 (strip on ingest) and M2-D15 (one derived variant, no Transcoding). Both were classified as `BEFORE_CLIENTS`, but affected the ingest path and were therefore promoted to `BLOCKING`.
+6. **#85 Media sequence** — M2-D23: images first with Pillow and pillow-heif. Video was initially planned as its own slice and has since been moved outside M2/G2 to Future Backlog #88.
 
-Die für M2 relevanten `BLOCKING`-Entscheidungen wurden vor dem jeweiligen Runtime-Code geschlossen. `BEFORE_CLIENTS`-Punkte zu Notification Preview, Export/Backup, Client-Cache und Suchindex werden in den zuständigen späteren Milestones behandelt.
+The `BLOCKING` decisions relevant to M2 were closed before their respective runtime code. `BEFORE_CLIENTS` items for Notification Preview, Export/Backup, Client Cache, and Search Index are handled in their respective later milestones.
 
-Während der Umsetzung kamen vier weitere `BLOCKING`-Entscheidungen dazu, die erst am Code oder am nächsten Slice sichtbar wurden. Alle wurden vor dem sie tragenden Code geschlossen, wie es die Runtime-Startregel verlangt:
+During implementation, four additional `BLOCKING` decisions emerged that became visible only in code or in the next slice. All were closed before the code relying on them, as required by the runtime start rule:
 
-- **M2-D23** (#85) — Reihenfolge und Parser der Medienverarbeitung.
-- **M2-D24** (#79) — Lesezugriff auf noch ungebundene Attachments.
-- **M2-D25** (#94) — Schreibrechte für Milestone.
-- **M2-D22** (#104) — Owner-Ansicht für private HeartMoments. War als `BEFORE_CLIENTS` eingestuft, formt aber die Story-Route und wurde deshalb vor S7 auf `BLOCKING` gehoben.
+- **M2-D23** (#85) — order and parsers for Media processing.
+- **M2-D24** (#79) — read access to unbound Attachments.
+- **M2-D25** (#94) — write permissions for Milestone.
+- **M2-D22** (#104) — owner view for private HeartMoments. It was classified as `BEFORE_CLIENTS`, but shapes the Story route and was therefore promoted to `BLOCKING` before S7. Superseded post-M2 by #1021 (`/timeline` became viewer-authorized instead of a separate owner view); see `DECISION-LOG.md`.
 
-## Runtime-Startregel
+## Runtime start rule
 
-Ein Runtime-Slice startet erst, wenn **alle für genau diesen Slice relevanten BLOCKING-Decisions** `DECIDED` sind und sein versionierter OpenAPI-Vertrag contract-testbar vorliegt. Runtime-Code entscheidet keine offene Frage stillschweigend: stößt ein Slice auf eine ungeklärte Frage, wird sie als Decision-Log-Eintrag geschlossen, nicht im Code beantwortet.
+A runtime slice starts only when **all BLOCKING Decisions relevant to exactly that slice** are `DECIDED` and its versioned OpenAPI contract is available in contract-testable form. Runtime code does not silently answer an open question: when a slice encounters an unresolved question, it is closed as a Decision Log entry rather than answered in code.
 
-Diese Regel gilt auch für M3 und spätere Milestones. Der Abschluss eines Milestone-Gates ersetzt nicht die slice-spezifische Vertrags- und Reuse-Prüfung.
+This rule also applies to M3 and later milestones. Completion of a milestone gate does not replace slice-specific contract and Reuse review.
 
-## M2-Lieferstand
+## M2 delivery state
 
-### Geliefert
+### Delivered
 
-- #71 — Memory CRUD ohne Medien (PR #77). Validiert M2-Migrationstil, ProtectedPayload-Grenze, Tenant Guard, Autorregel, Optimistic Concurrency und signierten Keyset-Cursor auf einer medienfreien Fläche.
-- #80 — HeartMoment mit Owner-only-Privacy (PR #84). Erster Typ mit echter Nutzerentscheidung zur Sichtbarkeit; `SHARED -> PRIVATE` als eigene atomare Operation, Emotion als ProtectedPayload.
-- #79 — Attachment-Lifecycle für Bilder (PR #89). Statusautomat, LocalMediaStore, asynchrone Validierung mit Strippen nach M2-D14 und Thumbnail nach M2-D15, autorisiertes Lesen, Retention und Cleanup. Video bleibt fail-closed und ist außerhalb von M2/G2 in #88 vorgemerkt.
-- #90 — Attachments an Memory und HeartMoment binden (PR #93). `MemoryAttachment` mit stabiler `position`, HeartMoment mit höchstens einem Attachment, atomares Bind/Unbind im Bindungsfenster aus M2-D20, keine Cross-Space- und keine Mehrfachbindung nach M2-D03.
-- #94 — Milestone-Domain und API (PR #95). Eigenes Modell statt Typflag auf Memory; M2-D25 hält die Autorregel aus M2-D01 auch hier.
-- #97 — Comments, Outbox und Notification Hook (PR #98). Create/List am Parent verschachtelt, Update/Delete space-scoped, enumerierte Targets, atomarer Outbox-Eintrag und idempotenter Retry. Schließt die Zusage aus #80.
-- #87 — S3-kompatibler MediaStore-Adapter (PR #100). Presigned Upload und Read-URL mit den TTLs aus M2-D13, gegen denselben Contract-Test wie der lokale Adapter.
-- #113 — Story Read Model und `/timeline` (PR #114). Abgeleitete Zeitleiste über Memory, Milestone und ausschließlich gemeinsame HeartMoments; Sortierschlüssel `(effectiveDate, createdAt, kindRank, id)` und Keyset-Cursor nach M2-D08. Private HeartMoments sind nie Story-Items, auch nicht für ihren Owner (M2-D22). Kein persistiertes Read Model.
-- S8 — dünne Web-/Android-Referenzflows: geliefert.
-- #144 — realer Web-/Android-G2-E2E-Nachweis gegen API, Worker, PostgreSQL und LocalMediaStore: geliefert.
-- #147 / PR #170 — finaler G2 Gate Review: **G2: BESTANDEN**.
+- #71 — Memory CRUD without media (PR #77). Validates M2 migration style, ProtectedPayload boundary, Tenant Guard, author rule, Optimistic Concurrency, and signed Keyset Cursor on a media-free surface.
+- #80 — HeartMoment with owner-only Privacy (PR #84). First type with a real user visibility choice; `SHARED -> PRIVATE` as a dedicated atomic operation, emotion as ProtectedPayload.
+- #79 — Attachment lifecycle for images (PR #89). State machine, LocalMediaStore, asynchronous validation with stripping per M2-D14 and Thumbnail per M2-D15, authorized reads, Retention, and Cleanup. Video remains fail-closed and is tracked outside M2/G2 in #88.
+- #90 — Bind Attachments to Memory and HeartMoment (PR #93). `MemoryAttachment` with stable `position`, HeartMoment with at most one Attachment, atomic Bind/Unbind inside the binding window from M2-D20, no Cross-Space or multiple binding per M2-D03.
+- #94 — Milestone Domain and API (PR #95). Dedicated model instead of a type flag on Memory; M2-D25 preserves the author rule from M2-D01 here as well.
+- #97 — Comments, Outbox, and Notification Hook (PR #98). Create/List nested under the parent, Update/Delete space-scoped, enumerated targets, atomic Outbox entry, and idempotent Retry. Closes the commitment from #80.
+- #87 — S3-compatible MediaStore adapter (PR #100). Presigned Upload and Read URL with TTLs from M2-D13, against the same contract test as the local adapter.
+- #113 — Story Read Model and `/timeline` (PR #114). Derived Timeline over Memory, Milestone, and HeartMoment; sort key `(effectiveDate, createdAt, kindRank, id)` and Keyset Cursor per M2-D08. No persisted Read Model. At the time, private HeartMoments were never Story Items, including for their owner (M2-D22); #1021 later superseded that rule and made `/timeline` viewer-authorized, so an account's own private HeartMoment is now part of their own Timeline.
+- S8 — thin Web/Android reference flows: delivered.
+- #144 — real Web/Android G2 E2E evidence against API, Worker, PostgreSQL, and LocalMediaStore: delivered.
+- #147 / PR #170 — final G2 Gate Review: **G2: PASSED**.
 
-### Future-Backlog außerhalb von M2/G2
+### Future backlog outside M2/G2
 
-- #88 — `Future: Video-Uploads und Posterframes`
+- #88 — `Future: Video uploads and poster frames`
 
-#88 wird nicht jetzt umgesetzt. Der Prototyp #109 wurde wegen eines Produktions-Images von rund 755 MiB sowie des zusätzlichen ffmpeg-Betriebs-, Supply-Chain- und Security-Aufwands bewusst ohne Merge geschlossen. `main` bleibt für MP4 und QuickTime fail-closed. Eine Wiederaufnahme benötigt eine neue Architektur- und Security-Entscheidung, die insbesondere ein separates optionales Processing-Modell statt eines aufgeblähten gemeinsamen Images bewertet.
+#88 is not implemented now. Prototype #109 was deliberately closed without merge because of a production image of roughly 755 MiB and the additional ffmpeg operational, Supply Chain, and Security burden. `main` remains fail-closed for MP4 and QuickTime. Resuming this work requires a new Architecture and Security decision that in particular evaluates a separate optional processing model instead of an inflated shared image.
 
-### Zusage aus #80 — erfüllt
+### Commitment from #80 — fulfilled
 
-Der in M2-D07 verlangte atomare Comment-Delete beim Wechsel `SHARED -> PRIVATE` hing an `_delete_dependent_comments` und war ohne Comments nicht beweisbar. Mit #97 ist die Cascade verdrahtet — zusätzlich abgesichert durch die Mapper-Listener in `comments/cascades.py` — und in `test_shared_to_private_loescht_comments_und_resurrected_nichts` belegt. Der Merkposten ist damit geschlossen.
+The atomic Comment Delete required by M2-D07 when transitioning `SHARED -> PRIVATE` depended on `_delete_dependent_comments` and could not be demonstrated without Comments. With #97, the cascade is wired — additionally protected by the mapper listeners in `comments/cascades.py` — and demonstrated in `test_shared_to_private_loescht_comments_und_resurrected_nichts`. This follow-up item is therefore closed.
 
-## G2 — abgeschlossen
+## G2 — complete
 
-Verbindliche Entscheidungsquelle ist der [finale G2 Gate Review](../reviews/2026-08-26-g2-final-gate-review.md). Er bewertet G2 ausdrücklich als **BESTANDEN**.
+The binding decision source is the [final G2 Gate Review](../reviews/2026-08-26-g2-final-gate-review.md). It explicitly evaluates G2 as **PASSED**.
 
-Damit ist M2 formal abgeschlossen. M3 ist der freigegebene nächste Milestone. Der erste geplante Runtime-Slice ist M3-S1 **Wish Foundation**; sein Vertrag und seine Verifikation werden im M3-Paket gesteuert.
+M2 is therefore formally complete. M3 is the released next milestone. The first planned runtime slice is M3-S1 **Wish Foundation**; its contract and verification are governed by the M3 package.
 
-## Aktive Statusquellen
+## Active status sources
 
-Die laufenden Statusquellen sind auf denselben Stand synchronisiert:
+The living status sources are synchronized to the same state:
 
 - [`README.md`](../../README.md)
 - [`docs/ROADMAP.md`](../ROADMAP.md)
 - [`docs/IMPLEMENTATION-STATUS.md`](../IMPLEMENTATION-STATUS.md)
 - [`docs/m2/PROJECT-CONTROL.md`](./PROJECT-CONTROL.md)
 
-Aktuelle M3-Steuerung:
+Current M3 project control:
 
 - [`docs/m3/README.md`](../m3/README.md)
 - [`docs/m3/DELIVERY-PLAN.md`](../m3/DELIVERY-PLAN.md)
 
-Historische Reviews bleiben bewusst unverändert und dürfen daher frühere Gate-Stände enthalten.
+Historical reviews deliberately remain unchanged and may therefore contain earlier gate states.

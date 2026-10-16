@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,7 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
+ * One explicit Plan schedule representation.
  * 
+ * ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware
+ * instant. Exactly one of those semantic starts must be supplied; clients may
+ * never synthesize a wall-clock time merely to encode ``plannedOn``.
  * @export
  * @interface PlanSchedule
  */
@@ -30,14 +34,19 @@ export interface PlanSchedule {
      * @type {Date}
      * @memberof PlanSchedule
      */
-    plannedStart: Date;
+    plannedOn?: Date;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PlanSchedule
+     */
+    plannedStart?: Date;
 }
 
 /**
  * Check if a given object implements the PlanSchedule interface.
  */
 export function instanceOfPlanSchedule(value: object): value is PlanSchedule {
-    if (!('plannedStart' in value) || value['plannedStart'] === undefined) return false;
     return true;
 }
 
@@ -52,7 +61,8 @@ export function PlanScheduleFromJSONTyped(json: any, ignoreDiscriminator: boolea
     return {
         
         'plannedEnd': json['plannedEnd'] == null ? undefined : (new Date(json['plannedEnd'])),
-        'plannedStart': (new Date(json['plannedStart'])),
+        'plannedOn': json['plannedOn'] == null ? undefined : (new Date(json['plannedOn'])),
+        'plannedStart': json['plannedStart'] == null ? undefined : (new Date(json['plannedStart'])),
     };
 }
 
@@ -68,7 +78,8 @@ export function PlanScheduleToJSONTyped(value?: PlanSchedule | null, ignoreDiscr
     return {
         
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
-        'plannedStart': value['plannedStart'].toISOString(),
+        'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
+        'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
     };
 }
 

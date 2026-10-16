@@ -1,14 +1,14 @@
-"""Echte PostgreSQL-Races und Rollbacks im Wish->Plan-Lifecycle.
+"""Exercise PostgreSQL races and rollbacks in the Wish-to-Plan lifecycle.
 
-Die Zusicherung aus M3-D02 ist scharf formuliert: *kein* Race darf einen
-`PLANNED` Wish ohne originaeren Plan oder einen zweiten originaeren Plan
-hinterlassen. Genau das wird hier nachgestellt - nicht mit Mocks, sondern
-mit nebenlaeufigen Transaktionen gegen dieselbe Datenbank.
+The guarantee from M3-D02 is strict: no race may leave a `PLANNED` Wish
+without its originating Plan or create a second originating Plan. These tests
+reproduce that behavior with concurrent transactions against the same database
+rather than with mocks.
 
-Jeder Test prueft zwei Dinge: dass beide Aufrufe ein *zulaessiges*
-Ergebnis melden, und dass der Endzustand einer der erlaubten ist. Nur das
-erste zu pruefen wuerde einen halben Lifecycle durchgehen lassen, solange
-die Fehlermeldungen plausibel klingen.
+Each test verifies both that the calls return an allowed result and that the
+final state is one of the permitted outcomes. Checking only the responses could
+otherwise let a partial lifecycle pass as long as the diagnostics looked
+plausible.
 """
 
 from __future__ import annotations
@@ -21,15 +21,15 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.core.clock import today_in
-from sidebyside.core.errors import DomainError
-from sidebyside.identity.models import Account
-from sidebyside.plans import service as plan_service
-from sidebyside.plans.models import Plan, PlanStatus
-from sidebyside.relationship import service as relationship_service
-from sidebyside.wishes import service as wish_service
-from sidebyside.wishes.models import Wish, WishStatus
+from eimir.authorization import AuthorizationContext
+from eimir.core.clock import today_in
+from eimir.core.errors import DomainError
+from eimir.identity.models import Account
+from eimir.plans import service as plan_service
+from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import service as relationship_service
+from eimir.wishes import service as wish_service
+from eimir.wishes.models import Wish, WishStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -37,7 +37,7 @@ pytestmark = [pytest.mark.integration, requires_database]
 ZONE = "Europe/Berlin"
 
 
-def _gestern() -> object:
+def _yesterday() -> object:
     return today_in(ZONE) - timedelta(days=1)
 
 
@@ -53,106 +53,104 @@ def _setup(production_client):  # type: ignore[no-untyped-def]
         anna_id = anna.id
         ben_id = ben.id
 
-    antwort = client.post(
+    response = client.post(
         f"/api/v1/spaces/{space_id}/wishes",
         json={"title": "Nordlichter sehen"},
         headers=auth(token),
     )
-    assert antwort.status_code == 201
+    assert response.status_code == 201
     return {
         "client": client,
         "maker": maker,
         "space_id": space_id,
         "anna": AuthorizationContext(account_id=anna_id, space_id=space_id),
         "ben": AuthorizationContext(account_id=ben_id, space_id=space_id),
-        "wish_id": UUID(antwort.json()["id"]),
+        "wish_id": UUID(response.json()["id"]),
     }
 
 
-def _token(welt) -> str:  # type: ignore[no-untyped-def]
-    """Einen frischen Access Token fuer den HTTP-Pfad ausstellen."""
-    with welt["maker"].begin() as session:
-        account = session.get(Account, welt["anna"].account_id)
+def _token(world) -> str:  # type: ignore[no-untyped-def]
+    """Issue a fresh access token for the HTTP path."""
+    with world["maker"].begin() as session:
+        account = session.get(Account, world["anna"].account_id)
         return sign_in(session, account)
 
 
-def _ergebnis(fn):  # type: ignore[no-untyped-def]
-    """Einen Dienstaufruf auf sein fachliches Ergebnis reduzieren."""
+def _result(fn):  # type: ignore[no-untyped-def]
+    """Reduce a service call to its domain-level result."""
     try:
         return fn()
     except DomainError as error:
         return error.code
 
 
-def _gleichzeitig(erste, zweite):  # type: ignore[no-untyped-def]
-    """Zwei Aufrufe so dicht wie moeglich zusammen starten."""
-    tor = Barrier(2, timeout=10)
+def _concurrently(first, second):  # type: ignore[no-untyped-def]
+    """Start two calls as close together as possible."""
+    gate = Barrier(2, timeout=10)
 
-    def lauf(fn):  # type: ignore[no-untyped-def]
-        tor.wait()
-        return _ergebnis(fn)
+    def run(fn):  # type: ignore[no-untyped-def]
+        gate.wait()
+        return _result(fn)
 
     with ThreadPoolExecutor(max_workers=2) as pool:
-        a = pool.submit(lauf, erste)
-        b = pool.submit(lauf, zweite)
+        a = pool.submit(run, first)
+        b = pool.submit(run, second)
         return a.result(timeout=20), b.result(timeout=20)
 
 
-class TestParallelerConvert:
-    def test_zwei_gleichzeitige_konvertierungen_erzeugen_genau_einen_plan(
-        self, production_client
-    ) -> None:  # type: ignore[no-untyped-def]
-        welt = _setup(production_client)
-        maker = welt["maker"]
+class TestConcurrentConvert:
+    def test_two_concurrent_conversions_create_exactly_one_plan(self, production_client) -> None:  # type: ignore[no-untyped-def]
+        world = _setup(production_client)
+        maker = world["maker"]
 
-        def konvertieren(context: AuthorizationContext):  # type: ignore[no-untyped-def]
+        def convert(context: AuthorizationContext):  # type: ignore[no-untyped-def]
             with maker.begin() as session:
-                ergebnis = plan_service.convert_wish_to_plan(
+                result = plan_service.convert_wish_to_plan(
                     session,
                     context,
-                    welt["wish_id"],
+                    world["wish_id"],
                     expected_version=1,
                     title=None,
                     description=None,
                     place_id=None,
                 )
-                return "CREATED" if ergebnis.created else f"RETRY:{ergebnis.plan.id}"
+                return "CREATED" if result.created else f"RETRY:{result.plan.id}"
 
-        erste, zweite = _gleichzeitig(
-            lambda: konvertieren(welt["anna"]),
-            lambda: konvertieren(welt["ben"]),
+        first, second = _concurrently(
+            lambda: convert(world["anna"]),
+            lambda: convert(world["ben"]),
         )
 
-        # Einer erzeugt, der andere bekommt denselben Plan idempotent
-        # zurueck. Zwei `CREATED` waeren zwei Plans.
-        assert sorted([erste.split(":")[0], zweite.split(":")[0]]) == ["CREATED", "RETRY"]
+        # One call creates the Plan and the other receives the same Plan
+        # idempotently. Two `CREATED` results would mean two Plans.
+        assert sorted([first.split(":")[0], second.split(":")[0]]) == ["CREATED", "RETRY"]
 
-        with maker() as pruefung:
-            plaene = list(pruefung.execute(select(Plan)).scalars())
-            wish = pruefung.get(Wish, welt["wish_id"])
-        assert len(plaene) == 1
-        assert plaene[0].source_wish_id == welt["wish_id"]
+        with maker() as verification:
+            plans = list(verification.execute(select(Plan)).scalars())
+            wish = verification.get(Wish, world["wish_id"])
+        assert len(plans) == 1
+        assert plans[0].source_wish_id == world["wish_id"]
         assert wish.status == WishStatus.PLANNED.value
 
-    def test_ein_wartender_convert_bekommt_den_fertigen_plan(self, production_client) -> None:  # type: ignore[no-untyped-def]
-        """Derselbe Fall, diesmal mit erzwungener Reihenfolge.
+    def test_waiting_convert_gets_completed_plan(self, production_client) -> None:  # type: ignore[no-untyped-def]
+        """Exercise the same race with a forced execution order.
 
-        Ein Blocker haelt die Wish-Sperre, waehrend der Convert schon
-        laeuft. Er darf erst durchkommen, wenn die Sperre faellt - und muss
-        dann den bereits erzeugten Plan sehen, nicht einen zweiten anlegen.
+        A blocker holds the Wish lock while the conversion is already running.
+        The conversion may continue only after the lock is released and must
+        then observe the existing Plan instead of creating a second one.
         """
-        welt = _setup(production_client)
-        maker = welt["maker"]
+        world = _setup(production_client)
+        maker = world["maker"]
 
         blocker = maker()
-        transaktion = blocker.begin()
+        transaction = blocker.begin()
         wish = blocker.execute(
-            select(Wish).where(Wish.id == welt["wish_id"]).with_for_update()
+            select(Wish).where(Wish.id == world["wish_id"]).with_for_update()
         ).scalar_one()
-        # Der Blocker konvertiert selbst - unter der eigenen Sperre.
+        # The blocker performs the conversion while holding its own lock.
         plan = Plan(
-            space_id=welt["space_id"],
-            owner_id=welt["anna"].account_id,
+            space_id=world["space_id"],
+            owner_id=world["anna"].account_id,
             privacy_class="SPACE_SHARED",
             status=PlanStatus.IDEA.value,
             source_wish_id=wish.id,
@@ -161,121 +159,121 @@ class TestParallelerConvert:
         blocker.add(plan)
         wish.status = WishStatus.PLANNED.value
         blocker.flush()
-        blockierter_plan = plan.id
+        blocked_plan = plan.id
 
-        def konvertieren():  # type: ignore[no-untyped-def]
+        def convert():  # type: ignore[no-untyped-def]
             with maker.begin() as session:
-                ergebnis = plan_service.convert_wish_to_plan(
+                result = plan_service.convert_wish_to_plan(
                     session,
-                    welt["ben"],
-                    welt["wish_id"],
+                    world["ben"],
+                    world["wish_id"],
                     expected_version=1,
                     title=None,
                     description=None,
                     place_id=None,
                 )
-                return "CREATED" if ergebnis.created else str(ergebnis.plan.id)
+                return "CREATED" if result.created else str(result.plan.id)
 
         try:
             with ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(_ergebnis, konvertieren)
-                transaktion.commit()
-                assert future.result(timeout=10) == str(blockierter_plan)
+                future = pool.submit(_result, convert)
+                transaction.commit()
+                assert future.result(timeout=10) == str(blocked_plan)
         finally:
-            if transaktion.is_active:
-                transaktion.rollback()
+            if transaction.is_active:
+                transaction.rollback()
             blocker.close()
 
-        with maker() as pruefung:
-            assert len(list(pruefung.execute(select(Plan)).scalars())) == 1
+        with maker() as verification:
+            assert len(list(verification.execute(select(Plan)).scalars())) == 1
 
 
 class TestRollback:
-    def test_ein_fehler_nach_dem_plan_insert_hinterlaesst_keinen_plan(
-        self, production_client, monkeypatch
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Der Bruchpunkt liegt genau zwischen den beiden Mutationen.
+    def test_error_after_plan_insert_leaves_no_plan(self, production_client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Fail exactly between the two mutations.
 
-        Der Plan ist eingefuegt, die Wish-Transition noch nicht gelaufen.
-        Bleibt davon irgendetwas stehen, gaebe es einen originaeren Plan an
-        einem Wish, der weiter `OPEN` ist.
+        The Plan has been inserted but the Wish transition has not run yet. If
+        anything survives the rollback, an originating Plan would be attached
+        to a Wish that is still `OPEN`.
         """
-        welt = _setup(production_client)
-        client = welt["client"]
+        world = _setup(production_client)
+        client = world["client"]
 
-        def kaputt(*args: object, **kwargs: object) -> None:
-            raise RuntimeError("Bruch zwischen Plan-Insert und Wish-Transition")
+        def fail(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("Failure between Plan insert and Wish transition")
 
-        monkeypatch.setattr(wish_service, "plan_created", kaputt)
+        monkeypatch.setattr(wish_service, "plan_created", fail)
 
-        token = _token(welt)
-        antwort = client.post(
-            f"/api/v1/spaces/{welt['space_id']}/wishes/{welt['wish_id']}/plan",
+        token = _token(world)
+        response = client.post(
+            f"/api/v1/spaces/{world['space_id']}/wishes/{world['wish_id']}/plan",
             json={},
             headers={"Authorization": f"Bearer {token}", "If-Match": '"1"'},
         )
-        assert antwort.status_code == 500
+        assert response.status_code == 500
 
-        with welt["maker"]() as pruefung:
-            assert list(pruefung.execute(select(Plan)).scalars()) == []
-            assert pruefung.get(Wish, welt["wish_id"]).status == WishStatus.OPEN.value
+        with world["maker"]() as verification:
+            assert list(verification.execute(select(Plan)).scalars()) == []
+            assert verification.get(Wish, world["wish_id"]).status == WishStatus.OPEN.value
 
-    def test_ein_fehler_nach_der_plan_completion_hinterlaesst_nichts(
+    def test_error_after_plan_completion_leaves_no_partial_state(
         self, production_client, monkeypatch
     ) -> None:  # type: ignore[no-untyped-def]
-        welt = _setup(production_client)
-        maker = welt["maker"]
+        world = _setup(production_client)
+        maker = world["maker"]
 
         with maker.begin() as session:
-            ergebnis = plan_service.convert_wish_to_plan(
+            result = plan_service.convert_wish_to_plan(
                 session,
-                welt["anna"],
-                welt["wish_id"],
+                world["anna"],
+                world["wish_id"],
                 expected_version=1,
                 title=None,
                 description=None,
                 place_id=None,
             )
-            plan_id = ergebnis.plan.id
+            plan_id = result.plan.id
 
-        def kaputt(*args: object, **kwargs: object) -> None:
-            raise RuntimeError("Bruch zwischen Plan- und Wish-Completion")
+        def fail(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("Failure between Plan and Wish completion")
 
-        monkeypatch.setattr(wish_service, "plan_completed", kaputt)
+        monkeypatch.setattr(wish_service, "plan_completed", fail)
 
         with pytest.raises(RuntimeError), maker.begin() as session:
             plan_service.complete_plan(
                 session,
-                welt["anna"],
+                world["anna"],
                 plan_id,
                 expected_version=1,
-                experienced_on=_gestern(),
+                experienced_on=_yesterday(),
             )
 
-        with maker() as pruefung:
-            plan = pruefung.get(Plan, plan_id)
-            wish = pruefung.get(Wish, welt["wish_id"])
+        with maker() as verification:
+            plan = verification.get(Plan, plan_id)
+            wish = verification.get(Wish, world["wish_id"])
         assert plan.status == PlanStatus.IDEA.value
         assert plan.experienced_on is None
         assert wish.status == WishStatus.PLANNED.value
 
 
-class TestDeleteGegenLifecycle:
-    def test_delete_wish_gegen_convert_endet_konsistent(self, production_client) -> None:  # type: ignore[no-untyped-def]
-        welt = _setup(production_client)
-        maker = welt["maker"]
+class TestDeleteAgainstLifecycle:
+    def test_delete_wish_against_convert_ends_consistently(self, production_client) -> None:  # type: ignore[no-untyped-def]
+        world = _setup(production_client)
+        maker = world["maker"]
 
-        def loeschen():  # type: ignore[no-untyped-def]
+        def delete():  # type: ignore[no-untyped-def]
             with maker.begin() as session:
-                wish_service.delete_wish(session, welt["anna"], welt["wish_id"], expected_version=1)
+                wish_service.delete_wish(
+                    session, world["anna"], world["wish_id"], expected_version=1
+                )
                 return "DELETED"
 
-        def konvertieren():  # type: ignore[no-untyped-def]
+        def convert():  # type: ignore[no-untyped-def]
             with maker.begin() as session:
                 plan_service.convert_wish_to_plan(
                     session,
-                    welt["ben"],
-                    welt["wish_id"],
+                    world["ben"],
+                    world["wish_id"],
                     expected_version=1,
                     title=None,
                     description=None,
@@ -283,79 +281,75 @@ class TestDeleteGegenLifecycle:
                 )
                 return "CONVERTED"
 
-        ergebnisse = set(_gleichzeitig(loeschen, konvertieren))
+        results = set(_concurrently(delete, convert))
 
-        with maker() as pruefung:
-            wish = pruefung.get(Wish, welt["wish_id"])
-            plaene = list(pruefung.execute(select(Plan)).scalars())
+        with maker() as verification:
+            wish = verification.get(Wish, world["wish_id"])
+            plans = list(verification.execute(select(Plan)).scalars())
 
         if wish is None:
-            # Der Delete war zuerst da. Dann darf es keinen Plan geben,
-            # der auf einen nicht mehr existierenden Wish zeigt.
-            assert plaene == []
-            assert ergebnisse == {"DELETED", "WISH_NOT_FOUND"}
+            # Delete won the race. No Plan may refer to a Wish that no longer
+            # exists.
+            assert plans == []
+            assert results == {"DELETED", "WISH_NOT_FOUND"}
         else:
-            # Der Convert war zuerst da. Dann haelt der Wish seinen Plan
-            # fest, und der Delete ist gescheitert - und zwar schon an der
-            # Version: der Convert hat den Wish auf 2 gehoben, der Delete
-            # kam mit 1. Die Versionspruefung steht vor der Delete-Matrix,
-            # damit ein veralteter Stand keine fachliche Auskunft ueber den
-            # inzwischen entstandenen Plan erzeugt.
+            # Convert won the race. The Wish keeps its Plan and Delete fails
+            # at the version check: Convert raised the Wish version to 2 while
+            # Delete still supplied 1. The version check precedes the delete
+            # matrix so a stale client cannot learn about the newly created
+            # Plan through a domain-specific delete error.
             assert wish.status == WishStatus.PLANNED.value
-            assert len(plaene) == 1
-            assert ergebnisse == {"CONVERTED", "RESOURCE_VERSION_CONFLICT"}
+            assert len(plans) == 1
+            assert results == {"CONVERTED", "RESOURCE_VERSION_CONFLICT"}
 
-    def test_complete_gegen_return_hinterlaesst_keinen_halben_lifecycle(
-        self, production_client
-    ) -> None:  # type: ignore[no-untyped-def]
-        welt = _setup(production_client)
-        maker = welt["maker"]
+    def test_complete_against_return_leaves_no_partial_lifecycle(self, production_client) -> None:  # type: ignore[no-untyped-def]
+        world = _setup(production_client)
+        maker = world["maker"]
 
         with maker.begin() as session:
-            ergebnis = plan_service.convert_wish_to_plan(
+            result = plan_service.convert_wish_to_plan(
                 session,
-                welt["anna"],
-                welt["wish_id"],
+                world["anna"],
+                world["wish_id"],
                 expected_version=1,
                 title=None,
                 description=None,
                 place_id=None,
             )
-            plan_id = ergebnis.plan.id
+            plan_id = result.plan.id
 
-        def abschliessen():  # type: ignore[no-untyped-def]
+        def complete():  # type: ignore[no-untyped-def]
             with maker.begin() as session:
                 plan_service.complete_plan(
                     session,
-                    welt["anna"],
+                    world["anna"],
                     plan_id,
                     expected_version=1,
-                    experienced_on=_gestern(),
+                    experienced_on=_yesterday(),
                 )
                 return "COMPLETED"
 
-        def zurueckfuehren():  # type: ignore[no-untyped-def]
+        def return_to_wish():  # type: ignore[no-untyped-def]
             with maker.begin() as session:
-                plan_service.return_to_wish(session, welt["ben"], plan_id, expected_version=1)
+                plan_service.return_to_wish(session, world["ben"], plan_id, expected_version=1)
                 return "RETURNED"
 
-        ergebnisse = set(_gleichzeitig(abschliessen, zurueckfuehren))
+        results = set(_concurrently(complete, return_to_wish))
 
-        with maker() as pruefung:
-            plan = pruefung.get(Plan, plan_id)
-            wish = pruefung.get(Wish, welt["wish_id"])
+        with maker() as verification:
+            plan = verification.get(Plan, plan_id)
+            wish = verification.get(Wish, world["wish_id"])
 
         if plan is None:
-            # Zurueckgefuehrt: der Wunsch ist wieder offen, und niemand hat
-            # nebenbei einen abgeschlossenen Plan hinterlassen.
+            # Returned to Wish: the Wish is open again and no completed Plan
+            # remains alongside it.
             assert wish.status == WishStatus.OPEN.value
-            assert "RETURNED" in ergebnisse
+            assert "RETURNED" in results
         else:
-            # Abgeschlossen: beide Seiten stehen konsistent auf COMPLETED.
+            # Completed: both sides consistently report COMPLETED.
             assert plan.status == PlanStatus.COMPLETED.value
             assert wish.status == WishStatus.COMPLETED.value
-            assert "COMPLETED" in ergebnisse
+            assert "COMPLETED" in results
 
-        # In keinem Fall bleibt ein abgeschlossener Plan neben einem
-        # offenen Wunsch stehen.
+        # A completed Plan may never remain next to an open Wish.
         assert not (plan is not None and wish.status == WishStatus.OPEN.value)

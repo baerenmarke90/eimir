@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direction A: Memory Create (Current #773)</title>
+  <link rel="stylesheet" href="/web/src/styles.css">
+  <link rel="stylesheet" href="/web/src/theme.css">
+  <link rel="stylesheet" href="/web/src/shell.css">
+  <link rel="stylesheet" href="/web/src/layout.css">
+  <link rel="stylesheet" href="/web/src/components/VisibilityBadge.css">
+  <link rel="stylesheet" href="./shared-preview.css">
+</head>
+<body>
+  <header class="mock-header">
+    <div style="display:flex; align-items:center; gap:var(--space-6);">
+      <a href="#" class="mock-logo">eimir<span class="brand-dot">.</span></a>
+      <nav class="mock-nav">
+        <a href="#" class="mock-nav-item">Wir</a>
+        <a href="#" class="mock-nav-item active">Momente</a>
+        <a href="#" class="mock-nav-item">Planen</a>
+        <a href="#" class="mock-nav-item">Mehr</a>
+      </nav>
+    </div>
+    <div class="mock-user-profile">
+      <div class="mock-avatar-chip" title="Philipp">P</div>
+    </div>
+  </header>
+
+  <main class="preview-container">
+    <div style="max-width:640px; margin:0 auto;">
+      <a href="#back" style="display:inline-flex; align-items:center; gap:6px; font-size:0.9rem; font-weight:600; color:var(--color-brand-strong); text-decoration:none; margin-bottom:var(--space-4);">
+        ← Zurück zu Momente
+      </a>
+
+      <div style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-8); box-shadow:0 8px 24px var(--color-shadow-soft);">
+        <h1 style="margin:0 0 var(--space-6); font-family:var(--font-display); font-size:1.75rem; font-weight:750; color:var(--color-text);">
+          Neue Erinnerung anlegen
+        </h1>
+
+        <form style="display:flex; flex-direction:column; gap:var(--space-5);">
+          <div>
+            <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--color-text); margin-bottom:var(--space-1);">Titel</label>
+            <input type="text" value="Sonnenuntergang am See" style="width:100%; padding:0.65rem 0.9rem; border-radius:var(--radius-medium); border:1px solid var(--color-border); font-family:inherit; font-size:1rem; background:var(--color-surface-subtle); color:var(--color-text);">
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--space-4);">
+            <div>
+              <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--color-text); margin-bottom:var(--space-1);">Datum</label>
+              <input type="date" value="2026-09-07" style="width:100%; padding:0.65rem 0.9rem; border-radius:var(--radius-medium); border:1px solid var(--color-border); font-family:inherit; font-size:0.95rem; background:var(--color-surface-subtle); color:var(--color-text);">
+            </div>
+            <div>
+              <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--color-text); margin-bottom:var(--space-1);">Sichtbarkeit</label>
+              <select style="width:100%; padding:0.65rem 0.9rem; border-radius:var(--radius-medium); border:1px solid var(--color-border); font-family:inherit; font-size:0.95rem; background:var(--color-surface-subtle); color:var(--color-text);">
+                <option>Mit Partner geteilt</option>
+                <option>Nur für mich (privat)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--color-text); margin-bottom:var(--space-1);">Notizen & Geschichte</label>
+            <textarea rows="4" style="width:100%; padding:0.65rem 0.9rem; border-radius:var(--radius-medium); border:1px solid var(--color-border); font-family:inherit; font-size:0.95rem; background:var(--color-surface-subtle); color:var(--color-text);">Wir saßen bis zum Einbruch der Dämmerung draußen und haben über die Pläne für den Herbst gesprochen.</textarea>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:0.875rem; font-weight:600; color:var(--color-text); margin-bottom:var(--space-1);">Fotos (1 angehängt)</label>
+            <div style="display:flex; gap:var(--space-3); align-items:center;">
+              <img src="./assets/cabin-lake.jpg" alt="Vorschau" style="width:72px; height:72px; object-fit:cover; border-radius:var(--radius-medium); border:1px solid var(--color-border);">
+              <div style="flex:1; border:1.5px dashed var(--color-border); border-radius:var(--radius-medium); padding:var(--space-4); text-align:center; font-size:0.85rem; color:var(--color-text-secondary); cursor:pointer;">
+                + Weitere Fotos ablegen
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:var(--space-3); margin-top:var(--space-3);">
+            <button type="button" style="padding:0.65rem 1.25rem; border-radius:var(--radius-pill); border:1px solid var(--color-border); background:var(--color-surface); color:var(--color-text); font-weight:600; cursor:pointer;">Abbrechen</button>
+            <button type="button" style="display:inline-flex; align-items:center; gap:8px; padding:0.65rem 1.45rem; border-radius:var(--radius-pill); border:none; background:var(--color-brand); color:white; font-weight:700; cursor:pointer; box-shadow:0 4px 14px var(--color-brand-glow);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              <span>Erinnerung speichern</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

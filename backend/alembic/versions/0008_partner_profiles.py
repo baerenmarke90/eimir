@@ -148,8 +148,8 @@ def upgrade() -> None:
         ["space_id", "account_id", "visibility"],
     )
 
-    # Bestehende Memberships bekommen je ein sichtbares Profil. UUIDv7 wird
-    # auch im Backfill eingehalten; gen_random_uuid() waere UUIDv4.
+    # Give every existing membership one visible profile. Keep UUIDv7 for the
+    # backfill as well; gen_random_uuid() would generate UUIDv4.
     bind = op.get_bind()
     memberships = sa.table(
         "memberships",

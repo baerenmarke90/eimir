@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -22,12 +22,12 @@ import {
 } from './DurationDisplayMode';
 
 /**
- * Der vollstaendige neue Stand des Profils.
+ * Complete replacement state for a relationship profile.
  * 
- * Alle drei Felder sind Pflicht. Ein weggelassenes Feld waere sonst nicht
- * von "auf leer setzen" zu unterscheiden - und der Unterschied entscheidet
- * darueber, ob ein Beziehungsbeginn erhalten bleibt oder verschwindet.
- * `relationshipStartedOn` wird mit `null` ausdruecklich geloescht.
+ * All three fields are required. Otherwise an omitted field could not be
+ * distinguished from clearing it, and that distinction determines whether a
+ * relationship start date is preserved or removed. ``relationshipStartedOn``
+ * is explicitly removed by sending ``null``.
  * @export
  * @interface SpaceProfileUpdate
  */

@@ -1,4 +1,4 @@
-"""Echte PostgreSQL-Races fuer Comment-Create gegen Parent-Entzug."""
+"""Real PostgreSQL races for Comment creation against parent withdrawal."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 
-from sidebyside.authorization import AuthorizationContext, PrivacyClass
-from sidebyside.comments import service as comment_service
-from sidebyside.comments.models import Comment, CommentTarget
-from sidebyside.core.errors import NotFoundError
-from sidebyside.heart_moments.models import HeartMoment
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.comments import service as comment_service
+from eimir.comments.models import Comment, CommentTarget
+from eimir.core.errors import NotFoundError
+from eimir.heart_moments.models import HeartMoment
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -47,7 +47,12 @@ def _setup(production_client):  # type: ignore[no-untyped-def]
     return maker, space_id, anna_id, ben_id, UUID(response.json()["id"])
 
 
-def _attempt_comment(maker, context: AuthorizationContext, parent_id: UUID, started: Event):  # type: ignore[no-untyped-def]
+def _attempt_comment(
+    maker,
+    context: AuthorizationContext,
+    parent_id: UUID,
+    started: Event,
+):  # type: ignore[no-untyped-def]
     started.set()
     try:
         with maker.begin() as session:
@@ -64,7 +69,7 @@ def _attempt_comment(maker, context: AuthorizationContext, parent_id: UUID, star
 
 
 @pytest.mark.parametrize("withdrawal", ["PRIVATE", "DELETE"])
-def test_comment_create_gegen_parent_entzug_hinterlaesst_nichts(
+def test_comment_create_against_parent_withdrawal_leaves_nothing(
     production_client,
     withdrawal: str,
 ) -> None:  # type: ignore[no-untyped-def]
@@ -87,8 +92,8 @@ def test_comment_create_gegen_parent_entzug_hinterlaesst_nichts(
         with ThreadPoolExecutor(max_workers=1) as pool:
             future = pool.submit(_attempt_comment, maker, context, parent_id, started)
             assert started.wait(timeout=2)
-            # Der Comment-Create hat seinen Versuch begonnen. Solange die
-            # exklusive Parent-Sperre steht, darf er nicht erfolgreich enden.
+            # Comment creation has started. While the exclusive parent lock is
+            # held, it must not complete successfully.
             sleep(0.2)
             assert not future.done()
 

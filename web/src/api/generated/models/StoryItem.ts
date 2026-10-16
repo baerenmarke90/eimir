@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -36,12 +36,13 @@ import {
 
 /**
  * @type StoryItem
- * Ein Eintrag der Zeitleiste, diskriminiert ueber `kind`.
+ * A timeline item discriminated by ``kind``.
  * 
- * Ein eigener Typ und keine anonyme Union im Listenfeld: sonst benennt
- * der OpenAPI-Vertrag sie nach ihrem Fundort - `StoryPageItemsInner` -
- * und jeder erzeugte Client traegt diesen Namen weiter. `API-DESIGN.md`
- * nennt sie `StoryItem`, und das soll auch im Vertrag stehen.
+ * This is a named type rather than an anonymous union in the list field.
+ * Otherwise OpenAPI names it after its location (``StoryPageItemsInner``)
+ * and every generated client propagates that accidental name.
+ * ``API-DESIGN.md`` calls the contract type ``StoryItem`` and the schema
+ * should do the same.
  * @export
  */
 export type StoryItem = { kind: 'HEART_MOMENT' } & StoryHeartMomentItem | { kind: 'MEMORY' } & StoryMemoryItem | { kind: 'MILESTONE' } & StoryMilestoneItem;

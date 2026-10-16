@@ -1,0 +1,616 @@
+.m4-product-page {
+  display: grid;
+  gap: var(--space-6);
+}
+
+/*
+ * The relationship band is the one contextual statement the overview opens
+ * with. On desktop it reads as a single line rather than a tall empty card.
+ */
+.m4-summary-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
+  border: 1px solid var(--color-shared-border);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-4), 3vw, var(--space-6));
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-panel) 55%,
+    var(--color-shared-surface)
+  );
+  box-shadow: var(--shadow-soft);
+}
+
+.m4-summary-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.m4-summary-copy h2 {
+  margin: 0;
+}
+
+/*
+ * The search invitation is a calm entry point rather than an admin filter
+ * bar: a warm brand-tinted panel instead of a plain bordered form.
+ */
+.m4-toolbar {
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-panel) 65%,
+    var(--color-brand-surface)
+  );
+}
+
+.m4-toolbar-row,
+.m4-item-actions,
+.m4-notification-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.m4-search-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.m4-search-input-icon {
+  position: absolute;
+  left: var(--space-4);
+  display: inline-flex;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.m4-search-input-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.m4-search-field input[type="search"] {
+  border-radius: var(--radius-pill);
+  padding-left: calc(var(--space-4) * 2 + 1.05rem);
+}
+
+.m4-search-field input[type="search"]:focus-visible {
+  border-color: var(--color-brand);
+}
+
+.m4-item-actions {
+  align-items: center;
+}
+
+.m4-toolbar-row > .field-group {
+  flex: 0 1 14rem;
+}
+
+/* The query is the primary input and takes the space the row has left. */
+.m4-toolbar-row > .m4-search-field {
+  flex: 1 1 22rem;
+}
+
+.m4-toolbar-submit {
+  flex: 0 0 auto;
+}
+
+.m4-notification-summary {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m4-summary-card h2,
+.m4-summary-card p {
+  margin-top: 0;
+}
+
+.m4-results {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.m4-results-heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 1.05rem;
+}
+
+.m4-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.m4-item {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: var(--space-4);
+  background: var(--color-surface-panel);
+  box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.m4-item-unread {
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-raised) 70%,
+    var(--color-brand-surface)
+  );
+}
+
+.m4-item-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.m4-item-heading h3,
+.m4-item-heading p,
+.m4-item > p {
+  margin: 0;
+}
+
+.m4-item-kind,
+.m4-item-meta,
+.m4-item-excerpt,
+.m4-muted {
+  color: var(--color-text-secondary);
+}
+
+.m4-item-kind {
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.m4-item-excerpt {
+  white-space: pre-wrap;
+}
+
+.m4-summary-value {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--color-shared);
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Entry lists that read as rows where they have the width for it. The query
+ * measures the list itself, so the same list is dense in a content column and
+ * stacked in the narrower context rail.
+ */
+.m4-list-rows {
+  container-type: inline-size;
+}
+
+@container (min-width: 34rem) {
+  .m4-list-rows .m4-item {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: var(--space-5);
+  }
+
+  .m4-list-rows .m4-item > .m4-item-heading {
+    grid-area: 1 / 1;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: var(--space-3);
+  }
+
+  .m4-list-rows .m4-item-heading h3 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .m4-list-rows .m4-item-heading .m4-item-kind {
+    flex: 0 0 auto;
+  }
+
+  .m4-list-rows .m4-item > .m4-item-meta,
+  .m4-list-rows .m4-item > time.m4-item-meta {
+    grid-area: 1 / 2;
+    white-space: nowrap;
+  }
+
+  .m4-list-rows .m4-item > .m4-item-excerpt {
+    grid-area: 2 / 1 / 3 / 4;
+  }
+
+  .m4-list-rows .m4-item > .m4-item-actions {
+    grid-area: 1 / 3;
+    justify-content: flex-end;
+  }
+}
+
+/*
+ * A quiet status line rather than an inbox counter: the panel carries the
+ * brand tint so the number reads as "where you two stand", not a task badge.
+ */
+.m4-notification-summary-panel {
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-panel) 60%,
+    var(--color-brand-surface)
+  );
+}
+
+.m4-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border: 1px solid var(--color-brand-glow);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .m4-toolbar-row,
+  .m4-notification-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .m4-toolbar-row > .field-group,
+  .m4-toolbar-row > .m4-search-field {
+    flex-basis: auto;
+  }
+
+  .m4-toolbar-submit button {
+    width: 100%;
+  }
+}
+
+/* Search Results Redesign */
+.search-result-wrapper {
+  list-style: none;
+}
+
+.search-result-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+}
+
+.search-result-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.search-result-memory {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-private-surface-soft) 100%
+  );
+}
+
+.search-result-heart_moment {
+  border-color: var(--color-brand-glow);
+  background: var(--color-private-surface-soft);
+}
+
+.search-result-plan {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-discovery-surface-soft) 100%
+  );
+}
+
+.search-result-kind {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-brand-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.search-result-title {
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.search-result-excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.search-result-date {
+  margin-top: auto;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Activity Cards (Relationship Chronology) */
+.activity-result-wrapper {
+  list-style: none;
+}
+
+.activity-result-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.activity-card {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface-panel);
+  box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.activity-result-link:hover .activity-card {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.activity-result-link:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-card);
+}
+
+.activity-card-interactive {
+  cursor: pointer;
+}
+
+.activity-card-static {
+  cursor: default;
+}
+
+.activity-card-chevron {
+  margin-left: auto;
+  align-self: center;
+  color: var(--color-text-secondary);
+  font-size: 1.35rem;
+  font-weight: 300;
+  line-height: 1;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.activity-result-link:hover .activity-card-chevron {
+  color: var(--color-text);
+  transform: translateX(2px);
+}
+
+.activity-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.activity-card-actor-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.activity-card-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.activity-card-title strong {
+  font-weight: 700;
+}
+
+.activity-card-date {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+/*
+ * A quiet accent line rather than a second boxed card: the target reads as
+ * part of the same thought, not a nested surface.
+ */
+.activity-card-target {
+  margin-top: auto;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-brand-glow);
+}
+
+.activity-card-target-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.activity-card-memory,
+.activity-card-heart_moment,
+.activity-card-milestone {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-private-surface-soft) 100%
+  );
+}
+
+.activity-card-plan,
+.activity-card-chapter {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-discovery-surface-soft) 100%
+  );
+}
+
+.activity-card-wish,
+.activity-card-place {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-brand-surface) 100%
+  );
+}
+
+.activity-card-collection {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-shared-surface) 100%
+  );
+}
+
+/* Notification Cards */
+.m4-notification-wrapper {
+  list-style: none;
+}
+
+.m4-notification-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.m4-notification-link:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-large);
+}
+
+.m4-item-interactive {
+  cursor: pointer;
+}
+
+.m4-item-static {
+  cursor: default;
+}
+
+.m4-notification-link:hover .m4-item-interactive {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+
+.m4-notification-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.m4-notification-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.m4-notification-title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.m4-notification-title strong {
+  font-weight: 700;
+}
+
+.notification-heart-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--color-private-surface-soft);
+  color: var(--color-brand);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.m4-mark-read-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.m4-read-status {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-card,
+  .m4-item,
+  .m4-search-field input {
+    transition: none;
+  }
+
+  .activity-result-link:hover .activity-card,
+  .m4-notification-link:hover .m4-item-interactive {
+    transform: none;
+  }
+}

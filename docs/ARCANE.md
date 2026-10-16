@@ -1,201 +1,344 @@
 # Arcane Deployment
 
-Diese Hinweise ergaenzen `SELF-HOSTING.md` fuer Installationen, bei denen Arcane
-den SideBySide-Stack verwaltet und ein separater TLS-Reverse-Proxy davorsteht.
+These notes supplement `SELF-HOSTING.md` for installations where Arcane manages the
+eimir. stack and a separate TLS reverse proxy sits in front of it.
 
-## Welche Compose-Datei?
+For persistent Development, release-candidate verification, Production promotion and
+rollback, the authoritative workflow is
+[`DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md`](DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md).
+This document defines Arcane mechanics; it does not create a competing release policy.
 
-SideBySide hat zwei bewusst getrennte Self-Hosting-Einstiege:
+## One Compose file
 
-| Umgebung | Compose-Datei | Build-Kontext |
-|---|---|---|
-| kompletter Repository-Checkout | `compose.yaml` | lokal: `./backend`, `./web` |
-| Arcane / Remote-Workspace | `compose.arcane.yaml` | Git-Repository + Ref |
+eimir. supports exactly one tracked Docker Compose manifest: repository-root
+`compose.yaml`.
 
-`compose.yaml` ist der kanonische Einstieg fuer normale Docker-Compose-Nutzer.
-Arcane soll dagegen **`compose.arcane.yaml`** verwenden. Diese Datei benoetigt
-weder `./backend` noch `./web` im Arcane-Projektverzeichnis und vermeidet damit
-den Fehler `build context not found` fuer `/app/data/projects/<projekt>/backend`.
+Arcane uses that same manifest and the `self-hosted` profile. The distinction between
+Development and released Production is **image origin and entry point**, not a second
+topology:
 
-Beide Varianten enthalten dieselben Dienste, Volumes, Netzwerke,
-Runtime-Einstellungen und Startabhaengigkeiten. CI vergleicht ihre gerenderte
-Konfiguration und erlaubt als beabsichtigten Unterschied nur die Build-Kontexte.
+- Development may build local images from Git with
+  `scripts/build_self_hosted_source.py` and use local tags with pull disabled;
+- released Production consumes published digest-qualified GHCR images and is gated by
+  the `release-guard` service inside that same manifest (Arcane Deploy/Redeploy), with
+  `scripts/self_hosted_release.py` as the equivalent shell entry point;
+- services, volumes, networks, health checks and startup dependencies remain one
+  canonical contract.
 
-## Arcane einrichten
-
-1. In Arcane das SideBySide-Projekt mit GitOps bzw. der gewuenschten
-   Repository-Quelle anlegen.
-2. Als Compose-Datei `compose.arcane.yaml` auswaehlen.
-3. Die Werte aus `.env.example` als Projekt-Environment uebernehmen und
-   mindestens `POSTGRES_PASSWORD` sowie fuer die Erstregistrierung
-   `SBS_BOOTSTRAP_TOKEN` sicher setzen.
-4. Fuer Tests kann `SBS_SOURCE_REF=main` verwendet werden. Fuer Produktion
-   einen unveraenderlichen Release-Tag verwenden.
-5. Deployment starten. `migrate` muss erfolgreich abschliessen, bevor API und
-   Worker starten; Web wartet zusaetzlich auf die API-Readiness.
-
-Die Arcane-Datei verwendet standardmaessig:
-
-```dotenv
-SBS_SOURCE_REPOSITORY=https://github.com/baerenmarke90/SideBySide-Next.git
-SBS_SOURCE_REF=main
-```
-
-Daraus entstehen fuer die Builds beispielsweise:
+Normal Self-Hosted ordering is:
 
 ```text
-https://github.com/baerenmarke90/SideBySide-Next.git#main:backend
-https://github.com/baerenmarke90/SideBySide-Next.git#main:web
+postgres -> release-guard -> migrate -> api/worker -> web
 ```
 
-`api`, `worker` und `migrate` verwenden immer denselben Backend-Kontext und
-entstehen damit aus demselben Quellstand.
+`release-guard` and `deletion-authority-bootstrap` are described under
+[Released Production in Arcane](#released-production-in-arcane). `demo-init` is an
+explicit Demo-only lifecycle service and is not part of normal Self-Hosted startup. Run
+it on demand with
+`docker compose --profile self-hosted --profile demo run --rm demo-init`; do not add
+`demo` to the project's default profiles (see [`DEMO-SPACE.md`](DEMO-SPACE.md)).
 
-## Oeffentliches und privates Repository
+## Persistent Development in Arcane
 
-Bei einem oeffentlichen Repository kann Docker/BuildKit den Git-Build-Kontext
-ohne Repository-Credentials laden.
+Create a dedicated Arcane project, for example `eimir-development`, separate from
+any Production or Demo project. Start from:
 
-Bei einem privaten Repository benoetigt der Docker-/BuildKit-Prozess dagegen
-eine vom Betreiber bzw. von Arcane bereitgestellte Git-Authentifizierung. Diese
-Authentifizierung ist eine Eigenschaft der Build-Umgebung und wird **nicht** in
-`compose.arcane.yaml`, `.env.example` oder einer Git-URL mit eingebettetem Token
-abgelegt.
+```text
+deploy/persistent-development.env.example
+```
 
-Wenn die eingesetzte Arcane-/BuildKit-Konfiguration keinen authentifizierten
-Remote-Git-Build unterstuetzt, ist `compose.arcane.yaml` mit einem privaten Repo
-nicht ausreichend. Dann muss zuerst die Build-Authentifizierung der Plattform
-sauber eingerichtet oder spaeter auf versionierte Registry-Images umgestellt
-werden. Die Repository-Sichtbarkeit selbst ist keine SideBySide-Anforderung.
-
-## Warum Git-Build-Kontexte?
-
-Docker Compose und BuildKit unterstuetzen Git-Repositorys mit Ref und
-Unterverzeichnis nativ. Deshalb ist fuer Arcane kein eigener Deployment-
-Orchestrator und keine SideBySide-spezifische Synchronisationslogik notwendig.
-
-Der fruehere Weg, in der Standard-Compose-Datei `SBS_BACKEND_BUILD_CONTEXT` und
-`SBS_WEB_BUILD_CONTEXT` manuell zu setzen, wurde bewusst entfernt: Die normale
-Compose-Datei bleibt dadurch auf vollstaendige Repository-Checkouts fokussiert,
-waehrend Arcane einen eindeutigen eigenen Einstieg besitzt.
-
-## Zielbild mit Reverse-Proxy
-
-Der Reverse-Proxy ist der einzige oeffentliche TLS-Endpunkt. Er routet auf
-derselben oeffentlichen Origin zwei interne Ziele:
-
-| Pfad | internes Ziel |
-|---|---|
-| `/api/` | SideBySide API auf `API_PORT` |
-| alle anderen Pfade | SideBySide Web auf `WEB_PORT` |
-
-Die `/api/`-Route muss **direkt** zur API gehen. In Produktion darf sie nicht
-zuerst durch den Web-Nginx laufen, weil sonst der vertrauenswuerdige TLS-Proxy-
-Hop fuer `X-Forwarded-Proto` verloren geht.
-
-## Reverse-Proxy auf demselben Host
-
-Der sichere Standard reicht aus:
+For ordinary integration on `main`:
 
 ```dotenv
-SBS_BIND_IP=127.0.0.1
+COMPOSE_PROFILES=self-hosted
+EIMIR_ENVIRONMENT=development
+EIMIR_SELF_HOSTED_BACKEND_IMAGE=eimir-backend:source-development
+EIMIR_SELF_HOSTED_WEB_IMAGE=eimir-web:source-development
+EIMIR_SELF_HOSTED_PULL_POLICY=never
+EIMIR_BACKEND_BUILD_CONTEXT=https://github.com/baerenmarke90/eimir.git#main:backend
+EIMIR_WEB_BUILD_CONTEXT=https://github.com/baerenmarke90/eimir.git#main:web
+EIMIR_BUILD_REVISION=main
+```
+
+The build workspace/runner executes:
+
+```bash
+python3 scripts/build_self_hosted_source.py \
+  --env-file deploy/persistent-development.env.example
+```
+
+Then Arcane starts/recreates canonical `compose.yaml`. The helper builds backend/Web
+images only; it does not create another Compose manifest and refuses Production.
+
+Before release acceptance, replace `main` in both source contexts and
+`EIMIR_BUILD_REVISION` with the exact candidate commit SHA, rebuild Development images and
+recreate the stack. API/Web source revision endpoints must both equal that SHA.
+
+Development remains a separate project with unique database credentials, volumes/media,
+cursor signing key, bootstrap/admin state, callbacks and provider credentials. Do not
+import the Production environment wholesale.
+
+## Released Production in Arcane
+
+Released Production is managed from Arcane without a host shell. The operator path is:
+
+```text
+configure -> bootstrap once -> deploy / update
+```
+
+Released Production must **not** use remote Git build contexts as its deployment
+identity and must not build backend/Web source on the Docker host. It uses the
+canonical `compose.yaml` from the selected immutable GitHub Release and published GHCR
+images only. Arcane's plain **Deploy** and **Redeploy** are supported: the release
+checks live inside that `compose.yaml`, so they run on every deployment path.
+
+### How the release gate works
+
+`compose.yaml` contains a `release-guard` one-shot that runs from the selected backend
+image and that `migrate` waits for. `api`, `worker` and `web` transitively wait for
+`migrate`, so no application container of a refused release starts and no migration runs
+unless the guard passes.
+
+**Trust root.** The guard mounts the release's published `self-hosted-image-identity.json`
+read-only (`./self-hosted-image-identity.json` next to `compose.yaml`; the operator bundle
+ships it, a source checkout only ships an unreleased placeholder that is refused). It is
+the same file, with the same checks, that the launcher reads. The expected images are read
+from that record, never from the values being checked. With `EIMIR_ENVIRONMENT=production`
+the guard refuses:
+
+- a missing or non-SemVer `EIMIR_RELEASE_VERSION`, or one that differs from the identity's
+  product version;
+- an identity that is missing, unreadable, malformed, not a published Self-Hosted
+  identity, or internally inconsistent (tag/version, digest/reference, roles);
+- a backend or Web image reference that is not **exactly** the reference recorded in the
+  identity: a tag-only, `latest`, local or source tag, another namespace, a swapped role
+  and a well-formed, digest-pinned reference with a different digest are all refused;
+- a `pull_policy` other than `always`;
+- a missing or malformed `EIMIR_ACCOUNT_DELETION_INSTANCE_ID`;
+- an active `bootstrap` profile next to the runtime (see the bootstrap section).
+
+**Explicit environment.** The guard only accepts an explicit `EIMIR_ENVIRONMENT`.
+`production` runs every check. `development`, `test` and `demo` are separate operator
+identities and are not gated. An **unset or unknown** value (including `Production`) is
+refused, so a Production project that lost its `EIMIR_ENVIRONMENT` cannot degrade to
+Development. Development projects therefore set `EIMIR_ENVIRONMENT=development`
+explicitly, as `.env.example` and `deploy/persistent-development.env.example` do.
+
+The refusal is a failed `release-guard` container: read its log in Arcane. There are no
+application `build:` fallbacks in the manifest and no source-build path.
+
+### 1. Configure
+
+1. Verify the release: `gh release verify "vX.Y.Z" --repo baerenmarke90/eimir`.
+2. Create an Arcane project (for example `eimir-production`, separate from Development
+   and Demo) from the release bundle `eimir-self-hosted-vX.Y.Z.tar.gz`. This does not
+   require a shell on the Docker host: extract/download the bundle on the operator
+   workstation, paste `compose.yaml` into Arcane's **Create Project** Compose editor,
+   open **Workspace** before the first deploy, and upload
+   `self-hosted-image-identity.json` beside it. Arcane stores both as project files.
+   Do not edit either release file. Compose refuses to create the guard when the identity
+   file is missing.
+3. Start the project environment from `deploy/self-hosted-release.env.example` and set
+   the instance values (database password, public origin, allowed hosts, cursor signing
+   key, mail, storage).
+4. Select the release with three values. Copy both references verbatim from the
+   `self-hosted-image-identity.json` of the same release (the guard compares them with
+   it):
+
+   ```dotenv
+   EIMIR_RELEASE_VERSION=X.Y.Z
+   EIMIR_SELF_HOSTED_BACKEND_IMAGE=ghcr.io/baerenmarke90/eimir-backend:vX.Y.Z@sha256:<digest>
+   EIMIR_SELF_HOSTED_WEB_IMAGE=ghcr.io/baerenmarke90/eimir-web:vX.Y.Z@sha256:<digest>
+   ```
+
+   Keep `EIMIR_ENVIRONMENT=production`; leave `EIMIR_SELF_HOSTED_PULL_POLICY` unset.
+
+### 2. Bootstrap once (new installation only)
+
+Only for a project that has **never had an Account-deletion authority**:
+
+1. Leave `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` empty and set `COMPOSE_PROFILES=bootstrap`
+   (**only** `bootstrap`).
+2. **Deploy** the project. This starts the single one-shot
+   `deletion-authority-bootstrap` from the release backend image: it applies the same
+   release checks as the guard, creates the forward journal in `deletion_journal_data`,
+   and prints `EIMIR_ACCOUNT_DELETION_INSTANCE_ID=<uuid>` in its log.
+3. Store exactly that value in the Arcane project environment and in the protected
+   operator configuration backup. Never generate the UUID yourself.
+4. Set `COMPOSE_PROFILES=self-hosted` and continue with **Deploy**.
+
+Behavior, all fail-closed and covered by tests:
+
+| State | Result |
+|---|---|
+| Normal `self-hosted` Deploy/Redeploy | The bootstrap service is not part of the project and nothing depends on it; it never runs |
+| `bootstrap` alone, no instance ID, no journal | Journal and ID are created once |
+| `bootstrap` with an instance ID set | Refused: an established authority is never replaced |
+| `bootstrap` with a journal present (also when the ID was lost) | Refused; recovery, not bootstrap: follow `ACCOUNT-DELETION-SELF-HOSTED.md` |
+| `bootstrap` together with `self-hosted` in `COMPOSE_PROFILES` | Both halves refuse (the bootstrap must run alone; the guard refuses the runtime) |
+| `self-hosted` without an instance ID | `release-guard` refuses and points to the bootstrap |
+| Instance ID set but journal missing/corrupt | The API refuses to serve; restore the protected journal |
+
+The mixed-profile refusal reads `COMPOSE_PROFILES`, which is how Arcane selects profiles.
+Compose `--profile` command-line flags are not visible inside a container, so a shell
+operator who combines both flags is not caught by that check; the bootstrap still refuses
+whenever an instance ID or journal exists, so no second authority can be created.
+
+### 3. Deploy and update
+
+**Deploy** the project with `COMPOSE_PROFILES=self-hosted`. Arcane pulls the pinned
+digests; the guard runs; then the sequence is
+`postgres -> release-guard -> migrate -> api/worker -> web`.
+
+What is guaranteed: no unsafe **new** application release starts successfully, migrations
+run only after the guard passed, and data volumes are never removed by an ordinary
+deploy/update.
+
+What is not guaranteed: plain Compose replaces changed containers **before** it
+evaluates their dependency gates. A refused or failed **Redeploy** can therefore leave
+the previous release's `api`/`worker`/`web` stopped or replaced by a container that never
+started, so availability is lost until the configuration is corrected (data untouched).
+Correct the values, or restore the previous release's three values, and Redeploy again.
+When the running release must keep serving while a refused migration or release is
+rejected, use the launcher `deploy` (see below): it validates and runs `migrate` before
+it replaces anything.
+
+To move to a newer immutable release, replace the project's `compose.yaml` with the new
+release's copy in Arcane's Compose editor and replace
+`self-hosted-image-identity.json` through **Workspace → Upload File**. Then change the
+three release values and **Redeploy**. No Docker-host shell is required. Any mismatch
+between the version, the two references and the identity file is refused. Rollback is the
+same operation with an older release; a release older than the database schema is refused
+by `migrate` (see `SELF-HOSTING.md`).
+
+| Situation | Result |
+|---|---|
+| Release image or digest missing, private or not pullable | Arcane's pull fails; there is no source-build fallback |
+| Identity file missing | Compose refuses to create `release-guard`; nothing of the release starts |
+| Tag-only, `latest`, local, different-digest or mismatched image reference | `release-guard` fails, `migrate` never starts |
+| Version, references and identity file disagree | `release-guard` fails |
+| `EIMIR_ENVIRONMENT` unset or unknown | `release-guard` fails |
+
+### Shell-based alternative
+
+The extracted bundle also contains the direct launcher, which stays supported for
+operators who prefer a shell. It reads the same `self-hosted-image-identity.json`, fills
+in the two references itself, validates before it pulls, and is the only path that runs
+`migrate` before replacing running containers:
+
+```bash
+python3 scripts/self_hosted_release.py --env-file .env validate
+python3 scripts/self_hosted_release.py --env-file .env deploy
+python3 scripts/self_hosted_release.py --env-file .env bootstrap-deletion-authority
+```
+
+It uses the same `compose.yaml`, mounts the identity file it validated into the same
+in-manifest guard, and so both paths judge one set of bytes. Do not point Arcane at a
+Compose file that has the `release-guard` service removed or edited.
+
+After deployment, run `scripts/deployment_smoke.py` against the public origin with the
+exact source SHA from the published release manifest.
+
+## Runtime environment and container recreation
+
+Compose interpolation precedence matters: an explicitly defined process variable,
+including an empty value, overrides `.env`. Arcane project variables must therefore not
+contain stale/blank duplicates of non-empty runtime settings.
+
+Because Arcane project variables reach Compose as process-level values, a stale
+`EIMIR_ENVIRONMENT` or image variable there wins over the project `.env`. The in-manifest
+guard judges exactly the values Compose renders, so such drift is refused rather than
+silently deployed. The launcher additionally refuses a process `EIMIR_ENVIRONMENT` that
+drifts away from the Production dotenv.
+
+The shared runtime guard can additionally inspect rendered/running configuration from a
+checkout or extracted release bundle:
+
+```bash
+ARCANE_PROJECT_DIR=/path/to/arcane-project
+ARCANE_COMPOSE_PROJECT=eimir-production
+
+python3 scripts/check_runtime_environment.py \
+  --env-file "$ARCANE_PROJECT_DIR/.env" \
+  --compose-file "$ARCANE_PROJECT_DIR/compose.yaml" \
+  --profile self-hosted \
+  --project-name "$ARCANE_COMPOSE_PROJECT"
+```
+
+For Production it rejects unsafe application image identity such as `latest`,
+branch/local source tags, missing/mismatched `EIMIR_RELEASE_VERSION`, backend-role
+divergence, application `build:` fallback or disabled pulling.
+
+After changing runtime settings, use Arcane **Redeploy** (or the launcher `deploy`); both
+recreate affected runtime containers without deleting named volumes. Do not use an Arcane
+option that removes `deletion_journal_data`, `postgres_data`, or `media_data` during an ordinary
+configuration/application update.
+
+After recreation, runtime inspection remains available:
+
+```bash
+python3 scripts/check_runtime_environment.py \
+  --env-file "$ARCANE_PROJECT_DIR/.env" \
+  --compose-file "$ARCANE_PROJECT_DIR/compose.yaml" \
+  --profile self-hosted \
+  --project-name "$ARCANE_COMPOSE_PROJECT" \
+  --check-running
+```
+
+The guard reports variable/service names, never compared secret values.
+
+## Public and private repositories
+
+Remote Git contexts used for **Development source builds** may require BuildKit/Arcane Git
+authentication for private repositories. Do not embed credentials/tokens in Git URLs,
+`compose.yaml`, or checked-in env templates. The source builder rejects credential- and
+query-bearing source URLs before they can enter plan/log output.
+
+Production pulls the released package identity instead of Git contexts. If registry
+authentication is required, configure it in Docker/Arcane registry credentials; do not
+add registry tokens to Compose, `.env`, release evidence, or support bundles.
+
+Do not create another Compose manifest as an authentication or deployment workaround.
+
+## Reverse proxy architecture
+
+The reverse proxy is the only public TLS endpoint. On one public origin it routes:
+
+| Path | Internal target |
+|---|---|
+| `/api/` | eimir. API on `API_PORT` |
+| all other paths | eimir. Web on `WEB_PORT` |
+
+The `/api/` route goes directly to the API. In Production it must not first pass through
+Web Nginx because that would lose the trusted TLS proxy hop for `X-Forwarded-Proto`.
+
+Same-host secure default:
+
+```dotenv
+EIMIR_BIND_IP=127.0.0.1
 API_PORT=8000
 WEB_PORT=8080
 ```
 
-Der Proxy verwendet dann `127.0.0.1:<API_PORT>` und
-`127.0.0.1:<WEB_PORT>`.
+For a reverse proxy on another private host, bind only the intended private address and
+set `TRUSTED_PROXY_IPS` to the exact proxy source IP/CIDR. Never use `*`.
 
-## Reverse-Proxy auf einem anderen Host
+## Post-deployment verification
 
-Ist der Proxy ein eigener Host im privaten Netz, muss SideBySide gezielt an die
-private Adresse des Docker-/Arcane-Hosts gebunden werden:
-
-```dotenv
-SBS_BIND_IP=192.168.10.20
-API_PORT=8000
-WEB_PORT=8099
-```
-
-`SBS_BIND_IP` ist absichtlich **eine konkrete Hostadresse**. `0.0.0.0` ist fuer
-diesen Aufbau nicht erforderlich und vergroessert die Exposition unnoetig.
-
-Der Reverse-Proxy routet dann beispielsweise:
-
-```text
-https://sidebyside.example/
-    -> http://192.168.10.20:8099
-
-https://sidebyside.example/api/
-    -> http://192.168.10.20:8000
-```
-
-In SideBySide werden dazu die oeffentliche Origin und die Proxy-Adressen gesetzt:
-
-```dotenv
-SBS_ENVIRONMENT=production
-SBS_PUBLIC_BASE_URL=https://sidebyside.example
-SBS_ALLOWED_HOSTS=["sidebyside.example","localhost","127.0.0.1"]
-TRUSTED_PROXY_IPS=192.168.10.30,192.168.10.31
-```
-
-`TRUSTED_PROXY_IPS` enthaelt nur Adressen bzw. den kleinsten CIDR-Bereich, aus
-dem der Reverse-Proxy die API tatsaechlich erreicht. Niemals `*` verwenden.
-
-## Web-Referenzflow
-
-Der aktuelle Web-Referenzflow benoetigt noch eine vorhandene Space-UUID als
-Build-Konfiguration:
-
-```dotenv
-SBS_WEB_SPACE_ID=<space-uuid>
-```
-
-Die UUID ist kein Secret. Sie wird beim Vite-Build in das Web-Bundle
-eingebettet. Nach einer Aenderung reicht deshalb ein Container-Restart nicht;
-das Web-Image muss neu gebaut werden.
-
-## Pruefung nach dem Deploy
-
-Vom Reverse-Proxy-Host bzw. aus demselben privaten Netz kann zuerst der
-Webdienst geprueft werden:
+From the reverse-proxy host/private network:
 
 ```bash
 curl --fail http://<docker-host>:<WEB_PORT>/healthz
+curl --fail http://<docker-host>:<WEB_PORT>/.well-known/eimir-revision
+curl --fail --include https://eimir.example/api/v1/health/ready
 ```
 
-Die produktive API wird ueber den echten TLS-Pfad geprueft:
+For release acceptance prefer:
 
 ```bash
-curl --fail https://sidebyside.example/api/v1/health/ready
+python3 scripts/deployment_smoke.py \
+  --base-url https://eimir.example \
+  --expected-revision <release-source-sha>
 ```
 
-Ueber die oeffentliche Origin sollten beide Ziele funktionieren:
-
-```bash
-curl --fail https://sidebyside.example/
-curl --fail https://sidebyside.example/api/v1/health/ready
-```
-
-Die Readiness-Antwort der API lautet im Normalfall:
-
-```json
-{"status":"ok","database":"ok"}
-```
-
-## Reuse-Pruefung
-
-Geprueft wurden ein eigener Arcane-Synchronisationsmechanismus, publizierte
-Registry-Images und die vorhandenen Docker-/Compose-Bordmittel. Gewaehlt wurden
-native Git-Build-Kontexte, weil sie das konkrete Workspace-Problem ohne neue
-Runtime-Komponente oder Provider-Abstraktion loesen.
-
-- Standard/Plattform: Docker Compose + BuildKit Git-Kontexte
-- neue Runtime-Abhaengigkeiten: keine
-- externer Provider: keiner; Git-Hosting ist nur Quelltransport beim Build
-- Privacy/Nutzdaten: keine SideBySide-Nutzdaten verlassen durch diesen Schritt
-  den Host
-- Kosten: keine zusaetzlichen SideBySide-Laufzeitkosten
-- Fallback: vollstaendiger Checkout mit `compose.yaml`; spaeter optional
-  versionierte Registry-Images, falls Remote-Git-Builds betrieblich ungeeignet
-  werden
+Both Web and API must report the exact published source SHA.

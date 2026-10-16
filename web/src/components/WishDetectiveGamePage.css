@@ -1,0 +1,274 @@
+.wish-detective-page {
+  width: min(100%, 46rem);
+  margin-inline: auto;
+}
+
+.wish-detective-heading {
+  margin-bottom: var(--space-5);
+}
+
+.wish-detective-session {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.wish-detective-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-1) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.wish-detective-score {
+  text-align: right;
+}
+
+.wish-detective-score strong {
+  color: var(--color-text);
+}
+
+.wish-detective-card,
+.wish-detective-sparse,
+.wish-detective-finish {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-5), 6vw, var(--space-8));
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.wish-detective-clue {
+  background:
+    radial-gradient(
+      circle at 88% 5%,
+      var(--color-brand-surface),
+      transparent 42%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-handoff {
+  min-height: min(24rem, 58vh);
+  align-content: center;
+  text-align: center;
+  background:
+    radial-gradient(
+      circle at 50% 28%,
+      var(--color-shared-surface),
+      transparent 52%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-guess {
+  background:
+    radial-gradient(
+      circle at 12% 6%,
+      var(--color-brand-surface),
+      transparent 42%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-reveal-correct {
+  border-color: color-mix(
+    in srgb,
+    var(--color-success) 30%,
+    var(--color-border-subtle)
+  );
+  background:
+    radial-gradient(
+      circle at 88% 8%,
+      var(--color-shared-surface),
+      transparent 46%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-reveal-incorrect {
+  border-color: color-mix(
+    in srgb,
+    var(--color-error) 24%,
+    var(--color-border-subtle)
+  );
+}
+
+.wish-detective-reveal-passed {
+  background:
+    radial-gradient(
+      circle at 88% 8%,
+      var(--color-shared-surface),
+      transparent 46%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-card h2,
+.wish-detective-sparse h2,
+.wish-detective-finish h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 6vw, 2rem);
+  line-height: 1.15;
+}
+
+.wish-detective-card p,
+.wish-detective-sparse p,
+.wish-detective-finish p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.wish-detective-private-note {
+  font-weight: 650;
+}
+
+.wish-detective-clues {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.wish-detective-clues legend {
+  margin-bottom: var(--space-1);
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.wish-detective-clue-field {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.wish-detective-clue-field label,
+.wish-detective-guess > label {
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.wish-detective-clue-field input,
+.wish-detective-guess > input {
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  padding: 0 var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.wish-detective-clue-field input:focus-visible,
+.wish-detective-guess > input:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.wish-detective-clue-field input[aria-invalid="true"] {
+  border-color: var(--color-error);
+}
+
+.wish-detective-clue-field .field-error {
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.wish-detective-clue-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wish-detective-clue-chips li {
+  border-radius: 999px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: 700;
+}
+
+.wish-detective-primary-action,
+.wish-detective-actions button,
+.wish-detective-actions .button-link {
+  min-height: 44px;
+}
+
+.wish-detective-primary-action {
+  justify-self: start;
+}
+
+.wish-detective-handoff .wish-detective-primary-action {
+  justify-self: center;
+}
+
+.wish-detective-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.wish-detective-card .wish-detective-revealed-wish {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 5vw, 1.7rem);
+  font-weight: 700;
+}
+
+.wish-detective-finish {
+  background:
+    radial-gradient(
+      circle at top right,
+      var(--color-shared-surface),
+      transparent 48%
+    ),
+    var(--color-surface-raised);
+}
+
+.wish-detective-finish-score {
+  font-weight: 700;
+}
+
+@media (max-width: 360px) {
+  .wish-detective-card,
+  .wish-detective-sparse,
+  .wish-detective-finish {
+    padding: var(--space-4);
+  }
+
+  .wish-detective-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .wish-detective-score {
+    text-align: left;
+  }
+
+  .wish-detective-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .wish-detective-actions > * {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wish-detective-card {
+    scroll-behavior: auto;
+  }
+}

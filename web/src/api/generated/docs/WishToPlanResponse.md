@@ -1,7 +1,7 @@
 
 # WishToPlanResponse
 
-Beide Ressourcen in einer Antwort.  Die Konvertierung veraendert den Wish und erzeugt den Plan. Ein Client, der nur eines von beidem zurueckbekaeme, muesste das andere sofort nachladen - und haette bis dahin einen veralteten Stand angezeigt.
+Both resources returned from a conversion.
 
 ## Properties
 

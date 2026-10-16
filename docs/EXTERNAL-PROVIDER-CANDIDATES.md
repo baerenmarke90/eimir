@@ -1,133 +1,123 @@
-# Externe Provider-Kandidaten
+# External Provider Candidates
 
-## Zweck
+## Purpose
 
-Diese Datei dokumentiert mögliche externe Anbieter und technische Bausteine für zukünftige SideBySide-Next-Integrationen.
+This document records possible external providers and technical components for future eimir. integrations.
 
-**Wichtig:** Ein Eintrag in dieser Liste ist keine Freigabe zur Implementierung.
+**Important:** An entry in this list is not approval for implementation.
 
-Vor jedem produktiven Einsatz müssen erneut geprüft werden:
+Before every production use, the following must be reviewed again:
 
-- aktuelle Nutzungsbedingungen
-- kommerzielle Nutzbarkeit für SideBySide Cloud
-- Self-Hosted-Nutzung
-- Lizenz und Attribution
-- Speicherung, Caching und Löschpflichten
-- Datenschutzanforderungen
-- technische Abhängigkeiten und SDK-Lizenzen
+- current Terms of Service
+- commercial usability for eimir. Cloud
+- Self-Hosted support
+- license and attribution
+- storage, caching, and deletion obligations
+- privacy requirements
+- technical dependencies and SDK licenses
 
-Die Prüfung wird Bestandteil des jeweiligen Feature-PRs.
+The review becomes part of the corresponding feature PR.
 
-## Architekturregel
+## Architecture rule
 
-Externe Anbieter werden ausschließlich über klare Adapter- oder Integrationsgrenzen angebunden.
-Der SideBySide-Core kennt keinen konkreten Anbieter.
+External providers are connected only through clear adapter or integration boundaries.
+The eimir. Core must not know a concrete provider.
 
-Ein Wechsel eines Providers darf keine Änderung an Domain-Modellen oder Fachlogik erzwingen.
+Changing a provider must not require changes to Domain models or business logic.
 
-## Produktregel: Technik bleibt unsichtbar
+## Product rule: technology stays invisible
 
-SideBySide richtet sich ausdrücklich auch an Menschen ohne technische Kenntnisse.
+eimir. is explicitly intended for people without technical knowledge.
 
-Normale Nutzer sollen niemals:
+Normal users should never need to:
 
-- API-Keys beschaffen
-- technische URLs eintragen
-- Provider auswählen
-- Tokens verwalten
-- Serverkonfiguration verstehen
+- obtain API keys
+- enter technical URLs
+- select providers
+- manage tokens
+- understand server configuration
 
-Das Backend bzw. die Betriebsplattform übernimmt möglichst die komplette technische Abwicklung.
+The Backend or operating platform should handle the technical process wherever possible.
 
-## Einordnung der Bausteine
+## Component classification
 
-Nicht alle Kandidaten sind externe Datenprovider. Sie werden getrennt betrachtet:
+Not all candidates are external data providers. They are considered separately:
 
-- **Externe Provider:** liefern Daten oder Dienste (z. B. Karten, Wetter, Fotos).
-- **Infrastrukturbausteine:** reduzieren eigene Backend-Entwicklung (z. B. Upload, Suche, Storage, Monitoring).
-- **Client-/Plattformbausteine:** nutzen bestehende Betriebssystem- oder Framework-Funktionen.
+- **External Providers:** deliver data or services (for example maps, weather, photos).
+- **Infrastructure components:** reduce custom Backend development (for example upload, search, storage, monitoring).
+- **Client/platform components:** use existing operating-system or framework capabilities.
 
----
+## Current external provider candidates
 
-# Aktuell interessante externe Provider
+| Area | Candidate | Possible adapter | Initial assessment |
+|---|---|---|---|
+| Maps / Places / Routing | Geoapify | MapProvider, GeocodingProvider, PlacesProvider | Candidate for early review |
+| Self-Hosted photos | Immich API | ExternalMediaProvider | strong Self-Hosted fit |
+| Weather | Open-Meteo | WeatherProvider | simple context provider |
+| External photos | Google Photos Picker API | ExternalMediaProvider | explicit user permission required |
+| Calendar | CalDAV / iCalendar | CalendarProvider | open standard, low dependency |
+| Holidays / school breaks | OpenHolidays | HolidayProvider | low privacy effort |
+| Product data | Open Food Facts | ProductLookupProvider | ODbL review required |
+| Knowledge data | Wikidata | EntertainmentProvider / DiscoveryProvider | rate limits must be considered |
+| Location history | Traccar | LocationHistoryProvider | opt-in only and M8 context |
 
-| Bereich | Kandidat | Möglicher Adapter | Erste Einschätzung |
-| --- | --- | --- | --- |
-| Karten / Orte / Routing | Geoapify | MapProvider, GeocodingProvider, PlacesProvider | Kandidat für frühe Prüfung |
-| Fotos Self-Hosted | Immich API | ExternalMediaProvider | sehr passend für Self-Hosted |
-| Wetter | Open-Meteo | WeatherProvider | einfacher Kontext-Provider |
-| Fotos extern | Google Photos Picker API | ExternalMediaProvider | explizite Nutzerfreigabe erforderlich |
-| Kalender | CalDAV / iCalendar | CalendarProvider | offener Standard, geringe Abhängigkeit |
-| Feiertage / Ferien | OpenHolidays | HolidayProvider | geringer Datenschutzaufwand |
-| Produktdaten | Open Food Facts | ProductLookupProvider | ODbL-Prüfung erforderlich |
-| Wissensdaten | Wikidata | EntertainmentProvider / DiscoveryProvider | Rate Limits beachten |
-| Standort-History | Traccar | LocationHistoryProvider | nur Opt-in und M8-Kontext |
+## Infrastructure components
 
----
+| Area | Candidate | Benefit |
+|---|---|---|
+| API clients | OpenAPI Generator | generate the Web (TypeScript) client from contract; Android packages it |
+| Uploads | tus | robust resumable photo/video uploads |
+| Web upload UX | Uppy | upload UI, progress, error handling |
+| Images | imgproxy | thumbnails, sizes, and formats without custom pipeline |
+| Videos | FFmpeg | metadata, poster frames, processing |
+| Search | PostgreSQL FTS + pg_trgm + unaccent | search without additional search server |
+| Backup | restic + rclone | encrypted backups and storage connection |
+| Storage | S3-compatible systems | replaceable MediaStore |
+| Monitoring | OpenTelemetry | standardized telemetry |
+| Host notifications | Apprise | optional infrastructure alerts |
 
-# Infrastrukturbausteine
+## Client/platform components
 
-| Bereich | Kandidat | Nutzen |
-| --- | --- | --- |
-| API-Clients | OpenAPI Generator | Web- und Android-Clients aus Vertrag erzeugen |
-| Uploads | tus | robuste wiederaufnehmbare Foto-/Video-Uploads |
-| Web Upload UX | Uppy | Upload-Oberfläche, Fortschritt, Fehlerbehandlung |
-| Bilder | imgproxy | Thumbnails, Größen und Formate ohne eigene Pipeline |
-| Videos | FFmpeg | Metadaten, Posterframes, Verarbeitung |
-| Suche | PostgreSQL FTS + pg_trgm + unaccent | Suche ohne zusätzlichen Suchserver |
-| Backup | restic + rclone | verschlüsselte Backups und Storage-Anbindung |
-| Storage | S3-kompatible Systeme | austauschbarer MediaStore |
-| Monitoring | OpenTelemetry | standardisierte Telemetrie |
-| Hoster-Benachrichtigungen | Apprise | optionale Infrastrukturalarme |
+| Area | Candidate | Benefit |
+|---|---|---|
+| Android media selection | Android Photo Picker | no custom gallery/permission logic |
+| Android sharing | Android Sharesheet | receive content from other apps |
+| Android background jobs | WorkManager | reliable uploads and synchronization |
+| Android local cache | Room + Paging | retired with the Compose client (#1009); the Web client owns caching |
+| Android images | Coil | retired with the Compose client (#1009); the Web client renders images |
+| Android video | Media3 / ExoPlayer | retired with the Compose client (#1009); the Web client plays video |
+| Web API state | TanStack Query | cache, retry, server state |
+| QR/barcode | ZXing | invitations and product flows |
+| Date/localization | dateparser + Babel | natural input and localization |
 
----
+## Operating model
 
-# Client- und Plattformbausteine
+Every component must be considered separately for:
 
-| Bereich | Kandidat | Nutzen |
-| --- | --- | --- |
-| Android Medienauswahl | Android Photo Picker | keine eigene Galerie/Berechtigungslogik |
-| Android Teilen | Android Sharesheet | Inhalte direkt aus anderen Apps übernehmen |
-| Android Hintergrundjobs | WorkManager | zuverlässige Uploads und Synchronisation |
-| Android lokaler Cache | Room + Paging | performante Story-Ansichten |
-| Android Bilder | Coil | Bildcache und Rendering |
-| Android Video | Media3 / ExoPlayer | stabiler Videoplayer |
-| Web API State | TanStack Query | Cache, Retry und Server-State |
-| QR/Barcode | ZXing | Einladungen und Produktflows |
-| Datum/Lokalisierung | dateparser + Babel | natürliche Eingaben und Lokalisierung |
+## eimir. Cloud
 
----
-
-# Betriebsmodell
-
-Jeder Baustein muss getrennt betrachtet werden für:
-
-## SideBySide Cloud
-
-- SideBySide betreibt die Infrastruktur.
-- API-Zugang und Kosten liegen beim Betreiber.
-- Nutzer benötigen keine technischen Providerkonten.
-- Datenschutz und Einwilligungen werden durch SideBySide gesteuert.
+- eimir. operates the infrastructure.
+- API access and costs belong to the operator.
+- Users do not need technical provider accounts.
+- Privacy and consent are controlled by eimir.
 
 ## Self-Hosted
 
-- Betreiber einer eigenen Instanz kann eigene Provider und Infrastruktur verwenden.
-- Konfiguration erfolgt durch den Hoster, nicht durch normale Nutzer.
-- Bring-your-own-key ist möglich, wenn technisch und rechtlich sinnvoll.
+- Operators of their own instance may use their own providers and infrastructure.
+- Configuration belongs to the hoster, not normal users.
+- Bring-your-own-key is possible where technically and legally appropriate.
 
----
+## Required documentation before implementation
 
-# Pflichtdokumentation vor Umsetzung
+Every new provider or technical component requires:
 
-Jeder neue Provider oder technische Baustein benötigt:
+1. documented license/ToS review
+2. Cloud vs. Self-Hosted decision
+3. data flow description
+4. privacy assessment
+5. cost model
+6. dependencies and runtime licenses
+7. description of the user experience without technical terms
+8. fallback behavior without the component
 
-1. dokumentierte Lizenz-/ToS-Prüfung
-2. Entscheidung Cloud vs. Self-Hosted
-3. Datenflussbeschreibung
-4. Datenschutzbewertung
-5. Kostenmodell
-6. Abhängigkeiten und Runtime-Lizenzen
-7. Beschreibung der Nutzererfahrung ohne technische Begriffe
-8. Fallback-Verhalten ohne den Baustein
-
-Diese Liste ist eine Architektur- und Prüfgrundlage, keine automatische Freigabe zur Implementierung.
+This list is an architecture and review basis, not automatic implementation approval.

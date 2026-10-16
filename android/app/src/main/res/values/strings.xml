@@ -1,53 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SideBySide Next</string>
-
-    <string name="ref_flow_subtitle">M2 · technischer Android-Referenzflow</string>
-    <string name="ref_flow_intro">Eine Erinnerung mit Bild in eurer gemeinsamen Story.</string>
-    <string name="ref_not_configured">Der M2-Referenzflow ist operatorseitig noch nicht konfiguriert.</string>
-    <string name="ref_login_heading">Anmelden</string>
-    <string name="ref_email">E-Mail</string>
-    <string name="ref_password">Passwort</string>
-    <string name="ref_login">Anmelden</string>
-    <string name="ref_login_pending">Anmeldung läuft …</string>
-    <string name="ref_authenticated">Authentifiziert</string>
-    <string name="ref_logout">Abmelden</string>
-    <string name="ref_memory_heading">Erinnerung festhalten</string>
-    <string name="ref_title">Titel</string>
-    <string name="ref_memory">Erinnerung</string>
-    <string name="ref_date_optional">Datum (JJJJ-MM-TT, optional)</string>
-    <string name="ref_image_select">Bild auswählen</string>
-    <string name="ref_image_selected">Bild ausgewählt: %1$s</string>
-    <string name="ref_memory_save">Erinnerung mit Bild speichern</string>
-    <string name="ref_memory_saving">Wird gespeichert …</string>
-    <string name="ref_last_saved">Zuletzt gespeichert</string>
-    <string name="ref_last_saved_image_description">Bild zur zuletzt gespeicherten Erinnerung</string>
-    <string name="ref_story_heading">Gemeinsame Story</string>
-    <string name="ref_refresh">Aktualisieren</string>
-    <string name="ref_story_empty">Noch keine Einträge in eurer Story.</string>
-    <string name="ref_story_memory">Erinnerung: %1$s</string>
-    <string name="ref_story_heart_moment">Herzmoment</string>
-    <string name="ref_story_milestone">Meilenstein: %1$s</string>
-
-    <string name="ref_error_credentials_required">E-Mail und Passwort werden benötigt.</string>
-    <string name="ref_status_logged_in">Angemeldet.</string>
-    <string name="ref_error_image_selection_failed">Das Bild konnte nicht ausgewählt werden.</string>
-    <string name="ref_error_image_selection_detail">Das Bild konnte nicht ausgewählt werden: %1$s</string>
-    <string name="ref_error_login_required">Bitte zuerst anmelden.</string>
-    <string name="ref_error_image_required">Bitte zuerst ein Bild auswählen.</string>
-    <string name="ref_error_memory_fields_required">Titel und Erinnerung werden benötigt.</string>
-    <string name="ref_error_date_format">Datum bitte als JJJJ-MM-TT eingeben.</string>
-    <string name="ref_status_save_pending">Erinnerung und Bild werden gespeichert …</string>
-    <string name="ref_status_save_success">Erinnerung und Bild wurden über den M2-Vertrag gespeichert.</string>
-    <string name="ref_error_login_failed">Anmeldung fehlgeschlagen.</string>
-    <string name="ref_error_save_failed">Speichern fehlgeschlagen.</string>
-    <string name="ref_error_story_load_failed">Story konnte nicht geladen werden.</string>
-    <string name="ref_status_logged_out">Abgemeldet.</string>
-
-    <string name="ref_image_type_unknown">Der Bildtyp konnte nicht bestimmt werden.</string>
-    <string name="ref_image_required">Bitte ein Bild auswählen.</string>
-    <string name="ref_image_default_name">bild</string>
-    <string name="ref_image_too_large">Das Bild ist größer als 25 MiB.</string>
-    <string name="ref_image_open_failed">Das Bild konnte nicht geöffnet werden.</string>
-    <string name="ref_image_empty">Das ausgewählte Bild ist leer.</string>
+    <string name="app_name">eimir.</string>
+    <string name="title_activity_main">eimir.</string>
+    <string name="package_name">de.sidebyside.app</string>
+    <string name="custom_url_scheme">de.sidebyside.app</string>
 </resources>

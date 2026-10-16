@@ -1,0 +1,385 @@
+/*
+ * Web layout primitives.
+ *
+ * The Web client shares product semantics with the App but composes screens
+ * for a wide viewport. `docs/DESIGN-PRINCIPLES.md` section 3.3 bounds content
+ * at 1200 px and limits *reading text* — not whole screens — to 720 px, and
+ * section 5 allows up to two content zones on desktop.
+ *
+ * These classes are the shared vocabulary for that composition. Screens select
+ * a pattern here instead of defining their own desktop width and column logic.
+ */
+
+/* Page canvas ------------------------------------------------------------ */
+
+/*
+ * A page fills the bounded main region. `.product-main` already applies the
+ * 1200 px content bound and the responsive page margin, so a page does not
+ * repeat either value.
+ */
+.page {
+  width: 100%;
+  margin: 0 auto;
+}
+
+/*
+ * Long-form reading and single-intent editors stay in a reading column.
+ * Detail bodies, creation forms, and confirmation flows use this variant.
+ */
+.page-reading {
+  width: min(100%, var(--reading-max));
+}
+
+/* Two content zones ------------------------------------------------------ */
+
+/*
+ * Primary content plus a secondary context zone. Below the split breakpoint
+ * both zones stack in document order, which keeps focus order equal to the
+ * visible reading order in every viewport.
+ */
+.layout-split {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.layout-main {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.layout-rail {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+@media (min-width: 1100px) {
+  .layout-split {
+    grid-template-columns: minmax(0, 1fr) var(--rail-width);
+  }
+
+  /*
+   * Screens whose context zone drives the primary content — filters, creation
+   * entry points — keep that zone first in the document so the stacked
+   * compact layout reads in the same order it is operated. On desktop the
+   * zone is placed in the trailing column, where it stays fully visible.
+   */
+  .layout-split-lead-rail .layout-main {
+    grid-area: 1 / 1;
+  }
+
+  .layout-split-lead-rail .layout-rail {
+    grid-area: 1 / 2;
+  }
+
+  .layout-rail-sticky {
+    position: sticky;
+    top: var(--space-6);
+  }
+}
+
+/* Overview grid ---------------------------------------------------------- */
+
+/*
+ * Peer sections of comparable weight. `--layout-column-min` lets a screen
+ * choose how dense its columns are without redefining the grid.
+ */
+.layout-columns {
+  display: grid;
+  grid-template-columns: repeat(
+      auto-fit,
+      minmax(min(100%, var(--layout-column-min, 22rem)), 1fr)
+    );
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.layout-columns-dense {
+  --layout-column-min: 17rem;
+}
+
+.layout-columns-wide {
+  --layout-column-min: 27rem;
+}
+
+/* A section that outranks its peers and spans the full grid width. */
+.layout-span-all {
+  grid-column: 1 / -1;
+}
+
+/* Surfaces --------------------------------------------------------------- */
+
+/*
+ * The shared panel surface. A warm tint separates a panel from the page
+ * without adding a third depth level (`docs/DESIGN-PRINCIPLES.md` 3.4).
+ */
+.layout-panel {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-5), 2.5vw, var(--space-6));
+  background: var(--color-surface-panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.layout-panel-quiet {
+  background: var(--color-surface-subtle);
+  box-shadow: none;
+}
+
+/* Section head ----------------------------------------------------------- */
+
+.layout-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.layout-section-head > div:first-child {
+  min-width: 0;
+}
+
+.layout-section-head h2,
+.layout-section-head h3 {
+  margin-bottom: 0;
+}
+
+.layout-section-head p {
+  max-width: var(--reading-max);
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.layout-section-action {
+  flex: 0 0 auto;
+}
+
+/* Page header ------------------------------------------------------------ */
+
+/*
+ * The page header states where the user is and offers the single dominant
+ * action for the screen. On desktop the title block and the action sit on one
+ * row so the header costs one band of vertical space instead of a hero.
+ */
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-5);
+}
+
+.page-heading > div:first-child {
+  min-width: 0;
+}
+
+.page-heading h1,
+.page-heading-title-container {
+  margin-bottom: var(--space-2);
+  /*
+   * The delivered display face, on the one heading every page has. This is the
+   * "editorial and Story moment" the design principles reserve it for; the
+   * scale is untouched, only the family changes.
+   */
+  font-family: var(--font-display);
+}
+
+.page-heading-title-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.page-heading-title-container h1 {
+  margin: 0;
+}
+
+.page-heading > p:last-child,
+.page-heading > div > p:last-child {
+  max-width: var(--reading-max);
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.page-heading.page-heading-collection {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: var(--space-6);
+}
+
+.page-heading .eyebrow {
+  margin-bottom: var(--space-2);
+}
+
+/*
+ * Primary navigation destinations share one orientation rhythm. This variant
+ * keeps the same PageHeader semantics while giving Momente, Planen and Mehr a
+ * single title scale and one header-to-content spacing contract.
+ */
+.page-heading-root {
+  margin-bottom: var(--space-section);
+  padding-bottom: 0;
+}
+
+.page-heading-root .page-heading-title-container {
+  min-inline-size: 0;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
+.page-heading-root h1 {
+  min-inline-size: 0;
+  max-width: 100%;
+  font: var(--font-page-heading);
+  letter-spacing: var(--tracking-page-heading);
+  overflow-wrap: anywhere;
+}
+
+.page-heading-root > div > p:last-child {
+  margin: var(--space-2) 0 0;
+  font: var(--font-reading-body);
+  letter-spacing: var(--tracking-reading-body);
+}
+
+/* Metric strip ----------------------------------------------------------- */
+
+/*
+ * Compact contextual figures. Used where a screen would otherwise open with an
+ * empty band above its content.
+ */
+.layout-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+}
+
+.layout-metric {
+  display: grid;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: var(--space-4);
+  background: var(--color-surface);
+}
+
+.layout-metric dt {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.layout-metric dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+/* Detail metadata --------------------------------------------------------- */
+
+/*
+ * Author, dates and visibility of a single entry. In the context rail these
+ * read as stacked label/value pairs rather than a row of boxes.
+ */
+.detail-meta-list {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.detail-meta-list > div {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.detail-meta-list dt {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.detail-meta-list dd {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+/* Rail contents ---------------------------------------------------------- */
+
+/*
+ * A rail panel titles itself at Title level: it is a peer of the main content,
+ * not a competing section heading.
+ */
+.rail-heading {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.rail-note {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* Rail actions ----------------------------------------------------------- */
+
+.layout-action-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.layout-action-list > a,
+.layout-action-list > button {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+@media (max-width: 599px) {
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .layout-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .layout-section-action,
+  .layout-section-action > .button-link,
+  .layout-section-action > button {
+    width: 100%;
+  }
+
+  .layout-section-action > .button-link {
+    justify-content: center;
+  }
+
+  .layout-action-list > a,
+  .layout-action-list > button {
+    justify-content: center;
+    text-align: center;
+  }
+}

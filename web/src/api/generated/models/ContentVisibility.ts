@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,15 +14,14 @@
 
 
 /**
- * Die fachliche Sichtbarkeit aus Abschnitt 15 der Spezifikation.
+ * Domain visibility from specification section 15.
  * 
- * Der Request nennt sie, nicht die Privacy-Klasse: `privacyClass` ist
- * eine serverseitige Ableitung und kein Feld, das ein Client setzen kann.
+ * Requests name visibility rather than a privacy class. ``privacyClass`` is a
+ * server-side derivation and is never a client-settable field.
  * 
- * Sie steht hier und nicht in einer Domaene, weil sie keiner gehoert:
- * RelatedPerson, ImportantDate und HeartMoment sprechen dieselbe
- * Sichtbarkeit. Laege sie bei der ersten Domaene, die sie brauchte,
- * importierten alle spaeteren aus einem fremden Fachmodul.
+ * The type lives here rather than in one domain because several domains use
+ * the same vocabulary: RelatedPerson, ImportantDate, and HeartMoment should
+ * not depend on whichever feature happened to need it first.
  * @export
  */
 export const ContentVisibility = {

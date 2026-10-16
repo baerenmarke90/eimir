@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direction A: /today (Current #773)</title>
+  <link rel="stylesheet" href="/web/src/styles.css">
+  <link rel="stylesheet" href="/web/src/theme.css">
+  <link rel="stylesheet" href="/web/src/shell.css">
+  <link rel="stylesheet" href="/web/src/layout.css">
+  <link rel="stylesheet" href="/web/src/components/PartnerAvatarPair.css">
+  <link rel="stylesheet" href="/web/src/components/CouplePresence.css">
+  <link rel="stylesheet" href="/web/src/components/ThinkingOfYouButton.css">
+  <link rel="stylesheet" href="/web/src/components/VisibilityBadge.css">
+  <link rel="stylesheet" href="/web/src/components/TodayPage.css">
+  <link rel="stylesheet" href="./shared-preview.css">
+</head>
+<body>
+  <!-- Global App Topbar -->
+  <header class="mock-header">
+    <div style="display:flex; align-items:center; gap:var(--space-6);">
+      <a href="#" class="mock-logo">eimir<span class="brand-dot">.</span></a>
+      <nav class="mock-nav">
+        <a href="#" class="mock-nav-item active">Wir</a>
+        <a href="#" class="mock-nav-item">Momente</a>
+        <a href="#" class="mock-nav-item">Planen</a>
+        <a href="#" class="mock-nav-item">Mehr</a>
+      </nav>
+    </div>
+    <div class="mock-user-profile">
+      <div class="mock-avatar-chip" title="Philipp">P</div>
+    </div>
+  </header>
+
+  <main class="preview-container">
+    <div class="today-content">
+      <!-- DIRECTION A: Top Hero CouplePresence Card (#773 implementation) -->
+      <section class="today-hero couple-presence-card" aria-label="Paar-Präsenz">
+        <div class="couple-presence-main">
+          <div class="partner-avatar-pair partner-avatar-pair-medium">
+            <div class="partner-avatar-stack">
+              <div class="partner-avatar partner-avatar-primary" style="background:#e8def8; color:#4a2574;">P</div>
+              <div class="partner-avatar partner-avatar-secondary" style="background:#ffd8e4; color:#7d1b3c;">L</div>
+            </div>
+          </div>
+          <div class="couple-presence-details">
+            <h1 class="couple-presence-title">Mit Lea</h1>
+            <div class="couple-presence-meta">
+              <span class="couple-presence-indicator status-connected">
+                <span class="couple-presence-dot"></span>
+                <span>Zusammen verbunden</span>
+              </span>
+              <span class="couple-presence-separator">·</span>
+              <a href="#duration" class="today-hero-duration-link" title="Beziehungsdetails ansehen">
+                <span class="today-hero-pill-icon" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z"/></svg>
+                </span>
+                <span>1 Jahr, 2 Monate</span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="today-hero-action-container">
+          <button type="button" class="thinking-of-you-btn today-hero-action" aria-label="Lieben Gruß an Lea senden">
+            <span class="thinking-of-you-icon-wrapper" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="heart-icon"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </span>
+            <span class="thinking-of-you-label">Ich denk an dich</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Context Area: Demnächst -->
+      <section class="today-section" style="margin-bottom: var(--space-8);">
+        <h2 style="font-size:1.15rem; font-weight:700; color:var(--color-brand-strong); margin-bottom:var(--space-3);">Demnächst</h2>
+        <div style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-5); box-shadow:0 2px 10px var(--color-shadow-soft); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span style="display:inline-block; font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--color-shared); margin-bottom:4px;">Samstag, 12. September · 10:00 Uhr</span>
+            <h3 style="margin:0; font-size:1.15rem; font-weight:600; color:var(--color-text);">Wochenendausflug nach Trier</h3>
+            <p style="margin:4px 0 0; font-size:0.9rem; color:var(--color-text-secondary);">Zugtickets gebucht · Hotel Altstadt reserviert</p>
+          </div>
+          <span style="background:var(--color-shared-surface); color:var(--color-shared); border:1px solid var(--color-shared); border-radius:var(--radius-pill); padding:4px 10px; font-size:0.75rem; font-weight:700;">Plan</span>
+        </div>
+      </section>
+
+      <!-- Context Area: Kürzlich geteilt -->
+      <section class="today-section" style="margin-bottom: var(--space-8);">
+        <h2 style="font-size:1.15rem; font-weight:700; color:var(--color-brand-strong); margin-bottom:var(--space-3);">Kürzlich geteilt</h2>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:var(--space-4);">
+          <!-- Memory Card -->
+          <article style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); overflow:hidden; box-shadow:0 2px 10px var(--color-shadow-soft);">
+            <img src="./assets/cabin-lake.jpg" alt="See" style="width:100%; height:160px; object-fit:cover;">
+            <div style="padding:var(--space-4);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-2);">
+                <span class="visibility-badge badge-shared badge-small">
+                  <span class="visibility-badge-label">Mit Partner geteilt</span>
+                </span>
+                <span style="font-size:0.8rem; color:var(--color-text-muted);">Vor 2 Tagen</span>
+              </div>
+              <h4 style="margin:0 0 var(--space-1); font-family:var(--font-display); font-size:1.1rem; color:var(--color-text);">Spätsommertage am See</h4>
+              <p style="margin:0; font-size:0.85rem; color:var(--color-text-secondary);">Von Lea hinzugefügt</p>
+            </div>
+          </article>
+          <!-- Heart Moment Card -->
+          <article style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-5); box-shadow:0 2px 10px var(--color-shadow-soft); display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-3);">
+                <span class="visibility-badge badge-shared badge-small">
+                  <span class="visibility-badge-label">Liebesbotschaft</span>
+                </span>
+                <span style="font-size:0.8rem; color:var(--color-text-muted);">Gestern</span>
+              </div>
+              <blockquote style="margin:0; font-family:var(--font-display); font-style:italic; font-size:1.05rem; line-height:1.4; color:var(--color-text);">
+                „Danke für den Kaffee heute Morgen ans Bett. Du bist das Beste an jedem Tag.“
+              </blockquote>
+            </div>
+            <p style="margin:var(--space-3) 0 0; font-size:0.85rem; color:var(--color-text-secondary);">Von Philipp</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Retrospective Module -->
+      <section class="today-section">
+        <h2 style="font-size:1.15rem; font-weight:700; color:var(--color-brand-strong); margin-bottom:var(--space-3);">Erinnerung des Tages</h2>
+        <div style="background:var(--color-surface); border:1px solid var(--color-brand-glow); border-radius:var(--radius-card); padding:var(--space-5); box-shadow:0 4px 14px var(--color-shadow-soft); display:flex; gap:var(--space-4); align-items:center;">
+          <img src="./assets/sunset-field.jpg" alt="Sonnenuntergang" style="width:100px; height:80px; object-fit:cover; border-radius:var(--radius-medium);">
+          <div>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem; font-weight:700; color:var(--color-brand-strong); margin-bottom:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z"/></svg>
+              <span>Vor einem Jahr · 7. September 2025</span>
+            </span>
+            <h3 style="margin:0; font-family:var(--font-display); font-size:1.1rem; color:var(--color-text);">Erstes gemeinsames Picknick im Park</h3>
+            <p style="margin:2px 0 0; font-size:0.85rem; color:var(--color-text-secondary);">Erinnerung von euch beiden</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,133 +1,130 @@
-# Reuse Before Build - verbindliche Entwicklungsregel
+# Reuse Before Build - Mandatory Engineering Rule
 
 ## Status
 
-Dieses Dokument ist ein verbindlicher Governance-Nachtrag fuer SideBySide Next.
+This document is a mandatory governance addendum for eimir.
 
-Die historische Clean-Room-Master-Spezifikation bleibt als Ausgangsspezifikation unveraendert. Fuer neue technische Entscheidungen gilt zusaetzlich diese Regel.
+The historical Clean-Room Master Specification remains unchanged as the original specification. For new technical decisions, this rule applies in addition.
 
-## Grundsatz
+## Principle
 
-Bevor neue Infrastruktur, Integrationslogik oder technische Commodity-Funktionalitaet selbst implementiert wird, muss geprueft werden, ob eine geeignete bestehende Loesung existiert.
+Before implementing infrastructure, integration logic, or technical commodity functionality from scratch, check whether a suitable existing solution is available.
 
-Zu pruefen sind in dieser Reihenfolge:
+Consider options in this order:
 
-1. offener Standard oder Protokoll
-2. Betriebssystem- oder Plattformfunktion
-3. etablierte Framework-/Runtime-Funktion
-4. permissiv lizenzierte Open-Source-Komponente
-5. externer Provider oder API-Dienst
-6. erst danach Eigenimplementierung
+1. open standard or protocol
+2. operating-system or platform capability
+3. established framework/runtime capability
+4. permissively licensed open-source component
+5. external provider or API service
+6. only then custom implementation
 
-Eigenbau ist zulaessig, aber er muss begruendet werden, wenn eine plausible bestehende Loesung existiert.
+Custom implementation is allowed, but it must be justified when a plausible existing solution exists.
 
-## Wann die Pruefung Pflicht ist
+## When the review is mandatory
 
-Die Pruefung ist Pflicht fuer relevante Features oder Aenderungen, die mindestens einen der folgenden Bereiche betreffen:
+The review is mandatory for relevant features or changes affecting at least one of these areas:
 
-- externe Provider oder APIs
-- Uploads, Medienverarbeitung oder Wiedergabe
-- Suche, Indexierung oder Caching
-- Push, Notifications oder Background Jobs
-- Kalender, Karten, Geocoding, Routing oder Wetter
-- Storage, Backup, Restore oder Export-Infrastruktur
-- Observability, Monitoring oder Hoster-Benachrichtigungen
-- Web-/Android-API-Clients
-- Android-/Web-Plattformfunktionen
-- Auth-/OIDC-/Passkey-nahe Infrastruktur
-- neue technische Services oder Daemons
-- neue umfangreiche Abhaengigkeiten
+- external providers or APIs
+- uploads, media processing, or playback
+- search, indexing, or caching
+- push, notifications, or background jobs
+- calendar, maps, geocoding, routing, or weather
+- storage, backup, restore, or export infrastructure
+- observability, monitoring, or hoster notifications
+- Web/Android API clients
+- Android/Web platform capabilities
+- authentication/OIDC/passkey-adjacent infrastructure
+- new technical services or daemons
+- new substantial dependencies
 
-Fuer rein fachliche Domainlogik ohne Commodity-Infrastruktur kann die Pruefung als nicht relevant markiert werden.
+For pure domain logic without commodity infrastructure, the review may be marked `not relevant`.
 
-Reine Versionsanhebungen bereits eingefuehrter Abhaengigkeiten sind keine
-Reuse-Entscheidung und deshalb ausgenommen. Der automatisierte Gate ueberspringt
-Pull Requests von `dependabot[bot]`. Ein Wechsel der Komponente selbst, ein
-Major-Upgrade mit neuem Funktionsumfang oder eine neu aufgenommene Abhaengigkeit
-bleiben pruefpflichtig und werden nicht von Dependabot eingebracht.
+Pure version bumps of already adopted dependencies are not reuse decisions and are therefore exempt. The automated gate skips pull requests opened by `dependabot[bot]`. Replacing the component itself, a major upgrade that introduces materially new capabilities, or a newly added dependency remains subject to review and is not covered by this exemption.
 
-## Pflichtfragen vor Implementierungsbeginn
+## Required questions before implementation
 
-Bei einem relevanten Feature muessen Issue oder Pull Request nachvollziehbar beantworten:
+For a relevant feature, the issue or Pull Request must answer these questions traceably:
 
-- Gibt es einen offenen Standard fuer das Problem?
-- Gibt es eine geeignete OS-/Plattform-/Framework-Funktion?
-- Gibt es eine etablierte Open-Source-Komponente?
-- Gibt es einen geeigneten externen Provider?
-- Welche Kandidaten wurden konkret geprueft?
-- Warum wird die gewaehlte Loesung bevorzugt?
-- Warum ist Eigenbau erforderlich, falls selbst implementiert wird?
+- Is there an open standard for the problem?
+- Is there a suitable OS/platform/framework capability?
+- Is there an established open-source component?
+- Is there a suitable external provider?
+- Which concrete candidates were reviewed?
+- Why is the selected solution preferred?
+- Why is custom implementation necessary, if applicable?
 
-Bei Drittkomponenten oder Providern zusaetzlich:
+For third-party components or providers, also cover:
 
-- Lizenz und Nutzungsbedingungen
-- kommerzielle Nutzbarkeit fuer SideBySide Cloud
-- Self-Hosted-Nutzbarkeit
-- Datenfluss und Datenschutz
-- Speicherung, Caching, Loeschpflichten und Attribution
-- Kostenmodell und Rate Limits
-- Runtime-/SDK-Abhaengigkeiten
-- Fallback ohne die Komponente
-- Nutzeraufwand und Hoster-Aufwand
+- license and terms of service
+- commercial usability for eimir. Cloud
+- Self-Hosted usability
+- data flow and privacy
+- storage, caching, deletion obligations, and attribution
+- cost model and rate limits
+- runtime/SDK dependencies
+- fallback without the component
+- user effort and hoster effort
 
-## Produktregel
+## Product rule
 
-Normale SideBySide-Nutzer sollen technische Integrationsdetails nicht konfigurieren muessen.
+Normal eimir. users must not need to configure technical integration details.
 
-Ziel:
+Target state:
 
-- keine API-Keys fuer normale Nutzer
-- keine technischen Server-URLs fuer normale Nutzer
-- keine Providerwahl ohne echten Produktnutzen
-- keine Tokenverwaltung durch normale Nutzer
-- moeglichst keine zusaetzlichen Providerkonten
-- wenn Consent/OAuth erforderlich ist: ein kurzer, verstaendlicher Verbinden-Flow
+- no API keys for normal users
+- no technical server URLs for normal users
+- no provider selection without real product value
+- no token management by normal users
+- as few additional provider accounts as possible
+- when consent/OAuth is required: a short, understandable connection flow
 
-Das Backend bzw. die Betriebsplattform uebernimmt die technische Abwicklung soweit wie moeglich.
+The backend or operating platform handles the technical integration as far as reasonably possible.
 
-## Entscheidungsregel
+## Decision rule
 
-Eine bestehende Komponente wird nicht allein deshalb eingebaut, weil sie existiert. Sie muss gegen Eigenbau bewertet werden nach:
+An existing component is not selected merely because it exists. Compare it with custom implementation on:
 
-- fachlicher Passung
-- Wartbarkeit
-- Security
-- Privacy
-- Lizenz/ToS
-- Vendor Lock-in
-- Betriebsaufwand
-- Kosten
-- Reife und Wartungszustand
-- Cloud-/Self-Hosted-Kompatibilitaet
-- Nutzererlebnis
+- functional fit
+- maintainability
+- security
+- privacy
+- license/ToS
+- vendor lock-in
+- operational effort
+- cost
+- maturity and maintenance status
+- Cloud/Self-Hosted compatibility
+- user experience
 
-Die bevorzugte Reihenfolge ist: Standards und vorhandene Plattformfaehigkeiten zuerst, austauschbare Komponenten zweitens, proprietaere Provider nur hinter klaren Adaptern.
+Preferred order: standards and existing platform capabilities first, replaceable components second, proprietary providers only behind clear adapters.
 
-## Bekannte Kandidaten
+## Known candidates
 
-Die aktuelle Kandidatenliste steht in `docs/EXTERNAL-PROVIDER-CANDIDATES.md`.
+The current candidate list is maintained in `docs/EXTERNAL-PROVIDER-CANDIDATES.md`.
 
-Diese Liste ist nicht abschliessend. Vor Beginn eines relevanten Features muss auch nach neuen oder inzwischen besseren Loesungen gesucht werden. Eine alte Kandidatenliste ersetzt keine aktuelle Pruefung.
+The list is not exhaustive. Before starting a relevant feature, also search for new or improved options. An old candidate list never replaces a current review.
 
-## Pull-Request-Gate
+## Pull-request gate
 
-Ein relevanter Pull Request ist nicht merge-ready, wenn die Reuse-Pruefung fehlt oder nur pauschal beantwortet wurde.
+A relevant Pull Request is not merge-ready when the reuse review is missing or only answered generically.
 
-Akzeptabel sind:
+Acceptable outcomes are:
 
-- dokumentierte Auswahl eines bestehenden Bausteins
-- dokumentierte Entscheidung fuer Eigenbau mit Begruendung
-- nachvollziehbare Kennzeichnung `nicht relevant` bei rein fachlicher Aenderung
+- documented selection of an existing component
+- documented decision for custom implementation with rationale
+- traceable `not relevant` classification for a pure domain change
 
-Die Pruefung wird im Pull-Request-Template abgefragt.
+The Pull Request template asks for this review explicitly.
 
-## Beziehung zu anderen Projektregeln
+## Relationship to other project rules
 
-Diese Governance-Regel ergaenzt insbesondere:
+This governance rule supplements, in particular:
 
 - `specification/CLEAN-ROOM-MASTER-SPEC.md`
+- `docs/ENGINEERING-LANGUAGE.md`
 - `docs/EXTERNAL-PROVIDER-CANDIDATES.md`
 - `docs/ROADMAP.md`
 - `CONTRIBUTING.md`
 
-Clean-Room-, Security-, Privacy- und Tenant-Isolation-Regeln haben weiterhin Vorrang. Eine externe Komponente darf keine dieser Grenzen abschwaechen.
+Clean-Room, security, privacy, and tenant-isolation rules retain priority. An external component must not weaken any of these boundaries.

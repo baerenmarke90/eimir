@@ -39,7 +39,7 @@ def upgrade() -> None:
             name="fk_memory_attachments_attachment_id_attachments",
             ondelete="CASCADE",
         ),
-        # Exklusive Bindung, soweit eine einzelne Tabelle sie tragen kann.
+        # Exclusive binding, as far as a single table can enforce it.
         sa.UniqueConstraint("attachment_id", name="uq_memory_attachments_attachment"),
         sa.UniqueConstraint("memory_id", "position", name="uq_memory_attachments_position"),
     )
@@ -47,9 +47,9 @@ def upgrade() -> None:
 
     op.add_column("heart_moments", sa.Column("attachment_id", UUID, nullable=True))
     op.create_unique_constraint("uq_heart_moments_attachment", "heart_moments", ["attachment_id"])
-    # RESTRICT und nicht CASCADE: ein Attachment wird nie hart geloescht,
-    # solange es haengt - der Weg ist DELETING plus Cleanup. Ein Cascade
-    # wuerde die Reihenfolge stillschweigend umdrehen.
+    # RESTRICT rather than CASCADE: an attachment is never hard-deleted while
+    # it is bound. The deletion path is DELETING plus cleanup. CASCADE would
+    # silently reverse that ordering.
     op.create_foreign_key(
         "fk_heart_moments_attachment_id_attachments",
         "heart_moments",

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1180" viewBox="0 0 1600 1180" role="img" aria-labelledby="title desc">
-  <title id="title">SideBySide Next Roadmap – parallele Arbeitsströme</title>
-  <desc id="desc">Matrix mit den Spuren Produkt, Backend und API, WebApp, Android, Design-System, Security und Qualität sowie Betrieb. Spalten zeigen Now M0 bis M1, Next M2, Then M3 bis M5 und Later M6 bis M9.</desc>
+  <title id="title">eimir. Roadmap – Parallel Workstreams</title>
+  <desc id="desc">Matrix covering Product, Backend and API, WebApp, Android, Design System, Security and Quality, and Operations. Columns show Now M0 to M1, Next M2, Then M3 to M5, and Later M6 to M9.</desc>
 
   <defs>
     <filter id="shadow" x="-15%" y="-15%" width="130%" height="150%">
@@ -11,66 +11,66 @@
   <rect width="1600" height="1180" fill="#FAF8FC"/>
   <rect x="24" y="24" width="1552" height="1132" rx="40" fill="#FFFFFF" stroke="#E6E0EB"/>
 
-  <text x="80" y="82" fill="#1769AA" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">PARALLELE DELIVERY-SPUREN</text>
-  <text x="80" y="132" fill="#211A2B" font-family="Fraunces, Georgia, serif" font-size="44" font-weight="600">Ein Produkt, sieben zusammenhängende Arbeitsströme</text>
-  <text x="80" y="166" fill="#51485C" font-family="Inter, Arial, sans-serif" font-size="18">Parallel arbeiten – aber nur gemeinsam durch die Release Gates gehen.</text>
+  <text x="80" y="82" fill="#1769AA" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">PARALLEL DELIVERY TRACKS</text>
+  <text x="80" y="132" fill="#211A2B" font-family="Fraunces, Georgia, serif" font-size="44" font-weight="600">One product, seven connected workstreams</text>
+  <text x="80" y="166" fill="#51485C" font-family="Inter, Arial, sans-serif" font-size="18">Work in parallel, but pass release gates together.</text>
 
   <g font-family="Inter, Arial, sans-serif">
     <rect x="80" y="208" width="220" height="64" rx="18" fill="#F2EEF5"/>
-    <text x="104" y="247" fill="#51485C" font-size="15" font-weight="700" letter-spacing="1">ARBEITSSTROM</text>
+    <text x="104" y="247" fill="#51485C" font-size="15" font-weight="700" letter-spacing="1">WORKSTREAM</text>
 
     <rect x="320" y="208" width="290" height="64" rx="18" fill="#EEE7FF" stroke="#7C4DFF" stroke-width="2"/>
     <text x="344" y="237" fill="#6638DC" font-size="14" font-weight="800" letter-spacing="1.2">NOW · M0–M1</text>
-    <text x="344" y="258" fill="#211A2B" font-size="14">Stabilisieren &amp; verbinden</text>
+    <text x="344" y="258" fill="#211A2B" font-size="14">Stabilize &amp; connect</text>
 
     <rect x="630" y="208" width="290" height="64" rx="18" fill="#E3F6F1"/>
     <text x="654" y="237" fill="#237A65" font-size="14" font-weight="800" letter-spacing="1.2">NEXT · M2</text>
-    <text x="654" y="258" fill="#211A2B" font-size="14">Erinnern &amp; Story</text>
+    <text x="654" y="258" fill="#211A2B" font-size="14">Memories &amp; Story</text>
 
     <rect x="940" y="208" width="290" height="64" rx="18" fill="#E7F2FF"/>
     <text x="964" y="237" fill="#1769AA" font-size="14" font-weight="800" letter-spacing="1.2">THEN · M3–M5</text>
-    <text x="964" y="258" fill="#211A2B" font-size="14">Core &amp; Client-Parität</text>
+    <text x="964" y="258" fill="#211A2B" font-size="14">Core &amp; client parity</text>
 
     <rect x="1250" y="208" width="270" height="64" rx="18" fill="#FFF2D5"/>
     <text x="1274" y="237" fill="#7A5100" font-size="14" font-weight="800" letter-spacing="1.2">LATER · M6–M9</text>
-    <text x="1274" y="258" fill="#211A2B" font-size="14">Erweitern &amp; veröffentlichen</text>
+    <text x="1274" y="258" fill="#211A2B" font-size="14">Expand &amp; publish</text>
   </g>
 
   <g filter="url(#shadow)" font-family="Inter, Arial, sans-serif">
     <!-- Product -->
     <rect x="80" y="294" width="220" height="96" rx="20" fill="#EEE7FF"/>
     <circle cx="112" cy="326" r="12" fill="#7C4DFF"/>
-    <text x="136" y="333" fill="#211A2B" font-size="18" font-weight="700">Produkt</text>
-    <text x="104" y="365" fill="#51485C" font-size="14">Nutzen &amp; Fachlichkeit</text>
+    <text x="136" y="333" fill="#211A2B" font-size="18" font-weight="700">Product</text>
+    <text x="104" y="365" fill="#51485C" font-size="14">Value &amp; domain</text>
     <rect x="320" y="294" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="328" fill="#211A2B" font-size="16" font-weight="700">Privater Space</text>
-    <text x="344" y="354" fill="#51485C" font-size="14">Account · Einladung · Profile</text>
+    <text x="344" y="328" fill="#211A2B" font-size="16" font-weight="700">Private space</text>
+    <text x="344" y="354" fill="#51485C" font-size="14">Account · Invitation · Profiles</text>
     <rect x="630" y="294" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="654" y="328" fill="#211A2B" font-size="16" font-weight="700">Gemeinsame Geschichte</text>
+    <text x="654" y="328" fill="#211A2B" font-size="16" font-weight="700">Shared history</text>
     <text x="654" y="354" fill="#51485C" font-size="14">Memory · HeartMoment · Story</text>
     <rect x="940" y="294" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="964" y="328" fill="#211A2B" font-size="16" font-weight="700">Gemeinsamer Alltag</text>
-    <text x="964" y="354" fill="#51485C" font-size="14">Planen · Suchen · Erinnern</text>
+    <text x="964" y="328" fill="#211A2B" font-size="16" font-weight="700">Shared everyday life</text>
+    <text x="964" y="354" fill="#51485C" font-size="14">Planning · Search · Reminders</text>
     <rect x="1250" y="294" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="328" fill="#211A2B" font-size="16" font-weight="700">Freiwillige Erweiterungen</text>
-    <text x="1274" y="354" fill="#51485C" font-size="14">Fragen · Discovery · Kontext</text>
+    <text x="1274" y="328" fill="#211A2B" font-size="16" font-weight="700">Optional extensions</text>
+    <text x="1274" y="354" fill="#51485C" font-size="14">Questions · Discovery · Context</text>
 
     <!-- Backend -->
     <rect x="80" y="406" width="220" height="96" rx="20" fill="#E7F2FF"/>
     <circle cx="112" cy="438" r="12" fill="#1769AA"/>
     <text x="136" y="445" fill="#211A2B" font-size="18" font-weight="700">Backend &amp; API</text>
-    <text x="104" y="477" fill="#51485C" font-size="14">Domain &amp; Verträge</text>
+    <text x="104" y="477" fill="#51485C" font-size="14">Domain &amp; contracts</text>
     <rect x="320" y="406" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="440" fill="#211A2B" font-size="16" font-weight="700">Foundation-Gates</text>
+    <text x="344" y="440" fill="#211A2B" font-size="16" font-weight="700">Foundation gates</text>
     <text x="344" y="466" fill="#51485C" font-size="14">OpenAPI · Auth · Owner-only</text>
     <rect x="630" y="406" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="654" y="440" fill="#211A2B" font-size="16" font-weight="700">Media &amp; Read Models</text>
+    <text x="654" y="440" fill="#211A2B" font-size="16" font-weight="700">Media &amp; read models</text>
     <text x="654" y="466" fill="#51485C" font-size="14">Attachments · Story · Cursor</text>
     <rect x="940" y="406" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="964" y="440" fill="#211A2B" font-size="16" font-weight="700">Planning bis Export</text>
+    <text x="964" y="440" fill="#211A2B" font-size="16" font-weight="700">Planning through export</text>
     <text x="964" y="466" fill="#51485C" font-size="14">Search · Rules · Transfer Bundle</text>
     <rect x="1250" y="406" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="440" fill="#211A2B" font-size="16" font-weight="700">Provider &amp; Productization</text>
+    <text x="1274" y="440" fill="#211A2B" font-size="16" font-weight="700">Provider &amp; productization</text>
     <text x="1274" y="466" fill="#51485C" font-size="14">Adapter · Entitlements · Release</text>
 
     <!-- Web -->
@@ -79,17 +79,17 @@
     <text x="136" y="557" fill="#211A2B" font-size="18" font-weight="700">WebApp</text>
     <text x="104" y="589" fill="#51485C" font-size="14">React &amp; TypeScript</text>
     <rect x="320" y="518" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="552" fill="#211A2B" font-size="16" font-weight="700">Grundgerüst &amp; Auth</text>
-    <text x="344" y="578" fill="#51485C" font-size="14">Router · Query · Tokenadapter</text>
+    <text x="344" y="552" fill="#211A2B" font-size="16" font-weight="700">Foundation &amp; auth</text>
+    <text x="344" y="578" fill="#51485C" font-size="14">Router · Query · Token adapter</text>
     <rect x="630" y="518" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="654" y="552" fill="#211A2B" font-size="16" font-weight="700">Story Alpha</text>
     <text x="654" y="578" fill="#51485C" font-size="14">Create · List–Detail · Upload</text>
     <rect x="940" y="518" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="964" y="552" fill="#211A2B" font-size="16" font-weight="700">Vollständiger Core</text>
-    <text x="964" y="578" fill="#51485C" font-size="14">Planen · Dashboard · Export</text>
+    <text x="964" y="552" fill="#211A2B" font-size="16" font-weight="700">Complete core</text>
+    <text x="964" y="578" fill="#51485C" font-size="14">Planning · Dashboard · Export</text>
     <rect x="1250" y="518" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="552" fill="#211A2B" font-size="16" font-weight="700">Rich Features</text>
-    <text x="1274" y="578" fill="#51485C" font-size="14">Provider- und Context-UIs</text>
+    <text x="1274" y="552" fill="#211A2B" font-size="16" font-weight="700">Rich features</text>
+    <text x="1274" y="578" fill="#51485C" font-size="14">Provider and context UIs</text>
 
     <!-- Android -->
     <rect x="80" y="630" width="220" height="96" rx="20" fill="#E3F6F1"/>
@@ -97,34 +97,34 @@
     <text x="136" y="669" fill="#211A2B" font-size="18" font-weight="700">Android</text>
     <text x="104" y="701" fill="#51485C" font-size="14">Kotlin &amp; Compose</text>
     <rect x="320" y="630" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="664" fill="#211A2B" font-size="16" font-weight="700">Grundgerüst &amp; Session</text>
+    <text x="344" y="664" fill="#211A2B" font-size="16" font-weight="700">Foundation &amp; session</text>
     <text x="344" y="690" fill="#51485C" font-size="14">Navigation · Keystore · Theme</text>
     <rect x="630" y="630" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="654" y="664" fill="#211A2B" font-size="16" font-weight="700">Story Alpha</text>
     <text x="654" y="690" fill="#51485C" font-size="14">Compose Flows · Media · Back</text>
     <rect x="940" y="630" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="964" y="664" fill="#211A2B" font-size="16" font-weight="700">Parität &amp; Read Cache</text>
-    <text x="964" y="690" fill="#51485C" font-size="14">Room · Offline lesen · Export</text>
+    <text x="964" y="664" fill="#211A2B" font-size="16" font-weight="700">Parity &amp; read cache</text>
+    <text x="964" y="690" fill="#51485C" font-size="14">Room · Offline reads · Export</text>
     <rect x="1250" y="630" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="664" fill="#211A2B" font-size="16" font-weight="700">Integrationen</text>
+    <text x="1274" y="664" fill="#211A2B" font-size="16" font-weight="700">Integrations</text>
     <text x="1274" y="690" fill="#51485C" font-size="14">Location · Provider · Release</text>
 
     <!-- Design System -->
     <rect x="80" y="742" width="220" height="96" rx="20" fill="#FFE7EE"/>
     <circle cx="112" cy="774" r="12" fill="#A61F51"/>
-    <text x="136" y="781" fill="#211A2B" font-size="18" font-weight="700">Design-System</text>
-    <text x="104" y="813" fill="#51485C" font-size="14">Tokens &amp; Components</text>
+    <text x="136" y="781" fill="#211A2B" font-size="18" font-weight="700">Design System</text>
+    <text x="104" y="813" fill="#51485C" font-size="14">Tokens &amp; components</text>
     <rect x="320" y="742" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
     <text x="344" y="776" fill="#211A2B" font-size="16" font-weight="700">DS0 Pipeline</text>
-    <text x="344" y="802" fill="#51485C" font-size="14">Tokenadapter · Kataloge · CI</text>
+    <text x="344" y="802" fill="#51485C" font-size="14">Token adapter · Catalogs · CI</text>
     <rect x="630" y="742" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="654" y="776" fill="#211A2B" font-size="16" font-weight="700">DS1 P0 Components</text>
     <text x="654" y="802" fill="#51485C" font-size="14">Input · Feedback · Privacy</text>
     <rect x="940" y="742" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="964" y="776" fill="#211A2B" font-size="16" font-weight="700">DS2–DS4 Patterns</text>
-    <text x="964" y="802" fill="#51485C" font-size="14">Shell · Flows · Härtung</text>
+    <text x="964" y="802" fill="#51485C" font-size="14">Shell · Flows · Hardening</text>
     <rect x="1250" y="742" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="776" fill="#211A2B" font-size="16" font-weight="700">Erweiterte Patterns</text>
+    <text x="1274" y="776" fill="#211A2B" font-size="16" font-weight="700">Extended patterns</text>
     <text x="1274" y="802" fill="#51485C" font-size="14">Provider · Location · Themes</text>
 
     <!-- Security -->
@@ -133,13 +133,13 @@
     <text x="136" y="893" fill="#211A2B" font-size="18" font-weight="700">Security &amp; QA</text>
     <text x="104" y="925" fill="#51485C" font-size="14">Release Gates</text>
     <rect x="320" y="854" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="888" fill="#211A2B" font-size="16" font-weight="700">Tenant &amp; Session</text>
+    <text x="344" y="888" fill="#211A2B" font-size="16" font-weight="700">Tenant &amp; session</text>
     <text x="344" y="914" fill="#51485C" font-size="14">Replay · Races · Owner-only</text>
     <rect x="630" y="854" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="654" y="888" fill="#211A2B" font-size="16" font-weight="700">Media &amp; Privacy</text>
+    <text x="654" y="888" fill="#211A2B" font-size="16" font-weight="700">Media &amp; privacy</text>
     <text x="654" y="914" fill="#51485C" font-size="14">IDOR · Upload · Accessibility</text>
     <rect x="940" y="854" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="964" y="888" fill="#211A2B" font-size="16" font-weight="700">Parität &amp; Regression</text>
+    <text x="964" y="888" fill="#211A2B" font-size="16" font-weight="700">Parity &amp; regression</text>
     <text x="964" y="914" fill="#51485C" font-size="14">Contracts · Privacy · A11y</text>
     <rect x="1250" y="854" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="1274" y="888" fill="#211A2B" font-size="16" font-weight="700">Hardening</text>
@@ -148,22 +148,22 @@
     <!-- Operations -->
     <rect x="80" y="966" width="220" height="96" rx="20" fill="#FFF2D5"/>
     <circle cx="112" cy="998" r="12" fill="#7A5100"/>
-    <text x="136" y="1005" fill="#211A2B" font-size="18" font-weight="700">Betrieb</text>
+    <text x="136" y="1005" fill="#211A2B" font-size="18" font-weight="700">Operations</text>
     <text x="104" y="1037" fill="#51485C" font-size="14">Cloud &amp; Self-Hosted</text>
     <rect x="320" y="966" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#7C4DFF" stroke-width="2"/>
-    <text x="344" y="1000" fill="#211A2B" font-size="16" font-weight="700">Dev &amp; Self-Hosted Basis</text>
+    <text x="344" y="1000" fill="#211A2B" font-size="16" font-weight="700">Dev &amp; Self-Hosted base</text>
     <text x="344" y="1026" fill="#51485C" font-size="14">HTTPS · Builds · Dependencies</text>
     <rect x="630" y="966" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="654" y="1000" fill="#211A2B" font-size="16" font-weight="700">Media-Betrieb</text>
+    <text x="654" y="1000" fill="#211A2B" font-size="16" font-weight="700">Media operations</text>
     <text x="654" y="1026" fill="#51485C" font-size="14">Storage · Jobs · Observability</text>
     <rect x="940" y="966" width="290" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
     <text x="964" y="1000" fill="#211A2B" font-size="16" font-weight="700">Release Candidate</text>
     <text x="964" y="1026" fill="#51485C" font-size="14">Export · Cache · Support</text>
     <rect x="1250" y="966" width="270" height="96" rx="20" fill="#FFFFFF" stroke="#E6E0EB"/>
-    <text x="1274" y="1000" fill="#211A2B" font-size="16" font-weight="700">Launchbetrieb</text>
+    <text x="1274" y="1000" fill="#211A2B" font-size="16" font-weight="700">Launch operations</text>
     <text x="1274" y="1026" fill="#51485C" font-size="14">Backup · Retention · Recovery</text>
   </g>
 
   <rect x="80" y="1090" width="1440" height="46" rx="18" fill="#211A2B"/>
-  <text x="800" y="1119" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">Kein Stream passiert ein Gate allein: Domain + Clients + Design-System + Security/QA + Betrieb müssen gemeinsam stimmen.</text>
+  <text x="800" y="1119" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">No workstream passes a gate alone: domain + clients + design system + security/QA + operations must align.</text>
 </svg>

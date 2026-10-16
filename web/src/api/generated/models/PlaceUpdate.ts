@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,12 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
- * Eine Korrektur am Ort.
+ * Place correction payload.
  * 
- * `latitude` und `longitude` duerfen hier ausdruecklich `null` sein - so
- * laesst sich ein Ort wieder auf reinen Namen zuruecksetzen. Der Dienst
- * behandelt sie als Paar: eine von beiden allein zu senden endet in
- * `PLACE_COORDINATE_PAIR_REQUIRED`.
+ * ``latitude`` and ``longitude`` may explicitly be ``null`` here, allowing a
+ * place to be reset to a name-only record. The service treats coordinates as
+ * a pair; sending only one results in ``PLACE_COORDINATE_PAIR_REQUIRED``.
  * @export
  * @interface PlaceUpdate
  */

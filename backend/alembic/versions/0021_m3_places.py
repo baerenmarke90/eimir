@@ -36,12 +36,11 @@ def upgrade() -> None:
         sa.Column("space_id", UUID, nullable=False),
         sa.Column("owner_id", UUID, nullable=False),
         sa.Column("privacy_class", _privacy_class(), nullable=False),
-        # Sensibler Inhalt nach M3-D06, aber typisiert: nur so lassen sich
-        # Wertebereich und Genauigkeit in der Datenbank durchsetzen. Die
-        # Klassifizierung aendert die Spaltenform nicht - Koordinaten
-        # gehoeren trotzdem in kein Log und kein Event.
+        # Sensitive content under M3-D06, but typed so the database can enforce
+        # range and precision. Classification does not change the column shape:
+        # coordinates still belong in no log or event.
         #
-        # 90.000000 braucht acht Stellen, 180.000000 neun.
+        # 90.000000 needs eight digits, 180.000000 needs nine.
         sa.Column("latitude", sa.Numeric(8, 6), nullable=True),
         sa.Column("longitude", sa.Numeric(9, 6), nullable=True),
         sa.Column("crypto_version", sa.SmallInteger(), server_default=sa.text("0"), nullable=False),
@@ -71,7 +70,7 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint("privacy_class = 'SPACE_SHARED'", name="privacy_is_space_shared"),
         sa.CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
-        # Beide oder keine - eine halbe Koordinate ist kein Ort.
+        # Both or neither: half a coordinate is not a place.
         sa.CheckConstraint(
             "(latitude IS NULL) = (longitude IS NULL)",
             name="coordinates_are_a_pair",
@@ -84,19 +83,19 @@ def upgrade() -> None:
             "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)",
             name="longitude_within_range",
         ),
-        # Traegt den zusammengesetzten Fremdschluessel von `plans`.
+        # Target for the composite foreign key from `plans`.
         sa.UniqueConstraint("id", "space_id", name="uq_places_id_space_id"),
     )
     op.create_index("ix_places_space_id", "places", ["space_id"])
     op.create_index("ix_places_owner_id", "places", ["owner_id"])
     op.create_index("ix_places_space_id_created_at_id", "places", ["space_id", "created_at", "id"])
 
-    # Aus M3-S2 verschoben: ohne Place-Domaene haette das Feld auf nichts
-    # zeigen koennen (M3-D08/D31).
+    # Deferred from M3-S2: before the Place domain existed the field could not
+    # have referenced anything (M3-D08/D31).
     op.add_column("plans", sa.Column("place_id", UUID, nullable=True))
     op.create_index("ix_plans_place_id", "plans", ["place_id"])
-    # `SET NULL` mit Spaltenliste (PostgreSQL 15+): ohne sie wuerde auch
-    # `space_id` geleert, und die ist NOT NULL.
+    # `SET NULL` with a column list (PostgreSQL 15+): without it, `space_id`
+    # would also be cleared even though it is NOT NULL.
     op.create_foreign_key(
         "fk_plans_place_id_places",
         "plans",

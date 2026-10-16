@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -13,12 +13,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PlanSchedule } from './PlanSchedule';
+import {
+    PlanScheduleFromJSON,
+    PlanScheduleFromJSONTyped,
+    PlanScheduleToJSON,
+    PlanScheduleToJSONTyped,
+} from './PlanSchedule';
+
 /**
- * Der Konvertierungsrequest.
+ * Wish-to-Plan conversion request with an optional atomic schedule.
  * 
- * Alle Felder optional: ohne eigenen Titel uebernimmt der Plan den des
- * Wishes. `sourceWishId`, `status` und die Termine kommen nicht vom
- * Client - der Wish steht im Pfad, alles andere entsteht serverseitig.
+ * Without an explicit title the Plan inherits the Wish title. Supplying
+ * ``schedule`` makes the new Plan date-only or timed without a second
+ * lifecycle request; omitting it preserves the existing unscheduled flow.
  * @export
  * @interface WishToPlan
  */
@@ -35,6 +43,12 @@ export interface WishToPlan {
      * @memberof WishToPlan
      */
     placeId?: string;
+    /**
+     * 
+     * @type {PlanSchedule}
+     * @memberof WishToPlan
+     */
+    schedule?: PlanSchedule;
     /**
      * 
      * @type {string}
@@ -62,6 +76,7 @@ export function WishToPlanFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         
         'description': json['description'] == null ? undefined : json['description'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
+        'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
         'title': json['title'] == null ? undefined : json['title'],
     };
 }
@@ -79,6 +94,7 @@ export function WishToPlanToJSONTyped(value?: WishToPlan | null, ignoreDiscrimin
         
         'description': value['description'],
         'placeId': value['placeId'],
+        'schedule': PlanScheduleToJSON(value['schedule']),
         'title': value['title'],
     };
 }

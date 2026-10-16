@@ -265,7 +265,12 @@ export function PlanningCreatePage({
         <fieldset
           disabled={pending}
           onChange={(event) => {
-            if ((event.target as HTMLInputElement).name !== 'title')
+            if (
+              !(
+                event.target instanceof HTMLInputElement &&
+                event.target.name === 'title'
+              )
+            )
               setEnrichmentDirty(true);
           }}
         >

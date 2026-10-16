@@ -28,6 +28,23 @@ export async function privateApiCall<T>(call: () => Promise<T>): Promise<T> {
   }
 }
 
+/** The original list owns recovery; only the submitted task owns navigation. */
+export function capturePrivateCreate(
+  client: QueryClient,
+  listKey: QueryKey,
+  isCurrentTask: () => boolean,
+) {
+  const isCurrentList = captureQueryIdentity(client, listKey);
+  return {
+    isCurrentTask,
+    async refreshList() {
+      if (isCurrentList()) {
+        await client.invalidateQueries({ queryKey: listKey });
+      }
+    },
+  };
+}
+
 /** Capture the authorized read that owns a private full-resource edit. */
 export function capturePrivateEdit<T extends { version: number }>(
   client: QueryClient,

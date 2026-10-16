@@ -12,6 +12,7 @@ import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCol
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
 import {
   PRIVATE_COLLECTIONS_PATH,
+  capturePrivateCreate,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -203,15 +204,17 @@ export function PrivateCollectionCreatePage({
           privateCollectionCreate: { title },
         }),
       ),
-    onMutate: () => captureOwnership(),
-    onSuccess: async (collection, _values, isCurrent) => {
-      if (!isCurrent?.()) return;
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
-      if (!isCurrent()) return;
+    onMutate: () =>
+      capturePrivateCreate(
+        queryClient,
+        privateAreaQueryKeys.collections(accountId, spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (collection, _values, context) => {
+      await context?.refreshList();
+      if (!context?.isCurrentTask()) return;
       closeTask(() => {
-        if (!isCurrent()) return;
+        if (!context.isCurrentTask()) return;
         navigate(privateCollectionPath(collection.id), {
           replace: true,
           state: navigationState,

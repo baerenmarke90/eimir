@@ -10,6 +10,7 @@ import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
 import {
   PRIVATE_NOTES_PATH,
+  capturePrivateCreate,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -216,15 +217,17 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
       privateApiCall(() =>
         api.createPrivateNote({ spaceId, privateNoteCreate: values }),
       ),
-    onMutate: () => captureOwnership(),
-    onSuccess: async (note, _values, isCurrent) => {
-      if (!isCurrent?.()) return;
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
-      });
-      if (!isCurrent()) return;
+    onMutate: () =>
+      capturePrivateCreate(
+        queryClient,
+        privateAreaQueryKeys.notes(accountId, spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (note, _values, context) => {
+      await context?.refreshList();
+      if (!context?.isCurrentTask()) return;
       closeTask(() => {
-        if (!isCurrent()) return;
+        if (!context.isCurrentTask()) return;
         navigate(privateNotePath(note.id), {
           replace: true,
           state: navigationState,

@@ -192,6 +192,43 @@ for (const definition of definitions) {
       expect(screen.getByText('Session ended')).toBeDefined();
     });
 
+    it('refreshes the original list after leaving the task without redirecting', async () => {
+      const h = setup();
+      await h.submit();
+      act(() => h.endSession());
+      const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
+      await act(async () => {
+        h.write.resolve(saved);
+      });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: definition.key });
+      expect(h.queryClient.getQueryState(definition.key)?.isInvalidated).toBe(
+        true,
+      );
+      expect(screen.getByTestId('location').textContent).toBe(
+        `${definition.path}/new`,
+      );
+      expect(screen.getByText('Session ended')).toBeDefined();
+    });
+
+    it('creates from a deep link without invalidating a list added after submission', async () => {
+      const h = setup();
+      h.queryClient.removeQueries({ queryKey: definition.key });
+      await h.submit();
+      const replacement = { items: [{ id: 'fresh-list-query' }] };
+      h.queryClient.setQueryData(definition.key, replacement);
+      const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
+      await act(async () => {
+        h.write.resolve(saved);
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId('location').textContent).toBe(
+          `${definition.path}/${saved.id}`,
+        ),
+      );
+      expect(invalidate).not.toHaveBeenCalled();
+      expect(h.queryClient.getQueryData(definition.key)).toEqual(replacement);
+    });
+
     it('preserves ordinary create, list recovery and result continuation', async () => {
       const h = setup();
       await h.submit();

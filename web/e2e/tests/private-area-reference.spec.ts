@@ -400,6 +400,30 @@ async function signInAndOpenPrivateArea(page: Page): Promise<string[]> {
   return unexpectedRequests;
 }
 
+async function signOutToPublicEntry(page: Page): Promise<void> {
+  // AppShell intentionally leaves the document on sign-out. Accept a pending
+  // editor's beforeunload prompt rather than relying on Playwright's dismissal.
+  page.on('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('beforeunload');
+    await dialog.accept();
+  });
+  await page
+    .getByRole('button', { name: navigation.profileMenu, exact: true })
+    .click();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/', { waitUntil: 'load' }),
+    page.getByRole('button', { name: de.header.logout, exact: true }).click(),
+  ]);
+  await expect(page.getByLabel(de.login.email)).toBeVisible();
+}
+
+async function signInAgain(page: Page): Promise<void> {
+  await page.getByLabel(de.login.email).fill('anna@example.org');
+  await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
+}
+
 async function expectPrivateReferenceStructure(page: Page): Promise<void> {
   const banner = page.getByRole('note');
   await expect(banner).toContainText(privateArea.privacyLabel);
@@ -1446,6 +1470,10 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
+  let finish!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
   await page.route('**/api/v1/**', async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -1478,6 +1506,7 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
         contentType: 'application/json',
         body: JSON.stringify(current),
       });
+      finish();
       return;
     }
     if (request.method() === 'GET' && path === endpoint) {
@@ -1502,7 +1531,7 @@ async function installHeldPrivateCreate(page: Page, kind: string) {
     }
     await route.fallback();
   });
-  return { endpoint, id, writes, release };
+  return { endpoint, id, writes, release, settled };
 }
 
 for (const view of [
@@ -1570,7 +1599,7 @@ for (const view of [
       expect(unexpected).toEqual([]);
     });
 
-    test(`private ${definition.kind} create cannot redirect a signed-out session at ${view.name}`, async ({
+    test(`private ${definition.kind} create cannot redirect a replacement task at ${view.name}`, async ({
       page,
     }, testInfo) => {
       await page.setViewportSize({ width: view.width, height: 900 });
@@ -1583,6 +1612,10 @@ for (const view of [
       );
       const unexpected = await signInAndOpenPrivateArea(page);
       const fixture = await installHeldPrivateCreate(page, definition.kind);
+      const destination = privateCreateCases.find(
+        (entry) => entry.kind !== definition.kind,
+      )!;
+      await installHeldPrivateCreate(page, destination.kind);
       await page
         .getByRole('link', { name: definition.copy.title, exact: false })
         .click();
@@ -1591,19 +1624,25 @@ for (const view of [
         .click();
       await page
         .getByLabel(definition.copy.titleLabel, { exact: true })
-        .fill('Previous session private title');
+        .fill('Previous task private title');
       await page
         .getByRole('button', { name: privateArea.save, exact: true })
         .click();
       await expect.poll(() => fixture.writes.length).toBe(1);
       await page
-        .getByRole('button', { name: navigation.profileMenu, exact: true })
+        .getByRole('navigation', {
+          name: privateArea.navigation.aria,
+          exact: true,
+        })
+        .getByRole('link', { name: destination.copy.title, exact: true })
         .click();
-      await page
-        .getByRole('button', { name: de.header.logout, exact: true })
-        .click();
-      await expect(page.getByLabel(de.login.email)).toBeVisible();
-      const signedOutUrl = page.url();
+      await expect(
+        page.getByRole('heading', {
+          name: destination.copy.title,
+          exact: true,
+        }),
+      ).toBeVisible();
+      const destinationUrl = page.url();
       const response = page.waitForResponse(
         (entry) =>
           entry.request().method() === 'POST' &&
@@ -1617,13 +1656,29 @@ for (const view of [
             requestAnimationFrame(() => resolve()),
           ),
       );
-      await expect(page.getByLabel(de.login.email)).toBeVisible();
-      await expect(page).toHaveURL(signedOutUrl);
-      await page.getByLabel(de.login.email).fill('anna@example.org');
+      await expect(page).toHaveURL(destinationUrl);
+      await expect(
+        page.getByRole('heading', {
+          name: destination.copy.title,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', {
+          name: 'Previous task private title',
+          exact: true,
+        }),
+      ).toHaveCount(0);
       await page
-        .getByLabel(de.login.password)
-        .fill('a-long-enough-test-password');
-      await page.getByRole('button', { name: de.login.submit }).click();
+        .getByRole('navigation', {
+          name: privateArea.navigation.aria,
+          exact: true,
+        })
+        .getByRole('link', { name: definition.copy.title, exact: true })
+        .click();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
       await expect(page).toHaveURL(
         new RegExp(`/more/private/${definition.kind}/new$`),
       );
@@ -1638,10 +1693,10 @@ for (const view of [
       ).toHaveValue('');
       await expectNoHorizontalOverflow(page);
       await expectNoWcagViolations(page);
-      if (definition.kind === 'notes' || definition.kind === 'gift-ideas')
+      if (definition.kind === 'gift-ideas')
         await page.screenshot({
           path: testInfo.outputPath(
-            `private-create-${definition.kind}-session-ended-${view.name}.png`,
+            `private-create-${definition.kind}-fresh-task-${view.name}.png`,
           ),
           fullPage: true,
           animations: 'disabled',
@@ -1650,6 +1705,61 @@ for (const view of [
       expect(unexpected).toEqual([]);
     });
   }
+
+  test(`private note create completes real sign-out before returning to a fresh task at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateCreate(page, 'notes');
+    await page
+      .getByRole('link', { name: privateArea.notes.title, exact: false })
+      .click();
+    await page
+      .getByRole('link', { name: privateArea.notes.add, exact: true })
+      .click();
+    await page
+      .getByLabel(privateArea.notes.titleLabel, { exact: true })
+      .fill('Previous session private title');
+    await page
+      .getByRole('button', { name: privateArea.save, exact: true })
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    await signOutToPublicEntry(page);
+    fixture.release();
+    await fixture.settled;
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByLabel(de.login.email)).toBeVisible();
+    await signInAgain(page);
+    await page.goto('/more/private/notes/new');
+    await expect(
+      page.getByRole('heading', {
+        name: privateArea.notes.createTitle,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByLabel(privateArea.notes.titleLabel, { exact: true }),
+    ).toHaveValue('');
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `private-create-session-ended-${view.name}.png`,
+      ),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
 }
 
 async function installHeldPrivateNoteEdit(page: Page) {
@@ -1677,6 +1787,10 @@ async function installHeldPrivateNoteEdit(page: Page) {
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
     release = resolve;
+  });
+  let finish!: () => void;
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
   });
   await page.route(`**${endpoint}`, async (route) => {
     const request = route.request();
@@ -1721,6 +1835,7 @@ async function installHeldPrivateNoteEdit(page: Page) {
       contentType: 'application/json',
       body: JSON.stringify(saved),
     });
+    finish();
   });
   await page.route(
     `**/api/v1/spaces/${SPACE_ID}/private/notes?*`,
@@ -1739,6 +1854,7 @@ async function installHeldPrivateNoteEdit(page: Page) {
   return {
     writes,
     release,
+    settled,
     denyReads: () => {
       denyReads = true;
     },
@@ -1935,33 +2051,13 @@ for (const view of [
     await expect.poll(() => fixture.writes.length).toBe(1);
 
     fixture.denyReads();
-    await page
-      .getByRole('button', { name: navigation.profileMenu, exact: true })
-      .click();
-    await page
-      .getByRole('button', { name: de.header.logout, exact: true })
-      .click();
-    await expect(page.getByLabel(de.login.email)).toBeVisible();
-    const signedOutUrl = page.url();
-    const response = page.waitForResponse(
-      (entry) =>
-        entry.request().method() === 'PATCH' &&
-        entry.url().endsWith(`/private/notes/${PRIVATE_NOTE_ID}`),
-    );
+    await signOutToPublicEntry(page);
     fixture.release();
-    await (await response).finished();
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
-    );
+    await fixture.settled;
     await expect(page.getByLabel(de.login.email)).toBeVisible();
-    await expect(page).toHaveURL(signedOutUrl);
-
-    await page.getByLabel(de.login.email).fill('anna@example.org');
-    await page
-      .getByLabel(de.login.password)
-      .fill('a-long-enough-test-password');
-    await page.getByRole('button', { name: de.login.submit }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await signInAgain(page);
+    await page.goto(`/more/private/notes/${PRIVATE_NOTE_ID}`);
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
     ).toBeVisible();

@@ -10,6 +10,7 @@ import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateNoteDetail } from '../api/generated/models/PrivateNoteDetail';
 import {
   PRIVATE_NOTES_PATH,
+  capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
   privateNoteEditPath,
@@ -399,21 +400,24 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     }) =>
       privateApiCall(() =>
         api.updatePrivateNote({
-          spaceId,
+          spaceId: note.spaceId,
           noteId: note.id,
           ifMatch: String(note.version),
           privateNoteUpdate: values,
         }),
       ),
-    onSuccess: async (note) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.note(accountId, spaceId, note.id),
-        note,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
-      });
+    onMutate: ({ note }) =>
+      capturePrivateEdit<PrivateNoteDetail>(
+        queryClient,
+        privateAreaQueryKeys.note(note.ownerId, note.spaceId, note.id),
+        privateAreaQueryKeys.notes(note.ownerId, note.spaceId),
+      ),
+    onSuccess: async (note, _variables, context) => {
+      if (!context?.reconcile(note)) return;
+      await queryClient.invalidateQueries({ queryKey: context.listKey });
+      if (!context.isCurrent()) return;
       closeTask(() => {
+        if (!context.isCurrent()) return;
         navigate(privateNotePath(note.id), {
           replace: true,
           state: navigationState,

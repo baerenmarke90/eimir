@@ -12,6 +12,7 @@ import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCol
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
 import {
   PRIVATE_COLLECTIONS_PATH,
+  capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
   privateCollectionPath,
@@ -929,29 +930,47 @@ export function PrivateCollectionDetailPage({
   }, [collection?.title]);
 
   const updateCollectionMutation = useMutation({
-    mutationFn: (newTitle: string) => {
-      if (!collection) throw new Error('Missing collection');
+    mutationFn: ({
+      collection,
+      newTitle,
+    }: {
+      collection: PrivateCollectionDetail;
+      newTitle: string;
+    }) => {
       return privateApiCall(() =>
         api.updatePrivateCollection({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           ifMatch: String(collection.version),
           privateCollectionUpdate: { title: newTitle },
         }),
       );
     },
-    onSuccess: (updated) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.collection(accountId, spaceId, updated.id),
-        updated,
-      );
-      void queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
+    onMutate: ({ collection }) =>
+      capturePrivateEdit<PrivateCollectionDetail>(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          collection.ownerId,
+          collection.spaceId,
+          collection.id,
+        ),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
+      ),
+    onSuccess: (updated, _variables, context) => {
+      if (!context?.reconcile(updated)) return;
+      void queryClient.invalidateQueries({ queryKey: context.listKey });
       closeCollectionEdit(() => {
+        if (!context.isCurrent()) return;
+        const current = queryClient.getQueryData<PrivateCollectionDetail>(
+          context.key,
+        );
+        if (!current) return;
         setIsEditing(false);
         setConfirmDelete(false);
-        setTitleDraft(updated.title);
+        setTitleDraft(current.title);
         showTitleSavedForFeedbackWindow();
       });
     },
@@ -1029,12 +1048,16 @@ export function PrivateCollectionDetailPage({
   function submitCollectionTitle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (
+      !collection ||
       !isTitleDirty ||
       updateCollectionMutation.isPending ||
       collectionOperationBlocked
     )
       return;
-    updateCollectionMutation.mutate(titleDraft.trim());
+    updateCollectionMutation.mutate({
+      collection,
+      newTitle: titleDraft.trim(),
+    });
   }
 
   return (
@@ -1260,21 +1283,31 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
     }) =>
       privateApiCall(() =>
         api.updatePrivateCollection({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           ifMatch: String(collection.version),
           privateCollectionUpdate: { title },
         }),
       ),
-    onSuccess: async (collection) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.collection(accountId, spaceId, collection.id),
-        collection,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
-      });
+    onMutate: ({ collection }) =>
+      capturePrivateEdit<PrivateCollectionDetail>(
+        queryClient,
+        privateAreaQueryKeys.collection(
+          collection.ownerId,
+          collection.spaceId,
+          collection.id,
+        ),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
+      ),
+    onSuccess: async (collection, _variables, context) => {
+      if (!context?.reconcile(collection)) return;
+      await queryClient.invalidateQueries({ queryKey: context.listKey });
+      if (!context.isCurrent()) return;
       closeTask(() => {
+        if (!context.isCurrent()) return;
         navigate(privateCollectionPath(collection.id), {
           replace: true,
           state: navigationState,

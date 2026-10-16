@@ -73,3 +73,15 @@ Open → offline attempt → rollback/error → reconnect (zero writes) → expl
 recovery/action → confirm → return. Capture error/recovered states; cover narrow
 widths, Light/Dark and reduced motion with existing browser coverage. No
 native-device or whole-#508/final-#946 acceptance claim.
+
+
+## Adjacent accessibility repair discovered by acceptance
+
+The new full-page offline recovery check reproduced a pre-existing Dark-mode
+contrast failure in the enabled `button.danger` control (white text on the
+light error-text token, approximately 1.7:1). Existing pending-state tests skipped
+this disabled control. Repair the shared selector by pairing the existing
+error foreground with error surface and error border. Preserve labels, actions,
+layout, focus, hover and confirmation. This is correction of the existing
+contrast contract, not a redesigned feature or a new visual reference. Keep
+full-page Axe assertions, and check actual Light/Dark recovered states.

@@ -1,10 +1,21 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { ClientProblemError } from '../client/problemDetails';
@@ -81,6 +92,12 @@ function renderInteractiveCollection(
   );
 }
 
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+  vi.restoreAllMocks();
+});
+
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
@@ -141,6 +158,96 @@ describe('CollectionProductPage', () => {
       },
     };
   }
+
+  it.each(['query manager', 'browser'])(
+    'rejects an offline shared reorder reported by the %s without reconnect replay',
+    async (source) => {
+      const reorder = vi.fn();
+      const fixture = renderReorderCollection(reorder);
+      if (source === 'query manager') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      fixture.moveApplesUp();
+      await waitFor(() =>
+        expect(screen.getByText(i18n.t('states.offline.title'))).toBeDefined(),
+      );
+      expect(fixture.order()).toEqual(['item-1', 'item-2', 'item-3']);
+      expect(reorder).not.toHaveBeenCalled();
+      expect(fixture.client.isMutating()).toBe(0);
+      vi.restoreAllMocks();
+      await act(async () => onlineManager.setOnline(true));
+      expect(reorder).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['query manager', 'browser'])(
+    'ends a shared offline checkbox attempt reported by the %s',
+    async (source) => {
+      const update = vi.fn();
+      const fixture = renderToggleCollection(update);
+      if (source === 'query manager') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+        }),
+      );
+      await waitFor(() =>
+        expect(screen.getByText(i18n.t('states.offline.title'))).toBeDefined(),
+      );
+      expect(
+        screen
+          .getByRole('button', {
+            name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+          })
+          .getAttribute('aria-pressed'),
+      ).toBe('false');
+      expect(fixture.queryClient.isMutating()).toBe(0);
+      expect(update).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
+      await act(async () => onlineManager.setOnline(true));
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('settles shared checkbox confirmation after going offline without a paused read lock', async () => {
+    let confirm!: (item: unknown) => void;
+    const update = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          confirm = resolve;
+        }),
+    );
+    const fixture = renderToggleCollection(update);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    onlineManager.setOnline(false);
+    await act(async () =>
+      confirm({ ...fixture.firstItem, completed: true, version: 2 }),
+    );
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('settles shared order confirmation after going offline without a paused read lock', async () => {
+    let confirm!: (collection: unknown) => void;
+    const reorder = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          confirm = resolve;
+        }),
+    );
+    const fixture = renderReorderCollection(reorder);
+    fixture.moveApplesUp();
+    await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+    onlineManager.setOnline(false);
+    await act(async () => confirm({ ...fixture.initial, version: 2 }));
+    await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
 
   it('keeps the moved row in place while saving and reconciles the server version', async () => {
     let confirm!: (collection: unknown) => void;

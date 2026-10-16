@@ -1,6 +1,5 @@
 import {
   hashKey,
-  onlineManager,
   type QueryClient,
   type QueryKey,
   useMutation,
@@ -8,6 +7,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useRef } from 'react';
+import { assertOnlineWrite } from '../client/connectivity';
 import type { DailyCheckInsApi } from '../api/generated/apis/DailyCheckInsApi';
 import type { DailyCheckInUpdate } from '../api/generated/models/DailyCheckInUpdate';
 import {
@@ -143,8 +143,7 @@ export function useDailyCheckInWrite({
     mutationFn: async (request) => {
       if (!isLive(request) || !request.isOwned())
         throw new ClientProblemError('unauthorized');
-      if (!onlineManager.isOnline() || navigator.onLine === false)
-        throw new ClientProblemError('offline');
+      assertOnlineWrite();
       let confirmed: DailyCheckInSnapshot;
       try {
         confirmed = await request.perform();

@@ -1,5 +1,4 @@
 import {
-  onlineManager,
   useIsMutating,
   useMutation,
   useQuery,
@@ -7,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { captureQueryIdentity } from '../client/queryIdentity';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import {
@@ -15,7 +15,6 @@ import {
   selectedDashboardCollectionId,
 } from '../client/dashboardPreferences';
 import {
-  ClientProblemError,
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -71,8 +70,7 @@ export function useCollectionPin({
     retry: false,
     mutationFn: (selection: Selection) => {
       if (!dashboardApi) throw new Error('Dashboard API is not available.');
-      if (!onlineManager.isOnline() || navigator.onLine === false)
-        throw new ClientProblemError('offline');
+      assertOnlineWrite();
       return apiCall(() =>
         dashboardApi.updateDashboardModulePreference({
           moduleKey: PINNED_COLLECTION_MODULE_KEY,
@@ -192,10 +190,7 @@ export function useCollectionPin({
             queryKey: context.key,
             exact: true,
             // An offline recovery read would pause and retain the write lock.
-            refetchType:
-              onlineManager.isOnline() && navigator.onLine !== false
-                ? 'active'
-                : 'none',
+            refetchType: isClientOnline() ? 'active' : 'none',
           });
         }
       } finally {

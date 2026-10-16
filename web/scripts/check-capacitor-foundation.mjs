@@ -79,17 +79,20 @@ assert(
   'capacitor.config.ts must NOT define allowNavigation (API access is strictly through CapacitorHttp, not remote page navigation)',
 );
 
-// 2. Check CSS safe-area rules for statusbar separation
+// 2. Check CSS safe-area rules for normal-flow statusbar separation
 const stylesCss = readWeb('src/styles.css');
+const headerMatch = stylesCss.match(/\.app-header\s*\{([^}]+)\}/);
+assert(headerMatch, '.app-header rule must exist in styles.css');
+const headerRules = headerMatch?.[1] ?? '';
 assert(
-  stylesCss.includes(
-    'top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
-  ),
-  '.app-header in styles.css must use var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+  headerRules.includes('position: relative;') &&
+    !/position:\s*(?:sticky|fixed)/.test(headerRules) &&
+    !/\btop\s*:/.test(headerRules),
+  '.app-header must remain in normal document flow, never sticky/fixed',
 );
 assert(
-  !/\.app-header\s*\{[^}]*top:\s*0[;\s]/s.test(stylesCss),
-  '.app-header must NOT stick blind with top: 0 under status bar',
+  headerRules.includes('var(--shell-header-safe-top, 0px)'),
+  '.app-header must incorporate the shell-owned top safe-area spacing',
 );
 
 const demoCss = readWeb('src/demo.css');
@@ -100,10 +103,18 @@ assert(
 
 const shellCss = readWeb('src/shell.css');
 assert(
-  shellCss.includes(
-    'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
-  ) && shellCss.includes('product-shell'),
-  '.product-shell in shell.css must include statusbar backdrop for native top inset',
+  shellCss.includes('--shell-header-safe-top: var(') &&
+    shellCss.includes('env(safe-area-inset-top, 0px)'),
+  '.product-shell must route the native top inset into normal-flow header spacing',
+);
+assert(
+  shellCss.includes('#root:has(> .demo-instance-banner) .product-shell') &&
+    shellCss.includes('--shell-header-safe-top: 0px;'),
+  '.demo-instance-banner must consume the native top inset without double-padding the app header',
+);
+assert(
+  !shellCss.includes('.product-shell:not([data-focused-task="true"])::before'),
+  '.product-shell must not keep a fixed statusbar/header scrim after the header enters normal flow',
 );
 
 // 3. Check android/app/build.gradle

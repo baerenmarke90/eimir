@@ -48,6 +48,50 @@ const profileIdentity = {
   settingsRelationship: 'Partner und Verbindung',
   settingsRelationshipIntro:
     'Verwalte euren gemeinsamen Startpunkt und die Verbindung zu deinem Partner.',
+  spaceConfigurationTitle: 'Gemeinsame Funktionen',
+  spaceConfigurationManagerIntro:
+    'Lege fest, welche bereits verfügbaren gemeinsamen Funktionen ihr in diesem Bereich nutzt.',
+  spaceConfigurationReadOnlyIntro:
+    'Du siehst hier den gemeinsamen Zustand. Änderungen sind für dein Konto nicht verfügbar.',
+  spaceConfigurationLoading: 'Gemeinsame Funktionen werden geladen …',
+  spaceConfigurationSaving: 'Wird gespeichert …',
+  spaceConfigurationSaved: '✓ Gespeichert',
+  supportGesturesTitle: 'Ich denke an dich',
+  supportGesturesIntro:
+    'Erlaubt euch, dem Partner mit einem kurzen Signal zu zeigen, dass ihr gerade aneinander denkt.',
+  supportGesturesToggle: 'Ich denke an dich aktivieren oder deaktivieren',
+  supportGesturesCurrentState: 'Ich denke an dich: {{state}}',
+  sharedAchievementsTitle: 'Gemeinsame Erfolge',
+  sharedAchievementsIntro:
+    'Würdigt größere gemeinsame Abschlüsse kurz als Team – ohne Punkte, Streaks oder Rankings.',
+  sharedAchievementsToggle: 'Gemeinsame Erfolge aktivieren oder deaktivieren',
+  vibeCheckTitle: 'Vibe-Check',
+  vibeCheckIntro:
+    'Teilt euren heutigen Vibe miteinander. Wer nichts einträgt, erscheint auf „Wir“ auch nicht als leerer Status.',
+  vibeCheckToggle: 'Vibe-Check aktivieren oder deaktivieren',
+  energyCheckInTitle: 'Akku-Check-in',
+  energyCheckInIntro:
+    'Zeigt auf „Wir“, wie voll euer Akku heute ist. Niemand muss etwas eintragen.',
+  energyCheckInToggle: 'Akku-Check-in aktivieren oder deaktivieren',
+  visibilityLegend: 'Sichtbarkeit: {{module}}',
+  visibilityImmediate: 'Sofort',
+  visibilityImmediateHint:
+    'Ihr seht den Eintrag des anderen, sobald er da ist.',
+  visibilityMutualReveal: 'Gemeinsam aufdecken',
+  visibilityMutualRevealHint:
+    'Ihr seht den Eintrag des anderen erst, wenn ihr selbst etwas eingetragen habt.',
+  visibilityReadOnly: 'Sichtbarkeit: {{mode}}',
+  spaceModulesKeepDataNote:
+    'Beim Ausschalten bleiben bestehende Einträge erhalten. Sie erscheinen wieder, sobald ihr die Funktion einschaltet.',
+  dailyContextTimezoneLabel: 'Zeitzone für euren gemeinsamen Tag',
+  dailyContextTimezoneIntro:
+    'Vibe und Akku gelten für euren gemeinsamen Tag. Er wechselt um Mitternacht in dieser Zeitzone.',
+  dailyContextTimezoneReadOnly:
+    'Euer gemeinsamer Tag wechselt in {{timezone}}.',
+  dailyContextTimezoneLocked:
+    'Die Zeitzone lässt sich ändern, sobald heute niemand mehr etwas eingetragen hat.',
+  spaceModuleOn: 'Aktiv',
+  spaceModuleOff: 'Aus',
   settingsNotifications: 'Benachrichtigungen',
   settingsNotificationsIntro:
     'Lege fest, wie eimir. dich über Neuigkeiten informiert. Deine aktuellen Mitteilungen findest du im Posteingang.',
@@ -60,7 +104,12 @@ const profileIdentity = {
     'Entscheide, welche Bereiche auf „Wir“ für dich sichtbar sind.',
   dashboardModulesTitle: 'Sichtbare Bereiche',
   dashboardModulesIntro:
-    'Blende einzelne Bereiche für dich aus oder wieder ein. Dein Partner sieht weiterhin seine eigene Auswahl.',
+    'Blende Bereiche aus oder ändere ihre Reihenfolge am Griff. Dein Partner sieht weiterhin seine eigene Auswahl.',
+  dashboardOrderHandle: '{{name}} verschieben',
+  dashboardOrderInstructions:
+    'Am Griff ziehen oder ihn fokussieren und mit Pfeil hoch und runter verschieben.',
+  dashboardOrderPosition: '{{name}}, Position {{position}} von {{total}}.',
+  dashboardOrderFailed: 'Reihenfolge konnte nicht gespeichert werden.',
   dashboardModuleSaving: 'Wird gespeichert …',
   dashboardModuleSaved: '✓ Gespeichert',
   dashboardUpcomingTitle: 'Demnächst',
@@ -106,8 +155,7 @@ const profileIdentity = {
   settingsSensitiveTitle: 'Sensible Aktionen',
   settingsSensitiveIntro:
     'Den gemeinsamen Bereich zu verlassen und dein Konto zu löschen sind getrennte Aktionen. Prüfe die jeweiligen Folgen, bevor du fortfährst.',
-  appearanceIntro:
-    'Wähle, ob eimir. der Systemeinstellung folgen oder dauerhaft hell beziehungsweise dunkel dargestellt werden soll.',
+  appearanceIntro: 'Wähle deinen Farbmodus und das Icon, das zu dir passt.',
 } as const;
 
 export default profileIdentity;

@@ -10,6 +10,7 @@ import { appRoutePath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
+import { EimirIcon } from './EimirIcon';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 
@@ -29,14 +30,7 @@ export function PrivateAreaFrame({
       >
         <div className="private-area-header-info">
           <h1 className="private-area-title-row">
-            <svg
-              className="private-area-lock-icon"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V7Zm7 12H7v-8h10v8Z" />
-            </svg>
+            <EimirIcon name="nurfuer" className="private-area-lock-icon" />
             {t('privateArea.eyebrow')}
           </h1>
           <p className="private-area-intro-text">{t('privateArea.intro')}</p>

@@ -26,7 +26,11 @@ from eimir.collections import service as collection_service
 from eimir.comments import service as comment_service
 from eimir.comments.models import CommentTarget
 from eimir.config import Environment
+from eimir.daily_checkins import service as daily_checkin_service
+from eimir.daily_checkins.models import DailyVibe
+from eimir.dashboard import preferences as dashboard_preferences
 from eimir.db.locks import lock_subject
+from eimir.db.mixins import INITIAL_VERSION
 from eimir.demo.assets import (
     DemoAssetCatalog,
     import_demo_asset,
@@ -63,9 +67,16 @@ from eimir.profiles.models import (
     PreferenceSentiment,
     ProfileVisibility,
 )
+from eimir.relationship import configuration as space_configuration_service
 from eimir.relationship import profile as relationship_profile
 from eimir.relationship import service as relationship_service
-from eimir.relationship.models import DurationDisplayMode, Membership, MembershipStatus, Space
+from eimir.relationship.models import (
+    DailyCheckInVisibilityMode,
+    DurationDisplayMode,
+    Membership,
+    MembershipStatus,
+    Space,
+)
 from eimir.wishes import service as wish_service
 
 PRIVATE_CANARY_LEA = "CANARY-PRIVATE-LEA-7421"
@@ -73,6 +84,7 @@ PRIVATE_CANARY_ALEX = "CANARY-PRIVATE-ALEX-9134"
 
 _CANONICAL_DATASET_LOCK = "canonical_demo_dataset"
 _CANONICAL_DATASET_SUBJECT = "canonical"
+_DEMO_DAILY_CONTEXT_TIMEZONE = "Europe/Berlin"
 
 
 def _lock_canonical_demo_dataset(session: Session) -> None:
@@ -314,8 +326,144 @@ def _context(account: Account, space: Space) -> AuthorizationContext:
     return AuthorizationContext(account_id=account.id, space_id=space.id)
 
 
+def _ensure_demo_configuration(session: Session, space: Space, lea: Account) -> None:
+    """Persist the deterministic #432 module configuration for the canonical Demo.
+
+    This helper is only called after the reserved Lea/Alex dataset has been
+    created or verified as canonical. Older Demo databases may have crossed
+    migration 0062 as an already-two-member Space and therefore have no
+    configuration manager; that generic migration correctly failed closed.
+    The canonical Demo is different: its seed contract itself defines Lea as
+    the founder, so repairing only this verified fixture does not infer
+    authority for user Spaces.
+    """
+    manager_membership = session.execute(
+        select(Membership)
+        .where(
+            Membership.space_id == space.id,
+            Membership.account_id == lea.id,
+            Membership.status == MembershipStatus.ACTIVE.value,
+        )
+        .with_for_update(read=True)
+    ).scalar_one_or_none()
+    if manager_membership is None:
+        raise RuntimeError("Canonical demo founder has no active Membership.")
+
+    if space.configuration_manager_account_id is None:
+        # The generic domain primitive is now the single NULL -> active-member
+        # authority transition. Canonical Demo verification above supplies the
+        # fact that Lea is the known founder; no user-Space inference is added.
+        space = relationship_service.reconcile_configuration_manager(
+            session,
+            space.id,
+            lea.id,
+        )
+    elif space.configuration_manager_account_id != lea.id:
+        raise RuntimeError(
+            "Refusing demo configuration repair: canonical Demo has an unexpected "
+            "configuration manager."
+        )
+
+    configuration = space_configuration_service.load(session, space.id)
+    if configuration is not None and (
+        configuration.vibe_check_enabled
+        and configuration.energy_check_in_enabled
+        and configuration.love_notes_enabled
+        and configuration.support_gestures_enabled
+        and configuration.shared_achievements_enabled
+        and configuration.daily_questions_enabled
+        and configuration.daily_context_timezone == _DEMO_DAILY_CONTEXT_TIMEZONE
+        and configuration.vibe_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
+        and configuration.energy_visibility_mode == DailyCheckInVisibilityMode.MUTUAL_REVEAL.value
+    ):
+        return
+
+    expected_version = INITIAL_VERSION
+    if configuration is not None:
+        expected_version = configuration.version
+    space_configuration_service.update(
+        session,
+        space.id,
+        manager_membership,
+        expected_version=expected_version,
+        vibe_check_enabled=True,
+        energy_check_in_enabled=True,
+        love_notes_enabled=True,
+        support_gestures_enabled=True,
+        shared_achievements_enabled=True,
+        daily_questions_enabled=True,
+        daily_context_timezone=_DEMO_DAILY_CONTEXT_TIMEZONE,
+        vibe_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+        energy_visibility_mode=DailyCheckInVisibilityMode.MUTUAL_REVEAL,
+    )
+
+
 def _instant(day: date, hour: int) -> datetime:
     return datetime.combine(day, time(hour=hour, tzinfo=UTC))
+
+
+def _seed_daily_check_ins(
+    session: Session,
+    lea_context: AuthorizationContext,
+    alex_context: AuthorizationContext,
+    *,
+    reference_date: date,
+) -> None:
+    """Seed recent Daily Check-in history through the normal write boundary.
+
+    The deliberately uneven rows make the Pro insights and Mutual Reveal
+    states representative without turning the demo into a wall of perfect
+    daily participation. Today's values exist for both personas so the public
+    entry point opens with a useful, fully revealed example.
+    """
+    history: tuple[
+        tuple[int, DailyVibe | None, int | None, DailyVibe | None, int | None],
+        ...,
+    ] = (
+        (0, DailyVibe.GOOD, 80, DailyVibe.OKAY, 70),
+        (1, DailyVibe.OKAY, 70, DailyVibe.GOOD, 80),
+        (2, DailyVibe.STRESSED, 50, DailyVibe.OKAY, 60),
+        (3, DailyVibe.GOOD, 90, DailyVibe.GOOD, 80),
+        (4, DailyVibe.NEEDS_CONNECTION, 40, DailyVibe.OKAY, 60),
+        (5, DailyVibe.GOOD, 60, None, 70),
+        (6, DailyVibe.OKAY, 70, DailyVibe.STRESSED, 50),
+        (7, DailyVibe.GOOD, 80, DailyVibe.GOOD, 90),
+        (8, DailyVibe.NEEDS_SPACE, 40, DailyVibe.OKAY, 70),
+        (9, None, None, DailyVibe.GOOD, 80),
+        (10, DailyVibe.SAD, 40, None, None),
+        (11, DailyVibe.OKAY, 60, DailyVibe.OKAY, 60),
+        (12, DailyVibe.GOOD, 90, DailyVibe.NEEDS_CONNECTION, 50),
+        (13, DailyVibe.GOOD, 80, DailyVibe.GOOD, 80),
+    )
+
+    def write(
+        context: AuthorizationContext,
+        checked_on: date,
+        *,
+        vibe: DailyVibe | None,
+        energy: int | None,
+    ) -> None:
+        if vibe is None and energy is None:
+            return
+        daily_checkin_service.update_today(
+            session,
+            context,
+            expected_token=daily_checkin_service.concurrency_token(None, checked_on),
+            vibe=daily_checkin_service.DimensionUpdate(
+                supplied=vibe is not None,
+                value=vibe,
+            ),
+            energy=daily_checkin_service.DimensionUpdate(
+                supplied=energy is not None,
+                value=energy,
+            ),
+            at=_instant(checked_on, 12),
+        )
+
+    for days_ago, lea_vibe, lea_energy, alex_vibe, alex_energy in history:
+        checked_on = reference_date - timedelta(days=days_ago)
+        write(lea_context, checked_on, vibe=lea_vibe, energy=lea_energy)
+        write(alex_context, checked_on, vibe=alex_vibe, energy=alex_energy)
 
 
 def _seed_relationship(
@@ -642,6 +790,23 @@ def _seed_planning(
         experienced_on=reference_date - timedelta(days=43),
     )
 
+    recent_completed = plan_service.create_plan(
+        session,
+        alex_context,
+        title="Sonntag am See",
+        description=(
+            "Picknick einpacken, eine große Runde laufen und den Nachmittag draußen lassen."
+        ),
+        place_id=lake.id,
+    )
+    plan_service.complete_plan(
+        session,
+        alex_context,
+        recent_completed.id,
+        expected_version=recent_completed.version,
+        experienced_on=reference_date - timedelta(days=6),
+    )
+
     plan_service.create_plan(
         session,
         alex_context,
@@ -723,6 +888,37 @@ def _seed_planning(
         title="Eine neue Komödie aussuchen",
         completed=False,
     )
+    weekend = collection_service.create_collection(
+        session,
+        lea_context,
+        title="Fürs Wochenende am See",
+    )
+    for title, item_completed in (
+        ("Picknickdecke einpacken", True),
+        ("Thermoskanne mitnehmen", True),
+        ("Obst und Snacks vorbereiten", False),
+        ("Kartenspiel einstecken", False),
+        ("Powerbank laden", False),
+    ):
+        collection_service.create_item(
+            session,
+            lea_context,
+            weekend.id,
+            title=title,
+            completed=item_completed,
+        )
+    for account_id in (lea_context.account_id, alex_context.account_id):
+        dashboard_preferences.set_module_preference(
+            session,
+            account_id=account_id,
+            space_id=lea_context.space_id,
+            module_key=dashboard_preferences.DashboardModuleKey.PINNED_COLLECTION.value,
+            visible=True,
+            item_limit=None,
+            selected_collection_id=weekend.id,
+            selected_collection_id_changed=True,
+        )
+
     recipes = collection_service.create_collection(
         session,
         alex_context,
@@ -890,7 +1086,14 @@ def _seed(
 ) -> None:
     lea_context = _context(lea, space)
     alex_context = _context(alex, space)
+    _ensure_demo_configuration(session, space, lea)
     _seed_relationship(session, space, reference_date=reference_date)
+    _seed_daily_check_ins(
+        session,
+        lea_context,
+        alex_context,
+        reference_date=reference_date,
+    )
     _seed_profiles(session, lea, alex, lea_context, alex_context)
     _seed_people(
         session,
@@ -946,6 +1149,7 @@ def create_demo_space(
         # this *is* the pre-existing canonical demo, marker or not -- safe to
         # adopt a still-missing marker now that the Space itself proves it.
         _backfill_missing_markers(session, lea, alex)
+        _ensure_demo_configuration(session, existing, lea)
         return DemoSeedResult(
             lea_id=lea.id,
             alex_id=alex.id,

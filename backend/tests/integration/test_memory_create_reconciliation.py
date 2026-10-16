@@ -81,6 +81,20 @@ def couple(session: Session):  # type: ignore[no-untyped-def]
 
 
 class TestReplay:
+    def test_tags_are_part_of_the_exact_create_identity(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
+        key = uuid4()
+        headers = with_key(couple["token_a"], key)
+        first = client.post(path(couple["space"].id), json=payload(tags=["home"]), headers=headers)
+        replay = client.post(path(couple["space"].id), json=payload(tags=["home"]), headers=headers)
+        conflict = client.post(
+            path(couple["space"].id), json=payload(tags=["laughter"]), headers=headers
+        )
+        assert first.status_code == 201
+        assert replay.status_code == 200
+        assert replay.json()["id"] == first.json()["id"]
+        assert conflict.status_code == 409
+        assert memory_count(session, couple["space"].id) == 1
+
     def test_an_equivalent_repeat_returns_the_original_memory_without_a_second_create(
         self, client, session, couple
     ) -> None:  # type: ignore[no-untyped-def]

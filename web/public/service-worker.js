@@ -1,16 +1,18 @@
 const CACHE_PREFIX = 'eimir-pwa-';
-const SHELL_CACHE = `${CACHE_PREFIX}shell-v1`;
-const STATIC_CACHE = `${CACHE_PREFIX}static-v1`;
+const SHELL_CACHE = `${CACHE_PREFIX}shell-v2`;
+const STATIC_CACHE = `${CACHE_PREFIX}static-v2`;
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
   OFFLINE_URL,
   '/offline.css',
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/identity/app-icon-light.png',
+  '/identity/app-icon-dark.png',
   '/apple-touch-icon.png',
   '/pwa-192.png',
   '/pwa-512.png',
+  '/pwa-maskable.png',
   '/theme-bootstrap.js',
 ];
 

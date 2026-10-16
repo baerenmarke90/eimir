@@ -304,3 +304,28 @@ It does **not** expose Account identity correlation, Space profile/relationship 
 Memories, Notes, messages, media, OWNER_ONLY state or behavioral/engagement analytics.
 Space termination, partner removal and reactivation remain outside this operator surface
 until the authoritative lifecycle decisions in #518 are complete.
+
+### Legacy configuration-manager reconciliation
+
+Spaces created before the M7 configuration-authority contract can legitimately
+have no `configuration_manager_account_id` when retained Membership history does
+not prove one unique founder. This state is intentionally fail-closed and must
+not be repaired from Membership order, join timestamps, invitation history,
+Account creation time, or client ordering.
+
+After the partners have been verified through an appropriate out-of-band
+process, a ServerAdmin with a current recent-authentication grant may perform
+the one-time recovery operation:
+
+```text
+POST /api/v1/server-admin/spaces/{spaceId}/configuration-manager/reconcile
+{"accountId":"<active-member-account-id>"}
+```
+
+The selected Account must currently have an `ACTIVE` Membership in that Space.
+The operation only assigns a missing manager; it never replaces an existing
+manager and is not a general owner-transfer mechanism. Concurrent attempts are
+serialized by the authoritative relationship locks, and a successful assignment
+records a content-free privileged audit event with actor, target Account, and
+target Space identifiers. Until reconciliation succeeds, ordinary configuration
+writes remain unavailable for that legacy Space.

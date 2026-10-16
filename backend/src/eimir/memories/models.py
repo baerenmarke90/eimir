@@ -6,6 +6,7 @@ from datetime import date, datetime
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field, field_validator
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -26,6 +27,7 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
+from eimir.memories.tags import MemoryTags, unique_tags
 
 
 class MemoryPayload(ProtectedPayload):
@@ -38,6 +40,9 @@ class MemoryPayload(ProtectedPayload):
 
     title: str
     body: str
+    tags: MemoryTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
 
 class Memory(
@@ -77,14 +82,6 @@ class Memory(
         Index("ix_memories_owner_id", "owner_id"),
         Index("ix_memories_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_memories_space_id_happened_on", "space_id", "happened_on"),
-        Index(
-            "ix_memories_search_fts",
-            text(
-                "(setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B'))"
-            ),
-            postgresql_using="gin",
-        ),
     )
 
 

@@ -1,7 +1,9 @@
 """Boundary between metadata and protected content.
 
-The first release has NO end-to-end encryption. This module does not implement
-it and must not be presented as if it did.
+There is NO end-to-end encryption. This module does not implement it and must
+not be presented as if it did. What exists is application-controlled encryption
+at rest (issue #797): the server encrypts protected payloads with keys its
+operator controls, and the running application can read them.
 
 What it does is draw the boundary now so it does not need to be introduced
 throughout the whole application later.
@@ -14,9 +16,9 @@ throughout the whole application later.
     created_at
     crypto_version
 
-In version 1 the payload is plaintext, `crypto_version = 0`. Later the same
-field can contain ciphertext produced by the client, which the server never
-sees in plaintext.
+`crypto_version = 0` is legacy plaintext; `crypto_version = 2` is an
+application-encrypted envelope (see `eimir.security.payload_envelope`). Version 1
+stays reserved for client-side encryption, which does not exist.
 
 The consequence for everything built on top of this boundary: dashboards,
 recaps, rules, and notifications should work from metadata. Anything requiring
@@ -36,6 +38,9 @@ CRYPTO_VERSION_PLAINTEXT = 0
 CRYPTO_VERSION_CLIENT_SEALED = 1
 """Reserved for client-side encryption. Not implemented yet."""
 
+CRYPTO_VERSION_SERVER_AEAD = 2
+"""Server-side AEAD envelope under operator-controlled keys. NOT end-to-end."""
+
 
 class ProtectedPayload(BaseModel):
     """Base class for the protected part of a domain object.
@@ -49,12 +54,23 @@ class ProtectedPayload(BaseModel):
 
     crypto_version: ClassVar[int] = CRYPTO_VERSION_PLAINTEXT
 
+    @classmethod
+    def crypto_context(cls) -> str:
+        """Stable label authenticated with every encrypted payload of this type.
+
+        Defaults to the class name. Renaming a payload class changes this value
+        and makes existing ciphertext unreadable, so a rename must pin the old
+        label by overriding this method. ``test_payload_encryption`` pins the
+        labels of every registered payload type to catch an accidental rename.
+        """
+        return cls.__name__
+
     def seal(self) -> dict[str, Any]:
         """Convert the payload to its persisted representation.
 
-        Today this is a lossless JSON mapping. Later this is the boundary where
-        plaintext becomes ciphertext - or where it becomes explicit that the
-        server no longer possesses plaintext at all.
+        This is the plaintext JSON mapping. Encryption is applied one layer
+        below, in `ProtectedPayloadJSON`, so domain code never handles
+        ciphertext and never decides whether a value is encrypted.
         """
         return self.model_dump(mode="json")
 
@@ -75,4 +91,4 @@ def is_readable_by_server(crypto_version: int) -> bool:
     Intended for derived features that depend on plaintext. They should be
     able to skip the row rather than guess.
     """
-    return crypto_version == CRYPTO_VERSION_PLAINTEXT
+    return crypto_version in (CRYPTO_VERSION_PLAINTEXT, CRYPTO_VERSION_SERVER_AEAD)

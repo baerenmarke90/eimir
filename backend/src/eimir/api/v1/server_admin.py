@@ -53,6 +53,7 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
     Membership,
@@ -233,6 +234,15 @@ class ServerAdminSpaceList(ApiModel):
     total: int
     limit: int
     offset: int
+
+
+class ServerAdminSpaceConfigurationManagerReconcileRequest(ApiModel):
+    account_id: UUID
+
+
+class ServerAdminSpaceConfigurationManagerView(ApiModel):
+    space_id: UUID
+    configuration_manager_account_id: UUID
 
 
 class ServerAdminEntitlementGrantView(ApiModel):
@@ -889,6 +899,45 @@ def _space_entitlement_view(session: Session, space_id: UUID) -> ServerAdminSpac
     )
 
 
+@router.post(
+    "/spaces/{space_id}/configuration-manager/reconcile",
+    response_model=ServerAdminSpaceConfigurationManagerView,
+    operation_id="reconcileServerAdminSpaceConfigurationManager",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def reconcile_server_admin_space_configuration_manager(
+    body: ServerAdminSpaceConfigurationManagerReconcileRequest,
+    admin: CurrentServerAdmin,
+    device_session: CurrentSession,
+    session: DbSession,
+    space_id: Annotated[str, Path(max_length=64)],
+) -> ServerAdminSpaceConfigurationManagerView:
+    """Assign missing legacy Space configuration authority exactly once."""
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
+    parsed_space = _require_space(session, space_id)
+    space = relationship_service.reconcile_configuration_manager(
+        session,
+        parsed_space,
+        body.account_id,
+    )
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.SPACE_CONFIGURATION_MANAGER_RECONCILED,
+        target_account_id=body.account_id,
+        target_space_id=parsed_space,
+    )
+    return ServerAdminSpaceConfigurationManagerView(
+        space_id=space.id,
+        configuration_manager_account_id=body.account_id,
+    )
+
+
 @router.get(
     "/spaces/{space_id}/entitlement",
     response_model=ServerAdminSpaceEntitlementView,
@@ -912,6 +961,7 @@ def get_server_admin_space_entitlement(
 def grant_server_admin_space_entitlement(
     body: ServerAdminEntitlementGrantRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
@@ -923,7 +973,17 @@ def grant_server_admin_space_entitlement(
     ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
+
+    Granting unlimited Premium is as consequential as the other high-risk
+    ServerAdmin actions in this router (account deletion, email verification,
+    recovery issuance), so it requires the same step-up re-authentication.
     """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed = _require_space(session, space_id)
     entitlements.record_grant(
         session,
@@ -954,11 +1014,23 @@ def grant_server_admin_space_entitlement(
 def revoke_server_admin_space_entitlement_grant(
     body: ServerAdminEntitlementRevokeRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
     grant_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
-    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback)."""
+    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+
+    Revoking a paying customer's entitlement is as consequential as the other
+    high-risk ServerAdmin actions in this router, so it requires the same
+    step-up re-authentication.
+    """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed_space = _require_space(session, space_id)
     parsed_grant = parse_id(grant_id)
     if parsed_grant is None:

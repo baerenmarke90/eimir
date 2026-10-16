@@ -27,6 +27,12 @@ export interface DashboardModulePreferenceUpdate {
     itemLimit?: DashboardModulePreferenceUpdateItemLimitEnum;
     /**
      * 
+     * @type {string}
+     * @memberof DashboardModulePreferenceUpdate
+     */
+    selectedCollectionId?: string | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof DashboardModulePreferenceUpdate
      */
@@ -63,6 +69,7 @@ export function DashboardModulePreferenceUpdateFromJSONTyped(json: any, ignoreDi
     return {
         
         'itemLimit': json['itemLimit'] == null ? undefined : json['itemLimit'],
+        'selectedCollectionId': json['selectedCollectionId'] === undefined ? undefined : json['selectedCollectionId'] === null ? null : json['selectedCollectionId'],
         'visible': json['visible'] == null ? undefined : json['visible'],
     };
 }
@@ -79,6 +86,7 @@ export function DashboardModulePreferenceUpdateToJSONTyped(value?: DashboardModu
     return {
         
         'itemLimit': value['itemLimit'],
+        'selectedCollectionId': value['selectedCollectionId'],
         'visible': value['visible'],
     };
 }

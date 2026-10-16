@@ -180,6 +180,7 @@ export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 
 export const STORY_CHAPTERS_ROUTE = '/story/chapters';
 export const STORY_YEARS_ROUTE = '/story/years';
+export const STORY_PHOTOS_ROUTE = '/story/photos';
 export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
 export const MEMORY_CREATE_ROUTE = '/story/memories/new';
 export const MEMORY_DETAIL_ROUTE_PATTERN = '/story/memories/:memoryId';
@@ -325,3 +326,12 @@ export function chapterDetailPath(chapterId: string): string {
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
 }
+
+/**
+ * Pro Vibe/Energy insights (#1151, placement updated by #1196). Discovery and
+ * all three views live under More so the Mehr destination stays active while
+ * people move between week, patterns and recap.
+ */
+export const MORE_INSIGHTS_ROUTE = '/more/insights';
+export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
+export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

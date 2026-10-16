@@ -11,6 +11,7 @@ type StoryMediaLoaderOptions = {
   fetchApi?: typeof fetch;
   createObjectUrl?: (blob: Blob) => string;
   signal?: AbortSignal;
+  variant?: 'original' | 'thumbnail';
 };
 
 /**
@@ -27,11 +28,20 @@ export async function loadAuthorizedStoryImage(
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
 ): Promise<string> {
-  const descriptor = await apis.attachments.createAttachmentReadAccess({
+  const descriptorRequest = {
     spaceId,
     attachmentId,
-    attachmentReadRequest: { parentType, parentId },
-  });
+    attachmentReadRequest: {
+      parentType,
+      parentId,
+      ...(options.variant ? { variant: options.variant } : {}),
+    },
+  };
+  const descriptor = options.signal
+    ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
+        signal: options.signal,
+      })
+    : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
 
   let blob: Blob;
   if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
@@ -40,11 +50,18 @@ export async function loadAuthorizedStoryImage(
       ? await fetchApi(descriptor.url, { signal: options.signal })
       : await fetchApi(descriptor.url);
     if (!response.ok) {
-      throw new Error(`Story media load failed: ${response.status}`);
+      throw Object.assign(
+        new Error(`Story media load failed: ${response.status}`),
+        { status: response.status },
+      );
     }
     blob = await response.blob();
   } else {
-    const request = { spaceId, attachmentId };
+    const request = {
+      spaceId,
+      attachmentId,
+      ...(options.variant ? { variant: options.variant } : {}),
+    };
     const response = options.signal
       ? await apis.attachments.getAttachmentContentRaw(request, {
           signal: options.signal,

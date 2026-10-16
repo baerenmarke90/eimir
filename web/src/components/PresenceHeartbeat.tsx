@@ -4,6 +4,7 @@ import { useApiRuntime } from '../client/apiRuntimeContext';
 import {
   createPresenceApi,
   partnerPresenceQueryKey,
+  PARTNER_PRESENCE_PRODUCT_ENABLED,
   PRESENCE_EVENT_DEDUPE_MS,
   PRESENCE_HEARTBEAT_INTERVAL_MS,
 } from '../client/presence';
@@ -19,9 +20,11 @@ function appIsActivelyVisible(): boolean {
 export function PresenceHeartbeat({
   accountId,
   spaceId,
+  enabled = PARTNER_PRESENCE_PRODUCT_ENABLED,
 }: {
   accountId: string;
   spaceId: string;
+  enabled?: boolean;
 }) {
   const runtime = useApiRuntime();
   const queryClient = useQueryClient();
@@ -34,12 +37,13 @@ export function PresenceHeartbeat({
   );
 
   useEffect(() => {
-    if (!api || !accountId || !spaceId) return;
+    if (!enabled || !api || !accountId || !spaceId) return;
 
     const queryKey = partnerPresenceQueryKey(accountId, spaceId);
     let disposed = false;
     let intervalId: number | null = null;
     let lastTouchStartedAt = Number.NEGATIVE_INFINITY;
+    let touchGeneration = 0;
 
     const stopTimer = () => {
       if (intervalId !== null) {
@@ -55,13 +59,21 @@ export function PresenceHeartbeat({
       const startedAt = Date.now();
       if (startedAt - lastTouchStartedAt < PRESENCE_EVENT_DEDUPE_MS) return;
       lastTouchStartedAt = startedAt;
+      touchGeneration += 1;
+      const generation = touchGeneration;
       void api
         .touchPresence({ spaceId })
         .then((view) => {
-          if (!disposed) queryClient.setQueryData(queryKey, view);
+          if (
+            !disposed &&
+            generation === touchGeneration &&
+            appIsActivelyVisible()
+          ) {
+            queryClient.setQueryData(queryKey, view);
+          }
         })
         .catch(() => {
-          if (!disposed) clearClaim();
+          if (!disposed && generation === touchGeneration) clearClaim();
         });
     };
     const restart = () => {
@@ -74,6 +86,8 @@ export function PresenceHeartbeat({
       intervalId = window.setInterval(touch, PRESENCE_HEARTBEAT_INTERVAL_MS);
     };
     const suspend = () => {
+      touchGeneration += 1;
+      lastTouchStartedAt = Number.NEGATIVE_INFINITY;
       stopTimer();
       clearClaim();
     };
@@ -91,6 +105,7 @@ export function PresenceHeartbeat({
 
     return () => {
       disposed = true;
+      touchGeneration += 1;
       stopTimer();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', restart);
@@ -99,7 +114,7 @@ export function PresenceHeartbeat({
       window.removeEventListener('offline', suspend);
       queryClient.removeQueries({ queryKey, exact: true });
     };
-  }, [accountId, api, queryClient, spaceId]);
+  }, [accountId, api, enabled, queryClient, spaceId]);
 
   return null;
 }

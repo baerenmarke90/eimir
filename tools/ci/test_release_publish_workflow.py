@@ -3,7 +3,12 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -88,6 +93,90 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             "Android-excluded evidence must carry only explicit not-applicable metadata",
             self.candidate_workflow,
         )
+
+    def test_reusable_evidence_call_permissions_are_workflow_scoped(self) -> None:
+        required_permissions = (
+            "contents: read",
+            "id-token: write",
+            "attestations: write",
+        )
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                workflow_permissions = workflow.split("\njobs:\n", 1)[0]
+                for permission in required_permissions:
+                    self.assertIn(permission, workflow_permissions)
+
+                before_use = workflow.split(
+                    "uses: ./.github/workflows/release-evidence.yml", 1
+                )[0]
+                evidence_call = before_use.rsplit("\n  evidence:\n", 1)[1]
+                self.assertNotIn("\n    permissions:", evidence_call)
+
+    def test_reusable_evidence_call_never_passes_an_empty_number_input(self) -> None:
+        """A number-typed workflow_call input rejects an empty value at call setup.
+
+        An Android-excluded dispatch leaves ``android_version_code`` empty, so the
+        call must fall back to a number instead of forwarding the bare input.
+        """
+
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                evidence_call = workflow.split("\n  evidence:\n", 1)[1].split(
+                    "\n\n", 1
+                )[0]
+                self.assertIn(
+                    "android_version_code: ${{ inputs.include_android "
+                    "&& inputs.android_version_code || 0 }}",
+                    evidence_call,
+                )
+                self.assertNotIn(
+                    "android_version_code: ${{ inputs.android_version_code }}",
+                    workflow,
+                )
+
+    def test_release_notes_heredocs_render_their_backticked_values(self) -> None:
+        """An unquoted heredoc executes unescaped backticks as commands.
+
+        The published v0.1.0 notes lost the source revision, the previous release and
+        every file name that way. Render each workflow's notes script for real and
+        require the values and literal backticks to survive.
+        """
+
+        cases = (
+            ("publish", self.workflow, "self-hosted-image-identity.json"),
+            ("candidate", self.candidate_workflow, "SHA256SUMS"),
+        )
+        revision = "8bb0c1eadbeb4864788d277a25a3673c79f5e46f"
+        for name, workflow, expected_name in cases:
+            with self.subTest(workflow=name):
+                start = workflow.index("cat > release-evidence/RELEASE-NOTES.md <<EOF")
+                end = workflow.index("\n          EOF", start) + len("\n          EOF")
+                script = textwrap.dedent(" " * 10 + workflow[start:end].lstrip())
+                with tempfile.TemporaryDirectory() as directory:
+                    (Path(directory) / "release-evidence").mkdir()
+                    subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c", script],
+                        cwd=directory,
+                        check=True,
+                        env={
+                            "PATH": "/usr/bin:/bin",
+                            "RELEASE_VERSION": "0.1.0",
+                            "SOURCE_REVISION": revision,
+                            "previous": "v0.0.9",
+                            "android_note": "android note",
+                            "channel_note": "channel note",
+                        },
+                    )
+                    notes = (Path(directory) / "release-evidence/RELEASE-NOTES.md").read_text(
+                        encoding="utf-8"
+                    )
+                self.assertIn(f"`{revision}`", notes)
+                self.assertIn("`eimir-release-manifest.json`", notes)
+                self.assertIn(f"`{expected_name}`", notes)
 
     def test_android_publication_steps_are_conditional(self) -> None:
         android_steps = (
@@ -297,6 +386,13 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("deploy/self-hosted-release.env.example", bundle_step)
         self.assertIn("scripts/self_hosted_release.py", bundle_step)
         self.assertIn("scripts/check_runtime_environment.py", bundle_step)
+        self.assertIn("scripts/_identity_environment.py", bundle_step)
+        self.assertIn(
+            'cp -- release-evidence/self-hosted-image-identity.json \\\n'
+            '            "$bundle_root/self-hosted-image-identity.json"',
+            bundle_step,
+        )
+        self.assertIn("${bundle_name}/self-hosted-image-identity.json", bundle_step)
         self.assertIn("--sort=name", bundle_step)
         self.assertIn("--mtime='UTC 1970-01-01'", bundle_step)
         self.assertIn("--owner=0 --group=0 --numeric-owner", bundle_step)
@@ -307,12 +403,52 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("web/", bundle_step)
         self.assertIn("verify_release_asset_set.py", self.workflow)
 
+    def test_shipped_operator_scripts_start_from_the_bundle_alone(self) -> None:
+        """The target host has only the bundle, not the source checkout (#915).
+
+        #954 made the launcher and the runtime checker import a sibling helper; the
+        bundle step did not ship it, so the published v0.1.0 launcher failed at import
+        time on a host. Assemble the bundle exactly as the workflow copies it and start
+        every shipped script in isolation.
+        """
+        bundle_step = self.workflow.split(
+            "Build deterministic Self-Hosted operator bundle", 1
+        )[1].split("Write human-readable release notes", 1)[0]
+        copies = re.findall(r'cp -- (\S+) \\\n?\s*"\$bundle_root/([^"]+)"', bundle_step)
+        copies += re.findall(r'cp -- (\S+) "\$bundle_root/([^"]+)"', bundle_step)
+        # release-evidence/ only exists in the publish job, not in the checkout.
+        repository_copies = [
+            (source, target) for source, target in copies if not source.startswith("release-evidence/")
+        ]
+        shipped_scripts = [t for _, t in repository_copies if t.startswith("scripts/")]
+        self.assertIn("scripts/self_hosted_release.py", shipped_scripts)
+        self.assertIn("scripts/check_runtime_environment.py", shipped_scripts)
+
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory)
+            for source, target in repository_copies:
+                destination = bundle / target
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((ROOT / source).read_bytes())
+            for target in shipped_scripts:
+                with self.subTest(script=target):
+                    result = subprocess.run(
+                        [sys.executable, target, "--help"],
+                        cwd=bundle,
+                        env={"PATH": os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"},
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_release_workflow_tracks_operator_bundle_inputs(self) -> None:
         for path in (
             '"compose.yaml"',
             '"deploy/self-hosted-release.env.example"',
             '"scripts/self_hosted_release.py"',
             '"scripts/check_runtime_environment.py"',
+            '"scripts/_identity_environment.py"',
             '"scripts/verify_release_asset_set.py"',
             '"tools/ci/test_verify_release_asset_set.py"',
             '"docs/SELF-HOSTING.md"',

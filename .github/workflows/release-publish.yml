@@ -9,6 +9,7 @@ on:
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/check_runtime_environment.py"
+      - "scripts/_identity_environment.py"
       - "scripts/release_manifest.py"
       - "scripts/verify_release_asset_set.py"
       - "tools/ci/test_release_manifest.py"
@@ -52,6 +53,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}
@@ -81,14 +84,12 @@ jobs:
     name: Build and attest one source revision
     if: github.event_name == 'workflow_dispatch'
     needs: contract
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
       include_android: ${{ inputs.include_android }}
-      android_version_code: ${{ inputs.android_version_code }}
+      # A number-typed call input rejects an empty value, which a dispatch without an
+      # Android channel passes; 0 is treated as unset by the evidence workflow.
+      android_version_code: ${{ inputs.include_android && inputs.android_version_code || 0 }}
       android_api_base_url: ${{ inputs.android_api_base_url }}
       release_version: ${{ inputs.release_version }}
 
@@ -1083,6 +1084,14 @@ jobs:
             "$bundle_root/scripts/self_hosted_release.py"
           cp -- scripts/check_runtime_environment.py \
             "$bundle_root/scripts/check_runtime_environment.py"
+          # Both scripts above import this module as a sibling; without it the shipped
+          # launcher and runtime checker fail at import time on the target host.
+          cp -- scripts/_identity_environment.py \
+            "$bundle_root/scripts/_identity_environment.py"
+          # The published identity is the trust root of the in-manifest release guard
+          # and of the launcher; it replaces the source-checkout placeholder.
+          cp -- release-evidence/self-hosted-image-identity.json \
+            "$bundle_root/self-hosted-image-identity.json"
 
           cat > "$RUNNER_TEMP/expected-self-hosted-bundle.txt" <<EOF
           ${bundle_name}/
@@ -1090,8 +1099,10 @@ jobs:
           ${bundle_name}/deploy/
           ${bundle_name}/deploy/self-hosted-release.env.example
           ${bundle_name}/scripts/
+          ${bundle_name}/scripts/_identity_environment.py
           ${bundle_name}/scripts/check_runtime_environment.py
           ${bundle_name}/scripts/self_hosted_release.py
+          ${bundle_name}/self-hosted-image-identity.json
           EOF
 
           tar --sort=name \
@@ -1131,24 +1142,26 @@ jobs:
           cat > release-evidence/RELEASE-NOTES.md <<EOF
           # eimir. v${RELEASE_VERSION}
 
-          Source revision: `${SOURCE_REVISION}`
-          Previous known-good application release: `${previous}`
+          Source revision: \`${SOURCE_REVISION}\`
+          Previous known-good application release: \`${previous}\`
 
           This is one immutable build-once release set. Backend API, worker and migrate
           share one runtime artifact and Web is bound to the same source revision by
-          `eimir-release-manifest.json`.
+          \`eimir-release-manifest.json\`.
 
           ${android_note}
 
           The exact backend and Web archives were loaded without rebuild and published
           as versioned GHCR images. GHCR version/source tags are discovery aliases only;
-          `self-hosted-image-identity.json` records the authoritative digest-qualified
+          \`self-hosted-image-identity.json\` records the authoritative digest-qualified
           references and binds them back to the #519 archive hashes.
 
-          `eimir-self-hosted-v${RELEASE_VERSION}.tar.gz` is the deterministic
+          \`eimir-self-hosted-v${RELEASE_VERSION}.tar.gz\` is the deterministic
           source-free operator bundle for released Self-Hosted installation. It contains
-          canonical Compose, the release env template, mandatory Production launcher and
-          runtime identity checker; application source is not included or built on target.
+          canonical Compose, the release env template, mandatory Production launcher,
+          runtime identity checker and the published image identity that the in-manifest
+          release guard and the launcher both trust; application source is not included
+          or built on target.
 
           Application rollback selects the previous immutable release only. It does not
           imply database rollback; schema compatibility, forward-fix and restore remain

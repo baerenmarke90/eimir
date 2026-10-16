@@ -107,15 +107,6 @@ class Place(
         UniqueConstraint("id", "space_id", name="uq_places_id_space_id"),
         Index("ix_places_owner_id", "owner_id"),
         Index("ix_places_space_id_created_at_id", "space_id", "created_at", "id"),
-        Index(
-            "ix_places_search_fts",
-            text(
-                "((setweight(to_tsvector('simple', coalesce(payload->>'name', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B')) || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'address', '')), 'B'))"
-            ),
-            postgresql_using="gin",
-        ),
     )
 
 

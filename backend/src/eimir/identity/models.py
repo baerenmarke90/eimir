@@ -7,7 +7,7 @@ belongs in the table exposed to a user-facing profile.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from enum import StrEnum
 from uuid import UUID
 
@@ -22,6 +22,7 @@ from sqlalchemy import (
     LargeBinary,
     SmallInteger,
     String,
+    Time,
     UniqueConstraint,
     func,
     text,
@@ -76,7 +77,20 @@ class Account(IdMixin, TimestampMixin, VersionMixin, Base):
     birthday: Mapped[date | None] = mapped_column(Date)
     locale: Mapped[str] = mapped_column(String(16), nullable=False, default="de-DE")
     timezone: Mapped[str] = mapped_column(String(64), nullable=False, default="Europe/Berlin")
+    quiet_hours_start: Mapped[time | None] = mapped_column(Time(timezone=False))
+    quiet_hours_end: Mapped[time | None] = mapped_column(Time(timezone=False))
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        CheckConstraint(
+            "(quiet_hours_start IS NULL AND quiet_hours_end IS NULL) OR "
+            "(quiet_hours_start IS NOT NULL AND quiet_hours_end IS NOT NULL "
+            "AND quiet_hours_start <> quiet_hours_end "
+            "AND EXTRACT(SECOND FROM quiet_hours_start) = 0 "
+            "AND EXTRACT(SECOND FROM quiet_hours_end) = 0)",
+            name="account_quiet_hours_boundaries_valid",
+        ),
+    )
 
     emails: Mapped[list[AccountEmail]] = relationship(
         back_populates="account", cascade="all, delete-orphan"

@@ -13,7 +13,7 @@ Not included: Memories, Notifications, and Rules. Dates are modeled so a later R
 
 For third parties, store only what is needed for relationship care: display name, relationship type, and a birthday. No addresses, schools, phone numbers, or similar data. These people cannot view or delete their data themselves; therefore the model intentionally remains narrow.
 
-Display name and date label are the protected parts and are stored in a `ProtectedPayloadJSON` column with `crypto_version = 0` — plaintext and **not E2EE**. Everything needed for sorting, linking, and later reminders — relationship, date, recurrence, visibility — remains queryable as columns.
+Display name and date label are the protected parts and are stored in a `ProtectedPayloadJSON` column — application-encrypted at rest when encryption is enabled (`crypto_version = 2`, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)), legacy plaintext otherwise (`crypto_version = 0`); **not E2EE**. Everything needed for sorting, linking, and later reminders — relationship, date, recurrence, visibility — remains queryable as columns.
 
 ## Visibility
 

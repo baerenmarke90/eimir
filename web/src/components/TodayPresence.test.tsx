@@ -57,14 +57,24 @@ describe('Today partner presence', () => {
     expect(html).not.toContain('partner-presence-pip');
   });
 
-  it('renders active and recent semantic states distinctly', () => {
-    const active = renderPresence('ACTIVE');
-    expect(active).toContain(relationshipComponents.couplePresenceActive);
-    expect(active).toContain('partner-presence-pip');
-
-    const recent = renderPresence('RECENT');
-    expect(recent).toContain(relationshipComponents.couplePresenceRecent);
-    expect(recent).not.toContain('partner-presence-pip');
+  it('keeps cached active and recent presence states out of the Today UI', () => {
+    for (const state of ['ACTIVE', 'RECENT'] as const) {
+      const html = renderPresence(state);
+      expect(html).not.toContain(
+        relationshipComponents.couplePresencePartnerActive.replace(
+          '{{name}}',
+          'Marie',
+        ),
+      );
+      expect(html).not.toContain(
+        relationshipComponents.couplePresencePartnerRecent.replace(
+          '{{name}}',
+          'Marie',
+        ),
+      );
+      expect(html).not.toContain('partner-presence-avatar-state');
+      expect(html).not.toContain('partner-presence-badge');
+    }
   });
 
   it('keeps the existing waiting state when no partner exists', () => {

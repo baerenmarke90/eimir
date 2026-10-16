@@ -14,6 +14,7 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.milestones import service
 from eimir.milestones.models import Milestone
@@ -125,23 +126,39 @@ def _milestone_detail(
     response_model=MilestoneDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createMilestone",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an "
+                "equivalent request. The response returns the original Milestone in "
+                "its current state; no second Milestone is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": MilestoneDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_milestone(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: MilestoneCreate,
+    idempotency_key: IdempotencyKey,
 ) -> MilestoneDetail:
-    milestone = service.create_milestone(
+    result = service.create_milestone_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         title=body.title,
         body=body.body,
         happened_on=body.happened_on,
     )
-    response.headers["ETag"] = etag_for(milestone.version)
-    return _milestone_detail(session, authorization, milestone)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.milestone.version)
+    return _milestone_detail(session, authorization, result.milestone)
 
 
 @router.get(

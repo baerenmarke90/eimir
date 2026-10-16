@@ -64,7 +64,7 @@ Primary Compact actions must remain comfortably reachable, with product targets 
 
 A content surface with one clear destination opens from the content itself, with proper link/button semantics. Nested controls remain independently operable. Read surfaces expose deliberate Edit/More actions. Editing preserves identity and offers explicit completion and cancellation; it does not silently mutate because an unrelated field loses focus.
 
-Use a bottom sheet or contextual surface for a bounded choice, filters or short edit. Sustained writing belongs on a full task page. Every modal surface needs a name, initial focus, contained keyboard focus, inactive background, visible dismissal, Escape/Back behavior and focus restoration. A swipe can supplement dismissal but cannot be the only control. A nested sheet closes before the underlying task exits; dirty or pending work still follows the task lifecycle.
+Use a bottom sheet or contextual surface for a bounded choice, filters or short edit. Sustained writing belongs on a full task page. Every modal surface needs a name, initial focus, contained keyboard focus, inactive background, visible dismissal, Escape/Back behavior and focus restoration. On Compact bottom sheets, a centered grab handle may be the only visible dismissal chrome when that handle is itself an operable, named semantic control with a product-sized interaction target: pull-down is the primary touch gesture, while keyboard/assistive activation and Escape/Back remain available. Expanded centered modals keep an explicit close control. A nested sheet closes before the underlying task exits; dirty or pending work still follows the task lifecycle.
 
 ### Save, result and return continuity
 

@@ -1,6 +1,6 @@
 .more-page {
   display: grid;
-  gap: var(--space-8);
+  gap: 0;
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
@@ -30,7 +30,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .more-destinations > li {
@@ -44,12 +43,20 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text);
   text-decoration: none;
   transition:
-    color var(--motion-fast),
-    background var(--motion-fast);
+    color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+
+.more-destination-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .more-destination:focus-visible {
@@ -83,9 +90,7 @@
 }
 
 .more-destination-copy {
-  display: grid;
   min-width: 0;
-  gap: var(--space-1);
 }
 
 .more-destination-title-row {
@@ -114,13 +119,6 @@
   line-height: 1;
 }
 
-.more-destination-description {
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
 .more-destination-chevron {
   align-self: center;
   color: var(--color-text-secondary);
@@ -136,10 +134,6 @@
 }
 
 @media (max-width: 389px) {
-  .more-page {
-    gap: var(--space-6);
-  }
-
   .more-groups {
     gap: var(--space-6);
   }

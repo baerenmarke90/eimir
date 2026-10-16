@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import logging
-import tempfile
+import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
 from sqlalchemy.orm import Session
 
+from eimir.appearance import service as appearance_service
 from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
@@ -43,6 +45,7 @@ from eimir.transfer.models import (
     TransferImport,
     TransferScope,
 )
+from eimir.transfer.payload_boundary import protect_values, reveal_row
 
 _log = logging.getLogger(__name__)
 RETENTION = timedelta(hours=24)
@@ -57,7 +60,7 @@ CLEANUP_JOB_KIND = "transfer.cleanup.v1"
 # cannot enter the archive because they have no entry here.
 FILE_TABLES: dict[str, tuple[str, ...]] = {
     "space.json": ("space_profiles",),
-    "profiles.json": ("partner_profiles", "profile_preferences"),
+    "profiles.json": ("partner_profiles", "partner_nicknames", "profile_preferences"),
     "people.json": ("related_persons", "important_dates"),
     "memories.json": ("memories", "memory_attachments"),
     "heart-moments.json": ("heart_moments",),
@@ -109,6 +112,7 @@ ACCOUNT_REFERENCE_COLUMNS = frozenset({"owner_id", "created_by", "account_id"})
 INSERT_ORDER = (
     "space_profiles",
     "partner_profiles",
+    "partner_nicknames",
     "profile_preferences",
     "related_persons",
     "important_dates",
@@ -240,7 +244,7 @@ def _load_root_rows(
             return []
         predicate = and_(predicate, columns.owner_id == authorization.account_id)
     result = session.execute(select(table).where(predicate)).mappings()
-    return [dict(row) for row in result]
+    return [reveal_row(table.name, dict(row)) for row in result]
 
 
 def _load_child_rows(
@@ -253,7 +257,7 @@ def _load_child_rows(
     if not parent_ids:
         return []
     return [
-        dict(row)
+        reveal_row(table.name, dict(row))
         for row in session.execute(
             select(table).where(table.c[parent_column].in_(parent_ids))
         ).mappings()
@@ -295,6 +299,21 @@ def _portable_rows(
             continue
         table = _table(session, table_name, metadata)
         rows[table_name] = _load_root_rows(session, table, authorization=authorization, scope=scope)
+
+    # A personal export carries the viewer's current relationship label only.
+    # A former partner's old label must not create an unmappable account reference.
+    if rows.get("partner_nicknames"):
+        active_account_ids = set(
+            session.execute(
+                select(Membership.account_id).where(
+                    Membership.space_id == authorization.space_id,
+                    Membership.status == MembershipStatus.ACTIVE.value,
+                )
+            ).scalars()
+        )
+        rows["partner_nicknames"] = [
+            row for row in rows["partner_nicknames"] if row["account_id"] in active_account_ids
+        ]
 
     # Relation tables carry space_id but derive visibility from both targets.
     for table_name in RELATION_REQUIREMENTS:
@@ -410,7 +429,7 @@ def _media_rows(
     table = _table(session, "attachments", metadata)
     result: list[dict[str, Any]] = []
     for row in session.execute(select(table).where(table.c.id.in_(attachment_ids))).mappings():
-        item = dict(row)
+        item = reveal_row("attachments", dict(row))
         if item.get("status") != AttachmentStatus.READY.value:
             continue
         result.append(
@@ -437,22 +456,47 @@ def _media_rows(
     return sorted(result, key=lambda item: item["sourceId"])
 
 
+def _new_plaintext_export_buffer() -> IO[bytes]:
+    """Return a seekable plaintext buffer without a filesystem-backed temp file.
+
+    Linux production workers use an anonymous memfd so large exports do not
+    consume Python heap while the archive is assembled. Platforms without
+    memfd support fall back to BytesIO. In either case plaintext never spills
+    into a worker filesystem path before the completed archive enters the
+    encrypted MediaStore.
+    """
+    memfd_create = getattr(os, "memfd_create", None)
+    if callable(memfd_create):
+        descriptor = memfd_create(
+            "eimir-transfer-export",
+            flags=getattr(os, "MFD_CLOEXEC", 0),
+        )
+        return os.fdopen(descriptor, "w+b")
+    return io.BytesIO()
+
+
 def build_export_archive(
     session: Session,
     authorization: AuthorizationContext,
     scope: TransferScope,
 ) -> IO[bytes]:
-    """Build one deterministic snapshot archive in a spooled temporary file."""
+    """Build one deterministic snapshot archive in an anonymous memory buffer."""
     rows = _portable_rows(session, authorization, scope)
     media = _media_rows(session, rows)
     accounts = _source_accounts(session, authorization.space_id)
-    output = tempfile.SpooledTemporaryFile(  # noqa: SIM115
-        max_size=16 * 1024 * 1024, mode="w+b"
-    )
+    output = _new_plaintext_export_buffer()
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
-        add_bytes(archive, "accounts.json", json_bytes({"members": accounts}), checksums)
+        account_document: dict[str, Any] = {"members": accounts}
+        if scope is TransferScope.PERSONAL:
+            preference = appearance_service.read_preference(session, authorization)
+            account_document["personalAppearance"] = {
+                "appIconId": preference.icon_id if preference else "original",
+            }
+        # Personal appearance is export-only metadata. Import never activates
+        # paid choices or changes an installation based on untrusted bundles.
+        add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
         for file_name, table_names in FILE_TABLES.items():
             if scope is TransferScope.SHARED and file_name in PRIVATE_FILES:
                 continue
@@ -1444,7 +1488,6 @@ def apply_import_bundle(
                     "ready_at": moment,
                     "failed_at": None,
                     "uploaded_at": moment,
-                    "crypto_version": 0,
                     "payload": {
                         "original_name": "eimir-transfer",
                         "captured_at": item.get("capturedAt"),
@@ -1452,7 +1495,11 @@ def apply_import_bundle(
                     },
                     "version": 1,
                 }
-                session.execute(attachment_table.insert().values(**attachment_values))
+                session.execute(
+                    attachment_table.insert().values(
+                        **protect_values("attachments", attachment_values)
+                    )
+                )
 
         for table_name in INSERT_ORDER:
             table = tables[table_name]
@@ -1476,7 +1523,7 @@ def apply_import_bundle(
                     authorization=authorization,
                     ids=ids,
                 )
-                session.execute(table.insert().values(**values))
+                session.execute(table.insert().values(**protect_values(table_name, values)))
     except Exception:
         for key in reversed(written_keys):
             try:

@@ -82,12 +82,14 @@ jobs:
             web/e2e/test-results-pr-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/shell-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/partner-quick-actions-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/private-area-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/*story-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/wish-detective-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/f1-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/f1-*.json
             web/e2e/test-results-pr-${{ matrix.shard }}/**/f2-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/notification-settings-*.png
             web/e2e/test-results-pr-${{ matrix.shard }}/**/f2-*.json
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'success' && 1 || 3 }}
@@ -102,6 +104,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Verify changed-spec planning coverage
+        run: node --test web/e2e/scripts/changed-specs.test.mjs
+
       - name: Resolve changed browser specs
         id: plan
         env:
@@ -113,7 +118,7 @@ jobs:
           if [ -z "$changed_specs" ]; then
             echo "has-specs=false" >> "$GITHUB_OUTPUT"
             echo "specs=" >> "$GITHUB_OUTPUT"
-            echo "No browser spec files changed."
+            echo "No additional changed browser specs outside the PR-critical group."
             exit 0
           fi
           echo "has-specs=true" >> "$GITHUB_OUTPUT"
@@ -186,12 +191,14 @@ jobs:
             web/e2e/test-results-changed-specs/**/planning-*.png
             web/e2e/test-results-changed-specs/**/shell-*.png
             web/e2e/test-results-changed-specs/**/today-*.png
+            web/e2e/test-results-changed-specs/**/partner-quick-actions-*.png
             web/e2e/test-results-changed-specs/**/private-area-*.png
             web/e2e/test-results-changed-specs/**/*story-*.png
             web/e2e/test-results-changed-specs/**/wish-detective-*.png
             web/e2e/test-results-changed-specs/**/f1-*.png
             web/e2e/test-results-changed-specs/**/f1-*.json
             web/e2e/test-results-changed-specs/**/f2-*.png
+            web/e2e/test-results-changed-specs/**/notification-settings-*.png
             web/e2e/test-results-changed-specs/**/f2-*.json
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'success' && 1 || 3 }}
@@ -257,12 +264,14 @@ jobs:
             web/e2e/test-results-full-${{ matrix.shard }}/**/planning-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/shell-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/partner-quick-actions-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/private-area-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/*story-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/wish-detective-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/f1-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/f1-*.json
             web/e2e/test-results-full-${{ matrix.shard }}/**/f2-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/notification-settings-*.png
             web/e2e/test-results-full-${{ matrix.shard }}/**/f2-*.json
           if-no-files-found: ignore
           retention-days: ${{ job.status == 'success' && 1 || 3 }}

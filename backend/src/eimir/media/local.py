@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import tempfile
 from datetime import timedelta
 from pathlib import Path
 from typing import BinaryIO
@@ -28,8 +29,17 @@ class LocalMediaStore(MediaStore):
     def put(self, storage_key: str, data: ByteSource, content_type: str) -> StoredObject:
         target = self._path(storage_key)
         target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("wb") as file:
-            shutil.copyfileobj(data, file)
+        # Write next to the target and rename over it: a crash or a failing
+        # source leaves the previous object untouched instead of a truncated
+        # one. Re-encryption of an existing object depends on this.
+        descriptor, temporary = tempfile.mkstemp(dir=target.parent, prefix=".eimir-tmp-")
+        try:
+            with os.fdopen(descriptor, "wb") as file:
+                shutil.copyfileobj(data, file)
+            os.replace(temporary, target)
+        except BaseException:
+            Path(temporary).unlink(missing_ok=True)
+            raise
         return StoredObject(
             storage_key=storage_key,
             size=target.stat().st_size,

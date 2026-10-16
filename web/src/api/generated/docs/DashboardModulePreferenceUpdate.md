@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `itemLimit` | number
+`selectedCollectionId` | string
 `visible` | boolean
 
 ## Example
@@ -17,6 +18,7 @@ import type { DashboardModulePreferenceUpdate } from ''
 // TODO: Update the object below with actual values
 const example = {
   "itemLimit": null,
+  "selectedCollectionId": null,
   "visible": null,
 } satisfies DashboardModulePreferenceUpdate
 

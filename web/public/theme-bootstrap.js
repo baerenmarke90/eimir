@@ -3,8 +3,8 @@
   var legacyStorageKey = 'sidebyside.theme';
   var darkModeQuery = '(prefers-color-scheme: dark)';
   var themeColors = {
-    light: '#f6efea',
-    dark: '#18131d',
+    light: '#e6ebfa',
+    dark: '#171b2f',
   };
 
   var preference = 'system';
@@ -44,4 +44,10 @@
   if (themeColor) {
     themeColor.content = themeColors[theme];
   }
+  var favicon = document.getElementById?.('app-favicon');
+  if (favicon)
+    favicon.href =
+      theme === 'dark'
+        ? '/identity/app-icon-dark.png'
+        : '/identity/app-icon-light.png';
 })();

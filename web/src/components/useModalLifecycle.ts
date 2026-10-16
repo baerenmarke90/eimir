@@ -34,7 +34,6 @@ export interface ModalLifecycleOptions {
   initialFocusRef?: RefObject<HTMLElement | null>;
   restoreFocusRef?: RefObject<HTMLElement | null>;
   restoreFocus?: boolean;
-  focusDelayMs?: number;
   deferRestoreFocus?: boolean;
   shouldRestoreFocus?: () => boolean;
 }
@@ -48,38 +47,26 @@ export function useModalLifecycle({
   initialFocusRef,
   restoreFocusRef,
   restoreFocus = true,
-  focusDelayMs = 0,
   deferRestoreFocus = false,
   shouldRestoreFocus,
 }: ModalLifecycleOptions): void {
   const shouldRestoreFocusRef = useRef(shouldRestoreFocus);
+  const activationGenerationRef = useRef(0);
   shouldRestoreFocusRef.current = shouldRestoreFocus;
 
   useEffect(() => {
     if (!active || typeof document === 'undefined') return;
 
+    const activationGeneration = ++activationGenerationRef.current;
     const previousFocus =
       restoreFocusRef?.current ??
       (document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null);
     const releaseScroll = acquireBodyScrollLock();
-    let focusTimer: number | null = null;
-
-    const focusInitial = () => {
-      initialFocusRef?.current?.focus({ preventScroll: true });
-    };
-
-    if (initialFocusRef) {
-      if (focusDelayMs > 0) {
-        focusTimer = window.setTimeout(focusInitial, focusDelayMs);
-      } else {
-        focusInitial();
-      }
-    }
+    initialFocusRef?.current?.focus({ preventScroll: true });
 
     return () => {
-      if (focusTimer !== null) window.clearTimeout(focusTimer);
       releaseScroll();
 
       const mayRestore =
@@ -89,6 +76,9 @@ export function useModalLifecycle({
 
       if (mayRestore) {
         const restore = () => {
+          // A deferred cleanup from StrictMode replay or a rapid close/reopen
+          // must not steal focus from the newer active modal generation.
+          if (activationGenerationRef.current !== activationGeneration) return;
           if (previousFocus.isConnected) {
             previousFocus.focus({ preventScroll: true });
           }
@@ -100,7 +90,6 @@ export function useModalLifecycle({
   }, [
     active,
     deferRestoreFocus,
-    focusDelayMs,
     initialFocusRef,
     restoreFocus,
     restoreFocusRef,

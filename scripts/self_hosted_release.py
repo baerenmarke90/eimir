@@ -238,11 +238,20 @@ def reject_conflicting_image_overrides(
         )
 
 
-def compose_environment(*, backend: str, web: str) -> dict[str, str]:
-    """Force canonical published image identity for every Compose invocation."""
+def compose_environment(
+    *, backend: str, web: str, identity_file: Path | None = None
+) -> dict[str, str]:
+    """Force canonical published image identity for every Compose invocation.
+
+    ``identity_file`` is the published identity this launcher validated. Compose
+    mounts exactly that file into the in-manifest ``release-guard``, so the guard and
+    the launcher judge one set of bytes.
+    """
 
     environment = dict(os.environ)
     environment.pop("COMPOSE_FILE", None)
+    if identity_file is not None:
+        environment["EIMIR_RELEASE_IDENTITY_FILE"] = str(identity_file.resolve())
     environment["COMPOSE_PROFILES"] = "self-hosted"
     environment["EIMIR_ENVIRONMENT"] = "production"
     environment["EIMIR_SELF_HOSTED_BACKEND_IMAGE"] = backend
@@ -298,7 +307,7 @@ def validate_release(
     run_checked(
         command,
         action="Self-Hosted release validation",
-        environment=compose_environment(backend=backend, web=web),
+        environment=compose_environment(backend=backend, web=web, identity_file=identity_file),
     )
 
 
@@ -315,7 +324,7 @@ def pull_release(
     run_checked(
         [*compose_prefix(env_file), "pull"],
         action="Self-Hosted release image pull",
-        environment=compose_environment(backend=backend, web=web),
+        environment=compose_environment(backend=backend, web=web, identity_file=identity_file),
     )
 
 
@@ -329,7 +338,7 @@ def bootstrap_deletion_authority(
         web=web,
         image_identity_only=True,
     )
-    environment = compose_environment(backend=backend, web=web)
+    environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
     run_checked(
         [*compose_prefix(env_file), "pull", "api"],
         action="Self-Hosted bootstrap image pull",
@@ -362,7 +371,7 @@ def deploy_release(
         web=web,
         image_identity_only=False,
     )
-    environment = compose_environment(backend=backend, web=web)
+    environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
     for action, arguments in DEPLOY_SEQUENCE:
         run_checked(
             [*compose_prefix(env_file), *arguments],

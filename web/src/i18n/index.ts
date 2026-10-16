@@ -1,10 +1,15 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import accountSettings from './locales/accountSettings';
+import appIcon from './locales/appIcon';
 import de from './locales/de';
 import taskBoundary from './locales/taskBoundary';
 import taskSheets from './locales/taskSheets';
 import demo from './locales/demo';
+import dailyEnergy from './locales/dailyEnergy';
+import dailyInsights from './locales/dailyInsights';
+import dailyQuote from './locales/dailyQuote';
+import dailyVibe from './locales/dailyVibe';
 import games from './locales/games';
 import importantDates from './locales/importantDates';
 import m5s3 from './locales/m5s3';
@@ -12,16 +17,20 @@ import m5s5 from './locales/m5s5';
 import m5s6 from './locales/m5s6';
 import memoryProduct from './locales/memoryProduct';
 import navigation from './locales/navigation';
+import notificationSettings from './locales/notificationSettings';
 import partnerConnection from './locales/partnerConnection';
 import people from './locales/people';
 import privateArea from './locales/privateArea';
 import profileIdentity from './locales/profileIdentity';
 import profiles from './locales/profiles';
+import productTour from './locales/productTour';
 import serverAdmin from './locales/serverAdmin';
 import snackbar from './locales/snackbar';
 import relationshipComponents from './locales/relationshipComponents';
 import spaceOffboarding from './locales/spaceOffboarding';
 import storyProducts from './locales/storyProducts';
+import contextTags from './locales/contextTags';
+import sharedPhotos from './locales/sharedPhotos';
 
 export const DEFAULT_LOCALE = 'de';
 
@@ -43,8 +52,14 @@ if (!i18n.isInitialized) {
           taskBoundary,
           taskSheets,
           accountSettings,
+          appIcon,
           navigation: { ...de.navigation, ...navigation },
+          notificationSettings,
           demo,
+          dailyEnergy,
+          dailyInsights,
+          dailyQuote,
+          dailyVibe,
           games,
           importantDates,
           m5s3,
@@ -56,11 +71,14 @@ if (!i18n.isInitialized) {
           privateArea,
           profileIdentity,
           profiles,
+          productTour,
           serverAdmin,
           spaceOffboarding,
           ...relationshipComponents,
           ...snackbar,
           ...storyProducts,
+          contextTags,
+          sharedPhotos,
         },
       },
     },

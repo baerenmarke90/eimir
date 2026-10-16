@@ -6,8 +6,11 @@ import {
   useNavigate,
   useParams,
 } from 'react-router-dom';
+import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
 import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RulesApi } from '../api/generated/apis/RulesApi';
+import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
@@ -28,12 +31,15 @@ import {
   AnniversaryReminderSettings,
   PartnerBirthdayReminderSettings,
 } from './AnniversaryReminderSettings';
+import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
 import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { SettingsIndex } from './SettingsIndex';
+import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
 import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
 import './SettingsPage.css';
@@ -66,6 +72,18 @@ export function SettingsPage(props: SettingsPageProps) {
   const rulesApi = useMemo(() => new RulesApi(configuration), [configuration]);
   const dashboardApi = useMemo(
     () => new DashboardApi(configuration),
+    [configuration],
+  );
+  const dailyQuoteApi = useMemo(
+    () => new DailyQuoteApi(configuration),
+    [configuration],
+  );
+  const entitlementsApi = useMemo(
+    () => new EntitlementsApi(configuration),
+    [configuration],
+  );
+  const notificationsApi = useMemo(
+    () => new NotificationsApi(configuration),
     [configuration],
   );
   const demoMode = isDemoModeConfigured();
@@ -106,6 +124,11 @@ export function SettingsPage(props: SettingsPageProps) {
           spacesApi={spacesApi}
           spaceId={props.spaceId}
         />
+        <SpaceConfigurationPanel
+          spacesApi={spacesApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
         <PartnerConnectionPanel {...props} />
       </div>
     );
@@ -116,6 +139,10 @@ export function SettingsPage(props: SettingsPageProps) {
         className="settings-category-content settings-functional-panel"
         aria-label={t('profileIdentity.settingsNotifications')}
       >
+        <NotificationSettingsPanel
+          notificationsApi={notificationsApi}
+          accountId={props.account.id}
+        />
         <AnniversaryReminderSettings
           rulesApi={rulesApi}
           spaceId={props.spaceId}
@@ -139,6 +166,12 @@ export function SettingsPage(props: SettingsPageProps) {
       <div className="settings-category-content">
         <DashboardSettingsPanel
           dashboardApi={dashboardApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <DailyQuoteSettingsPanel
+          quoteApi={dailyQuoteApi}
+          entitlementsApi={entitlementsApi}
           accountId={props.account.id}
           spaceId={props.spaceId}
         />

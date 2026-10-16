@@ -21,8 +21,8 @@ describe('Object URL resource ownership', () => {
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
   let nextObjectUrl = 0;
-  let createObjectUrl: ReturnType<typeof vi.fn>;
-  let revokeObjectUrl: ReturnType<typeof vi.fn>;
+  let createObjectUrl: ReturnType<typeof vi.fn<typeof URL.createObjectURL>>;
+  let revokeObjectUrl: ReturnType<typeof vi.fn<typeof URL.revokeObjectURL>>;
 
   beforeEach(() => {
     nextObjectUrl = 0;

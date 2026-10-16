@@ -13,6 +13,15 @@ remain separate concerns.
 eimir. uses **build-once release artifacts** while preserving the exact Git
 commit SHA as source identity.
 
+Here, **build once** is scoped to the artifact set selected by one final publication
+run. `release-publish.yml` invokes the #193 evidence build for the frozen source and
+then loads, verifies and publishes those exact archives without a second application
+rebuild inside that publication. `release-candidate.yml` is an independent,
+unprivileged pre-publication build of the same source; its archive bytes are not
+required to equal a later publication build. Acceptance that must bind to shipped bytes
+therefore uses the final published archive hashes, attestations and OCI digests rather
+than assuming candidate/publication byte equality.
+
 The release artifact set is channel-aware. Every release contains:
 
 - one backend runtime archive shared by API, worker and migrate;
@@ -235,6 +244,8 @@ After protected environment approval it:
     - `deploy/self-hosted-release.env.example`;
     - `scripts/self_hosted_release.py`;
     - `scripts/check_runtime_environment.py`;
+    - `self-hosted-image-identity.json`, the published identity written in step 8, which
+      the in-manifest release guard and the launcher both read as their trust root;
 11. writes/verifies final checksums and release notes.
 
 The bundle contains no backend/Web application source and no credentials. It is the
@@ -332,6 +343,29 @@ Before the first Production publication, the release owner must:
 4. ensure `eimir-backend` and `eimir-web` are Public GHCR packages before a final release
    can pass the anonymous-consumption gate;
 5. execute final publication only after launch gates are green.
+
+### Production release approval policy
+
+The GitHub Environment `production-release` must have at least one **Required reviewer**.
+For the current single-maintainer launch setup, the designated release owner is GitHub
+user `baerenmarke90`. The environment approval is a distinct, explicit second step
+after workflow dispatch; `confirm_publish=true` alone is not approval.
+
+While `baerenmarke90` is the only designated release owner, GitHub's
+**Prevent self-review** option remains disabled so that the same authenticated release
+owner can dispatch and then explicitly approve the protected deployment. If a second
+release owner or release-maintainer team is designated, enable **Prevent self-review**
+and require approval from another authorized reviewer.
+
+Approval does not grant broader repository credentials. The protected publication job
+retains the existing least-privilege boundary: only that job receives the write
+permissions required for GitHub Release/GHCR publication, and Android signing secrets
+remain scoped to the same protected environment only when Android is in the selected
+release channel.
+
+The release evidence must retain the workflow run and protected-environment approval
+event without copying credentials, environment secrets or signing material into logs,
+manifests or release assets.
 
 For any Android-inclusive release, additionally configure the four Android upload-key
 secrets, retain encrypted offline upload-key recovery independently, and enable Google

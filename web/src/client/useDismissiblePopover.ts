@@ -4,12 +4,36 @@ import { useLocation } from 'react-router-dom';
 export interface UseDismissiblePopoverOptions {
   onClose?: () => void;
   closeOnRouteChange?: boolean;
+  /**
+   * Whether Escape restores focus to the trigger immediately. A consumer that
+   * owns a retained exit presentation (e.g. via `useOverlayPresence`) sets
+   * this to `false` and restores focus itself once presence actually ends,
+   * so focus does not jump to the trigger while a modal layer is still
+   * visibly exiting.
+   */
+  restoreFocusOnEscape?: boolean;
+  /**
+   * Portal-backed modal consumers can hand outside-pointer dismissal to their
+   * modal primitive while retaining this hook as the authoritative open state.
+   */
+  dismissOnOutsidePointerDown?: boolean;
+  /**
+   * Same ownership handoff for Escape: native/modal consumers handle it while
+   * ordinary non-modal popovers keep the default window listener.
+   */
+  dismissOnEscape?: boolean;
 }
 
 export function useDismissiblePopover(
   options: UseDismissiblePopoverOptions = {},
 ) {
-  const { onClose, closeOnRouteChange = true } = options;
+  const {
+    onClose,
+    closeOnRouteChange = true,
+    restoreFocusOnEscape = true,
+    dismissOnOutsidePointerDown = true,
+    dismissOnEscape = true,
+  } = options;
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -61,7 +85,7 @@ export function useDismissiblePopover(
 
     function onPointerDown(event: PointerEvent | MouseEvent) {
       const target = event.target as Node | null;
-      if (!target) return;
+      if (!dismissOnOutsidePointerDown || !target) return;
       if (
         panelRef.current?.contains(target) ||
         triggerRef.current?.contains(target)
@@ -72,8 +96,8 @@ export function useDismissiblePopover(
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        close(true);
+      if (dismissOnEscape && event.key === 'Escape') {
+        close(restoreFocusOnEscape);
       }
     }
 
@@ -84,7 +108,13 @@ export function useDismissiblePopover(
       document.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isOpen, close]);
+  }, [
+    isOpen,
+    close,
+    dismissOnEscape,
+    dismissOnOutsidePointerDown,
+    restoreFocusOnEscape,
+  ]);
 
   return {
     isOpen,

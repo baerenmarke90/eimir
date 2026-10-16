@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
@@ -234,8 +235,12 @@ export function CollectionProductPage({
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: ['m5-s3', 'collections', spaceId],
+        refetchType: isClientOnline() ? 'active' : 'none',
       }),
-      queryClient.invalidateQueries({ queryKey: key }),
+      queryClient.invalidateQueries({
+        queryKey: key,
+        refetchType: isClientOnline() ? 'active' : 'none',
+      }),
     ]);
   };
 
@@ -287,6 +292,8 @@ export function CollectionProductPage({
   });
 
   const updateItem = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: ({
       collection,
       item,
@@ -297,8 +304,9 @@ export function CollectionProductPage({
       item: CollectionItemDetail;
       title?: string;
       completed?: boolean;
-    }) =>
-      apiCall(() =>
+    }) => {
+      assertOnlineWrite();
+      return apiCall(() =>
         apis.collections.updateCollectionItem({
           spaceId,
           collectionId: collection.id,
@@ -306,7 +314,8 @@ export function CollectionProductPage({
           ifMatch: planningIfMatch(item),
           collectionItemUpdate: { title, completed },
         }),
-      ),
+      );
+    },
     onMutate: async ({ item, completed }) => {
       if (completed === undefined) return;
       await queryClient.cancelQueries({ queryKey: key, exact: true });
@@ -333,7 +342,11 @@ export function CollectionProductPage({
           current ? replaceCollectionItem(current, updatedItem) : current,
         );
       }
-      await queryClient.invalidateQueries({ queryKey: key, exact: true });
+      await queryClient.invalidateQueries({
+        queryKey: key,
+        exact: true,
+        refetchType: isClientOnline() ? 'active' : 'none',
+      });
     },
     onSettled: () => {
       itemUpdateInFlightRef.current = false;
@@ -393,21 +406,25 @@ export function CollectionProductPage({
   });
 
   const reorderItems = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: ({
       collection,
       itemIds,
     }: {
       collection: CollectionDetail;
       itemIds: string[];
-    }) =>
-      apiCall(() =>
+    }) => {
+      assertOnlineWrite();
+      return apiCall(() =>
         apis.collections.reorderCollectionItems({
           spaceId,
           collectionId: collection.id,
           ifMatch: planningIfMatch(collection),
           collectionOrder: { itemIds },
         }),
-      ),
+      );
+    },
     onMutate: async ({ itemIds }) => {
       await queryClient.cancelQueries({ queryKey: key, exact: true });
       const current = queryClient.getQueryData<CollectionDetail>(key);
@@ -443,7 +460,11 @@ export function CollectionProductPage({
         );
       }
       if (clientProblemKind(error) === 'conflict') {
-        await queryClient.invalidateQueries({ queryKey: key, exact: true });
+        await queryClient.invalidateQueries({
+          queryKey: key,
+          exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
+        });
       }
     },
     onSuccess: commitCollection,

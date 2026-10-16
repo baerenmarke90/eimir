@@ -1319,3 +1319,108 @@ for (const recoveryMode of ['immediate', 'held'] as const) {
     expect(unexpectedRequests).toEqual([]);
   });
 }
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const action of ['checkbox', 'reorder'] as const) {
+    test(`offline private ${action} ends without reconnect replay at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture =
+        action === 'checkbox'
+          ? await installHeldPrivateList(page)
+          : await installHeldPrivateReorder(page);
+      await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+      const row = page.locator(`[data-sortable-item-id="${PRIVATE_ITEM_ID}"]`);
+      if (action === 'reorder')
+        await page
+          .getByRole('button', { name: de.common.edit, exact: true })
+          .click();
+      const before = action === 'reorder' ? await privateEditTitles(page) : [];
+      const activate = async () => {
+        if (action === 'checkbox') await row.getByRole('button').click();
+        else {
+          await page
+            .getByRole('button', { name: privateArea.collections.reorderItem })
+            .nth(1)
+            .focus();
+          await page.keyboard.press('ArrowUp');
+        }
+      };
+      await expect(row).toBeVisible();
+      await page.context().setOffline(true);
+      await activate();
+      await expect(
+        page.getByText(de.states.offline.title, { exact: true }),
+      ).toBeVisible();
+      if (action === 'checkbox')
+        await expect(row.getByRole('button')).toHaveAttribute(
+          'aria-pressed',
+          'false',
+        );
+      else await expect.poll(() => privateEditTitles(page)).toEqual(before);
+      expect(fixture.writes).toHaveLength(0);
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`private-${action}-offline-${view.name}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.context().setOffline(false);
+      await page.getByRole('button', { name: de.common.retry }).click();
+      await expect(
+        page.getByText(de.states.offline.title, { exact: true }),
+      ).toHaveCount(0);
+      expect(fixture.writes).toHaveLength(0);
+      await activate();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      await fixture.respond();
+      if (action === 'checkbox') {
+        await expect(row.getByRole('button')).toBeEnabled();
+        await expect(row.getByRole('button')).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        );
+      } else {
+        await expect(
+          page.getByText(privateArea.collections.reordering, { exact: true }),
+        ).toHaveCount(0);
+        await expect
+          .poll(() => privateEditTitles(page))
+          .toEqual([before[1], before[0], ...before.slice(2)]);
+        await page
+          .getByRole('button', { name: de.common.cancel, exact: true })
+          .first()
+          .click();
+      }
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-${action}-confirmed-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page
+        .getByRole('link', {
+          name: privateArea.collections.detailBack,
+          exact: true,
+        })
+        .click();
+      await expect(page).toHaveURL(/\/more\/private\/collections$/);
+      expect(fixture.writes).toHaveLength(1);
+      expect(unexpected).toEqual([]);
+    });
+  }
+}

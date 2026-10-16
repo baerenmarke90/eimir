@@ -1,12 +1,12 @@
 import {
   hashKey,
-  onlineManager,
   useMutation,
   useMutationState,
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
+import { assertOnlineWrite } from '../client/connectivity';
 import type { DashboardView } from '../api/generated/models/DashboardView';
 import {
   type CreateRequestAttempt,
@@ -96,8 +96,7 @@ export function usePartnerGesture({
     retry: false,
     mutationFn: async (request: Request) => {
       if (!request.isCurrent()) throw new ClientProblemError('unauthorized');
-      if (!onlineManager.isOnline() || navigator.onLine === false)
-        throw new ClientProblemError('offline');
+      assertOnlineWrite();
       try {
         return await request.send();
       } catch (error) {

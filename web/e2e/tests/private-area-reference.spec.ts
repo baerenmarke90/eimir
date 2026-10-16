@@ -1424,3 +1424,156 @@ for (const view of [
     });
   }
 }
+
+async function installHeldPrivateNoteEdit(page: Page) {
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`;
+  let current = {
+    body: 'Check the quiet cabin by the lake.',
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    id: PRIVATE_NOTE_ID,
+    ownerId: ACCOUNT_ID,
+    pinned: false,
+    spaceId: SPACE_ID,
+    title: 'Hidden cabin idea',
+    updatedAt: TEST_NOW,
+    version: 1,
+  };
+  let denyReads = false;
+  let reads = 0;
+  const writes: { ifMatch: string | undefined; title: string }[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`**${endpoint}`, async (route) => {
+    const request = route.request();
+    if (request.method() === 'GET') {
+      reads += 1;
+      await route.fulfill({
+        status: denyReads ? 404 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(denyReads ? {
+          code: 'PRIVATE_NOTE_NOT_FOUND',
+          detail: 'The private note is unavailable.',
+          status: 404,
+          title: 'Not found',
+          type: 'about:blank',
+        } : current),
+      });
+      return;
+    }
+    if (request.method() !== 'PATCH') {
+      await route.fallback();
+      return;
+    }
+    const update = request.postDataJSON() as { title: string; body: string; pinned: boolean };
+    writes.push({ ifMatch: request.headers()['if-match'], title: update.title });
+    const saved = { ...current, ...update, version: current.version + 1 };
+    await gate;
+    current = saved;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(saved),
+    });
+  });
+  await page.route(`**/api/v1/spaces/${SPACE_ID}/private/notes?*`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ hasMore: false, items: [current], nextCursor: null }),
+    });
+  });
+  return {
+    writes,
+    release,
+    denyReads: () => { denyReads = true; },
+    get reads() { return reads; },
+  };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  test(`private note save retains authorized result and return at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({ colorScheme: view.scheme, reducedMotion: 'reduce' });
+    await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateNoteEdit(page);
+    await page.getByRole('link', { name: privateArea.notes.title, exact: false }).click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await expect(page.getByRole('heading', { name: 'Hidden cabin idea' })).toBeVisible();
+    await page.getByRole('link', { name: privateArea.edit, exact: true }).click();
+    await page.getByLabel(privateArea.notes.titleLabel).fill('Quiet cabin for autumn');
+    await page.getByRole('button', { name: privateArea.save, exact: true }).click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    expect(fixture.writes).toEqual([{ ifMatch: '1', title: 'Quiet cabin for autumn' }]);
+    await expect(page.getByRole('button', { name: privateArea.saving, exact: true })).toBeDisabled();
+    fixture.release();
+    await expect(page.getByRole('heading', { name: 'Quiet cabin for autumn' })).toBeVisible();
+    await expect(page.getByText('Check the quiet cabin by the lake.', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/more/private/notes/${PRIVATE_NOTE_ID}$`));
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-note-saved-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.getByRole('link', { name: privateArea.notes.detailBack, exact: true }).click();
+    await expect(page).toHaveURL(/\/more\/private\/notes$/);
+    await expect(page.getByRole('link', { name: /Quiet cabin for autumn/ })).toBeVisible();
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test(`late private note save preserves a fresh denied read at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 900 });
+    await page.emulateMedia({ colorScheme: view.scheme, reducedMotion: 'reduce' });
+    await page.addInitScript(() => localStorage.setItem('eimir.theme', 'system'));
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateNoteEdit(page);
+    await page.getByRole('link', { name: privateArea.notes.title, exact: false }).click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await page.getByRole('link', { name: privateArea.edit, exact: true }).click();
+    await page.getByLabel(privateArea.notes.titleLabel).fill('Submitted old private title');
+    await page.getByRole('button', { name: privateArea.save, exact: true }).click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await page.locator('.private-area-nav').getByRole('link', {
+      name: privateArea.navigation.notes, exact: true,
+    }).click();
+    await page.getByRole('link', { name: /Hidden cabin idea/ }).click();
+    await expect(page.getByText(de.states.notFound.title, { exact: true })).toBeVisible();
+    const response = page.waitForResponse((entry) =>
+      entry.request().method() === 'PATCH' && entry.url().endsWith(`/private/notes/${PRIVATE_NOTE_ID}`),
+    );
+    fixture.release();
+    await (await response).finished();
+    // A rendering boundary observes the completed fetch's mutation callbacks.
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    await expect(page.getByText(de.states.notFound.title, { exact: true })).toBeVisible();
+    await expect(page.getByText('Check the quiet cabin by the lake.', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Submitted old private title' })).toHaveCount(0);
+    const reads = fixture.reads;
+    await page.getByRole('button', { name: de.common.retry, exact: true }).click();
+    await expect.poll(() => fixture.reads).toBeGreaterThan(reads);
+    await expect(page.getByText(de.states.notFound.title, { exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-area-note-denied-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    expect(fixture.writes).toHaveLength(1);
+    expect(unexpected).toEqual([]);
+  });
+}

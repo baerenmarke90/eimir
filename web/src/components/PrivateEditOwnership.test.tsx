@@ -180,7 +180,6 @@ for (const definition of definitions) {
         });
         fireEvent.click(screen.getByRole('button', {
           name: definition.inline ? m5s3.common.saveChanges : privateArea.save,
-          exact: true,
         }));
         await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       }

@@ -458,6 +458,12 @@ async function installMocks(
     pin: (selectedCollectionId: string | null) => {
       pinnedCollectionId = selectedCollectionId;
     },
+    reviseItem(id: string, changes: Partial<MutableCollectionItem>) {
+      const item = items.find((entry) => entry.id === id);
+      if (!item) throw new Error('Missing fixture item');
+      Object.assign(item, changes);
+      collectionVersion += 1;
+    },
     reorder(itemIds: string[]) {
       items.forEach((item) => {
         item.position = itemIds.indexOf(item.id);
@@ -615,6 +621,163 @@ test('shows an optimistic collection-detail check, rolls back a failed write and
     animations: 'disabled',
   });
 });
+
+for (const outcome of ['failure', 'success'] as const) {
+  test(`retains a newer shared checklist read after a late checkbox ${outcome}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const network = await installMocks(page);
+    await signIn(page);
+    const itemId = '00000000-0000-0000-0000-000000000031';
+    const writes: string[] = [];
+    let releaseWrite!: () => void;
+    let releaseRead: (() => void) | undefined;
+    let blockRecovery = false;
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+      async (route) => {
+        if (blockRecovery && route.request().method() === 'GET') {
+          await new Promise<void>((resolve) => {
+            releaseRead = resolve;
+          });
+        }
+        await route.fallback();
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/items/${itemId}`,
+      async (route) => {
+        writes.push(route.request().headers()['if-match']);
+        if (writes.length > 1) {
+          await route.fallback();
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        });
+        await route.fulfill({
+          status: outcome === 'failure' ? 503 : 200,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            outcome === 'failure'
+              ? {
+                  code: 'SERVER_ERROR',
+                  detail: 'The write was not confirmed.',
+                  status: 503,
+                  title: 'Service unavailable',
+                  type: 'about:blank',
+                }
+              : { ...collectionItem(itemId, 'Milch', 0, true), version: 2 },
+          ),
+        });
+      },
+    );
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    const row = page.locator(`[data-sortable-item-id="${itemId}"]`);
+    await row
+      .getByRole('button', {
+        name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+      })
+      .click();
+    await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+    await expect(row.getByRole('status')).toHaveText(m5s3.common.saving);
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    network.reviseItem(itemId, {
+      title: 'Hafermilch',
+      completed: false,
+      version: 3,
+    });
+    network.reorder([
+      '00000000-0000-0000-0000-000000000033',
+      '00000000-0000-0000-0000-000000000032',
+      itemId,
+    ]);
+    const readsBefore = network.collectionGetCount();
+    // Adding another row triggers the existing authorized detail refresh.
+    await page
+      .getByRole('textbox', { name: m5s3.collection.newItem })
+      .fill('Kaffee');
+    await page.getByRole('button', { name: m5s3.collection.addItem }).click();
+    await expect.poll(network.collectionGetCount).toBeGreaterThan(readsBefore);
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    const markDone = m5s3.collection.markDone.replace(
+      '{{title}}',
+      'Hafermilch',
+    );
+    await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    blockRecovery = true;
+    releaseWrite();
+    if (outcome === 'success')
+      await expect.poll(() => Boolean(releaseRead)).toBe(true);
+    else
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toBeVisible();
+    // The late callback must preserve the newer read even before recovery returns.
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(row.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await expect(
+      page.locator('[data-sortable-item-id]').nth(2),
+    ).toHaveAttribute('data-sortable-item-id', itemId);
+    await expect(
+      page
+        .locator(
+          '[data-sortable-item-id="00000000-0000-0000-0000-000000000034"]',
+        )
+        .getByRole('textbox'),
+    ).toHaveValue('Kaffee');
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-newer-${outcome}-390-light.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    blockRecovery = false;
+    releaseRead?.();
+    if (outcome === 'failure')
+      await page.getByRole('button', { name: de.common.retry }).click();
+    else await row.getByRole('button', { name: markDone }).click();
+    await expect.poll(() => writes.length).toBe(2);
+    expect(writes).toEqual(['1', '3']);
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(row.getByRole('status')).toHaveCount(0);
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-newer-${outcome}-1280-dark.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page
+      .getByRole('link', { name: m5s3.common.backToCollections })
+      .click();
+    await page.goBack();
+    await expect(row.getByRole('textbox')).toHaveValue('Hafermilch');
+    await expect(
+      row.getByRole('button', {
+        name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(writes).toEqual(['1', '3']);
+  });
+}
 
 test('keeps a shared Collection reorder in place until confirmed or rolled back', async ({
   page,

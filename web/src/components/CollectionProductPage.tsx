@@ -7,11 +7,11 @@ import {
   useState,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
   deleteFocusTargetFromInfiniteData,
@@ -22,6 +22,7 @@ import {
   clientProblemKind,
   normalizeClientError,
 } from '../client/problemDetails';
+import { captureQueryIdentity } from '../client/queryIdentity';
 import { MORE_COLLECTIONS_ROUTE } from '../client/routes';
 import {
   planningIfMatch,
@@ -37,8 +38,8 @@ import {
 } from './PlanningEditorLifecycle';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
-import { useTransientFlag } from './useTransientFlag';
 import { useCollectionPin } from './useCollectionPin';
+import { useTransientFlag } from './useTransientFlag';
 import './SharedPlanningPages.css';
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
@@ -47,18 +48,6 @@ async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw await normalizeClientError(error);
   }
-}
-
-function replaceCollectionItem(
-  collection: CollectionDetail,
-  replacement: CollectionItemDetail,
-): CollectionDetail {
-  return {
-    ...collection,
-    items: collection.items.map((item) =>
-      item.id === replacement.id ? replacement : item,
-    ),
-  };
 }
 
 function CollectionItemRow({
@@ -308,7 +297,7 @@ export function CollectionProductPage({
       assertOnlineWrite();
       return apiCall(() =>
         apis.collections.updateCollectionItem({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           itemId: item.id,
           ifMatch: planningIfMatch(item),
@@ -316,34 +305,81 @@ export function CollectionProductPage({
         }),
       );
     },
-    onMutate: async ({ item, completed }) => {
-      if (completed === undefined) return;
+    onMutate: async ({ collection, item, completed }) => {
+      const key = authorSummaryQueryKeys.collectionDetail(
+        collection.spaceId,
+        collection.id,
+      );
+      const isCurrentQuery = captureQueryIdentity(queryClient, key);
+      if (completed === undefined) return { key, isCurrentQuery };
       await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const current = queryClient.getQueryData<CollectionDetail>(key);
-      const previousItem = current?.items.find((entry) => entry.id === item.id);
-      if (current && previousItem) {
-        queryClient.setQueryData<CollectionDetail>(
-          key,
-          replaceCollectionItem(current, { ...previousItem, completed }),
+      if (!isCurrentQuery()) return { key, isCurrentQuery };
+      const previousItem = queryClient
+        .getQueryData<CollectionDetail>(key)
+        ?.items.find((entry) => entry.id === item.id);
+      // A read may have advanced the row while cancellation was pending.
+      if (previousItem?.version === item.version) {
+        queryClient.setQueryData<CollectionDetail>(key, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((entry) =>
+                  entry === previousItem ? { ...entry, completed } : entry,
+                ),
+              }
+            : current,
         );
+        return { key, isCurrentQuery, previousItem };
       }
-      return { previousItem };
+      return { key, isCurrentQuery };
     },
     onError: (_error, { completed }, context) => {
-      if (completed === undefined || !context?.previousItem) return;
+      if (
+        completed === undefined ||
+        !context?.isCurrentQuery() ||
+        !context.previousItem
+      )
+        return;
       const previousItem = context.previousItem;
-      queryClient.setQueryData<CollectionDetail>(key, (current) =>
-        current ? replaceCollectionItem(current, previousItem) : current,
+      queryClient.setQueryData<CollectionDetail>(context.key, (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((entry) =>
+                entry.id === previousItem.id &&
+                entry.version === previousItem.version &&
+                entry.completed === completed
+                  ? { ...entry, completed: previousItem.completed }
+                  : entry,
+              ),
+            }
+          : current,
       );
     },
-    onSuccess: async (updatedItem, { completed }) => {
+    onSuccess: async (updatedItem, { completed }, context) => {
+      if (!context?.isCurrentQuery()) return;
       if (completed !== undefined) {
-        queryClient.setQueryData<CollectionDetail>(key, (current) =>
-          current ? replaceCollectionItem(current, updatedItem) : current,
+        queryClient.setQueryData<CollectionDetail>(context.key, (current) =>
+          current
+            ? {
+                ...current,
+                items: current.items.map((entry) =>
+                  entry.id === updatedItem.id &&
+                  entry.version < updatedItem.version
+                    ? {
+                        ...entry,
+                        completed: updatedItem.completed,
+                        version: updatedItem.version,
+                        updatedAt: updatedItem.updatedAt,
+                      }
+                    : entry,
+                ),
+              }
+            : current,
         );
       }
       await queryClient.invalidateQueries({
-        queryKey: key,
+        queryKey: context.key,
         exact: true,
         refetchType: isClientOnline() ? 'active' : 'none',
       });
@@ -366,7 +402,13 @@ export function CollectionProductPage({
 
   const retryItemUpdate = () => {
     const failed = updateItem.variables;
-    if (!failed || clientProblemKind(updateItem.error) === 'conflict') {
+    if (
+      !failed ||
+      !updateItem.context?.isCurrentQuery() ||
+      failed.collection.spaceId !== spaceId ||
+      failed.collection.id !== collectionId ||
+      clientProblemKind(updateItem.error) === 'conflict'
+    ) {
       updateItem.reset();
       void collectionQuery.refetch();
       return;
@@ -630,9 +672,15 @@ export function CollectionProductPage({
     );
   }
 
+  const itemUpdateError =
+    updateItem.variables?.collection.id === collectionId &&
+    updateItem.variables.collection.spaceId === spaceId &&
+    updateItem.context?.isCurrentQuery()
+      ? updateItem.error
+      : null;
   const itemMutationError =
     createItem.error ||
-    updateItem.error ||
+    itemUpdateError ||
     deleteItem.error ||
     reorderItems.error;
 
@@ -863,7 +911,7 @@ export function CollectionProductPage({
           <ProblemState
             error={itemMutationError}
             onRetry={() => {
-              if (updateItem.error) retryItemUpdate();
+              if (itemUpdateError) retryItemUpdate();
               else if (reorderItems.error) retryReorder();
               else void collectionQuery.refetch();
             }}

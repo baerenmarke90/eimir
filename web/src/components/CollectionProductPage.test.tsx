@@ -14,7 +14,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
@@ -391,6 +391,7 @@ describe('CollectionProductPage', () => {
 
   function renderToggleCollection(
     updateCollectionItem: ReturnType<typeof vi.fn>,
+    includeNavigation = false,
   ) {
     const firstItem = {
       capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -435,6 +436,9 @@ describe('CollectionProductPage', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/plan/collections/collection-1']}>
+          {includeNavigation ? (
+            <Link to="/plan/collections/collection-2">Switch collection</Link>
+          ) : null}
           <Routes>
             <Route
               path="/plan/collections/:collectionId"
@@ -456,6 +460,298 @@ describe('CollectionProductPage', () => {
       },
     };
   }
+
+  it.each(['failure', 'success'])(
+    'preserves a newer shared item after an older checkbox %s',
+    async (outcome) => {
+      let resolve!: (item: unknown) => void;
+      let reject!: (error: Error) => void;
+      const update = vi.fn(
+        () =>
+          new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+          }),
+      );
+      const fixture = renderToggleCollection(update);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      const newer = {
+        ...fixture.firstItem,
+        title: 'Passport and visa',
+        completed: false,
+        version: 3,
+        position: 2,
+      };
+      fixture.setAuthoritative(newer);
+      act(() =>
+        fixture.queryClient.setQueryData(fixture.key, {
+          ...sampleCollection,
+          items: [newer, { ...fixture.secondItem, position: 1 }],
+        }),
+      );
+      // Isolate reconciliation from a later recovery read.
+      onlineManager.setOnline(false);
+      await act(async () => {
+        if (outcome === 'success')
+          resolve({ ...fixture.firstItem, completed: true, version: 2 });
+        else reject(new Error('Network unavailable'));
+      });
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      expect(
+        fixture.queryClient.getQueryData<{ items: Array<typeof newer> }>(
+          fixture.key,
+        )?.items[0],
+      ).toEqual(newer);
+      await waitFor(() =>
+        expect(screen.getByDisplayValue(newer.title)).toBeDefined(),
+      );
+    },
+  );
+
+  it('rolls back only shared completion while retaining concurrent title and order changes', async () => {
+    let reject!: (error: Error) => void;
+    const update = vi.fn(
+      () =>
+        new Promise((_resolve, no) => {
+          reject = no;
+        }),
+    );
+    const fixture = renderToggleCollection(update);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    act(() =>
+      fixture.queryClient.setQueryData(fixture.key, {
+        ...sampleCollection,
+        items: [
+          {
+            ...fixture.firstItem,
+            completed: true,
+            title: 'Passport and visa',
+            position: 2,
+          },
+          fixture.secondItem,
+        ],
+      }),
+    );
+    await act(async () => reject(new Error('Network unavailable')));
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(
+      fixture.queryClient.getQueryData<{
+        items: Array<typeof fixture.firstItem>;
+      }>(fixture.key)?.items[0],
+    ).toEqual({
+      ...fixture.firstItem,
+      title: 'Passport and visa',
+      position: 2,
+    });
+  });
+
+  it.each(['failure', 'success'])(
+    'does not reconcile a replacement shared query after checkbox %s',
+    async (outcome) => {
+      let resolve!: (item: unknown) => void;
+      let reject!: (error: Error) => void;
+      const update = vi.fn(
+        () =>
+          new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+          }),
+      );
+      const fixture = renderToggleCollection(update);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      cleanup();
+      fixture.queryClient.removeQueries({ queryKey: fixture.key, exact: true });
+      fixture.queryClient.setQueryData(fixture.key, {
+        ...sampleCollection,
+        items: [
+          {
+            ...fixture.firstItem,
+            completed: true,
+            title: 'Replacement read',
+            version: 3,
+          },
+        ],
+      });
+      const replacement = fixture.queryClient.getQueryData(fixture.key);
+      const invalidate = vi.spyOn(fixture.queryClient, 'invalidateQueries');
+      await act(async () => {
+        if (outcome === 'success')
+          resolve({ ...fixture.firstItem, completed: true, version: 2 });
+        else reject(new Error('Network unavailable'));
+      });
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      expect(fixture.queryClient.getQueryData(fixture.key)).toBe(replacement);
+      expect(invalidate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['failure', 'success'])(
+    'does not restore a deleted shared row after checkbox %s',
+    async (outcome) => {
+      let resolve!: (item: unknown) => void;
+      let reject!: (error: Error) => void;
+      const update = vi.fn(
+        () =>
+          new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+          }),
+      );
+      const fixture = renderToggleCollection(update);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      act(() =>
+        fixture.queryClient.setQueryData(fixture.key, {
+          ...sampleCollection,
+          items: [fixture.secondItem],
+        }),
+      );
+      onlineManager.setOnline(false);
+      await act(async () => {
+        if (outcome === 'success')
+          resolve({ ...fixture.firstItem, completed: true, version: 2 });
+        else reject(new Error('Network unavailable'));
+      });
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      expect(
+        fixture.queryClient.getQueryData<{ items: unknown[] }>(fixture.key)
+          ?.items,
+      ).toEqual([fixture.secondItem]);
+    },
+  );
+
+  it('reconciles confirmed completion without reverting concurrent title and position changes', async () => {
+    let resolve!: (item: unknown) => void;
+    const update = vi.fn(
+      () =>
+        new Promise((yes) => {
+          resolve = yes;
+        }),
+    );
+    const fixture = renderToggleCollection(update);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    act(() =>
+      fixture.queryClient.setQueryData(fixture.key, {
+        ...sampleCollection,
+        items: [
+          {
+            ...fixture.firstItem,
+            completed: true,
+            title: 'Passport and visa',
+            position: 2,
+          },
+          fixture.secondItem,
+        ],
+      }),
+    );
+    onlineManager.setOnline(false);
+    const confirmed = { ...fixture.firstItem, completed: true, version: 2 };
+    await act(async () => resolve(confirmed));
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(
+      fixture.queryClient.getQueryData<{ items: Array<typeof confirmed> }>(
+        fixture.key,
+      )?.items[0],
+    ).toEqual({
+      ...confirmed,
+      title: 'Passport and visa',
+      position: 2,
+    });
+  });
+
+  it('does not apply an optimistic check to a query replaced during cancellation', async () => {
+    let cancel!: () => void;
+    let reject!: (error: Error) => void;
+    const update = vi.fn(
+      () =>
+        new Promise((_yes, no) => {
+          reject = no;
+        }),
+    );
+    const fixture = renderToggleCollection(update);
+    vi.spyOn(fixture.queryClient, 'cancelQueries').mockReturnValue(
+      new Promise<void>((yes) => {
+        cancel = yes;
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+      }),
+    );
+    await waitFor(() =>
+      expect(fixture.queryClient.cancelQueries).toHaveBeenCalled(),
+    );
+    act(() => {
+      fixture.queryClient.removeQueries({ queryKey: fixture.key, exact: true });
+      fixture.queryClient.setQueryData(fixture.key, {
+        ...sampleCollection,
+        items: [fixture.firstItem, fixture.secondItem],
+      });
+    });
+    const replacement = fixture.queryClient.getQueryData(fixture.key);
+    await act(async () => cancel());
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(fixture.queryClient.getQueryData(fixture.key)).toBe(replacement);
+    await act(async () => reject(new Error('Network unavailable')));
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(fixture.queryClient.getQueryData(fixture.key)).toBe(replacement);
+    expect(
+      screen.queryByRole('button', { name: i18n.t('common.retry') }),
+    ).toBeNull();
+  });
+
+  it('keeps late checkbox failure feedback in the initiating collection after route change', async () => {
+    let reject!: (error: Error) => void;
+    const update = vi.fn(
+      () =>
+        new Promise((_yes, no) => {
+          reject = no;
+        }),
+    );
+    const fixture = renderToggleCollection(update, true);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fixture.getCollection.mockResolvedValue({ ...nextCollection, items: [] });
+    await userEvent
+      .setup()
+      .click(screen.getByRole('link', { name: 'Switch collection' }));
+    await screen.findByRole('heading', { name: nextCollection.title });
+    await act(async () => reject(new Error('Network unavailable')));
+    await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+    expect(
+      screen.queryByRole('button', { name: i18n.t('common.retry') }),
+    ).toBeNull();
+    expect(update).toHaveBeenCalledTimes(1);
+  });
 
   it('checks a shared item immediately, blocks duplicate taps, and reconciles the confirmed version', async () => {
     let confirm!: (item: unknown) => void;

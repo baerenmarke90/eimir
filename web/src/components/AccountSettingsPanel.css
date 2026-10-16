@@ -1,0 +1,135 @@
+.account-settings-panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.account-settings-panel > h3,
+.account-danger-copy > h4,
+.account-settings-panel > p,
+.account-danger-copy > p {
+  margin: 0;
+}
+
+.account-danger-zone {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-error);
+}
+
+.account-danger-copy {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.account-danger-copy > p:last-child,
+.account-settings-panel > p,
+.account-demo-delete-note span,
+.account-deletion-dialog > p,
+.account-deletion-dialog form > p,
+.account-deletion-consequences {
+  color: var(--color-text-secondary);
+}
+
+.account-delete-button {
+  width: fit-content;
+  background: var(--color-error);
+  color: var(--color-on-accent);
+  border-color: var(--color-error);
+}
+
+.account-delete-button:not(:disabled):hover {
+  filter: brightness(0.94);
+}
+
+.account-delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.account-demo-delete-note {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+}
+
+.account-demo-delete-note .account-delete-button {
+  margin-top: var(--space-2);
+}
+
+.account-deletion-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(0 0 0 / 45%);
+  backdrop-filter: blur(4px);
+}
+
+.account-deletion-dialog {
+  width: min(40rem, 100%);
+  max-height: min(90vh, 48rem);
+  overflow: auto;
+}
+
+.account-deletion-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.account-deletion-dialog-head h2,
+.account-deletion-dialog-head p {
+  margin: 0;
+}
+
+.account-deletion-consequences {
+  display: grid;
+  gap: var(--space-3);
+  padding-inline-start: 1.25rem;
+}
+
+.account-deletion-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.account-confirmation-phrase {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 640px) {
+  .account-deletion-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .account-deletion-dialog {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  }
+
+  .account-deletion-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .account-deletion-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+}

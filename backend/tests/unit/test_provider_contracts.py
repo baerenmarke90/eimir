@@ -1,4 +1,4 @@
-"""Provider bleiben abstrakt, normalisiert und frei konfigurierbar."""
+"""Providers remain abstract, normalized, and freely configurable."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from sidebyside.providers.base import (
+from eimir.providers.base import (
     DiscoveryProvider,
     EntertainmentProvider,
     ExternalMediaProvider,
@@ -19,7 +19,7 @@ from sidebyside.providers.base import (
     PlacesProvider,
     RecipeProvider,
 )
-from sidebyside.providers.registry import ProviderRegistry
+from eimir.providers.registry import ProviderRegistry
 
 
 class StraightLineMap(MapProvider):
@@ -36,7 +36,7 @@ class StraightLineMap(MapProvider):
         )
 
 
-def test_alle_geforderten_provider_sind_abstrakte_vertraege() -> None:
+def test_all_required_providers_are_abstract_contracts() -> None:
     interfaces = (
         MapProvider,
         GeocodingProvider,
@@ -50,7 +50,7 @@ def test_alle_geforderten_provider_sind_abstrakte_vertraege() -> None:
     assert all(inspect.isabstract(interface) for interface in interfaces)
 
 
-def test_registry_waehlt_adapter_nur_ueber_konfigurierten_namen() -> None:
+def test_registry_selects_adapter_only_by_configured_name() -> None:
     registry = ProviderRegistry()
     adapter = StraightLineMap()
     registry.register(MapProvider, "self-hosted", adapter)
@@ -58,17 +58,17 @@ def test_registry_waehlt_adapter_nur_ueber_konfigurierten_namen() -> None:
     assert registry.select(MapProvider, " SELF-HOSTED ") is adapter
 
 
-def test_registry_weist_falschen_adaptertyp_ab() -> None:
+def test_registry_rejects_wrong_adapter_type() -> None:
     registry = ProviderRegistry()
     with pytest.raises(TypeError, match="MapProvider"):
-        registry.register(MapProvider, "falsch", object())  # type: ignore[arg-type]
+        registry.register(MapProvider, "wrong", object())  # type: ignore[arg-type]
 
 
-def test_map_vertrag_gibt_normalisiertes_internes_modell_zurueck() -> None:
+def test_map_contract_returns_normalized_internal_model() -> None:
     start = GeoPoint(Decimal("52.52"), Decimal("13.405"))
-    ziel = GeoPoint(Decimal("52.51"), Decimal("13.39"))
-    route = StraightLineMap().route(start, ziel)
+    destination = GeoPoint(Decimal("52.51"), Decimal("13.39"))
+    route = StraightLineMap().route(start, destination)
 
     assert isinstance(route, MapRoute)
-    assert route.geometry == (start, ziel)
-    assert type(route).__module__ == "sidebyside.providers.base"
+    assert route.geometry == (start, destination)
+    assert type(route).__module__ == "eimir.providers.base"

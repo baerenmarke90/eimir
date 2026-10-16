@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,11 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
- * Die Titelkorrektur.
+ * Wish title correction.
  * 
- * Es gibt bewusst kein `status`-Feld. Der Wish-Status folgt
- * ausschliesslich dem Wish->Plan-Vertrag (M3-D02/D03/D04); ein freier
- * Status-PATCH waere der Weg, an ihm vorbeizukommen.
+ * There is deliberately no ``status`` field. Wish status is controlled only
+ * by explicit lifecycle commands; an arbitrary status PATCH would provide a
+ * way around those transitions.
  * @export
  * @interface WishUpdate
  */

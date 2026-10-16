@@ -1,9 +1,9 @@
 # M2 Domain Model
 
-**Status:** Verbindlicher Domain-/Privacy-Entwurf nach M2-S0 #68; Media-/API-Details bleiben bis #69/#70 offen  
+**Status:** binding Domain/Privacy draft after M2-S0 #68; Media/API details remain open until #69/#70  
 **Version:** 1.1
 
-## 1. Modellübersicht
+## 1. Model overview
 
 ```mermaid
 erDiagram
@@ -90,156 +90,162 @@ erDiagram
   }
 ```
 
-`MEMORY_ATTACHMENT` ist eine technische Relationsskizze, weil Memories mehrere Medien besitzen. Name und konkrete Persistenzform bleiben bis #69 eine Open-Decision; eine generische Universalrelation ist nicht beabsichtigt.
+`MEMORY_ATTACHMENT` is a technical relation sketch because Memories can contain multiple Media items. Its name and concrete persistence form remain an open decision until #69; a generic universal relation is not intended.
 
-## 2. Sichtbarkeitsbegriffe
+## 2. Visibility terminology
 
-Die öffentliche Domain-/API-Sprache und die interne Authorization-Sprache sind bewusst getrennt:
+Public Domain/API language and internal Authorization language are deliberately separated:
 
-| Ebene | Werte | Vertrag |
+| Layer | Values | Contract |
 |---|---|---|
-| Domain/API | `SHARED`, `PRIVATE` | fachliche Sichtbarkeit; Clientwert |
-| Authorization/Persistenz | `SPACE_SHARED`, `OWNER_ONLY` | interne Zugriffsklasse; nicht als redundanter Clientwert schreibbar |
+| Domain/API | `SHARED`, `PRIVATE` | domain visibility; client value |
+| Authorization/persistence | `SPACE_SHARED`, `OWNER_ONLY` | internal access class; not writable as a redundant client value |
 
-`PRIVATE` wird serverseitig auf `OWNER_ONLY`, `SHARED` auf `SPACE_SHARED` abgebildet. Ressourcen, die fachlich immer gemeinsam sind (Memory, Milestone), benötigen kein frei schreibbares Visibility-Feld. Diese Trennung verhindert zwei konkurrierende Wahrheitsquellen.
+`PRIVATE` maps server-side to `OWNER_ONLY`, and `SHARED` maps to `SPACE_SHARED`. Resources that are always shared at the domain level (Memory, Milestone) do not need a freely writable visibility field. This separation prevents competing sources of truth.
 
-## 3. Domain-Verträge
+## 3. Domain contracts
 
 ### Memory
 
-| Aspekt | Vertrag |
+| Aspect | Contract |
 |---|---|
-| Privacy | gemeinsamer Space-Inhalt; intern `SPACE_SHARED` |
-| Autor | bei Create aus Authorization Context; danach unveränderlich |
-| Inhalt | `title`, `body` in ProtectedPayload-Grenze |
-| Datum | `happenedOn` optional und getrennt von `createdAt` |
-| Medien | mehrere Attachments; Relation erst nach #69 verbindlich |
-| Schreiben | ausschließlich Autor; Partner erhält keine Update-/Delete-Vollmacht durch Shared-Lesbarkeit |
-| Lesen | beide aktiven Space-Partner |
-| Story | immer zulässig, sofern nicht gelöscht |
-| Suche | globale Volltextsuche nicht G2-pflichtig; M4-Scope |
-| Concurrency | `version`, 409 bei veraltetem Update/Delete |
+| Privacy | shared Space content; internally `SPACE_SHARED` |
+| Author | derived from Authorization Context on Create; immutable afterward |
+| Content | `title`, `body` within the ProtectedPayload boundary |
+| Date | optional `happenedOn`, separate from `createdAt` |
+| Media | multiple Attachments; relation remains non-binding until #69 |
+| Write | author only; partner gains no Update/Delete authority from shared readability |
+| Read | both active Space partners |
+| Story | always permitted unless deleted |
+| Search | global full-text Search is not required for G2; M4 scope |
+| Concurrency | `version`, 409 for stale Update/Delete |
 
-Nicht-inhaltliche Felder unterliegen derselben Autorregel. Eine spätere kollaborative Bearbeitung ist eine neue Domainfunktion und kein stilles Aufweichen dieser Invariante.
+Non-content fields are subject to the same author rule. Later collaborative editing would be a new Domain feature, not a silent weakening of this invariant.
 
 ### HeartMoment
 
-| Aspekt | Vertrag |
+| Aspect | Contract |
 |---|---|
-| Privacy | Domain `PRIVATE` → intern `OWNER_ONLY`; Domain `SHARED` → intern `SPACE_SHARED` |
-| Pflichtfelder | Text, Emotion, Sichtbarkeit, `happenedOn` |
-| Emotionen | `LOVED`, `SEEN`, `APPRECIATED`, `SUPPORTED`, `GRATEFUL`, `HAPPY` |
-| Emotion-Klassifikation | ProtectedPayload; nicht Analytics-/Event-/Log-Metadatum |
-| Medien | maximal ein optionales Attachment laut aktuellem Modell; Media-Vertrag #69 |
-| Kommentare | nur `SHARED`; bei `SHARED -> PRIVATE` atomar löschen |
-| Story | nur `SHARED` |
-| Partnerzugriff bei PRIVATE | niemals – auch nicht indirekt |
-| Concurrency | `version`, 409 bei veraltetem Update/Delete/Privacy-Wechsel |
+| Privacy | Domain `PRIVATE` → internally `OWNER_ONLY`; Domain `SHARED` → internally `SPACE_SHARED` |
+| Required fields | text, emotion, visibility, `happenedOn` |
+| Emotions | `LOVED`, `SEEN`, `APPRECIATED`, `SUPPORTED`, `GRATEFUL`, `HAPPY` |
+| Emotion classification | ProtectedPayload; not Analytics/Event/Log metadata |
+| Media | at most one optional Attachment according to the current model; Media contract #69 |
+| Comments | `SHARED` only; delete atomically on `SHARED -> PRIVATE` |
+| Story | own Timeline always (own position, real `visibility`); partner's Timeline only when `SHARED` (#1021, superseding M2-D22) |
+| Partner access when PRIVATE | never — including indirectly |
+| Concurrency | `version`, 409 for stale Update/Delete/Privacy transition |
 
-Ein Privacy-Wechsel ist eine Domainoperation, keine reine Clientdarstellung. `PRIVATE` darf nicht zunächst geladen und anschließend im Client herausgefiltert werden. `SHARED -> PRIVATE` setzt die interne Klasse und löscht vorhandene Comments in derselben DB-Transaktion; `PRIVATE -> SHARED` stellt sie nicht wieder her.
+A Privacy transition is a Domain operation, not merely client presentation. `PRIVATE` must not first be loaded and then filtered out in the client. `SHARED -> PRIVATE` changes the internal class and deletes existing Comments in the same DB transaction; `PRIVATE -> SHARED` does not restore them.
 
 ### Milestone
 
-| Aspekt | Vertrag |
+| Aspect | Contract |
 |---|---|
-| Privacy | gemeinsamer Space-Inhalt, intern `SPACE_SHARED` |
-| Modell | eigenständige Entität, kein spezieller Listentyp |
-| Pflichtfelder | Titel, `happenedOn`, Autor |
+| Privacy | shared Space content, internally `SPACE_SHARED` |
+| Model | dedicated entity, not a special List type |
+| Required fields | Title, `happenedOn`, author |
 | Optional | Body |
-| Autor | unveränderlich |
-| Story | ja |
-| Kommentare | ja |
-| Spätere Nutzung | Chapter, Suche, Jahresrückblick |
+| Author | immutable |
+| Story | yes |
+| Comments | yes |
+| Later use | Chapter, Search, Year Recap |
 | Concurrency | `version` |
 
-Die Partner-Schreibregel ist mit M2-D25 entschieden: beide lesen, Update und Delete bleiben beim unveränderlichen Autor — dieselbe Regel wie für Memory. Aus geteilter Lesbarkeit folgt keine Schreibvollmacht. Ein späteres gemeinsames Bearbeiten benötigt eine neue Entscheidung und eine eigene Regel in `authorization.rules`, nicht eine Ausnahme im Endpunkt.
+The partner write rule is decided by M2-D25: both partners can read, while Update and Delete remain with the immutable author — the same rule as for Memory. Shared readability does not grant write authority. Later collaborative editing requires a new decision and a dedicated rule in `authorization.rules`, not an endpoint exception.
 
 ### Attachment
 
-| Aspekt | Vertrag |
+| Aspect | Contract |
 |---|---|
-| Ownership | genau ein `spaceId`, genau ein `ownerId` |
-| Lifecycle | `PENDING → upload → validation → READY`, Fehler `FAILED`; Details #69 |
-| Storage | `LocalMediaStore` oder `S3MediaStore` hinter Interface |
-| Storage Key | nie aus Benutzerdateiname; UUID-basierter Space-Pfad |
-| Metadaten | Typ, MIME, Größe, optionale Breite/Höhe/Dauer, Originalname; Privacy-/Retentiondetails #69 |
-| Crypto | `cryptoVersion`, `encrypted`; Storage setzt Klartext nicht voraus |
-| Lesen | nach Membership/Resource-Autorisierung über Streamingroute oder kurzlebige URL |
-| Öffentlichkeit | niemals öffentlich |
+| Ownership | exactly one `spaceId`, exactly one `ownerId` |
+| Lifecycle | `PENDING → upload → validation → READY`, failure `FAILED`; details #69 |
+| Storage | `LocalMediaStore` or `S3MediaStore` behind an interface |
+| Storage Key | never derived from user filename; UUID-based Space path |
+| Metadata | type, MIME, size, optional width/height/duration, original name; Privacy/Retention details #69 |
+| Crypto | `cryptoVersion`, `encrypted`; Storage must not assume plaintext |
+| Read | after Membership/resource Authorization through a streaming route or short-lived URL |
+| Public access | never public |
 
-Attachment-Berechtigung folgt nicht nur dem Attachment selbst, sondern auch der autorisierten Zielressource. Ein Owner-only HeartMoment darf kein Attachment über eine alternative Route an den Partner leaken.
+Attachment Authorization follows not only the Attachment itself but also the authorized target resource. An owner-only HeartMoment must not leak its Attachment to the partner through an alternate route.
 
 ### Comment
 
-| Aspekt | Vertrag |
+| Aspect | Contract |
 |---|---|
-| Targets | kontrolliertes Enum: `MEMORY`, `MILESTONE`, `HEART_MOMENT` |
-| HeartMoment | nur wenn `SHARED` |
-| Privacy | erbt Erreichbarkeit der Zielressource; kein eigenständiges Public/Private |
-| Autor | unveränderlich; nur Autor darf eigenen Body bearbeiten/löschen |
-| Concurrency | persistiertes `version`; Update/Delete mit If-Match, stale → 409 |
-| Parent-Delete | Comments werden als abhängige Domainobjekte atomar mit Parent gelöscht |
-| HeartMoment privat schalten | vorhandene Comments werden atomar gelöscht |
-| Event | Kommentar auf fremdem gemeinsamen Inhalt → Domain Event ohne Body |
-| Notification | an Content-Autor, optional Push; keine unnötigen Textpayloads |
+| Targets | controlled enum: `MEMORY`, `MILESTONE`, `HEART_MOMENT` |
+| HeartMoment | only when `SHARED` |
+| Privacy | inherits target-resource reachability; no independent Public/Private state |
+| Author | immutable; only the author may edit/delete their own Body |
+| Concurrency | persisted `version`; Update/Delete with If-Match, stale → 409 |
+| Parent Delete | Comments are atomically deleted with the parent as dependent Domain objects |
+| HeartMoment made private | existing Comments are atomically deleted |
+| Event | Comment on another person's shared content → Domain Event without Body |
+| Notification | to content author, optional Push; no unnecessary text payloads |
 
-Serverseitige Parent-Cascade-/Privacy-Operationen dürfen abhängige Comments unabhängig vom Comment-Autor entfernen; sie sind keine Benutzer-Edit-Operation und benötigen kein vom Comment-Autor geliefertes If-Match.
+Server-side Parent Cascade/Privacy operations may remove dependent Comments regardless of Comment author; these are not user Edit operations and require no If-Match supplied by the Comment author.
 
-## 4. Privacy-Matrix
+## 4. Privacy matrix
 
-| Ressource | Autor | Partner im Space | fremder Space | Story | Suche | Partnerexport | Kommentar |
+| Resource | Author | Partner in Space | Foreign Space | Story | Search | Partner Export | Comment |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Memory | CRUD | Lesen | niemals | ja | später M4 | ja | ja |
-| HeartMoment SHARED | CRUD | Lesen | niemals | ja | später M4 | ja | ja |
-| HeartMoment PRIVATE | CRUD | niemals | niemals | niemals | nur Owner, falls später angeboten | niemals | niemals |
-| Milestone | CRUD* | Lesen | niemals | ja | später M4 | ja | ja |
-| Attachment an Shared-Ziel | gemäß Ziel | gemäß Ziel | niemals | über Ziel | über Ziel | gemäß Ziel | n/a |
-| Attachment an Owner-only-Ziel | Owner | niemals | niemals | niemals | niemals für Partner | niemals | n/a |
-| Comment | eigener Inhalt CRUD | lesen gemäß Ziel | niemals | über Ziel | nicht G2 | gemäß Ziel | n/a |
+| Memory | CRUD | Read | never | yes | later M4 | yes | yes |
+| HeartMoment SHARED | CRUD | Read | never | yes | later M4 | yes | yes |
+| HeartMoment PRIVATE | CRUD | never | never | owner only (#1021) | owner only, if offered later | never | never |
+| Milestone | CRUD* | Read | never | yes | later M4 | yes | yes |
+| Attachment on Shared target | according to target | according to target | never | through target | through target | according to target | n/a |
+| Attachment on owner-only target | owner | never | never | never | never for partner | never | n/a |
+| Comment | own content CRUD | read according to target | never | through target | not G2 | according to target | n/a |
 
-`*` Milestone-Partner-Schreibrechte werden vor dessen Runtime-Slice separat bestätigt; bis dahin Autor-only als sichere Default-Annahme.
+`*` Milestone partner write permissions are confirmed separately before its runtime slice; until then author-only remains the safe default assumption.
 
-„Partner im Space“ bedeutet aktive Membership im selben Space. Ein Zugriff allein anhand einer Resource-ID ist nie zulässig.
+"Partner in Space" means an active Membership in the same Space. Access based only on a Resource ID is never permitted.
 
-## 5. ProtectedPayload-Grenze
+## 5. ProtectedPayload boundary
 
 ### Metadata
 
-- IDs und Tenant-/Autorreferenzen,
-- fachliche Sortierdaten wie `happenedOn`,
-- technische Zeitpunkte und `version`,
+- IDs and Tenant/author references,
+- domain sort data such as `happenedOn`,
+- technical timestamps and `version`,
 - `cryptoVersion`,
-- für Ableitungen zwingend notwendige, nicht-inhaltliche Zustände.
+- non-content states strictly required for derived behavior.
 
 ### ProtectedPayload
 
-- Memory `title` und `body`,
-- HeartMoment `text` und `emotion`,
-- Milestone `title` und `body`,
+- Memory `title` and `body`,
+- HeartMoment `text` and `emotion`,
+- Milestone `title` and `body`,
 - Comment `body`,
-- weitere sensible Inhaltsfelder.
+- other sensitive content fields.
 
-Version 1 darf Payloads als Klartext speichern, aber Domain-, API-, Persistenz- und Outbox-Grenzen dürfen keinen Klartext als dauerhaft notwendige Form voraussetzen. Diese Bereitschaft ist keine echte E2EE.
+Version 1 may store payloads as plaintext, but Domain, API, persistence, and Outbox boundaries must not require plaintext as a permanently necessary representation. This readiness is not real E2EE.
 
-ProtectedPayload wird nicht in Analytics, Logfeldern, Metriklabels, Notification-Previews oder Domain-Event-Payloads dupliziert. Berechtigte Ressourcen-Responses dürfen den Inhalt selbstverständlich nach erfolgreicher Autorisierung liefern.
+ProtectedPayload is not duplicated into Analytics, log fields, metric labels, Notification Previews, or Domain Event payloads. Authorized resource responses may of course return the content after successful Authorization.
 
 ## 6. Story Read Model
 
 ```text
-Memory ───────────────┐
-HeartMoment SHARED ───┼── StoryQueryService ── CursorPage<StoryItem>
-Milestone ────────────┘
-
-HeartMoment PRIVATE ──X── niemals Teil der Story-Abfrage
+Memory ─────────────────────┐
+HeartMoment (viewer-authorized) ── StoryQueryService ── CursorPage<StoryItem>
+Milestone ───────────────────┘
 ```
 
-Story wird nicht persistiert. Jedes Item referenziert sein Original und enthält nur die für Timeline, Autor, Medienvorschau und Navigation notwendigen Daten.
+The Story query is viewer-authorized (#1021, superseding M2-D22): it applies
+the same `OWNER_ONLY`/`SPACE_SHARED` Authorization rule as every other
+resource, so a HeartMoment an account marked `PRIVATE` stays part of that
+account's own Timeline at its ordinary position and carries its real
+`visibility`, while remaining completely absent from the partner's. The
+separate relationship-shared projections — the Dashboard's shared Story
+counts and Discover — stay `SPACE_SHARED`-only, unaffected by this.
 
-Sortierung und Cursor werden in #70 / M2-D08 verbindlich entschieden. Globale Volltextsuche `q` ist nicht Teil der G2-Mindestanforderung und bleibt grundsätzlich M4.
+Story is not persisted. Each item references its original and contains only the data necessary for Timeline, author, Media preview, and navigation.
+
+Ordering and Cursor semantics are decided by #70 / M2-D08. Global full-text Search `q` is not part of the minimum G2 requirement and generally remains M4.
 
 ## 7. Domain Events
 
-Jedes M2-Event verwendet mindestens:
+Every M2 Event uses at least:
 
 ```text
 eventId
@@ -252,52 +258,52 @@ resourceId
 resourceVersion
 ```
 
-Event-spezifisch sind nur weitere IDs, technische Zeitpunkte und explizit sichere Zustände/Kategorien zulässig. Verboten sind ProtectedPayload, Comment-Body, HeartMoment-Emotion, Originaldateiname, Storage Key und Download-URL.
+Event-specific payload may contain only additional IDs, technical timestamps, and explicitly safe states/categories. Forbidden are ProtectedPayload, Comment Body, HeartMoment emotion, original filename, Storage Key, and Download URL.
 
-| Ereignis | Transaktion | zusätzliche sichere Payload | mögliche Consumer |
+| Event | Transaction | Additional safe payload | Possible consumers |
 |---|---|---|---|
-| `MEMORY_CREATED` | mit Memory-Create | keine Inhaltsfelder | Activity, Rules |
-| `MEMORY_UPDATED` | mit Update | optional geänderte sichere Kategorien | Cache/Activity |
-| `MEMORY_DELETED` | mit Delete | `deletedAt` | Attachment Cleanup, Cache |
-| `HEART_MOMENT_CREATED` | mit Create | Visibility/Privacy-Zustand; kein Text/Emotion | Activity/Notification nur wenn shared |
-| `HEART_MOMENT_VISIBILITY_CHANGED` | mit Wechsel | alte/neue Visibility | Cache-/Notification-Schutz |
-| `MILESTONE_CREATED` | mit Create | keine Inhaltsfelder | Story/Activity |
-| `COMMENT_CREATED` | mit Create | Target-Type/-ID | Notification an Content-Autor |
-| `ATTACHMENT_READY` | mit Finalisierung | sichere technische Metadaten gemäß #69 | Resource/Processing |
-| `ATTACHMENT_FAILED` | mit Statuswechsel | sicherer Fehlercode | Cleanup/Observability |
+| `MEMORY_CREATED` | with Memory Create | no content fields | Activity, Rules |
+| `MEMORY_UPDATED` | with Update | optionally changed safe categories | Cache/Activity |
+| `MEMORY_DELETED` | with Delete | `deletedAt` | Attachment Cleanup, Cache |
+| `HEART_MOMENT_CREATED` | with Create | visibility/Privacy state; no text/emotion | Activity/Notification only when shared |
+| `HEART_MOMENT_VISIBILITY_CHANGED` | with transition | old/new visibility | cache/Notification protection |
+| `MILESTONE_CREATED` | with Create | no content fields | Story/Activity |
+| `COMMENT_CREATED` | with Create | target type/ID | Notification to content author |
+| `ATTACHMENT_READY` | with Finalize | safe technical metadata according to #69 | Resource/Processing |
+| `ATTACHMENT_FAILED` | with state change | safe error code | Cleanup/Observability |
 
-Consumer, die Darstellung benötigen, laden sie nach eigener Autorisierung oder verwenden generische Texte. Outbox ist keine Schattenkopie sensibler Inhalte.
+Consumers that need presentation data load it under their own Authorization or use generic text. The Outbox is not a shadow copy of sensitive content.
 
-## 8. Lösch- und Referenzregeln
+## 8. Delete and reference rules
 
-- Benutzerinitiierte Updates/Deletes prüfen aktuelle `version` und Schreibberechtigung.
-- Fachliches Delete macht die Ressource mit erfolgreichem Commit sofort unsichtbar.
-- Ein gelöschtes Original verschwindet automatisch aus Story; es gibt keine Story-Kopie.
-- Comments werden beim Parent-Delete atomar in derselben DB-Transaktion gelöscht.
-- Bei HeartMoment `SHARED -> PRIVATE` werden Comments ebenfalls atomar gelöscht.
-- Domain-Events/Audit dürfen technische IDs/Zustände behalten, aber keine ProtectedPayload.
-- Attachments/Blobs werden erst nach den in #69 festgelegten Referenz-/Retention-/Cleanup-Regeln physisch gelöscht.
-- Storage-Löschung und DB-Transaktion werden nicht als eine unzuverlässige synchrone Operation gekoppelt; Cleanup kann über Outbox/Job erfolgen.
-- Fehlgeschlagener Storage-Cleanup bleibt beobachtbar und wiederholbar, ohne die gelöschte Domainressource wieder sichtbar zu machen.
+- User-initiated Updates/Deletes check the current `version` and write permission.
+- Domain Delete makes the resource invisible immediately upon successful commit.
+- A deleted original disappears automatically from Story; there is no Story copy.
+- Comments are atomically deleted in the same DB transaction when their parent is deleted.
+- On HeartMoment `SHARED -> PRIVATE`, Comments are also atomically deleted.
+- Domain Events/Audit may retain technical IDs/states but no ProtectedPayload.
+- Attachments/Blobs are physically deleted only according to the reference/Retention/Cleanup rules defined in #69.
+- Storage deletion and the DB transaction are not coupled as one unreliable synchronous operation; Cleanup may run through Outbox/Job.
+- Failed Storage Cleanup remains observable and retryable without making the deleted Domain resource visible again.
 
-## 9. Invarianten
+## 9. Invariants
 
-1. Jede Ressource trägt genau einen Space-Kontext.
-2. Membership wird vor Ressourcenzugriff geprüft.
-3. Owner-only wird in der Datenabfrage durchgesetzt.
-4. `PRIVATE` HeartMoment erzeugt keine Partneraktivität, Notification oder Story-Zeile.
-5. Attachment-Autorisierung folgt der Zielressource.
-6. Veränderbare Entitäten werden nicht ohne Versionsprüfung überschrieben.
-7. Story enthält nur Originalreferenzen, keine duplizierten Inhalte.
-8. Domainänderung und relevantes Event werden atomar geschrieben.
-9. MediaStore und Domain bleiben über Interface getrennt.
-10. Keine M2-Struktur setzt echte E2EE voraus oder behauptet sie.
-11. Shared-Lesbarkeit verleiht nicht automatisch Schreibrechte.
-12. `authorId`/`ownerId` werden durch normale Updates nicht übertragen.
-13. `visibility` ist die fachliche API-Wahrheit; interne `privacyClass` ist keine zweite Client-Wahrheit.
-14. ProtectedPayload wird nicht in Events, Logs, Analytics oder Metriklabels dupliziert.
+1. Every resource carries exactly one Space context.
+2. Membership is checked before resource access.
+3. Owner-only is enforced in the data query.
+4. A `PRIVATE` HeartMoment creates no partner Activity, Notification, or partner-visible Story row; it remains part of its owner's own Story (#1021).
+5. Attachment Authorization follows the target resource.
+6. Mutable entities are not overwritten without a version check.
+7. Story contains only references to originals, not duplicated content.
+8. Domain change and relevant Event are written atomically.
+9. MediaStore and Domain remain separated through an interface.
+10. No M2 structure requires or claims real E2EE.
+11. Shared readability does not automatically grant write permission.
+12. `authorId`/`ownerId` are not transferred by normal Updates.
+13. `visibility` is the domain-level API truth; internal `privacyClass` is not a second client source of truth.
+14. ProtectedPayload is not duplicated into Events, logs, Analytics, or metric labels.
 
-## Verwandte Dokumente
+## Related documents
 
 - [API Design](./API-DESIGN.md)
 - [Media Pipeline](./MEDIA-PIPELINE.md)

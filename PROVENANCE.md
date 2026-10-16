@@ -2,7 +2,7 @@
 
 ## Statement
 
-SideBySide Next is an independently implemented software project based on a
+eimir. is an independently implemented software project based on a
 functional product specification. No source code from SharedMoments or
 SideBySide Classic is copied into this implementation.
 
@@ -23,7 +23,7 @@ recorded in
 | | |
 |---|---|
 | Project start | 2026-08-23 |
-| Specification | SideBySide Next Clean-Room Master Specification |
+| Specification | eimir. Clean-Room Master Specification |
 | Predecessor | SideBySide Classic (historical background only) |
 | Repository | separate from any predecessor repository |
 
@@ -89,7 +89,7 @@ M2 handoff graphics. Their paths and provenance classification are recorded
 in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
 
 The product-preview files under `docs/assets/playstore/` are mockups for
-SideBySide Next, not screenshots or assets copied from a predecessor. The
+eimir., not screenshots or assets copied from a predecessor. The
 roadmap graphics under `docs/assets/roadmap/` and the M2 SVG diagrams were
 created specifically for this repository's documentation and handoff.
 
@@ -108,7 +108,7 @@ AI assistance under human review.
 
 ## License of this source code
 
-SideBySide Next's own source code is made available under the
+eimir.'s own source code is made available under the
 **PolyForm Noncommercial License 1.0.0**. Noncommercial use, modification,
 and distribution are permitted subject to that license. Commercial use
 requires a separate commercial license from the rights holder.
@@ -117,9 +117,9 @@ See [LICENSE](LICENSE) for the license terms,
 [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for commercial licensing,
 [CONTRIBUTING.md](CONTRIBUTING.md) and [CLA.md](CLA.md) for contributions,
 and [TRADEMARKS.md](TRADEMARKS.md) for the separate treatment of the
-SideBySide name, logos, and branding.
+eimir. name, logos, and branding.
 
-Because commercial use is not granted generally, SideBySide Next is
+Because commercial use is not granted generally, eimir. is
 **source-available**, not Open Source in the narrower OSI sense. Third-party
 components remain subject to their own licenses as documented in
 [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).

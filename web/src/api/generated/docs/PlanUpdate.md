@@ -1,7 +1,7 @@
 
 # PlanUpdate
 
-Fachliche Korrektur ohne Statuswirkung.  `status`, `plannedStart` und `plannedEnd` sind hier nicht vorgesehen - sie gehoeren den Lifecycle-Operationen. `experiencedOn` ist die eine Ausnahme: es darf auf einem abgeschlossenen Plan korrigiert werden, ohne dass daraus eine Rueckoeffnung wird (M3-D04).
+Domain correction without changing lifecycle status.  Schedule fields remain owned by ``/schedule`` and ``/unschedule``. ``experiencedOn`` is the one exception: it may be corrected on a completed Plan without reopening it (M3-D04).
 
 ## Properties
 

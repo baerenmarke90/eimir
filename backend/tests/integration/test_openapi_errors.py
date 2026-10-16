@@ -1,4 +1,4 @@
-"""Runtime-Fehler und dokumentiertes ProblemDetails-Schema bleiben deckungsgleich."""
+"""Runtime errors and the documented ProblemDetails schema remain aligned."""
 
 from __future__ import annotations
 
@@ -8,14 +8,14 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from sidebyside.api.errors import ProblemDetails
-from sidebyside.auth import local, rate_limit
+from eimir.api.errors import ProblemDetails
+from eimir.auth import local, rate_limit
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
 PROBLEM_DETAILS_REF = "#/components/schemas/ProblemDetails"
-PFLICHTFELDER = {"type", "title", "status", "detail", "code"}
+REQUIRED_FIELDS = {"type", "title", "status", "detail", "code"}
 
 
 def _assert_problem_contract(
@@ -26,16 +26,16 @@ def _assert_problem_contract(
     response,
 ) -> None:  # type: ignore[no-untyped-def]
     body = response.json()
-    assert set(body) == PFLICHTFELDER
+    assert set(body) == REQUIRED_FIELDS
     details = ProblemDetails.model_validate(body)
     assert details.status == response.status_code
 
     schema: dict[str, Any] = client.get("/openapi.json").json()
-    dokumentiert = schema["paths"][path_template][method]["responses"][str(response.status_code)]
-    assert dokumentiert["content"]["application/json"]["schema"] == {"$ref": PROBLEM_DETAILS_REF}
+    documented = schema["paths"][path_template][method]["responses"][str(response.status_code)]
+    assert documented["content"]["application/json"]["schema"] == {"$ref": PROBLEM_DETAILS_REF}
 
 
-def test_401_authentication_runtime_passt_zum_vertrag(client: TestClient) -> None:
+def test_401_authentication_runtime_matches_contract(client: TestClient) -> None:
     response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
@@ -47,7 +47,7 @@ def test_401_authentication_runtime_passt_zum_vertrag(client: TestClient) -> Non
     )
 
 
-def test_422_request_validation_runtime_passt_zum_vertrag(client: TestClient) -> None:
+def test_422_request_validation_runtime_matches_contract(client: TestClient) -> None:
     response = client.post("/api/v1/auth/sign-in", json={})
 
     assert response.status_code == 422
@@ -59,7 +59,10 @@ def test_422_request_validation_runtime_passt_zum_vertrag(client: TestClient) ->
     )
 
 
-def test_404_tenant_grenze_runtime_passt_zum_vertrag(client: TestClient, session: Session) -> None:
+def test_404_tenant_boundary_runtime_matches_contract(
+    client: TestClient,
+    session: Session,
+) -> None:
     account = make_account(session, "Anna")
     token = sign_in(session, account)
 
@@ -74,7 +77,10 @@ def test_404_tenant_grenze_runtime_passt_zum_vertrag(client: TestClient, session
     )
 
 
-def test_409_concurrency_runtime_passt_zum_vertrag(client: TestClient, session: Session) -> None:
+def test_409_concurrency_runtime_matches_contract(
+    client: TestClient,
+    session: Session,
+) -> None:
     account = make_account(session, "Anna")
     space = make_space(session, account)
     token = sign_in(session, account)
@@ -98,7 +104,10 @@ def test_409_concurrency_runtime_passt_zum_vertrag(client: TestClient, session: 
     )
 
 
-def test_429_rate_limit_runtime_passt_zum_vertrag(client: TestClient, session: Session) -> None:
+def test_429_rate_limit_runtime_matches_contract(
+    client: TestClient,
+    session: Session,
+) -> None:
     email = "rate-limit-openapi@example.test"
     for _ in range(rate_limit.SIGN_IN.attempts):
         rate_limit.record_attempt(session, local.ACTION_SIGN_IN, email)

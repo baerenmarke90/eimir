@@ -1,10 +1,14 @@
-"""PostgreSQL-/HTTP-Abnahme fuer die Story-Zeitleiste.
+"""PostgreSQL/HTTP acceptance tests for the story timeline.
 
-Die Zeitleiste ist die Stelle, an der alle vier M2-Typen zusammenkommen -
-und damit die Stelle, an der ein Privacy-Fehler am teuersten waere: ein
-privater HeartMoment in einer gemeinsamen Liste ist nicht wiedergutzumachen.
-Deshalb pruefen diese Tests die Abwesenheit privater Zeilen aus beiden
-Richtungen: der Partner darf sie nicht sehen, und der Owner auch nicht.
+The timeline is where all four M2 types converge, making a privacy failure
+particularly costly: a private HeartMoment in a shared list cannot be undone.
+
+#1021 superseded M2-D22: the timeline is viewer-authorized, so a private
+HeartMoment is now part of its owner's own timeline but must remain
+completely absent from the partner's. These tests therefore verify both
+directions explicitly rather than a single "always absent" rule: presence
+for the owner, absence for the partner, and no leakage through counts,
+available years, or cursor reuse across accounts.
 """
 
 from __future__ import annotations
@@ -13,20 +17,20 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from sidebyside.relationship import service as relationship_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
-    fremd = make_account(session, "Fremd")
+    outsider = make_account(session, "Fremd")
     space = make_space(session, anna)
     relationship_service.add_member(session, space.id, ben)
-    beta = make_space(session, fremd)
+    beta = make_space(session, outsider)
     session.flush()
     return {
         "anna": anna,
@@ -35,265 +39,492 @@ def paar(session: Session):  # type: ignore[no-untyped-def]
         "beta": beta,
         "token_a": sign_in(session, anna),
         "token_b": sign_in(session, ben),
-        "token_f": sign_in(session, fremd),
+        "token_f": sign_in(session, outsider),
     }
 
 
-def basis(space_id: object) -> str:
+def base_path(space_id: object) -> str:
     return f"/api/v1/spaces/{space_id}"
 
 
-def memory(client, paar, *, titel="M", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
-    rumpf = {"title": titel, "body": "B"}
+def memory(client, couple, *, title="M", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
+    payload = {"title": title, "body": "B"}
     if happened_on is not None:
-        rumpf["happenedOn"] = happened_on
-    antwort = client.post(
-        f"{basis(paar['space'].id)}/memories",
-        json=rumpf,
-        headers=auth(token or paar["token_a"]),
+        payload["happenedOn"] = happened_on
+    response = client.post(
+        f"{base_path(couple['space'].id)}/memories",
+        json=payload,
+        headers=auth(token or couple["token_a"]),
     )
-    assert antwort.status_code == 201, antwort.text
-    return antwort.json()
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def milestone(client, paar, *, titel="MS", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
-    antwort = client.post(
-        f"{basis(paar['space'].id)}/milestones",
-        json={"title": titel, "happenedOn": happened_on},
-        headers=auth(token or paar["token_a"]),
+def milestone(client, couple, *, title="MS", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
+    response = client.post(
+        f"{base_path(couple['space'].id)}/milestones",
+        json={"title": title, "happenedOn": happened_on},
+        headers=auth(token or couple["token_a"]),
     )
-    assert antwort.status_code == 201, antwort.text
-    return antwort.json()
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def heart_moment(client, paar, *, visibility="SHARED", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
-    antwort = client.post(
-        f"{basis(paar['space'].id)}/heart-moments",
+def heart_moment(client, couple, *, visibility="SHARED", happened_on="2025-06-13", token=None):  # type: ignore[no-untyped-def]
+    response = client.post(
+        f"{base_path(couple['space'].id)}/heart-moments",
         json={
             "text": "Danke",
             "emotion": "LOVED",
             "visibility": visibility,
             "happenedOn": happened_on,
         },
-        headers=auth(token or paar["token_a"]),
+        headers=auth(token or couple["token_a"]),
     )
-    assert antwort.status_code == 201, antwort.text
-    return antwort.json()
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def timeline(client, paar, *, token=None, **parameter):  # type: ignore[no-untyped-def]
-    antwort = client.get(
-        f"{basis(paar['space'].id)}/timeline",
-        params=parameter,
-        headers=auth(token or paar["token_a"]),
+def timeline(client, couple, *, token=None, **parameters):  # type: ignore[no-untyped-def]
+    response = client.get(
+        f"{base_path(couple['space'].id)}/timeline",
+        params=parameters,
+        headers=auth(token or couple["token_a"]),
     )
-    return antwort
+    return response
 
 
-def ids(antwort) -> list[str]:  # type: ignore[no-untyped-def]
-    schluessel = {"MEMORY": "memory", "HEART_MOMENT": "heartMoment", "MILESTONE": "milestone"}
-    return [eintrag[schluessel[eintrag["kind"]]]["id"] for eintrag in antwort.json()["items"]]
+def ids(response) -> list[str]:  # type: ignore[no-untyped-def]
+    keys = {"MEMORY": "memory", "HEART_MOMENT": "heartMoment", "MILESTONE": "milestone"}
+    return [item[keys[item["kind"]]]["id"] for item in response.json()["items"]]
+
+
+def heart_moment_item(response, item_id: str):  # type: ignore[no-untyped-def]
+    return next(
+        item
+        for item in response.json()["items"]
+        if item["kind"] == "HEART_MOMENT" and item["heartMoment"]["id"] == item_id
+    )
 
 
 class TestPrivacy:
-    def test_privater_heart_moment_fehlt_dem_partner(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        privat = heart_moment(client, paar, visibility="PRIVATE")
-        assert privat["id"] not in ids(timeline(client, paar, token=paar["token_b"]))
+    def test_private_heart_moment_is_absent_for_partner(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        assert private["id"] not in ids(timeline(client, couple, token=couple["token_b"]))
 
-    def test_privater_heart_moment_fehlt_auch_dem_owner(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """M2-D22: die Story ist gemeinsamer Inhalt, kein persoenlicher Verlauf.
+    def test_private_heart_moment_is_visible_for_owner(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """#1021 (superseding M2-D22): the timeline is viewer-authorized.
 
-        Der Owner sieht seinen privaten Eintrag in seiner eigenen Liste -
-        aber nicht hier. Sonst waeren zwei Ergebnismengen unter einer Route.
+        A private HeartMoment stays part of its owner's own timeline at its
+        ordinary chronological position, reporting its real PRIVATE
+        visibility, while remaining completely absent from the partner's
+        (verified separately above).
         """
-        privat = heart_moment(client, paar, visibility="PRIVATE")
-        assert privat["id"] not in ids(timeline(client, paar, token=paar["token_a"]))
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        response = timeline(client, couple, token=couple["token_a"])
+        assert private["id"] in ids(response)
+        assert heart_moment_item(response, private["id"])["heartMoment"]["visibility"] == "PRIVATE"
 
-    def test_owner_findet_den_eintrag_in_seiner_eigenen_liste(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        privat = heart_moment(client, paar, visibility="PRIVATE")
-        antwort = client.get(
-            f"{basis(paar['space'].id)}/heart-moments",
+    def test_owner_finds_entry_in_own_list(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        response = client.get(
+            f"{base_path(couple['space'].id)}/heart-moments",
             params={"visibility": "PRIVATE"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert [eintrag["id"] for eintrag in antwort.json()["items"]] == [privat["id"]]
+        assert [item["id"] for item in response.json()["items"]] == [private["id"]]
 
-    def test_wechsel_auf_privat_entfernt_das_item(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = heart_moment(client, paar, visibility="SHARED")
-        assert geteilt["id"] in ids(timeline(client, paar))
+    def test_switch_to_private_keeps_item_for_owner_and_removes_it_for_partner(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = heart_moment(client, couple, visibility="SHARED")
+        assert shared["id"] in ids(timeline(client, couple))
+        assert shared["id"] in ids(timeline(client, couple, token=couple["token_b"]))
 
         client.patch(
-            f"{basis(paar['space'].id)}/heart-moments/{geteilt['id']}/visibility",
+            f"{base_path(couple['space'].id)}/heart-moments/{shared['id']}/visibility",
             json={"visibility": "PRIVATE"},
-            headers={**auth(paar["token_a"]), "If-Match": f'"{geteilt["version"]}"'},
+            headers={**auth(couple["token_a"]), "If-Match": f'"{shared["version"]}"'},
         )
-        assert geteilt["id"] not in ids(timeline(client, paar))
-        assert geteilt["id"] not in ids(timeline(client, paar, token=paar["token_b"]))
-
-    def test_fremder_space_liefert_nichts(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        memory(client, paar)
-        antwort = client.get(
-            f"{basis(paar['beta'].id)}/timeline",
-            headers=auth(paar["token_a"]),
+        owner_response = timeline(client, couple)
+        assert shared["id"] in ids(owner_response)
+        assert heart_moment_item(owner_response, shared["id"])["heartMoment"]["visibility"] == (
+            "PRIVATE"
         )
-        assert antwort.status_code == 404
+        assert shared["id"] not in ids(timeline(client, couple, token=couple["token_b"]))
 
-    def test_visibility_ist_kein_parameter(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """M2-D22: ein mitgesendeter Wert darf nicht still gefiltert werden."""
-        heart_moment(client, paar, visibility="PRIVATE")
-        antwort = timeline(client, paar, visibility="PRIVATE")
-        assert ids(antwort) == []
+    def test_switch_to_shared_reappears_for_partner(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        assert private["id"] not in ids(timeline(client, couple, token=couple["token_b"]))
+
+        client.patch(
+            f"{base_path(couple['space'].id)}/heart-moments/{private['id']}/visibility",
+            json={"visibility": "SHARED"},
+            headers={**auth(couple["token_a"]), "If-Match": f'"{private["version"]}"'},
+        )
+        assert private["id"] in ids(timeline(client, couple))
+        partner_response = timeline(client, couple, token=couple["token_b"])
+        assert private["id"] in ids(partner_response)
+        assert (
+            heart_moment_item(partner_response, private["id"])["heartMoment"]["visibility"]
+            == "SHARED"
+        )
+
+    def test_foreign_space_returns_nothing(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        memory(client, couple)
+        response = client.get(
+            f"{base_path(couple['beta'].id)}/timeline",
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 404
+
+    def test_outsider_has_no_membership_in_the_couples_space(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        memory(client, couple)
+        response = client.get(
+            f"{base_path(couple['space'].id)}/timeline",
+            headers=auth(couple["token_f"]),
+        )
+        assert response.status_code == 404
+
+    def test_visibility_is_not_a_query_parameter(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """#1021 (superseding M2-D22): the timeline has no client-chosen mode.
+
+        Sending an arbitrary `visibility` value must not silently become a
+        filter; the owner's own item appears regardless of it, because the
+        route is authorized by account, not filtered by a request parameter.
+        """
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        response = timeline(client, couple, visibility="PRIVATE")
+        assert private["id"] in ids(response)
 
 
-class TestSortierung:
-    def test_effective_date_faellt_auf_created_at_zurueck(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """M2-D08: eine Memory ohne happenedOn verschwindet nicht."""
-        ohne_datum = memory(client, paar, happened_on=None)
-        eintraege = timeline(client, paar).json()["items"]
-        passend = [e for e in eintraege if e["memory"]["id"] == ohne_datum["id"]]
-        assert len(passend) == 1
-        assert passend[0]["effectiveDate"] == ohne_datum["createdAt"][:10]
+class TestSorting:
+    def test_effective_date_falls_back_to_created_at(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """M2-D08: a memory without happenedOn must not disappear."""
+        without_date = memory(client, couple, happened_on=None)
+        items = timeline(client, couple).json()["items"]
+        matching = [item for item in items if item["memory"]["id"] == without_date["id"]]
+        assert len(matching) == 1
+        assert matching[0]["effectiveDate"] == without_date["createdAt"][:10]
 
-    def test_absteigend_ist_der_standard(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        alt = memory(client, paar, titel="alt", happened_on="2024-01-01")
-        neu = memory(client, paar, titel="neu", happened_on="2026-01-01")
-        assert ids(timeline(client, paar))[:2] == [neu["id"], alt["id"]]
+    def test_descending_is_default(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        older = memory(client, couple, title="alt", happened_on="2024-01-01")
+        newer = memory(client, couple, title="neu", happened_on="2026-01-01")
+        assert ids(timeline(client, couple))[:2] == [newer["id"], older["id"]]
 
-    def test_aufsteigend_dreht_den_vollstaendigen_schluessel(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        alt = memory(client, paar, titel="alt", happened_on="2024-01-01")
-        neu = memory(client, paar, titel="neu", happened_on="2026-01-01")
-        assert ids(timeline(client, paar, order="ASC"))[:2] == [alt["id"], neu["id"]]
+    def test_owners_private_heart_moment_sorts_by_the_same_complete_key(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        """#1021: privacy is authorization, not a separate sort partition —
+        a private HeartMoment interleaves with Memory/Milestone/shared
+        HeartMoment strictly by `(effectiveDate, createdAt, kindRank, id)`."""
+        early_memory = memory(client, couple, happened_on="2025-01-01")
+        private_heart = heart_moment(client, couple, visibility="PRIVATE", happened_on="2025-06-01")
+        shared_heart = heart_moment(client, couple, visibility="SHARED", happened_on="2025-06-15")
+        late_milestone = milestone(client, couple, happened_on="2025-12-01")
 
-    def test_kind_rank_entscheidet_bei_identischem_zeitstempel(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
+        assert ids(timeline(client, couple)) == [
+            late_milestone["id"],
+            shared_heart["id"],
+            private_heart["id"],
+            early_memory["id"],
+        ]
+
+    def test_ascending_reverses_complete_key(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        older = memory(client, couple, title="alt", happened_on="2024-01-01")
+        newer = memory(client, couple, title="neu", happened_on="2026-01-01")
+        assert ids(timeline(client, couple, order="ASC"))[:2] == [older["id"], newer["id"]]
+
+    def test_kind_rank_decides_on_identical_timestamp(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
         """MEMORY=1, HEART_MOMENT=2, MILESTONE=3 (M2-D08).
 
-        Der Rang entscheidet erst, wenn `effectiveDate` **und** `createdAt`
-        gleich sind. Nacheinander erzeugte Eintraege haben verschiedene
-        Zeitstempel - dieser Test erzwingt die Kollision, sonst pruefte er
-        den Tie-Breaker gar nicht.
+        The rank applies only when both `effectiveDate` and `createdAt` are
+        identical. Entries created in sequence have different timestamps, so
+        this test forces a collision to exercise the actual tie-breaker.
         """
-        m = memory(client, paar, happened_on="2025-06-13")
-        h = heart_moment(client, paar, happened_on="2025-06-13")
-        ms = milestone(client, paar, happened_on="2025-06-13")
+        m = memory(client, couple, happened_on="2025-06-13")
+        h = heart_moment(client, couple, happened_on="2025-06-13")
+        ms = milestone(client, couple, happened_on="2025-06-13")
 
-        gleich = "2025-06-13 08:00:00+00"
-        for tabelle, eintrag in (
+        same_timestamp = "2025-06-13 08:00:00+00"
+        for table, item in (
             ("memories", m),
             ("heart_moments", h),
             ("milestones", ms),
         ):
             session.execute(
-                text(f"UPDATE {tabelle} SET created_at = :wert WHERE id = :id"),
-                {"wert": gleich, "id": eintrag["id"]},
+                text(f"UPDATE {table} SET created_at = :value WHERE id = :id"),
+                {"value": same_timestamp, "id": item["id"]},
             )
         session.flush()
 
-        assert ids(timeline(client, paar, order="ASC")) == [m["id"], h["id"], ms["id"]]
-        assert ids(timeline(client, paar)) == [ms["id"], h["id"], m["id"]]
+        assert ids(timeline(client, couple, order="ASC")) == [m["id"], h["id"], ms["id"]]
+        assert ids(timeline(client, couple)) == [ms["id"], h["id"], m["id"]]
 
-    def test_id_bricht_den_letzten_gleichstand(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        """Gleiche Werte in allen drei ersten Schluesseln, gleicher Typ."""
-        erste = memory(client, paar, happened_on="2025-06-13")
-        zweite = memory(client, paar, happened_on="2025-06-13")
+    def test_id_breaks_final_tie(self, client, couple, session) -> None:  # type: ignore[no-untyped-def]
+        """Equal values in the first three keys and the same item type."""
+        first = memory(client, couple, happened_on="2025-06-13")
+        second = memory(client, couple, happened_on="2025-06-13")
         session.execute(
-            text("UPDATE memories SET created_at = :wert WHERE id IN (:a, :b)"),
-            {"wert": "2025-06-13 08:00:00+00", "a": erste["id"], "b": zweite["id"]},
+            text("UPDATE memories SET created_at = :value WHERE id IN (:a, :b)"),
+            {"value": "2025-06-13 08:00:00+00", "a": first["id"], "b": second["id"]},
         )
         session.flush()
 
-        aufsteigend = ids(timeline(client, paar, order="ASC"))
-        assert aufsteigend == sorted([erste["id"], zweite["id"]])
-        assert ids(timeline(client, paar)) == list(reversed(aufsteigend))
+        ascending = ids(timeline(client, couple, order="ASC"))
+        assert ascending == sorted([first["id"], second["id"]])
+        assert ids(timeline(client, couple)) == list(reversed(ascending))
 
 
 class TestFilter:
-    def test_type_verengt_die_menge(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = memory(client, paar)
-        milestone(client, paar)
-        assert ids(timeline(client, paar, type=["MEMORY"])) == [m["id"]]
+    def test_type_narrows_result_set(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        m = memory(client, couple)
+        milestone(client, couple)
+        assert ids(timeline(client, couple, type=["MEMORY"])) == [m["id"]]
 
-    def test_type_ist_wiederholbar(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = memory(client, paar)
-        ms = milestone(client, paar)
-        heart_moment(client, paar)
-        assert set(ids(timeline(client, paar, type=["MEMORY", "MILESTONE"]))) == {
+    def test_type_is_repeatable(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        m = memory(client, couple)
+        ms = milestone(client, couple)
+        heart_moment(client, couple)
+        assert set(ids(timeline(client, couple, type=["MEMORY", "MILESTONE"]))) == {
             m["id"],
             ms["id"],
         }
 
-    def test_year_filtert_auf_das_effektive_datum(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        alt = memory(client, paar, happened_on="2024-05-05")
-        memory(client, paar, happened_on="2026-05-05")
-        assert ids(timeline(client, paar, year=2024)) == [alt["id"]]
+    def test_year_filters_on_effective_date(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        older = memory(client, couple, happened_on="2024-05-05")
+        memory(client, couple, happened_on="2026-05-05")
+        assert ids(timeline(client, couple, year=2024)) == [older["id"]]
 
-    def test_year_ausserhalb_des_bereichs_wird_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        assert timeline(client, paar, year=1800).status_code == 422
+    def test_year_outside_range_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        assert timeline(client, couple, year=1800).status_code == 422
+
+    def test_type_and_year_include_owners_private_heart_moment(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """#1021: the private/shared distinction is authorization, not a
+        second filter dimension — `type`/`year` narrow the already
+        viewer-authorized set exactly like for any other item."""
+        private = heart_moment(client, couple, visibility="PRIVATE", happened_on="2024-03-01")
+        memory(client, couple, happened_on="2024-03-01")
+
+        response = timeline(client, couple, type=["HEART_MOMENT"], year=2024)
+
+        assert ids(response) == [private["id"]]
 
 
 class TestPagination:
-    def test_seiten_sind_luecken_und_duplikatfrei(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        erwartet = [memory(client, paar, titel=f"M{i}")["id"] for i in range(5)]
-        erwartet += [milestone(client, paar, titel=f"MS{i}")["id"] for i in range(4)]
+    def test_pages_have_no_gaps_or_duplicates(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        expected = [memory(client, couple, title=f"M{i}")["id"] for i in range(5)]
+        expected += [milestone(client, couple, title=f"MS{i}")["id"] for i in range(4)]
 
-        gesammelt: list[str] = []
+        collected: list[str] = []
         cursor = None
         for _ in range(10):
-            antwort = timeline(client, paar, limit=2, **({"cursor": cursor} if cursor else {}))
-            gesammelt += ids(antwort)
-            cursor = antwort.json()["nextCursor"]
+            response = timeline(client, couple, limit=2, **({"cursor": cursor} if cursor else {}))
+            collected += ids(response)
+            cursor = response.json()["nextCursor"]
             if cursor is None:
                 break
-        assert sorted(gesammelt) == sorted(erwartet)
-        assert len(gesammelt) == len(set(gesammelt))
+        assert sorted(collected) == sorted(expected)
+        assert len(collected) == len(set(collected))
 
-    def test_limit_darf_zwischen_seiten_wechseln(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """Der Cursor ist nicht an die Seitengroesse gebunden."""
+    def test_limit_may_change_between_pages(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """The cursor is independent of the page size."""
         for i in range(6):
-            memory(client, paar, titel=f"M{i}")
-        erste = timeline(client, paar, limit=2)
-        zweite = timeline(client, paar, limit=4, cursor=erste.json()["nextCursor"])
-        assert set(ids(erste)) & set(ids(zweite)) == set()
-        assert len(ids(zweite)) == 4
+            memory(client, couple, title=f"M{i}")
+        first = timeline(client, couple, limit=2)
+        second = timeline(client, couple, limit=4, cursor=first.json()["nextCursor"])
+        assert set(ids(first)) & set(ids(second)) == set()
+        assert len(ids(second)) == 4
 
-    def test_cursor_aus_anderem_filter_wird_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
+    def test_cursor_from_different_filter_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         for i in range(4):
-            memory(client, paar, titel=f"M{i}")
-        cursor = timeline(client, paar, limit=2).json()["nextCursor"]
-        antwort = timeline(client, paar, limit=2, cursor=cursor, type=["MEMORY"])
-        assert antwort.status_code == 400
-        assert antwort.json()["code"] == "INVALID_CURSOR"
+            memory(client, couple, title=f"M{i}")
+        cursor = timeline(client, couple, limit=2).json()["nextCursor"]
+        response = timeline(client, couple, limit=2, cursor=cursor, type=["MEMORY"])
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
 
-    def test_cursor_aus_anderer_richtung_wird_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
+    def test_cursor_from_different_direction_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         for i in range(4):
-            memory(client, paar, titel=f"M{i}")
-        cursor = timeline(client, paar, limit=2).json()["nextCursor"]
-        assert timeline(client, paar, limit=2, cursor=cursor, order="ASC").status_code == 400
+            memory(client, couple, title=f"M{i}")
+        cursor = timeline(client, couple, limit=2).json()["nextCursor"]
+        assert timeline(client, couple, limit=2, cursor=cursor, order="ASC").status_code == 400
 
-    def test_manipulierter_cursor_wird_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
+    def test_tampered_cursor_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         for i in range(4):
-            memory(client, paar, titel=f"M{i}")
-        cursor = timeline(client, paar, limit=2).json()["nextCursor"]
-        antwort = timeline(client, paar, limit=2, cursor=cursor[:-2] + "xy")
-        assert antwort.status_code == 400
-        assert "spaceId" not in antwort.text
+            memory(client, couple, title=f"M{i}")
+        cursor = timeline(client, couple, limit=2).json()["nextCursor"]
+        response = timeline(client, couple, limit=2, cursor=cursor[:-2] + "xy")
+        assert response.status_code == 400
+        assert "spaceId" not in response.text
+
+    def test_owner_pages_have_no_gaps_or_duplicates_with_mixed_shared_and_private(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        """#1021: the owner's authorized set now mixes SHARED and PRIVATE
+        HeartMoments with Memory/Milestone; pagination must still be exact."""
+        expected = [memory(client, couple, title=f"M{i}")["id"] for i in range(3)]
+        expected += [
+            heart_moment(client, couple, visibility="SHARED", happened_on=f"2025-0{i + 1}-01")["id"]
+            for i in range(3)
+        ]
+        expected += [
+            heart_moment(client, couple, visibility="PRIVATE", happened_on=f"2024-0{i + 1}-01")[
+                "id"
+            ]
+            for i in range(3)
+        ]
+
+        collected: list[str] = []
+        cursor = None
+        for _ in range(20):
+            response = timeline(client, couple, limit=2, **({"cursor": cursor} if cursor else {}))
+            collected += ids(response)
+            cursor = response.json()["nextCursor"]
+            if cursor is None:
+                break
+        assert sorted(collected) == sorted(expected)
+        assert len(collected) == len(set(collected))
+
+    def test_partner_cursor_is_rejected_for_a_different_account(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """#1021: two accounts in the same Space can have different
+        authorized result sets, so a cursor minted for one must not be a
+        valid continuation point for the other even with identical filters.
+        """
+        for i in range(4):
+            memory(client, couple, title=f"M{i}")
+        cursor = timeline(client, couple, limit=2, token=couple["token_a"]).json()["nextCursor"]
+
+        response = timeline(client, couple, limit=2, cursor=cursor, token=couple["token_b"])
+
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
+        assert "accountId" not in response.text
+
+    def test_same_account_cursor_continues_to_work(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """The new account binding must not break ordinary same-account paging."""
+        expected = [memory(client, couple, title=f"M{i}")["id"] for i in range(4)]
+        first = timeline(client, couple, limit=2, token=couple["token_a"])
+        second = timeline(
+            client,
+            couple,
+            limit=2,
+            cursor=first.json()["nextCursor"],
+            token=couple["token_a"],
+        )
+        assert sorted(ids(first) + ids(second)) == sorted(expected)
 
 
-class TestProjektion:
-    def test_memory_traegt_autor_und_galerie(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        memory(client, paar)
-        eintrag = timeline(client, paar).json()["items"][0]
-        assert eintrag["kind"] == "MEMORY"
-        assert eintrag["memory"]["author"]["displayName"] == "Anna"
-        assert eintrag["memory"]["attachments"] == []
+class TestProjection:
+    def test_memory_includes_author_and_gallery(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        memory(client, couple)
+        item = timeline(client, couple).json()["items"][0]
+        assert item["kind"] == "MEMORY"
+        assert item["memory"]["author"]["displayName"] == "Anna"
+        assert item["memory"]["attachments"] == []
 
-    def test_capabilities_folgen_der_autorregel(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        memory(client, paar, token=paar["token_a"])
-        fuer_autor = timeline(client, paar, token=paar["token_a"]).json()["items"][0]
-        fuer_partner = timeline(client, paar, token=paar["token_b"]).json()["items"][0]
-        assert fuer_autor["memory"]["capabilities"]["canEdit"] is True
-        assert fuer_partner["memory"]["capabilities"]["canEdit"] is False
+    def test_capabilities_follow_author_rule(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        memory(client, couple, token=couple["token_a"])
+        for_author = timeline(client, couple, token=couple["token_a"]).json()["items"][0]
+        for_partner = timeline(client, couple, token=couple["token_b"]).json()["items"][0]
+        assert for_author["memory"]["capabilities"]["canEdit"] is True
+        assert for_partner["memory"]["capabilities"]["canEdit"] is False
 
-    def test_kein_memory_body_in_der_liste(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """Die Karte braucht eine Ueberschrift, nicht den ganzen Text."""
-        memory(client, paar)
-        assert "body" not in timeline(client, paar).json()["items"][0]["memory"]
+    def test_memory_body_is_not_in_list(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """The card needs a heading, not the complete text."""
+        memory(client, couple)
+        assert "body" not in timeline(client, couple).json()["items"][0]["memory"]
+
+    def test_shared_heart_moment_reports_shared_visibility(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        shared = heart_moment(client, couple, visibility="SHARED")
+        response = timeline(client, couple)
+        item = heart_moment_item(response, shared["id"])
+        assert item["heartMoment"]["visibility"] == "SHARED"
+        assert item["heartMoment"]["capabilities"]["canComment"] is True
+
+    def test_owners_private_heart_moment_reports_private_visibility_and_no_comments(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        """#1021: the Story DTO carries the item's real visibility instead of
+        an assumed SHARED, and comments stay disabled for PRIVATE items —
+        unchanged HeartMoment comment semantics (out of #1021's scope)."""
+        private = heart_moment(client, couple, visibility="PRIVATE")
+        response = timeline(client, couple)
+        item = heart_moment_item(response, private["id"])
+        assert item["heartMoment"]["visibility"] == "PRIVATE"
+        assert item["heartMoment"]["capabilities"]["canComment"] is False
+
+
+class TestAvailableYears:
+    def test_available_years_are_kind_aware_and_ordered_descending(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        # Memory 2024 + Milestone 2026
+        memory(client, couple, title="Mem 2024", happened_on="2024-05-10")
+        milestone(client, couple, title="Mile 2026", happened_on="2026-07-20")
+
+        # 1. Alle Inhalte -> [2026, 2024]
+        res_all = timeline(client, couple)
+        assert res_all.status_code == 200
+        assert res_all.json()["availableYears"] == [2026, 2024]
+
+        # 2. kind=MILESTONE -> [2026]
+        res_milestone = timeline(client, couple, type=["MILESTONE"])
+        assert res_milestone.status_code == 200
+        assert res_milestone.json()["availableYears"] == [2026]
+
+        # 3. kind=MEMORY -> [2024]
+        res_memory = timeline(client, couple, type=["MEMORY"])
+        assert res_memory.status_code == 200
+        assert res_memory.json()["availableYears"] == [2024]
+
+    def test_available_years_ignores_active_year_filter_so_deep_links_recover(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        milestone(client, couple, title="Mile 2026", happened_on="2026-07-20")
+
+        # Deep link ?type=MILESTONE&year=1997
+        res = timeline(client, couple, type=["MILESTONE"], year=1997)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["items"] == []
+        # Crucial #618 requirement: availableYears still contains 2026!
+        assert data["availableYears"] == [2026]
+
+    def test_available_years_preserves_older_years_across_pagination(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        memory(client, couple, title="Mem 2023", happened_on="2023-01-01")
+        memory(client, couple, title="Mem 2025", happened_on="2025-01-01")
+        memory(client, couple, title="Mem 2026", happened_on="2026-01-01")
+
+        # First page with limit=1 only returns 1 item, but availableYears has all 3
+        res = timeline(client, couple, limit=1)
+        assert res.status_code == 200
+        data = res.json()
+        assert len(data["items"]) == 1
+        assert data["hasMore"] is True
+        assert data["availableYears"] == [2026, 2025, 2023]
+
+    def test_private_heart_moment_does_not_leak_year_to_partner(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        # Ben (partner of the requester below) creates a private heart moment in 2022.
+        heart_moment(
+            client, couple, visibility="PRIVATE", happened_on="2022-03-15", token=couple["token_b"]
+        )
+        # Shared memory in 2025
+        memory(client, couple, title="Shared 2025", happened_on="2025-01-01")
+
+        # Token A (Anna) timeline must NOT show 2022 in availableYears: she is
+        # the partner of the private item's owner, not the owner herself.
+        res = timeline(client, couple, token=couple["token_a"])
+        assert res.status_code == 200
+        assert 2022 not in res.json()["availableYears"]
+        assert res.json()["availableYears"] == [2025]
+
+    def test_private_heart_moment_year_is_visible_to_its_own_owner(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """#1021 (superseding M2-D22): complements the partner-absence test
+        above — the same private item's year must appear for its owner."""
+        heart_moment(
+            client, couple, visibility="PRIVATE", happened_on="2022-03-15", token=couple["token_b"]
+        )
+        memory(client, couple, title="Shared 2025", happened_on="2025-01-01")
+
+        res = timeline(client, couple, token=couple["token_b"])
+        assert res.status_code == 200
+        assert res.json()["availableYears"] == [2025, 2022]

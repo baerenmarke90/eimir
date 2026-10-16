@@ -1,262 +1,262 @@
 # M2 Delivery Plan
 
-**Ziel:** M2 als kleine, vertikale und unabhängig prüfbare Produktinkremente liefern  
-**Stand:** 24.08.2026
+**Goal:** deliver M2 as small, vertical, independently reviewable product increments  
+**As of:** August 24, 2026
 
-Dieser Plan beginnt erst nach den offenen M0-/M1-Gates. Er legt keine Issue-Nummern an und verändert keine laufenden Issues #5–#11. Jedes Paket ist so geschnitten, dass genau ein Issue, ein Branch und ein Pull Request daraus entstehen kann.
+This plan starts only after the open M0/M1 gates. It creates no Issue numbers and does not modify the ongoing Issues #5–#11. Each package is scoped so that exactly one Issue, one branch, and one Pull Request can result from it.
 
-## Eintrittstore
+## Entry gates
 
-M2-Implementierung startet erst, wenn:
+M2 implementation starts only when:
 
-- Transport und Erstregistrierung für Self-Hosted sicher sind,
-- Auth-, Tenant- und Concurrency-Invarianten über HTTP abgesichert sind,
-- reproduzierbarer Build, Dependency-Scan und OpenAPI-Vertrag stehen,
-- Provider- und Protected-Payload-Grenzen tragfähig sind,
-- private Autorisierung und Beziehungsprofile abgeschlossen sind,
-- die blockierenden M2-Entscheidungen im [Decision Log](./DECISION-LOG.md) geklärt sind.
+- transport and first registration for Self-Hosted are secure,
+- Auth, Tenant, and Concurrency invariants are protected over HTTP,
+- reproducible build, dependency scan, and OpenAPI contract are in place,
+- Provider and ProtectedPayload boundaries are viable,
+- private Authorization and relationship Profiles are complete,
+- blocking M2 decisions in the [Decision Log](./DECISION-LOG.md) are resolved.
 
-## Lieferfolge
+## Delivery sequence
 
 ```text
 S0 Readiness
    │
    ├── S1 Attachments ──┐
-   │                    ├── S3 Memory + Medien ──┐
-   └── S2 Memory CRUD ──┘                        │
+   │                    ├── S3 Memory + Media ──┐
+   └── S2 Memory CRUD ──┘                       │
                                                 ├── S7 Story ── S8 Clients & Hardening
-       S4 HeartMoment Privacy ───────────────────┤
-       S5 Milestone ─────────────────────────────┤
-       S6 Comments + Outbox ─────────────────────┘
+       S4 HeartMoment Privacy ──────────────────┤
+       S5 Milestone ────────────────────────────┤
+       S6 Comments + Outbox ────────────────────┘
 ```
 
-S4 und S5 können nach S0 parallel zu S1–S3 vorbereitet werden. S7 startet erst, wenn alle vier Quelltypen und ihre Sichtbarkeitsregeln stabil sind.
+S4 and S5 may be prepared after S0 in parallel with S1–S3. S7 starts only once all four source types and their visibility rules are stable.
 
-## S0 – M2 Readiness & Vertragsentscheidungen
+## S0 – M2 Readiness & contract decisions
 
-**Ergebnis:** implementierbarer, widerspruchsfreier M2-Vertrag.
+**Result:** implementable, internally consistent M2 contract.
 
-**Lieferumfang**
+**Delivery scope**
 
-- offene Punkte im Decision Log entscheiden,
-- Domain- und Privacy-Invarianten bestätigen,
-- OpenAPI-Schemas und Error Codes aus `API-DESIGN.md` übernehmen,
-- Migration-/Indexplan einschließlich Rollback entwerfen,
-- Security-Testfälle als ausführbare Teststruktur anlegen,
-- M2-Observability- und Retention-Regeln festhalten.
+- decide open items in the Decision Log,
+- confirm Domain and Privacy invariants,
+- transfer OpenAPI schemas and error codes from `API-DESIGN.md`,
+- design the migration/index plan including Rollback,
+- establish Security test cases as an executable test structure,
+- record M2 Observability and Retention rules.
 
-**Akzeptanz**
+**Acceptance**
 
-- keine blockierende Entscheidung offen,
-- API-Lint und Contract-Tests grün,
-- Threat Review für Owner-only und Media abgeschlossen,
-- jede spätere Slice hat klaren Contract und Testpfad.
+- no blocking decision remains open,
+- API lint and contract tests are green,
+- Threat Review for owner-only and Media is complete,
+- every later slice has a clear contract and test path.
 
 ## S1 – Attachment Foundation & MediaStore
 
-**Ergebnis:** sichere, fachlich noch ungebundene Attachment-Lifecycle-Basis.
+**Result:** secure Attachment lifecycle foundation not yet bound to a Domain parent.
 
-**Lieferumfang**
+**Delivery scope**
 
-- `Attachment`-Persistenz und Statusmodell,
-- `MediaStore`-Port plus Local- und S3-kompatibler Adapter,
-- Create-Upload, Finalize, Validierung, autorisierter Read und Delete,
-- zufällige Storage Keys, Größen-/MIME-/Dimensionsprüfungen,
-- Cleanup für fehlgeschlagene und verwaiste Uploads,
-- Adapter-Contract-Tests und Abuse-Tests.
+- `Attachment` persistence and state model,
+- `MediaStore` port plus Local and S3-compatible adapters,
+- Create Upload, Finalize, validation, authorized Read, and Delete,
+- random Storage Keys, size/MIME/dimension checks,
+- Cleanup for failed and orphaned uploads,
+- adapter contract tests and abuse tests.
 
-**Akzeptanz**
+**Acceptance**
 
-- nur validierte Attachments erreichen `READY`,
-- beide Adapter bestehen denselben Contract,
-- Cross-Tenant-, MIME-Spoof- und Race-Tests grün,
-- weder Bucket noch Local Storage sind unautorisiert lesbar.
+- only validated Attachments reach `READY`,
+- both adapters pass the same contract,
+- Cross-Tenant, MIME spoofing, and race tests are green,
+- neither Bucket nor Local Storage is readable without Authorization.
 
-**Nicht enthalten:** Galerie und Memory-UI. Thumbnail und Posterframe sind nach M2-D15 Teil von S1; Transcoding, mehrere Auflösungsstufen und adaptives Streaming sind es ausdrücklich nicht.
+**Not included:** Gallery and Memory UI. Thumbnail and Poster Frame are part of S1 according to M2-D15; Transcoding, multiple resolution levels, and adaptive streaming explicitly are not.
 
-**Aufteilung nach M2-D23:** S1 zerfällt in drei lieferbare Stücke.
+**Split according to M2-D23:** S1 is divided into three deliverable pieces.
 
-- **S1-a Bilder:** Persistenz, Statusautomat, LocalMediaStore, Upload, asynchrone Validierung einschließlich Strippen und Thumbnail, autorisiertes Lesen, Delete und Cleanup — für JPEG, PNG, WebP, HEIC und HEIF.
-- **S1-b S3-Adapter:** presigned Upload und Read-URL gegen denselben Contract-Test wie der lokale Adapter.
-- **S1-c Video:** ffmpeg, MP4/QuickTime und Posterframes. Klärt vorher Imagegröße, CVE-Nachverfolgung und Ressourcenlimits.
+- **S1-a Images:** persistence, state machine, LocalMediaStore, Upload, asynchronous validation including stripping and Thumbnail, authorized Read, Delete, and Cleanup — for JPEG, PNG, WebP, HEIC, and HEIF.
+- **S1-b S3 adapter:** presigned Upload and Read URL against the same contract test as the local adapter.
+- **S1-c Video:** ffmpeg, MP4/QuickTime, and Poster Frames. Resolve image size, CVE tracking, and resource limits first.
 
-Der Schnitt ist so gewählt, dass kein Zwischenstand `READY` erreicht, ohne dass M2-D14 angewendet wurde; sonst läge kurzzeitig eine ungestrippte Datei im Store.
+The split is chosen so that no intermediate state reaches `READY` without applying M2-D14; otherwise an unstripped file would temporarily exist in the Store.
 
-## S2 – Memory CRUD ohne Medien
+## S2 – Memory CRUD without Media
 
-**Ergebnis:** Memories mit Autor, fachlichem Datum und sicherer Concurrency.
+**Result:** Memories with author, domain date, and safe Concurrency.
 
-**Lieferumfang**
+**Delivery scope**
 
 - Create/Get/List/Update/Delete,
-- `happenedOn` getrennt von `createdAt`,
-- Autorprojektion und Space-Scope,
-- Protected-Payload-Grenze für Titel/Body,
-- Optimistic Concurrency und Fehlervertrag,
-- HTTP-, Tenant- und Berechtigungstests.
+- `happenedOn` separate from `createdAt`,
+- author projection and Space scope,
+- ProtectedPayload boundary for Title/Body,
+- Optimistic Concurrency and error contract,
+- HTTP, Tenant, and permission tests.
 
-**Akzeptanz**
+**Acceptance**
 
-- Autor und Partner sehen nur erlaubte Space-Daten,
-- Autor kann gemäß entschiedenem Vertrag ändern/löschen,
-- veraltete Version führt deterministisch zu `409`,
-- Logs/Events enthalten keinen geschützten Inhalt.
+- author and partner see only permitted Space data,
+- author may update/delete according to the decided contract,
+- stale version deterministically returns `409`,
+- logs/Events contain no protected content.
 
-## S3 – Memory mit mehreren Medien
+## S3 – Memory with multiple Media
 
-**Ergebnis:** eine Memory kann mehrere autorisierte Medien geordnet darstellen.
+**Result:** a Memory can present multiple authorized Media in a stable order.
 
-**Lieferumfang**
+**Delivery scope**
 
-- Attachment-Relation und stabile Reihenfolge,
-- atomare Bind-/Unbind-Operationen,
-- Galerieprojektion für Web und Android,
-- Parent-Delete-/Finalize-Race behandeln,
-- fehlende/fehlerhafte Medien tolerant darstellen.
+- Attachment relation and stable ordering,
+- atomic Bind/Unbind operations,
+- Gallery projection for Web and Android,
+- handle Parent Delete/Finalize race,
+- tolerate missing/failed Media in presentation.
 
-**Akzeptanz**
+**Acceptance**
 
-- keine Cross-Space-Bindung,
-- Reihenfolge bleibt über Update und Read stabil,
-- gelöschte/ungültige Parents hinterlassen keine sichtbaren Orphans,
-- kein Attachment verleiht mehr Sichtbarkeit als sein Parent.
+- no Cross-Space binding,
+- order remains stable across Update and Read,
+- deleted/invalid parents leave no visible orphans,
+- no Attachment grants more visibility than its parent.
 
-## S4 – HeartMoment mit Owner-only Privacy
+## S4 – HeartMoment with owner-only Privacy
 
-**Ergebnis:** `SHARED` und `PRIVATE` sind in jedem Zugriffspfad korrekt getrennt.
+**Result:** `SHARED` and `PRIVATE` are correctly separated in every access path.
 
-**Lieferumfang**
+**Delivery scope**
 
-- CRUD mit Emotion, Visibility, Datum und optionalem Attachment,
-- Owner-only Policy als zentral wiederverwendbare Regel,
-- Listen-/Search-/Projection-Filter,
-- Privacy-safe Fehlersemantik,
-- vollständige Canary- und indirekte Leak-Tests.
+- CRUD with emotion, visibility, date, and optional Attachment,
+- owner-only Policy as a central reusable rule,
+- List/Search/projection filtering,
+- Privacy-safe error semantics,
+- complete canary and indirect leak tests.
 
-**Akzeptanz**
+**Acceptance**
 
-- Partner kann private Einträge weder direkt noch indirekt erkennen,
-- Wechsel `SHARED → PRIVATE` entfernt Kommentar-/Story-/Cache-Sichtbarkeit gemäß Vertrag,
-- optionales Attachment folgt exakt der Parent-Sichtbarkeit,
-- Export-, Event- und Notification-Pfade sind geprüft.
+- partner can neither access nor indirectly infer private entries,
+- `SHARED → PRIVATE` removes Comment/Story/cache visibility according to the contract,
+- optional Attachment follows the exact parent visibility,
+- Export, Event, and Notification paths are reviewed.
 
 ## S5 – Milestone
 
-**Ergebnis:** Milestones sind ein eigenständiges fachliches Modell.
+**Result:** Milestones are a dedicated Domain model.
 
-**Lieferumfang**
+**Delivery scope**
 
-- CRUD, Autor und `happenedOn`,
-- Tenant-/Concurrency-/Protected-Payload-Regeln,
-- Projektion für Story und spätere Chapter/Recap-Anknüpfung,
-- HTTP- und Isolationstests.
+- CRUD, author, and `happenedOn`,
+- Tenant/Concurrency/ProtectedPayload rules,
+- projection for Story and later Chapter/Recap linkage,
+- HTTP and isolation tests.
 
-**Akzeptanz**
+**Acceptance**
 
-- keine versteckte Wiederverwendung von Memory-Tabellen oder Typflags,
-- Story-relevante Felder sind stabil,
-- spätere Erweiterungen erfordern keine M2-Datenmigration aus einem Sammelmodell.
+- no hidden reuse of Memory tables or type flags,
+- Story-relevant fields are stable,
+- later extensions require no M2 data migration out of a universal model.
 
 ## S6 – Comments, Outbox & Notification Hook
 
-**Ergebnis:** Kommentare funktionieren nur auf erlaubten Shared Targets und erzeugen zuverlässig ein minimales Ereignis.
+**Result:** Comments work only on permitted Shared targets and reliably create a minimal Event.
 
-**Lieferumfang**
+**Delivery scope**
 
-- enumerierte Targets `MEMORY`, `MILESTONE`, `HEART_MOMENT`,
-- Create/List/Update/Delete gemäß Autorenregel,
-- zentrale Target-Existenz- und Sichtbarkeitsprüfung,
-- atomarer Outbox-Eintrag bei Kommentar auf fremdem Shared Content,
-- idempotente Worker-/Notification-Schnittstelle.
+- enumerated targets `MEMORY`, `MILESTONE`, `HEART_MOMENT`,
+- Create/List/Update/Delete according to the author rule,
+- central target existence and visibility check,
+- atomic Outbox entry for a Comment on another person's Shared content,
+- idempotent Worker/Notification interface.
 
-**Akzeptanz**
+**Acceptance**
 
-- kein Kommentar auf private oder fremde Inhalte,
-- Domainänderung und Outbox committen atomar,
-- Retry erzeugt keine doppelten fachlichen Notifications,
-- Event/Preview enthält keine unerlaubten Inhalte.
+- no Comment on private or foreign content,
+- Domain change and Outbox commit atomically,
+- Retry creates no duplicate domain Notifications,
+- Event/Preview contains no impermissible content.
 
 ## S7 – Story Read Model
 
-**Ergebnis:** eine abgeleitete, performante Zeitleiste ohne private Leaks.
+**Result:** a derived, performant Timeline without private leaks.
 
-**Lieferumfang**
+**Delivery scope**
 
-- Query Service für Memory, Milestone und ausschließlich Shared HeartMoment,
-- Autor- und Attachment-Projektion,
-- Filter `type`, `year`, `order`, `cursor`, `limit`,
-- stabile Cursor-Pagination und Monatsgruppen,
-- Query-/Indexanalyse mit realistischen Datenmengen.
+- Query Service for Memory, Milestone, and HeartMoment,
+- author and Attachment projection,
+- filters `type`, `year`, `order`, `cursor`, `limit`,
+- stable Cursor Pagination and month groups,
+- Query/index analysis with realistic data volumes.
 
-`q` ist hier bewusst nicht mehr aufgeführt. M2-D08 hat die globale Volltextsuche nach M4-A verschoben, und M2-D21 hält offen, ob sie direkt in Postgres oder über einen eigenen Index entsteht. Der frühere Eintrag stammte aus der Fassung vor #70 und hätte S7 eine Suche implementieren lassen, die der eingefrorene Vertrag nicht kennt.
+`q` is deliberately no longer listed here. M2-D08 moved global full-text Search to M4-A, and M2-D21 keeps open whether it is implemented directly in Postgres or through a separate index. The earlier entry came from the version before #70 and would have made S7 implement Search that the frozen contract does not know.
 
-Der Owner-Bereich für private HeartMoments ist nach M2-D22 (#104) nicht Teil dieser Route: `/timeline` bleibt ein reines Shared-Read-Model ohne `visibility`-Parameter, und die Owner-Ansicht wird von der bestehenden HeartMoment-Collection bedient.
+M2-D22 (#104) originally kept the owner area for private HeartMoments out of this route entirely. #1021 superseded that decision: `/timeline` is viewer-authorized, so a caller's own `PRIVATE` HeartMoment remains part of their own Timeline (never the partner's), still without a `visibility` request parameter or a separate owner mode.
 
-**Akzeptanz**
+**Acceptance**
 
-- `PRIVATE` wird vor Suche, Count, Gruppierung und Cursorbildung ausgeschlossen,
-- Sortierung und Tie-Breaker entsprechen der Entscheidung,
-- Seiten sind stabil und duplikatfrei,
-- Read Model ist abgeleitet und keine zweite fachliche Wahrheitsquelle.
+- an account's own `PRIVATE` HeartMoment is included at its ordinary position; the partner's `PRIVATE` HeartMoment is excluded before Count, grouping, and Cursor creation,
+- ordering and tie-breakers match the decision,
+- pages are stable and duplicate-free,
+- the Read Model is derived and not a second domain source of truth.
 
-## S8 – Erste Web-/Android-Flows & Hardening
+## S8 – First Web/Android flows & Hardening
 
-**Ergebnis:** derselbe Kernflow funktioniert Ende-zu-Ende auf beiden Clients.
+**Result:** the same Core flow works end to end on both clients.
 
-**Lieferumfang**
+**Delivery scope**
 
-- Story ansehen, Memory erstellen, mehrere Medien hinzufügen,
-- HeartMoment bewusst als Shared oder Private anlegen,
-- Lade-/Leer-/Fehler-/Offline-Read-Zustände,
-- Accessibility, dynamische Schrift, Touch Targets und Tastaturfluss,
-- Cache-Leerung bei Logout/Space-Wechsel,
-- End-to-End- und Release-Smoke-Tests.
+- view Story, create Memory, add multiple Media,
+- deliberately create HeartMoment as Shared or Private,
+- Loading/Empty/Error/Offline Read states,
+- Accessibility, dynamic font, Touch Targets, and keyboard flow,
+- clear cache on logout/Space change,
+- End-to-End and Release Smoke Tests.
 
-**Akzeptanz**
+**Acceptance**
 
-- Web und Android verwenden denselben veröffentlichten API-Vertrag,
-- Privacy-Entscheidung ist vor dem Speichern verständlich,
-- keine Offline-Schreibillusion,
-- Kernflow ist mit Screenreader/Tastatur bzw. TalkBack bedienbar.
+- Web and Android use the same published API contract,
+- Privacy choice is understandable before saving,
+- no illusion of Offline Write,
+- Core flow is operable with screen reader/keyboard or TalkBack.
 
-## Issue-fertige Arbeitspakete
+## Issue-ready work packages
 
-Die folgenden Titel können nach S0 direkt als Issues angelegt werden:
+The following titles may be created directly as Issues after S0:
 
-1. **[M2][Media] Attachment-Lifecycle und MediaStore-Contract implementieren**
-2. **[M2][Media] LocalMediaStore und S3MediaStore gegen gemeinsamen Contract absichern**
-3. **[M2][Memory] Memory CRUD, ProtectedPayload und Concurrency liefern**
-4. **[M2][Memory] Mehrere Attachments und geordnete Galerie integrieren**
-5. **[M2][Privacy] HeartMoment Shared/Private mit vollständigem Owner-only-Schutz liefern**
-6. **[M2][Milestone] Eigenständiges Milestone-Modell und API liefern**
-7. **[M2][Comments] Zulässige Targets, Outbox und Notification Hook implementieren**
-8. **[M2][Story] Abgeleitetes Read Model mit Suche und Cursor-Pagination liefern**
-9. **[M2][Web] Story-, Memory- und Privacy-Kernflow integrieren**
-10. **[M2][Android] Story-, Memory- und Privacy-Kernflow integrieren**
-11. **[M2][Security] Cross-Tenant-, Owner-only- und Media-Abuse-Suite abschließen**
-12. **[M2][Release] Performance, Accessibility und Observability abnehmen**
+1. **[M2][Media] Implement Attachment lifecycle and MediaStore contract**
+2. **[M2][Media] Validate LocalMediaStore and S3MediaStore against a shared contract**
+3. **[M2][Memory] Deliver Memory CRUD, ProtectedPayload, and Concurrency**
+4. **[M2][Memory] Integrate multiple Attachments and ordered Gallery**
+5. **[M2][Privacy] Deliver HeartMoment Shared/Private with complete owner-only protection**
+6. **[M2][Milestone] Deliver dedicated Milestone model and API**
+7. **[M2][Comments] Implement permitted targets, Outbox, and Notification Hook**
+8. **[M2][Story] Deliver derived Read Model with Search and Cursor Pagination**
+9. **[M2][Web] Integrate Story, Memory, and Privacy Core flow**
+10. **[M2][Android] Integrate Story, Memory, and Privacy Core flow**
+11. **[M2][Security] Complete Cross-Tenant, owner-only, and Media abuse suite**
+12. **[M2][Release] Accept Performance, Accessibility, and Observability**
 
-Jedes Issue übernimmt relevante Zeilen aus der [Security Test Matrix](./SECURITY-TEST-MATRIX.md) als Akzeptanzkriterien. Querschnittsarbeit wird nicht in einem Sammel-PR versteckt.
+Each Issue adopts relevant rows from the [Security Test Matrix](./SECURITY-TEST-MATRIX.md) as acceptance criteria. Cross-cutting work is not hidden in an omnibus PR.
 
-## PR-Regeln
+## PR rules
 
-- ein Issue, ein Branch, ein fachlicher Zweck,
-- Migration und Rollback im selben PR wie das Modell,
-- Vertrag zuerst oder im selben PR; Clients nie gegen undokumentierte Endpunkte,
-- keine Auth-/Tenant-Logik pro Controller duplizieren,
-- Security-Tests müssen vor Merge rot demonstrierbar und danach grün sein,
-- neue Entscheidungen werden im Decision Log nachgeführt,
-- Screens und API werden gemeinsam gegen Leer-, Fehler- und Berechtigungszustände geprüft.
+- one Issue, one branch, one domain purpose,
+- migration and Rollback in the same PR as the model,
+- contract first or in the same PR; clients never target undocumented endpoints,
+- do not duplicate Auth/Tenant logic per Controller,
+- Security tests must demonstrably fail before the fix and pass afterward,
+- new decisions are recorded in the Decision Log,
+- screens and API are reviewed together against Empty, Error, and permission states.
 
 ## M2 Exit Criteria
 
-M2 ist abgeschlossen, wenn:
+M2 is complete when:
 
-- alle sechs Domänenbausteine produktiv nutzbar sind,
-- Web und Android mindestens einen vollständigen Memory-/Media-/Story-Flow teilen,
-- private HeartMoments alle Leak-Tests bestehen,
-- Local- und S3-Medien denselben Sicherheitsvertrag erfüllen,
-- OpenAPI, Migrationen, Observability und Betriebsdokumentation aktuell sind,
-- keine kritische oder hohe Security-Lücke offen ist,
-- Performancebudgets und Accessibility-Abnahme erfüllt sind,
-- echte E2EE weiterhin weder behauptet noch architektonisch verbaut wird.
+- all six Domain components are production-usable,
+- Web and Android share at least one complete Memory/Media/Story flow,
+- private HeartMoments pass all leak tests,
+- Local and S3 Media satisfy the same Security contract,
+- OpenAPI, migrations, Observability, and operational documentation are current,
+- no Critical or High Security gap remains open,
+- Performance budgets and Accessibility acceptance are satisfied,
+- real E2EE is neither claimed nor architecturally blocked.

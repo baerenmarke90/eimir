@@ -1,41 +1,41 @@
-# ADR 0001 – Clean-Room-Provenienzklassifikation
+# ADR 0001 – Clean-Room Provenance Classification
 
-**Status:** Angenommen  
-**Datum:** 24. August 2026
+**Status:** Accepted  
+**Date:** August 24, 2026
 
-## Kontext
+## Context
 
-SideBySide Next wird in einem eigenen Repository und aus einer schriftlichen Produktspezifikation neu implementiert. Die bestehende `PROVENANCE.md` dokumentiert jedoch, dass die Assistentensitzung, die die erste Implementierung begonnen hat, unmittelbar zuvor im Rahmen eines getrennten Projekts erhebliche Teile des Vorgänger-Quellcodes gesehen hatte.
+eimir. is implemented in its own repository and from a written product specification. The existing `PROVENANCE.md`, however, documents that the assistant session that started the initial implementation had immediately before, within a separate project, seen substantial parts of the predecessor source code.
 
-Damit ist die in formalen Clean-Room-Verfahren übliche personelle bzw. kontextuelle Trennung zwischen der Sichtung des Originals und der Implementierung des Ersatzes nicht erfüllt. Der datierte Soll-/Ist-Review vom 24. August 2026 hat diese Prozessabweichung bereits ausdrücklich festgehalten.
+Therefore, the personnel/context separation normally required by formal Clean-Room procedures between reviewing the original and implementing the replacement is not fulfilled. The dated target/actual review from August 24, 2026 explicitly records this process deviation.
 
-## Entscheidung
+## Decision
 
-Das Projekt wird **nicht** als strikte oder formale Clean-Room-Implementierung bezeichnet.
+The project is **not** described as a strict or formal Clean-Room implementation.
 
-Die verbindliche Projektklassifikation lautet stattdessen:
+The binding project classification is instead:
 
-> **Eigenständige Neuimplementierung auf Basis einer schriftlichen Spezifikation mit dokumentierter Vorbefassung der initialen Implementierungssitzung.**
+> **Independent reimplementation based on a written specification with documented prior exposure of the initial implementation session.**
 
-Der bestehende Quellbaum wird fortgeführt. Es erfolgt kein Neustart allein mit dem Ziel, nachträglich eine strengere Clean-Room-Prozessklassifikation zu erreichen.
+The existing source tree continues. The project is not restarted solely to obtain a stricter Clean-Room process classification.
 
-Für die weitere Entwicklung gelten weiterhin diese Grenzen:
+For further development, these boundaries continue to apply:
 
-- Vorgänger-Repositories werden nicht als Implementierungsvorlage geöffnet, durchsucht oder konsultiert.
-- Quellcode, Kommentare, Migrationen, Templates, Assets oder sonstige konkrete Implementierungsdetails des Vorgängers werden nicht übernommen.
-- Die vollständige schriftliche Master-Spezifikation ist die normative fachliche und technische Quelle.
-- Die dokumentierte Vorbefassung bleibt dauerhaft in der Provenienz sichtbar und wird nicht sprachlich abgeschwächt.
-- Aussagen wie „formal clean room“, „strict clean room“ oder gleichwertige uneingeschränkte Herkunftsbehauptungen werden für den aktuellen Quellbaum nicht verwendet.
+- predecessor repositories are not opened, searched, or consulted as implementation references;
+- source code, comments, migrations, templates, assets, or other concrete implementation details from predecessors are not adopted;
+- the complete written Master Specification is the normative functional and technical source;
+- documented prior exposure remains visible in provenance and is not softened by wording changes;
+- statements such as "formal clean room", "strict clean room", or equivalent unrestricted provenance claims are not used for the current source tree.
 
-## Folgen
+## Consequences
 
-Diese Entscheidung schließt den offenen Governance-Punkt vor M2 auf Prozessebene. Sie ändert keine technische Security-Anforderung und ersetzt insbesondere nicht das G1/M1-Sicherheitsgate.
+This decision closes the open governance point before M2 at process level. It changes no technical security requirement and does not replace the G1/M1 security gate.
 
-Sollte eine strikte formale Clean-Room-Trennung später aus geschäftlichen, vertraglichen oder rechtlichen Gründen zwingend werden, wäre dafür eine neue, nachweisbar nicht vorbefasste Implementierung auf Basis der Spezifikation erforderlich. Der aktuelle Quellbaum würde durch eine bloße Textänderung nicht nachträglich zu einer formalen Clean-Room-Implementierung.
+If strict formal Clean-Room separation later becomes mandatory for business, contractual, or legal reasons, a new implementation based on the specification with demonstrably separate implementation context would be required. A text change cannot retrospectively make the current source tree a formal Clean-Room implementation.
 
-Diese ADR ist eine Projekt- und Provenienzentscheidung. Sie ist **keine Rechtsberatung und keine Aussage darüber, welche urheber-, lizenz- oder sonstigen rechtlichen Folgen sich aus dem Entwicklungsprozess ergeben**.
+This ADR is a project and provenance decision. It is **not legal advice and does not state which copyright, license, or other legal consequences result from the development process.**
 
-## Verweise
+## References
 
 - [`PROVENANCE.md`](../../PROVENANCE.md)
 - [`specification/CLEAN-ROOM-MASTER-SPEC.md`](../../specification/CLEAN-ROOM-MASTER-SPEC.md)

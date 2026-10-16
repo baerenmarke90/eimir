@@ -1,49 +1,55 @@
-# SideBySide Next
+# eimir.
 
-Ein privater digitaler Begleiter für das gemeinsame Leben eines Paares.
+<!-- status-surface: secondary-overview -->
 
-SideBySide Next ist eine eigenständige Neuimplementierung. Sie wird in zwei
-Betriebsformen angeboten:
+A private digital companion for a couple's shared life.
 
-- **SideBySide Cloud** — betriebener Dienst für Nutzer, die keine eigene Infrastruktur administrieren möchten
-- **SideBySide Self-Hosted** — eigene Installation für persönliche und nichtkommerzielle Nutzung
+eimir. is an independent reimplementation. It is offered in two
+operating models:
 
-Beide teilen denselben Application Core. Die Cloud monetarisiert Betrieb,
-Komfort und Service; Self-Hosted soll nicht allein zur Verkaufsförderung
-künstlich um Kernfunktionen beschnitten werden. Das strategische Modell ist in
-[docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) dokumentiert.
+- **eimir. Cloud** — a managed service for users who do not want to administer their own infrastructure
+- **eimir. Self-Hosted** — a self-operated installation for personal and noncommercial use
 
-## Produktvorschau
+Both share the same Application Core. The Cloud monetizes operations,
+convenience, and service; Self-Hosted must not be artificially deprived of
+Core functionality solely to promote the Cloud. The strategic model is
+documented in [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md).
+
+## Product preview
+
+The product-preview artwork and labels below intentionally remain de-DE
+localized product content.
 
 <p align="center">
-  <img src="docs/assets/playstore/app-icon.png" alt="SideBySide Next App-Icon" width="112">
+  <img src="docs/assets/playstore/app-icon.png" alt="eimir. App-Icon" width="112">
 </p>
 
 <p align="center">
-  <img src="docs/assets/playstore/feature-graphic.png" alt="SideBySide Next – gemeinsam leben, privat verbunden" width="100%">
+  <img src="docs/assets/playstore/feature-graphic.png" alt="eimir. – gemeinsam leben, privat verbunden" width="100%">
 </p>
 
 <p align="center">
   <strong>Erinnerungen, Wünsche, Pläne und gemeinsame Zeit – ruhig gestaltet und privacy-first gedacht.</strong>
 </p>
 
-> Die folgenden Screens sind Produkt- und Google-Play-Mockups. Der technische
-> Implementierungsstand ist im Abschnitt [Stand](#stand) dokumentiert.
+> The following screens are product and Google Play mockups. The technical
+> implementation state is documented under [Status](#status).
 
-### Design- und UX-Grundlagen
+### Design and UX foundations
 
-- [Design-Prinzipien](docs/DESIGN-PRINCIPLES.md) – visuelle Sprache, Accessibility und Privacy-first Leitlinien
-- [Informationsarchitektur](docs/INFORMATION-ARCHITECTURE.md) – Navigation, Bereiche, Routen und Deep Links
-- [Critical User Flows](docs/USER-FLOWS.md) – End-to-End-Abläufe für Auth, Einladung, Inhalte, Offline und Konflikte
-- [UX-Patterns](docs/UX-PATTERNS.md) – plattformübergreifende Interaktions- und Zustandsmuster
-- [Screen-Templates](docs/SCREEN-TEMPLATES.md) – responsive Layouts für Compact, Medium und Expanded
-- [Component Contracts](docs/COMPONENT-CONTRACTS.md) – Verhalten, Varianten und Accessibility gemeinsamer Bausteine
-- [API-/UI-Verträge](docs/API-UI-CONTRACTS.md) – gemeinsame DTOs, Fehler, Privacy-Klassen, Cache und Concurrency
-- [Accessibility- und QA-Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) – verbindliche Release Gates für Web und Android
-- [Content- und Privacy-Guidelines](docs/CONTENT-PRIVACY-GUIDELINES.md) – Tonalität, Systemtexte, Notifications und Analytics-Grenzen
-- [Design-System-Umsetzung](docs/DESIGN-SYSTEM-DELIVERY.md) – Token-Pipeline, Komponentenstufen und Lieferphasen
-- [Design-Tokens](design/tokens.json) – Farben, Typografie, Abstände, Layout und Motion als maschinenlesbare Quelle
-- [Component Manifest](design/component-manifest.json) – plattformübergreifender Implementierungsstatus
+- [Product Reference v1 and design authority](docs/product/design/README.md) — current eimir. direction, five reference experiences, legacy precedence, and implementation sequence
+- [Design Principles](docs/DESIGN-PRINCIPLES.md) — compatible visual, Accessibility, and Privacy-first foundations
+- [Information Architecture](docs/INFORMATION-ARCHITECTURE.md) — navigation, areas, routes, and Deep Links
+- [Critical User Flows](docs/USER-FLOWS.md) — end-to-end flows for Auth, invitations, content, Offline, and conflicts
+- [UX Patterns](docs/UX-PATTERNS.md) — cross-platform interaction and state patterns
+- [Screen Templates](docs/SCREEN-TEMPLATES.md) — responsive layouts for Compact, Medium, and Expanded
+- [Component Contracts](docs/COMPONENT-CONTRACTS.md) — behavior, variants, and Accessibility of shared components
+- [API/UI Contracts](docs/API-UI-CONTRACTS.md) — shared DTOs, errors, Privacy classes, Cache, and Concurrency
+- [Accessibility and QA Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) — binding Release Gates for Web and the Android wrapper
+- [Content and Privacy Guidelines](docs/CONTENT-PRIVACY-GUIDELINES.md) — tone, system text, Notifications, and Analytics boundaries
+- [Design System Delivery](docs/DESIGN-SYSTEM-DELIVERY.md) — Token pipeline, component stages, and delivery phases
+- [Design Tokens](design/tokens.json) — colors, typography, spacing, layout, and Motion as a machine-readable source
+- [Component Manifest](design/component-manifest.json) — canonical Web product-UI implementation status
 
 <table>
   <tr>
@@ -76,177 +82,200 @@ künstlich um Kernfunktionen beschnitten werden. Das strategische Modell ist in
 
 <p align="center">
   <a href="docs/ROADMAP.md">
-    <img src="docs/assets/roadmap/roadmap-overview.svg" alt="SideBySide Next Roadmap von Foundation bis Release" width="100%">
+    <img src="docs/assets/roadmap/roadmap-overview.svg" alt="eimir. Roadmap von Foundation bis Release" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <strong>Aktuell: G2 ist bestanden. M2 ist abgeschlossen; M3 ist als nächster Milestone freigegeben.</strong><br>
-  <a href="docs/ROADMAP.md">Roadmap, parallele Arbeitsströme und Release Gates ansehen</a> ·
-  <a href="docs/IMPLEMENTATION-STATUS.md">tatsächlichen Umsetzungsstand öffnen</a> ·
-  <a href="docs/m3/README.md">M3 Technical Readiness Package öffnen</a>
+  <a href="docs/IMPLEMENTATION-STATUS.md"><strong>Open the authoritative current implementation and gate status</strong></a><br>
+  <a href="docs/ROADMAP.md">View milestone sequence and Release Gate definitions</a> ·
+  <a href="docs/STATUS-SOURCES.md">View status-source and drift rules</a>
 </p>
 
-## Leitsätze
+## Principles
 
-Privatsphäre ist Kernfunktion, nicht Beiwerk. Keine Werbung, kein Verkauf
-persönlicher Daten, kein unnötiges Tracking. Sensible Inhalte fließen nicht
-in Analytics.
+Privacy is a Core function, not an add-on. No advertising, no sale of personal
+data, no unnecessary tracking. Sensitive content does not flow into Analytics.
 
-Der zentrale Mandant heißt **Space** — der gemeinsame Raum eines Paares.
-Jeder gemeinsame Datensatz gehört genau einem Space. Kein Zugriff erfolgt
-allein anhand einer Ressourcen-ID.
+The central tenant is named **Space** — the shared private area of a couple.
+Every shared record belongs to exactly one Space. No access is performed from
+a Resource ID alone.
 
-Für M2 gilt zusätzlich: `SHARED` und `PRIVATE` sind fachliche Domainwerte.
-`SPACE_SHARED` und `OWNER_ONLY` sind interne Authorization-/Privacy-Klassen.
-Clients schreiben `privacyClass` nicht redundant als zweite Wahrheitsquelle.
+For M2, additionally: `SHARED` and `PRIVATE` are domain-level values.
+`SPACE_SHARED` and `OWNER_ONLY` are internal Authorization/Privacy classes.
+Clients do not redundantly write `privacyClass` as a second source of truth.
 
-## Aufbau
+## Structure
 
-```
+```text
 backend/             FastAPI, SQLAlchemy 2, Alembic, PostgreSQL
 web/                 React, TypeScript, Vite
-android/             Kotlin, Jetpack Compose
-compose.yaml         Docker Compose für vollständige Self-Hosted-Checkouts
-compose.arcane.yaml  Remote-Git-Builds für Arcane/Remote-Workspaces
-deploy/              Docker Compose für die Entwicklungsdatenbank
-docs/                Architektur, Sicherheit, Datenschutzmodell, Abhängigkeiten
-specification/       Produktspezifikation als verbindliche Vorgabe
-tools/               Hilfsskripte
+android/             Capacitor Android wrapper around the canonical React/Vite Web product
+compose.yaml         the single Docker Compose manifest for all supported profiles
+deploy/              deployment environment templates and PostgreSQL init data
+docs/                architecture, security, Privacy model, dependencies
+specification/       product specification as the binding requirement
+tools/               helper scripts
 ```
 
-## Entwicklung
+## Development
 
-PostgreSQL ist Voraussetzung. Einen SQLite-Notbehelf gibt es bewusst nicht —
-das Datenmodell nutzt PostgreSQL-Eigenschaften, und ein zweiter Dialekt im
-Test würde eine Sicherheit vortäuschen, die er nicht gibt.
+### Prerequisites
+
+- **Docker** for the development database
+- **Python 3.13** and `uv` for Backend and tests
+- **Node 22 and npm** for the Web client
+
+PostgreSQL is required. There is deliberately no SQLite fallback — the data
+model uses PostgreSQL properties, and a second test dialect would create a
+false sense of confidence rather than equivalent coverage.
+
+### Backend
+
+The development database uses the `dev-db` profile of the canonical
+`compose.yaml`:
 
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d
-python -m pip install uv==0.12.5
+docker compose --profile dev-db up -d dev-postgres
+python -m pip install uv==0.12.15
 cd backend && uv sync --frozen
 uv run alembic upgrade head
-uv run uvicorn sidebyside.main:app --reload
+uv run uvicorn eimir.main:app --reload
 ```
 
-Tests:
+### Web
 
 ```bash
-cd backend && uv run pytest                    # alles
-cd backend && uv run pytest -m "not integration"   # ohne Datenbank
+cd web && npm ci
+npm run dev
 ```
 
-Integrationstests brauchen eine erreichbare PostgreSQL-Instanz. Ohne sie
-werden sie übersprungen, nicht stillschweigend als bestanden gewertet.
+### Tests
 
-`backend/uv.lock` ist der verbindliche, plattformübergreifende
-Abhängigkeitsstand. Nach einer beabsichtigten API-Änderung wird der
-versionierte Vertrag mit `uv run python scripts/openapi_contract.py write`
-aktualisiert; die CI vergleicht ihn mit dem Schema der tatsächlichen App.
+Integration tests run against a dedicated `eimir_test` database created
+by `deploy/postgres-init/10-testdatenbank.sql` when the `dev-db` profile starts
+with an empty volume. The test fixture creates its own schema there and removes
+it again at the end — running that lifecycle against the development database
+would be data loss, not a test run.
+
+```bash
+export EIMIR_TEST_DATABASE_URL=postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+cd backend && uv run pytest                         # everything
+cd backend && uv run pytest -m "not integration"   # without database
+```
+
+**Without `EIMIR_TEST_DATABASE_URL`, all Integration Tests are skipped** — even
+when the development database is running and reachable. `pytest` can still
+report the run as green, for example `353 passed, 1141 skipped`. That is not a
+complete run. Skipped means skipped and must not silently be treated as
+passed; without the variable, only the Unit level is being tested.
+
+If the database volume predates the initialization script,
+`eimir_test` is missing. The Postgres image runs `deploy/postgres-init/`
+only for an empty data directory. Create it once manually:
+
+```bash
+docker compose --profile dev-db exec dev-postgres \
+  createdb -U eimir eimir_test
+```
+
+The Web client is tested with `cd web && npm test`.
+
+`backend/uv.lock` is the binding cross-platform dependency state. After an
+intentional API change, update the versioned contract with
+`uv run python scripts/openapi_contract.py write`; CI compares it with the
+schema of the actual application.
 
 ## Self-Hosted
 
-Für einen vollständigen Repository-Checkout bleibt `compose.yaml` der normale
-Einstieg:
+eimir. supports exactly one Docker Compose manifest: root `compose.yaml`.
+`.env.example` selects the `self-hosted` profile for a normal complete checkout:
 
 ```bash
-cp .env.example .env    # und ausfüllen
+cp .env.example .env    # then fill in the required values
 docker compose up -d
 ```
 
-Die API ist danach unter `http://127.0.0.1:8000` erreichbar. Dieser
-Klartextzugang ist absichtlich auf den lokalen Rechner begrenzt. Fuer Zugriff
-aus LAN oder Internet muss ein HTTPS-Reverse-Proxy vorgeschaltet werden; die
-API darf dafuer nicht direkt auf allen Interfaces veroeffentlicht werden.
+The API is then available at `http://127.0.0.1:8000`. This plaintext endpoint
+is deliberately restricted to the local host. Access from a LAN or the
+Internet requires an HTTPS reverse proxy; the API must not be published
+directly on all interfaces for that purpose.
 
-Verwaltungsoberflächen wie **Arcane**, deren Projekt-Workspace nicht den
-vollständigen Repository-Checkout enthält, verwenden stattdessen
-`compose.arcane.yaml`. Diese Variante baut `backend` und `web` direkt aus dem
-konfigurierten Git-Repository und benötigt deshalb keine lokalen
-`./backend`-/`./web`-Verzeichnisse im Workspace. Einrichtung, private
-Repositorys und Release-Refs sind in [docs/ARCANE.md](docs/ARCANE.md)
-dokumentiert.
+Management surfaces such as **Arcane** use the same `compose.yaml` and
+`self-hosted` profile. When the Arcane workspace does not contain a full
+checkout, Backend and Web build contexts are configured as Git/BuildKit URLs
+through environment values rather than through another Compose file. Setup,
+private repositories, and Release refs are documented in
+[docs/ARCANE.md](docs/ARCANE.md).
 
-Der Dienst `migrate` zieht das Schema einmalig hoch, bevor `api` und
-`worker` starten. Die Anwendung migriert nicht selbst; zwei startende
-API-Container würden das sonst gleichzeitig tun.
+The `migrate` service upgrades the schema once before `api` and `worker`
+start. The application does not migrate itself; otherwise two starting API
+containers could attempt the migration concurrently.
 
-Der vollstaendige sichere Startablauf, Reverse-Proxy-Anforderungen und ein
-Smoke-Test stehen in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
+The complete secure startup procedure, reverse-proxy requirements, and a
+Smoke Test are documented in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
+Existing installations must also follow the
+[project-identity migration guide](docs/PROJECT-IDENTITY-MIGRATION.md) before
+changing a checkout path, Compose project name, image identity, or legacy
+configuration keys.
 
-## Stand
+## Status
 
-**M0 — technische Plattform abgeschlossen.** Fehlerformat, Transactional
-Outbox, Job-Warteschlange, MediaStore- und Provider-Schnittstellen,
-ProtectedPayload-Grenze, reproduzierbare Dependencies, OpenAPI-Contract und
-CI-/Supply-Chain-Prüfungen sind für den M0-Umfang vorhanden.
+[docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) is the single
+authoritative living source for current milestone, gate, launch-blocker, and
+acceptance status. This README intentionally does not duplicate that detailed
+state.
 
-**M1 / G1 — abgeschlossen und bestanden.** Account, Space, Membership,
-Tenant Context, Owner-/Privacy-Guard und Geraetesitzungen mit rotierenden
-Tokens sind implementiert. Lokales Passwort, OIDC mit PKCE/State/Nonce,
-OIDC-Einladungs-Onboarding, Passkeys, Magic Link, E-Mail-Verifikation,
-Recovery, Invitations, SpaceProfile, PartnerProfile/ProfilePreference sowie
-RelatedPerson/ImportantDate sind im Backend vorhanden und durch
-PostgreSQL-/Privacy-/Tenant-Tests abgesichert. #61 wurde mit einer expliziten
-`preserve`-/`cascade`-Delete-Policy ohne destruktiven Default geschlossen.
+Use [docs/ROADMAP.md](docs/ROADMAP.md) for milestone order and gate definitions.
+For G5 evidence and decision records, follow the links from the living status
+rather than inferring launch readiness from a green CI run or a closed
+implementation issue.
 
-Der [G1 Gate Review nach Abschluss von #61](docs/reviews/2026-08-25-g1-gate-review-after-61.md)
-setzt G1 auf **BESTANDEN**. #59 und #60 bleiben verpflichtende
-Pre-Exposure-Härtungen vor öffentlichem/Managed-Betrieb; #25 bleibt
-Repository-Hardening.
+## Project control
 
-**M2 / G2 — abgeschlossen und bestanden.** Memory CRUD, HeartMoment mit
-Owner-only-Privacy, Bild-Attachments samt sicherem Ingest und Bindung,
-Milestone, Comments, S3-kompatibler MediaStore, Story Read Model sowie die
-dünnen Web-/Android-Referenzflows sind geliefert. Der reale kritische
-Memory/Media/Story-Flow wurde gegen API, Worker, PostgreSQL und LocalMediaStore
-auf beiden Clientpfaden nachgewiesen.
-
-Der [finale G2 Gate Review](docs/reviews/2026-08-26-g2-final-gate-review.md)
-setzt G2 ausdrücklich auf **BESTANDEN**. Die manuelle Accessibility-Abnahme
-wurde dabei nicht als bestanden behauptet; sie bleibt Teil der späteren
-Client-/Release-QA in M5/G4.
-
-**M3 — freigegeben.** Die S0-Readiness und alle M3-D01 bis M3-D32 sind
-`DECIDED`. Runtime-Slices dürfen nach dem
-[M3 Technical Readiness Package](docs/m3/README.md) und dem
-[M3 Delivery Plan](docs/m3/DELIVERY-PLAN.md) beginnen, sobald der jeweilige
-produktive REST-/OpenAPI-Vertrag contract-testbar konkretisiert ist.
-
-Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) für den Zielaufbau,
-[docs/SECURITY.md](docs/SECURITY.md) für die Sicherheitsinvarianten,
-[docs/m3/README.md](docs/m3/README.md) für das M3-Readiness-Paket und
-[specification/PRODUCT-SPEC.md](specification/PRODUCT-SPEC.md) für den
-fachlichen Umfang.
-
-## Projektsteuerung
-
-Die vollständige verbindliche Vorgabe ist die
+The complete binding requirement is the
 [Clean-Room Master Specification](specification/CLEAN-ROOM-MASTER-SPEC.md).
-Der [laufende Umsetzungsstand](docs/IMPLEMENTATION-STATUS.md) enthält die
-aktuelle Arbeitsliste. Datierte Dateien unter [docs/reviews](docs/reviews)
-sind unveränderliche Prüf-Snapshots; bei Widersprüchen gilt immer die
-Master-Spezifikation.
+The [living implementation status](docs/IMPLEMENTATION-STATUS.md) contains the
+current work list. Dated files under [docs/reviews](docs/reviews) are immutable
+review snapshots; if they conflict with current normative guidance, the Master
+Specification remains authoritative.
 
-Parallele Implementierungsarbeit wird über klar abgegrenzte GitHub Issues,
-eigene Branches und Pull Requests koordiniert. Solange Branch Protection bei
-diesem privaten Repository tarifbedingt nicht technisch erzwungen werden
-kann, gilt die PR-/CI-Pflicht als Projektregel.
+Parallel implementation work is coordinated through clearly scoped GitHub
+Issues, separate branches, and Pull Requests. Enforcement for `main` is
+defined by the repository's [active GitHub ruleset](https://github.com/baerenmarke90/eimir/rules/21286018);
+GitHub is the canonical source for repository visibility, required checks, and
+rule enforcement. This README intentionally does not copy a static required-check
+list that would drift independently.
 
-## Lizenz
+## Security
 
-Der eigene SideBySide-Next-Quellcode wird unter der **PolyForm Noncommercial
-License 1.0.0** bereitgestellt. Nichtkommerzielle Nutzung, Änderung und
-Weitergabe sind im Rahmen dieser Lizenz erlaubt. Für kommerzielle Nutzung ist
-eine separate kommerzielle Lizenz des Rechteinhabers erforderlich.
+Do not report suspected security vulnerabilities through public issues,
+discussions, or pull requests. Follow the repository
+[Security Policy](.github/SECURITY.md) for the supported branch, private
+reporting path, triage process, and coordinated-disclosure guidance.
+
+When GitHub provides the **Report a vulnerability** action for this repository,
+use that private channel. Never include secrets, private user data, production
+data, or exploit details that would materially enable abuse in public
+contributions.
+
+The technical security architecture and application security invariants remain
+documented separately in [docs/SECURITY.md](docs/SECURITY.md).
+
+## License
+
+eimir.'s own source code is provided under the **PolyForm
+Noncommercial License 1.0.0**. Noncommercial use, modification, and
+distribution are allowed under that license. Commercial use requires a
+separate commercial license from the rights holder.
 
 - [LICENSE](LICENSE) — PolyForm Noncommercial License 1.0.0
-- [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) — kommerzielle Lizenzierung
-- [CONTRIBUTING.md](CONTRIBUTING.md) und [CLA.md](CLA.md) — Beiträge und Rechte an Contributions
-- [TRADEMARKS.md](TRADEMARKS.md) — Name, Logo und Branding
-- [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) — Self-Hosted, SideBySide Cloud und Produktprinzipien
+- [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) — commercial licensing
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [CLA.md](CLA.md) — contributions and contribution rights
+- [TRADEMARKS.md](TRADEMARKS.md) — name, logo, and branding
+- [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) — Self-Hosted, eimir. Cloud, and product principles
 
-SideBySide Next ist damit **source-available**, nicht Open Source im engeren
-OSI-Sinn, da kommerzielle Nutzung nicht allgemein freigegeben wird.
-Drittanbieter-Abhängigkeiten bleiben unter ihren jeweiligen Lizenzen; die
-Pflichten sind in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md) dokumentiert.
+eimir. is therefore **source-available**, not Open Source in the
+narrower OSI sense, because commercial use is not granted generally.
+Third-party dependencies remain under their respective licenses; obligations
+are documented in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).

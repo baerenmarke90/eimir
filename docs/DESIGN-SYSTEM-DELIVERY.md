@@ -1,43 +1,44 @@
-# SideBySide Design System Delivery
+# eimir. Design System Delivery
 
-**Status:** Verbindlicher Umsetzungsrahmen  
-**Version:** 1.1  
-**Stand:** 26.08.2026
+**Status:** Mandatory implementation framework  
+**Version:** 1.2<br/>
+**As of:** September 15, 2026
 
-Dieses Dokument macht aus Designprinzipien, Tokens und Component Contracts ein ausführbares Design-System für React/TypeScript und Kotlin/Jetpack Compose. Ziel ist semantische Parität, nicht pixelidentische Plattformen.
+This document contains the active React/TypeScript delivery framework together with historical Kotlin/Jetpack Compose delivery detail. ADR 0011 supersedes the Kotlin/Compose product-UI architecture: Web/Mobile Web is the canonical product UI and Android ships it through Capacitor. The Compose client and its adapters were removed in #1009; the Android/Compose sections below (Android token adapter, Compose components, Compose Semantics, Android proof Activity, Android parity levels) are retained only as history and are not delivery requirements. The active `design/component-manifest.json` therefore tracks the canonical Web product UI only; Android wrapper/native-capability acceptance is owned by the mobile delivery boundary, not by a second component-status column.
 
-## 1. Zielbild
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
+
+## 1. Target architecture
 
 ```text
 design/tokens.json
         │
-        ├── Web Token Adapter ─────── React Components ───── Web Catalog
-        │
-        └── Android Token Adapter ─── Compose Components ─── Android Catalog
-
+        └── Web Token Adapter ─────── React Components ───── Web Catalog
+                                      │
+                                      └── Capacitor ──────── Android / iOS delivery
 docs/COMPONENT-CONTRACTS.md + design/component-manifest.json
-        └────────────────── gemeinsamer Verhaltensvertrag
+        └────────────────── canonical shared-UI behavioral contract
 ```
 
-- `design/tokens.json` ist die Quelle für semantische Designwerte.
-- Component Contracts sind die Quelle für Verhalten, Zustände und Accessibility.
-- Plattformadapter übersetzen Einheiten und native Mechanik, nicht Bedeutung.
-- OpenAPI liefert fachliche Datenmodelle; UI-Komponenten enthalten keine Domain-Autorisierung.
-- Light und Dark verwenden dieselben semantischen Rollen; Komponenten kennen keine theme-spezifischen Rohfarben.
+- `design/tokens.json` is the source for semantic design values.
+- Component contracts are the source for behavior, states, and accessibility.
+- Platform adapters translate units and native mechanics, not meaning.
+- OpenAPI provides domain data models; UI components contain no domain authorization.
+- Light and Dark use the same semantic roles; components do not know theme-specific raw colors.
 
-## 2. Paritätsstufen
+## 2. Parity levels
 
-| Ebene | Muss gleich sein | Darf abweichen |
+| Level | Must be equal | May differ |
 |---|---|---|
-| Semantik | Name, Zweck, Variante, Zustand, Privacy-Bedeutung | interne Implementierung |
-| Verhalten | Ergebnis, Validierung, Fehler, Back-Verhalten | native Geste/Overlayform |
-| Visuell | Farbsemantik, Typohierarchie, Abstände, Radiusfamilie | Systemfontmetriken, native Controls |
-| Accessibility | Name, Rolle, Wert, Fokusziel, Zielgröße | plattformspezifische API |
-| Layout | Compact/Medium/Expanded-Regeln | Pane- und Navigationsmechanik |
+| Semantics | name, purpose, variant, state, privacy meaning | internal implementation |
+| Behavior | result, validation, errors, back behavior | native gesture/overlay form |
+| Visual | color semantics, typography hierarchy, spacing, radius family | system font metrics, native controls |
+| Accessibility | name, role, value, focus target, target size | platform-specific API |
+| Layout | Compact/Medium/Expanded rules | pane and navigation mechanics |
 
-## 3. Logische Struktur
+## 3. Logical structure
 
-Die genaue Ordnerstruktur folgt dem Repository, soll aber diese Module abbilden:
+The exact folder structure follows the repository, but it should represent these modules:
 
 ```text
 design/
@@ -52,61 +53,58 @@ web design system/
   icons
   catalog/examples
 
-android design system/
-  generated tokens/theme
-  primitives
-  components
-  patterns
-  icons
-  catalog/examples
+capacitor wrappers/
+  platform configuration
+  safe-area / lifecycle integration
+  bounded native capability adapters
 ```
 
-- Generierte Dateien tragen einen Header und werden nicht manuell bearbeitet.
-- Domain-Screens importieren Komponenten, nicht rohe Farben/Abstände.
-- Komponenten dürfen Tokens konsumieren; Tokens dürfen keine Komponente kennen.
+- Generated files carry a header and are not edited manually.
+- Domain screens import components, not raw colors or spacing values.
+- Components may consume tokens; tokens must not know any component.
 
-## 4. Token-Pipeline
+## 4. Token pipeline
 
-### Quelle
+### Source
 
-`design/tokens.json` enthält semantische Farben, Typografie, Spacing, Radius, Layout, Bewegung, Schatten und Zielgrößen.
+`design/tokens.json` contains semantic colors, typography, spacing, radius, layout, motion, shadows, and target sizes.
 
-Für Farben gilt zusätzlich:
+For colors, the following also applies:
 
-- `color.semantic` bleibt der Light-Kompatibilitätsdefault für bestehende Adapter.
-- `color.scheme.light` und `color.scheme.dark` sind die expliziten Theme-Paletten.
-- Beide Schemes besitzen dieselben Rollen; ein Theme darf keine neue fachliche Farbbedeutung einführen.
-- Akzent-, Status- und Privacy-Farben werden pro Scheme auf ausreichenden Kontrast angepasst statt mechanisch invertiert.
+- `color.semantic` remains the Light-compatible default for existing adapters.
+- `color.scheme.light` and `color.scheme.dark` are the explicit theme palettes.
+- Both schemes have the same roles; a theme must not introduce a new domain color meaning.
+- Accent, status, and privacy colors are adjusted per scheme for sufficient contrast instead of being mechanically inverted.
 
-### Web-Ausgabe
+### Web output
 
-- CSS Custom Properties für Theme- und Laufzeitwerte.
-- typisierte TypeScript-Namen für Komponentenlogik.
-- Systemdarstellung über `prefers-color-scheme` als Standard.
-- Nutzerwahl **System / Hell / Dunkel** überschreibt die Systemvorgabe und wird lokal persistent gespeichert.
-- Browser-`theme-color` und `color-scheme` folgen dem tatsächlich aufgelösten Theme.
-- Media Queries/Container Queries aus Breakpoint- und Motion-Tokens.
-- `prefers-reduced-motion` setzt reguläre Übergänge auf `instant` oder eine sichere reduzierte Variante.
+- CSS custom properties for theme and runtime values.
+- Typed TypeScript names for component logic.
+- System appearance via `prefers-color-scheme` as the default.
+- The user choice **System / Hell / Dunkel** (de-DE product labels) overrides the system preference and is persisted locally.
+- Browser `theme-color` and `color-scheme` follow the actually resolved theme.
+- Media queries/container queries are derived from breakpoint and motion tokens.
+- `prefers-reduced-motion` sets regular transitions to `instant` or a safe reduced variant.
 
-### Android-Ausgabe
+### Android output
 
-- Compose `Color`, `Dp`, Shapes, Typography und Motion-Werte.
-- Material-3-Theme als Adapter, ohne SideBySide-Semantik in generische Materialnamen zu verlieren.
-- `SideBySideTheme` besitzt getrennte Light-/Dark-`ColorScheme`s und folgt standardmäßig `isSystemInDarkTheme()`.
-- Der Theme-Einstieg muss einen expliziten Override zulassen, damit eine spätere Einstellung **System / Hell / Dunkel** ohne Screen-Umbau ergänzt werden kann.
-- Status- und Navigationsleiste folgen Theme-Hintergrund und passender Icon-Helligkeit.
-- Window Size Classes werden auf Compact/Medium/Expanded gemappt.
+- Compose `Color`, `Dp`, Shapes, Typography, and motion values.
+- Material 3 theme as an adapter without losing eimir. semantics in generic Material names.
+- `eimir.Theme` has separate Light/Dark `ColorScheme`s and follows `isSystemInDarkTheme()` by default.
+- The theme entry point must allow an explicit override so that a later **System / Hell / Dunkel** setting (de-DE product labels) can be added without restructuring screens.
+- Status and navigation bars follow the theme background and appropriate icon brightness.
+- Window Size Classes are mapped to Compact/Medium/Expanded.
 
-### Pipeline-Gates
+### Pipeline gates
 
-- JSON und Schema sind gültig.
-- jeder semantische Farbtoken existiert in Light und Dark oder ist explizit plattformspezifisch,
-- jeder semantische Token existiert in beiden Adaptern oder ist explizit plattformspezifisch,
-- generierte Ausgabe ist reproduzierbar und im CI-Diff sauber,
-- Farbkontrast-Smoketests prüfen zentrale Vorder-/Hintergrundpaare in beiden Themes,
-- rohe Hexwerte und nicht-tokenisierte Abstände werden außerhalb des Token-/Theme-Moduls verhindert oder gemeldet.
+- JSON and schema are valid.
+- Every semantic color token exists in Light and Dark or is explicitly platform-specific.
+- Every semantic token exists in both adapters or is explicitly platform-specific.
+- Generated output is reproducible and produces a clean CI diff.
+- Color-contrast smoke tests cover central foreground/background pairs in both themes.
+- Raw hex values and non-tokenized spacing outside the token/theme module are prevented or reported.
 
-## 5. Komponentenstufen
+## 5. Component levels
 
 ### P0 — Foundation
 
@@ -120,56 +118,63 @@ Für Farben gilt zusätzlich:
 - Dialog, BottomSheet, SidePane,
 - MediaTile.
 
-### P1 — Produktpatterns
+### P1 — Product patterns
 
-- App Shell für Bottom Bar/Rail/Sidebar,
-- adaptive List-Detail-Struktur,
-- Formularseite mit Fehlerzusammenfassung,
-- Story Timeline Item und Monatsgruppe,
-- Privacy-Auswahl HeartMoment,
+- App Shell for Bottom Navigation and the Expanded Web header,
+- adaptive List-Detail structure,
+- form page with error summary,
+- Story Timeline Item and month group,
+- HeartMoment privacy selection,
 - Upload Queue,
-- Konfliktauflösung,
-- Auth-/Invitation-Layout.
+- conflict resolution,
+- Auth/Invitation layout.
 
-### P2 — Domain-Kompositionen
+### P2 — Domain compositions
 
-- Today-Module,
-- Memory Editor und Detail,
-- Wunsch-/Plan-Statusfluss,
-- Settings-/Privacy-Seiten,
-- Exportstatus,
-- spätere Shopping- und Discover-Kompositionen hinter Feature-Verfügbarkeit.
+- Today modules,
+- Memory Editor and detail,
+- Wish/Plan status flow,
+- Settings/Privacy pages,
+- export status,
+- later Shopping and Discover compositions behind feature availability.
 
-## 6. Plattformkataloge
+## 6. Platform catalogs
 
-Beide Plattformen erhalten einen internen visuellen Katalog.
+Both platforms receive an internal visual catalog.
 
-Jeder Eintrag zeigt:
+Each entry shows:
 
-- Purpose und Contract-Link,
-- alle Varianten,
+- purpose and contract link,
+- all variants,
 - Default, Hover/Pressed, Focus, Disabled, Loading, Error,
-- lange Texte und Lokalisierungsbeispiel,
-- große Schrift/200 % Zoom,
-- Hell- und Darkmodus,
-- Privacy- und Statusfarben mit Text,
-- Compact und Expanded, falls layoutrelevant,
-- Codebeispiel und verbotene Nutzung.
+- long text and localization example,
+- large text/200% zoom,
+- Light and Dark mode,
+- privacy and status colors with text,
+- Compact and Expanded when layout-relevant,
+- code example and prohibited usage.
 
-Der Katalog ist Entwicklungswerkzeug, keine öffentliche Produktseite.
+The catalog is a development tool, not a public product page.
 
-## 7. Component API Rules
+The first bounded v1 proof is [F1 visual foundations](product/design/f1-visual-foundations.md):
+one Web development/test entry and one Android debug-only Activity. Its role
+mapping and evidence identify what is delivered; it does not claim a complete
+catalog, migrated R1–R5 screens or a shared F2 sheet implementation. The
+production Web build and Android release manifest must exclude the proof entry
+and its fixture assets.
 
-- Komponenten heißen nach Aufgabe, nicht nach Aussehen: `VisibilityControl`, nicht `PinkChip`.
-- Varianten sind geschlossene Enums, keine frei kombinierbaren Style-Flags.
-- Text wird als Inhalt übergeben; Komponenten erfinden keine Domain-Copy.
-- Icon-only benötigt expliziten zugänglichen Namen.
-- `loading` und `disabled` sind getrennte Zustände.
-- Layoutkomponenten besitzen keine versteckte Navigation oder API-Abfrage.
-- Domain-IDs, Tokens und private Inhalte werden nicht in Analytics-Callbacks einer Basiskomponente aufgenommen.
-- Komponenten verwenden semantische Theme-Rollen und keine ausschließlich für Light geeigneten Rohfarben.
+## 7. Component API rules
 
-## 8. Beispiel eines plattformneutralen Contracts
+- Components are named by purpose, not appearance: `VisibilityControl`, not `PinkChip`.
+- Variants are closed enums, not freely combinable style flags.
+- Text is passed as content; components do not invent domain copy.
+- Icon-only controls require an explicit accessible name.
+- `loading` and `disabled` are separate states.
+- Layout components have no hidden navigation or API request.
+- Domain IDs, tokens, and private content are not included in analytics callbacks of a base component.
+- Components use semantic theme roles and no raw colors suitable only for Light.
+
+## 8. Example of a platform-neutral contract
 
 ```text
 Button
@@ -182,125 +187,150 @@ Button
   size: web ≥ 44 px, Android ≥ 48 dp
 ```
 
-Web kann dies als natives `<button>` umsetzen; Android als Compose Button-Adapter. Ergebnis und Zustände bleiben gleich.
+Web may implement this as a native `<button>`; Android may use a Compose Button adapter. Result and states remain the same.
 
-## 9. Adaptive Layout Delivery
+## 9. Adaptive layout delivery
 
-- Breakpoints stammen aus Tokens.
-- Navigation wechselt Bottom Bar → Rail → Sidebar ohne Änderung der Route-IDs.
-- List-Detail wird ab Medium nur aktiviert, wenn Auswahl und Fokus erhalten bleiben.
-- Screen-Templates werden als wiederverwendbare Layoutpatterns umgesetzt, nicht pro Domain kopiert.
-- Android verwendet Window Size Classes; Web orientiert sich an verfügbarer Container-/Fensterbreite.
-- Ein Größenwechsel verwirft keinen Entwurf und löst keine neue Domainaktion aus.
+- Breakpoints come from tokens.
+- Web uses Compact/Medium Bottom Navigation and Expanded horizontal header navigation under the accepted A1 shell decision; Android keeps Bottom Navigation at every size under ADR 0004. Route IDs remain stable.
+- List-Detail may be used from Medium only when justified by the human task and when selection, focus, and return context are preserved.
+- Screen templates are implemented as reusable layout patterns, not copied per domain.
+- Android uses Window Size Classes; Web follows the available container/window width.
+- A size change does not discard a draft and does not trigger a new domain action.
 
-## 10. Testing Gates pro Komponente
+## 10. Testing gates per component
 
-### Gemeinsame Pflichtfälle
+### Common required cases
 
-- Contract-Varianten und Zustände,
-- lange Labels,
-- große Schrift/Zoom,
-- Hell- und Darkmodus einschließlich zentraler WCAG-2.2-AA-Kontraste,
-- System-Theme-Wechsel, sofern die Plattform diesen Zustand unterstützt,
-- zugänglicher Name/Rolle/Wert,
-- Fokus/Zurück/Schließen,
-- Touch-/Klickziel,
-- reduzierte Bewegung,
-- visuelle Regression.
+- contract variants and states,
+- long labels,
+- large text/zoom,
+- Light and Dark mode including central WCAG 2.2 AA contrasts,
+- system-theme changes where the platform supports this state,
+- accessible name/role/value,
+- focus/back/close,
+- touch/click target,
+- reduced motion,
+- visual regression.
 
-### Web zusätzlich
+### Additional Web cases
 
-- native HTML-Semantik,
-- `System / Hell / Dunkel` einschließlich Persistenz und Reload,
-- Systemänderung wird bei Auswahl `System` ohne Reload übernommen,
-- Tastaturmuster nach WAI-ARIA APG, wenn kein natives Element reicht,
-- Server-/Client-Rendering ohne Layoutsprung, falls später relevant,
-- Browsermatrix gemäß QA-Dokument.
+- native HTML semantics,
+- `System / Hell / Dunkel` (de-DE product labels) including persistence and reload,
+- system changes are applied without reload when `System` is selected,
+- keyboard patterns according to WAI-ARIA APG when no native element is sufficient,
+- server/client rendering without layout shift if relevant later,
+- browser matrix according to the QA document.
 
-### Android zusätzlich
+### Additional Android cases
 
-- Compose Semantics und TalkBack,
-- System Light/Dark und korrekte Systembar-Icon-Helligkeit,
-- System Back und Prozesswiederherstellung,
-- unterschiedliche Schrift-/Displaygrößen,
+- Compose Semantics and TalkBack,
+- system Light/Dark and correct system-bar icon brightness,
+- System Back and process restoration,
+- different font/display sizes,
 - Compact/Medium/Expanded.
 
-## 11. Versionierung
+## 11. Versioning
 
-- Design-Tokens und Komponentenbibliotheken verwenden Semantic Versioning.
-- Patch: visuelle/technische Korrektur ohne Contract-Änderung.
-- Minor: additive Variante oder Komponente.
-- Major: entfernte/umbenannte API oder geänderte Bedeutung.
-- Deprecations besitzen Ersatz, Migrationshinweis und frühestes Entfernungsrelease.
-- Produktcode importiert nur öffentliche Exports des Design-Systems.
+- Design tokens and component libraries use Semantic Versioning.
+- Patch: visual/technical correction without a contract change.
+- Minor: additive variant or component.
+- Major: removed/renamed API or changed meaning.
+- Deprecations have a replacement, migration note, and earliest removal release.
+- Product code imports only public exports of the design system.
 
-## 12. Ownership und Entscheidungen
+## 12. Ownership and decisions
 
-Für jede P0-/P1-Komponente werden benannt:
+For each P0/P1 component, the following are named:
 
-- fachlicher Owner,
-- Design-Owner,
-- Web- und Android-Implementierungsverantwortung,
-- Accessibility-Review,
-- aktueller Status im Manifest.
+- domain owner,
+- design owner,
+- Web and Android implementation responsibility,
+- accessibility review,
+- current status in the manifest.
 
-Neue Muster werden zuerst als Contract/Decision dokumentiert. Ein lokaler Sonderfall in einem Screen wird nicht automatisch Teil des Systems.
+New patterns are documented first as a contract/decision. A local special case in a screen does not automatically become part of the system.
 
-## 13. Lieferphasen
+The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P2 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
+
+## 13. Delivery phases
 
 ### Phase DS0 — Pipeline
 
-- Token-Schema und Generatoren,
-- Web- und Android-Themeadapter,
-- CI-Validierung,
-- leere Plattformkataloge.
+- token schema and generators,
+- Web and Android theme adapters,
+- CI validation,
+- empty platform catalogs.
 
 ### Phase DS1 — P0 Components
 
-- Action-, Input-, Navigation-, Feedback- und Privacy-Komponenten,
-- Accessibility- und Screenshottests,
-- vollständige Katalogeinträge.
+- action, input, navigation, feedback, and privacy components,
+- accessibility and screenshot tests,
+- complete catalog entries.
 
-### Phase DS2 — App Shell und Systemzustände
+### Phase DS2 — App Shell and system states
 
-- adaptive Navigation,
+- adaptive navigation,
 - Loading/Empty/Error/Offline,
 - Dialog/Sheet/Pane,
-- Auth-/Invitation-Grundlayout.
+- Auth/Invitation base layout.
 
-### Phase DS3 — Erste Domain-Flows
+### Phase DS3 — First domain flows
 
 - Onboarding/Invitation,
 - Memory/Media,
-- HeartMoment-Privacy,
+- HeartMoment privacy,
 - Story List-Detail,
-- Wunsch → Plan.
+- Wish → Plan.
 
-### Phase DS4 — Härtung
+### Phase DS4 — Hardening
 
-- visuelle Parität,
-- Lokalisierungsstresstest,
-- Performance,
-- Dokumentation und Deprecation-Prozess.
+- visual parity,
+- localization stress test,
+- performance,
+- documentation and deprecation process.
 
-## 14. Freigabekriterien
+## 14. Release criteria
 
-- Tokenadapter sind reproduzierbar.
-- P0-Komponenten sind in beiden Katalogen sichtbar.
-- Keine lokale Farb-/Spacing-Semantik dupliziert Tokens.
-- Light und Dark sind auf Web und Android für alle ausgelieferten UI-Flächen vollständig lesbar und bedienbar.
-- Zentrale Text-, UI- und Fokuskontraste erfüllen in beiden Themes WCAG 2.2 AA.
-- Neue UI führt keine ausschließlich für Light geeigneten Hardcoded Colors ein.
-- Accessibility-Matrix ist für P0 erfüllt.
-- Privacy-Zustände verwenden technische Klassen korrekt.
-- Offline-MVP zeigt Read Cache, aber keinen erfundenen Write Sync.
-- Web und Android bestehen dieselben Flow-Beispiele gegen denselben API-Mock.
-- Manifeststatus und Dokumentation entsprechen dem ausgelieferten Stand.
+- Token adapters are reproducible.
+- P0 components are visible in both catalogs.
+- No local color/spacing semantics duplicate tokens.
+- Light and Dark are fully readable and operable on Web and Android for all shipped UI surfaces.
+- Central text, UI, and focus contrasts meet WCAG 2.2 AA in both themes.
+- New UI introduces no hardcoded colors suitable only for Light.
+- The accessibility matrix is satisfied for P0.
+- Privacy states use technical classes correctly.
+- The offline MVP shows the read cache but no invented write sync.
+- Web and Android pass the same flow examples against the same API mock.
+- Manifest status and documentation match the shipped state.
 
-## Verwandte Dokumente
+## 15. Presentation and runtime source governance
 
-- [Design-Tokens](../design/tokens.json)
+Per Issue #675, pull requests affecting presentation, brand identity, or
+design tokens are subject to the mandatory Product Design / UX review gate,
+even when they do not modify components inside `web/src`.
+
+The authoritative presentation/runtime source graph is evaluated by
+`scripts/classify_product_design_paths.py` and includes:
+
+- `design/tokens.json` and design-system machine-readable assets under `design/**`;
+- Web runtime presentation assets: `web/public/**` (favicons, touch icons, fonts, entry scripts);
+- Web entry point: `web/index.html`;
+- Web client source: `web/src/**` (excluding contract-generated OpenAPI clients in `web/src/api/generated/**`).
+
+Capacitor wrapper/configuration and narrowly scoped native capability code are
+not classified as a second product-UI implementation. Their platform-specific
+review belongs to the mobile delivery boundary rather than ordinary Product
+Design parity.
+
+New design-system or runtime presentation sources must be registered in
+`USER_FACING_PATTERNS` in `scripts/classify_product_design_paths.py` and covered
+by `scripts/test_classify_product_design_paths.py`.
+
+## Related documents
+
+- [Design Tokens](../design/tokens.json)
 - [Component Manifest](../design/component-manifest.json)
 - [Component Contracts](./COMPONENT-CONTRACTS.md)
-- [Screen-Templates](./SCREEN-TEMPLATES.md)
-- [Accessibility- und QA-Matrix](./ACCESSIBILITY-QA-MATRIX.md)
+- [Screen Templates](./SCREEN-TEMPLATES.md)
+- [Accessibility and QA Matrix](./ACCESSIBILITY-QA-MATRIX.md)

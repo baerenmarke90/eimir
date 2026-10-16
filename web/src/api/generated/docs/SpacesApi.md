@@ -4,10 +4,146 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**createSpaceApiV1SpacesPost**](SpacesApi.md#createspaceapiv1spacespost) | **POST** /api/v1/spaces | Create the authenticated Account\&#39;s own private Space |
+| [**getPartnerPresence**](SpacesApi.md#getpartnerpresence) | **GET** /api/v1/spaces/{spaceId}/presence | Get Partner Presence |
 | [**getSpaceApiV1SpacesSpaceIdGet**](SpacesApi.md#getspaceapiv1spacesspaceidget) | **GET** /api/v1/spaces/{spaceId} | Get Space |
+| [**getSpaceConfiguration**](SpacesApi.md#getspaceconfiguration) | **GET** /api/v1/spaces/{spaceId}/configuration | Get Space Configuration |
 | [**getSpaceProfileApiV1SpacesSpaceIdProfileGet**](SpacesApi.md#getspaceprofileapiv1spacesspaceidprofileget) | **GET** /api/v1/spaces/{spaceId}/profile | Get Space Profile |
+| [**leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost**](SpacesApi.md#leavespaceapiv1spacesspaceidmembershipleavepost) | **POST** /api/v1/spaces/{spaceId}/membership/leave | Leave the authenticated Account\&#39;s Membership in this Space |
+| [**touchPresence**](SpacesApi.md#touchpresence) | **POST** /api/v1/spaces/{spaceId}/presence | Touch Presence |
+| [**updateSpaceConfiguration**](SpacesApi.md#updatespaceconfiguration) | **PATCH** /api/v1/spaces/{spaceId}/configuration | Update Space Configuration |
 | [**updateSpaceProfileApiV1SpacesSpaceIdProfilePut**](SpacesApi.md#updatespaceprofileapiv1spacesspaceidprofileput) | **PUT** /api/v1/spaces/{spaceId}/profile | Update Space Profile |
 
+
+
+## createSpaceApiV1SpacesPost
+
+> SpaceView createSpaceApiV1SpacesPost()
+
+Create the authenticated Account\&#39;s own private Space
+
+Create a private couple Space with the caller as its first partner.  The request has no body: the founder is always the authenticated Account. Allowed only while the Account has no active Membership, and serialized per Account, so retries and concurrent requests yield exactly one Space. Invite the partner afterwards through the ordinary invitation endpoints.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { CreateSpaceApiV1SpacesPostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  try {
+    const data = await api.createSpaceApiV1SpacesPost();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**SpaceView**](SpaceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **409** | &#x60;ACCOUNT_HAS_ACTIVE_SPACE&#x60;: the Account already has an active Membership. Nothing was created; select the existing Space through &#x60;GET /auth/memberships&#x60;. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPartnerPresence
+
+> PartnerPresenceView getPartnerPresence(spaceId)
+
+Get Partner Presence
+
+Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { GetPartnerPresenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetPartnerPresenceRequest;
+
+  try {
+    const data = await api.getPartnerPresence(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PartnerPresenceView**](PartnerPresenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## getSpaceApiV1SpacesSpaceIdGet
@@ -71,8 +207,77 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getSpaceConfiguration
+
+> SpaceConfigurationView getSpaceConfiguration(spaceId)
+
+Get Space Configuration
+
+Return authoritative shared module configuration and caller capability.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { GetSpaceConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetSpaceConfigurationRequest;
+
+  try {
+    const data = await api.getSpaceConfiguration(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**SpaceConfigurationView**](SpaceConfigurationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -137,9 +342,226 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Die Version der Ressource. Gehoert unveraendert in das &#x60;If-Match&#x60; des naechsten Schreibzugriffs. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost
+
+> SpaceMembershipExitView leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost(spaceId)
+
+Leave the authenticated Account\&#39;s Membership in this Space
+
+End only the caller\&#39;s own Membership, never the partner\&#39;s.  This route intentionally does not depend on &#x60;&#x60;Tenant&#x60;&#x60;. Once the first request commits, the normal tenant dependency correctly stops authorizing this Space; resolving the caller\&#39;s historical Membership directly is what lets a retry return the same safe ended state instead of creating another lifecycle.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest;
+
+  try {
+    const data = await api.leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**SpaceMembershipExitView**](SpaceMembershipExitView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## touchPresence
+
+> PartnerPresenceView touchPresence(spaceId)
+
+Touch Presence
+
+Renew caller presence and return the partner\&#39;s bounded state.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { TouchPresenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies TouchPresenceRequest;
+
+  try {
+    const data = await api.touchPresence(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PartnerPresenceView**](PartnerPresenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateSpaceConfiguration
+
+> SpaceConfigurationView updateSpaceConfiguration(spaceId, ifMatch, spaceConfigurationUpdate)
+
+Update Space Configuration
+
+Apply a typed partial update under the existing If-Match contract.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { UpdateSpaceConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // SpaceConfigurationUpdate
+    spaceConfigurationUpdate: ...,
+  } satisfies UpdateSpaceConfigurationRequest;
+
+  try {
+    const data = await api.updateSpaceConfiguration(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **spaceConfigurationUpdate** | [SpaceConfigurationUpdate](SpaceConfigurationUpdate.md) |  | |
+
+### Return type
+
+[**SpaceConfigurationView**](SpaceConfigurationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;SPACE_CONFIGURATION_MANAGEMENT_REQUIRED&#x60;: the caller may read this Space configuration but is not its persisted configuration manager. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The supplied version is no longer current. Nothing was changed; reload the latest configuration before retrying. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -150,7 +572,7 @@ No authorization required
 
 Update Space Profile
 
-Das Beziehungsprofil ersetzen.  Der Aufrufer legt mit &#x60;If-Match&#x60; die Version vor, die er gelesen hat. Hat der Partner inzwischen geschrieben, antwortet der Endpunkt mit 409 und aendert nichts - ein stilles Ueberschreiben gaebe es sonst genau dann, wenn beide gleichzeitig am selben Profil arbeiten.
+Replace the relationship profile.  The caller supplies the version it read through &#x60;&#x60;If-Match&#x60;&#x60;. If the partner has written in the meantime, the endpoint returns 409 and changes nothing; otherwise simultaneous edits could silently overwrite each other.
 
 ### Example
 
@@ -168,7 +590,7 @@ async function example() {
   const body = {
     // string
     spaceId: spaceId_example,
-    // string | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben.
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
     ifMatch: ifMatch_example,
     // SpaceProfileUpdate
     spaceProfileUpdate: ...,
@@ -192,7 +614,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **ifMatch** | `string` | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben. | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 | **spaceProfileUpdate** | [SpaceProfileUpdate](SpaceProfileUpdate.md) |  | |
 
 ### Return type
@@ -212,11 +634,11 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Die Version der Ressource. Gehoert unveraendert in das &#x60;If-Match&#x60; des naechsten Schreibzugriffs. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die vorgelegte Version ist nicht mehr aktuell. Es wurde nichts geaendert; der aktuelle Stand ist neu zu laden. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The supplied version is no longer current. Nothing was changed; reload the latest state before retrying. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

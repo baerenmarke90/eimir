@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -22,11 +22,11 @@ import {
 } from './MediaType';
 
 /**
- * Die Projektion eines gebundenen Attachments an seinem Parent.
+ * Projection of a bound attachment at its parent resource.
  * 
- * Ein Typ und nicht je Domaene einer: zwei gleichnamige DTOs haetten im
- * OpenAPI-Vertrag modulqualifizierte Namen erzeugt und damit interne
- * Pfade nach aussen getragen.
+ * A single shared type is used rather than one per domain. Duplicate DTO
+ * names would make OpenAPI generate module-qualified schema names and leak
+ * internal paths into the public contract.
  * @export
  * @interface AttachmentSummary
  */

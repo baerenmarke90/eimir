@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -31,6 +31,12 @@ export interface AttachmentReadRequest {
      * @memberof AttachmentReadRequest
      */
     parentType?: AttachmentReadRequestParentTypeEnum;
+    /**
+     * Server-defined content variant. Request thumbnail only when hasThumbnail is true.
+     * @type {AttachmentReadRequestVariantEnum}
+     * @memberof AttachmentReadRequest
+     */
+    variant?: AttachmentReadRequestVariantEnum;
 }
 
 
@@ -40,9 +46,19 @@ export interface AttachmentReadRequest {
 export const AttachmentReadRequestParentTypeEnum = {
     MEMORY: 'MEMORY',
     HEART_MOMENT: 'HEART_MOMENT',
+    RELATED_PERSON: 'RELATED_PERSON',
     NONE: 'NONE'
 } as const;
 export type AttachmentReadRequestParentTypeEnum = typeof AttachmentReadRequestParentTypeEnum[keyof typeof AttachmentReadRequestParentTypeEnum];
+
+/**
+ * @export
+ */
+export const AttachmentReadRequestVariantEnum = {
+    original: 'original',
+    thumbnail: 'thumbnail'
+} as const;
+export type AttachmentReadRequestVariantEnum = typeof AttachmentReadRequestVariantEnum[keyof typeof AttachmentReadRequestVariantEnum];
 
 
 /**
@@ -64,6 +80,7 @@ export function AttachmentReadRequestFromJSONTyped(json: any, ignoreDiscriminato
         
         'parentId': json['parentId'] === undefined ? undefined : json['parentId'] === null ? null : json['parentId'],
         'parentType': json['parentType'] == null ? undefined : json['parentType'],
+        'variant': json['variant'] == null ? undefined : json['variant'],
     };
 }
 
@@ -80,6 +97,7 @@ export function AttachmentReadRequestToJSONTyped(value?: AttachmentReadRequest |
         
         'parentId': value['parentId'],
         'parentType': value['parentType'],
+        'variant': value['variant'],
     };
 }
 

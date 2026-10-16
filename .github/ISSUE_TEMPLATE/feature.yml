@@ -1,0 +1,133 @@
+name: Product feature
+description: Plan an eimir. product feature with product, design, and delivery constraints.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        User-facing features are product-design work from the start. Read `docs/product/design/README.md`, the normative `docs/product/design/product-reference-v1.md`, the relevant reference experience, and `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` before describing a client feature. Product Reference v1 wins over conflicting older design references unless a later explicit Product Owner decision supersedes it; privacy, security, accessibility, and technical gates remain binding. Smartphone/Compact is the normative product reference (see its section 0); Web/Expanded adapts that same experience rather than the other way around. eimir. should feel warm, modern, lively, beautiful, and lightly playful rather than cold or administrative.
+
+        For `User-facing UI / UX impact = Yes`, the Product design / UX plan below must document the Mobile Interaction Contract before implementation starts. This is not optional bureaucracy: an issue without it must go through a Product Design Preflight before UI code is written.
+
+        **A generated visual product reference is mandatory before implementation for every new user-facing feature.** The owning issue must contain at least one generated image showing how the feature can live inside the current eimir. product. The image must be based on the current repository state: inspect the destination screen, its existing functions, shell/navigation, reused components/tokens, and relevant surrounding content first. Existing functions that remain in scope must still be represented as they currently exist; the new feature must be integrated into the overall composition rather than shown as an isolated replacement screen or generic SaaS mockup. Compact/smartphone is the primary reference. If `main` materially changes the affected composition before implementation begins, refresh the visual reference. The generation requirement is binding; the image is a product-design reference, not a pixel lock unless the issue explicitly makes particular visual decisions binding. Issue #1151 may be consulted as a **non-binding example only** and creates no design precedence.
+
+        **Engineering language is English.** Issue titles, bodies, acceptance criteria, model/tool routing, technical comments, and follow-up engineering discussion must be written in English. User-facing product copy remains governed by i18n and may of course be localized.
+
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User value
+      description: What should the couple be able to understand, feel, or accomplish?
+      placeholder: Describe the human outcome rather than the database/API operation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in scope and explicitly out of scope?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ui_impact
+    attributes:
+      label: User-facing UI / UX impact
+      options:
+        - Yes - Web product UI changes (Android ships the same UI) or wrapper changes visible to users
+        - No - no user-facing UI changes
+    validations:
+      required: true
+
+  - type: textarea
+    id: generated_visual_reference
+    attributes:
+      label: Generated visual product reference — required before implementation
+      description: |
+        For user-facing feature work, attach or link at least one generated image created after inspecting the current repository/product state. It must show the new feature integrated into the real destination composition, including existing functions on that screen that remain in scope, current shell/navigation, and relevant established components/patterns. An isolated feature card, blank replacement screen, generic SaaS mockup, or image that ignores current neighboring functionality does not satisfy this requirement. Compact/smartphone is the primary reference; add an Expanded/Web reference only when the adaptation is materially different. If the current UI changes materially before implementation starts, regenerate or update the reference. The requirement to create the image is binding; the image is not automatically a pixel-perfect lock. #1151 is a non-binding workflow example only.
+      placeholder: |
+        Generated image: [attach image or link]
+        Baseline main SHA / current branch reviewed:
+        Destination screen / route:
+        Existing functions and surrounding UI represented:
+        Existing components / tokens / patterns reused:
+        New feature placement and integration:
+        Compact/smartphone composition:
+        Expanded/Web adaptation, if materially different:
+        Known assumptions / intentional departures:
+        If no user-facing UI exists: N/A — explain why no visual reference is applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: product_design
+    attributes:
+      label: Product design / UX plan — Mobile Interaction Contract
+      description: |
+        For UI work, document the Mobile Interaction Contract (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 10) before implementation starts. Compact/smartphone is the reference composition; Web/Expanded adapts it, it does not replace it with a denser desktop composition. For non-UI work, explain why this is not applicable.
+      placeholder: |
+        Product Reference v1 sections / reference experience:
+        User goal / human outcome:
+        Relationship / emotional value (if relevant):
+        Compact reference composition (screen/state, dominant action, thumb-zone/one-handed reachability):
+        Content hierarchy / progressive disclosure (immediate vs. disclosed):
+        Chosen mobile-native pattern (page, sheet, menu, inline, gesture, ...):
+        If a table/list/master-detail is used, why it is genuinely appropriate here:
+        Screen Template used, or why no existing template fits:
+        Reused design-system components/tokens, or the design-system gap:
+        Warmth / modernity / visual personality:
+        Gentle playfulness / delight moment:
+        Love-message / relationship microcopy opportunity:
+        Expanded/Web adaptation (what it adds without changing product meaning):
+        Loading / Empty / Error / Offline / Success states:
+        Large text / narrow-viewport behavior:
+        Motion / feedback / reduced motion:
+        Privacy / relationship state:
+        Open → interact → save/complete → result → return, including draft and scope/filter continuity:
+        Generated visual reference (issue attachment/link + baseline SHA; current screen and existing functions represented):
+        Visual acceptance / evidence plan (~360/~390/~430 px, sparse/dense, Light/Dark, reduced motion, native runtime where relevant):
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Include functional and experience-level outcomes. Couple-facing UI must not default to spreadsheet/admin/CRUD composition.
+      placeholder: |
+        - [ ] Generated visual product reference existed in the issue before UI implementation started
+        - [ ] The reference was based on the current repo/product state and showed the new feature integrated with existing surrounding functionality
+        - [ ] Functional outcome works
+        - [ ] Partner-app experience standard is satisfied
+        - [ ] Result feels warm, modern, lively, beautiful, and not visually cold
+        - [ ] Gentle playfulness / relationship personality was applied where appropriate
+        - [ ] Love-message / relationship microcopy opportunity was considered
+        - [ ] Responsive states are verified
+        - [ ] Motion and reduced motion are verified
+        - [ ] Visual evidence is attached to the implementation PR
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / related work
+      description: Link relevant milestones, issues, API contracts, or parallel work.
+
+  - type: textarea
+    id: model_tool_routing
+    attributes:
+      label: 🤖 Model / tool routing
+      description: The language model is mandatory for every tool/environment entry. Name the exact model family/version intended at issue creation time (for example Claude Sonnet 5, Claude Opus 5, Gemini 3.8 Flash, Gemini 3.1 Pro, or GPT-5.6 Sol). Distinguish agentic environments such as Google Antigravity and Claude Code Console from Claude Chat, Gemini Chat, ChatGPT, and Codex. Always evaluate GPT-5.6 Sol Chat as a real implementation/review option where technically meaningful. Prefer efficient models and reasoning budgets when they are sufficient. Codex quota is limited, so recommend it only when it has a concrete advantage. An entry such as `Claude Code Console · High` is invalid because the language model is missing.
+      placeholder: |
+        **Recommended:** [Tool/environment · exact language model · reasoning/effort]
+        **Alternative:** [Tool/environment · exact language model · reasoning/effort]
+        **Claude Chat:** Claude [Sonnet 5 / Opus 5] · [Low / Medium / High] — [possible / limited / not suitable]
+        **Gemini Chat:** Gemini [3.8 Flash / 3.1 Pro] · [Low / Medium / High] — [possible / limited / not suitable]
+        **ChatGPT:** GPT-5.6 Sol Chat · [Low / Medium / High / Very High] — [possible / limited / not suitable]
+        **Codex:** Codex · GPT-5.6 [Terra / Sol] · [Low / Medium / High] — [not recommended / reserve option / recommended with concrete rationale]
+    validations:
+      required: true

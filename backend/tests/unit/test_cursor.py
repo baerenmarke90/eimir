@@ -1,4 +1,4 @@
-"""Invarianten des signierten Keyset-Cursors."""
+"""Invariants of the signed keyset cursor."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import base64
 
 import pytest
 
-from sidebyside.core import cursor
-from sidebyside.core.errors import BadRequestError
+from eimir.core import cursor
+from eimir.core.errors import BadRequestError
 
 BINDING = {"collection": "memories", "spaceId": "s", "year": None}
 POSITION = {"createdAt": "2026-08-25T07:00:00Z", "id": "i"}
@@ -19,51 +19,51 @@ def test_roundtrip_returns_the_position() -> None:
 
 
 def test_a_different_binding_is_rejected() -> None:
-    """Ein Cursor aus einem anderen Kontext beschreibt eine andere Menge."""
+    """A cursor from another context describes a different set."""
     token = cursor.encode(binding=BINDING, position=POSITION)
-    for abweichend in (
-        {**BINDING, "spaceId": "anderer-space"},
+    for different in (
+        {**BINDING, "spaceId": "other-space"},
         {**BINDING, "year": 2025},
         {**BINDING, "collection": "heart_moments"},
     ):
         with pytest.raises(BadRequestError):
-            cursor.decode(token, binding=abweichend)
+            cursor.decode(token, binding=different)
 
 
 def test_every_single_character_change_invalidates_the_token() -> None:
-    """Kein veraendertes Token bleibt gueltig - auch nicht am Signaturende.
+    """No changed token remains valid, including at the end of the signature.
 
-    Die Signatur endet auf angebrochenen Bits. Ohne die Kanonizitaetspruefung
-    decodieren vier verschiedene Schlusszeichen zu denselben Bytes, und ein
-    veraendertes Token waere dann kein anderes Token.
+    The signature ends on partial bits. Without canonicalization, four
+    different final characters decode to the same bytes, so a modified token
+    would not necessarily be a different token.
     """
     token = cursor.encode(binding=BINDING, position=POSITION)
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
-    for stelle in (len(token) - 1, len(token) - 2, 0, token.index(".") - 1):
-        original = token[stelle]
-        for ersatz in alphabet:
-            if ersatz == original:
+    for position in (len(token) - 1, len(token) - 2, 0, token.index(".") - 1):
+        original = token[position]
+        for replacement in alphabet:
+            if replacement == original:
                 continue
-            verfaelscht = token[:stelle] + ersatz + token[stelle + 1 :]
+            tampered = token[:position] + replacement + token[position + 1 :]
             with pytest.raises(BadRequestError):
-                cursor.decode(verfaelscht, binding=BINDING)
+                cursor.decode(tampered, binding=BINDING)
 
 
 def test_non_canonical_encoding_is_rejected() -> None:
-    signatur = bytes(range(32))
-    kanonisch = base64.urlsafe_b64encode(signatur).rstrip(b"=").decode("ascii")
-    zwillinge = [
-        zeichen
-        for zeichen in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
-        if base64.urlsafe_b64decode(kanonisch[:-1] + zeichen + "=") == signatur
+    signature = bytes(range(32))
+    canonical = base64.urlsafe_b64encode(signature).rstrip(b"=").decode("ascii")
+    equivalents = [
+        character
+        for character in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+        if base64.urlsafe_b64decode(canonical[:-1] + character + "=") == signature
     ]
-    # Genau vier Schreibweisen liefern dieselben Bytes; nur eine ist kanonisch.
-    assert len(zwillinge) == 4
-    assert kanonisch[-1] in zwillinge
+    # Exactly four spellings produce the same bytes; only one is canonical.
+    assert len(equivalents) == 4
+    assert canonical[-1] in equivalents
 
 
 def test_a_structurally_broken_token_is_rejected() -> None:
-    for kaputt in ("", "ohne-punkt", ".", "a.b", "!!!.???"):
+    for broken in ("", "without-dot", ".", "a.b", "!!!.???"):
         with pytest.raises(BadRequestError):
-            cursor.decode(kaputt, binding=BINDING)
+            cursor.decode(broken, binding=BINDING)

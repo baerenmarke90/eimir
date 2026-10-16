@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,7 +14,7 @@
 
 
 /**
- * Der Statusautomat aus M3-D04.
+ * State machine defined by M3-D04.
  * 
  * ```text
  * IDEA -- schedule --> PLANNED
@@ -23,8 +23,8 @@
  * PLANNED -- complete --> COMPLETED
  * ```
  * 
- * `COMPLETED` ist terminal. `return-to-wish` ist keine Kante dieses
- * Automaten, sondern eine eigene Operation, die den Plan entfernt.
+ * ``COMPLETED`` is terminal. ``return-to-wish`` is not an edge of this state
+ * machine but a separate operation that removes the plan.
  * @export
  */
 export const PlanStatus = {

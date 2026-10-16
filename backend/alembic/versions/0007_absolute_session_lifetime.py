@@ -15,9 +15,9 @@ down_revision = "0006"
 branch_labels = None
 depends_on = None
 
-# Muss zu auth.tokens.SESSION_ABSOLUTE_LIFETIME passen. Bewusst als
-# Literal: eine Migration beschreibt einen Zeitpunkt der Vergangenheit und
-# darf sich nicht mitaendern, wenn die Konstante spaeter angepasst wird.
+# Must match auth.tokens.SESSION_ABSOLUTE_LIFETIME. Deliberately a literal:
+# a migration describes a historical point in time and must not change when
+# the application constant is adjusted later.
 ABSOLUTE_LIFETIME = "180 days"
 
 
@@ -27,11 +27,11 @@ def upgrade() -> None:
         sa.Column("absolute_expires_at", sa.DateTime(timezone=True), nullable=True),
     )
 
-    # Bestehende Sitzungen bekommen ihre Grenze ab der tatsaechlichen
-    # Anmeldung. GREATEST verhindert dabei, dass das Upgrade eine Sitzung
-    # frueher beendet, als dem Client bereits als `refreshExpiresAt`
-    # zugesagt wurde: eine lange laufende Sitzung wird nicht rueckwirkend
-    # gekappt, erhaelt aber trotzdem eine feste Obergrenze.
+    # Existing sessions receive their boundary from the actual authentication
+    # time. GREATEST prevents the upgrade from ending a session earlier than
+    # the `refreshExpiresAt` already promised to the client: a long-running
+    # session is not cut off retroactively, but still receives a fixed upper
+    # bound.
     op.execute(
         sa.text(
             f"""
@@ -47,6 +47,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Zurueck bleibt allein das gleitende Fenster. Die Sitzungsdauer ist
-    # danach wieder nach oben offen.
+    # Only the sliding window remains after downgrade, so session lifetime is
+    # no longer bounded above.
     op.drop_column("device_sessions", "absolute_expires_at")

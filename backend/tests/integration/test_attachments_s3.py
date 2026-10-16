@@ -1,4 +1,4 @@
-"""HTTP-/Lifecycle-Abnahme des S3-Transportzweigs."""
+"""HTTP and lifecycle acceptance for the S3 transport branch."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.api.v1 import attachments as attachment_api
-from sidebyside.attachments import service
-from sidebyside.attachments.models import Attachment, AttachmentStatus
-from sidebyside.media.s3 import S3MediaStore
-from sidebyside.relationship import service as relationship_service
+from eimir.api.v1 import attachments as attachment_api
+from eimir.attachments import service
+from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.media.s3 import S3MediaStore
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -95,7 +95,7 @@ def s3_store(monkeypatch):  # type: ignore[no-untyped-def]
     store = S3MediaStore(
         endpoint="https://s3.example.test",
         region="eu-central-1",
-        bucket="sidebyside-private",
+        bucket="eimir-private",
         access_key_id="AKIATEST",
         secret_access_key="very-secret-value",
         client=provider_client,
@@ -150,7 +150,7 @@ def test_signed_upload_finalize_validation_and_read_access(
     attachment = session.execute(
         select(Attachment).where(Attachment.id == attachment_id)
     ).scalar_one()
-    # Der Providerupload allein entscheidet nichts ueber READY.
+    # The provider upload alone does not determine READY state.
     assert attachment.status == AttachmentStatus.PENDING.value
 
     finalized = client.post(
@@ -176,13 +176,30 @@ def test_signed_upload_finalize_validation_and_read_access(
     assert read.json()["expiresAt"] is not None
     assert read.headers["cache-control"] == "private, no-store"
     assert parse_qs(urlsplit(read.json()["url"]).query)["X-Amz-Expires"] == ["300"]
+    assert urlsplit(read.json()["url"]).path.endswith(f"/{attachment_id}/original")
 
     provider_read = provider_client.get(read.json()["url"])
     assert provider_read.status_code == 200
     assert provider_read.headers["cache-control"] == "private, no-store"
 
-    # Die urspruengliche Upload-Capability darf das inzwischen validierte,
-    # bereinigte Objekt trotz verbleibender TTL nicht ueberschreiben.
+    thumbnail_read = client.post(
+        f"{path(pair['space'].id)}/{attachment_id}/read-access",
+        json={"parentType": "NONE", "variant": "thumbnail"},
+        headers=auth(pair["token"]),
+    )
+    assert thumbnail_read.status_code == 200, thumbnail_read.text
+    assert thumbnail_read.json()["method"] == "SIGNED_URL"
+    assert thumbnail_read.json()["expiresAt"] is not None
+    assert thumbnail_read.headers["cache-control"] == "private, no-store"
+    assert urlsplit(thumbnail_read.json()["url"]).path.endswith(f"/{attachment_id}/thumbnail")
+    assert parse_qs(urlsplit(thumbnail_read.json()["url"]).query)["X-Amz-Expires"] == ["300"]
+
+    provider_thumbnail_read = provider_client.get(thumbnail_read.json()["url"])
+    assert provider_thumbnail_read.status_code == 200
+    assert provider_thumbnail_read.headers["cache-control"] == "private, no-store"
+
+    # The original upload capability must not overwrite the now validated and
+    # sanitized object even while the upload capability TTL remains valid.
     replay = provider_client.put(
         descriptor["uploadUrl"],
         content=b"replacement",

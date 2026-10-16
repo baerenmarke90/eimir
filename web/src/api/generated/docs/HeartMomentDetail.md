@@ -15,6 +15,7 @@ Name | Type
 `happenedOn` | Date
 `id` | string
 `spaceId` | string
+`tags` | Array&lt;string&gt;
 `text` | string
 `updatedAt` | Date
 `version` | number
@@ -36,6 +37,7 @@ const example = {
   "happenedOn": null,
   "id": null,
   "spaceId": null,
+  "tags": null,
   "text": null,
   "updatedAt": null,
   "version": null,

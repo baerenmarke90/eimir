@@ -1,0 +1,109 @@
+.attachment-draft-list {
+  list-style: none;
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.attachment-draft-item {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: 0.75rem;
+  background: var(--color-background);
+}
+
+.attachment-preview-wrap {
+  position: relative;
+  width: 6rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.attachment-preview-label {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 0.25rem 0.35rem;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.attachment-draft-meta {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.attachment-draft-meta strong,
+.attachment-draft-error {
+  overflow-wrap: anywhere;
+}
+
+.attachment-draft-meta progress {
+  width: min(100%, 20rem);
+  accent-color: var(--color-brand-strong);
+}
+
+.attachment-status {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.attachment-status-ready {
+  color: var(--color-shared);
+}
+
+.attachment-status-failed,
+.attachment-draft-error {
+  color: var(--color-error);
+}
+
+.attachment-draft-error {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.attachment-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.attachment-draft-actions button {
+  min-height: 36px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 620px) {
+  .attachment-draft-item {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .attachment-preview-wrap {
+    width: 5rem;
+  }
+
+  .attachment-draft-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}

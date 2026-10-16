@@ -1,8 +1,8 @@
-"""Der implementierte Memory-Slice muss den in #70 freigegebenen Vertrag spiegeln."""
+"""The implemented Memory slice must mirror the contract approved in #70."""
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 
 def _schema() -> dict[str, object]:
@@ -40,15 +40,16 @@ def test_memory_write_dtos_only_expose_approved_fields() -> None:
 
     create = components["MemoryCreate"]
     update = components["MemoryUpdate"]
-    assert set(create["properties"]) == {"title", "body", "happenedOn"}
-    assert set(create["required"]) == {"title", "body"}
+    assert set(create["properties"]) == {"title", "body", "happenedOn", "tags"}
+    assert set(create["required"]) == {"title"}
+    assert create["properties"]["body"]["default"] == ""
     assert create["additionalProperties"] is False
-    assert set(update["properties"]) == {"title", "body", "happenedOn"}
+    assert set(update["properties"]) == {"title", "body", "happenedOn", "tags"}
     assert update["additionalProperties"] is False
 
 
 def test_memory_detail_projects_its_gallery() -> None:
-    """Bis zum Media-Integrationsslice fehlte das Feld absichtlich."""
+    """The field was deliberately absent until the media integration slice."""
     schema = _schema()
     detail = schema["components"]["schemas"]["MemoryDetail"]  # type: ignore[index]
     assert "attachments" in detail["properties"]
@@ -60,8 +61,8 @@ def test_memory_detail_projects_its_gallery() -> None:
 def test_the_gallery_never_exposes_storage_internals() -> None:
     schema = _schema()
     summary = schema["components"]["schemas"]["MemoryAttachmentSummary"]  # type: ignore[index]
-    for verboten in ("storageKey", "bucket", "provider", "filesystemPath", "privacyClass"):
-        assert verboten not in summary["properties"]
+    for forbidden in ("storageKey", "bucket", "provider", "filesystemPath", "privacyClass"):
+        assert forbidden not in summary["properties"]
     assert "position" in summary["properties"]
 
 
@@ -74,3 +75,24 @@ def test_the_gallery_is_replaced_as_a_whole_and_needs_if_match() -> None:
         parameter for parameter in route["parameters"] if parameter["name"] == "If-Match"
     )
     assert if_match["required"] is True
+
+
+def test_memory_create_documents_the_optional_request_identity_contract() -> None:
+    """Additive #961 contract: optional header, replay 200, explicit conflict codes."""
+    route = _schema()["paths"]["/api/v1/spaces/{spaceId}/memories"]["post"]  # type: ignore[index]
+    header = next(
+        parameter for parameter in route["parameters"] if parameter["name"] == "Idempotency-Key"
+    )
+    assert header["in"] == "header"
+    assert header["required"] is False
+
+    responses = route["responses"]
+    assert {"200", "201", "401", "404", "409", "422"} <= set(responses)
+    for status in ("200", "201"):
+        assert responses[status]["headers"]["ETag"]
+        assert responses[status]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/MemoryDetail"
+        }
+    # Older clients keep working: the request body and required parameters are unchanged.
+    assert route["requestBody"]["required"] is True
+    assert [p["name"] for p in route["parameters"] if p.get("required")] == ["spaceId"]

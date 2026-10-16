@@ -7,11 +7,14 @@
 Name | Type
 ------------ | -------------
 `accountId` | string
+`birthday` | Date
 `createdAt` | Date
 `displayName` | string
 `id` | string
 `preferences` | [Array&lt;ProfilePreferenceView&gt;](ProfilePreferenceView.md)
+`profileAttachmentId` | string
 `updatedAt` | Date
+`version` | number
 
 ## Example
 
@@ -21,11 +24,14 @@ import type { PartnerProfileView } from ''
 // TODO: Update the object below with actual values
 const example = {
   "accountId": null,
+  "birthday": null,
   "createdAt": null,
   "displayName": null,
   "id": null,
   "preferences": null,
+  "profileAttachmentId": null,
   "updatedAt": null,
+  "version": null,
 } satisfies PartnerProfileView
 
 console.log(example)

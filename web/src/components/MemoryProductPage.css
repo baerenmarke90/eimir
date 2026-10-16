@@ -1,0 +1,288 @@
+.memory-product-page {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* Detail return navigation lives in the persistent app bar. Keep the shared
+ * return control in the component for loading/error fallbacks, but remove the
+ * duplicate from the successful detail composition. */
+.memory-product-page > .back-link {
+  display: none;
+}
+
+.shell-detail-back svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.memory-product-page .page-heading {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.memory-product-page .page-heading h1,
+.memory-product-page .page-heading-title-container {
+  margin-bottom: 0;
+}
+
+.memory-detail-card {
+  display: grid;
+  gap: var(--space-6);
+}
+
+/* StoryProductPages.css owns the general coffee-table surface and loads later;
+ * Memory detail deliberately uses the denser content-first variant. */
+.memory-detail-card.coffee-table-layout {
+  padding: clamp(var(--space-5), 5vw, var(--space-8));
+}
+
+.memory-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.memory-meta-grid > div {
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
+}
+
+.memory-meta-grid dt {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.memory-meta-grid dd {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.memory-detail-card .memory-detail-body {
+  max-width: var(--reading-max);
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 1.15rem;
+  line-height: 1.8;
+}
+
+/*
+ * A real element (see splitFirstGrapheme + <span class="drop-cap-letter">
+ * in MemoryProductPage.tsx), not ::first-letter/initial-letter. Deliberately
+ * NOT a classic floated/multi-line editorial drop cap on any breakpoint: a
+ * float reserves its own column and wraps the following text around it,
+ * which reads as the initial standing apart from the rest of its own word,
+ * especially with a wide glyph like "W" or "M".
+ * Same base logic everywhere — a plain inline, moderately enlarged,
+ * color-accented letter that is simply part of the paragraph's normal text
+ * flow, so it stays attached to the rest of its word and its baseline
+ * follows the first line exactly like any other inline text (no special
+ * line-height/vertical-alignment handling needed, because it never leaves
+ * normal flow). splitFirstGrapheme keeps the actual paragraph text
+ * unchanged (no visual/audible duplication, no inserted whitespace) — it
+ * only wraps the same first grapheme cluster in its own span instead of
+ * leaving it inline in the text node. Desktop only scales the size up a
+ * little for the larger reading column; everything else is identical to
+ * mobile.
+ */
+.drop-cap-letter {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-brand);
+  text-transform: uppercase;
+  font-size: 1.3em;
+}
+
+@media (min-width: 641px) {
+  .drop-cap-letter {
+    font-size: 1.6em;
+  }
+}
+
+.memory-section-head {
+  margin-bottom: var(--space-4);
+}
+
+.memory-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: var(--space-4);
+}
+
+.memory-gallery .story-media-preview,
+.memory-gallery .story-media-skeleton,
+.memory-gallery .story-media-placeholder {
+  width: 100%;
+  min-height: 12rem;
+  margin: 0;
+  border-radius: var(--radius-large);
+  object-fit: cover;
+}
+
+.memory-existing-attachments {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.memory-existing-attachments legend,
+.memory-new-attachments-heading strong {
+  font-weight: 750;
+}
+
+.memory-edit-attachment-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memory-edit-attachment {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  padding: var(--space-3);
+  background: var(--color-surface-subtle);
+}
+
+.memory-edit-attachment .story-media-preview,
+.memory-edit-attachment .story-media-skeleton,
+.memory-edit-attachment .story-media-placeholder {
+  width: 100%;
+  min-height: 9rem;
+  margin: 0;
+  border-radius: var(--radius-medium);
+  object-fit: cover;
+}
+
+.memory-edit-attachment-removed .story-media-preview {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.memory-edit-attachment-actions,
+.memory-new-attachments-heading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.memory-edit-attachment-actions span {
+  color: var(--color-error);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.memory-edit-attachment-actions button {
+  justify-self: start;
+}
+
+.memory-detail-container {
+  max-width: var(--reading-max);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.memory-provenance-footer {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+  text-align: center;
+}
+
+.memory-provenance-footer p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+}
+
+.memory-danger-zone {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  text-align: center;
+}
+
+.memory-delete-trigger {
+  margin-inline: auto;
+  display: inline-flex;
+}
+
+.memory-delete-confirmation {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
+}
+
+.memory-delete-confirmation h2 {
+  margin-bottom: var(--space-2);
+  font-size: 1.05rem;
+}
+
+.memory-delete-confirmation p {
+  margin-bottom: 0;
+  color: var(--color-text-secondary);
+}
+
+.memory-actions,
+.story-card-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.story-card-footer-actions {
+  justify-content: flex-end;
+}
+
+.story-memory-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand-strong);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* Keep create-surface variants scoped instead of reopening the shared
+ * text-input selector that changed on #791. */
+.form-field .immersive-create-title-multiline {
+  height: auto;
+  line-height: 1.2;
+  padding-block: var(--space-2);
+  resize: vertical;
+}
+
+.form-field .visibility-choice-heart {
+  justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .memory-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .memory-actions > button {
+    width: 100%;
+  }
+
+  .story-card-footer-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

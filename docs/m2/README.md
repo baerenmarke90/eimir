@@ -1,14 +1,14 @@
 # M2 Technical Readiness Package
 
-**Status:** Implementierungsvorbereitung, kein Ersatz für OpenAPI oder Master-Spezifikation  
+**Status:** implementation preparation; not a replacement for OpenAPI or the Master Specification  
 **Version:** 1.0  
-**Stand:** 24.08.2026
+**As of:** August 24, 2026
 
-Dieses Paket bereitet **M2 – Memory Core** technisch vor, ohne in die laufenden Foundation-Issues #5–#11 einzugreifen. Es enthält ausschließlich neue Planungsdateien. Runtime-Code, Auth/Session, Transport, CI, Projektgerüste, OpenAPI und Profile bleiben unberührt.
+This package prepares **M2 – Memory Core** technically without interfering with the ongoing Foundation Issues #5–#11. It contains planning files only. Runtime code, Auth/Session, transport, CI, project scaffolding, OpenAPI, and Profiles remain untouched.
 
-## Ziel
+## Goal
 
-Nach Abschluss der M0-/M1-Gates soll M2 ohne erneute Grundsatzarbeit in überprüfbaren vertikalen Slices umgesetzt werden können:
+After the M0/M1 gates are complete, M2 should be implementable in reviewable vertical slices without reopening foundational decisions:
 
 ```text
 Memory + Media + HeartMoment + Milestone + Comment
@@ -16,71 +16,71 @@ Memory + Media + HeartMoment + Milestone + Comment
                          └── Story Read Model
 ```
 
-## Inhalt
+## Contents
 
-- [Domain Model](./DOMAIN-MODEL.md) – Entitäten, Invarianten, Privacy und Events
-- [API Design](./API-DESIGN.md) – Operationen, DTOs, Fehler und Concurrency als OpenAPI-Vorlage
-- [Media Pipeline](./MEDIA-PIPELINE.md) – Upload, Validierung, Storage und autorisierter Abruf
-- [Security Test Matrix](./SECURITY-TEST-MATRIX.md) – Tenant-, Owner-only-, Media- und Leak-Tests
-- [Delivery Plan](./DELIVERY-PLAN.md) – vertikale Slices und issue-fertige Arbeitspakete
-- [Decision Log](./DECISION-LOG.md) – vor Codebeginn zu klärende M2-Entscheidungen
-- [Grafische Architektur](./m2-architecture.svg) – menschenlesbarer Überblick
+- [Domain Model](./DOMAIN-MODEL.md) – entities, invariants, Privacy, and Events
+- [API Design](./API-DESIGN.md) – operations, DTOs, errors, and Concurrency as an OpenAPI template
+- [Media Pipeline](./MEDIA-PIPELINE.md) – upload, validation, Storage, and authorized reads
+- [Security Test Matrix](./SECURITY-TEST-MATRIX.md) – Tenant, owner-only, Media, and leak tests
+- [Delivery Plan](./DELIVERY-PLAN.md) – vertical slices and issue-ready work packages
+- [Decision Log](./DECISION-LOG.md) – M2 decisions to close before code begins
+- [Architecture diagram](./m2-architecture.svg) – human-readable overview
 
-## Verbindliche Quellen
+## Binding sources
 
-1. [Clean-Room Master Specification](../../specification/CLEAN-ROOM-MASTER-SPEC.md), insbesondere Abschnitte 14–21.
-2. [Produktspezifikation](../../specification/PRODUCT-SPEC.md).
-3. [Security-Invarianten](../SECURITY.md).
-4. [Architektur](../ARCHITECTURE.md).
-5. Der zu M2-Zeitpunkt versionierte OpenAPI-Vertrag.
+1. [Clean-Room Master Specification](../../specification/CLEAN-ROOM-MASTER-SPEC.md), especially sections 14–21.
+2. [Product Specification](../../specification/PRODUCT-SPEC.md).
+3. [Security invariants](../SECURITY.md).
+4. [Architecture](../ARCHITECTURE.md).
+5. The versioned OpenAPI contract current for M2.
 
-Bei Widersprüchen gilt die höherstehende Quelle. Dieses Paket darf keine fachliche Lücke stillschweigend entscheiden.
+If sources conflict, the higher-ranked source applies. This package must not silently decide a domain gap.
 
-## Scope M2
+## M2 scope
 
-| Domain | M2-Inhalt |
+| Domain | M2 content |
 |---|---|
-| Memory | CRUD, Autor, fachliches Datum, mehrere Medien, Kommentare, Story |
-| HeartMoment | Text, Emotion, `SHARED`/`PRIVATE`, optionales Attachment, Story nur wenn geteilt |
-| Milestone | eigenes Modell, CRUD, Story, später Chapter/Recap |
-| Attachment | MediaStore-Abstraktion, Upload-Lifecycle, Validierung, sichere Lese-URL/Route |
-| Comment | kontrollierte Targets, nur geteilte Inhalte, Notification-Event |
-| Story | abgeleitetes Read Model, Filter, Suche, Sortierung, Cursor-Pagination |
+| Memory | CRUD, author, domain date, multiple Media, Comments, Story |
+| HeartMoment | text, emotion, `SHARED`/`PRIVATE`, optional Attachment, Story only when shared |
+| Milestone | dedicated model, CRUD, Story, later Chapter/Recap |
+| Attachment | MediaStore abstraction, upload lifecycle, validation, safe read URL/route |
+| Comment | controlled targets, shared content only, Notification Event |
+| Story | derived Read Model, filters, Search, ordering, Cursor Pagination |
 
-## Nicht in M2
+## Not in M2
 
-- echte Ende-zu-Ende-Verschlüsselung,
+- real end-to-end encryption,
 - Offline Write Sync,
-- Chapter-/Place-Implementierung,
-- Jahresrückblick,
-- öffentliche Share Links,
-- KI-Bildanalyse oder automatische Inhaltsanalyse,
-- Shopping, Discovery, Location und weitere Providerintegrationen,
-- frei polymorphe Kommentare auf beliebige Tabellen.
+- Chapter/Place implementation,
+- Year Recap,
+- public Share Links,
+- AI image analysis or automatic content analysis,
+- Shopping, Discovery, Location, and further Provider integrations,
+- freely polymorphic Comments on arbitrary tables.
 
-## Startbedingungen
+## Start conditions
 
-M2-Implementierung beginnt erst, wenn:
+M2 implementation starts only when:
 
-- die offenen Foundation-/M1-Sicherheitsgates geschlossen sind,
-- Owner-only-Autorisierung serverseitig vorhanden ist,
-- der OpenAPI-Vertrag versioniert und contract-testbar ist,
-- ProtectedPayload-Grenzen bei sensiblen Modellen technisch erzwungen werden können,
-- Web-/Android-Grundgerüste für die geplanten Client-Slices vorhanden sind,
-- Entscheidungen mit Priorität `BLOCKING` im Decision Log geklärt sind.
+- open Foundation/M1 Security gates are closed,
+- owner-only Authorization exists server-side,
+- the OpenAPI contract is versioned and contract-testable,
+- ProtectedPayload boundaries can be technically enforced on sensitive models,
+- Web/Android foundations exist for the planned client slices,
+- decisions with priority `BLOCKING` in the Decision Log are closed.
 
 ## Definition of Ready
 
-- [ ] jedes Modell besitzt bestätigte Felder, Privacy-Klasse und Schreibrechte,
-- [ ] jede Operation besitzt Request, Response, Fehlercodes und Concurrency-Regel,
-- [ ] Story-Filterung schließt private Inhalte serverseitig aus,
-- [ ] Media-Limits und Allowlist sind entschieden,
-- [ ] Attachment-Lifecycle und Orphan-Cleanup sind spezifiziert,
-- [ ] Domain Events enthalten keine unnötigen Klartext-Payloads,
-- [ ] Tenant-/Owner-only-/Media-Testmatrix ist akzeptiert,
-- [ ] Delivery-Slices besitzen eindeutige Abhängigkeiten,
-- [ ] keine M2-Aussage verspricht vorhandene E2EE.
+- [ ] every model has confirmed fields, Privacy class, and write permissions,
+- [ ] every operation has Request, Response, error codes, and a Concurrency rule,
+- [ ] Story filtering excludes private content server-side,
+- [ ] Media limits and allowlist are decided,
+- [ ] Attachment lifecycle and orphan Cleanup are specified,
+- [ ] Domain Events contain no unnecessary plaintext payloads,
+- [ ] Tenant/owner-only/Media test matrix is accepted,
+- [ ] Delivery slices have unambiguous dependencies,
+- [ ] no M2 statement claims that real E2EE exists.
 
-## Arbeitsregel
+## Working rule
 
-Ein Slice gilt erst als fertig, wenn Domainmodell, Migration, Service, Autorisierung, API/OpenAPI, Fehlercodes, Unit-/Integration-/Cross-Tenant-Tests, Privacy-Tests, Exportwirkung, Clientverhalten und Dokumentation gemeinsam erfüllt sind. Ein einzelner funktionierender Endpoint oder Screen reicht nicht.
+A slice is complete only when Domain model, migration, Service, Authorization, API/OpenAPI, error codes, Unit/Integration/Cross-Tenant tests, Privacy tests, Export impact, client behavior, and documentation are satisfied together. A single working endpoint or screen is not sufficient.

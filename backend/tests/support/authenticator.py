@@ -1,10 +1,9 @@
-"""Ein virtueller Authenticator fuer die WebAuthn-Tests.
+"""A virtual authenticator for the WebAuthn tests.
 
-Er baut `attestationObject`, `clientDataJSON` und Assertions selbst und
-signiert mit einem echten P-256-Schluessel. Damit prueft die Suite die
-Signatur-, Flag- und Zaehlerpruefung tatsaechlich - aufgezeichnete
-Beispieldaten koennten das nicht, weil sie an eine feste Challenge und
-eine feste Herkunft gebunden waeren.
+It constructs `attestationObject`, `clientDataJSON`, and assertions directly
+and signs with a real P-256 key. This makes the suite exercise signature, flag,
+and counter verification for real. Recorded fixtures could not do that because
+they would be bound to a fixed challenge and origin.
 """
 
 from __future__ import annotations
@@ -28,38 +27,39 @@ FLAG_BACKUP_STATE = 0x10
 FLAG_ATTESTED_DATA = 0x40
 
 
-def b64url(rohdaten: bytes) -> str:
-    return base64.urlsafe_b64encode(rohdaten).decode("ascii").rstrip("=")
+def b64url(raw_data: bytes) -> str:
+    return base64.urlsafe_b64encode(raw_data).decode("ascii").rstrip("=")
 
 
-def from_b64url(wert: str) -> bytes:
-    return base64.urlsafe_b64decode(wert + "=" * (-len(wert) % 4))
+def from_b64url(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
 
 
 @dataclass
 class VirtualAuthenticator:
-    """Ein Geraet mit genau einem Schluesselpaar."""
+    """A device with exactly one key pair."""
 
     rp_id: str = "localhost"
     origin: str = "http://localhost:8000"
     aaguid: bytes = b"\x00" * 16
     sign_count: int = 0
-    schluessel: ec.EllipticCurvePrivateKey = field(
+    private_key: ec.EllipticCurvePrivateKey = field(
         default_factory=lambda: ec.generate_private_key(ec.SECP256R1())
     )
     credential_id: bytes = field(default_factory=lambda: os.urandom(32))
     backup_eligible: bool = False
     backup_state: bool = False
+    supports_resident_key: bool = True
 
     def _cose_key(self) -> bytes:
-        zahlen = self.schluessel.public_key().public_numbers()
+        numbers = self.private_key.public_key().public_numbers()
         return cbor2.dumps(
             {
                 1: 2,  # kty: EC2
                 3: -7,  # alg: ES256
                 -1: 1,  # crv: P-256
-                -2: zahlen.x.to_bytes(32, "big"),
-                -3: zahlen.y.to_bytes(32, "big"),
+                -2: numbers.x.to_bytes(32, "big"),
+                -3: numbers.y.to_bytes(32, "big"),
             }
         )
 
@@ -75,24 +75,32 @@ class VirtualAuthenticator:
             flags |= FLAG_ATTESTED_DATA
         return flags
 
-    def _auth_data(self, *, attested: bool, rp_id: str | None = None) -> bytes:
+    def _auth_data(
+        self,
+        *,
+        attested: bool,
+        rp_id: str | None = None,
+        user_verified: bool = True,
+    ) -> bytes:
         rp_hash = hashlib.sha256((rp_id or self.rp_id).encode("utf-8")).digest()
-        daten = rp_hash + bytes([self._flags(attested=attested, user_verified=True)])
-        daten += struct.pack(">I", self.sign_count)
+        data = rp_hash + bytes([self._flags(attested=attested, user_verified=user_verified)])
+        data += struct.pack(">I", self.sign_count)
         if attested:
-            schluessel = self._cose_key()
-            daten += (
+            cose_key = self._cose_key()
+            data += (
                 self.aaguid
                 + struct.pack(">H", len(self.credential_id))
                 + self.credential_id
-                + schluessel
+                + cose_key
             )
-        return daten
+        return data
 
-    def _client_data(self, *, typ: str, challenge: str, origin: str | None = None) -> bytes:
+    def _client_data(
+        self, *, ceremony_type: str, challenge: str, origin: str | None = None
+    ) -> bytes:
         return json.dumps(
             {
-                "type": typ,
+                "type": ceremony_type,
                 "challenge": challenge,
                 "origin": origin or self.origin,
                 "crossOrigin": False,
@@ -101,11 +109,19 @@ class VirtualAuthenticator:
         ).encode("utf-8")
 
     def register(
-        self, optionen: dict[str, Any], *, origin: str | None = None, rp_id: str | None = None
+        self, options: dict[str, Any], *, origin: str | None = None, rp_id: str | None = None
     ) -> dict[str, Any]:
+        selection = options.get("authenticatorSelection")
+        if (
+            isinstance(selection, dict)
+            and selection.get("residentKey") == "required"
+            and not self.supports_resident_key
+        ):
+            raise ValueError("Authenticator cannot create a required discoverable credential.")
+
         client_data = self._client_data(
-            typ="webauthn.create",
-            challenge=optionen["challenge"],
+            ceremony_type="webauthn.create",
+            challenge=options["challenge"],
             origin=origin,
         )
         auth_data = self._auth_data(attested=True, rp_id=rp_id)
@@ -124,20 +140,25 @@ class VirtualAuthenticator:
 
     def authenticate(
         self,
-        optionen: dict[str, Any],
+        options: dict[str, Any],
         *,
         origin: str | None = None,
         rp_id: str | None = None,
-        zaehler_erhoehen: bool = True,
-        signieren_mit: ec.EllipticCurvePrivateKey | None = None,
+        increment_counter: bool = True,
+        sign_with: ec.EllipticCurvePrivateKey | None = None,
+        user_verified: bool = True,
     ) -> dict[str, Any]:
-        if zaehler_erhoehen:
+        if increment_counter:
             self.sign_count += 1
         client_data = self._client_data(
-            typ="webauthn.get", challenge=optionen["challenge"], origin=origin
+            ceremony_type="webauthn.get", challenge=options["challenge"], origin=origin
         )
-        auth_data = self._auth_data(attested=False, rp_id=rp_id)
-        signatur = (signieren_mit or self.schluessel).sign(
+        auth_data = self._auth_data(
+            attested=False,
+            rp_id=rp_id,
+            user_verified=user_verified,
+        )
+        signature = (sign_with or self.private_key).sign(
             auth_data + hashlib.sha256(client_data).digest(),
             ec.ECDSA(hashes.SHA256()),
         )
@@ -148,7 +169,7 @@ class VirtualAuthenticator:
             "response": {
                 "clientDataJSON": b64url(client_data),
                 "authenticatorData": b64url(auth_data),
-                "signature": b64url(signatur),
+                "signature": b64url(signature),
                 "userHandle": None,
             },
             "clientExtensionResults": {},

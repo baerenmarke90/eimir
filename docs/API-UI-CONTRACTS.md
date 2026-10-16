@@ -1,56 +1,63 @@
-# SideBySide API/UI Contracts
+# eimir. API/UI Contracts
 
-**Status:** Verbindliche Integrationsgrundlage  
+**Status:** Binding integration foundation  
 **Version:** 1.0  
-**Stand:** 24.08.2026
+**As of:** August 24, 2026
 
-Dieses Dokument definiert die gemeinsame Sprache zwischen REST API, React-WebApp und Android-App. OpenAPI unter `/api/v1` bleibt der ausführbare Vertrag; diese Datei legt fest, wie fachliche und technische Zustände in beiden Clients verstanden und dargestellt werden.
+This document defines the shared language between the REST API, React WebApp,
+and the Capacitor Android app that packages that WebApp. OpenAPI under `/api/v1` remains the executable contract; this
+file defines how domain and technical states are interpreted and represented in
+both clients.
 
-## 1. Quellen und Vorrang
+## 1. Sources and precedence
 
-Bei Widersprüchen gilt folgende Reihenfolge:
+If sources conflict, the following order applies:
 
 1. Clean-Room Master Specification.
-2. Produktspezifikation und Security-Invarianten.
-3. veröffentlichter OpenAPI-Vertrag.
-4. dieses Dokument und UX-Dokumentation.
-5. plattformspezifische Implementierungsdetails.
+2. Product specification and security invariants.
+3. Published OpenAPI contract.
+4. This document and UX documentation.
+5. Platform-specific implementation details.
 
-Ein Client darf keine fachliche Regel ergänzen, die nur lokal existiert.
+A client must not introduce a domain rule that exists only locally.
 
-## 2. Transportkonventionen
+## 2. Transport conventions
 
-| Thema | Vertrag |
+| Topic | Contract |
 |---|---|
-| Basis | HTTPS, REST, `/api/v1/...` |
+| Base | HTTPS, REST, `/api/v1/...` |
 | Format | JSON |
-| externe Feldnamen | `camelCase` |
-| persistente IDs | nicht aufzählbare UUIDv7 als String |
-| technischer Zeitpunkt | RFC-3339/ISO-8601 mit Zeitzone, serverseitig UTC |
-| fachlicher Tag | `YYYY-MM-DD`, keine Zeitzone |
+| External field names | `camelCase` |
+| Persistent IDs | non-enumerable UUIDv7 encoded as string |
+| Technical timestamp | RFC 3339/ISO 8601 with time zone, server-side UTC |
+| Domain date | `YYYY-MM-DD`, no time zone |
 | Create | 201 |
 | Read | 200 |
 | Update | 200 |
 | Delete | 204 |
-| Validation | 400 oder 422 gemäß OpenAPI |
+| Validation | 400 or 422 according to OpenAPI |
 | Unauthenticated | 401 |
-| Forbidden | 403, außer privacy-sicheres 404 |
-| Not found / verborgen | 404 |
+| Forbidden | 403, except privacy-safe 404 |
+| Not found / hidden | 404 |
 | Version conflict | 409 |
 | Rate limit | 429 |
 
-- Android authentifiziert API-Aufrufe mit kurzlebigem Bearer Token und sicher gespeicherter, rotierender Session.
-- Credentials, Tokens und Einladungswerte erscheinen nie in URLs nach Abschluss, Analytics, Crashdaten oder Logs.
-- Clients verwenden ausschließlich OpenAPI-Felder; unbekannte zusätzliche Felder werden tolerant ignoriert.
-- Entfernen oder Bedeutungsänderung veröffentlichter Felder ist innerhalb von v1 nicht kompatibel.
+- The Web client (including inside the Android wrapper) authenticates API calls with a short-lived Bearer token and a rotating session persisted by the client.
+- Credentials, tokens, and invitation values never appear in URLs after flow
+  completion, analytics, crash data, or logs.
+- Clients use only OpenAPI fields; unknown additional fields are ignored
+  tolerantly.
+- Removing or changing the meaning of published fields is not compatible within
+  v1.
 
-## 3. Gemeinsame Typen
+## 3. Shared types
 
-Die folgenden TypeScript-ähnlichen Definitionen beschreiben Semantik, nicht eine konkrete generierte Datei.
+The following TypeScript-like definitions describe semantics, not a particular
+generated file.
 
 ```ts
 type UUID = string;
-type Instant = string;  // RFC 3339, z. B. 2026-08-24T10:15:30Z
+type Instant = string;  // RFC 3339, e.g. 2026-08-24T10:15:30Z
 type LocalDate = string; // YYYY-MM-DD
 
 type PrivacyClass =
@@ -74,27 +81,32 @@ interface SpaceResourceMeta extends EntityMeta {
 }
 ```
 
-`spaceId` und Berechtigungsangaben im DTO ersetzen niemals serverseitige Membership- und Tenant-Prüfungen.
+`spaceId` and authorization information in the DTO never replace server-side
+Membership and tenant checks.
 
-## 4. Privacy-Klassen und UI-Abbildung
+## 4. Privacy classes and UI mapping
 
-| API-Wert | Fachliche Bedeutung | reguläres UI-Label | Client-Verhalten |
+The UI labels below are intentional de-DE product copy.
+
+| API value | Domain meaning | Regular de-DE UI label | Client behavior |
 |---|---|---|---|
-| `SPACE_SHARED` | beide aktiven Partner im Space | Geteilt | im gemeinsamen Bereich sichtbar |
-| `OWNER_ONLY` | ausschließlich Eigentümer | Nur für mich | nie für Partner anfordern, cachen oder indirekt anzeigen |
-| `TEMPORARY_SHARED` | zeitlich begrenzte Freigabe | Zeitlich geteilt | erst anzeigen, wenn Domain und Ablauf spezifiziert sind |
-| `EPHEMERAL_CONTEXT` | kurzlebiger Kontext mit Ablauf | kontextabhängig | nicht als dauerhaften Inhalt darstellen |
-| `SYSTEM_METADATA` | technischer Nicht-Nutzerinhalt | kein Endnutzerlabel | nur für notwendige Systemfunktionen |
+| `SPACE_SHARED` | both active partners in the Space | Für uns beide | visible in the shared area |
+| `OWNER_ONLY` | owner exclusively | Nur für mich | never request, cache, or indirectly display for the partner |
+| `TEMPORARY_SHARED` | time-limited sharing | Zeitlich geteilt | display only after domain behavior and expiry are specified |
+| `EPHEMERAL_CONTEXT` | short-lived context with expiry | context-dependent | do not represent as persistent content |
+| `SYSTEM_METADATA` | technical non-user content | no end-user label | use only for necessary system functions |
 
-- Die vereinfachten UI-Zustände `private` und `shared` sind Präsentationswerte, keine API-Enums.
-- `public` ist kein zulässiger Wert.
-- Nicht jede Domain unterstützt einen Wechsel der Privacy-Klasse.
-- Memory, Wish und Plan sind im aktuellen Core `SPACE_SHARED`; private Inhalte verwenden eigene Owner-only-Domänen.
-- HeartMoment unterstützt `OWNER_ONLY` und `SPACE_SHARED`.
+- Simplified UI states `private` and `shared` are presentation values, not API
+  enums.
+- `public` is not an allowed value.
+- Not every domain supports changing its privacy class.
+- Memory, Wish, and Plan are `SPACE_SHARED` in the current Core; private content
+  uses dedicated owner-only domains.
+- HeartMoment supports `OWNER_ONLY` and `SPACE_SHARED`.
 
 ## 5. Problem Details
 
-Jeder API-Fehler verwendet ein Problem-Details-artiges Schema:
+Every API error uses a Problem-Details-like schema:
 
 ```json
 {
@@ -110,40 +122,42 @@ Jeder API-Fehler verwendet ein Problem-Details-artiges Schema:
 }
 ```
 
-### Pflicht und optional
+The `fieldErrors[].message` value above is intentional de-DE product copy.
 
-| Feld | Pflicht | Verwendung |
+### Required and optional fields
+
+| Field | Required | Use |
 |---|---:|---|
-| `type` | ja | grobe maschinenlesbare Kategorie |
-| `title` | ja | kurze technische Standardüberschrift |
-| `status` | ja | HTTP-Status |
-| `detail` | ja | sichere, verständliche Erklärung |
-| `code` | ja | stabiler fachlicher Fehlercode |
-| `requestId` | empfohlen | Supportkorrelation, keine Ressource-ID |
-| `fieldErrors` | bei Feldfehlern | direkte Formularzuordnung |
+| `type` | yes | coarse machine-readable category |
+| `title` | yes | short technical default summary |
+| `status` | yes | HTTP status |
+| `detail` | yes | safe, understandable explanation |
+| `code` | yes | stable domain error code |
+| `requestId` | recommended | support correlation, not a resource ID |
+| `fieldErrors` | for field errors | direct form-field mapping |
 
-- UI-Logik verzweigt nach `code` und `status`, nie nach übersetztem `detail`.
-- Clients dürfen sichere, lokalisierte Texte anhand stabiler Codes anzeigen.
-- `detail` verrät keine Existenz oder Metadaten fremder/privater Ressourcen.
-- Unbekannte Codes fallen auf eine sichere generische Meldung mit Retry/Supportweg zurück.
+- UI logic branches on `code` and `status`, never on translated `detail`.
+- Clients may display safe localized text based on stable codes.
+- `detail` does not reveal existence or metadata of foreign/private resources.
+- Unknown codes fall back to a safe generic message with a retry/support path.
 
-## 6. Fehler-zu-UI-Mapping
+## 6. Error-to-UI mapping
 
-| Status | Clientzustand | Nutzerreaktion |
+| Status | Client state | User response |
 |---:|---|---|
-| 400/422 | Feld- oder Formfehler | Eingabe erhalten, Fehler inline anzeigen |
-| 401 | Sitzung ungültig | sichere Re-Authentifizierung, Zielkontext erhalten |
-| 403 | bekannte fehlende Fähigkeit | Voraussetzung erklären; keine Retry-Schleife |
-| 404 | nicht verfügbar | neutraler Zustand ohne Existenzbestätigung |
-| 409 | Versionskonflikt | aktuelle Version laden, bewusst entscheiden |
-| 413/415 | Medien nicht zulässig | betroffene Datei erklären/entfernen |
-| 429 | Rate Limit | Wartezeit anzeigen, automatische Wiederholung begrenzen |
-| 5xx | temporärer Dienstfehler | vorhandene Daten behalten, Retry anbieten |
-| Netzwerkfehler | offline/unterbrochen | kein Erfolg; Android-Read-Cache ggf. anzeigen |
+| 400/422 | field or form error | preserve input and show error inline |
+| 401 | invalid session | secure re-authentication while preserving destination context |
+| 403 | known missing capability | explain prerequisite; no retry loop |
+| 404 | unavailable | neutral state without confirming existence |
+| 409 | version conflict | load current version and require a conscious decision |
+| 413/415 | media not allowed | explain/remove affected file |
+| 429 | rate limit | show wait time and bound automatic retries |
+| 5xx | temporary service failure | preserve existing data and offer retry |
+| network error | offline/interrupted | no success; the client may show its authorized read cache |
 
-## 7. Optimistic Concurrency
+## 7. Optimistic concurrency
 
-Veränderbare Ressourcen tragen `version`.
+Mutable resources carry `version`.
 
 ```ts
 interface UpdateCommand<T> {
@@ -152,15 +166,19 @@ interface UpdateCommand<T> {
 }
 ```
 
-- Der Client sendet die zuletzt geladene Version gemäß OpenAPI, beispielsweise als Feld oder `If-Match`.
-- Bei 409 wird nichts lokal als gespeichert markiert.
-- Konfliktantworten enthalten nur Inhalte, für die der aktuelle Account weiterhin berechtigt ist.
-- Web invalidiert die betroffene TanStack-Query; Android aktualisiert Read-Cache erst nach erfolgreicher autorisierter Antwort.
-- Delete, Privacy-Wechsel und Membership-Zustände werden nie automatisch zusammengeführt.
+- The client sends the last loaded version according to OpenAPI, for example as
+  a field or `If-Match`.
+- On 409, nothing is marked locally as saved.
+- Conflict responses contain only content that the current account remains
+  authorized to access.
+- The Web client invalidates the affected TanStack Query and updates its read cache only
+  after a successful authorized response.
+- Delete, privacy changes, and Membership states are never merged
+  automatically.
 
-## 8. Cursor-Pagination
+## 8. Cursor pagination
 
-Story und andere wachsende Listen verwenden Cursor statt Seitennummer:
+Story and other growing lists use cursors rather than page numbers:
 
 ```ts
 interface CursorPage<T> {
@@ -170,15 +188,17 @@ interface CursorPage<T> {
 }
 ```
 
-- Cursor ist undurchsichtig und wird nicht interpretiert.
-- Filter, Sortierung und Suchparameter gehören zur Cache-Identität.
-- Ein Cursor aus einem anderen Filterkontext wird nicht wiederverwendet.
-- Private Filterung erfolgt serverseitig vor Pagination und Trefferzählung.
-- Doppelte IDs beim Nachladen werden anhand `id` zusammengeführt, ohne neuere `version` zu überschreiben.
+- The cursor is opaque and is not interpreted.
+- Filters, sorting, and search parameters are part of cache identity.
+- A cursor from another filter context is not reused.
+- Private filtering happens server-side before pagination and result counting.
+- Duplicate IDs encountered during incremental loading are merged by `id`
+  without overwriting a newer `version`.
 
-## 9. Abgeleitete Sichten
+## 9. Derived views
 
-Story, Dashboard, „Weißt du noch?“ und Rückblicke sind Read Models, keine unabhängig editierbaren Ressourcen.
+Story, Dashboard, the de-DE product feature **„Weißt du noch?“**, and recaps are
+Read Models, not independently editable resources.
 
 ```ts
 type StoryItem =
@@ -187,14 +207,16 @@ type StoryItem =
   | { kind: "MILESTONE"; item: MilestoneSummary };
 ```
 
-- Ein StoryItem verlinkt auf das Original.
-- `OWNER_ONLY` ist als Story-Variante nicht zulässig.
-- Leere Statistikblöcke dürfen fehlen; Clients erwarten keine künstlichen Nullkarten.
-- Read Models enthalten die minimale Information für die jeweilige Ansicht.
+- A StoryItem links to the original resource.
+- `OWNER_ONLY` content is viewer-authorized in Story (#1021): it appears in its
+  own author's Timeline, never in the partner's.
+- Empty statistics blocks may be omitted; clients do not expect artificial
+  zero-value cards.
+- Read Models contain the minimum information required for the view.
 
-## 10. Fähigkeiten statt UI-Raten
+## 10. Capabilities instead of UI guessing
 
-Wenn fachliche Berechtigungen variieren, liefert die API explizite Fähigkeiten:
+When domain permissions vary, the API exposes explicit capabilities:
 
 ```ts
 interface ResourceCapabilities {
@@ -205,34 +227,42 @@ interface ResourceCapabilities {
 }
 ```
 
-- Capabilities verbessern Darstellung, sind aber keine Autorisierung; der Server prüft jede Aktion erneut.
-- Clients leiten Berechtigung nicht aus Autorname, Farbe oder sichtbaren Buttons ab.
-- Nicht verfügbare Aktionen werden ausgeblendet oder erklärt, abhängig davon, ob die Funktion grundsätzlich relevant ist.
+- Capabilities improve presentation but are not authorization; the server
+  rechecks every action.
+- Clients do not derive authorization from author name, color, or visible
+  buttons.
+- Unavailable actions are hidden or explained depending on whether the feature
+  remains generally relevant.
 
-## 11. Netzwerk- und Cache-Vertrag
+## 11. Network and cache contract
 
 ```ts
 type DataFreshness = "LIVE" | "STALE_CACHE";
 type WriteAvailability = "AVAILABLE" | "OFFLINE_BLOCKED" | "SESSION_BLOCKED";
 ```
 
-### Android MVP
+### Offline and cache MVP (Android wrapper included)
 
-- Room dient als autorisierter Read-Cache.
-- `STALE_CACHE` zeigt letzten erfolgreichen Stand und Zeitbezug.
-- Offline-Schreiben, lokale Outbox und automatischer späterer Sync sind **nicht** Teil des MVP.
-- Ein Formularentwurf darf lokal erhalten bleiben, wird aber nicht als Domainobjekt oder `synced` markiert.
-- Accountabmeldung, Sitzungswiderruf und Space-Wechsel behandeln Cache und Entwürfe nach Sicherheitskonzept.
+- The Web client's IndexedDB read cache acts as the authorized read cache, in the browser and inside the Android WebView; the retired native Room cache no longer exists.
+- `STALE_CACHE` shows the last successful state and its age/time reference.
+- Offline writes, a local Outbox, and automatic later synchronization are
+  **not** part of the MVP.
+- A form draft may be retained locally but is not represented as a domain
+  object or marked `synced`.
+- Account sign-out, session revocation, and Space changes handle cache and
+  drafts according to the security model.
 
 ### Web
 
-- Query-Caches sind flüchtige Darstellungscaches, keine zweite Datenquelle.
-- Nach Mutationen werden betroffene Query Keys gezielt invalidiert.
-- Sensible Inhalte werden nicht ohne gesonderte Entscheidung dauerhaft im Browser gespeichert.
+- Query caches are transient presentation caches, not a second source of truth.
+- After mutations, affected query keys are invalidated deliberately.
+- Sensitive content is not persisted in the browser without a separate explicit
+  decision.
 
-## 12. Upload-Vertrag
+## 12. Upload contract
 
-Unabhängig von direkter autorisierter Route oder signiertem Upload benötigt die UI diese Zustände:
+Whether using a direct authorized route or a signed upload, the UI needs these
+states:
 
 ```ts
 type UploadState =
@@ -244,19 +274,22 @@ type UploadState =
   | "FAILED";
 ```
 
-Ein Attachment DTO enthält mindestens stabile ID, Status, sicheren Medientyp, Größe, optionale Dimensionen und eine autorisierte Abrufmöglichkeit. Original-Dateiname ist niemals Storage Key und wird nicht für Autorisierung verwendet.
+An Attachment DTO contains at least a stable ID, status, safe media type, size,
+optional dimensions, and an authorized retrieval mechanism. The original
+filename is never the storage key and is not used for authorization.
 
-## 13. Auth- und Einladungsvertrag
+## 13. Authentication and invitation contract
 
-- Auth-Methoden sind Adapter um denselben Account-/Session-Kern.
-- Android-Sessions sind einzeln widerrufbar und rotieren Refresh Tokens.
-- Invitation besitzt Status, Ablauf, Widerruf und einmalige Einlösung.
-- Ein Einladungsfehler unterscheidet intern stabile Codes für `EXPIRED`, `REVOKED`, `USED`, `SPACE_FULL`, `INVALID`; die UI verrät keine weiteren Space-Daten.
-- Gleichzeitige Annahmen werden serverseitig atomar entschieden.
+- Authentication methods are adapters around the same Account/Session core.
+- Sessions of the Android app can be revoked individually and rotate refresh tokens.
+- An Invitation has status, expiry, revocation, and single-use redemption.
+- Invitation errors distinguish stable internal codes for `EXPIRED`, `REVOKED`,
+  `USED`, `SPACE_FULL`, and `INVALID`; the UI reveals no additional Space data.
+- Concurrent acceptances are resolved atomically server-side.
 
-## 14. Feature Configuration und Entitlement
+## 14. Feature configuration and entitlement
 
-Technische Aktivierung und tarifliche Berechtigung bleiben getrennt:
+Technical enablement and commercial entitlement remain separate:
 
 ```ts
 interface FeatureAccess {
@@ -266,11 +299,13 @@ interface FeatureAccess {
 }
 ```
 
-Der Client zeigt keine kostenbezogene Erklärung, wenn eine Funktion technisch nicht konfiguriert ist, und umgekehrt.
+The client does not show a pricing-related explanation when a feature is
+technically unconfigured, or a technical configuration explanation when the
+problem is entitlement.
 
-## 15. Analytics-Vertrag
+## 15. Analytics contract
 
-Jedes UI-Ereignis besteht aus:
+Every UI event has this form:
 
 ```ts
 interface AnalyticsEvent {
@@ -283,34 +318,38 @@ interface AnalyticsEvent {
 }
 ```
 
-Nicht enthalten: Freitext, Suchtext, E-Mail, Partnername, Resource-ID, Token, genaue private Daten, Dateiname, Medieninhalt, Präferenzwert oder präziser Standort.
+Not included: free text, search text, email, partner name, resource ID, token,
+exact private dates, filename, media content, preference values, or precise
+location.
 
-## 16. Contract Delivery
+## 16. Contract delivery
 
-- Backend veröffentlicht OpenAPI aus dem tatsächlichen API-Code.
-- Web und Android generieren oder kapseln Modelle aus derselben OpenAPI-Version.
-- Contract-Tests prüfen Beispielantworten, Fehlercodes, Privacy-Klassen und unbekannte Felder.
-- Jede Domain erhält Cross-Tenant- und Owner-only-Tests vor Clientfreigabe.
-- Mock-Daten verwenden ausschließlich synthetische Inhalte.
-- Breaking Changes erfordern eine neue API-Version oder dokumentierte Migration.
+- Backend publishes OpenAPI from the actual API code.
+- The Web client (which the Android wrapper packages) generates its models from the OpenAPI version.
+- Contract tests verify example responses, error codes, privacy classes, and
+  tolerance of unknown fields.
+- Every domain receives cross-tenant and owner-only tests before client release.
+- Mock data uses synthetic content only.
+- Breaking changes require a new API version or a documented migration.
 
 ## 17. Definition of Done
 
-Ein UI-fähiges API-Feature ist erst fertig, wenn:
+An API feature is UI-ready only when:
 
-- OpenAPI Request, Response und Fehlercodes beschreibt,
-- UUID, Datum, Timestamp, Privacy-Klasse und `version` korrekt modelliert sind,
-- 401, privacy-sicheres 404, 409, 429 und Netzwerkfehler im Client behandelt sind,
-- Cursor-/Cache-Verhalten festgelegt ist,
-- Web und Android dieselbe fachliche Validierung zeigen,
-- Analytics und Logs keine sensiblen Inhalte erhalten,
-- Tenant-, Owner-only- und Uploadtests vorhanden sind,
-- Offline-Schreiben im MVP nicht fälschlich suggeriert wird.
+- OpenAPI describes request, response, and error codes,
+- UUID, date, timestamp, privacy class, and `version` are modeled correctly,
+- 401, privacy-safe 404, 409, 429, and network failures are handled in the
+  client,
+- cursor/cache behavior is defined,
+- Web and Android expose the same domain validation,
+- analytics and logs receive no sensitive content,
+- tenant, owner-only, and upload tests exist,
+- offline writes are not falsely implied in the MVP.
 
-## Verwandte Dokumente
+## Related documents
 
-- [Architektur](./ARCHITECTURE.md)
+- [Architecture](./ARCHITECTURE.md)
 - [Security](./SECURITY.md)
 - [User Flows](./USER-FLOWS.md)
 - [Component Contracts](./COMPONENT-CONTRACTS.md)
-- [Content- und Privacy-Guidelines](./CONTENT-PRIVACY-GUIDELINES.md)
+- [Content and Privacy Guidelines](./CONTENT-PRIVACY-GUIDELINES.md)

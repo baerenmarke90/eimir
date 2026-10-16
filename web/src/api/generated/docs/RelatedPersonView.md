@@ -6,12 +6,14 @@
 
 Name | Type
 ------------ | -------------
+`avatarAttachmentId` | string
 `birthday` | Date
 `birthdayYearKnown` | boolean
 `createdAt` | Date
 `displayName` | string
 `id` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
+`showBirthdayOnDashboard` | boolean
 `updatedAt` | Date
 `version` | number
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -23,12 +25,14 @@ import type { RelatedPersonView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "avatarAttachmentId": null,
   "birthday": null,
   "birthdayYearKnown": null,
   "createdAt": null,
   "displayName": null,
   "id": null,
   "relationship": null,
+  "showBirthdayOnDashboard": null,
   "updatedAt": null,
   "version": null,
   "visibility": null,

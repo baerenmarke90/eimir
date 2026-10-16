@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -425,7 +425,7 @@ export class AttachmentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die autorisierte Streamingroute (Media-Pipeline, Abschnitt 9).  Jeder Zugriff wird unmittelbar vor dem Oeffnen geprueft. Der zuvor ausgestellte ReadDescriptor ist kein Ausweis: er verkuerzt nichts und ersetzt diese Pruefung nicht.
+     * Authorized streaming route (media pipeline, section 9).  Every access is verified immediately before opening the content. A previously issued ``ReadDescriptor`` is not an authorization credential: it does not shorten or replace this check.
      * Get Attachment Content
      */
     async getAttachmentContentRaw(requestParameters: GetAttachmentContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -436,7 +436,7 @@ export class AttachmentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die autorisierte Streamingroute (Media-Pipeline, Abschnitt 9).  Jeder Zugriff wird unmittelbar vor dem Oeffnen geprueft. Der zuvor ausgestellte ReadDescriptor ist kein Ausweis: er verkuerzt nichts und ersetzt diese Pruefung nicht.
+     * Authorized streaming route (media pipeline, section 9).  Every access is verified immediately before opening the content. A previously issued ``ReadDescriptor`` is not an authorization credential: it does not shorten or replace this check.
      * Get Attachment Content
      */
     async getAttachmentContent(requestParameters: GetAttachmentContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -479,7 +479,7 @@ export class AttachmentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Bytes im Serverstream entgegennehmen (M2-D13, Local-Adapter).  Zwei Dinge stehen hier bewusst in dieser Reihenfolge.  Erst wird autorisiert, dann gelesen. Andernfalls entschiede ein beliebiger Absender darueber, wie viel der Server entgegennimmt, bevor feststeht, ob er ueberhaupt hochladen darf.  Und gelesen wird gegen eine Grenze. `await request.body()` wuerde den ganzen Koerper puffern, wie gross er auch ist - die Media-Pipeline verlangt ausdruecklich kein unbegrenztes Puffern im RAM. Der Strom bricht deshalb bei der ersten Ueberschreitung ab, statt erst danach zu messen.
+     * Receive bytes through the server stream (M2-D13, local adapter).  Two operations intentionally happen in this order.  Authorization happens before reading. Otherwise an arbitrary sender could determine how much data the server accepts before upload authorization is known.  Reading is also bounded. ``await request.body()`` would buffer the entire body regardless of size, while the media pipeline explicitly forbids unbounded RAM buffering. Streaming therefore aborts at the first limit violation instead of measuring only after the full body is read.
      * Upload Attachment Content
      */
     async uploadAttachmentContentRaw(requestParameters: UploadAttachmentContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -490,7 +490,7 @@ export class AttachmentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Bytes im Serverstream entgegennehmen (M2-D13, Local-Adapter).  Zwei Dinge stehen hier bewusst in dieser Reihenfolge.  Erst wird autorisiert, dann gelesen. Andernfalls entschiede ein beliebiger Absender darueber, wie viel der Server entgegennimmt, bevor feststeht, ob er ueberhaupt hochladen darf.  Und gelesen wird gegen eine Grenze. `await request.body()` wuerde den ganzen Koerper puffern, wie gross er auch ist - die Media-Pipeline verlangt ausdruecklich kein unbegrenztes Puffern im RAM. Der Strom bricht deshalb bei der ersten Ueberschreitung ab, statt erst danach zu messen.
+     * Receive bytes through the server stream (M2-D13, local adapter).  Two operations intentionally happen in this order.  Authorization happens before reading. Otherwise an arbitrary sender could determine how much data the server accepts before upload authorization is known.  Reading is also bounded. ``await request.body()`` would buffer the entire body regardless of size, while the media pipeline explicitly forbids unbounded RAM buffering. Streaming therefore aborts at the first limit violation instead of measuring only after the full body is read.
      * Upload Attachment Content
      */
     async uploadAttachmentContent(requestParameters: UploadAttachmentContentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {

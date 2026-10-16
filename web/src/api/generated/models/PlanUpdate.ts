@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,12 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
- * Fachliche Korrektur ohne Statuswirkung.
+ * Domain correction without changing lifecycle status.
  * 
- * `status`, `plannedStart` und `plannedEnd` sind hier nicht vorgesehen -
- * sie gehoeren den Lifecycle-Operationen. `experiencedOn` ist die eine
- * Ausnahme: es darf auf einem abgeschlossenen Plan korrigiert werden,
- * ohne dass daraus eine Rueckoeffnung wird (M3-D04).
+ * Schedule fields remain owned by ``/schedule`` and ``/unschedule``.
+ * ``experiencedOn`` is the one exception: it may be corrected on a completed
+ * Plan without reopening it (M3-D04).
  * @export
  * @interface PlanUpdate
  */

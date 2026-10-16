@@ -80,8 +80,8 @@ def upgrade() -> None:
             name="fk_related_persons_owner_id_accounts",
             ondelete="CASCADE",
         ),
-        # Zielspalten des zusammengesetzten Fremdschluessels aus
-        # `important_dates`: Space und Privacy-Klasse reisen dort mit.
+        # Target columns for the composite foreign key from `important_dates`:
+        # the Space and privacy class travel with the relation.
         sa.UniqueConstraint(
             "id",
             "space_id",
@@ -133,9 +133,9 @@ def upgrade() -> None:
             name="fk_important_dates_owner_id_accounts",
             ondelete="CASCADE",
         ),
-        # Space und Privacy-Klasse der Person sind Teil desselben
-        # Fremdschluessels: ein Termin kann damit weder auf eine Person aus
-        # einem fremden Space zeigen noch offener sein als sie.
+        # The person's Space and privacy class are part of the same foreign
+        # key. An important date therefore cannot point to a person in another
+        # Space or be more visible than that person.
         sa.ForeignKeyConstraint(
             ["related_person_id", "space_id", "related_person_privacy_class"],
             [

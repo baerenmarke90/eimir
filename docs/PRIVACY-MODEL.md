@@ -1,121 +1,117 @@
-# Datenschutzmodell
+# Privacy Model
 
-## Haltung
+## Position
 
-SideBySide verwaltet, was ein Paar freiwillig hineingibt: Erinnerungen,
-emotionale Momente, Wünsche, private Notizen, Vorlieben. Das ist kein
-beliebiger Anwendungsinhalt. Der Umgang damit ist Produktmerkmal.
+eimir. manages what a couple voluntarily puts into it: memories,
+emotional moments, wishes, private notes, and preferences. This is not
+arbitrary application content. How it is handled is a product feature.
 
-Keine Werbung. Kein Verkauf persönlicher Daten. Kein unnötiges Tracking.
-Sensible Inhalte fließen nicht in Analytics.
+No advertising. No sale of personal data. No unnecessary tracking.
+Sensitive content does not flow into analytics.
 
-## Klassen
+## Classes
 
-| Klasse | Sichtbar für | Beispiele |
+| Class | Visible to | Examples |
 |---|---|---|
-| `SPACE_SHARED` | beide Partner | geteilte Erinnerung, Meilenstein, Plan |
-| `OWNER_ONLY` | nur Eigentümer | private Notiz, Geschenkidee, privater Herzmoment |
-| `TEMPORARY_SHARED` | begrenzt geteilt | zeitlich befristete Freigabe |
-| `EPHEMERAL_CONTEXT` | kurzlebig, mit TTL | abgeleitete Situation, Presence |
-| `SYSTEM_METADATA` | System | Job, Audit, Outbox |
+| `SPACE_SHARED` | both partners | shared memory, milestone, plan |
+| `OWNER_ONLY` | owner only | private note, gift idea, private HeartMoment |
+| `TEMPORARY_SHARED` | shared for a limited time | time-limited sharing |
+| `EPHEMERAL_CONTEXT` | short-lived, with TTL | derived situation, presence |
+| `SYSTEM_METADATA` | system | job, audit, outbox |
 
-Eine implizite öffentliche Klasse gibt es nicht. Öffentliche Freigabelinks
-sind nicht Teil von 1.0.
+There is no implicit public class. Public sharing links are not part of 1.0.
 
-## Die harte Grenze
+## The hard boundary
 
-Der Partner ist **kein** privilegierter Leser. Bei `OWNER_ONLY` steht er
-Fremden gleich.
+The partner is **not** a privileged reader. For `OWNER_ONLY`, the partner is
+treated the same as any unrelated person.
 
-Das gilt besonders für die private Ablage — private Notizen, Geschenkideen,
-private Listen — und für Herzmomente mit `visibility = PRIVATE`. Eine
-Überraschung, die der Beschenkte sehen kann, ist keine.
+This applies especially to private storage — private notes, gift ideas,
+private lists — and to HeartMoments with `visibility = PRIVATE`. A surprise
+that its recipient can see is not a surprise.
 
-Durchgesetzt wird das serverseitig in der Abfrage, nicht in der Anzeige.
+This is enforced server-side in the query, not in presentation logic.
 
-## Zwei Arten von Profilinformation
+## Two kinds of profile information
 
-Strikt getrennt, weil ihre Verwechslung direkt schadet:
+They are strictly separated because confusing them causes direct harm:
 
-**`SELF_PROFILE`** — was jemand über sich selbst für den Partner freigibt.
-Lieblingsessen, Lieblingsblumen, Genres, Abneigungen. Sichtbar für den
-Partner, das ist der Zweck.
+**`SELF_PROFILE`** — information someone shares about themselves with their
+partner. Favorite food, favorite flowers, genres, dislikes. It is visible to
+the partner by design.
 
-**`PRIVATE_PARTNER_NOTE`** — was jemand sich über den Partner merkt.
-Geschenkidee, Beobachtung, Überraschungsplanung. Niemals im sichtbaren
-Partnerprofil.
+**`PRIVATE_PARTNER_NOTE`** — information someone records privately about their
+partner. Gift idea, observation, surprise planning. It must never appear in
+the visible partner profile.
 
-Beide beschreiben dieselbe Person. Nur eine davon darf diese Person sehen.
+Both describe the same person. Only one may be visible to that person.
 
-## Dritte Personen
+## Third parties
 
-Kinder, Familie und Freunde sind keine Accounts. `RelatedPerson` speichert
-bewusst wenig: Anzeigename, Beziehung, optional Geburtstag.
+Children, family members, and friends are not accounts. `RelatedPerson`
+deliberately stores little: display name, relationship, and optional birthday.
 
-Standardmäßig **keine** Adressen, Schulen oder Telefonnummern Dritter. Über
-diese Personen wurde nie eine Einwilligung eingeholt.
+By default, **no** addresses, schools, or third-party phone numbers are stored.
+Those people have never provided consent.
 
-`birthday_year_known` erlaubt einen Geburtstag ohne Jahr — für ein Kind ist
-das Alter oft die heiklere Angabe als der Tag.
+`birthday_year_known` allows a birthday without a year — for a child, age is
+often more sensitive than the day itself.
 
-## Standort
+## Location
 
-Standortfunktionen sind standardmäßig **aus**. Es braucht ein
-ausdrückliches Opt-in.
+Location features are **off** by default. They require explicit opt-in.
 
-Vier Begriffe, strikt getrennt:
+Four concepts are kept strictly separate:
 
-| Begriff | Bedeutung |
+| Concept | Meaning |
 |---|---|
-| `Place` | bewusst gespeicherter gemeinsamer Ort |
-| `LocationHistory` | externer Verlauf aus einer Integration |
-| `Presence` | aktueller, kurzlebiger Standort |
-| `Context` | abgeleitete Situation, etwa "vermutlich im Supermarkt" |
+| `Place` | deliberately stored shared place |
+| `LocationHistory` | external history from an integration |
+| `Presence` | current, short-lived location |
+| `Context` | derived situation, for example "probably at the supermarket" |
 
-Wo möglich wird auf dem Gerät ausgewertet statt in der Cloud. Serverseitige
-Standortdaten: minimale nötige Genauigkeit, kurze Aufbewahrung, kein
-Standort in normalen Logs, jederzeit widerrufbar.
+Where possible, evaluation happens on the device rather than in the cloud.
+Server-side location data uses the minimum required precision, short retention,
+no location data in normal logs, and can be revoked at any time.
 
-Die optionale Partnerentfernung bleibt aus, bis sie bewusst aktiviert wird,
-und erzeugt keinen dauerhaften Verlauf.
+Optional partner distance remains off until deliberately enabled and does not
+create a persistent history.
 
-## Benachrichtigungen
+## Notifications
 
-Push-Nachrichten enthalten standardmäßig **keine** sensiblen Texte.
+Push notifications contain **no** sensitive text by default.
 
-> Neue Aktivität in SideBySide
+> de-DE product copy example: **Neue Aktivität in eimir.**
 
-statt des privaten Originaltexts. Eine Benachrichtigung erscheint auf einem
-gesperrten Bildschirm, den auch andere sehen — womöglich der Partner, für
-den die Überraschung gedacht war.
+instead of the original private text. A notification can appear on a locked
+screen that other people may see — possibly the partner for whom a surprise is
+intended.
 
 ## Analytics
 
-Erlaubt sind technische und produktbezogene Ereignisse: App-Version,
-geöffneter Bildschirm, genutzte Funktion, Absturz, Account angelegt,
-Partner eingeladen, Partner beigetreten, erste Erinnerung angelegt,
-Aktivität nach 7 und 30 Tagen, Abo-Status.
+Allowed technical and product events include: app version, opened screen,
+feature used, crash, account created, partner invited, partner joined, first
+memory created, activity after 7 and 30 days, and subscription status.
 
-Nicht erfasst: Inhalte von Erinnerungen, Herzmomenten, Antworten, privaten
-Notizen und Geschenkideen sowie persönliche Standortbeschreibungen.
+Not collected: contents of memories, HeartMoments, answers, private notes and
+gift ideas, or personal location descriptions.
 
-Kein verpflichtendes Werbenetzwerk-SDK im Produkt.
+No mandatory advertising-network SDK is included in the product.
 
-## Portabilität und Löschung
+## Portability and deletion
 
-Ein versioniertes eigenes Transferformat erlaubt den vollständigen Export
-der Nutzerdaten. Nicht exportiert werden Passwörter, Passkeys, Refresh
-Tokens, Sitzungen, Push Tokens und Sicherheitsprotokolle — das sind
-Zugangsmittel, keine Erinnerungen.
+A versioned native transfer format allows complete export of user data.
+Passwords, passkeys, refresh tokens, sessions, push tokens, and security logs
+are not exported — they are access mechanisms, not memories.
 
-Beim Löschen eines Kapitels, Orts oder einer Liste werden Verknüpfungen
-entfernt, aber **keine** fremden Originalinhalte gelöscht. Wer ein Kapitel
-auflöst, wollte nicht die Erinnerungen des Partners löschen.
+Deleting a chapter, place, or list removes relationships but **does not** delete
+another person's original content. Dissolving a chapter must not delete a
+partner's memories.
 
-Account- und Space-Löschung sind eigene, ausdrückliche Vorgänge. Konkrete
-Aufbewahrungsfristen werden vor dem Cloud-Start festgelegt.
+Account deletion and Space deletion are separate, explicit operations.
+Concrete retention periods are defined before the cloud launch.
 
-## Deaktivierte Funktionen
+## Disabled features
 
-Eine deaktivierte Funktion löscht ihre Daten **niemals** automatisch. Wer
-eine Funktion abschaltet, hat nicht ihre Löschung beauftragt.
+Disabling a feature **never** deletes its data automatically. Turning a feature
+off is not a deletion request.

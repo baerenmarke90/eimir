@@ -1,0 +1,388 @@
+.story-timeline .story-month {
+  --story-rail-center: 12px;
+  --story-rail-width: 2px;
+  --story-marker-size: 24px;
+}
+
+.story-timeline .story-month::before {
+  left: var(--story-rail-center);
+  width: var(--story-rail-width);
+  transform: translateX(-50%);
+}
+
+.story-month .month-dot {
+  box-sizing: border-box;
+  left: calc(var(--story-rail-center) - var(--space-8));
+  width: var(--story-marker-size);
+  height: var(--story-marker-size);
+  transform: translateX(-50%);
+}
+
+.story-card-link {
+  display: block;
+  border-radius: var(--radius-large);
+  color: inherit;
+  text-decoration: none;
+}
+
+.story-card-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.story-card-link .story-card {
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-card-link:hover .story-card {
+    transform: translateY(-2px);
+    border-color: var(--color-brand-glow);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+.story-card-link .story-card-heart-moment {
+  border: 1px solid var(--color-brand-glow);
+  border-radius: var(--radius-card);
+  background: radial-gradient(
+    ellipse at 80% 20%,
+    var(--color-brand-surface) 0%,
+    var(--color-surface) 90%
+  );
+  box-shadow: 0 8px 24px var(--color-shadow-card);
+  text-align: left;
+  padding: var(--space-6);
+}
+
+.story-card-link .story-card-heart-moment h4 {
+  max-width: 38ch;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.2rem, 2.5vw, 1.45rem);
+  line-height: 1.45;
+  margin: var(--space-3) 0 var(--space-4);
+}
+
+.story-card-link .story-card-milestone {
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px var(--color-shadow-soft);
+  text-align: left;
+}
+
+.story-card-link .story-card-milestone h4 {
+  margin-top: var(--space-1);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 750;
+}
+
+.story-card-link .story-card-memory.has-image {
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 8px 30px var(--color-shadow-card);
+  overflow: hidden;
+  padding: var(--space-6);
+}
+
+.story-card-link .story-card-memory.has-image h4 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.7rem);
+  font-weight: 750;
+  line-height: 1.25;
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+}
+
+.story-card-link .story-card.has-image .story-media-preview,
+.story-card-link .story-card.has-image .story-media-skeleton,
+.story-card-link .story-card.has-image .story-media-placeholder {
+  display: block;
+  width: 100%;
+  max-height: 480px;
+  aspect-ratio: 16 / 10;
+  margin: var(--space-3) 0 var(--space-4);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-subtle);
+  overflow: hidden;
+  box-shadow: 0 8px 24px var(--color-shadow-soft);
+}
+
+.story-card-link .story-card.has-image .story-media-preview {
+  height: auto;
+  object-fit: cover;
+  object-position: center 30%;
+  transition: transform var(--duration-feedback) var(--easing-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .story-card-link:hover .story-card.has-image .story-media-preview {
+    transform: scale(1.015);
+  }
+}
+
+.story-card-link .story-card.has-image .story-media-skeleton,
+.story-card-link .story-card.has-image .story-media-placeholder {
+  min-height: 0;
+}
+
+.story-card-link .story-card.has-image .story-media-placeholder {
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/*
+ * No badge row precedes the content any more (#969), so whatever comes first
+ * (photo or title) starts at the card's own padding instead of carrying a
+ * top margin that used to separate it from the badges.
+ */
+.story-card-link .story-card > :first-child,
+.story-card-link .story-card.has-image > :first-child {
+  margin-top: 0;
+}
+
+/* A title word wider than a very narrow or enlarged card wraps instead of
+   being clipped by the card's rounded overflow. */
+.story-card-link .story-card h4 {
+  overflow-wrap: break-word;
+}
+
+/*
+ * Metadata footer (#969). Date, author avatar, visibility and photo count are one
+ * quiet row of secondary information. Every part may wrap at word
+ * boundaries; nothing uses `nowrap` on text that can grow, and nothing is
+ * cut with an ellipsis.
+ */
+/* Secondary, not muted: the muted token misses 4.5:1 for text this small. */
+.story-card-link .story-card-footer time {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.story-card-footer-author {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  line-height: 1.3;
+}
+
+.story-card-footer-author .momente-author-meta {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+/* The avatar keeps its size when a long name wraps beside it. */
+.story-card-footer-author .person-identity {
+  flex: 0 0 auto;
+}
+
+.story-card-link .story-card-footer .story-card-meta-item {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.3em;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.story-card-footer .story-card-meta-item svg {
+  width: 1.2em;
+  height: 1.2em;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 599px) {
+  .story-card-link .story-card-heart-moment,
+  .story-card-link .story-card-milestone,
+  .story-card-link .story-card-memory.has-image {
+    padding: var(--space-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card-link .story-card {
+    transition: none;
+  }
+
+  .story-card-link:hover .story-card {
+    transform: none;
+  }
+}
+
+/* =====================================================================
+ * Momente > Zeitleiste: Product Reference (#860)
+ * ===================================================================== */
+
+/* Continuous timeline spine and items */
+.story-timeline .story-list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.story-timeline .story-list::before {
+  content: "";
+  position: absolute;
+  top: 26px;
+  bottom: 26px;
+  left: 9px;
+  width: 2px;
+  background: var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+}
+
+.story-timeline-item {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dedicated timeline entry markers */
+.story-timeline-marker {
+  position: absolute;
+  left: -29px;
+  top: 24px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-background);
+  z-index: 1;
+}
+
+/*
+ * Kind lives on the chronology (#969). Each special node keeps the plain
+ * dot's centre so the rail stays one continuous line, and differs in shape,
+ * not only in colour: a heart for a Heart Moment, a ringed star for a
+ * Milestone.
+ */
+.story-timeline-marker-heart-moment,
+.story-timeline-marker-milestone {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+}
+
+.story-timeline-marker-heart-moment {
+  left: -31px;
+  top: 22px;
+  width: 16px;
+  height: 16px;
+  background: var(--color-background);
+  color: var(--color-brand);
+}
+
+.story-timeline-marker-milestone {
+  left: -34px;
+  top: 19px;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-discovery);
+  background: var(--color-surface-raised, var(--color-surface));
+  color: var(--color-discovery);
+}
+
+.story-timeline-item .story-timeline-marker svg {
+  display: block;
+}
+
+/* Narrow viewport reflow (320px) */
+@media (max-width: 360px) {
+  .story-timeline .story-list {
+    padding-left: 24px;
+  }
+
+  .story-timeline .story-list::before {
+    left: 6px;
+  }
+
+  .story-timeline-marker {
+    left: -23px;
+    width: 10px;
+    height: 10px;
+  }
+
+  .story-timeline-marker-heart-moment {
+    left: -25px;
+    top: 22px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .story-timeline-item .story-timeline-marker-heart-moment svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .story-timeline-marker-milestone {
+    left: -28px;
+    top: 19px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .story-timeline-item .story-timeline-marker-milestone svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/*
+ * Month headings remain useful progressive context, but they no longer need
+ * to measure the global app header. The header is ordinary document flow and
+ * leaves the viewport before a month heading reaches the top edge, so CSS
+ * sticky positioning at the viewport edge is the complete contract.
+ */
+.story-timeline-months > .story-year-month > .story-year-month-header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  margin-block: calc(var(--space-2) * -1);
+  padding-block: var(--space-2);
+  background: var(--color-surface);
+}
+
+.story-timeline-months .story-card-link {
+  scroll-margin-top: 4rem;
+}
+
+/*
+ * The floating bottom navigation is persistent on Compact. Focused Timeline
+ * cards therefore reserve its real footprint at the bottom instead of relying
+ * on scroll-direction state to reveal or hide global navigation.
+ */
+@container product-shell (max-width: 52.4375rem) {
+  .story-card-link {
+    scroll-margin-bottom: calc(
+      var(--shell-floating-nav-footprint, 0px) +
+      var(--space-3)
+    );
+  }
+}

@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -22,7 +22,7 @@ import {
 } from './MediaType';
 
 /**
- * Wie jedes gebundene Attachment, plus seinen Platz in der Galerie.
+ * A bound attachment plus its position in the memory gallery.
  * @export
  * @interface MemoryAttachmentSummary
  */

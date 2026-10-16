@@ -1,1 +1,1 @@
-"""Testvorrichtungen, die mehr als ein Modul brauchen."""
+"""Test fixtures shared by more than one module."""

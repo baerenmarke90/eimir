@@ -1,7 +1,7 @@
 # Tools
 
-Repository-weite, sprachübergreifende Hilfswerkzeuge erhalten hier ihren
-Platz. Backend-spezifische Prüfskripte bleiben dagegen in `backend/scripts/`.
+Repository-wide, cross-language utilities belong here. Backend-specific audit
+scripts remain in `backend/scripts/`.
 
-M0 enthält bewusst noch kein Tooling ohne konkreten Zweck. Neue Werkzeuge
-müssen reproduzierbar, dokumentiert und in CI prüfbar sein.
+M0 deliberately contains no tooling without a concrete purpose. New tools must
+be reproducible, documented, and verifiable in CI.

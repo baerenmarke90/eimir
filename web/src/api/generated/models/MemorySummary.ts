@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -36,11 +36,11 @@ import {
 } from './MemoryAttachmentSummary';
 
 /**
- * Eine Memory als Karte der Zeitleiste.
+ * Memory projection used as a timeline card.
  * 
- * Ohne `body`: die Karte braucht eine Ueberschrift und ihre Bilder, und
- * eine Seite mit hundert vollstaendigen Texten waere die Antwort, die
- * niemand angefordert hat. Der Text steht in der Detailansicht.
+ * The body is intentionally omitted: the card needs a heading and images,
+ * while returning one hundred full texts would produce data nobody requested.
+ * The body remains available on the detail route.
  * @export
  * @interface MemorySummary
  */

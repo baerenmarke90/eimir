@@ -1,41 +1,41 @@
-"""Konfigurationsgrenzen fuer den Mailversand."""
+"""Configuration boundaries for mail delivery."""
 
 from __future__ import annotations
 
 import pytest
 
-from sidebyside.config import Settings
+from eimir.config import Settings
 
 
-def produktion(**ueberschreibungen: object) -> Settings:
-    werte: dict[str, object] = {
+def production(**overrides: object) -> Settings:
+    values: dict[str, object] = {
         "environment": "production",
-        "allowed_hosts": ["sidebyside.example"],
+        "allowed_hosts": ["eimir.example"],
         "mail_transport": "smtp",
-        "public_base_url": "https://sidebyside.example",
+        "public_base_url": "https://eimir.example",
         "cursor_signing_key": "cursor-test-" + ("x" * 40),
     }
-    werte.update(ueberschreibungen)
-    return Settings(**werte)  # type: ignore[arg-type]
+    values.update(overrides)
+    return Settings(**values)  # type: ignore[arg-type]
 
 
-class TestProduktion:
-    def test_vollstaendige_konfiguration_startet(self) -> None:
-        assert produktion().mail_transport.value == "smtp"
+class TestProduction:
+    def test_complete_configuration_starts(self) -> None:
+        assert production().mail_transport.value == "smtp"
 
-    def test_log_versand_verweigert_den_start(self) -> None:
-        """Eine Instanz, die Anmeldelinks ins Log schreibt, faellt sonst niemandem auf."""
-        with pytest.raises(ValueError, match="SBS_MAIL_TRANSPORT"):
-            produktion(mail_transport="log")
+    def test_log_delivery_refuses_startup(self) -> None:
+        """An instance logging sign-in links could otherwise go unnoticed."""
+        with pytest.raises(ValueError, match="EIMIR_MAIL_TRANSPORT"):
+            production(mail_transport="log")
 
-    def test_unverschluesselte_basisadresse_verweigert_den_start(self) -> None:
-        with pytest.raises(ValueError, match="SBS_PUBLIC_BASE_URL"):
-            produktion(public_base_url="http://sidebyside.example")
+    def test_unencrypted_base_url_refuses_startup(self) -> None:
+        with pytest.raises(ValueError, match="EIMIR_PUBLIC_BASE_URL"):
+            production(public_base_url="http://eimir.example")
 
-    def test_verzicht_auf_mail_ist_erlaubt(self) -> None:
-        """Eine Instanz ohne Mailserver ist eine zulaessige Betriebsform.
+    def test_disabling_mail_is_allowed(self) -> None:
+        """An instance without a mail server is a valid operating mode.
 
-        Der Unterschied zu `log` ist nicht formal: bei `none` verlaesst kein
-        Einmal-Token das System, bei `log` landet jedes in einer Logablage.
+        The distinction from `log` is substantive: with `none`, no one-time
+        token leaves the system, whereas `log` writes each token to log storage.
         """
-        assert produktion(mail_transport="none").mail_transport.value == "none"
+        assert production(mail_transport="none").mail_transport.value == "none"

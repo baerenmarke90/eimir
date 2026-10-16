@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '11 4 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.13.7"
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.15"
 
 jobs:
   changes:
@@ -19,36 +22,77 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.scope.outputs.backend }}
+      backend_integration: ${{ steps.scope.outputs.backend_integration }}
       self_hosted: ${{ steps.scope.outputs.self_hosted }}
+      api_clients: ${{ steps.scope.outputs.api_clients }}
       supply_chain: ${{ steps.scope.outputs.supply_chain }}
+      supply_chain_backend: ${{ steps.scope.outputs.supply_chain_backend }}
+      supply_chain_web: ${{ steps.scope.outputs.supply_chain_web }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Filterlogik testen
+      - name: Test change-scope filter logic
         run: python3 tools/ci/test_change_scope.py
 
-      - name: Relevante Aenderungsflaechen bestimmen
+      - name: Audit migrated engineering-language surfaces
+        run: |
+          python3 tools/ci/test_engineering_language_audit.py
+          python3 tools/ci/engineering_language_audit.py
+
+      - name: Classify legacy project-identity references
+        run: |
+          python3 tools/ci/test_project_identity_scan.py
+          python3 tools/ci/test_project_identity_migration.py
+          python3 tools/ci/project_identity_scan.py
+
+      - name: Determine relevant change scopes
         id: scope
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            echo "backend=true" >> "$GITHUB_OUTPUT"
-            echo "self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "supply_chain=true" >> "$GITHUB_OUTPUT"
-            echo "Push auf main: alle teuren CI-Gates bleiben aktiv."
+
+          enable_all() {
+            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web; do
+              echo "$scope=true" >> "$GITHUB_OUTPUT"
+            done
+          }
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              head_sha="$PR_HEAD_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BASE_SHA"
+              head_sha="$PUSH_HEAD_SHA"
+              ;;
+            *)
+              enable_all
+              echo "Scheduled/manual run: all expensive CI gates remain active."
+              exit 0
+              ;;
+          esac
+
+          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
+            || [[ "$base_sha" =~ ^0+$ ]] \
+            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
+            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
+            enable_all
+            echo "Change range unavailable; failing closed to all expensive CI gates."
             exit 0
           fi
 
-          # Renames werden absichtlich als Delete+Add betrachtet. Dadurch
-          # aktiviert auch eine Verschiebung aus einem Runtime-Pfad heraus
-          # das urspruenglich betroffene Gate; Loeschungen sind ebenfalls drin.
-          git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
-          echo "Geaenderte Dateien:"
+          # Treat renames as delete+add intentionally. Moving a file out of a
+          # runtime path therefore still activates the originally affected gate,
+          # and deletions remain covered as well.
+          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
+          echo "Changed files:"
           cat /tmp/changed-files.txt
           python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
 
@@ -58,7 +102,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     env:
-      SBS_ENVIRONMENT: test
+      EIMIR_ENVIRONMENT: test
     defaults:
       run:
         working-directory: backend
@@ -72,83 +116,88 @@ jobs:
           cache: pip
           cache-dependency-path: backend/uv.lock
 
-      - name: Gesperrte Abhaengigkeiten
+      - name: Locked dependencies
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
           uv sync --frozen
 
-      - name: Sichere Self-Hosted-Konfiguration
+      - name: Safe Self-Hosted configuration
         working-directory: .
         run: |
           docker compose --env-file .env.example config --quiet
           host_ip=$(docker compose --env-file .env.example config --format json \
             | jq -r '.services.api.ports[0].host_ip')
           if [ "$host_ip" != "127.0.0.1" ]; then
-            echo "Die API ist im Standard nicht auf Loopback begrenzt: $host_ip"
+            echo "The API is not restricted to loopback by default: $host_ip"
             exit 1
           fi
 
-      - name: Keine Quelldatei wird von .gitignore verschluckt
-        # Ein ungeankertes Muster wie "media/" trifft jedes Verzeichnis
-        # dieses Namens. Lokal faellt das nie auf, weil die Datei auf der
-        # Platte liegt - erst der Checkout in der CI hat sie nicht mehr.
+      - name: No source file is hidden by .gitignore
+        # An unanchored pattern such as "media/" matches every directory with
+        # that name. This is invisible locally because the file remains on disk;
+        # only a fresh CI checkout exposes the missing file.
         working-directory: .
         run: |
-          fehlend=$(comm -23 \
-            <(find backend/src web android -name "*.py" -o -name "*.ts" \
-                -o -name "*.tsx" -o -name "*.kt" 2>/dev/null | sort) \
-            <(git ls-files backend/src web android | sort))
-          if [ -n "$fehlend" ]; then
-            echo "Diese Quelldateien sind nicht versioniert:"
-            echo "$fehlend"
+          missing_files=$(comm -23 \
+            <(find backend/src web -name "*.py" -o -name "*.ts" \
+                -o -name "*.tsx" 2>/dev/null | sort) \
+            <(git ls-files backend/src web | sort))
+          if [ -n "$missing_files" ]; then
+            echo "These source files are not tracked:"
+            echo "$missing_files"
             exit 1
           fi
 
       - name: Lint
         run: uv run --frozen ruff check src tests scripts alembic
 
-      - name: Formatierung
+      - name: Formatting
         run: uv run --frozen ruff format --check src tests scripts alembic
 
-      - name: Typpruefung
+      - name: Type checking
         run: uv run --frozen mypy
 
-      - name: OpenAPI-Vertrag
+      - name: OpenAPI contract
         run: uv run --frozen python scripts/openapi_contract.py check
 
-      - name: Tests ohne Integration
+      - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
 
-  backend-integration:
-    name: Backend Integration
+  backend_integration_shards:
+    name: Backend Integration Shard ${{ matrix.shard }}/4
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend_integration == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
-    # Datenbanktests und Schema-/Migrationschecks laufen getrennt vom
-    # statischen/Unit-Gate. Dadurch werden die teuren Integrationstests pro
-    # Commit genau einmal ausgefuehrt und beide Backend-Gates koennen parallel
-    # laufen.
+    # Each shard gets its own runner and PostgreSQL service. The deterministic
+    # selector partitions the collected integration node IDs exactly once, so
+    # the gate keeps full coverage without forcing all database tests through a
+    # single ~23-minute runner.
     services:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: sidebyside
-          POSTGRES_PASSWORD: sidebyside
-          POSTGRES_DB: sidebyside_test
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U sidebyside -d sidebyside_test"
+          --health-cmd "pg_isready -U eimir -d eimir_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      SBS_ENVIRONMENT: test
-      SBS_DATABASE_URL: postgresql+psycopg://sidebyside:sidebyside@localhost:5432/sidebyside_test
-      SBS_TEST_DATABASE_URL: postgresql+psycopg://sidebyside:sidebyside@localhost:5432/sidebyside_test
+      EIMIR_ENVIRONMENT: test
+      EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
 
     defaults:
       run:
@@ -163,213 +212,252 @@ jobs:
           cache: pip
           cache-dependency-path: backend/uv.lock
 
-      - name: Gesperrte Abhaengigkeiten
+      - name: Locked dependencies
         run: |
           python -m pip install "uv==$UV_VERSION"
           uv lock --check
           uv sync --frozen
 
-      - name: Migrationen
+      - name: Migrations
         run: uv run --frozen alembic upgrade head
 
-      - name: Migrationen sind vollstaendig
-        # Weicht das Modell vom Schema ab, fehlt eine Migration. Das faellt
-        # sonst erst beim Deployment auf.
+      - name: Migrations are complete
+        # A model/schema difference indicates a missing migration and would
+        # otherwise surface only during deployment.
         run: |
           uv run --frozen alembic revision --autogenerate -m "drift check" --rev-id drift_check
           if grep -qE "op\.(create|drop|alter|add)_" alembic/versions/drift_check_*.py; then
-            echo "Modell und Migrationen weichen ab:"
+            echo "Models and migrations differ:"
             cat alembic/versions/drift_check_*.py
             exit 1
           fi
           rm alembic/versions/drift_check_*.py
 
-      - name: Integrationstests sind wirklich gelaufen
-        # Ein uebersprungener Sicherheitstest darf nicht wie ein bestandener
-        # aussehen. Der maschinenlesbare JUnit-Report belegt, dass mindestens
-        # ein Integrationstest lief und keiner uebersprungen wurde.
+      - name: Integration tests actually ran
+        # Collect once per isolated shard, split node IDs deterministically, and
+        # retain the existing no-skips guarantee. --durations keeps the slowest
+        # tests visible so future fixture regressions can be optimized directly.
         run: |
+          collection=$(mktemp)
+          selected_file=$(mktemp)
           report=$(mktemp)
-          uv run --frozen pytest -m integration -q --junitxml="$report"
-          uv run --frozen python - "$report" <<'PY'
+          uv run --frozen pytest -m integration --collect-only -q > "$collection"
+          python ../tools/ci/pytest_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --shard-count 4 \
+            < "$collection" > "$selected_file"
+          mapfile -t selected < "$selected_file"
+          expected="${#selected[@]}"
+          if [ "$expected" -eq 0 ]; then
+            echo "Integration shard ${{ matrix.shard }}/4 selected no tests."
+            exit 1
+          fi
+          echo "Integration shard ${{ matrix.shard }}/4 selected $expected tests."
+          uv run --frozen pytest -m integration -q --durations=20 \
+            --junitxml="$report" "${selected[@]}"
+          uv run --frozen python - "$report" "$expected" <<'PY'
           import sys
           import xml.etree.ElementTree as ET
 
           root = ET.parse(sys.argv[1]).getroot()
+          expected = int(sys.argv[2])
           testcases = root.findall(".//testcase")
           skipped = sum(case.find("skipped") is not None for case in testcases)
 
-          if not testcases:
-              raise SystemExit("Keine Integrationstests gelaufen.")
+          if len(testcases) != expected:
+              raise SystemExit(
+                  f"Expected {expected} integration tests, but JUnit contains {len(testcases)}."
+              )
           if skipped:
               raise SystemExit(
-                  f"{skipped} Integrationstest(s) wurden uebersprungen - "
-                  "Datenbank nicht erreichbar?"
+                  f"{skipped} integration test(s) were skipped - "
+                  "is the database unavailable?"
               )
           PY
+
+  backend-integration:
+    name: Backend Integration
+    needs: [changes, backend_integration_shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The repository ruleset requires the exact "Backend Integration" context.
+    # Keep that stable while the expensive work fans out into matrix shards.
+    steps:
+      - name: Verify integration shards
+        env:
+          CHANGE_RESULT: ${{ needs.changes.result }}
+          INTEGRATION_REQUIRED: ${{ needs.changes.outputs.backend_integration }}
+          SHARDS_RESULT: ${{ needs.backend_integration_shards.result }}
+        run: |
+          if [ "$CHANGE_RESULT" != "success" ]; then
+            echo "Change Detection did not succeed: $CHANGE_RESULT"
+            exit 1
+          fi
+          if [ "$INTEGRATION_REQUIRED" != "true" ]; then
+            echo "Backend integration is not required for this change set."
+            exit 0
+          fi
+          if [ "$SHARDS_RESULT" != "success" ]; then
+            echo "One or more Backend Integration shards did not succeed: $SHARDS_RESULT"
+            exit 1
+          fi
+          echo "All Backend Integration shards succeeded."
 
   self-hosted:
     name: Self-Hosted Start
     needs: changes
     if: needs.changes.outputs.self_hosted == 'true'
     runs-on: ubuntu-latest
-    # Der Fehler aus #110 ist an allen Gates vorbeigekommen, weil CI die
-    # Compose-Datei nur geparst und Alembic unter SBS_ENVIRONMENT=test
-    # ausgefuehrt hat. Der dokumentierte Startpfad lief nirgends. Dieser Job
-    # faehrt ihn genau so, wie er in docs/SELF-HOSTING.md steht.
+    # The failure from #110 passed every gate because CI only parsed the Compose
+    # file and ran Alembic under EIMIR_ENVIRONMENT=test. No gate executed the
+    # documented startup path. This job follows docs/SELF-HOSTING.md exactly.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Dokumentierten Erststart vorbereiten
-        # Wie in der Anleitung: kopieren, Passwort ersetzen, starten. Der
-        # Testwert ist ein CI-Wert und kein Geheimnis.
+      - name: Prepare the documented first startup
+        # Follow the guide: copy, replace the password, build local Development
+        # images, and then start the single canonical Compose topology. The test
+        # value is a CI-only value and not a secret.
         run: |
+          set -euo pipefail
           cp .env.example .env
-          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-nur-fuer-den-testlauf/' .env
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-for-the-test-run/' .env
           docker compose config --quiet
+          python3 scripts/build_self_hosted_source.py --env-file .env
 
-      - name: Stack starten
+      - name: Start stack
         run: docker compose up -d --wait --wait-timeout 300
 
-      - name: Migration ist durchgelaufen
+      - name: Migration completed
         run: |
           status=$(docker compose ps -a --format json migrate | jq -r '.ExitCode')
           if [ "$status" != "0" ]; then
-            echo "migrate ist nicht sauber beendet (ExitCode $status):"
+            echo "migrate did not exit cleanly (ExitCode $status):"
             docker compose logs migrate
             exit 1
           fi
 
-      - name: Healthchecks ueber die veroeffentlichten Ports
+      - name: Health checks through published ports
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/health
           curl --fail --silent --show-error http://127.0.0.1:8080/healthz
-          curl --fail --silent --show-error http://127.0.0.1:8080/ | grep -Fq "<title>SideBySide Next"
+          curl --fail --silent --show-error http://127.0.0.1:8080/ | grep -Fq "<title>eimir."
           web/scripts/check_csp_header.sh http://127.0.0.1:8080/
 
-      - name: CSP-Origins sind eng und fail-closed konfigurierbar
+      - name: CSP origins are narrowly and fail-closed configurable
         run: |
-          gerendert=$(docker compose run --rm --no-deps \
-            -e SBS_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
+          rendered=$(docker compose run --rm --no-deps \
+            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
-          printf '%s\n' "$gerendert" \
+          printf '%s\n' "$rendered" \
             | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \
-            -e SBS_WEB_CSP_CONNECT_ORIGINS="https://example.test; add_header X-Injected true" \
-            web nginx -t >/tmp/ungueltige-csp-origin.log 2>&1
+            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://example.test; add_header X-Injected true" \
+            web nginx -t >/tmp/invalid-csp-origin.log 2>&1
           status=$?
           set -e
           if [ "$status" -eq 0 ]; then
-            echo "Der Web-Container hat eine injizierbare CSP-Origin akzeptiert."
+            echo "The Web container accepted an injectable CSP origin."
             exit 1
           fi
-          grep -Fq "keine gueltige exakte HTTP(S)-Origin" /tmp/ungueltige-csp-origin.log
+          grep -Fq "does not contain a valid exact HTTP(S) origin" /tmp/invalid-csp-origin.log
 
-      - name: Kein Runtime-Dienst ist an der Konfiguration gescheitert
-        # Ein fehlender Settings-Wert beendet den Prozess sofort; unter
-        # restart: unless-stopped sieht das nach kurzer Zeit wie ein
-        # Neustartkarussell aus und nicht wie ein Fehler.
+      - name: No runtime service failed on configuration
+        # A missing Settings value exits the process immediately. With
+        # restart: unless-stopped, this soon looks like a restart loop instead of
+        # a clear failure.
         run: |
-          for dienst in api worker web; do
-            status=$(docker compose ps --format json "$dienst" | jq -r '.State')
+          for service in api worker web; do
+            status=$(docker compose ps --format json "$service" | jq -r '.State')
             if [ "$status" != "running" ]; then
-              echo "$dienst laeuft nicht ($status):"
-              docker compose logs "$dienst"
+              echo "$service is not running ($status):"
+              docker compose logs "$service"
               exit 1
             fi
           done
           if docker compose logs api worker | grep -q "validation error for Settings"; then
-            echo "Ein Dienst hat einen Settings-Fehler protokolliert:"
+            echo "A service logged a Settings error:"
             docker compose logs api worker
             exit 1
           fi
 
-      - name: Migration ist wiederholbar
+      - name: Migration is repeatable
         run: |
           docker compose run --rm migrate
-          echo "zweiter Lauf gegen das bestehende Schema war erfolgreich"
+          echo "Second run against the existing schema succeeded"
 
-      - name: Produktionsbetrieb weist unsichere Konfiguration weiterhin ab
-        # Der Testbetrieb ist der Standard, nicht die Ausrede. Diese Pruefung
-        # haelt fest, dass die Production-Invarianten unveraendert greifen -
-        # sonst waere der bequemste Weg zu gruener CI, sie zu lockern.
+      - name: Production continues to reject unsafe configuration
+        # Test operation is the baseline, not an excuse. This check ensures that
+        # production invariants remain unchanged; otherwise weakening them would
+        # be the easiest path to green CI.
         run: |
           set +e
-          for fall in "SBS_MAIL_TRANSPORT=log" "SBS_PUBLIC_BASE_URL=http://unsicher.invalid" "SBS_CURSOR_SIGNING_KEY="; do
-            ausgabe=$(docker compose run --rm --no-deps \
-              -e SBS_ENVIRONMENT=production \
-              -e SBS_CURSOR_SIGNING_KEY=ci-testwert-mit-mindestens-32-zeichen \
-              -e SBS_MAIL_TRANSPORT=smtp \
-              -e SBS_PUBLIC_BASE_URL=https://ci.invalid \
-              -e "$fall" \
-              api python -c "from sidebyside.config import Settings; Settings()" 2>&1)
+          for unsafe_setting in "EIMIR_MAIL_TRANSPORT=log" "EIMIR_PUBLIC_BASE_URL=http://insecure.invalid" "EIMIR_CURSOR_SIGNING_KEY="; do
+            output=$(docker compose run --rm --no-deps \
+              -e EIMIR_ENVIRONMENT=production \
+              -e EIMIR_ENCRYPTION_AT_REST=disabled \
+              -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
+              -e EIMIR_MAIL_TRANSPORT=smtp \
+              -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
+              -e "$unsafe_setting" \
+              api python -c "from eimir.config import Settings; Settings()" 2>&1)
             if [ $? -eq 0 ]; then
-              echo "Production hat eine unsichere Konfiguration akzeptiert: $fall"
+              echo "Production accepted an unsafe configuration: $unsafe_setting"
               exit 1
             fi
-            echo "abgewiesen wie erwartet: $fall"
+            echo "Rejected as expected: $unsafe_setting"
           done
           set -e
 
-      - name: Produktionsbetrieb ohne Mailserver ist zulaessig
-        # Ein SMTP-Zugang ist keine Startvoraussetzung (ADR 0002). Verboten
-        # ist nur "log", weil dabei Einmal-Token ins Log wandern.
+      - name: Production without a mail server is valid
+        # SMTP access is not a startup requirement (ADR 0002). Only "log" is
+        # forbidden because it writes one-time tokens to logs.
         run: |
           docker compose run --rm --no-deps \
-            -e SBS_ENVIRONMENT=production \
-            -e SBS_CURSOR_SIGNING_KEY=ci-testwert-mit-mindestens-32-zeichen \
-            -e SBS_MAIL_TRANSPORT=none \
-            -e SBS_PUBLIC_BASE_URL=https://ci.invalid \
-            api python -c "from sidebyside.config import Settings; Settings()"
+            -e EIMIR_ENVIRONMENT=production \
+            -e EIMIR_ENCRYPTION_AT_REST=disabled \
+            -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
+            -e EIMIR_MAIL_TRANSPORT=none \
+            -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
+            api python -c "from eimir.config import Settings; Settings()"
 
-      - name: Logs bei Fehlschlag
+      - name: Logs on failure
         if: failure()
         run: docker compose logs
 
-      - name: Aufraeumen
+      - name: Clean up
         if: always()
         run: docker compose down -v
 
   api-clients:
     name: API Clients
+    needs: changes
+    if: needs.changes.outputs.api_clients == 'true'
     runs-on: ubuntu-latest
-    # Der Vertrag ist die einzige Quelle fuer Web- und Android-DTOs. Weicht
-    # der eingecheckte Client-Code von ihm ab, ist eine Vertragsaenderung
-    # ohne den dazugehoerigen Clientteil gemergt worden - und der Bruch
-    # faellt sonst erst im Clientprojekt auf.
+    # The contract is the single source of truth for the canonical Web client,
+    # which the Capacitor Android wrapper packages unchanged (ADR 0011).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Erzeugter Client-Code stimmt mit dem Vertrag ueberein
-        run: tools/openapi/generate.sh --check
+      - name: Generated client code matches the contract
+        run: tools/openapi/generate.sh --check-web
 
-      - name: Der TypeScript-Client hat keine Runtime-Abhaengigkeit
-        # Der Generator ist auf `typescript-fetch` konfiguriert, damit kein
-        # HTTP-Paket in den Webclient wandert. Diese Pruefung haelt das fest:
-        # ein Konfigurationswechsel wuerde sonst still eine Abhaengigkeit
-        # einfuehren, die erst im Webprojekt auffaellt.
+      - name: The TypeScript client has no runtime dependency
+        # The generator uses `typescript-fetch` so no HTTP package enters the
+        # Web client. This check preserves that boundary: a configuration change
+        # could otherwise add a dependency that surfaces only in the Web project.
         run: |
           if find web/src/api/generated -name package.json | grep -q .; then
-            echo "Der generierte TypeScript-Client bringt eine package.json mit."
+            echo "The generated TypeScript client includes a package.json."
             exit 1
           fi
-          fremd=$(grep -rhoE "from '[^.][^']*'" web/src/api/generated || true)
-          if [ -n "$fremd" ]; then
-            echo "Der generierte TypeScript-Client importiert externe Pakete:"
-            echo "$fremd" | sort -u
-            exit 1
-          fi
-
-      - name: Der Kotlin-Client bringt keinen HTTP-Stack mit
-        # Nur Modelle, kein Service-Layer: der HTTP-Stack des Android-Clients
-        # ist eine Entscheidung am Android-Projekt und nicht an dieser Datei.
-        run: |
-          treffer=$(grep -rlE "retrofit2|io\.ktor|okhttp3" android/api/generated || true)
-          if [ -n "$treffer" ]; then
-            echo "Der generierte Kotlin-Code zieht einen HTTP-Stack herein:"
-            echo "$treffer"
+          external_imports=$(grep -rhoE "from '[^.][^']*'" web/src/api/generated || true)
+          if [ -n "$external_imports" ]; then
+            echo "The generated TypeScript client imports external packages:"
+            echo "$external_imports" | sort -u
             exit 1
           fi
 
@@ -383,30 +471,58 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify Supply Chain subscopes
+        env:
+          BACKEND_REQUIRED: ${{ needs.changes.outputs.supply_chain_backend }}
+          WEB_REQUIRED: ${{ needs.changes.outputs.supply_chain_web }}
+        run: |
+          if [ "$BACKEND_REQUIRED" != "true" ] && [ "$WEB_REQUIRED" != "true" ]; then
+            echo "Supply Chain was enabled without an internal build surface."
+            exit 1
+          fi
+          echo "Backend Supply Chain required: $BACKEND_REQUIRED"
+          echo "Web Supply Chain required: $WEB_REQUIRED"
+
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: backend/uv.lock
-      - name: uv exakt installieren
+
+      - name: Install exact uv version
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: python -m pip install "uv==$UV_VERSION"
-      - name: Lockdatei ist aktuell
+
+      - name: Lockfile is current
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: uv lock --check
-      - name: Dependency- und Vulnerability-Scan
-        # Policy: jeder bekannte OSV-Fund oder nachteilige Paketstatus laesst
-        # den Job fehlschlagen. Ausnahmen muessen explizit, begruendet und
-        # befristet in pyproject.toml stehen; aktuell gibt es keine.
+
+      - name: Dependency and vulnerability scan
+        if: needs.changes.outputs.supply_chain_backend == 'true'
+        # Policy: every known OSV finding or adverse package status fails the
+        # job. Exceptions must be explicit, justified, and time-limited in
+        # pyproject.toml; none currently exist.
         run: uv audit --preview --frozen
-      - name: Abhaengigkeitsinventar
+
+      - name: Dependency inventory
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: |
           uv sync --frozen
           uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
-      - name: Backend-Wheel ohne Cache bauen
-        run: uv build --no-cache --wheel --out-dir /tmp/sidebyside-dist
-      - name: Backend-Produktionscontainer frisch bauen
-        run: docker build --pull --no-cache --tag sidebyside-next:ci .
-      - name: Web-Produktionscontainer frisch bauen
-        run: docker build --pull --no-cache --tag sidebyside-next-web:ci ../web
+
+      - name: Build backend wheel without cache
+        if: needs.changes.outputs.supply_chain_backend == 'true'
+        run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
+
+      - name: Build backend production container from scratch
+        if: needs.changes.outputs.supply_chain_backend == 'true'
+        run: docker build --pull --no-cache --tag eimir-backend:ci .
+
+      - name: Build Web production container from scratch
+        if: needs.changes.outputs.supply_chain_web == 'true'
+        run: docker build --pull --no-cache --tag eimir-web:ci ../web
 
   secrets:
     name: Secret Scan
@@ -416,35 +532,42 @@ jobs:
         with:
           fetch-depth: 0
 
-      # gitleaks direkt statt ueber die Action: die Action scannt den
-      # Bereich <vorheriger Commit>..HEAD und scheitert am ersten Push,
-      # weil der erste Commit keinen Vorgaenger hat. Der direkte Aufruf
-      # scannt die vollstaendige Historie - was fuer einen Secret-Scan
-      # ohnehin die richtige Menge ist.
+      # Run gitleaks directly instead of through the action. The action scans
+      # <previous commit>..HEAD and fails on the first push because the first
+      # commit has no predecessor. The direct invocation scans the complete
+      # history, which is the appropriate scope for a secret scan.
+      #
+      # --log-opts="HEAD" pins that history to the checked-out ref's own
+      # ancestry. Without it, gitleaks' git log defaults to --all, which
+      # walks every ref this fetch-depth: 0 checkout knows about — including
+      # unrelated, unmerged branches that happen to share this remote. A
+      # false-positive-triggering string on one such branch then fails
+      # Secret Scan for every other open PR, with no relation to that PR's
+      # own content.
       - name: gitleaks
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo \
             zricethezav/gitleaks:v8.24.3 \
-            detect --source . --redact --verbose --exit-code 1
+            detect --source . --log-opts="HEAD" --redact --verbose --exit-code 1
 
   provenance:
     name: Provenance
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Pflichtdokumente vorhanden
+      - name: Required documents are present
         run: |
-          for datei in PROVENANCE.md docs/DEPENDENCIES.md \
+          for file in PROVENANCE.md docs/DEPENDENCIES.md \
                        docs/SECURITY.md docs/PRIVACY-MODEL.md \
                        specification/PRODUCT-SPEC.md LICENSE \
                        COMMERCIAL-LICENSE.md CONTRIBUTING.md CLA.md \
                        TRADEMARKS.md; do
-            test -f "$datei" || { echo "fehlt: $datei"; exit 1; }
+            test -f "$file" || { echo "missing: $file"; exit 1; }
           done
-      - name: Lizenzentscheidung ist konsistent
-        # Seit der ausdruecklichen Lizenzentscheidung ist LICENSE verpflichtend.
-        # Die CI stellt sicher, dass Lizenz, Provenance und Commercial-Policy
-        # nicht versehentlich wieder auf den frueheren offenen Stand geraten.
+      - name: Licensing decision is consistent
+        # LICENSE is mandatory since the explicit licensing decision. CI ensures
+        # that the license, provenance, and commercial policy do not accidentally
+        # regress to the earlier open state.
         run: |
           grep -Fq "# PolyForm Noncommercial License 1.0.0" LICENSE
           grep -Fq "PolyForm Noncommercial License 1.0.0" PROVENANCE.md

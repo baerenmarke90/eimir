@@ -1,7 +1,7 @@
 
 # StoryItem
 
-Ein Eintrag der Zeitleiste, diskriminiert ueber `kind`.  Ein eigener Typ und keine anonyme Union im Listenfeld: sonst benennt der OpenAPI-Vertrag sie nach ihrem Fundort - `StoryPageItemsInner` - und jeder erzeugte Client traegt diesen Namen weiter. `API-DESIGN.md` nennt sie `StoryItem`, und das soll auch im Vertrag stehen.
+A timeline item discriminated by ``kind``.  This is a named type rather than an anonymous union in the list field. Otherwise OpenAPI names it after its location (``StoryPageItemsInner``) and every generated client propagates that accidental name. ``API-DESIGN.md`` calls the contract type ``StoryItem`` and the schema should do the same.
 
 ## Properties
 

@@ -81,11 +81,11 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -154,11 +154,11 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **201** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **413** | Der Inhalt ueberschreitet die serverseitige Groessengrenze. |  -  |
-| **415** | Der Medientyp steht nicht auf der Allowlist. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **413** | The content exceeds the server-side size limit. |  -  |
+| **415** | The media type is not on the allowlist. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -187,7 +187,7 @@ async function example() {
     attachmentId: attachmentId_example,
     // string
     spaceId: spaceId_example,
-    // string | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben.
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
     ifMatch: ifMatch_example,
   } satisfies DeleteAttachmentRequest;
 
@@ -210,7 +210,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **attachmentId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **ifMatch** | `string` | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben. | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -230,11 +230,11 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **204** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -306,11 +306,11 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **202** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -379,8 +379,8 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  * ETag -  <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -391,7 +391,7 @@ No authorization required
 
 Get Attachment Content
 
-Die autorisierte Streamingroute (Media-Pipeline, Abschnitt 9).  Jeder Zugriff wird unmittelbar vor dem Oeffnen geprueft. Der zuvor ausgestellte ReadDescriptor ist kein Ausweis: er verkuerzt nichts und ersetzt diese Pruefung nicht.
+Authorized streaming route (media pipeline, section 9).  Every access is verified immediately before opening the content. A previously issued &#x60;&#x60;ReadDescriptor&#x60;&#x60; is not an authorization credential: it does not shorten or replace this check.
 
 ### Example
 
@@ -454,10 +454,10 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -468,7 +468,7 @@ No authorization required
 
 Upload Attachment Content
 
-Die Bytes im Serverstream entgegennehmen (M2-D13, Local-Adapter).  Zwei Dinge stehen hier bewusst in dieser Reihenfolge.  Erst wird autorisiert, dann gelesen. Andernfalls entschiede ein beliebiger Absender darueber, wie viel der Server entgegennimmt, bevor feststeht, ob er ueberhaupt hochladen darf.  Und gelesen wird gegen eine Grenze. &#x60;await request.body()&#x60; wuerde den ganzen Koerper puffern, wie gross er auch ist - die Media-Pipeline verlangt ausdruecklich kein unbegrenztes Puffern im RAM. Der Strom bricht deshalb bei der ersten Ueberschreitung ab, statt erst danach zu messen.
+Receive bytes through the server stream (M2-D13, local adapter).  Two operations intentionally happen in this order.  Authorization happens before reading. Otherwise an arbitrary sender could determine how much data the server accepts before upload authorization is known.  Reading is also bounded. &#x60;&#x60;await request.body()&#x60;&#x60; would buffer the entire body regardless of size, while the media pipeline explicitly forbids unbounded RAM buffering. Streaming therefore aborts at the first limit violation instead of measuring only after the full body is read.
 
 ### Example
 
@@ -528,12 +528,12 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **204** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **413** | Der Inhalt ueberschreitet die serverseitige Groessengrenze. |  -  |
-| **415** | Der Medientyp steht nicht auf der Allowlist. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **413** | The content exceeds the server-side size limit. |  -  |
+| **415** | The media type is not on the allowlist. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

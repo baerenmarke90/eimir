@@ -11,7 +11,7 @@ const e2eTest = import.meta.env.VITE_G2_E2E_ENABLED === '1' ? test : test.skip;
 function requiredEnv(name: keyof ImportMetaEnv): string {
   const value = import.meta.env[name];
   if (!value)
-    throw new Error(`${String(name)} muss fuer den G2-E2E-Lauf gesetzt sein.`);
+    throw new Error(`${String(name)} must be set for the G2 E2E run.`);
   return value;
 }
 

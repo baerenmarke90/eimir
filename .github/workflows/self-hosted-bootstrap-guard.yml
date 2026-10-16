@@ -1,0 +1,183 @@
+name: Self-Hosted Bootstrap Guard
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/self-hosted-bootstrap-guard.yml"
+      - ".env.example"
+      - "compose.yaml"
+      - "scripts/build_self_hosted_source.py"
+      - "backend/Dockerfile"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "backend/alembic/**"
+      - "backend/src/eimir/api/v1/auth.py"
+      - "backend/src/eimir/api/v1/server_admin.py"
+      - "backend/src/eimir/auth/**"
+      - "backend/src/eimir/authorization/server_admin.py"
+      - "backend/src/eimir/config.py"
+      - "backend/src/eimir/mail/**"
+      - "backend/src/eimir/observability/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/self-hosted-bootstrap-guard.yml"
+      - ".env.example"
+      - "compose.yaml"
+      - "scripts/build_self_hosted_source.py"
+      - "backend/Dockerfile"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "backend/alembic/**"
+      - "backend/src/eimir/api/v1/auth.py"
+      - "backend/src/eimir/api/v1/server_admin.py"
+      - "backend/src/eimir/auth/**"
+      - "backend/src/eimir/authorization/server_admin.py"
+      - "backend/src/eimir/config.py"
+      - "backend/src/eimir/mail/**"
+      - "backend/src/eimir/observability/**"
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: self-hosted-bootstrap-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  G5_BOOTSTRAP_EMAIL: g5-bootstrap@example.invalid
+  G5_API_BASE: http://127.0.0.1:18081/api/v1
+
+jobs:
+  bootstrap-guard:
+    name: Log-mail ServerAdmin bootstrap
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run fresh Self-Hosted log-mail bootstrap rehearsal
+        run: |
+          set -euo pipefail
+
+          # Generate all credential material inside this shell only. Do not export it
+          # through workflow/job env, GitHub outputs, artifacts, or diagnostics.
+          postgres_password=$(openssl rand -hex 24)
+          bootstrap_token=$(openssl rand -hex 24)
+          account_password=$(openssl rand -hex 24)
+
+          cp .env.example .env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=${postgres_password}/" .env
+          sed -i 's/^API_PORT=.*/API_PORT=18081/' .env
+          sed -i 's/^WEB_PORT=.*/WEB_PORT=18082/' .env
+          sed -i 's|^EIMIR_PUBLIC_BASE_URL=.*|EIMIR_PUBLIC_BASE_URL=http://localhost:18082|' .env
+          printf '%s\n' \
+            'COMPOSE_PROJECT_NAME=eimir-g5-bootstrap-ci' \
+            'EIMIR_MAIL_TRANSPORT=log' \
+            "EIMIR_BOOTSTRAP_TOKEN=${bootstrap_token}" \
+            "EIMIR_SERVER_ADMIN_EMAILS=[\"${G5_BOOTSTRAP_EMAIL}\"]" \
+            >> .env
+
+          docker compose --profile self-hosted --env-file .env config --quiet
+          python3 scripts/build_self_hosted_source.py --env-file .env
+          docker compose --profile self-hosted --env-file .env \
+            up -d --wait --wait-timeout 300
+
+          registration_payload=$(jq -nc \
+            --arg email "$G5_BOOTSTRAP_EMAIL" \
+            --arg password "$account_password" \
+            --arg bootstrap "$bootstrap_token" \
+            '{displayName:"G5 Bootstrap",email:$email,password:$password,bootstrapToken:$bootstrap,deviceName:"G5 bootstrap guard",platform:"ci"}')
+
+          registration_response=$(curl --fail-with-body --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data-binary "$registration_payload" \
+            "$G5_API_BASE/auth/register")
+
+          access_token=$(jq -r '.tokens.accessToken // empty' <<< "$registration_response")
+          test -n "$access_token" || {
+            echo "Registration succeeded without returning an access token."
+            exit 1
+          }
+
+          before_status=$(curl --silent --show-error \
+            -o /tmp/server-admin-before.json \
+            -w '%{http_code}' \
+            -H "Authorization: Bearer $access_token" \
+            "$G5_API_BASE/server-admin/overview")
+          test "$before_status" = "403" || {
+            echo "Unverified allowlisted account unexpectedly had ServerAdmin access: HTTP $before_status"
+            exit 1
+          }
+
+          verification_status=$(curl --silent --show-error \
+            -o /tmp/verification-request.json \
+            -w '%{http_code}' \
+            -X POST \
+            -H "Authorization: Bearer $access_token" \
+            "$G5_API_BASE/auth/email/verification/request")
+          test "$verification_status" = "202" || {
+            echo "Email verification request failed: HTTP $verification_status"
+            exit 1
+          }
+
+          verification_token=""
+          for _ in $(seq 1 20); do
+            api_logs=$(docker compose --profile self-hosted --env-file .env \
+              logs --no-color api 2>/dev/null || true)
+            verification_token=$(printf '%s' "$api_logs" | python3 -c '
+          import re
+          import sys
+
+          text = sys.stdin.read()
+          matches = re.findall(r"/auth/verify-email\?token=([A-Za-z0-9._~-]+)", text)
+          print(matches[-1] if matches else "")
+          ')
+            if [ -n "$verification_token" ]; then
+              break
+            fi
+            sleep 1
+          done
+
+          test -n "$verification_token" || {
+            echo "No usable verification token was recoverable from the configured log-mail delivery channel."
+            exit 1
+          }
+
+          confirm_status=$(jq -nc --arg token "$verification_token" '{token:$token}' \
+            | curl --silent --show-error \
+                -o /tmp/verification-confirm.json \
+                -w '%{http_code}' \
+                -X POST \
+                -H 'Content-Type: application/json' \
+                --data-binary @- \
+                "$G5_API_BASE/auth/email/verification/confirm")
+          test "$confirm_status" = "204" || {
+            echo "Email verification confirmation failed: HTTP $confirm_status"
+            exit 1
+          }
+
+          after_status=$(curl --silent --show-error \
+            -o /tmp/server-admin-after.json \
+            -w '%{http_code}' \
+            -H "Authorization: Bearer $access_token" \
+            "$G5_API_BASE/server-admin/overview")
+          test "$after_status" = "200" || {
+            echo "Verified allowlisted account could not access ServerAdmin overview: HTTP $after_status"
+            exit 1
+          }
+
+          echo "G5-07 bootstrap path PASS: registration -> log-mail verification -> ServerAdmin access."
+
+      - name: Failure diagnostics without authentication material
+        if: failure()
+        run: |
+          docker compose --profile self-hosted --env-file .env ps
+          echo "Sensitive API/mail logs are intentionally not emitted by this guard."
+
+      - name: Tear down isolated stack
+        if: always()
+        run: docker compose --profile self-hosted --env-file .env down -v --remove-orphans

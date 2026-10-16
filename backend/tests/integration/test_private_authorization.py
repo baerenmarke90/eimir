@@ -1,19 +1,19 @@
-"""Owner- und Privacy-Isolation ueber HTTP gegen echtes PostgreSQL.
+"""Owner and privacy isolation through HTTP against real PostgreSQL.
 
-Die Matrix aus docs/SECURITY.md, um die Eigentuemerfrage erweitert:
+The matrix from docs/SECURITY.md, extended with the ownership question:
 
-    Eigentuemer auf eigene OWNER_ONLY-Zeile       erlaubt, auch aendernd
-    Partner im selben Space auf OWNER_ONLY        niemals, auf keinem Weg
-    Partner auf SPACE_SHARED                      lesend erlaubt
-    fremder Space                                 niemals
-    anonym                                        niemals
+    Owner on own OWNER_ONLY row                 allowed, including mutation
+    Partner in the same space on OWNER_ONLY     never, on every path
+    Partner on SPACE_SHARED                     read access allowed
+    Foreign space                               never
+    Anonymous                                   never
 
-Geprueft wird ueber HTTP mit echten Token. Ein Direktaufruf des Guards
-ueberspringt genau den Weg, auf dem eine Pruefung vergessen werden kann.
+The tests exercise real HTTP requests with real tokens. Calling the guards
+directly would bypass exactly the request path on which a check can be omitted.
 
-Die Sonde aus `tests.support.privacy_probe` ist keine Fachdomaene, sondern
-die duennste Ressource, an der sich die Grundlage pruefen laesst - siehe
-die Begruendung dort.
+The probe from `tests.support.privacy_probe` is not a product domain, but
+the thinnest resource that can exercise the underlying rule itself; see
+the rationale there.
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ import pytest
 from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import PrivacyClass
-from sidebyside.core.ids import new_id
-from sidebyside.relationship import service
+from eimir.authorization import PrivacyClass
+from eimir.core.ids import new_id
+from eimir.relationship import service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.support.privacy_probe import PrivacyProbe
 
@@ -32,29 +32,29 @@ pytestmark = [pytest.mark.integration, requires_database]
 
 CANARY_ANNA = "CANARY-PRIVATE-ANNA-7421"
 CANARY_BEN = "CANARY-PRIVATE-BEN-7422"
-CANARY_FREMD = "CANARY-PRIVATE-CAROL-7423"
+CANARY_FOREIGN = "CANARY-PRIVATE-CAROL-7423"
 
 
-def _sonde(
+def _probe(
     session: Session, *, space_id, owner_id, privacy_class: PrivacyClass, label: str
 ) -> PrivacyProbe:  # type: ignore[no-untyped-def]
-    sonde = PrivacyProbe(
+    probe = PrivacyProbe(
         space_id=space_id,
         owner_id=owner_id,
         privacy_class=privacy_class.value,
         label=label,
     )
-    session.add(sonde)
+    session.add(probe)
     session.flush()
-    return sonde
+    return probe
 
 
 @pytest.fixture
 def probe_client(session: Session):  # type: ignore[no-untyped-def]
-    """Die produktive App mit angehaengtem Sondenrouter.
+    """The production app with the probe router attached.
 
-    Eine eigene App-Instanz: der versionierte OpenAPI-Vertrag der
-    Produktion bleibt unberuehrt.
+    A dedicated app instance keeps the versioned production OpenAPI contract
+    unchanged.
     """
     from fastapi.testclient import TestClient
 
@@ -64,8 +64,8 @@ def probe_client(session: Session):  # type: ignore[no-untyped-def]
 
 
 @pytest.fixture
-def szenario(session: Session):  # type: ignore[no-untyped-def]
-    """Zwei Partner in einem Space, eine fremde Person in ihrem eigenen."""
+def scenario(session: Session):  # type: ignore[no-untyped-def]
+    "Two partners in one space and a foreign person in their own space."
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
     carol = make_account(session, "Carol")
@@ -84,281 +84,268 @@ def szenario(session: Session):  # type: ignore[no-untyped-def]
         "token_anna": sign_in(session, anna),
         "token_ben": sign_in(session, ben),
         "token_carol": sign_in(session, carol),
-        "privat_anna": _sonde(
+        "private_anna": _probe(
             session,
             space_id=alpha.id,
             owner_id=anna.id,
             privacy_class=PrivacyClass.OWNER_ONLY,
             label=CANARY_ANNA,
         ),
-        "privat_ben": _sonde(
+        "private_ben": _probe(
             session,
             space_id=alpha.id,
             owner_id=ben.id,
             privacy_class=PrivacyClass.OWNER_ONLY,
             label=CANARY_BEN,
         ),
-        "geteilt_anna": _sonde(
+        "shared_anna": _probe(
             session,
             space_id=alpha.id,
             owner_id=anna.id,
             privacy_class=PrivacyClass.SPACE_SHARED,
             label="Gemeinsam von Anna",
         ),
-        "privat_carol": _sonde(
+        "private_carol": _probe(
             session,
             space_id=beta.id,
             owner_id=carol.id,
             privacy_class=PrivacyClass.OWNER_ONLY,
-            label=CANARY_FREMD,
+            label=CANARY_FOREIGN,
         ),
     }
 
 
-def _pfad(szenario, sonde: str, raum: str = "alpha") -> str:  # type: ignore[no-untyped-def]
-    return f"/api/v1/spaces/{szenario[raum].id}/privacy-probes/{szenario[sonde].id}"
+def _path(scenario, probe_key: str, space_key: str = "alpha") -> str:  # type: ignore[no-untyped-def]
+    return f"/api/v1/spaces/{scenario[space_key].id}/privacy-probes/{scenario[probe_key].id}"
 
 
-class TestEigentuemer:
-    def test_liest_die_eigene_private_zeile(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.get(
-            _pfad(szenario, "privat_anna"), headers=auth(szenario["token_anna"])
+class TestOwner:
+    def test_reads_own_private_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.get(
+            _path(scenario, "private_anna"), headers=auth(scenario["token_anna"])
         )
-        assert antwort.status_code == 200
-        assert antwort.json()["label"] == CANARY_ANNA
-        assert antwort.json()["privacyClass"] == "OWNER_ONLY"
+        assert response.status_code == 200
+        assert response.json()["label"] == CANARY_ANNA
+        assert response.json()["privacyClass"] == "OWNER_ONLY"
 
-    def test_aendert_die_eigene_private_zeile(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.patch(
-            _pfad(szenario, "privat_anna"),
-            headers=auth(szenario["token_anna"]),
+    def test_changes_own_private_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.patch(
+            _path(scenario, "private_anna"),
+            headers=auth(scenario["token_anna"]),
             json={"label": "geaendert"},
         )
-        assert antwort.status_code == 200
-        assert antwort.json()["label"] == "geaendert"
+        assert response.status_code == 200
+        assert response.json()["label"] == "geaendert"
 
-    def test_loescht_die_eigene_private_zeile(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        pfad = _pfad(szenario, "privat_anna")
-        assert probe_client.delete(pfad, headers=auth(szenario["token_anna"])).status_code == 204
-        assert probe_client.get(pfad, headers=auth(szenario["token_anna"])).status_code == 404
+    def test_deletes_own_private_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        path = _path(scenario, "private_anna")
+        assert probe_client.delete(path, headers=auth(scenario["token_anna"])).status_code == 204
+        assert probe_client.get(path, headers=auth(scenario["token_anna"])).status_code == 404
 
-    def test_sieht_eigenes_und_geteiltes_in_der_liste(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes",
-            headers=auth(szenario["token_anna"]),
+    def test_sees_own_and_shared_rows_in_list(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes",
+            headers=auth(scenario["token_anna"]),
         )
-        assert antwort.status_code == 200
-        assert {zeile["label"] for zeile in antwort.json()} == {CANARY_ANNA, "Gemeinsam von Anna"}
+        assert response.status_code == 200
+        assert {row["label"] for row in response.json()} == {CANARY_ANNA, "Gemeinsam von Anna"}
 
 
-class TestPartnerImSelbenSpace:
-    """Der Partner ist kein privilegierter Leser. Bei OWNER_ONLY steht er
-    Fremden gleich."""
+class TestPartnerInSameSpace:
+    """The partner is not a privileged reader.
 
-    def test_bekommt_die_private_zeile_nicht_ueber_die_id(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.get(
-            _pfad(szenario, "privat_anna"), headers=auth(szenario["token_ben"])
+    OWNER_ONLY resources remain indistinguishable from foreign resources.
+    """
+
+    def test_cannot_get_private_row_by_id(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.get(
+            _path(scenario, "private_anna"), headers=auth(scenario["token_ben"])
         )
-        assert antwort.status_code == 404
-        assert antwort.json()["code"] == "PRIVACY_PROBE_NOT_FOUND"
+        assert response.status_code == 404
+        assert response.json()["code"] == "PRIVACY_PROBE_NOT_FOUND"
 
-    def test_echte_und_erfundene_id_sind_nicht_zu_unterscheiden(
-        self, probe_client, szenario
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Aus dem Unterschied liesse sich sonst eine Existenzauskunft bauen."""
-        kopf = auth(szenario["token_ben"])
-        echt = probe_client.get(_pfad(szenario, "privat_anna"), headers=kopf)
-        erfunden = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/{new_id()}", headers=kopf
+    def test_real_and_invented_ids_are_indistinguishable(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        "Otherwise the response difference could become an existence oracle."
+        headers = auth(scenario["token_ben"])
+        real = probe_client.get(_path(scenario, "private_anna"), headers=headers)
+        invented = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/{new_id()}", headers=headers
         )
-        assert echt.status_code == erfunden.status_code == 404
-        assert echt.json() == erfunden.json()
+        assert real.status_code == invented.status_code == 404
+        assert real.json() == invented.json()
 
     @pytest.mark.parametrize(
-        "boese",
+        "malformed_id",
         ["nicht-echt", "12345", "' OR 1=1 --", "%2e%2e", "00000000-0000-0000-0000-000000000000"],
     )
-    def test_auch_eine_fehlgeformte_id_klingt_gleich(
-        self, probe_client, szenario, boese: str
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Fehlgeformt, unbekannt und fremd-privat ergeben dieselbe Antwort."""
-        kopf = auth(szenario["token_ben"])
-        echt = probe_client.get(_pfad(szenario, "privat_anna"), headers=kopf)
-        kaputt = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/{boese}", headers=kopf
+    def test_malformed_id_looks_the_same(self, probe_client, scenario, malformed_id: str) -> None:  # type: ignore[no-untyped-def]
+        "Malformed, unknown, and foreign-private resources produce the same response."
+        headers = auth(scenario["token_ben"])
+        real = probe_client.get(_path(scenario, "private_anna"), headers=headers)
+        malformed = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/{malformed_id}", headers=headers
         )
-        assert kaputt.status_code == 404
-        assert kaputt.json() == echt.json()
+        assert malformed.status_code == 404
+        assert malformed.json() == real.json()
 
-    @pytest.mark.parametrize("boese", ["../../etc/passwd", "a/b"])
-    def test_ein_zerbrochener_pfad_bleibt_ebenfalls_404(
-        self, probe_client, szenario, boese: str
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Ein Schraegstrich trifft keine Route mehr und bekommt deshalb die
-        allgemeine 404-Antwort.
+    @pytest.mark.parametrize("malformed_id", ["../../etc/passwd", "a/b"])
+    def test_broken_path_also_remains_404(self, probe_client, scenario, malformed_id: str) -> None:  # type: ignore[no-untyped-def]
+        """A slash no longer matches the route and receives the generic 404 response.
 
-        Das ist keine Existenzauskunft: der Unterschied haengt an der Form
-        der URL, die der Aufrufer selbst gewaehlt hat, und nicht daran, ob
-        es eine Ressource gibt. Wer IDs durchprobiert, lernt daraus nichts.
+        This is not an existence oracle: the response difference depends on the
+        URL form chosen by the caller, not on whether a resource exists.
         """
-        antwort = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/{boese}",
-            headers=auth(szenario["token_ben"]),
+        response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/{malformed_id}",
+            headers=auth(scenario["token_ben"]),
         )
-        assert antwort.status_code == 404
-        assert CANARY_ANNA not in antwort.text
+        assert response.status_code == 404
+        assert CANARY_ANNA not in response.text
 
-    def test_die_liste_zeigt_die_private_zeile_des_partners_nicht(
-        self, probe_client, szenario
-    ) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes",
-            headers=auth(szenario["token_ben"]),
+    def test_list_hides_partner_private_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes",
+            headers=auth(scenario["token_ben"]),
         )
-        assert {zeile["label"] for zeile in antwort.json()} == {CANARY_BEN, "Gemeinsam von Anna"}
-        assert CANARY_ANNA not in antwort.text
+        assert {row["label"] for row in response.json()} == {CANARY_BEN, "Gemeinsam von Anna"}
+        assert CANARY_ANNA not in response.text
 
-    def test_die_trefferzahl_verraet_sie_auch_nicht(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        """Eine Zahl ist selbst schon eine Auskunft."""
-        antwort = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/count",
-            headers=auth(szenario["token_ben"]),
+    def test_result_count_does_not_reveal_private_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        "A count is itself a disclosure."
+        response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/count",
+            headers=auth(scenario["token_ben"]),
         )
-        assert antwort.json()["total"] == 2
+        assert response.json()["total"] == 2
 
-    def test_kann_die_private_zeile_nicht_aendern(self, probe_client, session, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.patch(
-            _pfad(szenario, "privat_anna"),
-            headers=auth(szenario["token_ben"]),
+    def test_cannot_change_partner_private_row(self, probe_client, session, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.patch(
+            _path(scenario, "private_anna"),
+            headers=auth(scenario["token_ben"]),
             json={"label": "uebernommen"},
         )
-        assert antwort.status_code == 404
-        session.refresh(szenario["privat_anna"])
-        assert szenario["privat_anna"].label == CANARY_ANNA
+        assert response.status_code == 404
+        session.refresh(scenario["private_anna"])
+        assert scenario["private_anna"].label == CANARY_ANNA
 
-    def test_kann_die_private_zeile_nicht_loeschen(self, probe_client, session, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.delete(
-            _pfad(szenario, "privat_anna"), headers=auth(szenario["token_ben"])
+    def test_cannot_delete_partner_private_row(self, probe_client, session, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.delete(
+            _path(scenario, "private_anna"), headers=auth(scenario["token_ben"])
         )
-        assert antwort.status_code == 404
-        assert antwort.json()["code"] == "PRIVACY_PROBE_NOT_FOUND"
-        session.refresh(szenario["privat_anna"])
-        assert szenario["privat_anna"].label == CANARY_ANNA
+        assert response.status_code == 404
+        assert response.json()["code"] == "PRIVACY_PROBE_NOT_FOUND"
+        session.refresh(scenario["private_anna"])
+        assert scenario["private_anna"].label == CANARY_ANNA
 
-    def test_darf_geteiltes_lesen(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        antwort = probe_client.get(
-            _pfad(szenario, "geteilt_anna"), headers=auth(szenario["token_ben"])
+    def test_may_read_shared_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        response = probe_client.get(
+            _path(scenario, "shared_anna"), headers=auth(scenario["token_ben"])
         )
-        assert antwort.status_code == 200
-        assert antwort.json()["label"] == "Gemeinsam von Anna"
+        assert response.status_code == 200
+        assert response.json()["label"] == "Gemeinsam von Anna"
 
-    def test_darf_geteiltes_des_partners_nicht_aendern(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        """Hier 403 und nicht 404: die Zeile steht dem Partner ohnehin offen.
+    def test_partner_may_not_change_shared_row(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        """This is 403 rather than 404 because the row is already visible to the partner.
 
-        Ein 404 waere kein Schutz, sondern eine Luege ueber etwas, das er
-        sich gerade hat anzeigen lassen."""
-        antwort = probe_client.patch(
-            _pfad(szenario, "geteilt_anna"),
-            headers=auth(szenario["token_ben"]),
+        A 404 would provide no protection; it would contradict a resource the
+        same caller can already read.
+        """
+        response = probe_client.patch(
+            _path(scenario, "shared_anna"),
+            headers=auth(scenario["token_ben"]),
             json={"label": "uebernommen"},
         )
-        assert antwort.status_code == 403
-        assert antwort.json()["code"] == "NOT_RESOURCE_OWNER"
+        assert response.status_code == 403
+        assert response.json()["code"] == "NOT_RESOURCE_OWNER"
 
 
-class TestFremderSpace:
-    def test_kommt_nicht_an_die_sonden_eines_fremden_space(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        """Der Tenant Guard antwortet zuerst - hier faellt schon der Pfad."""
-        antwort = probe_client.get(
-            _pfad(szenario, "privat_anna"), headers=auth(szenario["token_carol"])
+class TestForeignSpace:
+    def test_cannot_access_probes_of_foreign_space(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        "The tenant guard responds first; the path already fails here."
+        response = probe_client.get(
+            _path(scenario, "private_anna"), headers=auth(scenario["token_carol"])
         )
-        assert antwort.status_code == 404
-        assert antwort.json()["code"] == "SPACE_NOT_FOUND"
+        assert response.status_code == 404
+        assert response.json()["code"] == "SPACE_NOT_FOUND"
 
-    def test_eine_fremde_id_im_eigenen_space_bleibt_unauffindbar(
-        self, probe_client, szenario
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Die ID existiert wirklich - nur nicht in diesem Space."""
-        kopf = auth(szenario["token_anna"])
-        fremd = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/{szenario['privat_carol'].id}",
-            headers=kopf,
+    def test_foreign_id_in_own_space_remains_undiscoverable(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        "The ID really exists, but not in this space."
+        headers = auth(scenario["token_anna"])
+        foreign = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/{scenario['private_carol'].id}",
+            headers=headers,
         )
-        erfunden = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/{new_id()}", headers=kopf
+        invented = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/{new_id()}", headers=headers
         )
-        assert fremd.status_code == erfunden.status_code == 404
-        assert fremd.json() == erfunden.json()
+        assert foreign.status_code == invented.status_code == 404
+        assert foreign.json() == invented.json()
 
-    def test_kein_fremder_inhalt_in_liste_oder_zaehlung(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        kopf = auth(szenario["token_anna"])
-        liste = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes", headers=kopf
+    def test_no_foreign_content_in_list_or_count(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        headers = auth(scenario["token_anna"])
+        list_response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes", headers=headers
         )
-        zahl = probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes/count", headers=kopf
+        count_response = probe_client.get(
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes/count", headers=headers
         )
-        assert CANARY_FREMD not in liste.text
-        assert CANARY_BEN not in liste.text
-        assert zahl.json()["total"] == 2
+        assert CANARY_FOREIGN not in list_response.text
+        assert CANARY_BEN not in list_response.text
+        assert count_response.json()["total"] == 2
 
 
-class TestAnonym:
-    def test_ohne_token_kein_zugriff(self, probe_client, szenario) -> None:  # type: ignore[no-untyped-def]
-        assert probe_client.get(_pfad(szenario, "privat_anna")).status_code == 401
+class TestAnonymous:
+    def test_without_token_has_no_access(self, probe_client, scenario) -> None:  # type: ignore[no-untyped-def]
+        assert probe_client.get(_path(scenario, "private_anna")).status_code == 401
         assert (
-            probe_client.get(f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes").status_code
+            probe_client.get(f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes").status_code
             == 401
         )
 
 
-class TestFilterInDerAbfrage:
-    """Nicht laden und danach ausfiltern.
+class TestFilterInQuery:
+    """Filter in the database rather than loading rows and filtering afterwards.
 
-    Ein Treffer, der entsteht und danach verworfen wird, ist bereits ein
-    Leck - er war im Speicher, im Log und in der Antwortgroesse.
+    A row that is loaded and then discarded has already crossed an isolation
+    boundary and can affect storage, logs, or response-size side channels.
     """
 
     @pytest.fixture
-    def abfragen(self, engine: Engine):  # type: ignore[no-untyped-def]
-        aufgezeichnet: list[str] = []
+    def queries(self, engine: Engine):  # type: ignore[no-untyped-def]
+        recorded: list[str] = []
 
-        def _mitschreiben(conn, cursor, statement, parameters, context, executemany) -> None:  # type: ignore[no-untyped-def]
-            aufgezeichnet.append(statement)
+        def _record(conn, cursor, statement, parameters, context, executemany) -> None:  # type: ignore[no-untyped-def]
+            recorded.append(statement)
 
-        event.listen(engine, "before_cursor_execute", _mitschreiben)
+        event.listen(engine, "before_cursor_execute", _record)
         try:
-            yield aufgezeichnet
+            yield recorded
         finally:
-            event.remove(engine, "before_cursor_execute", _mitschreiben)
+            event.remove(engine, "before_cursor_execute", _record)
 
-    def test_die_private_zeile_wird_gar_nicht_erst_geholt(
-        self, probe_client, szenario, abfragen
-    ) -> None:  # type: ignore[no-untyped-def]
-        abfragen.clear()
-        antwort = probe_client.get(
-            _pfad(szenario, "privat_anna"), headers=auth(szenario["token_ben"])
+    def test_private_row_is_not_loaded_initially(self, probe_client, scenario, queries) -> None:  # type: ignore[no-untyped-def]
+        queries.clear()
+        response = probe_client.get(
+            _path(scenario, "private_anna"), headers=auth(scenario["token_ben"])
         )
-        assert antwort.status_code == 404
+        assert response.status_code == 404
 
-        sondenabfragen = [sql for sql in abfragen if "privacy_probes" in sql]
-        assert sondenabfragen, "Es gab keine Abfrage auf die Sondentabelle."
-        for sql in sondenabfragen:
+        probe_queries = [sql for sql in queries if "privacy_probes" in sql]
+        assert probe_queries, "No query touched the privacy probe table."
+        for sql in probe_queries:
             assert "privacy_class" in sql
             assert "owner_id" in sql
             assert "space_id" in sql
 
-    def test_auch_die_liste_filtert_in_der_datenbank(
-        self, probe_client, szenario, abfragen
-    ) -> None:  # type: ignore[no-untyped-def]
-        abfragen.clear()
+    def test_list_also_filters_in_database(self, probe_client, scenario, queries) -> None:  # type: ignore[no-untyped-def]
+        queries.clear()
         probe_client.get(
-            f"/api/v1/spaces/{szenario['alpha'].id}/privacy-probes",
-            headers=auth(szenario["token_ben"]),
+            f"/api/v1/spaces/{scenario['alpha'].id}/privacy-probes",
+            headers=auth(scenario["token_ben"]),
         )
-        sondenabfragen = [sql for sql in abfragen if "privacy_probes" in sql]
-        assert sondenabfragen
-        for sql in sondenabfragen:
+        probe_queries = [sql for sql in queries if "privacy_probes" in sql]
+        assert probe_queries
+        for sql in probe_queries:
             assert "WHERE" in sql.upper()
             assert "privacy_class" in sql
             assert "owner_id" in sql

@@ -1,19 +1,15 @@
-"""Der Plan-Slice muss den in M3-D02 bis M3-D05 und M3-D30 entschiedenen
-Vertrag spiegeln.
-
-Wie beim Wish leben mehrere Entscheidungen ausschliesslich in der Form des
-Vertrags: dass `status`, `sourceWishId` und die Termine nicht aus einem
-Request kommen, dass jede Lifecycle-Operation `If-Match` verlangt, und dass
-die Konvertierung zwei Erfolgsantworten hat statt einer.
-"""
+"""Verify the Plan slice reflects the current shared scheduling contract."""
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/plans"
 DETAIL = "/api/v1/spaces/{spaceId}/plans/{planId}"
-CONVERT = "/api/v1/spaces/{spaceId}/wishes/{wishId}/plan"
+WISH_COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
+WISH_DETAIL = f"{WISH_COLLECTION}/{{wishId}}"
+WISH_COMPLETE = f"{WISH_DETAIL}/complete"
+CONVERT = f"{WISH_DETAIL}/plan"
 LIFECYCLE = (
     f"{DETAIL}/schedule",
     f"{DETAIL}/unschedule",
@@ -34,6 +30,14 @@ def _components() -> dict[str, dict]:
     return _schema()["components"]["schemas"]  # type: ignore[index,return-value]
 
 
+def _wish_paths() -> set[str]:
+    return {
+        path
+        for path in _paths()
+        if path == WISH_COLLECTION or path.startswith(f"{WISH_COLLECTION}/")
+    }
+
+
 def test_plan_routes_have_frozen_operation_ids() -> None:
     paths = _paths()
     assert paths[COLLECTION]["post"]["operationId"] == "createPlan"
@@ -46,49 +50,43 @@ def test_plan_routes_have_frozen_operation_ids() -> None:
     assert paths[f"{DETAIL}/complete"]["post"]["operationId"] == "completePlan"
     assert paths[f"{DETAIL}/return-to-wish"]["post"]["operationId"] == "returnPlanToWish"
     assert paths[CONVERT]["post"]["operationId"] == "convertWishToPlan"
+    assert paths[WISH_COMPLETE]["post"]["operationId"] == "completeWish"
 
 
 def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
-    """M3-D02 nennt sechs Wish- und neun Plan-Operationen.
-
-    M3-S1 hatte die Konvertierung ausgelassen, weil es keinen Plan gab.
-    Mit diesem Slice ist die Flaeche vollstaendig - und der Test haelt sie
-    fest, damit keine Operation still dazukommt oder verschwindet.
-    """
-    wish_paths = {pfad for pfad in _paths() if "/wishes" in pfad}
-    plan_paths = {pfad for pfad in _paths() if "/plans" in pfad}
+    wish_paths = _wish_paths()
+    plan_paths = {path for path in _paths() if "/plans" in path}
     assert wish_paths == {
-        "/api/v1/spaces/{spaceId}/wishes",
-        "/api/v1/spaces/{spaceId}/wishes/{wishId}",
+        WISH_COLLECTION,
+        WISH_DETAIL,
+        WISH_COMPLETE,
         CONVERT,
     }
     assert plan_paths == {COLLECTION, DETAIL, *LIFECYCLE}
 
 
 def test_every_lifecycle_operation_requires_if_match() -> None:
-    """Auch `unschedule` und `return-to-wish` - sie haben keinen Body,
-    aber sehr wohl eine Wirkung."""
     paths = _paths()
-    versioniert = [
+    versioned = [
         (DETAIL, "patch"),
         (DETAIL, "delete"),
         (CONVERT, "post"),
-        *((pfad, "post") for pfad in LIFECYCLE),
+        (WISH_COMPLETE, "post"),
+        *((path, "post") for path in LIFECYCLE),
     ]
-    for pfad, methode in versioniert:
-        parameter = {p["name"]: p for p in paths[pfad][methode].get("parameters", [])}
-        assert "If-Match" in parameter, f"{methode.upper()} {pfad}"
-        assert parameter["If-Match"]["required"] is True
+    for path, method in versioned:
+        parameters = {p["name"]: p for p in paths[path][method].get("parameters", [])}
+        assert "If-Match" in parameters, f"{method.upper()} {path}"
+        assert parameters["If-Match"]["required"] is True
 
 
 def test_create_does_not_require_if_match() -> None:
-    namen = {p["name"] for p in _paths()[COLLECTION]["post"].get("parameters", [])}
-    assert "If-Match" not in namen
+    names = {p["name"] for p in _paths()[COLLECTION]["post"].get("parameters", [])}
+    assert "If-Match" not in names
 
 
 def test_no_request_body_accepts_server_owned_fields() -> None:
-    """M3-D04/D30: Status, Herkunft und Termine kommen nicht vom Client."""
-    verboten = {
+    forbidden = {
         "status",
         "sourceWishId",
         "createdBy",
@@ -100,15 +98,25 @@ def test_no_request_body_accepts_server_owned_fields() -> None:
     }
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan"):
         schema = _components()[name]
-        assert set(schema["properties"]) & verboten == set(), name
+        assert set(schema["properties"]) & forbidden == set(), name
         assert schema.get("additionalProperties") is False, name
 
 
-def test_only_schedule_accepts_planned_dates() -> None:
-    """`plannedStart`/`plannedEnd` gehoeren der Terminierung, nicht dem PATCH."""
-    assert set(_components()["PlanSchedule"]["properties"]) == {"plannedStart", "plannedEnd"}
-    assert _components()["PlanSchedule"]["required"] == ["plannedStart"]
+def test_schedule_contract_distinguishes_calendar_date_from_instant() -> None:
+    schedule = _components()["PlanSchedule"]
+    assert set(schedule["properties"]) == {"plannedOn", "plannedStart", "plannedEnd"}
+    assert "required" not in schedule
+    assert schedule["properties"]["plannedOn"]["format"] == "date"
+    assert schedule["properties"]["plannedStart"]["format"] == "date-time"
+    assert schedule["properties"]["plannedEnd"]["format"] == "date-time"
+
+    # Create and Wish conversion may carry the same nested schedule atomically;
+    # PATCH stays lifecycle-neutral and raw schedule fields never leak outward.
+    assert "schedule" in _components()["PlanCreate"]["properties"]
+    assert "schedule" in _components()["WishToPlan"]["properties"]
+    assert "schedule" not in _components()["PlanUpdate"]["properties"]
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan"):
+        assert "plannedOn" not in _components()[name]["properties"], name
         assert "plannedStart" not in _components()[name]["properties"], name
         assert "plannedEnd" not in _components()[name]["properties"], name
 
@@ -116,34 +124,30 @@ def test_only_schedule_accepts_planned_dates() -> None:
 def test_only_complete_and_patch_carry_the_experienced_day() -> None:
     assert set(_components()["PlanComplete"]["properties"]) == {"experiencedOn"}
     assert _components()["PlanComplete"]["required"] == ["experiencedOn"]
-    # Die Korrektur am abgeschlossenen Plan (M3-D04).
     assert "experiencedOn" in _components()["PlanUpdate"]["properties"]
     assert "experiencedOn" not in _components()["PlanCreate"]["properties"]
 
 
 def test_direct_create_needs_only_a_title() -> None:
     schema = _components()["PlanCreate"]
-    assert set(schema["properties"]) == {"title", "description", "placeId"}
+    assert set(schema["properties"]) == {"title", "description", "placeId", "schedule"}
     assert schema["required"] == ["title"]
 
 
 def test_conversion_carries_no_required_field() -> None:
-    """Ohne eigenen Titel uebernimmt der Plan den des Wishes."""
     schema = _components()["WishToPlan"]
-    assert set(schema["properties"]) == {"title", "description", "placeId"}
+    assert set(schema["properties"]) == {"title", "description", "placeId", "schedule"}
     assert "required" not in schema
 
 
 def test_conversion_documents_both_success_answers() -> None:
-    """Der idempotente Retry ist Teil des Vertrags, kein Zufall.
-
-    Ein Client, der nur 201 kennt, wuerde die 200-Antwort als Fehler
-    behandeln - und genau dann einen zweiten Plan anlegen wollen.
-    """
-    antworten = _paths()[CONVERT]["post"]["responses"]
-    assert "201" in antworten
-    assert "200" in antworten
-    assert "409" in antworten
+    responses = _paths()[CONVERT]["post"]["responses"]
+    assert "201" in responses
+    assert "200" in responses
+    assert "409" in responses
+    expected_schema = {"$ref": "#/components/schemas/WishToPlanResponse"}
+    assert responses["200"]["content"]["application/json"]["schema"] == expected_schema
+    assert responses["201"]["content"]["application/json"]["schema"] == expected_schema
 
 
 def test_conversion_returns_both_resources() -> None:
@@ -152,7 +156,6 @@ def test_conversion_returns_both_resources() -> None:
 
 
 def test_return_to_wish_answers_with_the_wish_and_the_removed_id() -> None:
-    """Der Plan ist danach weg; eine Plan-Darstellung waere eine Luege."""
     schema = _components()["PlanReturnToWishResponse"]
     assert set(schema["properties"]) == {"wish", "removedPlanId"}
 
@@ -162,31 +165,27 @@ def test_detail_exposes_lifecycle_state_read_only() -> None:
     assert {
         "status",
         "sourceWishId",
+        "plannedOn",
         "plannedStart",
         "plannedEnd",
         "experiencedOn",
         "createdBy",
         "capabilities",
     } <= set(schema["properties"])
+    assert schema["properties"]["plannedOn"]["anyOf"][0]["format"] == "date"
     assert set(_components()["PlanStatus"]["enum"]) == {"IDEA", "PLANNED", "COMPLETED"}
 
 
 def test_list_filters_by_status_and_not_by_free_text() -> None:
-    parameter = {p["name"] for p in _paths()[COLLECTION]["get"].get("parameters", [])}
-    assert {"status", "cursor", "limit"} <= parameter
-    assert "q" not in parameter
+    parameters = {p["name"] for p in _paths()[COLLECTION]["get"].get("parameters", [])}
+    assert {"status", "cursor", "limit"} <= parameters
+    assert "q" not in parameters
 
 
 def test_the_place_is_a_single_canonical_field() -> None:
-    """`placeId` kam mit M3-S3 dazu (M3-D08/D31).
-
-    Einspaltig und kanonisch: ein Plan hat hoechstens einen primaeren Ort,
-    und es gibt keine `place_plans`-Flaeche daneben. Die Form des Feldes
-    prueft `test_m3_place_openapi`; hier zaehlt nur, dass es genau eines
-    ist und keine zweite Zuordnungsroute existiert.
-    """
+    """A Plan has one canonical Place field and no secondary place route."""
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan", "PlanDetail"):
         assert "placeId" in _components()[name]["properties"], name
         assert "placeIds" not in _components()[name]["properties"], name
 
-    assert not any("/plans/{planId}/places" in pfad for pfad in _paths())
+    assert not any("/plans/{planId}/places" in path for path in _paths())

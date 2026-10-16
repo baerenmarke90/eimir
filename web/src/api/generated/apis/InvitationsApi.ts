@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -91,7 +91,7 @@ export class InvitationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Einladung annehmen.  Ausserhalb von /spaces/..., weil der Aufrufer den Space noch nicht kennt - der Token bestimmt ihn.
+     * Accept an invitation.  This endpoint lives outside ``/spaces/...`` because the caller does not know the space yet; the token identifies it.
      * Accept Invitation
      */
     async acceptInvitationApiV1InvitationsAcceptPostRaw(requestParameters: AcceptInvitationApiV1InvitationsAcceptPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<MembershipView>> {
@@ -102,7 +102,7 @@ export class InvitationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Einladung annehmen.  Ausserhalb von /spaces/..., weil der Aufrufer den Space noch nicht kennt - der Token bestimmt ihn.
+     * Accept an invitation.  This endpoint lives outside ``/spaces/...`` because the caller does not know the space yet; the token identifies it.
      * Accept Invitation
      */
     async acceptInvitationApiV1InvitationsAcceptPost(requestParameters: AcceptInvitationApiV1InvitationsAcceptPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<MembershipView> {
@@ -183,7 +183,7 @@ export class InvitationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die offenen Einladungen. Ohne Token - der ist einmalig gewesen.
+     * Return open invitations without their one-time tokens.
      * List Invitations
      */
     async listInvitationsApiV1SpacesSpaceIdInvitationsGetRaw(requestParameters: ListInvitationsApiV1SpacesSpaceIdInvitationsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<InvitationView>>> {
@@ -194,7 +194,7 @@ export class InvitationsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die offenen Einladungen. Ohne Token - der ist einmalig gewesen.
+     * Return open invitations without their one-time tokens.
      * List Invitations
      */
     async listInvitationsApiV1SpacesSpaceIdInvitationsGet(requestParameters: ListInvitationsApiV1SpacesSpaceIdInvitationsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<InvitationView>> {

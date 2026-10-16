@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,11 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
- * Was von einem Account nach aussen geht.
+ * Account projection exposed through a space response.
  * 
- * Ausdruecklich eine Whitelist. Am Account haengen Anmeldedaten und
- * Kontaktangaben, die in einer Space-Antwort nichts verloren haben - und
- * eine allgemeine Modell-Serialisierung wuerde sie irgendwann mitnehmen.
+ * This is deliberately an allowlist. Accounts also contain authentication
+ * and contact data that do not belong in a space response; serializing the
+ * general model would eventually expose such fields by accident.
  * @export
  * @interface PartnerView
  */

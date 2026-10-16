@@ -1,8 +1,7 @@
 """outbox and jobs foundation
 
-Die beiden Tabellen, auf denen die Plattform steht: die Transactional
-Outbox und die Job-Warteschlange. Beide sind SYSTEM_METADATA und tragen
-keine Nutzerinhalte.
+The two tables underpinning the platform: the transactional outbox and the
+job queue. Both contain SYSTEM_METADATA and no user content.
 
 Revision ID: 0001
 Revises:
@@ -43,9 +42,8 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name="pk_outbox_events"),
     )
 
-    # Der Worker sucht ausschliesslich unverarbeitete Zeilen. Ein Teilindex
-    # bleibt klein, auch wenn die Tabelle Millionen erledigter Ereignisse
-    # enthaelt.
+    # The worker only searches unprocessed rows. A partial index stays small
+    # even when the table contains millions of completed events.
     op.create_index(
         "ix_outbox_events_unprocessed",
         "outbox_events",

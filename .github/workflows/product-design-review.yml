@@ -1,0 +1,64 @@
+name: Product Design Review
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  product-design-review:
+    name: Product Design Review
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_BODY: ${{ github.event.pull_request.body }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify classifier unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest scripts.test_classify_product_design_paths
+
+      - name: Verify product design review gate unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest scripts.test_verify_product_design_review
+
+      - name: Detect client UI changes
+        id: ui
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          files="$(gh api --paginate "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --jq '.[].filename')"
+          printf '%s\n' "$files"
+
+          # Presentation and runtime design sources classified according to the
+          # Web-first Product Reference: design/**, web/public/**, web/index.html,
+          # and web/src/** (excluding web/src/api/generated/**). Capacitor wrapper
+          # and native capability paths are not a second product-UI surface.
+          ui_files="$(python3 scripts/classify_product_design_paths.py <<< "$files")"
+
+          if [ -n "$ui_files" ]; then
+            printf 'User-facing client paths changed:\n%s\n' "$ui_files"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No user-facing client path changed."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Product Design / UX declarations
+        shell: bash
+        env:
+          UI_CHANGED: ${{ steps.ui.outputs.changed }}
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_product_design_review.py

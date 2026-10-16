@@ -1,0 +1,302 @@
+/*
+ * eimir. Phase 5 — Direction B for shared Lists + Planning.
+ *
+ * This layer intentionally sits beside SharedPlanningPages.css instead of
+ * changing that shared foundation: Chapters (/story) and PrivateCollections
+ * still consume the older stylesheet. The selectors below opt in only the
+ * shared planning/list surfaces owned by this phase.
+ */
+
+/*
+ * Semantic typography aliases for roles already defined in design/tokens.json.
+ * The current Web adapter exposes font families but not these role metrics yet;
+ * #771 owns the broader adapter hardening beyond this focused Phase-5 slice.
+ */
+:root {
+  --type-heading2-size: 28px;
+  --type-heading2-weight: 700;
+  --type-heading2-tracking: -0.01em;
+  --type-heading2-leading: 1.2;
+  --type-title-size: 18px;
+  --type-title-weight: 600;
+  --type-title-tracking: 0;
+  --type-title-leading: 1.35;
+}
+
+:where(
+  .planning-page.planning-sanctuary,
+  .planning-page:has(> .planning-facts),
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page),
+  .planning-page:has(#place-relations-heading),
+  .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+) {
+  gap: clamp(var(--space-8), 5vw, var(--space-12));
+
+  & .page-heading:not(.page-heading-root) {
+    margin-bottom: 0;
+    border-bottom: 0;
+    padding-bottom: 0;
+
+    & .eyebrow {
+      color: var(--color-shared);
+    }
+
+    & h1,
+    & .page-heading-title-container {
+      letter-spacing: -0.015em;
+      line-height: 1.18;
+    }
+
+    & p:last-child {
+      line-height: 1.65;
+    }
+  }
+
+  /* One shared surface, rather than a stack of dashboard cards. */
+  & > .planning-subsection {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  & .planning-list {
+    gap: 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  & .planning-card {
+    min-height: 56px;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    border-radius: 0;
+    padding: var(--space-4) var(--space-2);
+    background: transparent;
+    box-shadow: none;
+    transition:
+      background var(--duration-feedback) var(--easing-standard),
+      border-color var(--duration-feedback) var(--easing-standard);
+
+    &:hover {
+      transform: none;
+      border-color: var(--color-shared-border);
+      background: var(--color-surface-panel-tint);
+      box-shadow: none;
+    }
+
+    &:focus-visible {
+      transform: none;
+      border-color: var(--color-shared-border);
+      background: var(--color-surface-panel-tint);
+      box-shadow: none;
+      outline: 3px solid var(--color-focus);
+      outline-offset: 3px;
+    }
+
+    & h3 {
+      font-family: var(--font-ui);
+      font-size: var(--type-title-size);
+      font-weight: var(--type-title-weight);
+      letter-spacing: var(--type-title-tracking);
+      line-height: var(--type-title-leading);
+    }
+  }
+
+  & .planning-card-copy,
+  & .planning-meta,
+  & .planning-empty {
+    overflow-wrap: anywhere;
+  }
+
+  & .planning-empty {
+    max-width: 36rem;
+    margin: var(--space-5) 0;
+    border-left: 2px solid var(--color-shared-accent);
+    padding-left: var(--space-4);
+    color: var(--color-text-secondary);
+    font-size: 0.98rem;
+    line-height: 1.65;
+  }
+
+  /* Create is an invitation into the shared plan, not a CRUD toolbar. */
+  & .planning-create {
+    margin-top: var(--space-5);
+    border-top: 0;
+    padding-top: 0;
+
+    & > summary {
+      max-width: 100%;
+      border: 1px solid var(--color-brand-glow);
+      background: var(--color-brand-surface);
+      color: var(--color-brand-text);
+      box-shadow: none;
+      white-space: normal;
+      text-align: left;
+
+      &::before {
+        width: auto;
+        height: auto;
+        border-radius: 0;
+        background: transparent;
+        color: currentColor;
+      }
+    }
+  }
+
+  & #collection-create-details > summary,
+  & #place-create-details > summary {
+    border-color: var(--color-brand-strong);
+    background: var(--color-brand-strong);
+    color: var(--color-on-accent);
+    box-shadow: var(--shadow-soft);
+
+    &:hover {
+      border-color: var(--color-brand-strong);
+      background: var(--color-brand-strong);
+      box-shadow: var(--shadow-soft);
+    }
+  }
+
+  & .planning-create-form {
+    margin-top: var(--space-4);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-large);
+    padding: clamp(var(--space-4), 3vw, var(--space-5));
+    background: var(--color-surface-panel-tint);
+  }
+}
+
+/* Detail pages read as calm editing sheets instead of dashboard grids. */
+:where(
+  .planning-page:has(> .planning-facts),
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page),
+  .planning-page:has(#place-relations-heading),
+  .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+) {
+  & .planning-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: var(--reading-max);
+    gap: var(--space-6);
+
+    & > .planning-subsection,
+    & > section {
+      border-color: var(--color-border-subtle);
+      border-radius: var(--radius-large);
+      background: var(--color-surface-panel-tint);
+      box-shadow: none;
+    }
+  }
+}
+
+:where(.planning-page:has(> .planning-facts)) {
+  & > .planning-facts {
+    border: 0;
+    border-radius: 0;
+    padding: 0 0 var(--space-5);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  & .plan-completed-celebration {
+    border-color: var(--color-shared-border);
+    background: radial-gradient(
+      circle at top left,
+      var(--color-shared-surface),
+      var(--color-surface-panel-tint) 78%
+    );
+    box-shadow: none;
+
+    & h2 {
+      font-family: var(--font-display);
+      font-weight: 650;
+    }
+  }
+}
+
+:where(
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page),
+  .planning-page:has(#place-relations-heading)
+) {
+  & .planning-collection-items,
+  & .planning-relation-list {
+    gap: 0;
+    border-top: 1px solid var(--color-border-subtle);
+
+    & li {
+      min-height: 56px;
+      border: 0;
+      border-bottom: 1px solid var(--color-border-subtle);
+      border-radius: 0;
+      padding: var(--space-3) var(--space-1);
+      background: transparent;
+      box-shadow: none;
+    }
+  }
+}
+
+@media (max-width: 599px) {
+  :where(.planning-page.planning-sanctuary) .planning-card {
+    padding-inline: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+      .planning-page.planning-sanctuary,
+      .planning-page:has(> .planning-facts),
+      .planning-page:has(> .page-heading-collection):not(
+        .private-collection-page
+      ),
+      .planning-page:has(#place-relations-heading),
+      .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+    )
+    .planning-card,
+  :where(
+      .planning-page.planning-sanctuary,
+      .planning-page:has(> .planning-facts),
+      .planning-page:has(> .page-heading-collection):not(
+        .private-collection-page
+      ),
+      .planning-page:has(#place-relations-heading),
+      .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+    )
+    .planning-create
+    > summary,
+  :where(
+      .planning-page.planning-sanctuary,
+      .planning-page:has(> .planning-facts),
+      .planning-page:has(> .page-heading-collection):not(
+        .private-collection-page
+      ),
+      .planning-page:has(#place-relations-heading),
+      .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+    )
+    .planning-check {
+    transition: none;
+  }
+
+  :where(
+      .planning-page.planning-sanctuary,
+      .planning-page:has(> .planning-facts),
+      .planning-page:has(> .page-heading-collection):not(
+        .private-collection-page
+      ),
+      .planning-page:has(#place-relations-heading),
+      .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+    )
+    .planning-card:hover,
+  :where(
+      .planning-page.planning-sanctuary,
+      .planning-page:has(> .planning-facts),
+      .planning-page:has(> .page-heading-collection):not(
+        .private-collection-page
+      ),
+      .planning-page:has(#place-relations-heading),
+      .planning-page:has(.back-link[href="/plan"]):not(:has(> .planning-facts))
+    )
+    .planning-create
+    > summary:hover {
+    transform: none;
+  }
+}

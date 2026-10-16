@@ -1,0 +1,80 @@
+.demo-instance-banner {
+  position: relative;
+  z-index: 50;
+  min-height: calc(
+    40px +
+    var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-brand-glow);
+  padding: calc(
+      var(--space-2) +
+      var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+    )
+    var(--space-4) var(--space-2);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.demo-instance-banner strong {
+  flex: 0 0 auto;
+  font-weight: 800;
+  color: var(--color-brand-strong);
+}
+
+:root[data-theme="dark"] .demo-instance-banner {
+  background: #2a1b24;
+  border-bottom-color: rgba(255, 101, 142, 0.25);
+  color: #ffb8ca;
+}
+
+:root[data-theme="dark"] .demo-instance-banner strong {
+  color: #ff658e;
+}
+
+.demo-launch {
+  position: fixed;
+  right: clamp(1rem, 3vw, 2rem);
+  bottom: clamp(1rem, 3vw, 2rem);
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  box-shadow: 0 0.75rem 2rem var(--color-shadow-card);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+#root:has(.login-shell) .demo-launch {
+  display: inline-flex;
+}
+
+.demo-launch:hover {
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .demo-instance-banner {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .demo-launch {
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+  }
+}

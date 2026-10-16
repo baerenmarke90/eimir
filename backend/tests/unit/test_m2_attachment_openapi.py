@@ -1,11 +1,11 @@
-"""Der Attachment-Slice muss den in #70 freigegebenen Vertrag spiegeln."""
+"""The Attachment slice must mirror the contract approved in #70."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/attachments"
 DETAIL = "/api/v1/spaces/{spaceId}/attachments/{attachmentId}"
@@ -42,49 +42,52 @@ def test_the_detail_exposes_only_contracted_public_fields() -> None:
     detail = schema["components"]["schemas"]["AttachmentDetail"]  # type: ignore[index]
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
 
-    erlaubt = set(contract["attachmentPublicFields"]) | {"hasThumbnail"}
-    assert set(detail["properties"]) <= erlaubt
+    allowed = set(contract["attachmentPublicFields"]) | {"hasThumbnail"}
+    assert set(detail["properties"]) <= allowed
     assert set(contract["attachmentPublicFields"]) - {"durationSeconds"} <= set(
         detail["properties"]
     )
 
 
 def test_storage_internals_are_not_fields_anywhere_in_the_schema() -> None:
-    """Storage Keys, Buckets und Pfade sind keine Clientfelder.
+    """Storage keys, buckets, and paths are not client fields.
 
-    Geprueft werden Feldnamen, nicht der Rohtext: `privacyClass` kommt in
-    Beschreibungen vor - und zwar genau dort, wo steht, dass es keines ist.
+    Field names are checked rather than raw text: `privacyClass` appears in
+    descriptions precisely where the contract explains that it is not a field.
     """
     components = _schema()["components"]["schemas"]  # type: ignore[index]
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-    verboten = set(contract["attachmentForbiddenClientFields"])
+    forbidden = set(contract["attachmentForbiddenClientFields"])
 
     for name, definition in components.items():
-        felder = set(definition.get("properties") or {})
-        ueberschneidung = felder & verboten
-        assert not ueberschneidung, f"{name}: {sorted(ueberschneidung)}"
+        fields = set(definition.get("properties") or {})
+        overlap = fields & forbidden
+        assert not overlap, f"{name}: {sorted(overlap)}"
 
 
-def test_read_request_accepts_the_unbound_variant() -> None:
+def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
     """M2-D24."""
     components = _schema()["components"]["schemas"]  # type: ignore[index]
     request = components["AttachmentReadRequest"]
     parent_type = request["properties"]["parentType"]
-    werte = set(parent_type.get("enum") or [])
-    assert werte == {"MEMORY", "HEART_MOMENT", "NONE"}
+    values = set(parent_type.get("enum") or [])
+    assert values == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON"}
+    content_variant = request["properties"]["variant"]
+    assert set(content_variant["enum"]) == {"original", "thumbnail"}
+    assert content_variant["default"] == "original"
     assert request["additionalProperties"] is False
 
 
 def test_the_manifest_lists_the_same_variants() -> None:
     contract = json.loads(CONTRACT.read_text(encoding="utf-8"))
-    varianten = {eintrag["parentType"] for eintrag in contract["attachmentReadRequestVariants"]}
-    assert varianten == {"MEMORY", "HEART_MOMENT", "NONE"}
-    ungebunden = next(
-        eintrag
-        for eintrag in contract["attachmentReadRequestVariants"]
-        if eintrag["parentType"] == "NONE"
+    variants = {entry["parentType"] for entry in contract["attachmentReadRequestVariants"]}
+    assert variants == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON"}
+    unbound = next(
+        entry
+        for entry in contract["attachmentReadRequestVariants"]
+        if entry["parentType"] == "NONE"
     )
-    assert ungebunden["requiresParentId"] is False
+    assert unbound["requiresParentId"] is False
 
 
 def test_upload_create_only_accepts_the_contracted_fields() -> None:

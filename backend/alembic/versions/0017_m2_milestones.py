@@ -36,8 +36,8 @@ def upgrade() -> None:
         sa.Column("space_id", UUID, nullable=False),
         sa.Column("owner_id", UUID, nullable=False),
         sa.Column("privacy_class", _privacy_class(), nullable=False),
-        # Pflicht, anders als bei Memory: ein Meilenstein ohne Datum waere
-        # keiner, und die Story sortiert danach.
+        # Required, unlike for Memory: a milestone without a date would not be
+        # a milestone, and the Story sorts by this value.
         sa.Column("happened_on", sa.Date(), nullable=False),
         sa.Column("crypto_version", sa.SmallInteger(), server_default=sa.text("0"), nullable=False),
         sa.Column("payload", postgresql.JSONB(astext_type=sa.Text()), nullable=False),

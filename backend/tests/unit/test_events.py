@@ -1,4 +1,4 @@
-"""Outbox-Ereignisse dürfen nur explizit freigegebene Metadaten tragen."""
+"""Outbox events may carry only explicitly approved metadata."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.dialects import postgresql
 
-from sidebyside.core.ids import new_id
-from sidebyside.domain.events import DomainEvent, EventType, PublicEventPayload
-from sidebyside.domain.payload import ProtectedPayload
-from sidebyside.outbox.payload import PublicEventPayloadJSON
+from eimir.core.ids import new_id
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.domain.payload import ProtectedPayload
+from eimir.outbox.payload import PublicEventPayloadJSON
 
 
 class PrivateContent(ProtectedPayload):
@@ -33,33 +33,33 @@ def _event(payload: object) -> DomainEvent:
     )
 
 
-def test_erlaubte_metadaten_sind_typisiert() -> None:
+def test_allowed_metadata_is_typed() -> None:
     event = _event({"has_attachment": True})
     assert event.payload == PublicEventPayload(has_attachment=True)
 
 
 @pytest.mark.parametrize("field", ["title", "body", "text", "content", "location"])
-def test_unbekannte_klartextfelder_werden_abgewiesen(field: str) -> None:
+def test_unknown_plaintext_fields_are_rejected(field: str) -> None:
     with pytest.raises(ValidationError):
-        _event({field: "privater Klartext"})
+        _event({field: "private plaintext"})
 
 
-def test_protected_payload_kann_nicht_outbox_payload_werden() -> None:
+def test_protected_payload_cannot_become_outbox_payload() -> None:
     with pytest.raises(ValidationError):
-        _event(PrivateContent(title="Überraschung", body="Geheim"))
+        _event(PrivateContent(title="Surprise", body="Secret"))
 
 
-def test_rohes_dictionary_wird_auch_an_outbox_db_grenze_abgewiesen() -> None:
+def test_raw_dictionary_is_rejected_at_outbox_database_boundary() -> None:
     storage = PublicEventPayloadJSON()
-    with pytest.raises(TypeError, match="PublicEventPayload erforderlich"):
+    with pytest.raises(TypeError, match="PublicEventPayload required"):
         storage.process_bind_param(  # type: ignore[arg-type]
-            {"body": "privater Klartext"}, postgresql.dialect()
+            {"body": "private plaintext"}, postgresql.dialect()
         )
 
 
-def test_erweiterte_payload_unterklasse_umgeht_allowlist_nicht() -> None:
+def test_extended_payload_subclass_does_not_bypass_allowlist() -> None:
     storage = PublicEventPayloadJSON()
-    with pytest.raises(TypeError, match="PublicEventPayload erforderlich"):
+    with pytest.raises(TypeError, match="PublicEventPayload required"):
         storage.process_bind_param(
-            SneakyEventPayload(body="privater Klartext"), postgresql.dialect()
+            SneakyEventPayload(body="private plaintext"), postgresql.dialect()
         )

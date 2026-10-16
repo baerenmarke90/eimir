@@ -1,7 +1,7 @@
 
 # PlanStatus
 
-Der Statusautomat aus M3-D04.  ```text IDEA -- schedule --> PLANNED IDEA -- complete --> COMPLETED PLANNED -- unschedule --> IDEA PLANNED -- complete --> COMPLETED ```  `COMPLETED` ist terminal. `return-to-wish` ist keine Kante dieses Automaten, sondern eine eigene Operation, die den Plan entfernt.
+State machine defined by M3-D04.  ```text IDEA -- schedule --> PLANNED IDEA -- complete --> COMPLETED PLANNED -- unschedule --> IDEA PLANNED -- complete --> COMPLETED ```  ``COMPLETED`` is terminal. ``return-to-wish`` is not an edge of this state machine but a separate operation that removes the plan.
 
 ## Properties
 

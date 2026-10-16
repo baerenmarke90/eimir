@@ -1,6 +1,6 @@
-"""PostgreSQL-/HTTP-Abnahme fuer den M2-Milestone-Slice.
+"""PostgreSQL and HTTP acceptance for the M2 Milestone slice.
 
-Schwerpunkt ist M2-D25: geteilte Lesbarkeit ist keine Schreibvollmacht.
+The focus is M2-D25: shared readability does not grant write permission.
 """
 
 from __future__ import annotations
@@ -12,13 +12,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.outbox.models import OutboxEvent
-from sidebyside.relationship import service as relationship_service
+from eimir.outbox.models import OutboxEvent
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
-GEHEIM = "Ein Text, der nicht in Ereignisse gehoert."
+SECRET = "Ein Text, der nicht in Ereignisse gehoert."
 
 
 def path(space_id: object) -> str:
@@ -39,275 +39,396 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
-    fremd = make_account(session, "Fremd")
+    outsider = make_account(session, "Fremd")
     space = make_space(session, anna)
     relationship_service.add_member(session, space.id, ben)
-    fremder_space = make_space(session, fremd)
-    # Ben ist bewusst Mitglied beider Spaces. Damit kann TEN-05 die
-    # Cursor-Bindung selbst pruefen, statt vorher an der Membership zu enden.
-    relationship_service.add_member(session, fremder_space.id, ben)
+    outsider_space = make_space(session, outsider)
+    # Ben deliberately belongs to both Spaces so TEN-05 can exercise cursor
+    # binding itself rather than fail earlier at the membership boundary.
+    relationship_service.add_member(session, outsider_space.id, ben)
     session.flush()
     return {
         "anna": anna,
         "ben": ben,
         "space": space,
-        "fremder_space": fremder_space,
+        "outsider_space": outsider_space,
         "token_a": sign_in(session, anna),
         "token_b": sign_in(session, ben),
-        "token_fremd": sign_in(session, fremd),
+        "token_outsider": sign_in(session, outsider),
     }
 
 
-def erstelle(client, paar, *, token_key: str = "token_a", **overrides):  # type: ignore[no-untyped-def]
+def create_milestone(
+    client,
+    couple,
+    *,
+    token_key: str = "token_a",
+    **overrides,
+):  # type: ignore[no-untyped-def]
     return client.post(
-        path(paar["space"].id), json=body(**overrides), headers=auth(paar[token_key])
+        path(couple["space"].id),
+        json=body(**overrides),
+        headers=auth(couple[token_key]),
     )
 
 
 class TestCrud:
-    def test_autor_kann_anlegen_lesen_aendern_loeschen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        angelegt = erstelle(client, paar)
-        assert angelegt.status_code == 201
-        m = angelegt.json()
-        assert UUID(m["id"]).version == 7
-        assert m["title"] == "Zusammengezogen"
-        assert m["body"] == "Erste gemeinsame Wohnung."
-        assert m["happenedOn"] == "2025-06-13"
-        assert m["authorId"] == str(paar["anna"].id)
-        assert m["capabilities"] == {"canEdit": True, "canDelete": True, "canComment": True}
-        assert "privacyClass" not in m
-        assert angelegt.headers["ETag"] == '"1"'
+    def test_author_can_create_read_update_delete(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        created = create_milestone(client, couple)
+        assert created.status_code == 201
+        milestone = created.json()
+        assert UUID(milestone["id"]).version == 7
+        assert milestone["title"] == "Zusammengezogen"
+        assert milestone["body"] == "Erste gemeinsame Wohnung."
+        assert milestone["happenedOn"] == "2025-06-13"
+        assert milestone["authorId"] == str(couple["anna"].id)
+        assert milestone["capabilities"] == {
+            "canEdit": True,
+            "canDelete": True,
+            "canComment": True,
+        }
+        assert "privacyClass" not in milestone
+        assert created.headers["ETag"] == '"1"'
 
-        geaendert = client.patch(
-            f"{path(paar['space'].id)}/{m['id']}",
+        updated = client.patch(
+            f"{path(couple['space'].id)}/{milestone['id']}",
             json={"title": "  In die erste Wohnung gezogen  ", "body": None},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert geaendert.status_code == 200
-        assert geaendert.json()["title"] == "In die erste Wohnung gezogen"
-        assert geaendert.json()["body"] is None
-        assert geaendert.json()["version"] == 2
+        assert updated.status_code == 200
+        assert updated.json()["title"] == "In die erste Wohnung gezogen"
+        assert updated.json()["body"] is None
+        assert updated.json()["version"] == 2
 
-        geloescht = client.delete(
-            f"{path(paar['space'].id)}/{m['id']}", headers=if_match(paar["token_a"], 2)
+        deleted = client.delete(
+            f"{path(couple['space'].id)}/{milestone['id']}",
+            headers=if_match(couple["token_a"], 2),
         )
-        assert geloescht.status_code == 204
+        assert deleted.status_code == 204
 
-    def test_body_ist_optional(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        angelegt = client.post(
-            path(paar["space"].id),
+    def test_body_is_optional(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        created = client.post(
+            path(couple["space"].id),
             json={"title": "Verlobt", "happenedOn": "2024-12-24"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert angelegt.status_code == 201
-        assert angelegt.json()["body"] is None
+        assert created.status_code == 201
+        assert created.json()["body"] is None
 
-    def test_body_null_beim_anlegen_wird_abgelehnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        antwort = client.post(
-            path(paar["space"].id),
+    def test_null_body_on_create_is_rejected(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        response = client.post(
+            path(couple["space"].id),
             json={"title": "Verlobt", "body": None, "happenedOn": "2024-12-24"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_happened_on_ist_pflicht(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        antwort = client.post(
-            path(paar["space"].id),
+    def test_happened_on_is_required(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        response = client.post(
+            path(couple["space"].id),
             json={"title": "Ohne Datum"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_leerer_titel_wird_abgelehnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        assert erstelle(client, paar, title="   ").status_code == 422
+    def test_blank_title_is_rejected(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        assert create_milestone(client, couple, title="   ").status_code == 422
 
-    def test_patch_kann_happened_on_nicht_leeren(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = erstelle(client, paar).json()
-        antwort = client.patch(
-            f"{path(paar['space'].id)}/{m['id']}",
+    def test_patch_cannot_clear_happened_on(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        milestone = create_milestone(client, couple).json()
+        response = client.patch(
+            f"{path(couple['space'].id)}/{milestone['id']}",
             json={"happenedOn": None},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
 
-class TestAutorregel:
-    def test_partner_liest_aber_schreibt_nicht(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """M2-D25: geteilte Lesbarkeit ist keine Schreibvollmacht."""
-        m = erstelle(client, paar).json()
+class TestAuthorRule:
+    def test_partner_reads_but_does_not_write(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """M2-D25: shared readability does not grant write permission."""
+        milestone = create_milestone(client, couple).json()
 
-        gelesen = client.get(f"{path(paar['space'].id)}/{m['id']}", headers=auth(paar["token_b"]))
-        assert gelesen.status_code == 200
-        assert gelesen.json()["capabilities"] == {
+        read = client.get(
+            f"{path(couple['space'].id)}/{milestone['id']}",
+            headers=auth(couple["token_b"]),
+        )
+        assert read.status_code == 200
+        assert read.json()["capabilities"] == {
             "canEdit": False,
             "canDelete": False,
             "canComment": True,
         }
 
-        for antwort in (
+        for response in (
             client.patch(
-                f"{path(paar['space'].id)}/{m['id']}",
+                f"{path(couple['space'].id)}/{milestone['id']}",
                 json={"title": "Von Ben geaendert."},
-                headers=if_match(paar["token_b"], 1),
+                headers=if_match(couple["token_b"], 1),
             ),
             client.delete(
-                f"{path(paar['space'].id)}/{m['id']}", headers=if_match(paar["token_b"], 1)
+                f"{path(couple['space'].id)}/{milestone['id']}",
+                headers=if_match(couple["token_b"], 1),
             ),
         ):
-            assert antwort.status_code == 403
+            assert response.status_code == 403
 
-    def test_partner_sieht_milestones_des_anderen_in_der_liste(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        von_anna = erstelle(client, paar, title="Von Anna").json()
-        von_ben = erstelle(client, paar, token_key="token_b", title="Von Ben").json()
+    def test_partner_sees_other_authors_milestones_in_list(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        from_anna = create_milestone(client, couple, title="Von Anna").json()
+        from_ben = create_milestone(
+            client,
+            couple,
+            token_key="token_b",
+            title="Von Ben",
+        ).json()
 
-        liste = client.get(path(paar["space"].id), headers=auth(paar["token_b"]))
-        assert {e["id"] for e in liste.json()["items"]} == {von_anna["id"], von_ben["id"]}
+        listing = client.get(path(couple["space"].id), headers=auth(couple["token_b"]))
+        assert {item["id"] for item in listing.json()["items"]} == {
+            from_anna["id"],
+            from_ben["id"],
+        }
 
-    def test_author_id_ist_nicht_setzbar(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        antwort = client.post(
-            path(paar["space"].id),
-            json={**body(), "authorId": str(paar["ben"].id)},
-            headers=auth(paar["token_a"]),
+    def test_author_id_is_not_client_settable(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        response = client.post(
+            path(couple["space"].id),
+            json={**body(), "authorId": str(couple["ben"].id)},
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
 
 class TestIsolation:
-    def test_anonym_und_fremder_space_erreichen_nichts(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = erstelle(client, paar).json()
-        assert client.get(f"{path(paar['space'].id)}/{m['id']}").status_code == 401
+    def test_anonymous_and_outsider_reach_nothing(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        milestone = create_milestone(client, couple).json()
+        assert client.get(f"{path(couple['space'].id)}/{milestone['id']}").status_code == 401
         assert (
             client.get(
-                f"{path(paar['space'].id)}/{m['id']}", headers=auth(paar["token_fremd"])
+                f"{path(couple['space'].id)}/{milestone['id']}",
+                headers=auth(couple["token_outsider"]),
             ).status_code
             == 404
         )
 
-    def test_unbekannte_und_missgeformte_id_antworten_gleich(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for kennung in (str(uuid4()), "keine-uuid"):
-            antwort = client.get(
-                f"{path(paar['space'].id)}/{kennung}", headers=auth(paar["token_a"])
+    def test_unknown_and_malformed_ids_answer_the_same(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for identifier in (str(uuid4()), "keine-uuid"):
+            response = client.get(
+                f"{path(couple['space'].id)}/{identifier}",
+                headers=auth(couple["token_a"]),
             )
-            assert antwort.status_code == 404
+            assert response.status_code == 404
 
 
 class TestConcurrency:
-    def test_veraltetes_update_und_delete_ergeben_409(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        m = erstelle(client, paar).json()
+    def test_stale_update_and_delete_return_409(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        milestone = create_milestone(client, couple).json()
         client.patch(
-            f"{path(paar['space'].id)}/{m['id']}",
+            f"{path(couple['space'].id)}/{milestone['id']}",
             json={"title": "Erste Aenderung"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        for antwort in (
+        for response in (
             client.patch(
-                f"{path(paar['space'].id)}/{m['id']}",
+                f"{path(couple['space'].id)}/{milestone['id']}",
                 json={"title": "Zweite Aenderung"},
-                headers=if_match(paar["token_a"], 1),
+                headers=if_match(couple["token_a"], 1),
             ),
             client.delete(
-                f"{path(paar['space'].id)}/{m['id']}", headers=if_match(paar["token_a"], 1)
+                f"{path(couple['space'].id)}/{milestone['id']}",
+                headers=if_match(couple["token_a"], 1),
             ),
         ):
-            assert antwort.status_code == 409
-            assert antwort.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+            assert response.status_code == 409
+            assert response.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
 
-class TestPaginationUndFilter:
-    def test_cursor_blaettert_vollstaendig(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        erwartet = [erstelle(client, paar, title=f"M {i}").json()["id"] for i in range(5)]
+class TestPaginationAndFilter:
+    def test_cursor_pages_completely(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        expected = [
+            create_milestone(client, couple, title=f"M {index}").json()["id"] for index in range(5)
+        ]
 
-        gesehen: list[str] = []
+        seen: list[str] = []
         query = "?limit=2"
         while True:
-            seite = client.get(f"{path(paar['space'].id)}{query}", headers=auth(paar["token_a"]))
-            gesehen.extend(e["id"] for e in seite.json()["items"])
-            cursor = seite.json()["nextCursor"]
+            page = client.get(
+                f"{path(couple['space'].id)}{query}",
+                headers=auth(couple["token_a"]),
+            )
+            seen.extend(item["id"] for item in page.json()["items"])
+            cursor = page.json()["nextCursor"]
             if cursor is None:
                 break
             query = f"?limit=2&cursor={cursor}"
 
-        assert gesehen == list(reversed(erwartet))
-        assert len(set(gesehen)) == len(gesehen)
+        assert seen == list(reversed(expected))
+        assert len(set(seen)) == len(seen)
 
-    def test_jahresfilter_arbeitet_auf_happened_on(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        alt = erstelle(client, paar, title="2024", happened_on="2024-03-01").json()
-        neu = erstelle(client, paar, title="2025", happened_on="2025-03-01").json()
+    def test_year_filter_uses_happened_on(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        old = create_milestone(
+            client,
+            couple,
+            title="2024",
+            happened_on="2024-03-01",
+        ).json()
+        new = create_milestone(
+            client,
+            couple,
+            title="2025",
+            happened_on="2025-03-01",
+        ).json()
 
-        seite = client.get(f"{path(paar['space'].id)}?year=2024", headers=auth(paar["token_a"]))
-        assert [e["id"] for e in seite.json()["items"]] == [alt["id"]]
-        assert neu["id"] not in seite.text
-
-    def test_cursor_ist_an_seinen_filter_gebunden(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for i in range(3):
-            erstelle(client, paar, title=f"M {i}", happened_on="2025-03-01")
-        seite = client.get(f"{path(paar['space'].id)}?limit=1", headers=auth(paar["token_a"]))
-        cursor = seite.json()["nextCursor"]
-
-        antwort = client.get(
-            f"{path(paar['space'].id)}?limit=1&year=2025&cursor={cursor}",
-            headers=auth(paar["token_a"]),
+        page = client.get(
+            f"{path(couple['space'].id)}?year=2024",
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 400
-        assert antwort.json()["code"] == "INVALID_CURSOR"
+        assert [item["id"] for item in page.json()["items"]] == [old["id"]]
+        assert new["id"] not in page.text
 
-    def test_cursor_ist_an_seinen_space_gebunden(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for i in range(2):
-            erstelle(client, paar, title=f"M {i}")
-        seite = client.get(
-            f"{path(paar['space'].id)}?limit=1",
-            headers=auth(paar["token_b"]),
+    def test_cursor_is_bound_to_filter(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(3):
+            create_milestone(
+                client,
+                couple,
+                title=f"M {index}",
+                happened_on="2025-03-01",
+            )
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_a"]),
         )
-        cursor = seite.json()["nextCursor"]
+        cursor = page.json()["nextCursor"]
+
+        response = client.get(
+            f"{path(couple['space'].id)}?limit=1&year=2025&cursor={cursor}",
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
+
+    def test_cursor_is_bound_to_space(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(2):
+            create_milestone(client, couple, title=f"M {index}")
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_b"]),
+        )
+        cursor = page.json()["nextCursor"]
         assert cursor is not None
 
-        antwort = client.get(
-            f"{path(paar['fremder_space'].id)}?limit=1&cursor={cursor}",
-            headers=auth(paar["token_b"]),
+        response = client.get(
+            f"{path(couple['outsider_space'].id)}?limit=1&cursor={cursor}",
+            headers=auth(couple["token_b"]),
         )
-        assert antwort.status_code == 400
-        assert antwort.json()["code"] == "INVALID_CURSOR"
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
 
-    def test_manipulierter_cursor_wird_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for i in range(3):
-            erstelle(client, paar, title=f"M {i}")
-        seite = client.get(f"{path(paar['space'].id)}?limit=1", headers=auth(paar["token_a"]))
-        cursor = seite.json()["nextCursor"]
-        nutzlast, signatur = cursor.split(".", 1)
-        gefaelscht = f"{nutzlast[:-1]}{'A' if nutzlast[-1] != 'A' else 'B'}.{signatur}"
-
-        antwort = client.get(
-            f"{path(paar['space'].id)}?limit=1&cursor={gefaelscht}",
-            headers=auth(paar["token_a"]),
+    def test_tampered_cursor_is_rejected(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(3):
+            create_milestone(client, couple, title=f"M {index}")
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 400
+        cursor = page.json()["nextCursor"]
+        payload, signature = cursor.split(".", 1)
+        tampered = f"{payload[:-1]}{'A' if payload[-1] != 'A' else 'B'}.{signature}"
+
+        response = client.get(
+            f"{path(couple['space'].id)}?limit=1&cursor={tampered}",
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 400
 
 
-class TestEreignisse:
-    def test_events_enthalten_keinen_inhalt(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        m = erstelle(client, paar, body_text=GEHEIM).json()
+class TestEvents:
+    def test_events_contain_no_content(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        milestone = create_milestone(client, couple, body_text=SECRET).json()
         client.patch(
-            f"{path(paar['space'].id)}/{m['id']}",
+            f"{path(couple['space'].id)}/{milestone['id']}",
             json={"title": "Neu"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        client.delete(f"{path(paar['space'].id)}/{m['id']}", headers=if_match(paar["token_a"], 2))
+        client.delete(
+            f"{path(couple['space'].id)}/{milestone['id']}",
+            headers=if_match(couple["token_a"], 2),
+        )
 
-        zeilen = list(
+        rows = list(
             session.execute(
                 select(OutboxEvent).where(OutboxEvent.subject_type == "milestone")
             ).scalars()
         )
-        assert [z.event_type for z in zeilen] == [
+        assert [row.event_type for row in rows] == [
             "MILESTONE_CREATED",
             "MILESTONE_UPDATED",
             "MILESTONE_DELETED",
         ]
-        for zeile in zeilen:
-            roh = repr(zeile.payload.model_dump())
-            assert GEHEIM not in roh
-            assert "Zusammengezogen" not in roh
-            assert zeile.resource_version is not None
+        for row in rows:
+            raw = repr(row.payload.model_dump())
+            assert SECRET not in raw
+            assert "Zusammengezogen" not in raw
+            assert row.resource_version is not None

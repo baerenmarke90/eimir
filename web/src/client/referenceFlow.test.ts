@@ -121,6 +121,53 @@ describe('uploadAttachmentBytes', () => {
 });
 
 describe('runMemoryMediaStoryFlow', () => {
+  it('creates a Memory and refreshes the story without touching attachments when no photo is selected', async () => {
+    const memory = {
+      id: 'memory-1',
+      version: 1,
+      title: 'Title only',
+      body: '',
+    };
+    const story = { items: [] };
+    const createAttachmentUpload = vi.fn();
+    const replaceMemoryAttachments = vi.fn();
+    const apis = {
+      auth: {},
+      memories: {
+        createMemory: vi.fn(async () => memory),
+        replaceMemoryAttachments,
+      },
+      attachments: {
+        createAttachmentUpload,
+      },
+      story: {
+        getStoryTimeline: vi.fn(async () => story),
+      },
+    } as unknown as ReferenceApis;
+
+    const result = await runMemoryMediaStoryFlow(
+      apis,
+      'https://api.example.invalid',
+      'token',
+      'space-1',
+      { title: memory.title, body: memory.body },
+    );
+
+    expect(apis.memories.createMemory).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      memoryCreate: { title: 'Title only', body: '' },
+    });
+    expect(createAttachmentUpload).not.toHaveBeenCalled();
+    expect(replaceMemoryAttachments).not.toHaveBeenCalled();
+    expect(apis.story.getStoryTimeline).toHaveBeenCalledWith({
+      spaceId: 'space-1',
+      limit: 25,
+    });
+    expect(result.memory).toBe(memory);
+    expect(result.story).toBe(story);
+    expect(result.imageUrl).toBeNull();
+  });
+
   it('orchestrates create, upload, finalize, READY, bind, timeline and authorized read in order', async () => {
     const calls: string[] = [];
     const attachment = {
@@ -139,8 +186,8 @@ describe('runMemoryMediaStoryFlow', () => {
     const memory = {
       id: 'memory-1',
       version: 1,
-      title: 'Am See',
-      body: 'Zusammen unterwegs.',
+      title: 'Lakeside',
+      body: 'A day together.',
     };
     const boundMemory = { ...memory, version: 2 };
     const story = { items: [] };

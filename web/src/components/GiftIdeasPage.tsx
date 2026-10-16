@@ -11,6 +11,7 @@ import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
 import {
   PRIVATE_GIFT_IDEAS_PATH,
+  capturePrivateCreate,
   capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
@@ -313,11 +314,17 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
       privateApiCall(() =>
         api.createGiftIdea({ spaceId, giftIdeaCreate: values }),
       ),
-    onSuccess: async (gift) => {
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
-      });
+    onMutate: () =>
+      capturePrivateCreate(
+        queryClient,
+        privateAreaQueryKeys.giftIdeas(accountId, spaceId),
+        captureOwnership(),
+      ),
+    onSuccess: async (gift, _values, context) => {
+      await context?.refreshList();
+      if (!context?.isCurrentTask()) return;
       closeTask(() => {
+        if (!context.isCurrentTask()) return;
         navigate(privateGiftIdeaPath(gift.id), {
           replace: true,
           state: navigationState,
@@ -331,6 +338,7 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,

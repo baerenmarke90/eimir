@@ -12,6 +12,7 @@ import {
   type ProductCacheEventDetail,
 } from '../client/productReadCache';
 import { PUBLIC_START_ROUTE } from '../client/publicStart';
+import { releaseEditorHistoryForDocumentNavigation } from '../client/useEditorHistoryEntry';
 import {
   type AppRouteDefinition,
   activeNavigationArea,
@@ -159,8 +160,9 @@ function AuthenticatedAppShell({
     : null;
 
   function logout(): void {
+    const historySettled = releaseEditorHistoryForDocumentNavigation();
     onLogout();
-    window.location.assign(PUBLIC_START_ROUTE);
+    void historySettled.then(() => window.location.assign(PUBLIC_START_ROUTE));
   }
 
   const location = useLocation();

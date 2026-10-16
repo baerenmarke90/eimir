@@ -63,7 +63,7 @@ An initial local Node 22 full-suite run exposed an unrelated synchronous asserti
 
 The denied-read journey uses the test clock to cross the production 15-second Query freshness window before revisiting the detail. It first observes an actual 404, then releases the older successful PATCH while any recovery read is held. Immediate recovery had hidden the old UI's transient plaintext restoration, so a passing eventual error assertion alone was insufficient. The final test requires the unavailable state and absence of private title/body throughout the held recovery, then exercises explicit Retry. No arbitrary sleep or relaxed assertion is used.
 
-The sign-out journey holds the PATCH, signs out through the real account menu, releases the old response and verifies both the login screen and unchanged destination. It signs the same Account in again without reloading the document and observes a fresh unavailable read with no old title/body. The normal save journey checks If-Match, pending/duplicate-submit state, persisted title/body, canonical detail and return to the updated note list.
+The original sign-out journey held the PATCH, signed out through the real account menu, released the old response and verified both the login screen and unchanged destination. It signed the same Account in again and observed a fresh unavailable read with no old title/body. That run did not explicitly distinguish a committed logout reload from a beforeunload/history cancellation; see the follow-up qualification below. The normal save journey checks If-Match, pending/duplicate-submit state, persisted title/body, canonical detail and return to the updated note list.
 
 ### Inspected visual evidence
 
@@ -80,3 +80,9 @@ The sign-out journey holds the PATCH, signs out through the real account menu, r
 All seven complete-screen captures were visually inspected. [SHA256SUMS](SHA256SUMS) records their exact bytes. The surrounding existing suite also covers 360/390/430 px, sparse/dense/empty lists, title validation/focus, keyboard/pointer reorder, failed reads, conflicts, offline no-replay and reduced motion. Strict full-page WCAG 2.2 AA Axe checks remain enabled. No markup, style, copy or interaction pattern is introduced by this repair.
 
 Current-head hosted checks remain a separate pre-merge gate. These bounded checks do not close #503 or final audit #946 and do not replace #1271's device acceptance.
+
+## Sign-out evidence qualification — 2026-10-16 follow-up
+
+Later [private-create acceptance](../private-create-ownership/README.md) traced the actual `AppShell.logout` contract: it assigns the public document at `/`. Editor cleanup could concurrently request Back, aborting that navigation; Playwright could also dismiss beforeunload. The original passing and counterfactual sign-out results above therefore establish the observed retained-document scenario, not deterministic full-document logout. They must not be generalized into a claim that logout normally stays in the same document.
+
+The follow-up repairs that shared history handoff and changes both edit browser cases to await the real public document, then sign the same Account in and deliberately read the denied resource. Destroyed-document requests need not receive a browser response. The original 31-case component matrix and held denied-read journeys remain the in-memory settlement regression proof; the follow-up adds actual in-document replacement-task coverage for creates. Historical capture bytes remain unchanged. Main's complete 471-case browser regression passed before this follow-up; that green run does not remove the later demonstrated history race.

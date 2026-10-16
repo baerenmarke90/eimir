@@ -1446,6 +1446,11 @@ async function installHeldPrivateNoteEdit(page: Page) {
     version: 1,
   };
   let denyReads = false;
+  let holdReads = false;
+  let releaseReads!: () => void;
+  const readGate = new Promise<void>((resolve) => {
+    releaseReads = resolve;
+  });
   let reads = 0;
   const writes: { ifMatch: string | undefined; title: string }[] = [];
   let release!: () => void;
@@ -1456,6 +1461,7 @@ async function installHeldPrivateNoteEdit(page: Page) {
     const request = route.request();
     if (request.method() === 'GET') {
       reads += 1;
+      if (holdReads) await readGate;
       await route.fulfill({
         status: denyReads ? 404 : 200,
         contentType: 'application/json',
@@ -1515,6 +1521,10 @@ async function installHeldPrivateNoteEdit(page: Page) {
     denyReads: () => {
       denyReads = true;
     },
+    holdReads: () => {
+      holdReads = true;
+    },
+    releaseReads,
     get reads() {
       return reads;
     },
@@ -1632,6 +1642,8 @@ for (const view of [
     await expect(
       page.getByText(de.states.permission.title, { exact: true }),
     ).toBeVisible();
+    // A slow recovery must not conceal a stale save reviving denied content.
+    fixture.holdReads();
     const response = page.waitForResponse(
       (entry) =>
         entry.request().method() === 'PATCH' &&
@@ -1653,6 +1665,7 @@ for (const view of [
     await expect(
       page.getByRole('heading', { name: 'Submitted old private title' }),
     ).toHaveCount(0);
+    fixture.releaseReads();
     const reads = fixture.reads;
     await page
       .getByRole('button', { name: de.common.retry, exact: true })

@@ -5,6 +5,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { captureQueryIdentity } from '../client/queryIdentity';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { DashboardModulePreferenceList } from '../api/generated/models/DashboardModulePreferenceList';
 import {
@@ -64,9 +66,11 @@ export function useCollectionPin({
 
   const mutation = useMutation({
     mutationKey,
+    networkMode: 'always',
     retry: false,
     mutationFn: (selection: Selection) => {
       if (!dashboardApi) throw new Error('Dashboard API is not available.');
+      assertOnlineWrite();
       return apiCall(() =>
         dashboardApi.updateDashboardModulePreference({
           moduleKey: PINNED_COLLECTION_MODULE_KEY,
@@ -83,15 +87,8 @@ export function useCollectionPin({
         selection.accountId,
         selection.spaceId,
       );
-      const initiatingQuery = queryClient.getQueryCache().find({
-        queryKey: key,
-        exact: true,
-      });
+      const isCurrentQuery = captureQueryIdentity(queryClient, key);
       await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const isCurrentQuery = () =>
-        Boolean(initiatingQuery) &&
-        queryClient.getQueryCache().find({ queryKey: key, exact: true }) ===
-          initiatingQuery;
       const previous = queryClient
         .getQueryData<DashboardModulePreferenceList>(key)
         ?.items.find((item) => item.moduleKey === PINNED_COLLECTION_MODULE_KEY);
@@ -192,6 +189,8 @@ export function useCollectionPin({
           await queryClient.invalidateQueries({
             queryKey: context.key,
             exact: true,
+            // An offline recovery read would pause and retain the write lock.
+            refetchType: isClientOnline() ? 'active' : 'none',
           });
         }
       } finally {

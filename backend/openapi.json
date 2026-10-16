@@ -321,6 +321,52 @@
         "title": "AnnualSchedule",
         "type": "object"
       },
+      "AppIconId": {
+        "enum": [
+          "original",
+          "sunset",
+          "sage",
+          "daylight",
+          "lavender",
+          "sand",
+          "midnight",
+          "pearl",
+          "dark",
+          "monochrome",
+          "minimal"
+        ],
+        "title": "AppIconId",
+        "type": "string"
+      },
+      "AppIconPreferencePatch": {
+        "properties": {
+          "iconId": {
+            "$ref": "#/components/schemas/AppIconId"
+          }
+        },
+        "required": [
+          "iconId"
+        ],
+        "title": "AppIconPreferencePatch",
+        "type": "object"
+      },
+      "AppIconPreferenceView": {
+        "properties": {
+          "iconId": {
+            "$ref": "#/components/schemas/AppIconId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "iconId",
+          "version"
+        ],
+        "title": "AppIconPreferenceView",
+        "type": "object"
+      },
       "AttachmentDetail": {
         "properties": {
           "createdAt": {
@@ -14998,6 +15044,177 @@
         "summary": "Get Activity",
         "tags": [
           "activity"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/app-icon": {
+      "get": {
+        "description": "Read/export only the caller's selection, including after Pro expiry.",
+        "operationId": "getAppIconPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppIconPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known preset. Original is Free; each alternative requires Pro.\n\nMembership precedes the capability check. Reads never delete or revert a\npreviously saved cosmetic when a grant expires. No partner ID is accepted.",
+        "operationId": "updateAppIconPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppIconPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppIconPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
         ]
       }
     },

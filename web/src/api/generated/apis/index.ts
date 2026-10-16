@@ -2,6 +2,7 @@
 /* eslint-disable */
 export * from './AccountApi';
 export * from './ActivityApi';
+export * from './AppearanceApi';
 export * from './AttachmentsApi';
 export * from './AuthApi';
 export * from './ChapterRelationsApi';

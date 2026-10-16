@@ -81,6 +81,7 @@ const m5s3 = {
       'Wenn dieser Wunsch einfach so Wirklichkeit geworden ist, könnt ihr ihn direkt als erfüllt markieren.',
     complete: 'Als erfüllt markieren',
     completing: 'Wird abgeschlossen …',
+    completePending: 'Wunsch wird als erfüllt gespeichert …',
     completionTitle: 'Wunsch erfüllt',
     completionIntro:
       'Möchtet ihr daraus auch eine Erinnerung für eure gemeinsame Geschichte festhalten?',
@@ -131,6 +132,7 @@ const m5s3 = {
     unschedule: 'Noch ohne festen Termin',
     editAction: 'Plan bearbeiten',
     complete: 'Plan abschließen',
+    completePending: 'Abschluss für den {{date}} wird gespeichert …',
     returnToWish: 'Zurück zum Wunsch',
     completedTitle: 'Gemeinsam erlebt',
     completedBody: 'Aus einem Plan wurde etwas, das ihr erlebt habt.',

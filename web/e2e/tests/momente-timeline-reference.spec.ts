@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
@@ -183,6 +184,7 @@ async function installMocks(
   const currentUserName = options.asPartner ? 'Alex' : 'Lea Sommer';
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -753,9 +755,25 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(hasHorizontalOverflow).toBe(false);
 
     const browseLinks = page.locator('.momente-browse-link');
-    await expect(browseLinks).toHaveCount(3);
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-start', '1');
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-end', '-1');
+    await expect(browseLinks).toHaveCount(4);
+    expect(
+      await browseLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute('href')),
+      ),
+    ).toEqual([
+      '/story/photos',
+      '/story?tab=timeline&type=MILESTONE',
+      '/story/chapters',
+      '/story/years',
+    ]);
+    for (const link of await browseLinks.all()) {
+      const box = await link.boundingBox();
+      if (!box) throw new Error('Expected a visible Momente browse link');
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(320);
+    }
 
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')

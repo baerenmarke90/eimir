@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   type ReactNode,
   type RefObject,
@@ -9,21 +9,13 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
-import { SupportGestureKind } from '../api/generated/models/SupportGestureKind';
-import type { DashboardView } from '../api/generated/models/DashboardView';
-import { dashboardQueryKey } from '../client/dashboardQueries';
 import {
   loadPartnerQuickActionsCapability,
   PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED,
   partnerQuickActionsEntitlementQueryKey,
 } from '../client/partnerQuickActions';
-import {
-  ClientProblemError,
-  normalizeClientError,
-} from '../client/problemDetails';
+import { ClientProblemError } from '../client/problemDetails';
 import { MORE_PROFILE_ROUTE } from '../client/routes';
-import { postSnackbar } from '../client/snackbar';
-import { refreshSpaceConfiguration } from '../client/spaceConfiguration';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
 import { useMediaQuery } from '../client/useMediaQuery';
 import type { M4ProductApis } from '../client/m4Product';
@@ -32,36 +24,18 @@ import type { CouplePresenceAvatarAction } from './CouplePresence';
 import { ProMark } from './ProMark';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import { usePresentationPresence } from './useOverlayPresence';
+import {
+  isGestureCooldown,
+  usePartnerGesture,
+  type PartnerAction,
+} from './usePartnerGesture';
 import './PartnerQuickActions.css';
 
-const THINKING_OF_YOU_COOLDOWN_CODE = 'THINKING_OF_YOU_COOLDOWN';
-const SUPPORT_GESTURE_COOLDOWN_CODE = 'SUPPORT_GESTURE_COOLDOWN';
-const SPACE_MODULE_DISABLED_CODE = 'SPACE_MODULE_DISABLED';
 const EXPANDED_QUERY = '(min-width: 840px)';
-
-type PartnerAction = 'THINKING' | 'KISS' | 'CHECK_IN';
-
-type ActionResult =
-  | {
-      action: 'THINKING';
-      availableAt: Date;
-    }
-  | {
-      action: 'KISS' | 'CHECK_IN';
-      availableAt: Date;
-    };
 
 interface FeedbackState {
   tone: 'success' | 'error';
   text: string;
-}
-
-async function normalizeCall<T>(request: () => Promise<T>): Promise<T> {
-  try {
-    return await request();
-  } catch (error) {
-    throw await normalizeClientError(error);
-  }
 }
 
 export interface PartnerQuickActionsProps {
@@ -95,21 +69,12 @@ export function PartnerQuickActions({
 }: PartnerQuickActionsProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const isExpanded = useMediaQuery(EXPANDED_QUERY);
   const firstActionRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<ShortTaskSheetHandle>(null);
-  const inFlightRef = useRef(false);
   const titleId = useId();
-  const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [compactPresent, setCompactPresent] = useState(false);
   const [, setCooldownRevision] = useState(0);
-  const [localThinkingCooldown, setLocalThinkingCooldown] =
-    useState<Date | null>(null);
-  const [extendedCooldowns, setExtendedCooldowns] = useState<
-    Partial<Record<'KISS' | 'CHECK_IN', Date>>
-  >({});
-
   const { isOpen, close, toggle, triggerRef, panelRef } = useDismissiblePopover(
     {
       restoreFocusOnEscape: isExpanded,
@@ -124,28 +89,6 @@ export function PartnerQuickActions({
     completeExit: completeExpandedExit,
   } = usePresentationPresence(desiredExpandedOpen);
   const compactOpen = isOpen && !isExpanded && !expandedPresent;
-
-  const applyCooldown = (action: PartnerAction, availableAt: Date) => {
-    if (action === 'THINKING') {
-      setLocalThinkingCooldown(availableAt);
-      queryClient.setQueryData<DashboardView>(
-        dashboardQueryKey(spaceId),
-        (old) =>
-          old
-            ? {
-                ...old,
-                thinkingOfYouAvailableAt: availableAt,
-              }
-            : old,
-      );
-      return;
-    }
-
-    setExtendedCooldowns((current) => ({
-      ...current,
-      [action]: availableAt,
-    }));
-  };
 
   const capabilityQuery = useQuery({
     queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
@@ -164,116 +107,46 @@ export function PartnerQuickActions({
     staleTime: 60_000,
   });
 
-  const mutation = useMutation({
-    mutationFn: async (action: PartnerAction): Promise<ActionResult> => {
-      if (action === 'THINKING') {
-        const accepted = await normalizeCall(() =>
-          apis.notifications.sendThinkingOfYou({
-            spaceId,
-            thinkingOfYouCreate: { clientRequestId: crypto.randomUUID() },
-          }),
-        );
-        return {
-          action,
-          availableAt: accepted.thinkingOfYouAvailableAt,
-        };
-      }
-
-      const accepted = await normalizeCall(() =>
-        apis.notifications.sendPartnerQuickAction({
-          spaceId,
-          partnerQuickActionCreate: {
-            kind:
-              action === 'KISS'
-                ? SupportGestureKind.KISS
-                : SupportGestureKind.CHECK_IN,
-            clientRequestId: crypto.randomUUID(),
-          },
-        }),
-      );
-      return { action, availableAt: accepted.availableAt };
-    },
-    onSuccess: (result) => {
-      applyCooldown(result.action, result.availableAt);
-      if (result.action === 'THINKING') {
-        setFeedback({
-          tone: 'success',
-          text: t('partnerQuickActions.sentThinking'),
-        });
-        postSnackbar('snackbar.partnerQuickActionThinkingSent');
-        return;
-      }
-
-      if (result.action === 'KISS') {
-        setFeedback({
-          tone: 'success',
-          text: t('partnerQuickActions.sentKiss'),
-        });
-        postSnackbar('snackbar.partnerQuickActionKissSent');
-      } else {
-        setFeedback({
-          tone: 'success',
-          text: t('partnerQuickActions.sentCheckIn'),
-        });
-        postSnackbar('snackbar.partnerQuickActionCheckInSent');
-      }
-    },
-    onError: (error, action) => {
-      if (
-        error instanceof ClientProblemError &&
-        error.code === SPACE_MODULE_DISABLED_CODE
-      ) {
-        postSnackbar('snackbar.supportGesturesModuleDisabled');
-        void refreshSpaceConfiguration(queryClient, accountId, spaceId);
-        close();
-        return;
-      }
-
-      if (
-        error instanceof ClientProblemError &&
-        (error.code === THINKING_OF_YOU_COOLDOWN_CODE ||
-          error.code === SUPPORT_GESTURE_COOLDOWN_CODE)
-      ) {
-        if (
-          error.retryAfterSeconds !== undefined &&
-          error.retryAfterSeconds > 0
-        ) {
-          applyCooldown(
-            action,
-            new Date(Date.now() + error.retryAfterSeconds * 1000),
-          );
-        }
-        setFeedback({
-          tone: 'error',
-          text: t('partnerQuickActions.cooldown'),
-        });
-        postSnackbar('snackbar.partnerQuickActionCooldown');
-        return;
-      }
-
-      if (
-        error instanceof ClientProblemError &&
-        error.code === PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED
-      ) {
-        void queryClient.invalidateQueries({
-          queryKey: partnerQuickActionsEntitlementQueryKey(accountId, spaceId),
-        });
-        setFeedback({
-          tone: 'error',
-          text: t('partnerQuickActions.premiumHint'),
-        });
-        return;
-      }
-
-      setFeedback({
-        tone: 'error',
-        text: t('partnerQuickActions.sendError'),
-      });
-    },
+  const gesture = usePartnerGesture({
+    apis,
+    accountId,
+    spaceId,
+    onModuleDisabled: close,
   });
-
+  const cachedThinkingCooldown = gesture.cooldowns.THINKING;
   const resolvedThinkingCooldown =
-    localThinkingCooldown ?? thinkingOfYouAvailableAt;
+    cachedThinkingCooldown &&
+    (!thinkingOfYouAvailableAt ||
+      cachedThinkingCooldown > thinkingOfYouAvailableAt)
+      ? cachedThinkingCooldown
+      : thinkingOfYouAvailableAt;
+  const extendedCooldowns = gesture.cooldowns;
+  const feedback: FeedbackState | null = gesture.error
+    ? {
+        tone: 'error',
+        text: t(
+          isGestureCooldown(gesture.error)
+            ? 'partnerQuickActions.cooldown'
+            : gesture.error.code === PARTNER_QUICK_ACTIONS_ENTITLEMENT_REQUIRED
+              ? 'partnerQuickActions.premiumHint'
+              : gesture.error.kind === 'offline'
+                ? 'partnerQuickActions.offline'
+                : 'partnerQuickActions.sendError',
+        ),
+      }
+    : gesture.confirmedAction
+      ? {
+          tone: 'success',
+          text: t(
+            gesture.confirmedAction === 'THINKING'
+              ? 'partnerQuickActions.sentThinking'
+              : gesture.confirmedAction === 'KISS'
+                ? 'partnerQuickActions.sentKiss'
+                : 'partnerQuickActions.sentCheckIn',
+          ),
+        }
+      : null;
+
   const cooldownNow = Date.now();
   const nextCooldownAt = [
     resolvedThinkingCooldown?.getTime(),
@@ -314,20 +187,10 @@ export function PartnerQuickActions({
       extendedCooldowns.CHECK_IN.getTime() > cooldownNow,
   );
 
-  const submit = async (action: PartnerAction) => {
-    if (inFlightRef.current || mutation.isPending) return;
-    inFlightRef.current = true;
-    setFeedback(null);
-    try {
-      await mutation.mutateAsync(action);
-    } catch {
-      // Mutation callbacks own all user-visible error semantics.
-    } finally {
-      inFlightRef.current = false;
-    }
-  };
+  const submit = (action: PartnerAction) => gesture.send(action);
 
   const navigateToPro = () => {
+    if (gesture.isInFlight()) return;
     const destination = `${MORE_PROFILE_ROUTE}#profile-premium`;
     if (!isExpanded && sheetRef.current) {
       sheetRef.current.closeForNavigation(() => navigate(destination));
@@ -345,12 +208,28 @@ export function PartnerQuickActions({
       <p className="partner-quick-actions-intro">
         {t('partnerQuickActions.intro')}
       </p>
+      {gesture.pendingAction ? (
+        <p
+          className="partner-quick-actions-pending"
+          role="status"
+          aria-live="polite"
+        >
+          {t(
+            gesture.pendingAction === 'THINKING'
+              ? 'partnerQuickActions.sendingThinking'
+              : gesture.pendingAction === 'KISS'
+                ? 'partnerQuickActions.sendingKiss'
+                : 'partnerQuickActions.sendingCheckIn',
+          )}
+        </p>
+      ) : null}
       <div className="partner-quick-actions-list">
         <button
           ref={firstActionRef}
           type="button"
           className="partner-quick-action"
-          disabled={mutation.isPending || thinkingCoolingDown}
+          disabled={thinkingCoolingDown}
+          aria-disabled={gesture.isPending || undefined}
           onClick={() => void submit('THINKING')}
         >
           <span className="partner-quick-action-icon" aria-hidden="true">
@@ -388,9 +267,8 @@ export function PartnerQuickActions({
             <button
               type="button"
               className="partner-quick-action"
-              disabled={
-                mutation.isPending || (hasExtendedCapability && kissCoolingDown)
-              }
+              disabled={hasExtendedCapability && kissCoolingDown}
+              aria-disabled={gesture.isPending || undefined}
               onClick={() =>
                 hasExtendedCapability ? void submit('KISS') : navigateToPro()
               }
@@ -417,10 +295,8 @@ export function PartnerQuickActions({
             <button
               type="button"
               className="partner-quick-action"
-              disabled={
-                mutation.isPending ||
-                (hasExtendedCapability && checkInCoolingDown)
-              }
+              disabled={hasExtendedCapability && checkInCoolingDown}
+              aria-disabled={gesture.isPending || undefined}
               onClick={() =>
                 hasExtendedCapability
                   ? void submit('CHECK_IN')
@@ -484,7 +360,6 @@ export function PartnerQuickActions({
 
   const avatarAction: CouplePresenceAvatarAction = {
     onActivate: () => {
-      setFeedback(null);
       toggle();
     },
     label: t('partnerQuickActions.trigger', { partner: partnerName }),

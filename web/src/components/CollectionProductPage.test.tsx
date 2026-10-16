@@ -940,17 +940,26 @@ describe('CollectionProductPage', () => {
   });
 
   it.each(['success', 'failure'] as const)(
-    'keeps reorder settlement and feedback in the submitted collection after route change (%s)',
+    'keeps reorder settlement, feedback and the newer write lock in the submitted collection after route change (%s)',
     async (outcome) => {
       let resolve!: (value: unknown) => void;
       let reject!: (error: Error) => void;
-      const reorder = vi.fn(
-        () =>
-          new Promise((yes, no) => {
-            resolve = yes;
-            reject = no;
-          }),
-      );
+      let confirmNew!: (value: unknown) => void;
+      const reorder = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((yes, no) => {
+              resolve = yes;
+              reject = no;
+            }),
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((yes) => {
+              confirmNew = yes;
+            }),
+        );
       const fixture = renderToggleCollection(vi.fn(), true, reorder);
       fireEvent.keyDown(
         screen.getByRole('button', {
@@ -959,11 +968,37 @@ describe('CollectionProductPage', () => {
         { key: 'ArrowUp' },
       );
       await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
-      fixture.getCollection.mockResolvedValue({ ...nextCollection, items: [] });
+      const nextItems = [
+        {
+          ...fixture.firstItem,
+          collectionId: nextCollection.id,
+          id: 'next-1',
+          title: 'Tea',
+          position: 0,
+        },
+        {
+          ...fixture.secondItem,
+          collectionId: nextCollection.id,
+          id: 'next-2',
+          title: 'Coffee',
+          position: 1,
+        },
+      ];
+      fixture.getCollection.mockResolvedValue({
+        ...nextCollection,
+        items: nextItems,
+      });
       await userEvent
         .setup()
         .click(screen.getByRole('link', { name: 'Switch collection' }));
       await screen.findByRole('heading', { name: nextCollection.title });
+      expect(screen.queryByRole('status')).toBeNull();
+      const nextHandle = screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.reorderItem', { title: 'Coffee' }),
+      });
+      expect(nextHandle.hasAttribute('disabled')).toBe(false);
+      fireEvent.keyDown(nextHandle, { key: 'ArrowUp' });
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(2));
       const destinationKey = authorSummaryQueryKeys.collectionDetail(
         'space-1',
         'collection-2',
@@ -982,14 +1017,36 @@ describe('CollectionProductPage', () => {
             })
           : reject(new Error('Connection lost')),
       );
-      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(1));
       expect(fixture.queryClient.getQueryData(destinationKey)).toBe(
         destination,
       );
       expect(
         screen.queryByRole('button', { name: i18n.t('common.retry') }),
       ).toBeNull();
-      expect(reorder).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('status').textContent).toContain(
+        i18n.t('m5s3.collection.reordering'),
+      );
+      expect(nextHandle.hasAttribute('disabled')).toBe(true);
+      fireEvent.keyDown(nextHandle, { key: 'ArrowDown' });
+      expect(reorder).toHaveBeenCalledTimes(2);
+      await act(async () =>
+        confirmNew({
+          ...nextCollection,
+          version: 2,
+          items: nextItems.map((item) => ({
+            ...item,
+            position: 1 - item.position,
+          })),
+        }),
+      );
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+      expect(
+        fixture.queryClient.getQueryData<{ version: number }>(destinationKey)
+          ?.version,
+      ).toBe(2);
+      expect(reorder).toHaveBeenCalledTimes(2);
     },
   );
 

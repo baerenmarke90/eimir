@@ -59,6 +59,7 @@ GUARD_ENVIRONMENT_KEYS = {
     "EIMIR_GUARD_WEB_IMAGE",
     "EIMIR_GUARD_PULL_POLICY",
     "EIMIR_ACCOUNT_DELETION_INSTANCE_ID",
+    "EIMIR_ENCRYPTION_AT_REST",
 }
 
 
@@ -124,6 +125,7 @@ def _production_overrides(**extra: str) -> dict[str, str]:
         "EIMIR_SELF_HOSTED_BACKEND_IMAGE": ref("backend"),
         "EIMIR_SELF_HOSTED_WEB_IMAGE": ref("web"),
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": INSTANCE_ID,
+        "EIMIR_ENCRYPTION_AT_REST": "required",
         "COMPOSE_PROFILES": "self-hosted",
     }
     overrides.update(extra)
@@ -238,6 +240,7 @@ class RenderedReleaseGateTest(GuardTestCase):
             "version drift": {"EIMIR_RELEASE_VERSION": "0.2.0"},
             "pull disabled": {"EIMIR_SELF_HOSTED_PULL_POLICY": "never"},
             "missing authority": {"EIMIR_ACCOUNT_DELETION_INSTANCE_ID": ""},
+            "missing encryption decision": {"EIMIR_ENCRYPTION_AT_REST": ""},
             "bootstrap next to runtime": {"COMPOSE_PROFILES": "self-hosted,bootstrap"},
         }
         for label, override in unsafe.items():

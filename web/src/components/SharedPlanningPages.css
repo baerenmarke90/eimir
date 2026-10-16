@@ -37,7 +37,8 @@
   gap: var(--space-3);
   padding-left: var(--space-4);
   border-left: 2px solid var(--color-brand-glow);
-  animation: planning-schedule-reveal var(--motion-fast);
+  animation: planning-schedule-reveal var(--duration-transition)
+    var(--easing-enter);
 }
 
 .planning-schedule-end-fields[hidden] {
@@ -108,9 +109,9 @@
   color: inherit;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .planning-card:hover,
@@ -193,10 +194,10 @@
   cursor: pointer;
   list-style: none;
   transition:
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    transform var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .planning-create summary::-webkit-details-marker {
@@ -272,12 +273,12 @@
 
 /*
  * Rendered in a document-body portal (see PlacePicker in
- * SharedPlanningOverviewPage.tsx) so it is never confined to the create
- * form's own stacking context — the section it lives in gets one from its
- * `eimir-motion-reveal` transform animation, which would otherwise force the
- * menu to paint underneath a later sibling section regardless of z-index.
- * `position`, `top`, `left`, and `width` are set inline from the trigger's
- * viewport rect; this rule only styles the panel itself.
+ * SharedPlanningOverviewPage.tsx) because the anchored popover is positioned
+ * against the viewport and must stay clear of local clipping/stacking
+ * boundaries. Planen panels no longer create a stacking context merely for
+ * mount motion; the portal is owned by popover positioning, not by a reveal
+ * workaround. `position`, `top`, `left`, and `width` are set inline from
+ * the trigger's viewport rect; this rule only styles the panel itself.
  */
 .place-picker-menu {
   z-index: 200;
@@ -516,6 +517,23 @@
   flex: 1 1 auto;
 }
 
+.planning-collection-item-title-form {
+  flex-wrap: wrap;
+}
+
+.planning-collection-item-pending {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+}
+
+.planning-collection-item-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .planning-check {
   display: grid;
   width: 2.75rem;
@@ -532,10 +550,10 @@
   font-weight: 800;
   line-height: 1;
   transition:
-    background var(--motion-fast),
-    border-color var(--motion-fast),
-    color var(--motion-fast),
-    transform var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .planning-check:hover:not(:disabled) {
@@ -616,6 +634,10 @@
     gap: var(--space-2);
   }
 
+  .planning-collection-item-actions {
+    gap: var(--space-2);
+  }
+
   .planning-create,
   .planning-create[open],
   .planning-card .button-link,
@@ -633,8 +655,40 @@
   }
 }
 
+@container product-content (max-width: 20rem) {
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-items
+    li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-item-title-form {
+    grid-column: 2;
+    width: 100%;
+  }
+
+  .planning-page:has(> .page-heading-collection):not(.private-collection-page)
+    .planning-collection-item-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: end;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .planning-create summary {
     scroll-behavior: auto;
   }
+}
+
+.planning-collection-dashboard-action {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 44px;
+  align-items: flex-start;
+  justify-content: flex-start;
 }

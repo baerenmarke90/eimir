@@ -36,7 +36,7 @@ function collection() {
 describe('PrivateCollectionsPage', () => {
   it('shows the title cleanly in the list (#373)', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collections(ACCOUNT_ID, SPACE_ID),
@@ -67,7 +67,7 @@ describe('PrivateCollectionsPage', () => {
 
   it('does not offer an icon field when editing (#373)', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
@@ -100,7 +100,7 @@ describe('PrivateCollectionsPage', () => {
 
   it('renders private collection items read-first until edit is requested', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
@@ -176,7 +176,7 @@ describe('PrivateCollectionsPage', () => {
     };
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
+        queries: { retry: false, staleTime: Infinity },
         mutations: { retry: false },
       },
     });
@@ -238,7 +238,7 @@ describe('PrivateCollectionsPage', () => {
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
+        queries: { retry: false, staleTime: Infinity },
         mutations: { retry: false },
       },
     });
@@ -331,7 +331,7 @@ describe('PrivateCollectionsPage', () => {
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
+        queries: { retry: false, staleTime: Infinity },
         mutations: { retry: false },
       },
     });

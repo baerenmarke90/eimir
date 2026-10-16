@@ -14,6 +14,11 @@
 
 import * as runtime from '../runtime';
 import {
+    type DashboardModuleOrderUpdate,
+    DashboardModuleOrderUpdateFromJSON,
+    DashboardModuleOrderUpdateToJSON,
+} from '../models/DashboardModuleOrderUpdate';
+import {
     type DashboardModulePreferenceList,
     DashboardModulePreferenceListFromJSON,
     DashboardModulePreferenceListToJSON,
@@ -45,6 +50,11 @@ export interface GetDashboardRequest {
 
 export interface ListDashboardModulePreferencesRequest {
     spaceId: string;
+}
+
+export interface UpdateDashboardModuleOrderRequest {
+    spaceId: string;
+    dashboardModuleOrderUpdate: DashboardModuleOrderUpdate;
 }
 
 export interface UpdateDashboardModulePreferenceRequest {
@@ -153,6 +163,63 @@ export class DashboardApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for updateDashboardModuleOrder without sending the request
+     */
+    async updateDashboardModuleOrderRequestOpts(requestParameters: UpdateDashboardModuleOrderRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateDashboardModuleOrder().'
+            );
+        }
+
+        if (requestParameters['dashboardModuleOrderUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'dashboardModuleOrderUpdate',
+                'Required parameter "dashboardModuleOrderUpdate" was null or undefined when calling updateDashboardModuleOrder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/dashboard/preferences/order`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: DashboardModuleOrderUpdateToJSON(requestParameters['dashboardModuleOrderUpdate']),
+        };
+    }
+
+    /**
+     * Persist a complete private Dashboard module order in one transaction.
+     * Update Dashboard Module Order
+     */
+    async updateDashboardModuleOrderRaw(requestParameters: UpdateDashboardModuleOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardModulePreferenceList>> {
+        const requestOptions = await this.updateDashboardModuleOrderRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DashboardModulePreferenceListFromJSON(jsonValue));
+    }
+
+    /**
+     * Persist a complete private Dashboard module order in one transaction.
+     * Update Dashboard Module Order
+     */
+    async updateDashboardModuleOrder(requestParameters: UpdateDashboardModuleOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardModulePreferenceList> {
+        const response = await this.updateDashboardModuleOrderRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for updateDashboardModulePreference without sending the request
      */
     async updateDashboardModulePreferenceRequestOpts(requestParameters: UpdateDashboardModulePreferenceRequest): Promise<runtime.RequestOpts> {
@@ -198,7 +265,7 @@ export class DashboardApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set one private per-account Dashboard preference (#817 visibility, #848 item limit).
+     * Set one private per-account Dashboard presentation preference.
      * Update Dashboard Module Preference
      */
     async updateDashboardModulePreferenceRaw(requestParameters: UpdateDashboardModulePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardModulePreferenceView>> {
@@ -209,7 +276,7 @@ export class DashboardApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set one private per-account Dashboard preference (#817 visibility, #848 item limit).
+     * Set one private per-account Dashboard presentation preference.
      * Update Dashboard Module Preference
      */
     async updateDashboardModulePreference(requestParameters: UpdateDashboardModulePreferenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardModulePreferenceView> {

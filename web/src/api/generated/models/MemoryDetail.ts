@@ -97,6 +97,12 @@ export interface MemoryDetail {
     spaceId: string;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof MemoryDetail
+     */
+    tags: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryDetail
      */
@@ -128,6 +134,7 @@ export function instanceOfMemoryDetail(value: object): value is MemoryDetail {
     if (!('happenedOn' in value) || value['happenedOn'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('spaceId' in value) || value['spaceId'] === undefined) return false;
+    if (!('tags' in value) || value['tags'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
@@ -153,6 +160,7 @@ export function MemoryDetailFromJSONTyped(json: any, ignoreDiscriminator: boolea
         'happenedOn': (json['happenedOn'] == null ? null : new Date(json['happenedOn'])),
         'id': json['id'],
         'spaceId': json['spaceId'],
+        'tags': json['tags'],
         'title': json['title'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
@@ -179,6 +187,7 @@ export function MemoryDetailToJSONTyped(value?: MemoryDetail | null, ignoreDiscr
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
         'id': value['id'],
         'spaceId': value['spaceId'],
+        'tags': value['tags'],
         'title': value['title'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],

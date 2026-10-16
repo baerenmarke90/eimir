@@ -70,7 +70,10 @@ uv run python -m scripts.demo_space create
 ```
 
 Creation is idempotent. If the verified reserved accounts already share their canonical Space, the
-command returns that Space instead of duplicating data.
+command returns that Space instead of duplicating data. The command also reconciles the canonical
+Space to the deterministic M7 module configuration defined in
+`docs/m7/SPACE-MODULE-CONFIGURATION.md`; it does not infer or repair configuration authority for
+ordinary user Spaces.
 
 For deterministic acceptance runs:
 
@@ -323,7 +326,10 @@ The canonical dataset is created through normal domain services and currently in
 - Plans in IDEA, PLANNED, and COMPLETED states, including scheduled examples;
 - Places used by the canonical planning and Chapter examples;
 - Chapters, including Place-linked content;
-- shared Collections/items;
+- shared Collections/items, including a realistic shared checklist pinned to Today for both personas;
+- recent Daily Check-in history for both personas with Vibe and Energy/Battery values, intentional gaps,
+  and Mutual Reveal enabled so the current privacy interaction is demonstrable;
+- a recent completed shared Plan so completion/achievement surfaces have current content;
 - independent PrivateNote, GiftIdea, and PrivateCollection content for both Accounts;
 - Search-visible shared/private material;
 - Activity and in-app Notification projections;
@@ -392,11 +398,15 @@ exceptions.
 The demo does not use a frontend-only, unconditional, or "all Premium" bypass. Free/Core behavior
 continues to use the same entitlement model as for ordinary users.
 
-The canonical dataset currently records one normalized `TEST_FIXTURE` grant through the ordinary
-entitlement service so the Demo can exercise Couple Games. That grant is limited to the
-`games.couple` capability and is evaluated through the same tenant-scoped entitlement endpoint and
-server-side capability checks as any other grant. Production forbids creating `TEST_FIXTURE` grants
-and excludes restored fixture grants from effective Production entitlement evaluation.
+The canonical dataset records purpose-scoped normalized `TEST_FIXTURE` grants through the ordinary
+entitlement service. One grant exposes `games.couple` for Couple Games; a second exposes
+`daily.insights` and `daily.quote` for the implemented Today Pro capability boundary. The Daily
+Quote preferences are deterministic for both personas and use the same entitlement and preference
+contracts as ordinary Accounts.
+
+All fixture grants are evaluated through the same tenant-scoped entitlement endpoint and server-side
+capability checks as ordinary grants. Production forbids creating `TEST_FIXTURE` grants and excludes
+restored fixture grants from effective Production entitlement evaluation.
 
 Curated media, richer seed content, and reset behavior do not themselves change paywall,
 storage-tier, billing, or capability semantics. Future Demo Premium scenarios must continue to use

@@ -55,6 +55,7 @@ def production_environment(**overrides: str) -> dict[str, str]:
         "EIMIR_GUARD_PULL_POLICY": "always",
         "EIMIR_ACCOUNT_DELETION_INSTANCE_ID": INSTANCE_ID,
         "EIMIR_COMPOSE_PROFILES": "self-hosted",
+        "EIMIR_ENCRYPTION_AT_REST": "required",
     }
     environment.update(overrides)
     return environment
@@ -276,3 +277,26 @@ def test_bootstrap_never_replaces_an_established_authority(
 
     assert release_guard.bootstrap(environment, identity_path=identity_path) == 1
     assert not journal_path.exists()
+
+
+# --- application-controlled encryption at rest (issue #797) -----------------
+
+
+@pytest.mark.parametrize("value", ["", "on", "true", "REQUIRED", "Required"])
+def test_production_refuses_an_unset_or_unknown_encryption_mode(
+    value: str, identity_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    environment = production_environment(EIMIR_ENCRYPTION_AT_REST=value)
+    assert release_guard.verify(environment, identity_path=identity_path) == 1
+    assert "EIMIR_ENCRYPTION_AT_REST" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("value", ["required", "migrating", "disabled"])
+def test_every_explicit_mode_passes_the_guard(value: str, identity_path: Path) -> None:
+    environment = production_environment(EIMIR_ENCRYPTION_AT_REST=value)
+    assert release_guard.verify(environment, identity_path=identity_path) == 0
+
+
+def test_the_guard_environment_never_carries_key_material() -> None:
+    """Keys reach the API and worker only; the guard is a secret-free one-shot."""
+    assert not any("KEYS" in name or "ACTIVE_KEY" in name for name in production_environment())

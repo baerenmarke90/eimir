@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import or_, select
@@ -93,6 +93,16 @@ def claim(
 def succeed(job: Job) -> None:
     job.status = JobStatus.SUCCEEDED.value
     job.finished_at = now()
+    job.locked_until = None
+    job.locked_by = None
+    job.last_error = None
+
+
+def defer(job: Job, *, until: datetime) -> None:
+    """Return a claimed job to the queue without treating a hold as failure."""
+    job.status = JobStatus.PENDING.value
+    job.run_after = max(until, now() + timedelta(seconds=1))
+    job.attempts = max(0, job.attempts - 1)
     job.locked_until = None
     job.locked_by = None
     job.last_error = None

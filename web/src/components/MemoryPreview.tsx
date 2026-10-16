@@ -7,6 +7,7 @@ export function MemoryPreview({
   attachmentId,
   loadImage,
   loadingMode = 'immediate',
+  resourceScopeKey,
 }: {
   memoryId: string;
   attachmentId: string;
@@ -16,6 +17,7 @@ export function MemoryPreview({
     signal?: AbortSignal,
   ) => Promise<string>;
   loadingMode?: 'immediate' | 'near-viewport';
+  resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -51,7 +53,7 @@ export function MemoryPreview({
   }, [loadingMode, shouldLoad]);
 
   const mediaResource = useObjectUrlResource(
-    `story-preview:${memoryId}`,
+    resourceScopeKey ?? `story-preview:${memoryId}`,
     shouldLoad ? attachmentId : null,
     (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
   );

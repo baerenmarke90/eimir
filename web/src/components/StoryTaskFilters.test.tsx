@@ -72,11 +72,12 @@ beforeAll(() => {
   HTMLDialogElement.prototype.close = function () {
     this.removeAttribute('open');
   };
-  window.matchMedia = vi.fn().mockReturnValue({
-    matches: false,
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === '(prefers-reduced-motion: reduce)',
+    media: query,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-  });
+  }));
 });
 afterEach(async () => {
   cleanup();

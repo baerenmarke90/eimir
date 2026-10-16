@@ -69,6 +69,53 @@ describe('PartnerAvatarPair', () => {
     expect(document.querySelector('.partner-presence-pip')).toBeNull();
   });
 
+  it('attaches quiet presence state to the secondary partner avatar', () => {
+    const activeCopy =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
+    const recentCopy =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
+    const { rerender } = render(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="active"
+        statusLabel={activeCopy}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${activeCopy}`,
+      ),
+    ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-active'),
+    ).not.toBeNull();
+    expect(document.querySelector('.partner-presence-badge')).toBeNull();
+
+    rerender(
+      <PartnerAvatarPair
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="recent"
+        statusLabel={recentCopy}
+      />,
+    );
+
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-recent'),
+    ).not.toBeNull();
+    expect(document.querySelector('.partner-presence-pip')).toBeNull();
+  });
+
   it('renders waiting state with invite button when secondaryPerson is null', () => {
     const handleInvite = vi.fn();
     render(

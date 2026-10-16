@@ -19,6 +19,7 @@ All URIs are relative to *http://localhost*
 | [**listServerAdminAccountsApiV1ServerAdminAccountsGet**](ServerAdminApi.md#listserveradminaccountsapiv1serveradminaccountsget) | **GET** /api/v1/server-admin/accounts | List Server Admin Accounts |
 | [**listServerAdminJobsApiV1ServerAdminJobsGet**](ServerAdminApi.md#listserveradminjobsapiv1serveradminjobsget) | **GET** /api/v1/server-admin/jobs | List Server Admin Jobs |
 | [**listServerAdminSpacesApiV1ServerAdminSpacesGet**](ServerAdminApi.md#listserveradminspacesapiv1serveradminspacesget) | **GET** /api/v1/server-admin/spaces | List Server Admin Spaces |
+| [**reconcileServerAdminSpaceConfigurationManager**](ServerAdminApi.md#reconcileserveradminspaceconfigurationmanager) | **POST** /api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile | Reconcile Server Admin Space Configuration Manager |
 | [**requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost**](ServerAdminApi.md#requestserveradminaccountemailverificationapiv1serveradminaccountsaccountidemailverificationrequestpost) | **POST** /api/v1/server-admin/accounts/{accountId}/email-verification/request | Request Server Admin Account Email Verification |
 | [**requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost**](ServerAdminApi.md#requestserveradminaccountrecoveryemailapiv1serveradminaccountsaccountidrecoveryemailpost) | **POST** /api/v1/server-admin/accounts/{accountId}/recovery/email | Request Server Admin Account Recovery Email |
 | [**revokeServerAdminAccountSessionsApiV1ServerAdminAccountsAccountIdSessionsRevokePost**](ServerAdminApi.md#revokeserveradminaccountsessionsapiv1serveradminaccountsaccountidsessionsrevokepost) | **POST** /api/v1/server-admin/accounts/{accountId}/sessions/revoke | Revoke Server Admin Account Sessions |
@@ -704,7 +705,7 @@ No authorization required
 
 Grant Server Admin Space Entitlement
 
-Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.
+Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized &#x60;record_grant&#x60; source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
 
 ### Example
 
@@ -1087,6 +1088,81 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## reconcileServerAdminSpaceConfigurationManager
+
+> ServerAdminSpaceConfigurationManagerView reconcileServerAdminSpaceConfigurationManager(spaceId, serverAdminSpaceConfigurationManagerReconcileRequest)
+
+Reconcile Server Admin Space Configuration Manager
+
+Assign missing legacy Space configuration authority exactly once.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ServerAdminApi,
+} from '';
+import type { ReconcileServerAdminSpaceConfigurationManagerRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ServerAdminApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // ServerAdminSpaceConfigurationManagerReconcileRequest
+    serverAdminSpaceConfigurationManagerReconcileRequest: ...,
+  } satisfies ReconcileServerAdminSpaceConfigurationManagerRequest;
+
+  try {
+    const data = await api.reconcileServerAdminSpaceConfigurationManager(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **serverAdminSpaceConfigurationManagerReconcileRequest** | [ServerAdminSpaceConfigurationManagerReconcileRequest](ServerAdminSpaceConfigurationManagerReconcileRequest.md) |  | |
+
+### Return type
+
+[**ServerAdminSpaceConfigurationManagerView**](ServerAdminSpaceConfigurationManagerView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost
 
 > requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost(accountId)
@@ -1302,7 +1378,7 @@ No authorization required
 
 Revoke Server Admin Space Entitlement Grant
 
-Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\&#39;s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
 
 ### Example
 

@@ -21,6 +21,7 @@ from sqlalchemy import CheckConstraint, engine_from_config, pool
 from sqlalchemy.schema import SchemaItem
 
 from eimir.administration import models as _administration  # noqa: F401
+from eimir.appearance import models as _appearance  # noqa: F401
 from eimir.attachments import binding as _binding  # noqa: F401
 
 # Register models. These imports look unused, but they are not.
@@ -30,6 +31,8 @@ from eimir.chapters import models as _chapters  # noqa: F401
 from eimir.collections import models as _collections  # noqa: F401
 from eimir.comments import models as _comments  # noqa: F401
 from eimir.config import DatabaseSettings
+from eimir.create_receipts import models as _create_receipts  # noqa: F401
+from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
 from eimir.dashboard import models as _dashboard  # noqa: F401
 from eimir.db.base import Base
 from eimir.demo import models as _demo  # noqa: F401
@@ -48,6 +51,7 @@ from eimir.plans import models as _plans  # noqa: F401
 from eimir.private_collections import models as _private_collections  # noqa: F401
 from eimir.private_notes import models as _private_notes  # noqa: F401
 from eimir.profiles import models as _profiles  # noqa: F401
+from eimir.quotes import models as _quotes  # noqa: F401
 from eimir.relations import models as _relations  # noqa: F401
 from eimir.relationship import models as _relationship  # noqa: F401
 from eimir.reminders import models as _reminders  # noqa: F401

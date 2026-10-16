@@ -279,10 +279,10 @@
   cursor: pointer;
   box-shadow: var(--shadow-raised);
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast),
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .heart-moment-create-visibility-option:hover {

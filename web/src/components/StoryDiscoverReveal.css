@@ -8,8 +8,8 @@
   opacity: 0;
   translate: 0 8px;
   transition:
-    opacity 195ms var(--motion-easing-lift),
-    translate 195ms var(--motion-easing-lift);
+    opacity var(--duration-transition) var(--easing-enter),
+    translate var(--duration-transition) var(--easing-enter);
 }
 
 .momente-tapestry-reveal[data-discover-revealed="true"],

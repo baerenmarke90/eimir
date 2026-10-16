@@ -5,6 +5,7 @@ import { MEMORY_CREATE_ROUTE, MILESTONE_CREATE_ROUTE } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useTranslation } from '../i18n';
+import { SharedAchievementCelebration } from './SharedAchievementCelebration';
 import './PlanStoryContinuation.css';
 
 /**
@@ -17,11 +18,13 @@ export function PlanStoryContinuation({
   spaceId: _spaceId,
   plan,
   focusOnMount = false,
+  sharedAchievementEnabled = false,
 }: {
   apis: SharedPlanningApis;
   spaceId: string;
   plan: PlanDetail;
   focusOnMount?: boolean;
+  sharedAchievementEnabled?: boolean;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -57,16 +60,26 @@ export function PlanStoryContinuation({
 
   return (
     <section
-      className="plan-completed-celebration plan-story-continuation eimir-motion-reveal"
+      className="plan-completed-celebration plan-story-continuation"
       aria-labelledby="plan-completed-heading"
     >
-      <h2
-        id="plan-completed-heading"
-        ref={headingRef}
-        tabIndex={focusOnMount ? -1 : undefined}
-      >
-        {t('m5s3.plan.completedTitle')}
-      </h2>
+      {sharedAchievementEnabled ? (
+        <SharedAchievementCelebration
+          title={t('m5s3.plan.sharedAchievementTitle')}
+          body={t('m5s3.plan.sharedAchievementBody', { title: plan.title })}
+          headingId="plan-completed-heading"
+          headingRef={headingRef}
+          headingTabIndex={focusOnMount ? -1 : undefined}
+        />
+      ) : (
+        <h2
+          id="plan-completed-heading"
+          ref={headingRef}
+          tabIndex={focusOnMount ? -1 : undefined}
+        >
+          {t('m5s3.plan.completedTitle')}
+        </h2>
+      )}
       <p className="plan-completed-intro">{t('m5s3.planStory.intro')}</p>
       <div className="plan-story-actions">
         <button

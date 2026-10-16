@@ -137,7 +137,7 @@ The development database uses the `dev-db` profile of the canonical
 
 ```bash
 docker compose --profile dev-db up -d dev-postgres
-python -m pip install uv==0.12.5
+python -m pip install uv==0.12.15
 cd backend && uv sync --frozen
 uv run alembic upgrade head
 uv run uvicorn eimir.main:app --reload

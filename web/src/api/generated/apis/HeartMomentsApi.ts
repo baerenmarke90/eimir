@@ -59,6 +59,7 @@ export interface ChangeHeartMomentVisibilityRequest {
 export interface CreateHeartMomentRequest {
     spaceId: string;
     heartMomentCreate: HeartMomentCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteHeartMomentRequest {
@@ -188,6 +189,10 @@ export class HeartMomentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/heart-moments`;

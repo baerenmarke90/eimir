@@ -123,6 +123,37 @@ class TestConcurrency:
 
 
 class TestFailureHandling:
+    def test_deferral_reuses_job_without_spending_retry_budget(self, engine: Engine) -> None:
+        factory = sessionmaker(bind=engine, expire_on_commit=False)
+        session = factory()
+        try:
+            job = queue.enqueue(session, "deferred-push", max_attempts=1)
+            session.commit()
+            assert job.id in {item.id for item in queue.claim(session, "worker-1")}
+            assert job.attempts == 1
+
+            release_check = now() + timedelta(minutes=15)
+            queue.defer(job, until=release_check)
+            session.commit()
+
+            assert job.status == JobStatus.PENDING.value
+            assert job.attempts == 0
+            assert job.run_after >= release_check
+            assert job.locked_by is None
+            assert job.locked_until is None
+            assert job.finished_at is None
+            assert session.query(Job).count() == 1
+            assert job.id not in {item.id for item in queue.claim(session, "worker-2")}
+
+            job.run_after = now() - timedelta(seconds=1)
+            session.commit()
+            assert job.id in {item.id for item in queue.claim(session, "worker-2")}
+            assert job.attempts == 1
+        finally:
+            session.query(Job).delete()
+            session.commit()
+            session.close()
+
     def test_failure_returns_job_to_pending_with_delay(self, engine: Engine) -> None:
         factory = sessionmaker(bind=engine, expire_on_commit=False)
         session = factory()

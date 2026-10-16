@@ -13,6 +13,7 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -45,6 +46,11 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MEMORY_TAGS,
+  MemoryTagChoices,
+  type MemoryTag,
+} from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
@@ -92,6 +98,7 @@ export function MemoryProductPage({
   ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
@@ -170,6 +177,10 @@ export function MemoryProductPage({
     enabled: Boolean(memoryId),
     retry: false,
   });
+  const [tagDraft, setTagDraft] = useState<{
+    memoryId: string;
+    tags: MemoryTag[];
+  } | null>(null);
 
   useStoryViewReceipt({
     apis,
@@ -248,6 +259,7 @@ export function MemoryProductPage({
           ...memory,
           title: values.title,
           body: values.body,
+          tags: values.tags,
           happenedOn: values.happenedOn
             ? new Date(`${values.happenedOn}T00:00:00Z`)
             : null,
@@ -365,6 +377,8 @@ export function MemoryProductPage({
   const result = memoryQuery.data;
   if (!result) return null;
   const memory = result.value;
+  const selectedTags =
+    tagDraft?.memoryId === memory.id ? tagDraft.tags : (memory.tags ?? []);
   const offline = result.source === 'cache' || Boolean(memoryQuery.error);
   const readyAttachments = [...memory.attachments]
     .filter((attachment) => attachment.status === 'READY')
@@ -416,6 +430,7 @@ export function MemoryProductPage({
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
+          tags: [...selectedTags],
           happenedOn: String(data.get('happenedOn') || ''),
         },
       });
@@ -475,6 +490,12 @@ export function MemoryProductPage({
                 defaultValue={memoryDateInputValue(memory.happenedOn)}
               />
             </div>
+
+            <MemoryTagChoices
+              selected={selectedTags}
+              onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
+              disabled={updateMutation.isPending}
+            />
 
             {readyAttachments.length > 0 ? (
               <fieldset className="memory-existing-attachments">
@@ -623,7 +644,11 @@ export function MemoryProductPage({
 
   const bodyText = memory.body || t('memoryProduct.noBody');
   const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
-  const provenanceAuthor = storyAuthorLabel(memory.author, currentAccountId);
+  const provenanceAuthor = storyAuthorLabel(
+    memory.author,
+    currentAccountId,
+    nicknameFor,
+  );
 
   return (
     <StoryDetailPageShell
@@ -671,6 +696,20 @@ export function MemoryProductPage({
         ) : null}
         {bodyRest}
       </p>
+
+      {(memory.tags ?? []).length > 0 ? (
+        <section aria-label={t('memory.tagsLabel')}>
+          <ul className="memory-tag-summary">
+            {memory.tags.map((tag) => (
+              <li key={tag}>
+                {(MEMORY_TAGS as readonly string[]).includes(tag)
+                  ? t(`memory.tagLabels.${tag}`)
+                  : tag}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {readyAttachments.length > 0 ? (
         <section aria-label={t('memory.photoLabel')}>

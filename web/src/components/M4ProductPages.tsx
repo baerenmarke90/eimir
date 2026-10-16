@@ -30,6 +30,7 @@ import {
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
@@ -121,7 +122,7 @@ function SearchResultCard({
   );
 
   return (
-    <li className="search-result-wrapper eimir-motion-reveal">
+    <li className="search-result-wrapper">
       {path ? (
         <Link
           className="search-result-link"
@@ -336,6 +337,7 @@ function ActivityCard({
   onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
   const isOwn = Boolean(
@@ -344,7 +346,13 @@ function ActivityCard({
   const actorName = isOwn
     ? t('m5s5.activity.you')
     : item.actor
-      ? authorDisplayName(item.actor)
+      ? item.actor.isFormerMember
+        ? authorDisplayName(item.actor)
+        : relationshipLabel(
+            item.actor.id,
+            item.actor.displayName,
+            t('couplePresencePartnerFallback'),
+          )
       : undefined;
 
   const actionText = isOwn
@@ -404,7 +412,7 @@ function ActivityCard({
   );
 
   return (
-    <li className="activity-result-wrapper eimir-motion-reveal">
+    <li className="activity-result-wrapper">
       {path ? (
         <Link
           className="activity-result-link"
@@ -606,7 +614,7 @@ function NotificationCard({
   );
 
   return (
-    <li className="m4-notification-wrapper eimir-motion-reveal">
+    <li className="m4-notification-wrapper">
       {path ? (
         <Link
           className="m4-notification-link"

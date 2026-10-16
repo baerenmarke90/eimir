@@ -7,16 +7,8 @@
  * was chosen over broadening those shared selectors.
  */
 
-.planen-overview .page-heading {
-  margin-bottom: 0;
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.planen-overview .page-heading h1 {
-  font-family: var(--font-display);
-  font-size: clamp(1.9rem, 6vw, 2.4rem);
-  letter-spacing: -0.015em;
+.planen-overview {
+  gap: 0;
 }
 
 /* Segmented control (Wünsche | Pläne) */
@@ -25,7 +17,7 @@
   gap: 2px;
   width: 100%;
   max-width: 22rem;
-  margin: var(--space-5) 0 var(--space-6);
+  margin: 0 0 var(--space-6);
   border-radius: var(--radius-pill);
   padding: 3px;
   background: var(--color-surface-subtle);
@@ -45,9 +37,9 @@
   text-align: center;
   cursor: pointer;
   transition:
-    background var(--motion-fast),
-    color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .planen-segment:hover {
@@ -121,9 +113,9 @@
   color: inherit;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -363,6 +355,10 @@
   color: var(--color-text-secondary);
 }
 
+.plan-story-continuation .shared-achievement-copy p {
+  color: var(--color-text);
+}
+
 .planen-completed-result p {
   margin: 0;
 }
@@ -472,8 +468,8 @@
   text-decoration: none;
   box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-duration-short) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-short) var(--motion-easing-lift);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .planen-next-schedule {
@@ -640,4 +636,57 @@
   .planen-next-link:hover {
     transform: none;
   }
+}
+
+.planen-detail-pending {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+/* Groups disabled state without adding a box to the existing form grid. */
+.planen-lifecycle-fieldset {
+  display: contents;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Let detail content shrink to its card at 320 px and 200 % text. */
+.planning-detail-grid > * {
+  min-width: 0;
+}
+
+.planen-operations > .planning-subsection,
+.planen-operations .form-grid,
+.planen-operations .planen-complete-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.planen-shared-note > div {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* Pending completion keeps keyboard focus on the action instead of dropping it. */
+.planen-complete-cta[aria-disabled="true"] {
+  background: var(--color-border-subtle);
+  color: var(--color-text-muted);
+  cursor: wait;
+  filter: none;
+}
+
+/* Long localized Wish actions must reflow at 320 px with 200 % text. */
+.wish-detail {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.wish-detail > * {
+  min-width: 0;
+}
+
+.wish-detail :is(h1, h2, button, label, p) {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

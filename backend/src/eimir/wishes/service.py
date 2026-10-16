@@ -42,11 +42,15 @@ from eimir.authorization import (
     require_writable_locked,
 )
 from eimir.core import cursor as cursor_codec
-from eimir.core.errors import ConflictError, ErrorCode, ValidationError
+from eimir.core.errors import ConflictError, ErrorCode, NotFoundError, ValidationError
+from eimir.create_receipts import service as create_receipts
+from eimir.create_receipts.models import CreateReceiptResourceType
 from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
 from eimir.outbox import service as outbox_service
 from eimir.plans.models import Plan
 from eimir.wishes.models import Wish, WishPayload, WishStatus, shared_privacy
+
+_RECEIPT_RESOURCE_TYPE = CreateReceiptResourceType.WISH.value
 
 _WISH_SUBJECT_TYPE = "wish"
 
@@ -63,6 +67,14 @@ class WishPageResult:
     items: list[Wish]
     next_cursor: str | None
     has_more: bool
+
+
+@dataclass(frozen=True)
+class WishCreateResult:
+    wish: Wish
+    created: bool
+    """``False`` when this is a replay of an earlier request with the same
+    ``Idempotency-Key``, not a new Wish."""
 
 
 def _normalize_title(value: str) -> str:
@@ -134,6 +146,55 @@ def create_wish(
     record_event(session, wish, context.account_id, EventType.WISH_CREATED)
     _flush(session)
     return wish
+
+
+def create_wish_once(
+    session: Session,
+    context: AuthorizationContext,
+    *,
+    idempotency_key: UUID | None,
+    title: str,
+) -> WishCreateResult:
+    """Create a Wish, or return the one an earlier request with this identity created.
+
+    Without a key this is a plain create. With a key, claiming the receipt
+    and creating the Wish share this transaction (see
+    ``eimir.create_receipts``). Protects a double-tap "save" or a lost-response
+    retry from adding the same wish to the shared list twice.
+    """
+    if idempotency_key is None:
+        wish = create_wish(session, context, title=title)
+        return WishCreateResult(wish, created=True)
+
+    normalized_title = _normalize_title(title)
+    request_fingerprint = create_receipts.fingerprint(
+        _RECEIPT_RESOURCE_TYPE, {"title": normalized_title}
+    )
+    receipt_id = create_receipts.claim(
+        session,
+        context,
+        resource_type=_RECEIPT_RESOURCE_TYPE,
+        key=idempotency_key,
+        request_fingerprint=request_fingerprint,
+    )
+    if receipt_id is None:
+        wish = create_receipts.replay(
+            session,
+            context,
+            Wish,
+            resource_type=_RECEIPT_RESOURCE_TYPE,
+            key=idempotency_key,
+            request_fingerprint=request_fingerprint,
+            deleted_error=NotFoundError(
+                "The wish created by this request no longer exists.",
+                ErrorCode.WISH_CREATE_RESULT_DELETED,
+            ),
+        )
+        return WishCreateResult(wish, created=False)
+
+    wish = create_wish(session, context, title=normalized_title)
+    create_receipts.attach(session, receipt_id, wish.id)
+    return WishCreateResult(wish, created=True)
 
 
 def get_wish(

@@ -1,5 +1,27 @@
+import type { AppIconId } from './api/generated/models/AppIconId';
+
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
+
+// Only an authenticated saved preference sets this value. No global persisted
+// icon is read on the sign-in page or silently offered to an installed app.
+let documentAppIcon: AppIconId = 'original';
+
+export function setDocumentAppIcon(iconId: AppIconId): void {
+  documentAppIcon = iconId;
+  applyDocumentFavicon(
+    document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+  );
+}
+
+function applyDocumentFavicon(theme: ResolvedTheme): void {
+  const favicon = document.getElementById?.('app-favicon');
+  if (favicon?.tagName !== 'LINK') return;
+  (favicon as HTMLLinkElement).href =
+    documentAppIcon === 'original'
+      ? `/identity/app-icon-${theme}.png`
+      : `/identity/app-icons/v1/${documentAppIcon}.png`;
+}
 
 export const THEME_STORAGE_KEY = 'eimir.theme';
 export const LEGACY_THEME_STORAGE_KEY = 'sidebyside.theme';
@@ -80,6 +102,7 @@ export function applyResolvedTheme(
     .getPropertyValue('--color-background')
     .trim();
   if (themeColor && resolvedBackground) themeColor.content = resolvedBackground;
+  applyDocumentFavicon(theme);
 }
 
 export function initializeTheme(): ThemePreference {

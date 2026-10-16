@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -702,29 +702,7 @@ def _annual_date(year: int, month: int, day: int) -> date:
 
 def _resolve_local(day: date, wall_time: time, zone: ZoneInfo) -> datetime:
     """Resolve local wall time with deterministic DST gap/overlap semantics."""
-    naive = datetime.combine(day, wall_time.replace(tzinfo=None))
-    first = naive.replace(tzinfo=zone, fold=0)
-    second = naive.replace(tzinfo=zone, fold=1)
-    valid_first = _roundtrips(first, naive, zone)
-    valid_second = _roundtrips(second, naive, zone)
-
-    if valid_first and valid_second:
-        return min(first.astimezone(UTC), second.astimezone(UTC))
-    if valid_first:
-        return first.astimezone(UTC)
-    if valid_second:
-        return second.astimezone(UTC)
-
-    before = (naive - timedelta(hours=3)).replace(tzinfo=zone).utcoffset()
-    after = (naive + timedelta(hours=3)).replace(tzinfo=zone).utcoffset()
-    if before is None or after is None or after <= before:
-        raise ValueError("Unable to resolve nonexistent local time.")
-    shifted = naive + (after - before)
-    return shifted.replace(tzinfo=zone, fold=0).astimezone(UTC)
-
-
-def _roundtrips(candidate: datetime, naive: datetime, zone: ZoneInfo) -> bool:
-    return candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == naive
+    return clock.resolve_local(day, wall_time, zone)
 
 
 def source_is_eligible(session: Session, reminder: Reminder) -> bool:

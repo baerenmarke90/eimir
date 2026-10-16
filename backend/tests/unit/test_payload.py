@@ -1,7 +1,8 @@
 """The boundary between metadata and protected content.
 
-Version 1 does not yet provide encryption. These tests verify that the
-separation exists and that a later transition does not raise unexpectedly.
+These tests verify the metadata/payload separation and the plaintext
+(``disabled``) behavior of the persistence boundary. Encrypted behavior is
+covered by ``test_payload_encryption.py``.
 """
 
 from __future__ import annotations
@@ -61,6 +62,11 @@ class TestCryptoVersion:
     def test_server_cannot_read_sealed_payload(self) -> None:
         """Derived functions should be able to skip the row instead of guessing."""
         assert not is_readable_by_server(CRYPTO_VERSION_CLIENT_SEALED)
+
+
+@pytest.fixture(autouse=True)
+def _plaintext_mode(encryption) -> None:  # type: ignore[no-untyped-def]
+    encryption.apply("disabled")
 
 
 class TestPersistenceBoundary:

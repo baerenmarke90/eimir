@@ -30,11 +30,14 @@ typecheck and both language audits also pass.
 
 The initial production-browser run exposed two concrete existing problems: the
 checkbox error referenced a nonexistent translation key, and `signIn` asserted
-only `/today`, which is also the unauthenticated URL. The final correction reuses
-the existing localized offline/unknown titles and waits for the real login form
-to disappear before navigating. No artificial delay, automatic retry, timeout
-increase, forced scroll or relaxed assertion was introduced. The final complete
-26-case execution passes directly.
+only `/today`, which is also the unauthenticated URL. The final correction uses
+one scoped, localized failed-attempt message. The existing banner owns the live
+connection state, so the toast does not falsely claim an offline connection after
+reconnect. The fixture waits for the real login form to disappear and confirms
+Today before another document navigation. The failure trace showed an interrupted
+`auth/me` restore during the earlier consecutive full-page visits. No artificial
+delay, automatic retry, timeout increase, forced scroll or relaxed assertion was
+introduced. The final complete 26-case execution passes directly.
 
 ## Captures
 

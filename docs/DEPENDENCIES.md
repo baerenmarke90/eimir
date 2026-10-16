@@ -258,7 +258,7 @@ stays inactive until a push-notification slice adds Firebase.
 |---|---|---|---|
 | Android Gradle Plugin | 8.13.0 | Google Maven | Apache-2.0 |
 | Gradle | 8.14.3 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.4.4 | Google Maven | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |

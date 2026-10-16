@@ -1,14 +1,15 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { normalizeClientError } from '../client/problemDetails';
 import { collectionDetailPath } from '../client/routes';
-import { planningIfMatch } from '../client/sharedPlanning';
 import { sharedAchievementKind } from '../client/sharedAchievements';
+import { planningIfMatch } from '../client/sharedPlanning';
 import { postSnackbar } from '../client/snackbar';
 import { useTranslation } from '../i18n';
 import { ChecklistToggle } from './ChecklistToggle';
@@ -142,11 +143,14 @@ export function TodayPinnedCollection({
   }, [showDiscardConfirm]);
 
   const toggleItem = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: async (variables: ToggleVariables): Promise<ToggleResult> => {
       const previous = toggleQueueRef.current.get(variables.itemId);
       const request = (previous ?? Promise.resolve())
         .catch(() => undefined)
         .then(async () => {
+          assertOnlineWrite();
           const confirmed =
             confirmedItemsRef.current.get(variables.itemId) ??
             variables.fallbackItem;
@@ -266,6 +270,7 @@ export function TodayPinnedCollection({
       void queryClient.invalidateQueries({
         queryKey: collectionKey,
         exact: true,
+        refetchType: isClientOnline() ? 'active' : 'none',
       });
     },
   });
@@ -308,6 +313,10 @@ export function TodayPinnedCollection({
   });
 
   function requestToggle(item: CollectionItemDetail) {
+    if (!isClientOnline()) {
+      postSnackbar('m5s5.common.error');
+      return;
+    }
     const intended =
       intendedCompletionByItemRef.current.get(item.id) ?? item.completed;
     const completed = !intended;

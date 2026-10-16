@@ -6,10 +6,12 @@ Baseline: `main@3bac184b8cd1dcf82cbf4831c9845fbf252d3aef` (2026-10-16).
 
 Reviewed `TodayPinnedCollection`, its existing component/browser cases, the
 Account/Space/Collection query key, per-item online request serialization,
-confirmed-version rollback and existing snackbar/celebration behavior. Four new
-production-component characterizations fail on unchanged runtime: both offline
-signals leave the wrong mutation outcome, and both signals are ignored when an
-online follow-up waits behind an earlier request.
+confirmed-version rollback and existing snackbar/celebration behavior. Seven new production-component characterizations fail on unchanged runtime:
+both offline signals leave the wrong outcome, both are ignored at queued
+dispatch, a failed predecessor still permits dispatch, and a new offline intent
+can supersede an already active online attempt. The initial four regressions
+were recorded before runtime implementation; the additional admission cases
+exposed that dispatch-only rejection is insufficient for the per-item queue.
 
 This is a bounded repair of the existing no-offline-write contract, not a new or
 materially redesigned feature. The previous checklist repair explicitly deferred
@@ -28,7 +30,7 @@ remain authoritative; historical whole-Today references are not layout overrides
 | 6–7. Disclosure and interaction | Keep the existing native semantic pressed button and progressive list/add controls. No new task, typing, gesture or overlay. |
 | 8–9. Loading and empty | Current authorized read/loading/empty behavior remains. No new Today persistence or cached-offline guarantee. |
 | 10. Error | Roll back only the latest failed item intent to its confirmed version and use the existing localized snackbar; keep unrelated items and data. |
-| 11. Offline | End the attempt immediately, without API dispatch, paused mutation or reconnect replay. Recheck connectivity inside the per-item continuation, immediately before dispatch. Recovery reads are permitted; another write requires a new explicit activation. |
+| 11. Offline | Reject a new offline intent before replacing the current online intent. End it immediately, without API dispatch, paused mutation or reconnect replay. Also recheck connectivity inside the per-item continuation, immediately before dispatch. Recovery reads are permitted; another write requires a new explicit activation. |
 | 12. Success | Preserve server-confirmed item/version reconciliation. Shared-achievement feedback still requires the existing authoritative header; no failed/queued action may manufacture it. |
 | 13. Privacy | Existing authorized Space-bound shared list; no private projection, extra persistence, API or visibility change. |
 | 14–16. Reflow, motion and Expanded | Existing wrapping, target sizes, keyboard/pressed semantics, tokenized feedback and reduced-motion behavior remain. Expanded keeps the same task and content hierarchy. |
@@ -41,7 +43,8 @@ remain authoritative; historical whole-Today references are not layout overrides
 Reuse review relevant: compare the installed TanStack Query mutation modes and
 the existing detail/pin/gesture/check-in consumers. Reuse per-mutation
 `networkMode: 'always'`, `retry: false` and the shared `assertOnlineWrite` /
-`isClientOnline` helpers. Keep online per-item serialization: it prevents stale
+`isClientOnline` helpers. Reject offline activations before claiming a new item intent; retain the earlier
+online attempt if present. Keep online per-item serialization: it prevents stale
 If-Match requests and is not an offline outbox. A global network-mode change,
 second queue or dependency is unnecessary. The [official network-mode contract](https://tanstack.com/query/latest/docs/framework/react/guides/network-mode)
 was rechecked. No dependency/provider adoption, license/terms, data flow, cost or

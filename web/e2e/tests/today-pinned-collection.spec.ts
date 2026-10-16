@@ -1,9 +1,9 @@
-import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -103,6 +103,11 @@ async function installMocks(
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
+  const itemWrites: {
+    itemId: string;
+    completed?: boolean;
+    ifMatch?: string;
+  }[] = [];
   let collectionVersion = 1;
 
   const collection = () => ({
@@ -371,6 +376,11 @@ async function installMocks(
         completed?: boolean;
         title?: string;
       };
+      itemWrites.push({
+        itemId: item.id,
+        completed: body.completed,
+        ifMatch: request.headers()['if-match'],
+      });
       const wasComplete =
         items.length > 0 && items.every((candidate) => candidate.completed);
       const completesFinalItem =
@@ -441,6 +451,7 @@ async function installMocks(
   });
 
   return {
+    itemWrites,
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
     pin: (selectedCollectionId: string | null) => {
@@ -782,6 +793,98 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
     new RegExp(`/plan/collections/${COLLECTION_ID}$`),
   );
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  test(`offline Today checkbox rolls back without replay and allows a deliberate later toggle at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page, { initiallyPinned: true });
+    await signIn(page);
+    const pinned = page.locator('.today-section-pinned-collection');
+    const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
+    const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
+    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await pinned.getByRole('button', { name: markDone }).click();
+    await expect(
+      page.getByText(m5s5.common.error, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      pinned.getByRole('button', { name: markDone }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(network.itemWrites).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-checklist-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
+    await page.context().setOffline(false);
+    await expect(
+      page.getByText(de.states.offline.banner, { exact: true }),
+    ).toHaveCount(0);
+    const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
+      '{{title}}',
+      'Einkauf',
+    );
+    await pinned.getByRole('link', { name: openListName }).click();
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await expect(page.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(network.itemWrites).toEqual([]);
+    await page.goBack();
+    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
+    expect(network.itemWrites).toEqual([]);
+
+    await pinned.getByRole('button', { name: markDone }).click();
+    await expect.poll(() => network.itemWrites.length).toBe(1);
+    await expect(
+      pinned.getByRole('button', { name: markOpen }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await pinned.getByRole('link', { name: openListName }).click();
+    await expect(page.getByRole('button', { name: markOpen })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.goBack();
+    await expect(pinned.getByRole('button', { name: markOpen })).toBeEnabled();
+    await pinned.getByRole('button', { name: markOpen }).click();
+    await expect.poll(() => network.itemWrites.length).toBe(2);
+    await expect(
+      pinned.getByRole('button', { name: markDone }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      network.itemWrites.map(({ completed, ifMatch }) => ({
+        completed,
+        ifMatch,
+      })),
+    ).toEqual([
+      { completed: true, ifMatch: '1' },
+      { completed: false, ifMatch: '2' },
+    ]);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-checklist-confirmed-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+  });
+}
 
 test('celebrates only the confirmed final pinned Collection completion and stays retry-safe', async ({
   page,

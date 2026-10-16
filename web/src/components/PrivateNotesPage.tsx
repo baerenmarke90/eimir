@@ -485,7 +485,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutation.isPending) return;
+    if (mutation.isPending || deleteMutation.isPending) return;
     const data = new FormData(event.currentTarget);
     const title = titleValidation.validate(String(data.get('title') || ''));
     if (title === null) return;
@@ -531,7 +531,10 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
             >
               {t('common.cancel')}
             </button>
-            <button type="submit" disabled={mutation.isPending}>
+            <button
+              type="submit"
+              disabled={mutation.isPending || deleteMutation.isPending}
+            >
               {mutation.isPending
                 ? t('privateArea.saving')
                 : t('privateArea.save')}
@@ -551,6 +554,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
           <DeleteConfirmation
             onDelete={() => deleteMutation.mutate(note)}
             pending={deleteMutation.isPending}
+            disabled={mutation.isPending}
             error={deleteMutation.error}
           />
         </article>

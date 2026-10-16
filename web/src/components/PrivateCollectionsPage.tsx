@@ -1006,6 +1006,7 @@ export function PrivateCollectionDetailPage({
     if (
       !collection ||
       !isTitleDirty ||
+      deleteMutation.isPending ||
       updateCollectionMutation.isPending ||
       collectionOperationBlocked
     )

@@ -2483,6 +2483,11 @@ for (const view of [
             exact: true,
           }),
         ).toBeDisabled();
+        if (definition.kind !== 'collections') {
+          await expect(
+            page.getByRole('button', { name: privateArea.save, exact: true }),
+          ).toBeDisabled();
+        }
         if (definition.kind === 'notes' && !leave) {
           await expectNoWcagViolations(page);
           await page.screenshot({

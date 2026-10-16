@@ -132,6 +132,7 @@ for (const d of definitions) {
         if (deleted) throw new ClientProblemError('notFound', 404, 'NOT_FOUND');
         return d.resource;
       };
+      const update = vi.fn(() => new Promise<unknown>(() => {}));
       const api = {
         getPrivateNote: get,
         getGiftIdea: get,
@@ -139,6 +140,9 @@ for (const d of definitions) {
         deletePrivateNote: remove,
         deleteGiftIdea: remove,
         deletePrivateCollection: remove,
+        updatePrivateNote: update,
+        updateGiftIdea: update,
+        updatePrivateCollection: update,
       } as unknown as PrivateAreaApi;
       let hide!: () => void;
       function Harness() {
@@ -200,7 +204,7 @@ for (const d of definitions) {
           ifMatch: '1',
         });
       }
-      return { client, write, remove, submit, hide };
+      return { client, write, remove, update, submit, hide };
     }
 
     it.each([true, false])(
@@ -348,6 +352,67 @@ for (const d of definitions) {
       expect(h.client.getQueryState(d.listKey)?.isInvalidated).toBe(true);
       expect(h.client.getQueryState(siblingKey)?.isInvalidated).toBe(false);
     });
+
+    it('rejects edit submission while deletion is pending', async () => {
+      const h = setup();
+      await h.submit();
+      const input = screen.getByLabelText(
+        d.inline
+          ? privateArea.collections.titleLabel
+          : d.idField === 'noteId'
+            ? privateArea.notes.titleLabel
+            : privateArea.gifts.titleLabel,
+      );
+      fireEvent.change(input, { target: { value: 'Conflicting edit' } });
+      fireEvent.submit(input.closest('form')!);
+      await act(async () => {});
+      expect(h.update).not.toHaveBeenCalled();
+      await act(async () => h.write.resolve());
+    });
+
+    it.each([false, true])(
+      'blocks deletion while an edit is pending (confirmation open: %s)',
+      async (confirmFirst) => {
+        const h = setup();
+        if (d.inline)
+          fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+        if (confirmFirst)
+          fireEvent.click(
+            screen.getByRole('button', {
+              name: d.inline ? m5s3.common.delete : privateArea.delete,
+            }),
+          );
+        const input = screen.getByLabelText(
+          d.inline
+            ? privateArea.collections.titleLabel
+            : d.idField === 'noteId'
+              ? privateArea.notes.titleLabel
+              : privateArea.gifts.titleLabel,
+        );
+        fireEvent.change(input, { target: { value: 'Submitted edit' } });
+        fireEvent.submit(input.closest('form')!);
+        await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+        const trigger = screen.getByRole('button', {
+          name: confirmFirst
+            ? d.inline
+              ? m5s3.common.confirmDelete
+              : privateArea.deleteConfirm
+            : d.inline
+              ? m5s3.common.delete
+              : privateArea.delete,
+        });
+        expect((trigger as HTMLButtonElement).disabled).toBe(true);
+        fireEvent.click(trigger);
+        const confirm = screen.queryByRole('button', {
+          name: d.inline
+            ? m5s3.common.confirmDelete
+            : privateArea.deleteConfirm,
+        });
+        if (confirm) fireEvent.click(confirm);
+        await act(async () => {});
+        expect(h.remove).not.toHaveBeenCalled();
+      },
+    );
 
     it('leaves content and navigation intact when deletion fails', async () => {
       const h = setup();

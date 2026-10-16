@@ -1,7 +1,7 @@
 # Authorized list-order reconciliation — #508
 
 Baseline: `main@b5d220bbc1507ecb47e5418e6a614f0314530d75`, 2026-10-16.
-Runtime and tests: `b731ca00f826ece04e7cc91d8badbffd07122bff`.
+Runtime and tests: `b37f989c44ebded74b070f31a4d6209aaf2f67ec`.
 [Pre-implementation review and Mobile Interaction Contract](https://github.com/baerenmarke90/eimir/issues/508#issuecomment-6218951194).
 
 ## Problem and bounded contract
@@ -30,6 +30,14 @@ reorder consumers:
 4. Ignore removed/replacement Queries and newer 401/403/404 reads. The shared
    `captureAuthorizedQuery` guard is extracted from `capturePrivateEdit`, whose
    existing behavior is retained; order callbacks now use the same precedence.
+
+The shared detail task is keyed by Account/Space/collection, matching the private
+collection's existing resource boundary. Navigating to another collection starts
+its own task state and write lock. The synchronous reorder lock also captures
+the exact authorized Query and request identity: a replacement Query is not held
+by an old request, and old settlement cannot release a newer request's lock.
+Component journeys hold two independent writes across a route change and verify
+pending feedback, duplicate blocking, cache ownership and release.
 
 Shared requests, errors, deliberate Retry and invalidation use the submitted
 Space/collection. Recovery of an overview only targets its captured Query.
@@ -104,8 +112,9 @@ values. The helper adds no geometry or styling.
 
 **Reuse review relevant:** considered the installed TanStack Query 5.102.2
 cancellation/context/immutable-update lifecycle, existing Query identity and
-private-edit authorized-read guards, the two order implementations, and a separate
-optimistic store/transaction library. Reuse the adopted framework and native
+private-edit authorized-read guards, the two order implementations, React resource
+keys (including private `CollectionItems`), existing request-identity locks, and a
+separate optimistic store/transaction library. Reuse the adopted framework and native
 pointer/keyboard interaction. The small shared domain core is necessary for root
 versus item versions and precise Query ownership; a second store/provider cannot
 replace those contracts. No dependency/provider, license/ToS, external data flow,
@@ -136,7 +145,7 @@ and operating costs are unaffected.
 - Counterfactual production browser: all six concurrent-read cases and all four
   denied-read cases fail against unchanged baseline at content/order/visibility
   assertions. No failed regression is hidden by a recovery response.
-- Final affected production-browser suites: **88 passed in 4.3 minutes**, one
+- Final affected production-browser suites: **88 passed in 4.8 minutes**, one
   worker, zero retries/flakes.
 - Production build, TypeScript, browser/fixture typing, complete lint/format,
   Capacitor foundation, token/PWA checks, engineering/documentation language audits
@@ -151,7 +160,7 @@ client. Runtime and tests were committed before final visual evidence.
 
 | Production asset | SHA-256 |
 | --- | --- |
-| `index-_KATYPA9.js` | `5b3ad0ba4b9cd96fab5955ed8007d503815147c23abc1a225f26ab2c239fbe34` |
+| `index-DlRGngtD.js` | `2160a63c091454205c4a4950a9763c4ba660108adbb6900b812c4c9eaf1e4721` |
 | `index-D46K-c7Q.css` | `5a0671f0169db7c9502f7709de7b79f2568b81e89a09a3ad57a6e77202b0d3f2` |
 
 [SHA256SUMS](SHA256SUMS) records the committed image bytes. Hosted checks are linked

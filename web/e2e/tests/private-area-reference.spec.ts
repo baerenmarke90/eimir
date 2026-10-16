@@ -715,12 +715,17 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     updatedAt: TEST_NOW,
     capabilities: { canComment: false, canDelete: true, canEdit: true },
   }));
+  let version = 1;
+  let detailReads = 0;
+  let deniedReads = false;
+  let nextDetailRead: { started: () => void; response: Promise<void> } | null =
+    null;
   const collection = () => ({
     id: PRIVATE_COLLECTION_ID,
     ownerId: ACCOUNT_ID,
     spaceId: SPACE_ID,
     title: 'Travel preparations',
-    version: 1,
+    version,
     createdAt: TEST_NOW,
     updatedAt: TEST_NOW,
     capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -731,6 +736,7 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     route: Route;
     release: () => void;
     completed: boolean;
+    item: (typeof items)[number];
   } | null = null;
   let failReads = false;
   const root = `/api/v1/spaces/${SPACE_ID}/private/collections`;
@@ -738,13 +744,22 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'GET') {
+      if (path === `${root}/${PRIVATE_COLLECTION_ID}`) {
+        detailReads += 1;
+        if (nextDetailRead) {
+          const read = nextDetailRead;
+          nextDetailRead = null;
+          read.started();
+          await read.response;
+        }
+      }
       await route.fulfill({
-        status: failReads ? 503 : 200,
+        status: failReads ? (deniedReads ? 403 : 503) : 200,
         contentType: 'application/json',
         body: JSON.stringify(
           failReads
             ? {
-                status: 503,
+                status: deniedReads ? 403 : 503,
                 code: 'E2E_READ_UNAVAILABLE',
                 title: 'Read unavailable',
                 detail: 'Retry the authorized read.',
@@ -767,7 +782,12 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
         completed: body.completed,
       });
       await new Promise<void>((release) => {
-        waiting = { route, release, completed: body.completed };
+        waiting = {
+          route,
+          release,
+          completed: body.completed,
+          item: { ...items[0] },
+        };
       });
       return;
     }
@@ -776,6 +796,28 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
   return {
     writes,
     items,
+    detailReads: () => detailReads,
+    denyReads: () => {
+      failReads = true;
+      deniedReads = true;
+    },
+    reorder: () => {
+      version += 1;
+      for (const item of items)
+        item.position = items.length - 1 - item.position;
+    },
+    holdNextDetailRead: () => {
+      let started!: () => void;
+      let release!: () => void;
+      const received = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const response = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      nextDetailRead = { started, response };
+      return { received, release };
+    },
     failReads: (fail: boolean) => {
       failReads = fail;
     },
@@ -783,16 +825,21 @@ async function installHeldPrivateList(page: Page, itemCount = 3) {
       const pending = waiting;
       if (!pending) throw new Error('No private item write is waiting.');
       waiting = null;
-      if (status === 200) {
-        items[0].completed = pending.completed;
-        items[0].version += 1;
+      const saved = {
+        ...pending.item,
+        completed: pending.completed,
+        version: pending.item.version + 1,
+      };
+      if (status === 200 && items[0].version < saved.version) {
+        items[0].completed = saved.completed;
+        items[0].version = saved.version;
       }
       await pending.route.fulfill({
         status,
         contentType: 'application/json',
         body: JSON.stringify(
           status === 200
-            ? items[0]
+            ? saved
             : {
                 status,
                 code:
@@ -955,6 +1002,153 @@ test('private checklist rolls back, refreshes a conflict and recovers a failed r
   expect(fixture.writes).toHaveLength(3);
   expect(unexpectedRequests).toEqual([]);
 });
+
+for (const view of [
+  { name: '390-light', width: 390, theme: 'light' },
+  { name: '1280-dark', width: 1280, theme: 'dark' },
+] as const) {
+  for (const change of ['order', 'item'] as const) {
+    test(`private completion preserves a newer ${change} in ${view.name}`, async ({
+      page,
+      context,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        window.localStorage.setItem('eimir.theme', 'system'),
+      );
+      await page.clock.install();
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateList(page);
+      await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+      const row = page.locator(`[data-sortable-item-id="${PRIVATE_ITEM_ID}"]`);
+      const toggle = row.getByRole('button');
+      await toggle.click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      if (change === 'order') fixture.reorder();
+      else
+        Object.assign(fixture.items[0], {
+          title: 'Tickets updated elsewhere',
+          version: 5,
+          completed: false,
+        });
+      await context.setOffline(true);
+      await page.clock.fastForward(16_000);
+      await context.setOffline(false);
+      await expect.poll(() => fixture.detailReads()).toBe(2);
+      if (change === 'item') {
+        await expect(row).toContainText('Tickets updated elsewhere');
+        await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+        await expect(row.getByRole('status')).toHaveCount(0);
+      }
+      const recovery = fixture.holdNextDetailRead();
+      await fixture.respond();
+      await recovery.received;
+      await expect(row.getByRole('status')).toHaveCount(0);
+      await expect(toggle).toHaveAttribute(
+        'aria-pressed',
+        change === 'order' ? 'true' : 'false',
+      );
+      if (change === 'order')
+        await expect(
+          page.locator('[data-sortable-item-id]').first(),
+        ).toHaveAttribute('data-sortable-item-id', fixture.items[2].id);
+      else await expect(row).toContainText('Tickets updated elsewhere');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-completion-newer-${change}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      recovery.release();
+      await expect(toggle).toBeEnabled();
+      await toggle.click();
+      await expect.poll(() => fixture.writes.length).toBe(2);
+      expect(fixture.writes[1].ifMatch).toBe(change === 'order' ? '2' : '5');
+      await fixture.respond();
+      await expect(toggle).toBeEnabled();
+      await page
+        .getByRole('link', {
+          name: privateArea.collections.detailBack,
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole('link', { name: 'Travel preparations', exact: true })
+        .click();
+      await expect(row).toBeVisible();
+      expect(fixture.writes).toHaveLength(2);
+      expect(unexpected).toEqual([]);
+    });
+  }
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`private completion respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 900,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      window.localStorage.setItem('eimir.theme', 'system'),
+    );
+    await page.clock.install();
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateList(page);
+    await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: privateArea.collections.markComplete })
+      .first()
+      .click();
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('Book train tickets', { exact: true }),
+    ).toHaveCount(0);
+    const before = fixture.detailReads();
+    const recovery = fixture.holdNextDetailRead();
+    await fixture.respond(outcome === 'success' ? 200 : 503);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(
+      page.getByText('Book train tickets', { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(fixture.detailReads()).toBe(before);
+    expect(fixture.writes).toHaveLength(1);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-completion-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    recovery.release();
+    expect(unexpected).toEqual([]);
+  });
+}
 
 async function installHeldPrivateReorder(page: Page, count = 3) {
   const list = await installHeldPrivateList(page, count);

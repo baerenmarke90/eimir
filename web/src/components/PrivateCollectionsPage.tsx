@@ -6,6 +6,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { captureCollectionOrder } from '../client/collectionOrder';
+import { captureQueryIdentity } from '../client/queryIdentity';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
@@ -503,51 +505,29 @@ function CollectionItems({
         }),
       );
     },
-    onMutate: async ({ itemIds, scope }) => {
+    onMutate: async ({ itemIds, scope, version }) => {
       const key = privateAreaQueryKeys.collection(
         scope.accountId,
         scope.spaceId,
         scope.collectionId,
       );
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previous = queryClient.getQueryData<PrivateCollectionDetail>(key);
-      const positions = new Map(itemIds.map((id, position) => [id, position]));
-      queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((item) => ({
-                ...item,
-                position: positions.get(item.id) ?? item.position,
-              })),
-            }
-          : current,
+      const listKey = privateAreaQueryKeys.collections(
+        scope.accountId,
+        scope.spaceId,
       );
-      return {
+      const isCurrentList = captureQueryIdentity(queryClient, listKey);
+      const order = await captureCollectionOrder<PrivateCollectionDetail>(
+        queryClient,
         key,
-        version: previous?.version,
-        previousPositions: new Map(
-          previous?.items.map((item) => [item.id, item.position]),
-        ),
-      };
+        version,
+        itemIds,
+      );
+      return { ...order, listKey, isCurrentList };
     },
     onError: async (error, _variables, context) => {
       setPendingOrder(null);
-      if (!context) return;
-      queryClient.setQueryData<PrivateCollectionDetail>(
-        context.key,
-        (current) =>
-          current && current.version === context.version
-            ? {
-                ...current,
-                items: current.items.map((item) => ({
-                  ...item,
-                  position:
-                    context.previousPositions.get(item.id) ?? item.position,
-                })),
-              }
-            : current,
-      );
+      if (!context?.isCurrentQuery()) return;
+      context.rollback();
       if (
         ['unauthorized', 'permission', 'notFound'].includes(
           clientProblemKind(error),
@@ -557,49 +537,30 @@ function CollectionItems({
       }
     },
     onSuccess: (updated, _variables, context) => {
-      if (context) {
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) => {
-            if (!current || current.version > updated.version) return current;
-            const currentItems = new Map(
-              current.items.map((item) => [item.id, item]),
-            );
-            return {
-              ...updated,
-              items: updated.items.map((item) => {
-                const existing = currentItems.get(item.id);
-                return existing && existing.version > item.version
-                  ? { ...existing, position: item.position }
-                  : item;
-              }),
-            };
-          },
-        );
-      }
+      context?.confirm(updated);
       setPendingOrder(null);
     },
-    onSettled: async (_data, error, { scope }, context) => {
-      if (
-        context &&
-        !['unauthorized', 'permission', 'notFound'].includes(
-          clientProblemKind(error),
-        )
-      ) {
-        await queryClient.invalidateQueries({
-          queryKey: context.key,
-          exact: true,
-          refetchType: isClientOnline() ? 'active' : 'none',
-        });
+    onSettled: async (_data, error, _variables, context) => {
+      if (context?.isCurrentQuery()) {
+        if (
+          !['unauthorized', 'permission', 'notFound'].includes(
+            clientProblemKind(error),
+          )
+        ) {
+          await queryClient.invalidateQueries({
+            queryKey: context.key,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
+        if (context.isCurrentQuery() && context.isCurrentList()) {
+          await queryClient.invalidateQueries({
+            queryKey: context.listKey,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(
-          scope.accountId,
-          scope.spaceId,
-        ),
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
       reorderInFlightRef.current = false;
     },
   });
@@ -895,7 +856,11 @@ function CollectionItems({
       {deleteMutation.error ? (
         <ProblemState error={deleteMutation.error} />
       ) : null}
-      {reorderMutation.error ? (
+      {reorderMutation.error &&
+      reorderMutation.context?.isCurrentQuery() &&
+      reorderMutation.variables?.scope.accountId === accountId &&
+      reorderMutation.variables?.scope.spaceId === spaceId &&
+      reorderMutation.variables?.scope.collectionId === collection.id ? (
         <ProblemState
           error={reorderMutation.error}
           onRetry={async () => {

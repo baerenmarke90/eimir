@@ -152,7 +152,7 @@ in a background job under resource limits — never in the request path.
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @tanstack/react-query | 5.85.5 | npm | MIT |
+| @tanstack/react-query | 5.102.2 | npm | MIT |
 | i18next | 26.4.0 | npm | MIT |
 | react-i18next | 17.0.11 | npm | MIT |
 | react | 19.2.8 | npm | MIT |

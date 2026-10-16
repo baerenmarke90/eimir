@@ -1,6 +1,8 @@
+import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { Configuration } from '../api/generated/runtime';
-import { normalizeClientError } from './problemDetails';
+import { clientProblemKind, normalizeClientError } from './problemDetails';
+import { captureQueryIdentity } from './queryIdentity';
 
 export const PRIVATE_AREA_ROOT_PATH = '/more/private';
 export const PRIVATE_NOTES_PATH = '/more/private/notes';
@@ -24,6 +26,37 @@ export async function privateApiCall<T>(call: () => Promise<T>): Promise<T> {
   } catch (error) {
     throw await normalizeClientError(error);
   }
+}
+
+/** Capture the authorized read that owns a private full-resource edit. */
+export function capturePrivateEdit<T extends { version: number }>(
+  client: QueryClient,
+  key: QueryKey,
+  listKey: QueryKey,
+) {
+  const isCurrentQuery = captureQueryIdentity(client, key);
+  const isCurrent = () => {
+    if (!isCurrentQuery()) return false;
+    const state = client.getQueryState(key);
+    return (
+      state?.data !== undefined &&
+      !['unauthorized', 'permission', 'notFound'].includes(
+        clientProblemKind(state?.error),
+      )
+    );
+  };
+  return {
+    key,
+    listKey,
+    isCurrent,
+    reconcile(updated: T) {
+      if (!isCurrent()) return false;
+      const current = client.getQueryData<T>(key);
+      if (!current || current.version > updated.version) return false;
+      if (current.version < updated.version) client.setQueryData(key, updated);
+      return true;
+    },
+  };
 }
 
 export const privateAreaQueryKeys = {

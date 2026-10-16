@@ -11,6 +11,7 @@ import type { GiftIdeaDetail } from '../api/generated/models/GiftIdeaDetail';
 import { GiftIdeaStatus } from '../api/generated/models/GiftIdeaStatus';
 import {
   PRIVATE_GIFT_IDEAS_PATH,
+  capturePrivateEdit,
   privateApiCall,
   privateAreaQueryKeys,
   privateGiftIdeaEditPath,
@@ -521,7 +522,7 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
       const values = giftValues(data);
       return privateApiCall(() =>
         api.updateGiftIdea({
-          spaceId,
+          spaceId: gift.spaceId,
           giftIdeaId: gift.id,
           ifMatch: String(gift.version),
           giftIdeaUpdate: {
@@ -533,15 +534,18 @@ export function GiftIdeaEditPage({ api, accountId, spaceId }: Props) {
         }),
       );
     },
-    onSuccess: async (gift) => {
-      queryClient.setQueryData(
-        privateAreaQueryKeys.giftIdea(accountId, spaceId, gift.id),
-        gift,
-      );
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
-      });
+    onMutate: ({ gift }) =>
+      capturePrivateEdit<GiftIdeaDetail>(
+        queryClient,
+        privateAreaQueryKeys.giftIdea(gift.ownerId, gift.spaceId, gift.id),
+        privateAreaQueryKeys.giftIdeas(gift.ownerId, gift.spaceId),
+      ),
+    onSuccess: async (gift, _variables, context) => {
+      if (!context?.reconcile(gift)) return;
+      await queryClient.invalidateQueries({ queryKey: context.listKey });
+      if (!context.isCurrent()) return;
       closeTask(() => {
+        if (!context.isCurrent()) return;
         navigate(privateGiftIdeaPath(gift.id), {
           replace: true,
           state: navigationState,

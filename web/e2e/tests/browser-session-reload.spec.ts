@@ -1,6 +1,8 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -22,6 +24,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     page,
   }) => {
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -187,9 +190,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect(
       page.getByRole('heading', { name: 'Summer vacation checklist' }),
     ).toBeVisible();
-    await expect(
-      page.locator('input.private-checklist-title-input'),
-    ).toHaveValue('Passport and boarding pass');
+    await expect(page.locator('.private-collection-item-title')).toHaveText(
+      'Passport and boarding pass',
+    );
 
     const currentUrl = page.url();
     expect(currentUrl).toContain(deepPath);
@@ -204,9 +207,9 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     await expect(
       page.getByRole('heading', { name: 'Summer vacation checklist' }),
     ).toBeVisible();
-    await expect(
-      page.locator('input.private-checklist-title-input'),
-    ).toHaveValue('Passport and boarding pass');
+    await expect(page.locator('.private-collection-item-title')).toHaveText(
+      'Passport and boarding pass',
+    );
 
     // 7. Verify login screen was never shown
     await expect(page.getByLabel(de.login.email)).not.toBeVisible();
@@ -216,6 +219,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     page,
   }) => {
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -329,6 +333,10 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     // 1. Initial sign-in
     await page.goto('/');
     await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+    ).toBeVisible();
 
     // 2. Open header profile menu and click logout
     const menuButton = page.getByRole('button', {
@@ -363,6 +371,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     const DEMO_ALEX_PARTNER_ID = '00000000-0000-0000-0000-000000000098';
 
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -519,7 +528,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
 
     // 1. Open app in demo mode
     await page.addInitScript(() => {
-      window.sessionStorage.setItem('sbs-demo-mode', 'true');
+      window.sessionStorage.setItem('eimir-demo-mode', 'true');
     });
     await page.goto('/');
 
@@ -530,10 +539,18 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     // 3. Click Lea -> calls demo entry and redirects to /auth/magic-link?token=...
     await leaButton.click();
 
-    // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route)
-    await expect(page.getByRole('heading', { name: /Alex/i })).toBeVisible({
+    // 4. Verify magic-link callback is processed and app opens (Today dashboard or default route).
+    // Today owns the page H1; Couple Presence remains the relationship hero below it.
+    await expect(
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+    ).toBeVisible({
       timeout: 10000,
     });
+    await expect(
+      page
+        .locator('.couple-presence-card')
+        .getByRole('heading', { name: /Alex/i, level: 2 }),
+    ).toBeVisible();
     // DemoEntry person picker is gone
     await expect(
       page.getByRole('button', { name: demoDe.joinLea }),

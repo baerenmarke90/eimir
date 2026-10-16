@@ -49,7 +49,7 @@ def upgrade() -> None:
         sa.text(
             """
             UPDATE auth_identities
-               SET issuer = 'urn:sidebyside:legacy-unresolved:' || id::text,
+               SET issuer = 'urn:eimir:legacy-unresolved:' || id::text,
                    connection_id = 'legacy-unresolved'
              WHERE provider = 'OIDC'
             """

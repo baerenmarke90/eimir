@@ -22,9 +22,9 @@ import pytest
 from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import PrivacyClass
-from sidebyside.core.ids import new_id
-from sidebyside.relationship import service
+from eimir.authorization import PrivacyClass
+from eimir.core.ids import new_id
+from eimir.relationship import service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 from tests.support.privacy_probe import PrivacyProbe
 

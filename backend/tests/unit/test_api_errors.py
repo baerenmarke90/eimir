@@ -13,8 +13,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
-from sidebyside.api.errors import register_error_handlers
-from sidebyside.core.errors import (
+from eimir.api.errors import register_error_handlers
+from eimir.core.errors import (
     ConflictError,
     ErrorCode,
     ForbiddenError,

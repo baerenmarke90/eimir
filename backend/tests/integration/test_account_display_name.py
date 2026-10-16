@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.auth.sessions import authenticate, start_session
-from sidebyside.identity import service as identity_service
+from eimir.auth.sessions import authenticate, start_session
+from eimir.identity import service as identity_service
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

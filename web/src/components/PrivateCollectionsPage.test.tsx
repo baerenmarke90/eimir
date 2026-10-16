@@ -7,6 +7,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { privateAreaQueryKeys } from '../client/privateArea';
 import { i18n } from '../i18n';
+import de from '../i18n/locales/de';
+import privateArea from '../i18n/locales/privateArea';
 import {
   PrivateCollectionDetailPage,
   PrivateCollectionEditPage,
@@ -34,7 +36,7 @@ function collection() {
 describe('PrivateCollectionsPage', () => {
   it('shows the title cleanly in the list (#373)', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collections(ACCOUNT_ID, SPACE_ID),
@@ -65,7 +67,7 @@ describe('PrivateCollectionsPage', () => {
 
   it('does not offer an icon field when editing (#373)', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
@@ -96,9 +98,9 @@ describe('PrivateCollectionsPage', () => {
     expect(html).not.toContain('private-collection-icon');
   });
 
-  it('renders checklist items with checkboxes, autosave inputs, and grouped sections', () => {
+  it('renders private collection items read-first until edit is requested', () => {
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
     });
     queryClient.setQueryData(
       privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
@@ -146,13 +148,81 @@ describe('PrivateCollectionsPage', () => {
 
     expect(html).toContain('planning-collection-items');
     expect(html).toContain('planning-check');
-    expect(html).toContain('planning-inline-create');
+    expect(html).toContain('private-collection-item-title');
     expect(html).toContain('Order photo album');
     expect(html).toContain('Book train tickets');
 
-    // Replaced legacy checkbox and separate edit page artifacts
+    // Reading/checking is primary; management chrome stays behind Edit.
+    expect(html).not.toContain('planning-inline-create');
+    expect(html).not.toContain('private-checklist-title-input');
+    expect(html).not.toContain(privateArea.collections.reorderItem);
+    expect(html).not.toContain(privateArea.collections.removeItem);
     expect(html).not.toContain('private-checklist-checkbox');
     expect(html).not.toContain('private-area-badge');
+  });
+
+  it('discloses collection management controls only in edit mode', () => {
+    const sampleCollection = {
+      ...collection(),
+      items: [
+        {
+          id: 'item-1',
+          title: 'Order photo album',
+          completed: false,
+          position: 0,
+          version: 1,
+        },
+      ],
+    };
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Infinity },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
+      sampleCollection,
+    );
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter
+          initialEntries={[`/private/collections/${COLLECTION_ID}`]}
+        >
+          <Routes>
+            <Route
+              path="/private/collections/:collectionId"
+              element={
+                <PrivateCollectionDetailPage
+                  api={{} as PrivateAreaApi}
+                  accountId={ACCOUNT_ID}
+                  spaceId={SPACE_ID}
+                />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      screen.queryByPlaceholderText(privateArea.collections.itemTitleLabel),
+    ).toBeNull();
+    expect(screen.queryByLabelText(privateArea.collections.rename)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+
+    expect(
+      screen.getByPlaceholderText(privateArea.collections.itemTitleLabel),
+    ).toBeDefined();
+    expect(screen.getByLabelText(privateArea.collections.rename)).toBeDefined();
+    expect(
+      screen.getByRole('button', { name: privateArea.collections.reorderItem }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole('button', { name: privateArea.collections.removeItem }),
+    ).toBeDefined();
   });
 
   it('resets isEditing and confirmDelete on successful title update', async () => {
@@ -168,7 +238,7 @@ describe('PrivateCollectionsPage', () => {
 
     const queryClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: false },
+        queries: { retry: false, staleTime: Infinity },
         mutations: { retry: false },
       },
     });
@@ -203,13 +273,9 @@ describe('PrivateCollectionsPage', () => {
       </QueryClientProvider>,
     );
 
-    // Click edit button to enter edit mode
-    const editBtn = screen.getByRole('button', {
-      name: /common\.edit|bearbeiten/i,
-    });
+    const editBtn = screen.getByRole('button', { name: de.common.edit });
     fireEvent.click(editBtn);
 
-    // isEditing is true: input and delete trigger are visible
     const input = screen.getByRole('textbox', {
       name: /titel|privatearea\.collections\.titlelabel/i,
     });
@@ -218,28 +284,23 @@ describe('PrivateCollectionsPage', () => {
     const deleteTrigger = screen.getByRole('button', { name: /^löschen$/i });
     fireEvent.click(deleteTrigger);
 
-    // confirmDelete is true: danger confirmation zone is visible
     expect(
       screen.getByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     ).toBeDefined();
 
-    // Update title
     fireEvent.change(input, { target: { value: 'New Private Packing list' } });
 
-    // Save changes
     const saveBtn = screen.getByRole('button', {
       name: /änderungen speichern/i,
     });
     fireEvent.click(saveBtn);
 
-    // Wait for mutation to finish
     await waitFor(() => {
       expect(updatePrivateCollectionMock).toHaveBeenCalled();
     });
 
-    // Verify isEditing is reset to false: input is gone, edit button is back
     await waitFor(() => {
       expect(
         screen.queryByRole('textbox', {
@@ -247,15 +308,88 @@ describe('PrivateCollectionsPage', () => {
         }),
       ).toBeNull();
     });
-    expect(
-      screen.getByRole('button', { name: /common\.edit|bearbeiten/i }),
-    ).toBeDefined();
+    expect(screen.getByRole('button', { name: de.common.edit })).toBeDefined();
 
-    // Verify confirmDelete is reset to false: danger zone with confirm delete button is gone
     expect(
       screen.queryByRole('button', {
         name: i18n.t('m5s3.common.confirmDelete'),
       }),
     ).toBeNull();
+  });
+
+  it('uses translated saving copy while a title update is pending', async () => {
+    const sampleCollection = collection();
+    let resolveUpdate:
+      | ((value: ReturnType<typeof collection>) => void)
+      | undefined;
+    const updatePrivateCollectionMock = vi.fn().mockImplementation(
+      () =>
+        new Promise<ReturnType<typeof collection>>((resolve) => {
+          resolveUpdate = resolve;
+        }),
+    );
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Infinity },
+        mutations: { retry: false },
+      },
+    });
+    queryClient.setQueryData(
+      privateAreaQueryKeys.collection(ACCOUNT_ID, SPACE_ID, COLLECTION_ID),
+      sampleCollection,
+    );
+
+    const mockApi = {
+      getPrivateCollection: vi.fn().mockResolvedValue(sampleCollection),
+      updatePrivateCollection: updatePrivateCollectionMock,
+    } as unknown as PrivateAreaApi;
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter
+          initialEntries={[`/private/collections/${COLLECTION_ID}`]}
+        >
+          <Routes>
+            <Route
+              path="/private/collections/:collectionId"
+              element={
+                <PrivateCollectionDetailPage
+                  api={mockApi}
+                  accountId={ACCOUNT_ID}
+                  spaceId={SPACE_ID}
+                />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: de.common.edit }));
+    const input = screen.getByRole('textbox', {
+      name: /titel|privatearea\.collections\.titlelabel/i,
+    });
+    fireEvent.change(input, { target: { value: 'Renamed packing list' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: /änderungen speichern/i }),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: de.common.saving }),
+      ).toBeDefined();
+    });
+
+    resolveUpdate?.({
+      ...sampleCollection,
+      title: 'Renamed packing list',
+      version: 2,
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: de.common.edit }),
+      ).toBeDefined();
+    });
   });
 });

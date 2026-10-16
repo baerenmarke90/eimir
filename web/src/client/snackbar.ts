@@ -10,7 +10,7 @@ export interface SnackbarEventDetail {
   messageOptions?: Record<string, unknown>;
 }
 
-export const SNACKBAR_EVENT = 'sidebyside:snackbar';
+export const SNACKBAR_EVENT = 'eimir:snackbar';
 
 let nextSnackbarId = 1;
 

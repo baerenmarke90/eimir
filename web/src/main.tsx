@@ -3,52 +3,69 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { App } from './App';
+import { isDemoModeConfigured } from './client/demoMode';
+import { identityBuildVariable } from './client/identityEnvironment';
 import { DemoBanner } from './components/DemoBanner';
 import { i18n } from './i18n';
+import { registerProductionServiceWorker } from './pwa';
+import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
 import './theme.css';
+import './design/product-roles.css';
 import './shell.css';
 import './layout.css';
 import './attachment-drafts.css';
 import './demo.css';
 import './components/CommentsPanel.css';
+import './components/GamesProductArea.css';
+import './components/OurMomentsGamePage.css';
+import './components/WishDetectiveGamePage.css';
+import './components/HeartMomentCreateReference.css';
 import './components/LoginExperience.css';
 import './components/MediaGallery.css';
 import './components/MemoryProductPage.css';
 import './components/MoreOverviewPage.css';
 import './components/ProfilePage.css';
 import './components/RelatedPeoplePage.css';
+import './components/RelatedPeopleAccessibility.css';
 import './components/StoryProductPages.css';
+import './components/StoryDetailContentFirst.css';
+import './components/StoryMomentMetadata.css';
+import './components/SharedPlanningSanctuary.css';
+import './product-reflow.css';
+import './memory-create-polish.css';
+import './design/identity-roles.css';
+import './design/identity-components.css';
 
 initializeTheme();
+registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 15_000, retry: false } },
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      retry: false,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+    },
+  },
 });
-
-const isDemoModeConfigured = () => {
-  if (typeof window === 'undefined') return false;
-  if (import.meta.env.VITE_SBS_DEMO_MODE === 'true') return true;
-  if (new URLSearchParams(window.location.search).get('demo') === 'true') {
-    window.sessionStorage?.setItem('sbs-demo-mode', 'true');
-    return true;
-  }
-  return window.sessionStorage?.getItem('sbs-demo-mode') === 'true';
-};
 
 const demoMode = isDemoModeConfigured();
 const demoResetTimerEnabled =
-  import.meta.env.VITE_SBS_DEMO_RESET_TIMER === 'true';
+  identityBuildVariable('DEMO_RESET_TIMER') === 'true';
 const demoResetInterval = String(
-  import.meta.env.VITE_SBS_DEMO_RESET_INTERVAL || '6h',
+  identityBuildVariable('DEMO_RESET_INTERVAL') || '6h',
 ).trim();
-const demoUrl = String(import.meta.env.VITE_SBS_DEMO_URL || '')
+const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .trim()
   .replace(/\/+$/, '');
 
 function RootApp() {
+  useCapacitorShell();
   return (
     <>
       {demoMode ? (

@@ -154,7 +154,7 @@ Initial user-visible Activity kinds:
 
 - shared Memory created;
 - shared Milestone created;
-- SHARED HeartMoment created;
+- HeartMoment first shared, either at creation or through an `OWNER_ONLY` → `SHARED` transition;
 - Wish created;
 - Plan created;
 - Plan completed;
@@ -177,6 +177,10 @@ Deliberately excluded from the initial Activity feed:
 - `Ich denke an dich` signals, which create a recipient Notification but do not add Activity feed noise in v1.
 
 A later expansion of the Activity catalog requires an explicit event/privacy decision rather than a wildcard mapper.
+Re-sharing an already seen HeartMoment does not create a duplicate Activity entry.
+The current target privacy check hides the entry from the partner immediately
+if visibility later returns to `OWNER_ONLY`. HeartMoments do not gain a new
+recipient Notification or PushDelivery kind from this Activity rule.
 
 ## Activity authorization
 
@@ -357,13 +361,15 @@ Request:
 
 The server enforces uniqueness for the sender/Space/request ID combination so normal retries do not create duplicate signals.
 
-### Abuse bound
+### Cooldown
 
-The v1 server accepts at most one new `Ich denke an dich` signal per sender/Space in a rolling 60-second window, in addition to normal API rate limiting.
+The server enforces a 30-minute rolling sender/Space cooldown between new `Ich denke an dich` signals (`thinking.COOLDOWN_SECONDS`), in addition to normal API rate limiting. This is a deliberate product pacing decision (Product Owner, #790/#791) superseding the earlier 60-second technical anti-spam bound, not merely a stricter version of it.
 
-A replay of an already accepted `clientRequestId` is idempotent and does not consume another logical send.
+A replay of an already accepted `clientRequestId` is idempotent and does not consume another logical send or extend the cooldown.
 
-The cooldown is a technical anti-spam/safety bound, not a Premium quota.
+The cooldown state is server-authoritative and surfaced to clients through `Dashboard.thinkingOfYouAvailableAt` (`null` when a send is available now), so the sending control can reflect the real state without a local timer or a failed request. A request that still races past the client-visible state receives a `429 THINKING_OF_YOU_COOLDOWN` response with a standard `Retry-After` header carrying the exact remaining seconds.
+
+The cooldown remains Free/Core behavior, not a Premium quota.
 
 ### Membership changes
 
@@ -389,7 +395,7 @@ Default push payloads must not contain:
 The default lock-screen-safe presentation is generic, for example a client-localized equivalent of:
 
 ```text
-SideBySide
+eimir.
 There is something new for you.
 ```
 

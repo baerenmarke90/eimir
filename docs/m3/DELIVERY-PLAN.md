@@ -265,7 +265,7 @@ Implemented in Issue #259 / PR #260 with dedicated owner-only root and Item pers
 
 ## 12. S9 – Integrated M3 backend/API evidence – delivered
 
-The five mandatory G3 flows are demonstrated against the real SideBySide API + PostgreSQL:
+The five mandatory G3 flows are demonstrated against the real eimir. API + PostgreSQL:
 
 1. Wish -> Plan -> Complete;
 2. Place + typed Relation + Delete;

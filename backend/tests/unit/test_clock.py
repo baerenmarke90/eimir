@@ -6,7 +6,14 @@ from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
-from sidebyside.core.clock import ensure_utc, now, resolve_zone, today_in, today_utc
+from eimir.core.clock import (
+    annual_occurrence,
+    ensure_utc,
+    now,
+    resolve_zone,
+    today_in,
+    today_utc,
+)
 
 
 def today_utc_at(timestamp: datetime) -> date:
@@ -101,3 +108,23 @@ class TestTodayIn:
     def test_unknown_zone_yields_utc_day(self) -> None:
         timestamp = datetime(2026, 8, 24, 12, 30, tzinfo=UTC)
         assert today_in("Nicht/Echt", at=timestamp) == date(2026, 8, 24)
+
+
+class TestAnnualOccurrence:
+    def test_leap_year_keeps_february_29(self) -> None:
+        assert annual_occurrence(2028, 2, 29) == date(2028, 2, 29)
+
+    def test_non_leap_year_resolves_to_february_28(self) -> None:
+        assert annual_occurrence(2027, 2, 29) == date(2027, 2, 28)
+
+    def test_century_non_leap_year_resolves_to_february_28(self) -> None:
+        """1900 and 2100 are non-leap despite being divisible by 4."""
+        assert annual_occurrence(2100, 2, 29) == date(2100, 2, 28)
+
+    def test_regular_month_and_day_pass_through(self) -> None:
+        assert annual_occurrence(2026, 6, 15) == date(2026, 6, 15)
+
+    def test_other_invalid_dates_still_raise(self) -> None:
+        """Only February 29 is special-cased; April 31 is simply invalid."""
+        with pytest.raises(ValueError):
+            annual_occurrence(2026, 4, 31)

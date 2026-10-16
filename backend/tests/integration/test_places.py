@@ -19,10 +19,10 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidebyside.outbox.models import OutboxEvent
-from sidebyside.places.models import Place
-from sidebyside.plans.models import Plan
-from sidebyside.relationship import service as relationship_service
+from eimir.outbox.models import OutboxEvent
+from eimir.places.models import Place
+from eimir.plans.models import Plan
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

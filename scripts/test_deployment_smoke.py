@@ -42,7 +42,7 @@ class SmokeSessionCleanupTest(unittest.TestCase):
         ) -> deployment_smoke.HttpResult:
             if url == f"{origin}/healthz":
                 return deployment_smoke.HttpResult(200, b"ok\n", None)
-            if url == f"{origin}/.well-known/sidebyside-revision":
+            if url == f"{origin}/.well-known/eimir-revision":
                 return deployment_smoke.HttpResult(
                     200,
                     deployment_smoke.UNVERIFIED_REVISION.encode("utf-8"),
@@ -70,8 +70,8 @@ class SmokeSessionCleanupTest(unittest.TestCase):
             self.fail(f"unexpected smoke request: {url}")
 
         environment = {
-            "SBS_SMOKE_EMAIL": "smoke@example.invalid",
-            "SBS_SMOKE_PASSWORD": "not-a-real-secret",
+            "EIMIR_SMOKE_EMAIL": "smoke@example.invalid",
+            "EIMIR_SMOKE_PASSWORD": "not-a-real-secret",
         }
         with (
             patch.object(deployment_smoke, "request", side_effect=fake_request),

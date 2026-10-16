@@ -10,7 +10,7 @@ The original forward roadmap placed rich relationship features in M6,
 integrations in M7, contextual/location features in M8, and only then placed
 Productization/Release in M9.
 
-That ordering no longer reflects the product boundary SideBySide has reached.
+That ordering no longer reflects the product boundary eimir. has reached.
 M0-M4 already define a substantial functional Core and M5 is explicitly the
 milestone that turns that Core into complete, parity-checked Web and Android
 clients. Questions, Daily Check-in, Recaps, Discovery, external integrations,

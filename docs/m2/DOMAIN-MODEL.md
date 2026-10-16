@@ -132,7 +132,7 @@ Non-content fields are subject to the same author rule. Later collaborative edit
 | Emotion classification | ProtectedPayload; not Analytics/Event/Log metadata |
 | Media | at most one optional Attachment according to the current model; Media contract #69 |
 | Comments | `SHARED` only; delete atomically on `SHARED -> PRIVATE` |
-| Story | `SHARED` only |
+| Story | own Timeline always (own position, real `visibility`); partner's Timeline only when `SHARED` (#1021, superseding M2-D22) |
 | Partner access when PRIVATE | never — including indirectly |
 | Concurrency | `version`, 409 for stale Update/Delete/Privacy transition |
 
@@ -191,7 +191,7 @@ Server-side Parent Cascade/Privacy operations may remove dependent Comments rega
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Memory | CRUD | Read | never | yes | later M4 | yes | yes |
 | HeartMoment SHARED | CRUD | Read | never | yes | later M4 | yes | yes |
-| HeartMoment PRIVATE | CRUD | never | never | never | owner only, if offered later | never | never |
+| HeartMoment PRIVATE | CRUD | never | never | owner only (#1021) | owner only, if offered later | never | never |
 | Milestone | CRUD* | Read | never | yes | later M4 | yes | yes |
 | Attachment on Shared target | according to target | according to target | never | through target | through target | according to target | n/a |
 | Attachment on owner-only target | owner | never | never | never | never for partner | never | n/a |
@@ -226,12 +226,18 @@ ProtectedPayload is not duplicated into Analytics, log fields, metric labels, No
 ## 6. Story Read Model
 
 ```text
-Memory ───────────────┐
-HeartMoment SHARED ───┼── StoryQueryService ── CursorPage<StoryItem>
-Milestone ────────────┘
-
-HeartMoment PRIVATE ──X── never part of the Story query
+Memory ─────────────────────┐
+HeartMoment (viewer-authorized) ── StoryQueryService ── CursorPage<StoryItem>
+Milestone ───────────────────┘
 ```
+
+The Story query is viewer-authorized (#1021, superseding M2-D22): it applies
+the same `OWNER_ONLY`/`SPACE_SHARED` Authorization rule as every other
+resource, so a HeartMoment an account marked `PRIVATE` stays part of that
+account's own Timeline at its ordinary position and carries its real
+`visibility`, while remaining completely absent from the partner's. The
+separate relationship-shared projections — the Dashboard's shared Story
+counts and Discover — stay `SPACE_SHARED`-only, unaffected by this.
 
 Story is not persisted. Each item references its original and contains only the data necessary for Timeline, author, Media preview, and navigation.
 
@@ -285,7 +291,7 @@ Consumers that need presentation data load it under their own Authorization or u
 1. Every resource carries exactly one Space context.
 2. Membership is checked before resource access.
 3. Owner-only is enforced in the data query.
-4. A `PRIVATE` HeartMoment creates no partner Activity, Notification, or Story row.
+4. A `PRIVATE` HeartMoment creates no partner Activity, Notification, or partner-visible Story row; it remains part of its owner's own Story (#1021).
 5. Attachment Authorization follows the target resource.
 6. Mutable entities are not overwritten without a version check.
 7. Story contains only references to originals, not duplicated content.

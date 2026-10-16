@@ -65,8 +65,36 @@ export function ProfilePage(props: ProfilePageProps) {
         }}
       />
 
-      {/* 2. Preferences & partner block */}
+      {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
       <ProfilePreferencesSection {...currentProps} />
+
+      {/* 3. Account-level Premium information stays factual and secondary. */}
+      <section
+        id="profile-premium"
+        className="profile-premium-section"
+        aria-labelledby="profile-premium-title"
+      >
+        <p className="eyebrow">{t('profiles.premium.eyebrow')}</p>
+        <div className="profile-premium-title-row">
+          <h2 id="profile-premium-title">{t('profiles.premium.title')}</h2>
+          <span className="profile-premium-badge">
+            {t('profiles.premium.badge')}
+          </span>
+        </div>
+        <p className="profile-premium-lead">
+          {t('profiles.premium.gamesTitle')}
+        </p>
+        <p className="profile-section-intro">
+          {t('profiles.premium.gamesBody')}
+        </p>
+        <details className="profile-premium-details">
+          <summary>{t('profiles.premium.action')}</summary>
+          <div className="profile-premium-details-copy">
+            <strong>{t('profiles.premium.detailsTitle')}</strong>
+            <p>{t('profiles.premium.detailsBody')}</p>
+          </div>
+        </details>
+      </section>
     </div>
   );
 }

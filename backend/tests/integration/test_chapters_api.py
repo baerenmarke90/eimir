@@ -9,9 +9,9 @@ from uuid import UUID
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.places import service as place_service
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext
+from eimir.places import service as place_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

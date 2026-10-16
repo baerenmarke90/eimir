@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.api.schema import ApiModel, to_camel
+from eimir.api.schema import ApiModel, to_camel
 
 
 class Example(ApiModel):

@@ -1,14 +1,23 @@
 # ADR 0007: Kotlin Multiplatform for a shared non-visual mobile core
 
-- **Status:** Accepted for staged implementation
+- **Status:** Superseded by [ADR 0011](0011-web-first-pwa-capacitor-mobile-delivery.md)
 - **Date:** 2026-09-03
 - **Parent:** #621, IOS-0
 - **Scope:** Android/iOS architecture only; no iOS product UI is implemented by this ADR
 - **Decision type:** Mobile architecture / OpenAPI / privacy boundary
 
+> **Superseded — not an active roadmap.** ADR 0011 (#1005) replaced this
+> decision: the React/Vite Web application is the single product UI, and Android
+> (and later iOS) ship it through Capacitor. The Kotlin/Jetpack Compose client,
+> the Kotlin Multiplatform shared core and the SwiftUI plan described below were
+> never delivered as a product; the Compose client was removed in #1009 and
+> `android/` now holds only the Capacitor wrapper. The KMP issues #626-#630 are
+> closed as superseded. The text below is kept unchanged as historical context
+> for why that direction was considered; do not implement from it.
+
 ## Context
 
-SideBySide has a native Android application and plans a native iOS application. The
+eimir. has a native Android application and plans a native iOS application. The
 product decision in #621 is **semantic parity, not pixel-identical platforms**:
 Android remains Jetpack Compose and iOS will use SwiftUI. The open architectural
 question is whether non-visual mobile logic should be shared with Kotlin
@@ -125,7 +134,7 @@ and native platform integrations remain authoritative on each platform:
 - shared mobile core -> Kotlin Multiplatform where behavior is genuinely
   platform-neutral.
 
-KMP is selected because SideBySide already has substantial Kotlin domain/client logic,
+KMP is selected because eimir. already has substantial Kotlin domain/client logic,
 a generated Kotlin contract and explicit repository/state seams. Sharing those pieces
 avoids re-implementing security-sensitive rules independently in Swift while still
 letting the iOS application behave like an iOS application.
@@ -416,7 +425,7 @@ shared repository contracts
       |
 platform transport + storage adapters
       |
-SideBySide REST/OpenAPI
+eimir. REST/OpenAPI
 ```
 
 Shared state must use semantic states/events, not Android resource IDs, `ViewModel`,
@@ -441,7 +450,7 @@ Do not move Photos/URI/file access into common code. Share only server-side medi
 contracts and portable upload/read orchestration:
 
 - request upload descriptor;
-- distinguish SideBySide authenticated STREAM from external signed upload;
+- distinguish eimir. authenticated STREAM from external signed upload;
 - never forward bearer tokens to signed storage URLs;
 - finalize and poll attachment state;
 - request/read server-authorized descriptor.

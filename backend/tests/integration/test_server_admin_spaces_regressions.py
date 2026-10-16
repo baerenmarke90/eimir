@@ -6,11 +6,11 @@ from datetime import datetime
 
 import pytest
 
-from sidebyside.config import get_settings
-from sidebyside.core.clock import now
-from sidebyside.identity.models import AccountEmail
-from sidebyside.relationship import service as relationship
-from sidebyside.relationship.models import Space
+from eimir.config import get_settings
+from eimir.core.clock import now
+from eimir.identity.models import AccountEmail
+from eimir.relationship import service as relationship
+from eimir.relationship.models import Space
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -20,7 +20,7 @@ ADMIN_EMAIL = "operator-spaces-regression@example.test"
 
 @pytest.fixture
 def server_admin_allowlist(monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("SBS_SERVER_ADMIN_EMAILS", f'["{ADMIN_EMAIL}"]')
+    monkeypatch.setenv("EIMIR_SERVER_ADMIN_EMAILS", f'["{ADMIN_EMAIL}"]')
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -44,24 +44,19 @@ def _parse_api_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def test_first_membership_timestamp_survives_reactivation(
+def test_first_membership_timestamp_survives_relationship_end(
     client,
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
     token = _admin_token(session)
-    owner = make_account(session, "Rejoining owner")
+    owner = make_account(session, "Departed owner")
     space = make_space(session, owner)
     membership = relationship.require_membership(session, owner, space.id)
     original_created_at = membership.created_at
 
-    relationship.end_membership(membership)
+    relationship.end_membership(session, membership)
     session.flush()
-    reactivated = relationship.add_member(session, space.id, owner)
-    session.flush()
-
-    assert reactivated.created_at == original_created_at
-    assert reactivated.joined_at is not None
 
     response = client.get(
         f"/api/v1/server-admin/spaces/{space.id}",

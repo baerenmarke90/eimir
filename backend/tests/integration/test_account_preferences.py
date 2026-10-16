@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.core.clock import today_in
-from sidebyside.core.errors import ValidationError
-from sidebyside.identity import preferences
+from eimir.core.clock import today_in
+from eimir.core.errors import ValidationError
+from eimir.identity import preferences
 from tests.conftest import make_account, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

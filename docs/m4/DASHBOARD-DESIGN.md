@@ -141,7 +141,17 @@ Use the next occurrence according to its existing recurrence semantics. Non-repe
 
 ### RelatedPerson birthday
 
-If a birthday exists, derive the next calendar occurrence. Preserve the existing `birthdayYearKnown` meaning; do not infer a missing birth year.
+Eligible only when all three hold (#617/#699):
+
+```text
+birthday IS NOT NULL
+visibility == SHARED
+showBirthdayOnDashboard == true
+```
+
+`/today` is not a general third-party birthday calendar; a `RelatedPerson` birthday is never projected merely because it exists and is shared. `showBirthdayOnDashboard` defaults to `false` and is an explicit, per-person, per-birthday opt-in independent of Reminder delivery.
+
+When eligible, derive the next calendar occurrence using the same canonical annual-recurrence rule as ImportantDate and the Reminder/Rule runtime. Preserve the existing `birthdayYearKnown` meaning; do not infer a missing birth year.
 
 ### Relationship anniversary
 

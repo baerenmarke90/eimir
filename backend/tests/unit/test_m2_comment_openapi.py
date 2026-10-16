@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COMMENT_OPERATIONS = {
     ("post", "/api/v1/spaces/{spaceId}/memories/{memoryId}/comments"): "createMemoryComment",

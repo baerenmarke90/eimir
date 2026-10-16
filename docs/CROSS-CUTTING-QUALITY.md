@@ -2,7 +2,7 @@
 
 ## Purpose
 
-SideBySide Next treats cross-cutting requirements as architecture and product requirements, not late release cleanup.
+eimir. treats cross-cutting requirements as architecture and product requirements, not late release cleanup.
 
 Larger runtime slices, client features, and production user flows must be reviewed against the areas below before implementation and before merge. Not every area applies to every change; `not relevant` is acceptable when the decision is intentional, traceable, and briefly justified.
 

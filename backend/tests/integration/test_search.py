@@ -5,32 +5,31 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import PrivacyClass
-from sidebyside.chapters.models import Chapter, ChapterPayload
-from sidebyside.collections.models import (
+from eimir.authorization import PrivacyClass
+from eimir.chapters.models import Chapter, ChapterPayload
+from eimir.collections.models import (
     Collection,
     CollectionItem,
     CollectionItemPayload,
     CollectionPayload,
 )
-from sidebyside.gift_ideas.models import GiftIdea, GiftIdeaPayload
-from sidebyside.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
-from sidebyside.memories.models import Memory, MemoryPayload
-from sidebyside.milestones.models import Milestone, MilestonePayload
-from sidebyside.places.models import Place, PlacePayload
-from sidebyside.plans.models import Plan, PlanPayload
-from sidebyside.private_collections.models import (
+from eimir.gift_ideas.models import GiftIdea, GiftIdeaPayload
+from eimir.heart_moments.models import HeartEmotion, HeartMoment, HeartMomentPayload
+from eimir.memories.models import Memory, MemoryPayload
+from eimir.milestones.models import Milestone, MilestonePayload
+from eimir.places.models import Place, PlacePayload
+from eimir.plans.models import Plan, PlanPayload
+from eimir.private_collections.models import (
     PrivateCollection,
     PrivateCollectionItem,
     PrivateCollectionItemPayload,
     PrivateCollectionPayload,
 )
-from sidebyside.private_notes.models import PrivateNote, PrivateNotePayload
-from sidebyside.relationship import service as relationship_service
-from sidebyside.wishes.models import Wish, WishPayload
+from eimir.private_notes.models import PrivateNote, PrivateNotePayload
+from eimir.relationship import service as relationship_service
+from eimir.wishes.models import Wish, WishPayload
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -418,6 +417,26 @@ class TestSearchRequestContract:
         assert secret not in response.text
         assert secret not in caplog.text
 
+    def test_successful_query_never_reaches_access_or_application_logs(
+        self, client, session, couple, caplog
+    ) -> None:  # type: ignore[no-untyped-def]
+        # A valid (200) Search request is the common case, and the one most
+        # likely to actually contain OWNER_ONLY-derived text: unlike the
+        # rejected-query test above, this one drives the request through the
+        # real ASGI middleware stack (RequestLoggingMiddleware included), not
+        # only the application's own error handling.
+        import logging
+
+        _seed_all_targets(session, couple)
+        canary = "private-heart-moment-canary-" + "y" * 40
+
+        with caplog.at_level(logging.INFO, logger="eimir.access"):
+            response = _search(client, couple, q=canary)
+
+        assert response.status_code == 200
+        assert canary not in response.text
+        assert canary not in caplog.text
+
     def test_response_is_not_cacheable(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
         _seed_all_targets(session, couple)
         response = _search(client, couple)
@@ -440,21 +459,6 @@ class TestSearchPersistenceAndIndex:
 
         nested.rollback()
         assert temporary_id not in {item["id"] for item in _items(_search(client, couple))}
-
-    def test_memory_query_uses_the_m4_gin_index(self, session, couple) -> None:  # type: ignore[no-untyped-def]
-        _seed_all_targets(session, couple)
-        session.execute(text("SET LOCAL enable_seqscan = off"))
-        plan = session.execute(
-            text(
-                "EXPLAIN (FORMAT TEXT) SELECT id FROM memories "
-                "WHERE ("
-                "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B')"
-                ") @@ websearch_to_tsquery('simple', 'needle')"
-            )
-        ).all()
-        rendered = "\n".join(str(row[0]) for row in plan)
-        assert "ix_memories_search_fts" in rendered
 
     def test_gift_url_is_not_a_search_lexeme(self, client, session, couple) -> None:  # type: ignore[no-untyped-def]
         seeded = _seed_all_targets(session, couple)

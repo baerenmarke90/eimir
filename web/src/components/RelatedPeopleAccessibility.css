@@ -1,0 +1,4 @@
+/* Focused-editor helper copy is normal text and must retain WCAG AA contrast. */
+.focused-editor-sheet .field-help {
+  color: var(--color-text-secondary);
+}

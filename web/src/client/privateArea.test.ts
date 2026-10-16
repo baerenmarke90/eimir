@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   movePrivateCollectionItem,
+  PRIVATE_AREA_ROOT_PATH,
+  PRIVATE_COLLECTIONS_PATH,
+  PRIVATE_GIFT_IDEAS_PATH,
+  PRIVATE_NOTES_PATH,
   privateAreaQueryKeys,
   privateCollectionPath,
   privateGiftIdeaPath,
@@ -8,6 +12,19 @@ import {
 } from './privateArea';
 
 describe('private area client boundary', () => {
+  it('keeps the private hub separate from its three resource namespaces', () => {
+    expect(PRIVATE_AREA_ROOT_PATH).toBe('/more/private');
+    expect([
+      PRIVATE_NOTES_PATH,
+      PRIVATE_GIFT_IDEAS_PATH,
+      PRIVATE_COLLECTIONS_PATH,
+    ]).toEqual([
+      '/more/private/notes',
+      '/more/private/gift-ideas',
+      '/more/private/collections',
+    ]);
+  });
+
   it('binds every private query root to account, space and owner context', () => {
     expect(privateAreaQueryKeys.root('account-a', 'space-a')).toEqual([
       'm5-s4-private',

@@ -22,12 +22,6 @@ jobs:
       - name: Test status drift logic
         run: python3 tools/ci/test_status_drift.py
 
-      - name: Test engineering-language audit
-        run: python3 tools/ci/test_engineering_language_audit.py
-
-      - name: Audit migrated engineering-language surfaces
-        run: python3 tools/ci/engineering_language_audit.py
-
       - name: Check living status against GitHub
         env:
           GITHUB_TOKEN: ${{ github.token }}

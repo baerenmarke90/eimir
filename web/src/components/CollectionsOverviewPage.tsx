@@ -1,11 +1,15 @@
-import type { FormEvent } from 'react';
+import { type FormEvent, useEffect, useRef } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
+import {
+  type DeleteFocusTarget,
+  PLANNING_DELETE_FOCUS_STATE_KEY,
+} from '../client/deleteFocusTarget';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath, collectionDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -39,7 +43,11 @@ export function CollectionsOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const createActionRef = useRef<HTMLElement>(null);
+  const collectionRefs = useRef(new Map<string, HTMLAnchorElement>());
+  const restoredDeleteFocusRef = useRef(false);
 
   const collections = useInfiniteQuery({
     queryKey: ['m5-s3', 'collections', spaceId],
@@ -73,6 +81,20 @@ export function CollectionsOverviewPage({
 
   const collectionItems =
     collections.data?.pages.flatMap((page) => page.items) ?? [];
+  const deleteFocusTarget = (
+    location.state as Record<string, unknown> | null
+  )?.[PLANNING_DELETE_FOCUS_STATE_KEY] as DeleteFocusTarget | undefined;
+
+  useEffect(() => {
+    if (restoredDeleteFocusRef.current || !deleteFocusTarget) return;
+    const requestedTarget =
+      deleteFocusTarget.kind === 'item'
+        ? collectionRefs.current.get(deleteFocusTarget.id)
+        : createActionRef.current;
+    if (!requestedTarget && collections.isFetching) return;
+    (requestedTarget ?? createActionRef.current)?.focus();
+    restoredDeleteFocusRef.current = true;
+  }, [collections.isFetching, deleteFocusTarget]);
 
   function submitCollection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -84,7 +106,7 @@ export function CollectionsOverviewPage({
   }
 
   return (
-    <div className="page planning-page">
+    <div className="page planning-page planning-sanctuary">
       <PageHeader
         before={
           <Link className="back-link" to={appRoutePath('more')}>
@@ -110,12 +132,17 @@ export function CollectionsOverviewPage({
         {collectionItems.length === 0 &&
         !collections.isLoading &&
         !collections.error ? (
-          <p className="planning-empty">{t('m5s3.common.empty')}</p>
+          <p className="planning-empty">{t('m5s3.collection.emptyOverview')}</p>
         ) : (
           <ul className="planning-list">
             {collectionItems.map((collection) => (
               <li className="planning-card-item" key={collection.id}>
                 <Link
+                  ref={(element) => {
+                    if (element)
+                      collectionRefs.current.set(collection.id, element);
+                    else collectionRefs.current.delete(collection.id);
+                  }}
                   className="planning-card planning-card-link"
                   to={collectionDetailPath(collection.id)}
                 >
@@ -142,7 +169,9 @@ export function CollectionsOverviewPage({
         ) : null}
 
         <details className="planning-create" id="collection-create-details">
-          <summary id="collection-title">{t('m5s3.collection.create')}</summary>
+          <summary ref={createActionRef} id="collection-title">
+            {t('m5s3.collection.create')}
+          </summary>
           <form
             onSubmit={submitCollection}
             className="form-grid planning-create-form"

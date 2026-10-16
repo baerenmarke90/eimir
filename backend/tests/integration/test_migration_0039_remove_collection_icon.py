@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from sidebyside.collections.models import Collection
-from sidebyside.private_collections.models import PrivateCollection
+from eimir.collections.models import Collection
+from eimir.private_collections.models import PrivateCollection
 from tests.conftest import requires_database
 
 
@@ -23,9 +23,9 @@ from tests.conftest import requires_database
 def test_real_alembic_migration_0039_lifecycle(
     engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    test_db_url = os.environ.get("SBS_TEST_DATABASE_URL")
+    test_db_url = os.environ.get("EIMIR_TEST_DATABASE_URL")
     if test_db_url:
-        monkeypatch.setenv("SBS_DATABASE_URL", test_db_url)
+        monkeypatch.setenv("EIMIR_DATABASE_URL", test_db_url)
     config = alembic.config.Config("alembic.ini")
 
     account_id = uuid4()

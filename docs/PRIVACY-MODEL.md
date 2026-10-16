@@ -2,7 +2,7 @@
 
 ## Position
 
-SideBySide manages what a couple voluntarily puts into it: memories,
+eimir. manages what a couple voluntarily puts into it: memories,
 emotional moments, wishes, private notes, and preferences. This is not
 arbitrary application content. How it is handled is a product feature.
 
@@ -81,7 +81,7 @@ create a persistent history.
 
 Push notifications contain **no** sensitive text by default.
 
-> de-DE product copy example: **Neue Aktivität in SideBySide**
+> de-DE product copy example: **Neue Aktivität in eimir.**
 
 instead of the original private text. A notification can appear on a locked
 screen that other people may see — possibly the partner for whom a surprise is

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from sidebyside.main import app
+from eimir.main import app
 
 
 def test_openapi_schema_contains_entitlements() -> None:

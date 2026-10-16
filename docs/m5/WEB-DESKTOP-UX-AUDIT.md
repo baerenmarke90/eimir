@@ -1,3 +1,5 @@
+**Reference status: HISTORICAL.** This #340 audit records its implementation baseline. Its desktop layouts, field order, and dominant-content prescriptions are not current design authority. [Product Reference v1](../product/design/product-reference-v1.md) and the current [Screen Templates](../SCREEN-TEMPLATES.md) govern new work; compatible accessibility, domain, privacy, and API constraints remain binding.
+
 # Web Desktop UX Audit and Layout Decisions
 
 - **Status:** applied to the Web client

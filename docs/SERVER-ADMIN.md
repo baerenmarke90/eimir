@@ -3,7 +3,7 @@
 ## Purpose
 
 ServerAdmin is an instance-wide operational capability for administering a
-SideBySide installation. It is separate from partner-facing Space membership
+eimir. installation. It is separate from partner-facing Space membership
 and does not grant access to private product content.
 
 The Web administration surface uses the dedicated `/server-admin` route. The
@@ -15,7 +15,7 @@ presentation assistance and does not replace endpoint authorization.
 ServerAdmin identities are configured in the deployment environment:
 
 ```dotenv
-SBS_SERVER_ADMIN_EMAILS=["operator@example.com"]
+EIMIR_SERVER_ADMIN_EMAILS=["operator@example.com"]
 ```
 
 The value is a JSON array. Multiple operators may be configured. Addresses are
@@ -25,12 +25,12 @@ An authenticated account receives ServerAdmin only when at least one of its
 stored `AccountEmail` rows:
 
 1. is verified; and
-2. exactly matches an address in `SBS_SERVER_ADMIN_EMAILS`.
+2. exactly matches an address in `EIMIR_SERVER_ADMIN_EMAILS`.
 
 The safe default is:
 
 ```dotenv
-SBS_SERVER_ADMIN_EMAILS=[]
+EIMIR_SERVER_ADMIN_EMAILS=[]
 ```
 
 which grants ServerAdmin to nobody. Space roles, Space ownership, the first
@@ -43,10 +43,9 @@ workflow so the new configuration is loaded.
 
 ## Deployment plumbing
 
-The setting is passed through both supported Self-Hosted Compose paths:
-
-- `compose.yaml` for a complete repository checkout;
-- `compose.arcane.yaml` for the remote-source Arcane workflow.
+ServerAdmin uses the single repository-root `compose.yaml` deployment contract.
+Complete checkouts and Arcane both use the `self-hosted` profile; Arcane changes
+only the Backend/Web build contexts through environment configuration.
 
 `.env.example` and `deploy/persistent-development.env.example` both document the
 setting. Development, Demo, and Production installations manage their own
@@ -118,6 +117,7 @@ The corresponding ServerAdmin API supports:
 - `GET /api/v1/server-admin/accounts/{accountId}`;
 - `PUT /api/v1/server-admin/accounts/{accountId}/suspension`;
 - `POST /api/v1/server-admin/accounts/{accountId}/sessions/revoke`;
+- `POST /api/v1/server-admin/accounts/{accountId}/email-verification/request`;
 - `POST /api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify`;
 - `POST /api/v1/server-admin/accounts/{accountId}/recovery/email`;
 - `POST /api/v1/server-admin/accounts/{accountId}/recovery/operator`;
@@ -143,6 +143,20 @@ recreate deleted credentials or sessions.
 The explicit revoke-sessions action invalidates all current session families
 without suspending the Account.
 
+### Normal email verification resend
+
+For an active Account whose primary email is still unverified, ServerAdmin may
+request the ordinary verification message. This calls the same
+`EmailVerificationToken` issuance, supersession, rate-limit, expiry and mail
+delivery path used by authenticated self-service. The operator never receives
+the token or verification URL.
+
+If the primary address is already verified, the request is an idempotent no-op.
+If mail is not configured, the endpoint reports the existing
+`MAIL_TRANSPORT_UNAVAILABLE` capability error. This normal resend is deliberately
+separate from operator-assisted verification below: sending a proof to the
+mailbox does not assert that the operator has verified the person's identity.
+
 ### Operator-assisted email verification
 
 When an operator has verified an Account email through an appropriate
@@ -152,7 +166,7 @@ audited. It does not create an email address, create an Account, or grant
 ServerAdmin by itself.
 
 This path exists primarily for Self-Hosted installations that intentionally run
-with `SBS_MAIL_TRANSPORT=none`. It must not be exposed to ordinary clients as a
+with `EIMIR_MAIL_TRANSPORT=none`. It must not be exposed to ordinary clients as a
 way to bypass normal verification.
 
 ### Password recovery
@@ -194,26 +208,31 @@ The command:
 - only matches an already existing `AccountEmail`;
 - only sets its `verified_at` assertion;
 - never creates an Account;
-- never changes `SBS_SERVER_ADMIN_EMAILS`;
+- never changes `EIMIR_SERVER_ADMIN_EMAILS`;
 - never grants ServerAdmin independently of the normal allowlist check;
 - does not print authentication secrets;
 - records a system-attributed privileged audit event when it changes state.
 
 After verification, the deployment still needs the exact address in
-`SBS_SERVER_ADMIN_EMAILS` and the normal API restart/recreate semantics apply to
+`EIMIR_SERVER_ADMIN_EMAILS` and the normal API restart/recreate semantics apply to
 allowlist changes.
 
 ## Account deletion boundary
 
-ServerAdmin account deletion is intentionally **not** implemented as a direct
-row/table deletion. Issue #520 owns the authoritative Account deletion and
-retention lifecycle, including credentials, sessions, OWNER_ONLY data, shared
-history, media references, jobs, backups, and restore reconciliation.
+ServerAdmin account deletion is intentionally **not** a direct row/table
+deletion. Issue #520 owns the authoritative Account deletion and retention
+lifecycle, including credentials, sessions, OWNER_ONLY data, shared history,
+media references, jobs, backups, and restore reconciliation.
 
-Until that lifecycle exists, the Web ServerAdmin danger zone exposes deletion
-as unavailable rather than providing a hidden SQL/delete shortcut. When the
-operation is implemented later, it must invoke the #520 workflow and add the
-specified double-confirmation/re-authentication protections.
+The ServerAdmin danger zone invokes that same lifecycle behind recent
+authentication, impact confirmation and exact typed target confirmation. The
+privileged audit records the operator request and projects the authoritative
+lifecycle outcomes as `account_deletion_completed` or
+`account_deletion_failed`. These outcome entries are an immutable operational
+projection only: `AccountDeletion` remains the source of truth, retries cannot
+create duplicate logical outcomes, and self-service deletions do not become
+ServerAdmin audit events. Failure entries retain no exception prose or private
+payload.
 
 ## Privileged action audit
 
@@ -269,7 +288,7 @@ made permanently inaccessible before its first operator account exists.
 
 ## Business model
 
-Core ServerAdmin operations required to run a Self-Hosted SideBySide
+Core ServerAdmin operations required to run a Self-Hosted eimir.
 installation are operational administration and are not Premium-paywalled.
 Hosted-service-specific capabilities must continue to use the authoritative
 deployment and entitlement model rather than hardcoded client branching.
@@ -285,3 +304,28 @@ It does **not** expose Account identity correlation, Space profile/relationship 
 Memories, Notes, messages, media, OWNER_ONLY state or behavioral/engagement analytics.
 Space termination, partner removal and reactivation remain outside this operator surface
 until the authoritative lifecycle decisions in #518 are complete.
+
+### Legacy configuration-manager reconciliation
+
+Spaces created before the M7 configuration-authority contract can legitimately
+have no `configuration_manager_account_id` when retained Membership history does
+not prove one unique founder. This state is intentionally fail-closed and must
+not be repaired from Membership order, join timestamps, invitation history,
+Account creation time, or client ordering.
+
+After the partners have been verified through an appropriate out-of-band
+process, a ServerAdmin with a current recent-authentication grant may perform
+the one-time recovery operation:
+
+```text
+POST /api/v1/server-admin/spaces/{spaceId}/configuration-manager/reconcile
+{"accountId":"<active-member-account-id>"}
+```
+
+The selected Account must currently have an `ACTIVE` Membership in that Space.
+The operation only assigns a missing manager; it never replaces an existing
+manager and is not a general owner-transfer mechanism. Concurrent attempts are
+serialized by the authoritative relationship locks, and a successful assignment
+records a content-free privileged audit event with actor, target Account, and
+target Space identifiers. Until reconciliation succeeds, ordinary configuration
+writes remain unavailable for that legacy Space.

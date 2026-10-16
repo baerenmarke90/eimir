@@ -16,6 +16,7 @@ import {
   transferBundleFilename,
   triggerTransferDownload,
 } from '../client/transfer';
+import { useImportCacheConvergence } from '../client/importCacheConvergence';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import './TransferPanel.css';
@@ -124,10 +125,17 @@ export function TransferPanel({
 
   const exportDetail = exportQuery.data ?? createExport.data;
   const importDetail = importQuery.data ?? createImport.data;
+  const cacheConvergenceError = useImportCacheConvergence(
+    importDetail,
+    spaceId,
+  );
   const exportError =
     createExport.error ?? exportQuery.error ?? downloadExport.error;
   const importError =
-    createImport.error ?? importQuery.error ?? applyImport.error;
+    createImport.error ??
+    importQuery.error ??
+    applyImport.error ??
+    cacheConvergenceError;
 
   function submitExport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sidebyside.core.ids import new_id, parse_id
+from eimir.core.ids import new_id, parse_id
 
 
 class TestNewId:

@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sidebyside.api.schema import AuthorSummary
-from sidebyside.api.v1.collections import collection_detail, collection_item_detail
-from sidebyside.collections.models import (
+from eimir.api.schema import AuthorSummary
+from eimir.api.v1.collections import collection_detail, collection_item_detail
+from eimir.collections.models import (
     Collection,
     CollectionItem,
     CollectionItemPayload,

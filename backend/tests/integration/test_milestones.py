@@ -12,8 +12,8 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.outbox.models import OutboxEvent
-from sidebyside.relationship import service as relationship_service
+from eimir.outbox.models import OutboxEvent
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

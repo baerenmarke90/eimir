@@ -32,6 +32,6 @@ describe('M5 Web S6 transfer runtime', () => {
         TransferScope.PERSONAL,
         new Date('2026-08-31T12:00:00Z'),
       ),
-    ).toBe('sidebyside-personal-2026-08-31.zip');
+    ).toBe('eimir-personal-2026-08-31.zip');
   });
 });

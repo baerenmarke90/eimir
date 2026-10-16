@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Non-destructive smoke checks for a deployed SideBySide revision."""
+"""Non-destructive smoke checks for a deployed eimir. revision."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import sys
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 
-REVISION_HEADER = "X-SideBySide-Revision"
+try:
+    from scripts._identity_environment import process_value
+except ModuleNotFoundError:  # Direct ``python scripts/...`` execution.
+    from _identity_environment import process_value
+
+REVISION_HEADER = "X-Eimir-Revision"
 REVISION_RE = re.compile(r"^[0-9a-f]{40}$")
 UNVERIFIED_REVISION = "unverified-local-checkout"
 TIMEOUT_SECONDS = 20
@@ -78,7 +82,7 @@ def check(base_url: str, expected_revision: str) -> None:
         raise RuntimeError(f"Web health returned HTTP {web.status}")
     print("ok: Web /healthz")
 
-    web_revision_url = f"{origin}/.well-known/sidebyside-revision"
+    web_revision_url = f"{origin}/.well-known/eimir-revision"
     web_revision = expect_text(request(web_revision_url), url=web_revision_url)
     if web_revision != expected_revision:
         raise RuntimeError(
@@ -101,12 +105,12 @@ def check(base_url: str, expected_revision: str) -> None:
         )
     print(f"ok: API ready, revision {expected_revision}")
 
-    email = os.environ.get("SBS_SMOKE_EMAIL", "")
-    password = os.environ.get("SBS_SMOKE_PASSWORD", "")
+    email = process_value("EIMIR_SMOKE_EMAIL", "") or ""
+    password = process_value("EIMIR_SMOKE_PASSWORD", "") or ""
     if bool(email) != bool(password):
-        raise RuntimeError("Set both SBS_SMOKE_EMAIL and SBS_SMOKE_PASSWORD, or neither.")
+        raise RuntimeError("Set both EIMIR_SMOKE_EMAIL and EIMIR_SMOKE_PASSWORD, or neither.")
     if not email:
-        print("skip: authenticated smoke (no SBS_SMOKE_EMAIL/SBS_SMOKE_PASSWORD)")
+        print("skip: authenticated smoke (no EIMIR_SMOKE_EMAIL/EIMIR_SMOKE_PASSWORD)")
         return
 
     sign_in_url = f"{origin}/api/v1/auth/sign-in"
@@ -116,7 +120,7 @@ def check(base_url: str, expected_revision: str) -> None:
         payload={
             "email": email,
             "password": password,
-            "deviceName": "SideBySide deployment smoke",
+            "deviceName": "eimir. deployment smoke",
             "platform": "ops-smoke",
         },
     )
@@ -155,7 +159,7 @@ def check(base_url: str, expected_revision: str) -> None:
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", required=True, help="Public SideBySide origin")
+    parser.add_argument("--base-url", required=True, help="Public eimir. origin")
     revision = parser.add_mutually_exclusive_group(required=True)
     revision.add_argument(
         "--expected-revision",

@@ -6,8 +6,8 @@ import base64
 
 import pytest
 
-from sidebyside.core import cursor
-from sidebyside.core.errors import BadRequestError
+from eimir.core import cursor
+from eimir.core.errors import BadRequestError
 
 BINDING = {"collection": "memories", "spaceId": "s", "year": None}
 POSITION = {"createdAt": "2026-08-25T07:00:00Z", "id": "i"}

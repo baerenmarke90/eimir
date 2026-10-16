@@ -1,10 +1,10 @@
-# Design Principles for SideBySide Next
+# Design Principles for eimir.
 
-**Status:** Mandatory foundation for Web and App  
-**Version:** 1.0  
-**Effective from:** August 24, 2026
+**Status:** Mandatory foundation for Web and App<br/>
+**Version:** 2.3<br/>
+**Effective from:** September 15, 2026
 
-This document translates the SideBySide Next product idea into mandatory
+This document translates the eimir. product idea into mandatory
 design rules. It applies to product surfaces, the website, store listings,
 marketing pages, and new features.
 
@@ -14,14 +14,21 @@ When requirements conflict, use this priority order:
 1. privacy and security
 2. accessibility
 3. comprehensibility and usability
-4. consistency
-5. brand impact
-6. visual novelty
+4. smartphone-first partner-app invariant for couple-facing product interaction (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md`)
+5. Product Reference v1 and compatible domain-specific product decisions
+6. shared design-system consistency
+7. generic Screen Template default / brand impact
+8. visual novelty
+
+This order matches `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 0; that document is authoritative for the smartphone-first invariant itself.
+
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
 ## 1. Design goal
 
-SideBySide should feel like a calm, private space for two people: warm,
+eimir. should feel like a calm, private space for two people: warm,
 personal, and high-quality, but never kitschy or overloaded.
+Claim: „Euer gemeinsamer Ort.“
 
 Every surface answers these questions within a few seconds:
 
@@ -67,8 +74,8 @@ self-presentation.
 
 Every view MUST have an unambiguous visual hierarchy.
 
-- The title explains the context.
-- A short subtitle explains the value.
+- The visible content or title explains the context.
+- A subtitle appears only when it adds meaning; a mandatory title/subtitle stack must not push personal content below the first viewport.
 - The primary action is visually unambiguous.
 - Secondary actions recede visually.
 - Complex flows are split into small, reversible steps.
@@ -77,7 +84,7 @@ Every view MUST have an unambiguous visual hierarchy.
 
 Memories, wishes, plans, and shared moments are visually central.
 
-- Cards show the relevant content first and metadata afterward.
+- Compose by content type: photos, text memories, plans, and checklists need different presentation. A card must earn its boundary; show content before meaning, action, and secondary metadata.
 - Real content replaces generic placeholders as early as possible.
 - `Wir` / Today is an orchestration surface, not a widget dashboard: only currently relevant signals, contextual actions, and shared content appear; irrelevant modules disappear (see `PARTNER-APP-EXPERIENCE-STANDARD.md`).
 - Images are cropped calmly and are never overloaded with text.
@@ -119,15 +126,15 @@ Web and App share semantics, tone, tokens, and component logic.
 
 - The same function uses the same name and color role.
 - Platform conventions take precedence over pixel-level equality.
-- Android remains Android; Web remains Web.
+- Android is the Capacitor wrapper around the Web product: platform conventions (system bars, insets, Back) are adapted, the screens are not re-implemented.
 - New one-off components are allowed only when existing patterns are insufficient.
 
 ### 2.10 Motion explains change
 
 Motion supports orientation and feedback.
 
-- Standard transitions last 160–220 ms.
-- Larger context changes may last up to 320 ms.
+- Reuse the semantic duration roles: fast (120 ms), standard (180 ms), and emphasized (280 ms), with maximum (320 ms) as the normal upper bound. Values come from `design/tokens.json`, not local ranges.
+- Select the role by the change being explained; reduced motion uses instant or another safe reduced treatment.
 - Animations use calm ease-out behavior without strong bouncing.
 - Success, synchronization, and state changes are confirmed subtly.
 - Decorative motion stops automatically and respects “Reduce Motion”.
@@ -137,29 +144,38 @@ Motion supports orientation and feedback.
 ### 3.1 Color semantics
 
 Colors are used according to meaning, not according to the preference of an
-individual view.
+individual view. `design/tokens.json` is the sole source of truth.
 
-| Token | Value | Meaning |
-|---|---:|---|
-| Background | `#FAF8FC` | warm, calm page background |
-| Surface | `#FFFFFF` | cards, dialogs, and content surfaces |
-| Ink | `#211A2B` | primary text and strong contrast |
-| Muted | `#6F6878` | secondary text |
-| Line | `#E6DFEC` | dividers and subtle borders |
-| Brand Purple | `#7C4DFF` | product core and primary action |
-| Brand Soft | `#EEE7FF` | active or highlighted surfaces |
-| Shared Mint | `#36AE97` | shared, confirmed, synchronized |
-| Info Blue | `#4B96E6` | system information and technical context |
-| Discovery Yellow | `#E8A932` | inspiration, options, and discovery |
-| Private Pink | `#F45B88` | private, restricted, or owner-only |
-| Dark Background | `#1C1525` | high-quality dark hero and focus surfaces |
-| Dark Surface | `#2A2135` | cards in Dark Mode |
+The current runtime palettes are `color.scheme.light` and `color.scheme.dark`.
+`color.semantic` contains compatibility fallbacks, not a competing palette.
+Use the platform adapter; do not copy literal values from earlier tables or screenshots.
+
+| Semantic role | Meaning and use |
+| --- | --- |
+| `background` | warm page ground; avoid unnecessary content boundaries |
+| `surface`, `surfaceSubtle` | readable content and quiet grouping where needed |
+| `surfaceRaised`, overlay roles | genuinely elevated controls or transient layers |
+| `textPrimary` | authored content and primary meaning |
+| `textSecondary` | readable dates, author, subtitles, help, and other supporting copy |
+| `textMuted` | only where the actual rendered pair meets its applicable contrast requirement; not a default for essential small text |
+| `border`, `borderSubtle` | purposeful separation, not a frame around every section |
+| `brandStrong`, `brand`, `onAccent` | primary actions and selected emphasis with validated foreground/background pairing |
+| `shared`, `sharedSurface`, `success` | shared context or confirmed outcomes with text/icon meaning |
+| `private`, `privateSurface` | private context, not an error |
+| `technical`, `discovery` | system information or inspiration when meaningful |
+| `error`, `warning`, `focus` | distinct consequence and keyboard focus states |
+
+The current Light muted/page pair fails normal-text contrast. Essential dates,
+labels, help, and status therefore use a compliant secondary-text pairing.
+Validate actual Light/Dark pairs; token names do not prove contrast. The
+[system direction](./product/design/design-system-direction.md#5-color-philosophy-and-lightdark)
+defines the retained palette's current use.
 
 Mandatory rules:
 
-- Purple is the only standard color for primary actions.
-- Mint means shared, synchronized, or positively confirmed.
-- Pink marks privacy or restriction, not automatically an error.
+- Filled primary actions use the established strong-coral/on-accent pairing in both themes; links and selected text may use the scheme-appropriate brand role. Bright Dark coral is not a safe substitute behind white normal text.
+- Mint means shared, synchronized, or positively confirmed togetherness.
+- Rose marks private or restricted personal space, not automatically an error.
 - Errors and destructive actions additionally require a clear warning icon and
   unambiguous text.
 - Pastel surfaces may be combined only with sufficiently dark text.
@@ -172,14 +188,10 @@ Two self-hosted font families are delivered by the product. See `docs/decisions/
 - **Display:** Literata for selected emotional, editorial, and relationship storytelling moments (Today/Wir hero, memory titles, quotes, drop cap). Delivered by both clients as a self-hosted variable file; nothing is fetched at runtime. Fallback: `Georgia, serif`.
 - **UI:** Instrument Sans (400/500/600/700) for navigation, content, forms, controls, planning cards, comments, settings, and utility headings. Delivered by both clients as a self-hosted variable file; nothing is fetched at runtime. Fallback: platform sans-serif.
 
-| Level | Mobile | Web | Use |
-|---|---:|---:|---|
-| Display | 32/38 | 44/52 | hero and special chapters |
-| H1 | 28/34 | 36/44 | page titles |
-| H2 | 24/30 | 28/36 | section titles |
-| Title | 20/26 | 20/26 | cards and dialogs |
-| Body | 16/24 | 16/24 | standard text |
-| Meta | 13/18 | 13/18 | date, status, and helper text |
+The [v1 typography roles](./product/design/design-system-direction.md#4-typography-language)
+now define the calibrated hierarchy; semantic token adapters deliver the values.
+Editorial meaning, practical headings, body prose, supporting copy, and navigation
+have distinct roles rather than inheriting one generic card title/meta scale.
 
 - Authentication and setup entry headings MUST use the UI family; the display
   family is reserved for editorial or Story contexts.
@@ -194,11 +206,12 @@ The base unit is a 4-unit grid.
 
 `4 · 8 · 12 · 16 · 24 · 32 · 48 · 64`
 
-- Mobile page margins: at least 20 dp.
-- Web page margins: 24–64 px depending on the viewport.
+- Compact page gutters follow Product Reference v1 D7: approximately 16 px below ~390 px and 20 px at/above ~390 px; use equivalent density-independent units on native clients. Deliberate image-led edge-to-edge composition may override the gutter while text, focus, and safe-area insets remain protected.
+- Medium/Expanded Web may use 24–64 px margins according to composition. Reusable values belong in semantic tokens; D7 implementation is owned by F1, not a page-local override.
 - Maximum content width: 1200 px; reading text is limited to 720 px.
 - Standard spacing inside a card: 20–24 px.
 - Related elements are closer together than separate sections.
+- Page modules and major sections use spacing, composition, surface contrast, or elevation for separation. Standalone horizontal or vertical hairlines MUST NOT be added merely to mark a module boundary. Hairlines remain appropriate inside lists, fields/controls, overlay chrome, provenance, and explicit semantic or safety boundaries.
 - Web layouts switch to one column below 768 px.
 
 ### 3.4 Shape and depth
@@ -206,12 +219,12 @@ The base unit is a 4-unit grid.
 - Standard card radius: 20 px/dp.
 - Large hero surfaces and modal surfaces: 24–32 px/dp.
 - Buttons: 14–16 px/dp; pills are reserved for filters and compact status values.
-- Shadows remain soft and shallow; surface and line differences are preferred for boundaries.
+- Shadows remain soft and shallow; surface/depth differences are preferred for page-module boundaries, while purposeful lines remain available for internal or semantic boundaries.
 - Avoid more than two visible depth levels per view.
 
 ### 3.5 Imagery and illustration
 
-- Imagery is soft, tactile, calm, and slightly dreamlike.
+- Personal photography leads where it carries meaning; preserve ordinary, imperfect, portrait, landscape, and text-only content without imposing a decorative photographic style.
 - Suitable motifs include paths, memory objects, nature, light, and small everyday moments.
 - Do not use interchangeable stock couples or over-staged romance.
 - 3D objects may provide orientation and brand warmth but must not obscure UI.
@@ -223,7 +236,7 @@ The base unit is a 4-unit grid.
 ### Buttons
 
 - Each view has at most one visually dominant primary action.
-- Primary: Purple surface, white text.
+- Primary: the established strong-coral/on-accent pairing through semantic theme roles; verify actual contrast in Light and Dark.
 - Secondary: light Surface with a clear outline.
 - Tertiary: text action without its own surface.
 - Destructive: unambiguous warning text; never communicate destructiveness through red alone.
@@ -231,15 +244,11 @@ The base unit is a 4-unit grid.
 
 ### Cards
 
-A card contains information in this order:
+Use a card only for a meaningful grouped object, action, or bounded interaction. Bare page content, reading surfaces, media, compact rows, and timeline items remain distinct choices.
 
-1. context or status
-2. title
-3. central information
-4. optional metadata
-5. at most one direct primary action
+The default priority is **content → meaning → action → metadata**. A photo or thought may lead before its title. Privacy, destructive consequences, and critical state stay visible at the point of decision regardless of their usual visual priority.
 
-Avoid nested cards.
+Avoid nested cards and uniform card walls. The [system direction](./product/design/design-system-direction.md) defines the current surface and content-composition roles.
 
 ### Navigation
 
@@ -268,6 +277,8 @@ Every asynchronous action needs a visible state:
 
 ## 5. Responsive behavior
 
+For couple-facing product interaction, the Compact/smartphone experience is designed first and Web/Expanded adapts it; see `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 0. The following platform behaviors implement that invariant.
+
 ### App
 
 - Mobile-first with one-handed core actions.
@@ -278,7 +289,7 @@ Every asynchronous action needs a visible state:
 ### Web
 
 - Viewports from 320 px through 1440+ px are supported.
-- One column on mobile, up to two content zones on desktop.
+- One column on mobile, up to two content zones on desktop; the second zone adds context or supporting content, not a duplicate set of primary controls.
 - Hover may add information but is never required.
 - Dialogs become bottom sheets or full-screen steps on small viewports.
 - Focus order follows the visible reading order.

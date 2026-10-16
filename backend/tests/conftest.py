@@ -19,20 +19,41 @@ import pytest
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from tests.support.encryption import EncryptionConfigurator
+
 # Never accidentally run against a real instance.
-os.environ.setdefault("SBS_ENVIRONMENT", "test")
+os.environ.setdefault("EIMIR_ENVIRONMENT", "test")
+
+# Encryption at rest has no default in production. Tests that construct
+# production settings for unrelated reasons inherit an explicit "disabled" here;
+# tests of the encryption behavior itself use the ``encryption`` fixture, which
+# replaces this value.
+os.environ.setdefault("EIMIR_ENCRYPTION_AT_REST", "disabled")
 
 TEST_BOOTSTRAP_TOKEN = "test-bootstrap-token-with-at-least-32-characters"
-os.environ.setdefault("SBS_BOOTSTRAP_TOKEN", TEST_BOOTSTRAP_TOKEN)
+os.environ.setdefault("EIMIR_BOOTSTRAP_TOKEN", TEST_BOOTSTRAP_TOKEN)
 
 # Media files go into a temporary directory rather than the working tree. The
 # configuration default is "./data/media"; without this override, a test run
 # would leave files in the repository that nobody should accidentally commit.
-MEDIA_ROOT = os.environ.setdefault(
-    "SBS_MEDIA_ROOT", tempfile.mkdtemp(prefix="sidebyside-test-media-")
-)
+MEDIA_ROOT = os.environ.setdefault("EIMIR_MEDIA_ROOT", tempfile.mkdtemp(prefix="eimir-test-media-"))
 
-INTEGRATION_DATABASE_URL = os.environ.get("SBS_TEST_DATABASE_URL", "")
+INTEGRATION_DATABASE_URL = os.environ.get("EIMIR_TEST_DATABASE_URL", "")
+
+
+@pytest.fixture
+def encryption(monkeypatch: pytest.MonkeyPatch) -> Iterator[EncryptionConfigurator]:
+    """Configure application-controlled encryption for one test.
+
+    Restores the settings caches afterwards so no test inherits another test's
+    key ring or mode.
+    """
+    from tests.support.encryption import reset_encryption_caches
+
+    reset_encryption_caches()
+    yield EncryptionConfigurator(monkeypatch)
+    monkeypatch.undo()
+    reset_encryption_caches()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -60,7 +81,7 @@ DATABASE_AVAILABLE = _database_reachable(INTEGRATION_DATABASE_URL)
 requires_database = pytest.mark.skipif(
     not DATABASE_AVAILABLE,
     reason=(
-        "No PostgreSQL instance is reachable. Set SBS_TEST_DATABASE_URL to run integration tests."
+        "No PostgreSQL instance is reachable. Set EIMIR_TEST_DATABASE_URL to run integration tests."
     ),
 )
 
@@ -74,34 +95,41 @@ def engine() -> Iterator[Engine]:
     # here does not exist during create_all. A later import by the app would
     # register the model, but only after the tables have been created, making
     # tests pass or fail accidentally depending on prior imports.
-    from sidebyside.administration import models as _administration  # noqa: F401
-    from sidebyside.attachments import binding as _binding  # noqa: F401
-    from sidebyside.attachments import models as _attachments  # noqa: F401
-    from sidebyside.chapters import models as _chapters  # noqa: F401
-    from sidebyside.collections import models as _collections  # noqa: F401
-    from sidebyside.comments import models as _comments  # noqa: F401
-    from sidebyside.db.base import Base
-    from sidebyside.engagement import models as _engagement  # noqa: F401
-    from sidebyside.entitlements import models as _entitlements  # noqa: F401
-    from sidebyside.gift_ideas import models as _gift_ideas  # noqa: F401
-    from sidebyside.heart_moments import models as _heart_moments  # noqa: F401
-    from sidebyside.identity import models as _identity  # noqa: F401
-    from sidebyside.jobs import models as _jobs  # noqa: F401
-    from sidebyside.memories import models as _memories  # noqa: F401
-    from sidebyside.milestones import models as _milestones  # noqa: F401
-    from sidebyside.outbox import models as _outbox  # noqa: F401
-    from sidebyside.people import models as _people  # noqa: F401
-    from sidebyside.places import models as _places  # noqa: F401
-    from sidebyside.plans import models as _plans  # noqa: F401
-    from sidebyside.private_collections import models as _private_collections  # noqa: F401
-    from sidebyside.private_notes import models as _private_notes  # noqa: F401
-    from sidebyside.profiles import models as _profiles  # noqa: F401
-    from sidebyside.relations import models as _relations  # noqa: F401
-    from sidebyside.relationship import models as _relationship  # noqa: F401
-    from sidebyside.reminders import models as _reminders  # noqa: F401
-    from sidebyside.reminders import runtime_models as _reminder_runtime  # noqa: F401
-    from sidebyside.transfer import models as _transfer  # noqa: F401
-    from sidebyside.wishes import models as _wishes  # noqa: F401
+    from eimir.administration import models as _administration  # noqa: F401
+    from eimir.appearance import models as _appearance  # noqa: F401
+    from eimir.attachments import binding as _binding  # noqa: F401
+    from eimir.attachments import models as _attachments  # noqa: F401
+    from eimir.auth import recent_auth_models as _recent_auth  # noqa: F401
+    from eimir.chapters import models as _chapters  # noqa: F401
+    from eimir.collections import models as _collections  # noqa: F401
+    from eimir.comments import models as _comments  # noqa: F401
+    from eimir.daily_checkins import models as _daily_checkins  # noqa: F401
+    from eimir.dashboard import models as _dashboard  # noqa: F401
+    from eimir.db.base import Base
+    from eimir.demo import models as _demo  # noqa: F401
+    from eimir.engagement import models as _engagement  # noqa: F401
+    from eimir.entitlements import models as _entitlements  # noqa: F401
+    from eimir.gift_ideas import models as _gift_ideas  # noqa: F401
+    from eimir.heart_moments import models as _heart_moments  # noqa: F401
+    from eimir.identity import models as _identity  # noqa: F401
+    from eimir.jobs import models as _jobs  # noqa: F401
+    from eimir.memories import models as _memories  # noqa: F401
+    from eimir.milestones import models as _milestones  # noqa: F401
+    from eimir.outbox import models as _outbox  # noqa: F401
+    from eimir.people import models as _people  # noqa: F401
+    from eimir.places import models as _places  # noqa: F401
+    from eimir.plans import models as _plans  # noqa: F401
+    from eimir.private_collections import models as _private_collections  # noqa: F401
+    from eimir.private_notes import models as _private_notes  # noqa: F401
+    from eimir.profiles import models as _profiles  # noqa: F401
+    from eimir.quotes import models as _quotes  # noqa: F401
+    from eimir.relations import models as _relations  # noqa: F401
+    from eimir.relationship import models as _relationship  # noqa: F401
+    from eimir.reminders import models as _reminders  # noqa: F401
+    from eimir.reminders import runtime_models as _reminder_runtime  # noqa: F401
+    from eimir.story import view_models as _story_views  # noqa: F401
+    from eimir.transfer import models as _transfer  # noqa: F401
+    from eimir.wishes import models as _wishes  # noqa: F401
 
     # Test probe for owner/privacy authorization. It deliberately exists only
     # here: alembic/env.py does not know it, so it appears in no migration and
@@ -142,8 +170,8 @@ def client(session: Session):  # type: ignore[no-untyped-def]
     """
     from fastapi.testclient import TestClient
 
-    from sidebyside.db.session import get_session
-    from sidebyside.main import create_app
+    from eimir.db.session import get_session
+    from eimir.main import create_app
 
     app = create_app()
     app.dependency_overrides[get_session] = lambda: session
@@ -152,7 +180,7 @@ def client(session: Session):  # type: ignore[no-untyped-def]
 
 def _clear_database(engine: Engine) -> None:
     """Remove committed test data in foreign-key-safe order."""
-    from sidebyside.db.base import Base
+    from eimir.db.base import Base
 
     with engine.begin() as connection:
         for table in reversed(Base.metadata.sorted_tables):
@@ -168,8 +196,8 @@ def production_client(engine: Engine, monkeypatch):  # type: ignore[no-untyped-d
     """
     from fastapi.testclient import TestClient
 
-    from sidebyside.db import session as db_session
-    from sidebyside.main import create_app
+    from eimir.db import session as db_session
+    from eimir.main import create_app
 
     maker = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
     monkeypatch.setattr(db_session, "get_sessionmaker", lambda: maker)
@@ -183,7 +211,7 @@ def production_client(engine: Engine, monkeypatch):  # type: ignore[no-untyped-d
 
 
 def make_account(session: Session, name: str = "Testperson"):  # type: ignore[no-untyped-def]
-    from sidebyside.identity.models import Account
+    from eimir.identity.models import Account
 
     account = Account(display_name=name)
     session.add(account)
@@ -192,7 +220,7 @@ def make_account(session: Session, name: str = "Testperson"):  # type: ignore[no
 
 
 def make_space(session: Session, founder):  # type: ignore[no-untyped-def]
-    from sidebyside.relationship.service import create_space
+    from eimir.relationship.service import create_space
 
     return create_space(session, founder)
 
@@ -203,7 +231,7 @@ def sign_in(session: Session, account) -> str:  # type: ignore[no-untyped-def]
     Go through the regular service rather than around it; a forged token would
     skip exactly the path that this helper is meant to exercise.
     """
-    from sidebyside.auth.sessions import start_session
+    from eimir.auth.sessions import start_session
 
     _, tokens = start_session(session, account)
     session.flush()

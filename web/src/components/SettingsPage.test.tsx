@@ -1,12 +1,17 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
+import accountSettings from '../i18n/locales/accountSettings';
+import dailyQuote from '../i18n/locales/dailyQuote';
+import profileIdentity from '../i18n/locales/profileIdentity';
+import spaceOffboarding from '../i18n/locales/spaceOffboarding';
 import { SettingsPage } from './SettingsPage';
 
 const SPACE_ID = 'space-1';
 const ACCOUNT_ID = 'account-1';
 
-function renderSettingsPageFixture(): string {
+function renderSettingsPageFixture(route = '/more/settings'): string {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -51,62 +56,103 @@ function renderSettingsPageFixture(): string {
       },
     },
   );
+  queryClient.setQueryData(dashboardPreferencesQueryKey(ACCOUNT_ID, SPACE_ID), {
+    items: [{ moduleKey: 'upcoming', itemLimit: 2 }],
+  });
+
+  const element = (
+    <SettingsPage
+      apiBaseUrl="http://api.example.test"
+      accessToken="test-token"
+      account={{ id: ACCOUNT_ID, displayName: 'Alex' }}
+      spaceId={SPACE_ID}
+    />
+  );
 
   return renderToStaticMarkup(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <SettingsPage
-          apiBaseUrl="http://api.example.test"
-          accessToken="test-token"
-          account={{ id: ACCOUNT_ID, displayName: 'Alex' }}
-          spaceId={SPACE_ID}
-        />
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route path="/more/settings" element={element} />
+          <Route path="/more/settings/:settingsCategory" element={element} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
 describe('SettingsPage', () => {
-  it('renders settings header, index, and four dedicated configuration sections', () => {
+  it('renders a calm category index instead of every settings form at once', () => {
     const html = renderSettingsPageFixture();
 
-    // Page header
-    expect(html).toContain('settings-page');
-    expect(html).toContain('Einstellungen');
-
-    // Quick Index
+    expect(html).toContain('settings-index-page');
     expect(html).toContain('settings-index');
+    expect(html).toContain('href="/more/settings/relationship"');
+    expect(html).toContain('href="/more/settings/notifications"');
+    expect(html).toContain('href="/more/settings/today"');
+    expect(html).toContain('href="/more/settings/appearance"');
+    expect(html).toContain('href="/more/settings/data"');
+    expect(html).toContain('href="/more/settings/account"');
+    expect(html).toContain('href="/more"');
 
-    // Section 1: Appearance
-    expect(html).toContain('id="settings-appearance"');
-    expect(html).toContain('theme-control');
-
-    // Section 2: Notifications (retained with inbox link and real anniversary reminder configuration)
-    expect(html).toContain('id="settings-notifications"');
-    expect(html).toContain('anniversary-reminder-form');
-    expect(html).toContain('name="anniversaryReminderEnabled"');
-    expect(html).toContain('href="/more/notifications"');
-
-    // Section 3: Connection & Relationship configuration form
-    expect(html).toContain('id="settings-connection"');
-    expect(html).toContain('relationship-settings-title');
-    expect(html).toContain('name="relationshipStartedOn"');
-    expect(html).toContain('name="showRelationshipDuration"');
-
-    // Section 4: Data & Portability
-    expect(html).toContain('id="settings-data"');
-    expect(html).toContain('id="data-transfer"');
+    expect(html).not.toContain('name="relationshipStartedOn"');
+    expect(html).not.toContain('anniversary-reminder-form');
+    expect(html).not.toContain('name="dashboardUpcomingItemLimit"');
+    expect(html).not.toContain('theme-control');
+    expect(html).not.toContain('id="data-transfer"');
+    expect(html).not.toContain('account-danger-zone');
   });
 
-  it('verifies strict settings information architecture: no private area and partner identity only in profile', () => {
-    const html = renderSettingsPageFixture();
+  it('renders one focused category task at a time with Back to Settings', () => {
+    const relationship = renderSettingsPageFixture(
+      '/more/settings/relationship',
+    );
+    expect(relationship).toContain('name="relationshipStartedOn"');
+    expect(relationship).toContain('href="/more/settings"');
+    expect(relationship).not.toContain('anniversary-reminder-form');
+    expect(relationship).not.toContain('name="dashboardUpcomingItemLimit"');
 
-    // No Private Area in Settings
+    const notifications = renderSettingsPageFixture(
+      '/more/settings/notifications',
+    );
+    expect(notifications).toContain('anniversary-reminder-form');
+    expect(notifications).toContain('href="/more/notifications"');
+    expect(notifications).not.toContain('name="relationshipStartedOn"');
+    expect(notifications).not.toContain('name="dashboardUpcomingItemLimit"');
+
+    const today = renderSettingsPageFixture('/more/settings/today');
+    expect(today).toContain('name="dashboardUpcomingItemLimit"');
+    expect(today).toContain(profileIdentity.dashboardUpcomingQuestion);
+    expect(today).toContain(dailyQuote.settingsTitle);
+    expect(today).toContain('settings-daily-quote');
+    expect(today).not.toContain('anniversary-reminder-form');
+    expect(today).not.toContain('id="data-transfer"');
+
+    const appearance = renderSettingsPageFixture('/more/settings/appearance');
+    expect(appearance).toContain('theme-control');
+    expect(appearance).not.toContain('id="data-transfer"');
+
+    const data = renderSettingsPageFixture('/more/settings/data');
+    expect(data).toContain('id="data-transfer"');
+    expect(data).not.toContain('account-danger-zone');
+  });
+
+  it('keeps Account and Space destructive actions distinct inside the account category', () => {
+    const html = renderSettingsPageFixture('/more/settings/account');
+
+    expect(html).toContain(profileIdentity.settingsAccount);
+    expect(html).toContain('settings-sensitive-zone');
+    expect(html).toContain('account-settings-panel');
+    expect(html).toContain('account-danger-zone');
+    expect(html).toContain('<h3 id="account-settings-title">Account</h3>');
+    expect(html).toContain(`<h4>${accountSettings.dangerTitle}</h4>`);
+    expect(html).toContain(accountSettings.deleteAction);
+    expect(html).toContain('space-offboarding-panel');
+    expect(html).toContain(spaceOffboarding.action);
+
     expect(html).not.toContain('id="settings-privacy"');
     expect(html).not.toContain('/more/private');
-    expect(html).not.toContain('Mein Bereich');
-
-    // Partner identity belongs strictly in Profile, not Settings
     expect(html).not.toContain('partner-identity-title');
+    expect(html).not.toContain('anniversary-reminder-form');
   });
 });

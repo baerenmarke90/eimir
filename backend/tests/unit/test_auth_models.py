@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.identity.models import (
+from eimir.identity.models import (
     AccountRecoveryToken,
     EmailVerificationToken,
     MagicLinkToken,

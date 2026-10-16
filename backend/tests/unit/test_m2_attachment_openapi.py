@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/attachments"
 DETAIL = "/api/v1/spaces/{spaceId}/attachments/{attachmentId}"
@@ -65,13 +65,16 @@ def test_storage_internals_are_not_fields_anywhere_in_the_schema() -> None:
         assert not overlap, f"{name}: {sorted(overlap)}"
 
 
-def test_read_request_accepts_the_unbound_variant() -> None:
+def test_read_request_accepts_unbound_parent_and_content_variants() -> None:
     """M2-D24."""
     components = _schema()["components"]["schemas"]  # type: ignore[index]
     request = components["AttachmentReadRequest"]
     parent_type = request["properties"]["parentType"]
     values = set(parent_type.get("enum") or [])
     assert values == {"MEMORY", "HEART_MOMENT", "NONE", "RELATED_PERSON"}
+    content_variant = request["properties"]["variant"]
+    assert set(content_variant["enum"]) == {"original", "thumbnail"}
+    assert content_variant["default"] == "original"
     assert request["additionalProperties"] is False
 
 

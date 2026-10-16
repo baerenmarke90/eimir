@@ -1,0 +1,542 @@
+.games-product-page {
+  width: min(100%, 54rem);
+  margin-inline: auto;
+}
+
+.games-heading {
+  margin-bottom: var(--space-6);
+}
+
+.games-shelf {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.games-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 7rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.games-entry:nth-child(even) {
+  margin-left: clamp(0rem, 3vw, var(--space-5));
+}
+
+.games-entry-index {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.games-entry-copy {
+  min-width: 0;
+}
+
+.games-entry-role {
+  margin: 0 0 var(--space-1);
+  color: var(--color-brand-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.games-entry h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+}
+
+.games-entry-copy > p:last-child {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.games-entry-status {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 1.75rem;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-3);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.games-entry-link {
+  text-decoration: none;
+}
+
+.games-entry-button {
+  width: 100%;
+  appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.games-entry-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.who-of-us-game,
+.who-of-us-session {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.who-of-us-heading {
+  margin-bottom: var(--space-2);
+}
+
+.who-of-us-heading .back-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.who-of-us-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.who-of-us-card {
+  display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-5), 6vw, var(--space-7));
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.who-of-us-card > :first-child,
+.who-of-us-card > :last-child {
+  margin-block: 0;
+}
+
+.who-of-us-question h2,
+.who-of-us-reveal h2,
+.who-of-us-handoff h2,
+.who-of-us-finish h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 7vw, 2.35rem);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.who-of-us-question > p:last-of-type,
+.who-of-us-handoff > p,
+.who-of-us-reveal > p,
+.who-of-us-finish > p {
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.who-of-us-choices {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.who-of-us-choices-legend {
+  width: 100%;
+  margin-bottom: var(--space-3);
+  padding: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.who-of-us-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.who-of-us-choice {
+  display: grid;
+  min-height: 8rem;
+  place-items: center;
+  align-content: center;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+}
+
+.who-of-us-choice:focus-visible,
+.who-of-us-primary-action:focus-visible,
+.who-of-us-actions button:focus-visible,
+.who-of-us-heading .back-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.who-of-us-choice-initial {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.who-of-us-handoff {
+  background: var(--color-shared-surface);
+}
+
+/*
+ * Reveal outcome accents. `data-outcome` picks the tone: warm brand for
+ * agreement, the app's existing "discovery" amber for divergence, so
+ * different perspectives read as an interesting find rather than a wrong
+ * answer (no red/green success-failure semantics). The headline text
+ * ("Ihr seid euch einig." / "Da seht ihr euch unterschiedlich.") carries the
+ * distinction on its own; color and motion here are reinforcement only.
+ */
+.who-of-us-reveal {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(
+    in srgb,
+    var(--who-of-us-outcome-accent, var(--color-border-subtle)) 26%,
+    var(--color-border-subtle)
+  );
+  background:
+    radial-gradient(
+      circle at 10% -15%,
+      var(--who-of-us-outcome-surface, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 105% 118%,
+      var(--who-of-us-outcome-surface, transparent),
+      transparent 50%
+    ),
+    var(--color-surface-raised);
+}
+
+.who-of-us-reveal[data-outcome="same"] {
+  --who-of-us-outcome-accent: var(--color-brand-text);
+  --who-of-us-outcome-surface: var(--color-brand-surface);
+}
+
+.who-of-us-reveal[data-outcome="different"] {
+  --who-of-us-outcome-accent: var(--color-discovery);
+  --who-of-us-outcome-surface: var(--color-discovery-surface-soft);
+}
+
+.who-of-us-reveal .eyebrow {
+  color: var(--who-of-us-outcome-accent, var(--color-brand-text));
+}
+
+.who-of-us-primary-action,
+.who-of-us-actions button {
+  min-height: 2.75rem;
+}
+
+.who-of-us-primary-action {
+  justify-self: start;
+}
+
+.who-of-us-question-repeat {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.who-of-us-reveal-answers {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+/*
+ * Decorative connector between the two perspectives: a converging dot for
+ * agreement, a calm dividing line for difference. Transform-only motion
+ * avoids opacity compositing around text-bearing outcome content (#790/#791)
+ * and keeps the same contrast-safe house rule throughout this file.
+ */
+.who-of-us-reveal-answers::before {
+  content: "";
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--who-of-us-outcome-accent, var(--color-text-secondary));
+  transform: translate(-50%, -50%) scale(0);
+  animation: who-of-us-connector-same var(--duration-context)
+    var(--easing-enter) forwards;
+}
+
+.who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-answers::before {
+  width: 2px;
+  height: 2.5rem;
+  border-radius: var(--radius-pill);
+  animation-name: who-of-us-connector-different;
+}
+
+.who-of-us-reveal-person {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  animation-duration: var(--duration-transition);
+  animation-timing-function: var(--easing-enter);
+  animation-fill-mode: both;
+}
+
+.who-of-us-reveal-person dl {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.who-of-us-reveal-person:first-child {
+  animation-name: who-of-us-person-in-left;
+}
+
+.who-of-us-reveal-person:last-child {
+  animation-name: who-of-us-person-in-right;
+}
+
+.who-of-us-reveal[data-outcome="different"]
+  .who-of-us-reveal-person:first-child {
+  animation-name: who-of-us-person-out-left;
+}
+
+.who-of-us-reveal[data-outcome="different"]
+  .who-of-us-reveal-person:last-child {
+  animation-name: who-of-us-person-out-right;
+}
+
+.who-of-us-reveal[data-outcome="different"] .who-of-us-reveal-person {
+  animation-timing-function: var(--easing-exit);
+}
+
+.who-of-us-reveal-avatar {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--who-of-us-outcome-surface, var(--color-surface-subtle));
+  color: var(--who-of-us-outcome-accent, var(--color-text));
+  box-shadow: var(--shadow-soft);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.who-of-us-reveal-answers dt {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.who-of-us-reveal-answers dd {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+@keyframes who-of-us-connector-same {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+  }
+  to {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes who-of-us-connector-different {
+  from {
+    transform: translate(-50%, -50%) scaleY(0);
+  }
+  to {
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+}
+
+/* Converge (SAME): each person starts further out and settles inward, toward the center connector. */
+@keyframes who-of-us-person-in-left {
+  from {
+    transform: translateX(-10px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes who-of-us-person-in-right {
+  from {
+    transform: translateX(10px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Diverge (DIFFERENT): each person starts closer to the center connector and settles outward, apart. */
+@keyframes who-of-us-person-out-left {
+  from {
+    transform: translateX(6px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes who-of-us-person-out-right {
+  from {
+    transform: translateX(-6px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.who-of-us-finish-count {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.who-of-us-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .games-entry-link:hover,
+  .who-of-us-choice:hover {
+    border-color: var(--color-brand-text);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+@media (max-width: 599px) {
+  .games-entry {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .games-entry:nth-child(even) {
+    margin-left: 0;
+  }
+
+  .games-entry-status {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .who-of-us-card {
+    padding: var(--space-5);
+  }
+}
+
+@media (max-width: 360px) {
+  .games-entry {
+    grid-template-columns: 1fr;
+  }
+
+  .games-entry-index,
+  .games-entry-status {
+    grid-column: 1;
+  }
+
+  .who-of-us-choice-grid,
+  .who-of-us-reveal-answers {
+    grid-template-columns: 1fr;
+  }
+
+  .who-of-us-reveal-answers {
+    gap: var(--space-4);
+  }
+
+  /* Stacked single column has no "between" to mark. */
+  .who-of-us-reveal-answers::before {
+    display: none;
+  }
+
+  .who-of-us-choice {
+    min-height: 6.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .games-product-page *,
+  .games-product-page *::before,
+  .games-product-page *::after {
+    scroll-behavior: auto;
+  }
+
+  .who-of-us-reveal-answers::before {
+    animation: none;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .who-of-us-reveal[data-outcome="different"]
+    .who-of-us-reveal-answers::before {
+    transform: translate(-50%, -50%) scaleY(1);
+  }
+
+  .who-of-us-reveal-person {
+    animation: none;
+    transform: none;
+  }
+}

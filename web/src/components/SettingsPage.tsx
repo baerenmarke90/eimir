@@ -1,17 +1,46 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import {
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
+import { DailyQuoteApi } from '../api/generated/apis/DailyQuoteApi';
+import { DashboardApi } from '../api/generated/apis/DashboardApi';
+import { EntitlementsApi } from '../api/generated/apis/EntitlementsApi';
 import { RulesApi } from '../api/generated/apis/RulesApi';
+import { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
 import { Configuration } from '../api/generated/runtime';
-import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
+import { isDemoModeConfigured } from '../client/demoMode';
+import {
+  appRoutePath,
+  isSettingsCategoryId,
+  MORE_NOTIFICATIONS_ROUTE,
+  MORE_SETTINGS_ROUTE,
+  settingsCategoryIdFromHash,
+  settingsCategoryPath,
+  type SettingsCategoryId,
+} from '../client/routes';
+import { settingsCategoryDefinition } from '../client/settingsNavigation';
 import { useTranslation } from '../i18n';
-import { AnniversaryReminderSettings } from './AnniversaryReminderSettings';
+import { AccountSettingsPanel } from './AccountSettingsPanel';
+import {
+  AnniversaryReminderSettings,
+  PartnerBirthdayReminderSettings,
+} from './AnniversaryReminderSettings';
+import { DailyQuoteSettingsPanel } from './DailyQuoteSettingsPanel';
+import { DashboardSettingsPanel } from './DashboardSettingsPanel';
+import { NotificationSettingsPanel } from './NotificationSettingsPanel';
 import { PageHeader } from './PageHeader';
 import { PartnerConnectionPanel } from './PartnerConnectionPanel';
 import { ProfileAppearancePanel } from './ProfileAppearancePanel';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import { SettingsIndex } from './SettingsIndex';
+import { SpaceConfigurationPanel } from './SpaceConfigurationPanel';
+import { SpaceOffboardingPanel } from './SpaceOffboardingPanel';
 import { TransferPanel } from './TransferPanel';
 import './SettingsPage.css';
 
@@ -24,6 +53,9 @@ export interface SettingsPageProps {
 
 export function SettingsPage(props: SettingsPageProps) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { settingsCategory } = useParams<{ settingsCategory?: string }>();
 
   const configuration = useMemo(
     () =>
@@ -38,72 +70,199 @@ export function SettingsPage(props: SettingsPageProps) {
     [configuration],
   );
   const rulesApi = useMemo(() => new RulesApi(configuration), [configuration]);
+  const dashboardApi = useMemo(
+    () => new DashboardApi(configuration),
+    [configuration],
+  );
+  const dailyQuoteApi = useMemo(
+    () => new DailyQuoteApi(configuration),
+    [configuration],
+  );
+  const entitlementsApi = useMemo(
+    () => new EntitlementsApi(configuration),
+    [configuration],
+  );
+  const notificationsApi = useMemo(
+    () => new NotificationsApi(configuration),
+    [configuration],
+  );
+  const demoMode = isDemoModeConfigured();
 
-  return (
-    <div className="page settings-page">
-      <PageHeader
-        eyebrow={t('navigation.settings')}
-        title={t('navigation.settings')}
-        description={t('profileIdentity.settingsPageIntro')}
-      />
+  const legacyCategory =
+    settingsCategory === undefined
+      ? settingsCategoryIdFromHash(location.hash)
+      : null;
+  if (legacyCategory) {
+    return <Navigate replace to={settingsCategoryPath(legacyCategory)} />;
+  }
 
-      <SettingsIndex />
+  if (
+    settingsCategory !== undefined &&
+    !isSettingsCategoryId(settingsCategory)
+  ) {
+    return <Navigate replace to={MORE_SETTINGS_ROUTE} />;
+  }
 
-      <div className="settings-sections">
-        {/* 1. Appearance */}
-        <div id="settings-appearance" className="settings-section">
-          <ProfileAppearancePanel id="settings-appearance-panel" />
+  const categoryId: SettingsCategoryId | null =
+    settingsCategory && isSettingsCategoryId(settingsCategory)
+      ? settingsCategory
+      : null;
+  const category = categoryId ? settingsCategoryDefinition(categoryId) : null;
+
+  const openDataCategory = () => {
+    navigate(settingsCategoryPath('data'));
+  };
+
+  let categoryContent = null;
+  if (categoryId === 'relationship') {
+    categoryContent = (
+      <div
+        id="settings-connection"
+        className="settings-category-content settings-connection-block"
+      >
+        <RelationshipSettingsSection
+          spacesApi={spacesApi}
+          spaceId={props.spaceId}
+        />
+        <SpaceConfigurationPanel
+          spacesApi={spacesApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <PartnerConnectionPanel {...props} />
+      </div>
+    );
+  } else if (categoryId === 'notifications') {
+    categoryContent = (
+      <section
+        id="settings-notifications"
+        className="settings-category-content settings-functional-panel"
+        aria-label={t('profileIdentity.settingsNotifications')}
+      >
+        <NotificationSettingsPanel
+          notificationsApi={notificationsApi}
+          accountId={props.account.id}
+        />
+        <AnniversaryReminderSettings
+          rulesApi={rulesApi}
+          spaceId={props.spaceId}
+        />
+        <PartnerBirthdayReminderSettings
+          rulesApi={rulesApi}
+          spaceId={props.spaceId}
+        />
+        <div className="form-actions settings-notification-inbox-action">
+          <Link
+            className="button-link secondary-link"
+            to={MORE_NOTIFICATIONS_ROUTE}
+          >
+            {t('profileIdentity.settingsNotificationsAction')}
+          </Link>
         </div>
-
-        {/* 2. Notifications */}
-        <section
-          id="settings-notifications"
-          className="form-card settings-section"
-          aria-labelledby="settings-notifications-heading"
-        >
-          <div className="settings-section-head">
-            <h2 id="settings-notifications-heading">
-              {t('profileIdentity.settingsNotifications')}
-            </h2>
-            <p className="settings-section-intro">
-              {t('profileIdentity.settingsNotificationsIntro')}
-            </p>
-          </div>
-          <AnniversaryReminderSettings
-            rulesApi={rulesApi}
-            spaceId={props.spaceId}
-          />
-          <div className="form-actions settings-notification-inbox-action">
-            <Link
-              className="button-link secondary-link"
-              to={MORE_NOTIFICATIONS_ROUTE}
-            >
-              {t('profileIdentity.settingsNotificationsAction')}
-            </Link>
-          </div>
-        </section>
-
-        {/* 3. Connection & Relationship Configuration */}
-        <div
-          id="settings-connection"
-          className="settings-section settings-connection-block"
-        >
-          <RelationshipSettingsSection
+      </section>
+    );
+  } else if (categoryId === 'today') {
+    categoryContent = (
+      <div className="settings-category-content">
+        <DashboardSettingsPanel
+          dashboardApi={dashboardApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+        <DailyQuoteSettingsPanel
+          quoteApi={dailyQuoteApi}
+          entitlementsApi={entitlementsApi}
+          accountId={props.account.id}
+          spaceId={props.spaceId}
+        />
+      </div>
+    );
+  } else if (categoryId === 'appearance') {
+    categoryContent = (
+      <div
+        id="settings-appearance"
+        className="settings-category-content settings-appearance-block"
+      >
+        <ProfileAppearancePanel id="settings-appearance-panel" />
+      </div>
+    );
+  } else if (categoryId === 'data') {
+    categoryContent = (
+      <div
+        id="settings-data"
+        className="settings-category-content settings-data-block"
+      >
+        <TransferPanel
+          apiBaseUrl={props.apiBaseUrl}
+          accessToken={props.accessToken}
+          spaceId={props.spaceId}
+        />
+      </div>
+    );
+  } else if (categoryId === 'account') {
+    categoryContent = (
+      <section
+        id="settings-account"
+        className="settings-category-content settings-sensitive-zone"
+        aria-labelledby="settings-sensitive-heading"
+      >
+        <div className="settings-sensitive-head">
+          <p className="eyebrow">
+            {t('profileIdentity.settingsSensitiveEyebrow')}
+          </p>
+          <h2 id="settings-sensitive-heading">
+            {t('profileIdentity.settingsSensitiveTitle')}
+          </h2>
+          <p>{t('profileIdentity.settingsSensitiveIntro')}</p>
+        </div>
+        <div className="settings-sensitive-grid">
+          <SpaceOffboardingPanel
             spacesApi={spacesApi}
             spaceId={props.spaceId}
+            demoMode={demoMode}
+            onOpenDataExport={openDataCategory}
           />
-          <PartnerConnectionPanel {...props} />
-        </div>
-
-        {/* 4. Data & Portability */}
-        <div id="settings-data" className="settings-section">
-          <TransferPanel
+          <AccountSettingsPanel
             apiBaseUrl={props.apiBaseUrl}
             accessToken={props.accessToken}
-            spaceId={props.spaceId}
+            demoMode={demoMode}
+            onOpenDataExport={openDataCategory}
           />
         </div>
-      </div>
+      </section>
+    );
+  }
+
+  const backTarget = category ? MORE_SETTINGS_ROUTE : appRoutePath('more');
+  const backLabel = category
+    ? t('profileIdentity.settingsBackToIndex')
+    : t('profileIdentity.settingsBackToMore');
+
+  return (
+    <div
+      className={
+        category
+          ? 'page settings-page settings-category-page'
+          : 'page settings-page settings-index-page'
+      }
+    >
+      <PageHeader
+        before={
+          <Link className="settings-back-link" to={backTarget}>
+            <span aria-hidden="true">←</span>
+            <span>{backLabel}</span>
+          </Link>
+        }
+        eyebrow={t('navigation.settings')}
+        title={category ? t(category.titleKey) : t('navigation.settings')}
+        description={
+          category
+            ? t(category.descriptionKey)
+            : t('profileIdentity.settingsPageIntro')
+        }
+      />
+
+      {category ? categoryContent : <SettingsIndex />}
     </div>
   );
 }

@@ -7,11 +7,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
-from sidebyside.jobs import queue
-from sidebyside.jobs.models import Job
-from sidebyside.jobs.worker import registry, run_once
-from sidebyside.main import create_app
-from sidebyside.observability import (
+from eimir.jobs import queue
+from eimir.jobs.models import Job
+from eimir.jobs.worker import registry, run_once
+from eimir.main import create_app
+from eimir.observability import (
     get_correlation_id,
     reset_context,
     set_correlation_id,

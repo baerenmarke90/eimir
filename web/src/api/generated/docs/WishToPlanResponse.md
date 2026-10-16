@@ -1,7 +1,7 @@
 
 # WishToPlanResponse
 
-Both resources returned from a conversion.  Conversion modifies the wish and creates the plan. Returning only one would force the client to immediately reload the other and display stale state in the meantime.
+Both resources returned from a conversion.
 
 ## Properties
 

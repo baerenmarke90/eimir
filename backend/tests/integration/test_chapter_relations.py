@@ -8,19 +8,19 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import AuthorizationContext, ContentVisibility
-from sidebyside.chapters import service as chapter_service
-from sidebyside.chapters.models import Chapter
-from sidebyside.core.errors import NotFoundError
-from sidebyside.heart_moments import service as heart_moment_service
-from sidebyside.heart_moments.models import HeartEmotion, HeartMoment
-from sidebyside.memories import service as memory_service
-from sidebyside.memories.models import Memory
-from sidebyside.milestones import service as milestone_service
-from sidebyside.milestones.models import Milestone
-from sidebyside.relations import service as relation_service
-from sidebyside.relations.models import ChapterHeartMoment, ChapterMemory, ChapterMilestone
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext, ContentVisibility
+from eimir.chapters import service as chapter_service
+from eimir.chapters.models import Chapter
+from eimir.core.errors import NotFoundError
+from eimir.heart_moments import service as heart_moment_service
+from eimir.heart_moments.models import HeartEmotion, HeartMoment
+from eimir.memories import service as memory_service
+from eimir.memories.models import Memory
+from eimir.milestones import service as milestone_service
+from eimir.milestones.models import Milestone
+from eimir.relations import service as relation_service
+from eimir.relations.models import ChapterHeartMoment, ChapterMemory, ChapterMilestone
+from eimir.relationship import service as relationship_service
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

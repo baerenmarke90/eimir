@@ -8,7 +8,7 @@ from scripts.openapi_contract import ContractMismatchError, ensure_contract_matc
 
 
 def test_manipulated_contract_fails() -> None:
-    contract = {"info": {"title": "SideBySide Next"}, "openapi": "3.1.0"}
+    contract = {"info": {"title": "eimir."}, "openapi": "3.1.0"}
     manipulated = {**contract, "info": {"title": "Unintended change"}}
 
     with pytest.raises(ContractMismatchError, match="OpenAPI contract is not current"):

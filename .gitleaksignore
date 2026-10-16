@@ -4,3 +4,8 @@ e92f7a51ddebc30ed3c4a8555f8d4bd81873e79e:backend/tests/unit/test_transport.py:ge
 # Historical false positives from the product-design issue template.
 137e5528c1c26859c27a4bd43b1d6269c861a49f:.github/ISSUE_TEMPLATE/feature.yml:generic-api-key:43
 ed692ab64e22e974e9726d909b723ec1341aba44:.github/ISSUE_TEMPLATE/feature.yml:generic-api-key:43
+
+# Synthetic local-password literals in the #923 Self-Hosted isolation tests; not credentials.
+b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:830
+b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:845
+b97a7d90d8768852c6552385b95e90ddaad0e4ba:backend/tests/integration/test_cloud_self_service_onboarding.py:generic-api-key:890

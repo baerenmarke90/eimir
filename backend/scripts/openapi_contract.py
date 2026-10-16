@@ -11,7 +11,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from sidebyside.main import app
+from eimir.main import app
 
 
 class ContractMismatchError(RuntimeError):

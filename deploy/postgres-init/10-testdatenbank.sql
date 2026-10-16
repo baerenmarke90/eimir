@@ -2,11 +2,11 @@
 -- Without it, every developer would need to repeat the same manual step, and
 -- forgetting it could produce a green run with every integration test skipped.
 --
--- Keep it separate from "sidebyside": the test harness creates the schema and
+-- Keep it separate from "eimir": the test harness creates the schema and
 -- removes it at the end. Running against the development database would cause
 -- data loss instead of providing a test run.
 --
 -- The PostgreSQL image executes this directory only while the data directory is
 -- empty. For an existing volume, use the createdb command documented in the
 -- README to add the database.
-CREATE DATABASE sidebyside_test OWNER sidebyside;
+CREATE DATABASE eimir_test OWNER eimir;

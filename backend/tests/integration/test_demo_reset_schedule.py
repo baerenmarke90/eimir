@@ -7,20 +7,20 @@ from datetime import date, timedelta
 import pytest
 from sqlalchemy import select
 
-from sidebyside.auth import action_tokens, sessions
-from sidebyside.config import Environment, Settings
-from sidebyside.core.clock import now
-from sidebyside.core.errors import UnauthenticatedError
-from sidebyside.demo import reset as demo_reset
-from sidebyside.demo.service import LEA_EMAIL, create_demo_space
-from sidebyside.identity import service as identity_service
-from sidebyside.identity.models import (
+from eimir.auth import action_tokens, sessions
+from eimir.config import Environment, Settings
+from eimir.core.clock import now
+from eimir.core.errors import UnauthenticatedError, ValidationError
+from eimir.demo import reset as demo_reset
+from eimir.demo.service import LEA_EMAIL, create_demo_space
+from eimir.identity import service as identity_service
+from eimir.identity.models import (
     AccountEmail,
     DeviceSession,
     MagicLinkToken,
     OidcAuthRequest,
 )
-from sidebyside.jobs.models import JobStatus
+from eimir.jobs.models import JobStatus
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -121,3 +121,40 @@ def test_reset_job_replaces_space_and_expires_public_demo_auth_state(
     )
     assert current.created is False
     assert current.space_id != seeded.space_id
+
+
+def test_reset_job_also_invalidates_an_outstanding_demo_entry_proof(
+    session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # type: ignore[no-untyped-def]
+    """#730: a demo entry proof never supersedes another one, but the
+    canonical reset must still be able to invalidate every outstanding proof
+    for the personas it is about to rebuild.
+    """
+    settings = _demo_settings()
+    monkeypatch.setattr(demo_reset, "get_settings", lambda: settings)
+    create_demo_space(
+        session,
+        environment=Environment.TEST,
+        lea_password=DEMO_PASSWORD,
+        alex_password=DEMO_PASSWORD,
+        reference_date=REFERENCE_DATE,
+    )
+    lea = identity_service.find_by_email(session, LEA_EMAIL)
+    assert lea is not None
+    email = session.execute(
+        select(AccountEmail).where(
+            AccountEmail.account_id == lea.id,
+            AccountEmail.email == LEA_EMAIL,
+            AccountEmail.is_primary.is_(True),
+        )
+    ).scalar_one()
+    demo_proof, issued = action_tokens.issue_demo_entry_proof(session, email.id)
+    demo_proof_id = demo_proof.id
+
+    demo_reset.run_demo_reset(session, {})
+
+    assert session.get(MagicLinkToken, demo_proof_id) is None
+    with pytest.raises(ValidationError) as excinfo:
+        action_tokens.consume_magic_link(session, issued.token)
+    assert excinfo.value.code == action_tokens.ActionTokenErrorCode.INVALID

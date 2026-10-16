@@ -10,12 +10,12 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.chapters import service as chapter_service
-from sidebyside.chapters.models import Chapter
-from sidebyside.core.errors import BadRequestError, ConflictError, NotFoundError, ValidationError
-from sidebyside.places import service as place_service
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext
+from eimir.chapters import service as chapter_service
+from eimir.chapters.models import Chapter
+from eimir.core.errors import BadRequestError, ConflictError, NotFoundError, ValidationError
+from eimir.places import service as place_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

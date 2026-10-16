@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sidebyside.core.errors import ValidationError
-from sidebyside.identity.preferences import (
+from eimir.core.errors import ValidationError
+from eimir.identity.preferences import (
     PreferenceErrorCode,
     normalize_locale,
     validate_timezone,

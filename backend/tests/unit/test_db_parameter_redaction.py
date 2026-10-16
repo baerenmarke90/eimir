@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from sqlalchemy import Engine
 
-from sidebyside.db.session import get_engine
+from eimir.db.session import get_engine
 
 
 def _engine() -> Engine:

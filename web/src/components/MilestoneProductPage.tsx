@@ -1,6 +1,6 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
 import {
   MilestoneDetailFromJSON,
@@ -12,6 +12,8 @@ import {
   loadProductWithReadCache,
 } from '../client/productReadCache';
 import { normalizeClientError } from '../client/problemDetails';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
@@ -19,14 +21,42 @@ import {
   milestoneEditPath,
 } from '../client/routes';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
+import {
+  authorSummaryQueryKeys,
+  invalidateStoryProjections,
+} from '../client/authorSummaryConsumers';
+import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { CommentsPanel } from './CommentsPanel';
+import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
+import {
+  StoryCreatePageShell,
+  StoryEditorPageShell,
+} from './StoryFormPageShell';
+import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MilestoneProductMode = 'create' | 'detail' | 'edit';
+
+interface MilestoneCreateValues {
+  readonly title: string;
+  readonly body?: string;
+  readonly happenedOn: Date;
+}
+
+interface MilestoneCreateSnapshot {
+  readonly spaceId: string;
+  readonly milestoneCreate: MilestoneCreateValues;
+}
 
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
@@ -57,12 +87,19 @@ export function MilestoneProductPage({
   currentAccountId: string;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
   const milestoneId = params.milestoneId;
   const queryKey = authorSummaryQueryKeys.milestone(spaceId, milestoneId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<MilestoneCreateSnapshot> | null>(null);
 
   const milestoneQuery = useQuery({
     queryKey,
@@ -82,29 +119,41 @@ export function MilestoneProductPage({
     retry: false,
   });
 
+  useStoryViewReceipt({
+    apis,
+    spaceId,
+    kind: 'MILESTONE',
+    itemId: milestoneId ?? '',
+    presented: mode === 'detail' && milestoneQuery.isSuccess,
+  });
+
   const createMutation = useMutation({
-    mutationFn: async (values: {
-      title: string;
-      body?: string;
-      happenedOn: Date;
-    }) => {
-      try {
-        return await apis.milestones.createMilestone({
-          spaceId,
-          milestoneCreate: values,
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+    mutationFn: async (values: MilestoneCreateValues) => {
+      const snapshot: MilestoneCreateSnapshot = {
+        spaceId,
+        milestoneCreate: values,
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          apis.milestones.createMilestone({
+            ...snapshot,
+            idempotencyKey,
+          }),
+      });
     },
     onSuccess: async (milestone) => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['story', spaceId] }),
+        invalidateStoryProjections(queryClient, spaceId),
         invalidateDashboard(queryClient, spaceId),
       ]);
       navigate(milestoneDetailPath(milestone.id), {
         replace: true,
-        state: { saved: true },
+        state: { saved: true, taskOriginKey: originKey },
       });
     },
   });
@@ -153,11 +202,14 @@ export function MilestoneProductPage({
         source: 'network',
       });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['story', spaceId] }),
+        invalidateStoryProjections(queryClient, spaceId),
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(milestoneDetailPath(milestone.id), { replace: true });
+      navigate(milestoneDetailPath(milestone.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -182,7 +234,7 @@ export function MilestoneProductPage({
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['story', spaceId] }),
+        invalidateStoryProjections(queryClient, spaceId),
         invalidateDashboard(queryClient, spaceId),
       ]);
       navigate(appRoutePath('story'), { replace: true });
@@ -204,33 +256,83 @@ export function MilestoneProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={appRoutePath('story')}>
-              {t('milestoneProduct.backToStory')}
-            </Link>
-          }
-          eyebrow={t('milestoneProduct.createEyebrow')}
-          title={t('milestoneProduct.createHeading')}
-          description={t('milestoneProduct.createIntro')}
-        />
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="milestone-create-heading"
-        >
-          <h2 id="milestone-create-heading" className="sr-only">
+      <StoryCreatePageShell
+        header={
+          <PageHeader
+            before={
+              <button
+                type="button"
+                className="back-link tertiary"
+                onClick={() => requestReturn(originKey)}
+              >
+                {t(
+                  resolveOrigin(originKey)
+                    ? 'taskBoundary.back'
+                    : 'milestoneProduct.backToStory',
+                )}
+              </button>
+            }
+            eyebrow={t('milestoneProduct.createEyebrow')}
+            title={t('milestoneProduct.createHeading')}
+            description={t('milestoneProduct.createIntro')}
+            className="create-heading"
+          />
+        }
+        labelledBy="milestone-form-heading"
+      >
+        <>
+          <h2 id="milestone-form-heading" className="sr-only">
             {t('milestoneProduct.createHeading')}
           </h2>
-          <form className="form-grid" onSubmit={submitCreate}>
-            <MilestoneFields />
+          <form onSubmit={submitCreate} className="immersive-create-form">
+            <div className="immersive-create-hero">
+              <label htmlFor="milestone-title" className="sr-only">
+                {t('milestoneProduct.titleLabel')}
+              </label>
+              <input
+                id="milestone-title"
+                name="title"
+                required
+                maxLength={200}
+                placeholder={t('milestoneProduct.titlePlaceholder')}
+                className="immersive-create-title"
+              />
+            </div>
+
+            <NativeDateField
+              id="milestone-date"
+              name="happenedOn"
+              label={t('milestoneProduct.happenedOnLabel')}
+              required
+              defaultValue={localDateInputValue()}
+              openPickerOnClick
+            />
+
+            <details className="immersive-create-details">
+              <summary>{t('milestoneProduct.addMoreDetails')}</summary>
+              <div className="immersive-create-details-content">
+                <div className="field-group">
+                  <label htmlFor="milestone-body">
+                    {t('milestoneProduct.bodyLabel')}
+                  </label>
+                  <textarea
+                    id="milestone-body"
+                    name="body"
+                    rows={4}
+                    placeholder={t('milestoneProduct.bodyPlaceholder')}
+                  />
+                </div>
+              </div>
+            </details>
+
             <div className="form-actions">
-              <Link
+              <button
+                type="button"
                 className="button-link secondary-link"
-                to={appRoutePath('story')}
+                onClick={() => requestReturn(originKey)}
               >
                 {t('common.cancel')}
-              </Link>
+              </button>
               <button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending
                   ? t('milestoneProduct.saving')
@@ -241,8 +343,8 @@ export function MilestoneProductPage({
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryCreatePageShell>
     );
   }
 
@@ -280,6 +382,7 @@ export function MilestoneProductPage({
               <Link
                 className="back-link"
                 to={milestoneDetailPath(milestone.id)}
+                state={{ taskOriginKey: originKey }}
               >
                 {t('milestoneProduct.backToMilestone')}
               </Link>
@@ -321,30 +424,30 @@ export function MilestoneProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={milestoneDetailPath(milestone.id)}>
-              {t('milestoneProduct.backToMilestone')}
-            </Link>
-          }
-          eyebrow={t('milestoneProduct.editEyebrow')}
-          title={t('milestoneProduct.editHeading')}
-          description={t('milestoneProduct.editIntro')}
-        />
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="milestone-edit-heading"
-        >
-          <h2 id="milestone-edit-heading" className="sr-only">
-            {t('milestoneProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={milestoneDetailPath(milestone.id)}
+            state={{ taskOriginKey: originKey }}
+          >
+            {t('milestoneProduct.backToMilestone')}
+          </Link>
+        }
+        eyebrow={t('milestoneProduct.editEyebrow')}
+        title={t('milestoneProduct.editHeading')}
+        description={t('milestoneProduct.editIntro')}
+        sectionLabelledBy="milestone-edit-heading"
+        sectionHeading={t('milestoneProduct.formAria')}
+      >
+        <>
           <form className="form-grid" onSubmit={submitEdit}>
             <MilestoneFields milestone={milestone} />
             <div className="form-actions">
               <Link
                 className="button-link secondary-link"
                 to={milestoneDetailPath(milestone.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -407,81 +510,58 @@ export function MilestoneProductPage({
               ) : null}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 
+  const milestoneEyebrow = milestone.happenedOn
+    ? `${t('milestoneProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(milestone.happenedOn)}`
+    : t('milestoneProduct.detailEyebrow').toUpperCase();
+
   return (
-    <div className="page product-detail-page">
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('milestoneProduct.backToStory')}
-          </Link>
-        }
-        eyebrow={t('milestoneProduct.detailEyebrow')}
-        title={milestone.title}
-        description={formatDateOnly(milestone.happenedOn)}
-        action={
-          milestone.capabilities.canEdit && !offline ? (
-            <Link
-              className="button-link secondary-link"
-              to={milestoneEditPath(milestone.id)}
-            >
-              {t('milestoneProduct.edit')}
-            </Link>
-          ) : undefined
-        }
+    <StoryDetailPageShell
+      eyebrow={milestoneEyebrow}
+      title={milestone.title}
+      titleAction={
+        milestone.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={milestoneEditPath(milestone.id)}
+            label={t('milestoneProduct.edit')}
+            state={{ taskOriginKey: originKey }}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      containerClassName="milestone-detail-container"
+    >
+      <p className="memory-detail-body">
+        {milestone.body || t('milestoneProduct.noBody')}
+      </p>
+
+      <CommentsPanel
+        commentsApi={apis.comments}
+        spaceId={spaceId}
+        parentKind="milestone"
+        parentId={milestone.id}
+        currentAccountId={currentAccountId}
+        canComment={milestone.capabilities.canComment}
+        offline={offline}
       />
 
-      <div className="layout-split layout-split-lead-rail">
-        <aside
-          className="layout-rail layout-rail-sticky"
-          aria-label={t('milestoneProduct.detailMetaAria')}
-        >
-          <div className="layout-panel">
-            <dl className="detail-meta-list">
-              <div>
-                <dt>{t('milestoneProduct.authorLabel')}</dt>
-                <dd>{milestone.author.displayName}</dd>
-              </div>
-              <div>
-                <dt>{t('milestoneProduct.happenedOnLabel')}</dt>
-                <dd>{formatDateOnly(milestone.happenedOn)}</dd>
-              </div>
-              <div>
-                <dt>{t('milestoneProduct.createdAtLabel')}</dt>
-                <dd>{formatCreatedAt(milestone.createdAt)}</dd>
-              </div>
-            </dl>
-          </div>
-        </aside>
-
-        <div className="layout-main">
-          <article className="story-surface product-detail-card">
-            <p className="memory-detail-body">
-              {milestone.body || t('milestoneProduct.noBody')}
-            </p>
-
-            <CommentsPanel
-              commentsApi={apis.comments}
-              spaceId={spaceId}
-              parentKind="milestone"
-              parentId={milestone.id}
-              currentAccountId={currentAccountId}
-              canComment={milestone.capabilities.canComment}
-              offline={offline}
-            />
-          </article>
-        </div>
-      </div>
-    </div>
+      <footer className="milestone-provenance-footer">
+        <p>
+          {t('milestoneProduct.provenance', {
+            author: storyAuthorLabel(
+              milestone.author,
+              currentAccountId,
+              nicknameFor,
+            ),
+            createdAt: formatCreatedAt(milestone.createdAt),
+          })}
+        </p>
+      </footer>
+    </StoryDetailPageShell>
   );
 }
 
@@ -514,20 +594,15 @@ function MilestoneFields({ milestone }: { milestone?: MilestoneDetail }) {
           placeholder={t('milestoneProduct.bodyPlaceholder')}
         />
       </div>
-      <div className="field-group">
-        <label htmlFor="milestone-date">
-          {t('milestoneProduct.happenedOnLabel')}
-        </label>
-        <input
-          id="milestone-date"
-          name="happenedOn"
-          type="date"
-          required
-          defaultValue={
-            milestone ? dateInputValue(milestone.happenedOn) : undefined
-          }
-        />
-      </div>
+      <NativeDateField
+        id="milestone-date"
+        name="happenedOn"
+        label={t('milestoneProduct.happenedOnLabel')}
+        required
+        defaultValue={
+          milestone ? dateInputValue(milestone.happenedOn) : undefined
+        }
+      />
     </>
   );
 }

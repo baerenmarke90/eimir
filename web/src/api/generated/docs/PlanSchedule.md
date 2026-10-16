@@ -1,12 +1,14 @@
 
 # PlanSchedule
 
+One explicit Plan schedule representation.  ``plannedOn`` is a calendar day. ``plannedStart`` is a timezone-aware instant. Exactly one of those semantic starts must be supplied; clients may never synthesize a wall-clock time merely to encode ``plannedOn``.
 
 ## Properties
 
 Name | Type
 ------------ | -------------
 `plannedEnd` | Date
+`plannedOn` | Date
 `plannedStart` | Date
 
 ## Example
@@ -17,6 +19,7 @@ import type { PlanSchedule } from ''
 // TODO: Update the object below with actual values
 const example = {
   "plannedEnd": null,
+  "plannedOn": null,
   "plannedStart": null,
 } satisfies PlanSchedule
 

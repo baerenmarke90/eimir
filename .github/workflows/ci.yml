@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '11 4 * * 1'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.13.7"
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.15"
 
 jobs:
   changes:
@@ -23,6 +26,8 @@ jobs:
       self_hosted: ${{ steps.scope.outputs.self_hosted }}
       api_clients: ${{ steps.scope.outputs.api_clients }}
       supply_chain: ${{ steps.scope.outputs.supply_chain }}
+      supply_chain_backend: ${{ steps.scope.outputs.supply_chain_backend }}
+      supply_chain_web: ${{ steps.scope.outputs.supply_chain_web }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -36,27 +41,57 @@ jobs:
           python3 tools/ci/test_engineering_language_audit.py
           python3 tools/ci/engineering_language_audit.py
 
+      - name: Classify legacy project-identity references
+        run: |
+          python3 tools/ci/test_project_identity_scan.py
+          python3 tools/ci/test_project_identity_migration.py
+          python3 tools/ci/project_identity_scan.py
+
       - name: Determine relevant change scopes
         id: scope
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-            echo "backend=true" >> "$GITHUB_OUTPUT"
-            echo "backend_integration=true" >> "$GITHUB_OUTPUT"
-            echo "self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "api_clients=true" >> "$GITHUB_OUTPUT"
-            echo "supply_chain=true" >> "$GITHUB_OUTPUT"
-            echo "Push to main: all expensive CI gates remain active."
+
+          enable_all() {
+            for scope in backend backend_integration self_hosted api_clients supply_chain supply_chain_backend supply_chain_web; do
+              echo "$scope=true" >> "$GITHUB_OUTPUT"
+            done
+          }
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              head_sha="$PR_HEAD_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BASE_SHA"
+              head_sha="$PUSH_HEAD_SHA"
+              ;;
+            *)
+              enable_all
+              echo "Scheduled/manual run: all expensive CI gates remain active."
+              exit 0
+              ;;
+          esac
+
+          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
+            || [[ "$base_sha" =~ ^0+$ ]] \
+            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
+            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
+            enable_all
+            echo "Change range unavailable; failing closed to all expensive CI gates."
             exit 0
           fi
 
           # Treat renames as delete+add intentionally. Moving a file out of a
           # runtime path therefore still activates the originally affected gate,
           # and deletions remain covered as well.
-          git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
+          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
           echo "Changed files:"
           cat /tmp/changed-files.txt
           python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
@@ -67,7 +102,7 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     env:
-      SBS_ENVIRONMENT: test
+      EIMIR_ENVIRONMENT: test
     defaults:
       run:
         working-directory: backend
@@ -105,9 +140,9 @@ jobs:
         working-directory: .
         run: |
           missing_files=$(comm -23 \
-            <(find backend/src web android -name "*.py" -o -name "*.ts" \
-                -o -name "*.tsx" -o -name "*.kt" 2>/dev/null | sort) \
-            <(git ls-files backend/src web android | sort))
+            <(find backend/src web -name "*.py" -o -name "*.ts" \
+                -o -name "*.tsx" 2>/dev/null | sort) \
+            <(git ls-files backend/src web | sort))
           if [ -n "$missing_files" ]; then
             echo "These source files are not tracked:"
             echo "$missing_files"
@@ -129,35 +164,40 @@ jobs:
       - name: Tests without integration
         run: uv run --frozen pytest -m "not integration" -q
 
-  backend-integration:
-    name: Backend Integration
+  backend_integration_shards:
+    name: Backend Integration Shard ${{ matrix.shard }}/4
     needs: changes
     if: needs.changes.outputs.backend_integration == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
-    # Run database tests and schema/migration checks separately from the static
-    # and unit gate. This executes expensive integration tests exactly once per
-    # commit and allows both backend gates to run in parallel.
+    # Each shard gets its own runner and PostgreSQL service. The deterministic
+    # selector partitions the collected integration node IDs exactly once, so
+    # the gate keeps full coverage without forcing all database tests through a
+    # single ~23-minute runner.
     services:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: sidebyside
-          POSTGRES_PASSWORD: sidebyside
-          POSTGRES_DB: sidebyside_test
+          POSTGRES_USER: eimir
+          POSTGRES_PASSWORD: eimir
+          POSTGRES_DB: eimir_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U sidebyside -d sidebyside_test"
+          --health-cmd "pg_isready -U eimir -d eimir_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      SBS_ENVIRONMENT: test
-      SBS_DATABASE_URL: postgresql+psycopg://sidebyside:sidebyside@localhost:5432/sidebyside_test
-      SBS_TEST_DATABASE_URL: postgresql+psycopg://sidebyside:sidebyside@localhost:5432/sidebyside_test
+      EIMIR_ENVIRONMENT: test
+      EIMIR_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
+      EIMIR_TEST_DATABASE_URL: postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
 
     defaults:
       run:
@@ -194,22 +234,40 @@ jobs:
           rm alembic/versions/drift_check_*.py
 
       - name: Integration tests actually ran
-        # A skipped security test must not look like a passing test. The
-        # machine-readable JUnit report proves that at least one integration
-        # test ran and that none were skipped.
+        # Collect once per isolated shard, split node IDs deterministically, and
+        # retain the existing no-skips guarantee. --durations keeps the slowest
+        # tests visible so future fixture regressions can be optimized directly.
         run: |
+          collection=$(mktemp)
+          selected_file=$(mktemp)
           report=$(mktemp)
-          uv run --frozen pytest -m integration -q --junitxml="$report"
-          uv run --frozen python - "$report" <<'PY'
+          uv run --frozen pytest -m integration --collect-only -q > "$collection"
+          python ../tools/ci/pytest_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --shard-count 4 \
+            < "$collection" > "$selected_file"
+          mapfile -t selected < "$selected_file"
+          expected="${#selected[@]}"
+          if [ "$expected" -eq 0 ]; then
+            echo "Integration shard ${{ matrix.shard }}/4 selected no tests."
+            exit 1
+          fi
+          echo "Integration shard ${{ matrix.shard }}/4 selected $expected tests."
+          uv run --frozen pytest -m integration -q --durations=20 \
+            --junitxml="$report" "${selected[@]}"
+          uv run --frozen python - "$report" "$expected" <<'PY'
           import sys
           import xml.etree.ElementTree as ET
 
           root = ET.parse(sys.argv[1]).getroot()
+          expected = int(sys.argv[2])
           testcases = root.findall(".//testcase")
           skipped = sum(case.find("skipped") is not None for case in testcases)
 
-          if not testcases:
-              raise SystemExit("No integration tests ran.")
+          if len(testcases) != expected:
+              raise SystemExit(
+                  f"Expected {expected} integration tests, but JUnit contains {len(testcases)}."
+              )
           if skipped:
               raise SystemExit(
                   f"{skipped} integration test(s) were skipped - "
@@ -217,24 +275,56 @@ jobs:
               )
           PY
 
+  backend-integration:
+    name: Backend Integration
+    needs: [changes, backend_integration_shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The repository ruleset requires the exact "Backend Integration" context.
+    # Keep that stable while the expensive work fans out into matrix shards.
+    steps:
+      - name: Verify integration shards
+        env:
+          CHANGE_RESULT: ${{ needs.changes.result }}
+          INTEGRATION_REQUIRED: ${{ needs.changes.outputs.backend_integration }}
+          SHARDS_RESULT: ${{ needs.backend_integration_shards.result }}
+        run: |
+          if [ "$CHANGE_RESULT" != "success" ]; then
+            echo "Change Detection did not succeed: $CHANGE_RESULT"
+            exit 1
+          fi
+          if [ "$INTEGRATION_REQUIRED" != "true" ]; then
+            echo "Backend integration is not required for this change set."
+            exit 0
+          fi
+          if [ "$SHARDS_RESULT" != "success" ]; then
+            echo "One or more Backend Integration shards did not succeed: $SHARDS_RESULT"
+            exit 1
+          fi
+          echo "All Backend Integration shards succeeded."
+
   self-hosted:
     name: Self-Hosted Start
     needs: changes
     if: needs.changes.outputs.self_hosted == 'true'
     runs-on: ubuntu-latest
     # The failure from #110 passed every gate because CI only parsed the Compose
-    # file and ran Alembic under SBS_ENVIRONMENT=test. No gate executed the
+    # file and ran Alembic under EIMIR_ENVIRONMENT=test. No gate executed the
     # documented startup path. This job follows docs/SELF-HOSTING.md exactly.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Prepare the documented first startup
-        # Follow the guide: copy, replace the password, and start. The test value
-        # is a CI-only value and not a secret.
+        # Follow the guide: copy, replace the password, build local Development
+        # images, and then start the single canonical Compose topology. The test
+        # value is a CI-only value and not a secret.
         run: |
+          set -euo pipefail
           cp .env.example .env
           sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-for-the-test-run/' .env
           docker compose config --quiet
+          python3 scripts/build_self_hosted_source.py --env-file .env
 
       - name: Start stack
         run: docker compose up -d --wait --wait-timeout 300
@@ -252,20 +342,20 @@ jobs:
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8000/api/v1/health
           curl --fail --silent --show-error http://127.0.0.1:8080/healthz
-          curl --fail --silent --show-error http://127.0.0.1:8080/ | grep -Fq "<title>SidebySide</title>"
+          curl --fail --silent --show-error http://127.0.0.1:8080/ | grep -Fq "<title>eimir."
           web/scripts/check_csp_header.sh http://127.0.0.1:8080/
 
       - name: CSP origins are narrowly and fail-closed configurable
         run: |
           rendered=$(docker compose run --rm --no-deps \
-            -e SBS_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
+            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://api.example.test https://s3.example.test:9443" \
             web nginx -T 2>&1)
           printf '%s\n' "$rendered" \
             | grep -Fq "connect-src 'self' https://api.example.test https://s3.example.test:9443;"
 
           set +e
           docker compose run --rm --no-deps \
-            -e SBS_WEB_CSP_CONNECT_ORIGINS="https://example.test; add_header X-Injected true" \
+            -e EIMIR_WEB_CSP_CONNECT_ORIGINS="https://example.test; add_header X-Injected true" \
             web nginx -t >/tmp/invalid-csp-origin.log 2>&1
           status=$?
           set -e
@@ -305,14 +395,15 @@ jobs:
         # be the easiest path to green CI.
         run: |
           set +e
-          for unsafe_setting in "SBS_MAIL_TRANSPORT=log" "SBS_PUBLIC_BASE_URL=http://insecure.invalid" "SBS_CURSOR_SIGNING_KEY="; do
+          for unsafe_setting in "EIMIR_MAIL_TRANSPORT=log" "EIMIR_PUBLIC_BASE_URL=http://insecure.invalid" "EIMIR_CURSOR_SIGNING_KEY="; do
             output=$(docker compose run --rm --no-deps \
-              -e SBS_ENVIRONMENT=production \
-              -e SBS_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
-              -e SBS_MAIL_TRANSPORT=smtp \
-              -e SBS_PUBLIC_BASE_URL=https://ci.invalid \
+              -e EIMIR_ENVIRONMENT=production \
+              -e EIMIR_ENCRYPTION_AT_REST=disabled \
+              -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
+              -e EIMIR_MAIL_TRANSPORT=smtp \
+              -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
               -e "$unsafe_setting" \
-              api python -c "from sidebyside.config import Settings; Settings()" 2>&1)
+              api python -c "from eimir.config import Settings; Settings()" 2>&1)
             if [ $? -eq 0 ]; then
               echo "Production accepted an unsafe configuration: $unsafe_setting"
               exit 1
@@ -326,11 +417,12 @@ jobs:
         # forbidden because it writes one-time tokens to logs.
         run: |
           docker compose run --rm --no-deps \
-            -e SBS_ENVIRONMENT=production \
-            -e SBS_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
-            -e SBS_MAIL_TRANSPORT=none \
-            -e SBS_PUBLIC_BASE_URL=https://ci.invalid \
-            api python -c "from sidebyside.config import Settings; Settings()"
+            -e EIMIR_ENVIRONMENT=production \
+            -e EIMIR_ENCRYPTION_AT_REST=disabled \
+            -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
+            -e EIMIR_MAIL_TRANSPORT=none \
+            -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
+            api python -c "from eimir.config import Settings; Settings()"
 
       - name: Logs on failure
         if: failure()
@@ -345,15 +437,13 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_clients == 'true'
     runs-on: ubuntu-latest
-    # The contract is the single source of truth for Web and Android DTOs. If
-    # committed client code differs, a contract change was merged without the
-    # corresponding client update, and the break would otherwise surface only
-    # in the client project.
+    # The contract is the single source of truth for the canonical Web client,
+    # which the Capacitor Android wrapper packages unchanged (ADR 0011).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Generated client code matches the contract
-        run: tools/openapi/generate.sh --check
+        run: tools/openapi/generate.sh --check-web
 
       - name: The TypeScript client has no runtime dependency
         # The generator uses `typescript-fetch` so no HTTP package enters the
@@ -371,17 +461,6 @@ jobs:
             exit 1
           fi
 
-      - name: The Kotlin client includes no HTTP stack
-        # Models only, with no service layer: the Android client's HTTP stack is
-        # an Android project decision and does not belong in this file.
-        run: |
-          matches=$(grep -rlE "retrofit2|io\.ktor|okhttp3" android/api/generated || true)
-          if [ -n "$matches" ]; then
-            echo "The generated Kotlin code introduces an HTTP stack:"
-            echo "$matches"
-            exit 1
-          fi
-
   supply-chain:
     name: Supply Chain
     needs: changes
@@ -392,30 +471,58 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify Supply Chain subscopes
+        env:
+          BACKEND_REQUIRED: ${{ needs.changes.outputs.supply_chain_backend }}
+          WEB_REQUIRED: ${{ needs.changes.outputs.supply_chain_web }}
+        run: |
+          if [ "$BACKEND_REQUIRED" != "true" ] && [ "$WEB_REQUIRED" != "true" ]; then
+            echo "Supply Chain was enabled without an internal build surface."
+            exit 1
+          fi
+          echo "Backend Supply Chain required: $BACKEND_REQUIRED"
+          echo "Web Supply Chain required: $WEB_REQUIRED"
+
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: backend/uv.lock
+
       - name: Install exact uv version
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: python -m pip install "uv==$UV_VERSION"
+
       - name: Lockfile is current
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: uv lock --check
+
       - name: Dependency and vulnerability scan
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         # Policy: every known OSV finding or adverse package status fails the
         # job. Exceptions must be explicit, justified, and time-limited in
         # pyproject.toml; none currently exist.
         run: uv audit --preview --frozen
+
       - name: Dependency inventory
+        if: needs.changes.outputs.supply_chain_backend == 'true'
         run: |
           uv sync --frozen
           uv run --frozen python scripts/check_dependency_inventory.py ../docs/DEPENDENCIES.md
+
       - name: Build backend wheel without cache
-        run: uv build --no-cache --wheel --out-dir /tmp/sidebyside-dist
+        if: needs.changes.outputs.supply_chain_backend == 'true'
+        run: uv build --no-cache --wheel --out-dir /tmp/eimir-dist
+
       - name: Build backend production container from scratch
-        run: docker build --pull --no-cache --tag sidebyside-next:ci .
+        if: needs.changes.outputs.supply_chain_backend == 'true'
+        run: docker build --pull --no-cache --tag eimir-backend:ci .
+
       - name: Build Web production container from scratch
-        run: docker build --pull --no-cache --tag sidebyside-next-web:ci ../web
+        if: needs.changes.outputs.supply_chain_web == 'true'
+        run: docker build --pull --no-cache --tag eimir-web:ci ../web
 
   secrets:
     name: Secret Scan

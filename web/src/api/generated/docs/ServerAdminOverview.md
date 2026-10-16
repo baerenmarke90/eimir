@@ -1,7 +1,7 @@
 
 # ServerAdminOverview
 
-Privacy-safe operational projection for one SideBySide installation.
+Privacy-safe operational projection for one eimir. installation.
 
 ## Properties
 

@@ -1,12 +1,18 @@
 import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
+import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
+import { i18n } from '../i18n';
+import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
+import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
 import { PlacesApi } from '../api/generated/apis/PlacesApi';
 import { PlansApi } from '../api/generated/apis/PlansApi';
 import { StoryApi } from '../api/generated/apis/StoryApi';
 import { WishesApi } from '../api/generated/apis/WishesApi';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
+import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../api/generated/runtime';
 
@@ -19,6 +25,9 @@ export interface SharedPlanningApis {
   chapterRelations: ChapterRelationsApi;
   collections: CollectionsApi;
   story: StoryApi;
+  memories: MemoriesApi;
+  heartMoments: HeartMomentsApi;
+  milestones: MilestonesApi;
 }
 
 export interface VersionedResource {
@@ -52,6 +61,9 @@ export function createSharedPlanningApis(
     chapterRelations: new ChapterRelationsApi(configuration),
     collections: new CollectionsApi(configuration),
     story: new StoryApi(configuration),
+    memories: new MemoriesApi(configuration),
+    heartMoments: new HeartMomentsApi(configuration),
+    milestones: new MilestonesApi(configuration),
   };
 }
 
@@ -59,10 +71,18 @@ export function planningIfMatch(resource: VersionedResource): string {
   return String(resource.version);
 }
 
+/** OpenAPI `date` transport value, encoded at UTC midnight only for JSON I/O. */
 export function dateOnlyInput(value: Date | null | undefined): string {
   return value ? value.toISOString().slice(0, 10) : '';
 }
 
+/**
+ * Convert an HTML date value to the generated client's OpenAPI `date` carrier.
+ *
+ * The generated TypeScript client represents `format: date` as `Date` and
+ * serializes only its UTC YYYY-MM-DD prefix. This value must never be treated
+ * as an instant for product presentation.
+ */
 export function dateFromInput(value: string): Date | undefined {
   return value ? new Date(`${value}T00:00:00Z`) : undefined;
 }
@@ -75,6 +95,52 @@ export function localDateTimeInput(value: Date | null | undefined): string {
 
 export function dateTimeFromInput(value: string): Date | undefined {
   return value ? new Date(value) : undefined;
+}
+
+/** Browser-local YYYY-MM-DD without passing through UTC conversion. */
+export function localCalendarDateInput(value: Date = new Date()): string {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Build the authoritative PlanSchedule transport from separate product inputs.
+ * No date means no schedule. A date without time remains `plannedOn`; a chosen
+ * time becomes a real local wall-clock instant and therefore `plannedStart`.
+ */
+export function planScheduleFromInputs(
+  dateValue: string,
+  timeValue: string,
+  endValue = '',
+): PlanSchedule | undefined {
+  if (!dateValue) return undefined;
+
+  if (!timeValue) {
+    const plannedOn = dateFromInput(dateValue);
+    return plannedOn ? { plannedOn } : undefined;
+  }
+
+  const plannedStart = dateTimeFromInput(`${dateValue}T${timeValue}`);
+  if (!plannedStart) return undefined;
+  const plannedEnd = dateTimeFromInput(endValue);
+  return { plannedStart, plannedEnd };
+}
+
+/** Product date input for either explicit date-only or timed Plan schedules. */
+export function planScheduleDateInput(
+  plan: Pick<PlanDetail, 'plannedOn' | 'plannedStart'>,
+): string {
+  if (plan.plannedOn) return dateOnlyInput(plan.plannedOn);
+  return localDateTimeInput(plan.plannedStart).slice(0, 10);
+}
+
+/** Product time input. Absence is semantically meaningful and must stay empty. */
+export function planScheduleTimeInput(
+  plan: Pick<PlanDetail, 'plannedStart'>,
+): string {
+  return localDateTimeInput(plan.plannedStart).slice(11, 16);
 }
 
 export async function loadAllPlaces(
@@ -131,7 +197,7 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
       return {
         id: item.heartMoment.id,
         kind: 'HEART_MOMENT',
-        label: item.heartMoment.text,
+        label: item.heartMoment.text || i18n.t('heartMomentProduct.untitled'),
         effectiveDate: item.effectiveDate,
       };
     case 'MILESTONE':

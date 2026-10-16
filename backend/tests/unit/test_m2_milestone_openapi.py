@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/milestones"
 DETAIL = "/api/v1/spaces/{spaceId}/milestones/{milestoneId}"
@@ -76,7 +76,13 @@ def test_m2_resources_share_one_author_summary_schema() -> None:
     assert author_schema_names == {"AuthorSummary"}
 
     author = components["AuthorSummary"]
-    assert set(author["properties"]) == {"id", "displayName", "profileAttachmentId"}
+    assert set(author["properties"]) == {
+        "id",
+        "displayName",
+        "isFormerMember",
+        "profileAttachmentId",
+    }
+    assert author["properties"]["isFormerMember"]["default"] is False
 
     for detail_name in ("MemoryDetail", "HeartMomentDetail", "MilestoneDetail"):
         assert components[detail_name]["properties"]["author"] == {

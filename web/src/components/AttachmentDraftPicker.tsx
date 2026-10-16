@@ -8,6 +8,7 @@ export interface AttachmentDraftPickerController {
   remove: (id: string) => void;
   retry: (draft: AttachmentDraft) => void;
   hasPending: boolean;
+  rejectedCount?: number;
 }
 
 export function AttachmentDraftPicker({
@@ -22,7 +23,7 @@ export function AttachmentDraftPicker({
   const { t } = useTranslation();
 
   return (
-    <div className="field-group">
+    <div className="field-group attachment-draft-picker">
       <label htmlFor={id}>{t('memory.photoLabel')}</label>
       <input
         className="visually-hidden-input"
@@ -150,6 +151,11 @@ export function AttachmentDraftPicker({
       {attachments.hasPending ? (
         <p className="field-help" role="status" aria-live="polite">
           {t('memory.photoPendingSave')}
+        </p>
+      ) : null}
+      {attachments.rejectedCount ? (
+        <p className="field-help" role="alert" aria-live="assertive">
+          {t('memory.photoLimitReached', { count: attachments.rejectedCount })}
         </p>
       ) : null}
     </div>

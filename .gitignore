@@ -13,6 +13,7 @@ htmlcov/
 
 # Node
 node_modules/
+node_modules
 dist/
 .vite/
 # Ausgabe von `tsc -b` (npm run lint). Der Build erzeugt sie neben den
@@ -21,11 +22,14 @@ dist/
 web/vite.config.js
 web/vite.config.d.ts
 
-# Android
+# Android (Capacitor wrapper)
 android/.gradle/
-android/.kotlin/
 android/local.properties
 android/**/build/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
 *.apk
 # Release signing material, in every shape it usually takes. It is supplied by
 # the publishing environment and must never reach this repository.
@@ -44,7 +48,7 @@ keystore.properties
 #
 # Mit Anker. Ohne fuehrenden Schraegstrich trifft ein Muster JEDES
 # Verzeichnis dieses Namens - "media/" hat das Quellpaket
-# backend/src/sidebyside/media/ verschluckt, und zwar lautlos: lokal lag
+# backend/src/eimir/media/ verschluckt, und zwar lautlos: lokal lag
 # es auf der Platte, nur in der CI fehlte es.
 /backend/data/
 /backend/media/

@@ -1,24 +1,38 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { SettingsIndex } from './SettingsIndex';
 
 describe('SettingsIndex', () => {
-  it('exposes navigation links to all four settings sections and excludes privacy', () => {
-    const html = renderToStaticMarkup(<SettingsIndex />);
+  it('exposes focused consumer settings categories in human-first order', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <SettingsIndex />
+      </MemoryRouter>,
+    );
 
-    expect(html).toContain('href="#settings-appearance"');
-    expect(html).toContain(`>${de.theme.label}<`);
+    const expected = [
+      ['/more/settings/relationship', profileIdentity.settingsRelationship],
+      ['/more/settings/notifications', profileIdentity.settingsNotifications],
+      ['/more/settings/today', profileIdentity.settingsToday],
+      ['/more/settings/appearance', de.theme.label],
+      ['/more/settings/data', profileIdentity.settingsData],
+      ['/more/settings/account', profileIdentity.settingsAccount],
+    ] as const;
 
-    expect(html).toContain('href="#settings-notifications"');
-    expect(html).toContain(`>${profileIdentity.settingsNotifications}<`);
+    for (const [href, label] of expected) {
+      expect(html).toContain(`href="${href}"`);
+      expect(html).toContain(label);
+    }
 
-    expect(html).toContain('href="#settings-connection"');
-    expect(html).toContain(`>${profileIdentity.settingsRelationship}<`);
+    for (let index = 1; index < expected.length; index += 1) {
+      expect(html.indexOf(`href="${expected[index - 1][0]}"`)).toBeLessThan(
+        html.indexOf(`href="${expected[index][0]}"`),
+      );
+    }
 
-    expect(html).toContain('href="#settings-data"');
-    expect(html).toContain(`>${profileIdentity.settingsData}<`);
-
-    expect(html).not.toContain('href="#settings-privacy"');
+    expect(html).not.toContain('href="#settings-');
+    expect(html).not.toContain('settings-privacy');
   });
 });

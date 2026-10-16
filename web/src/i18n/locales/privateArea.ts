@@ -1,15 +1,19 @@
 const privateArea = {
   eyebrow: 'Für mich',
-  intro:
-    'Ein Ort nur für dich – für Geschenkideen, kleine Überraschungen und Gedanken, die du erst einmal für dich behalten möchtest.',
+  intro: 'Nur für dich – dein Partner sieht das nicht.',
   privacyLabel: 'Nur für mich',
   backToMore: '← Zurück zu Mehr',
+  backToHub: '← Zurück zu Nur für mich',
+  backToSearch: '← Zurück zur Suche',
+  backToOrigin: '← Zurück',
   refresh: 'Aktualisieren',
   refreshing: 'Aktualisiert …',
   loadMore: 'Mehr laden',
   loadingMore: 'Wird geladen …',
   saving: 'Wird gespeichert …',
   save: 'Speichern',
+  titleRequired:
+    'Bitte gib einen Titel ein, der nicht nur aus Leerzeichen besteht.',
   edit: 'Bearbeiten',
   delete: 'Löschen',
   deleting: 'Wird gelöscht …',
@@ -28,8 +32,7 @@ const privateArea = {
     title: 'Für mich',
     body: 'Notizen, Geschenkideen und Listen, die nur für dich bestimmt sind.',
     action: 'Bereich öffnen',
-    privacy:
-      'Hier werden keine privaten Anzahlen oder Inhalte mit deinem Partner geteilt.',
+    privacy: 'Was hier steht, bleibt zwischen dir und der App.',
   },
   notes: {
     title: 'Notizen für mich',
@@ -64,8 +67,7 @@ const privateArea = {
     targetOnLabel: 'Für wann',
     priceLabel: 'Preisnotiz',
     urlLabel: 'Link',
-    urlHelp:
-      'Der Link wird nur gespeichert. SidebySide lädt keine Vorschau dafür.',
+    urlHelp: 'Der Link wird nur gespeichert. eimir. lädt keine Vorschau dafür.',
     pinnedLabel: 'Oben anheften',
     statusLabel: 'Status',
     status: {

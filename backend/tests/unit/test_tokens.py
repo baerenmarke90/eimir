@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.auth.tokens import generate_token, hash_token, tokens_equal
+from eimir.auth.tokens import generate_token, hash_token, tokens_equal
 
 
 class TestGeneration:

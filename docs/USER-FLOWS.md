@@ -1,10 +1,12 @@
-# SideBySide Critical User Flows
+# eimir. Critical User Flows
 
 **Status:** Binding UX/product foundation  
-**Version:** 1.0  
-**As of:** August 24, 2026
+**Version:** 1.1  
+**As of:** September 15, 2026
 
 This document describes the critical end-to-end flows for the WebApp and Android app. It complements the Screen Templates with transitions, decisions, system responses, and acceptance criteria. The product specification and OpenAPI contract remain the authoritative domain sources.
+
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current design and interaction source. These flows retain their compatible domain outcomes, authorization, privacy, and API constraints. Their screen composition follows the [five reference experiences](./product/design/reference-screens.md), not an implied field order or fixed desktop layout; v1 supersedes conflicting older design guidance unless a later explicit Product Owner decision supersedes it.
 
 ## 1. Binding flow rules
 
@@ -16,6 +18,8 @@ This document describes the critical end-to-end flows for the WebApp and Android
 - Mutable objects carry a `version`; conflicts surface as HTTP 409 and are never silently overwritten.
 - Sensitive content appears neither in Analytics nor in logs.
 - Every flow has Loading, Empty, Error, Offline, and cancellation behavior where applicable.
+- Validate open → interact → save/complete → observe result → return. A created item must remain easy to find; draft safety and restored scope/filter/scroll context are part of the same outcome, not optional polish.
+- User-facing flow steps describe the **human outcome and domain invariants**, not a mandatory database-field order. Compact implementations use established mobile/platform patterns and minimize avoidable typing/keyboard activation as required by `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` and `docs/UX-PATTERNS.md`.
 
 ## 2. Shared states
 
@@ -36,12 +40,19 @@ After an error, the last safe input is preserved. The screen explains whether th
 
 **Entry points:** start screen, expired session, protected Deep Link, Invitation.
 
+### Deployment contract
+
+- **Cloud/Managed:** verified self-service Account → own private Space → invite partner. A new couple needs neither an operator bootstrap secret nor an existing Invitation (#923).
+- **Self-Hosted:** operator bootstrap for the first local Account → Invitation for every later Account. There is no invitation-free self-service registration.
+
+Clients decide which entry points to offer from `GET /instance/status`, never from a single field standing in for another: `registrationAvailable` is the administrative state, `accountCreation` (`self_service` or `invitation`) is the deployment path, `selfServiceSignupAvailable` combines both, and `auth` lists the sign-in methods of existing Accounts.
+
 ### Cloud happy path
 
-1. The person enters their email address or selects an existing Passkey.
-2. The UI explains the next step without revealing whether another person's email address is registered.
-3. Magic Link or Passkey is confirmed.
-4. The client receives a secure session; tokens are not copied into URLs, Analytics, or logs.
+1. The person chooses the intentional de-DE entry **„Anmelden“** or **„Gemeinsam starten“**, enters their email address, or selects an existing Passkey.
+2. The UI explains the next step without revealing whether another person's email address is registered. **„Gemeinsam starten“** calls `POST /auth/signup/request`, which does the same work and answers the same empty `202` for known and unknown addresses. **„Anmelden“** keeps using the Magic Link request for existing Accounts.
+3. The mailed one-time link, Magic Link, or Passkey is confirmed. Redeeming the signup link (`POST /auth/signup/consume`) signs into the Account that already owns the verified address, or creates exactly one new Account bound to it; `accountCreated` tells the client which happened.
+4. The client receives a secure session; tokens are not copied into URLs, Analytics, or logs. After redeeming a mailed proof, the client removes it from the address bar and history.
 5. If an active Membership exists, the originally requested Deep Link or the intentional de-DE destination `Wir` opens.
 6. If no Space exists yet, Flow B starts.
 
@@ -50,10 +61,12 @@ After an error, the last safe input is preserved. The screen explains whether th
 - Local password login and OIDC may be offered.
 - Provider and server selection happen before the credential step.
 - Error messages do not unnecessarily distinguish incorrect input from unknown Accounts.
+- Account creation stays operator-controlled: the first local Account requires the one-time bootstrap proof and every later Account an Invitation. The Cloud signup endpoints answer `403 AUTH_METHOD_DISABLED`, even for a genuine proof, and `accountCreation` is `invitation`.
 
 ### Errors and branches
 
-- Expired/used Magic Link: request a new link while preserving destination context.
+- Expired/used/superseded Magic Link or signup link: request a new link while preserving destination context.
+- Registration disabled or maintenance: a signup link for an address without an Account fails with `403 REGISTRATION_DISABLED` or `503 MAINTENANCE_MODE` and creates nothing; it stays usable until it expires. Existing Accounts still sign in with it.
 - Rate Limit: show the waiting time understandably; no repeated automatic submission.
 - Revoked session: close local sensitive caches and sign in again.
 - Offline: existing read cache may be shown only after valid local access protection; never pretend authentication succeeded.
@@ -68,17 +81,17 @@ After an error, the last safe input is preserved. The screen explains whether th
 
 ### Creating person
 
-1. After first login, SideBySide explains the private shared Space.
+1. After first login, eimir. explains the private shared Space.
 2. The person confirms profile name and optional basic information.
-3. The Space is created.
-4. An Invitation is created through a deliberately selected channel.
+3. The Space is created with `POST /spaces`. The request has no body: the founder is always the authenticated Account. The server allows it only while that Account has no active Membership and serializes it per Account, so a retry or a concurrent request answers `409 ACCOUNT_HAS_ACTIVE_SPACE` and the client selects the existing Space through `GET /auth/memberships`. Ended relationship history is never reactivated or merged; a new Space is always fresh.
+4. An Invitation is created through a deliberately selected channel with the existing one-time, expiring, revocable Invitation (`POST /spaces/{spaceId}/invitations`).
 5. The UI shows status, expiry, and the intentional de-DE action **„Einladung widerrufen“**.
 6. Until acceptance, the app remains usable wherever the particular feature does not require a partner.
 
 ### Invited person
 
 1. The Invitation link opens app/Web and shows a neutral, non-sensitive preview.
-2. Before acceptance, sign-in or Account creation occurs.
+2. Before acceptance, sign-in or Account creation occurs. On Cloud an unknown person uses the same signup link as in Flow A and then accepts with `POST /invitations/accept`; the client keeps the Invitation token out of URLs and does not create an own Space in between. On Self-Hosted a new Account is created together with the acceptance (local registration with the Invitation, or OIDC started with it). In both modes a disabled registration blocks new Accounts but not existing ones.
 3. The inviting person's name and the effect of the connection are confirmed.
 4. The one-time token is redeemed atomically.
 5. Both clients update Space and Membership state.
@@ -96,20 +109,27 @@ After an error, the last safe input is preserved. The screen explains whether th
 
 **Allowed Analytics:** `space_created`, `invitation_created`, `invitation_revoked`, `invitation_completed`, `invitation_failed`; no token, email, or partner names.
 
-## 5. Flow C — Create a Memory with media
+## 5. Flow C — Capture a Memory with optional media/context
 
-**Goal:** Safely create a shared Memory and show it in Story.
+**Goal:** Safely capture a shared Memory and make it available in Momente without turning capture into database entry.
 
 **Privacy class:** `SPACE_SHARED`. A private note is a separate `OWNER_ONLY` domain and not a hidden Memory mode.
 
-### Flow
+### Human flow
 
-1. Entry through Story or the intentional de-DE Quick Action **„Erinnerung hinzufügen“**.
-2. Title, text, and domain date `happenedOn` are entered.
-3. Media can be selected, validated, removed, and described.
-4. Before saving, the UI shows the intentional de-DE status **„Mit Partner geteilt“** as a domain state, not as an optional marketing promise.
-5. With connectivity, the Memory is created first and media state is then/coordinarily processed visibly.
-6. Success opens the new detail; Story and Dashboard queries are refreshed.
+1. Entry through Momente or an intentional contextual/Quick Action such as **„Erinnerung hinzufügen“** / **„Moment festhalten“**.
+2. The person starts with the content that expresses the Memory: for example a photo/media item, a thought/text, or another domain-supported capture entry. The UI does not require a title-first sequence merely because the persistence model contains a title.
+3. Required Memory information and any useful context are completed with the least-friction appropriate controls. Dates/times and bounded choices use established picker/selection patterns; optional metadata remains progressive. Media can be selected, previewed, validated, removed, retried, and described where relevant.
+4. Before completion, the UI communicates the `SPACE_SHARED` result with understandable intentional de-DE product copy such as **„Mit Partner geteilt“**. Sharing is a domain state, not an optional marketing promise.
+5. With connectivity, the authoritative Memory is created according to the API contract and media processing/upload state remains visible. Implementation details such as whether the object or upload request is persisted first must not leak into the interaction model.
+6. Success presents the captured Memory in its meaningful product context and refreshes affected Momente/Wir read models.
+
+### Interaction invariants
+
+- The Compact capture path minimizes unnecessary typing and does not summon the software keyboard before the person chooses a text-entry task.
+- The primary capture action remains reachable with the keyboard/IME visible.
+- Optional metadata must not block fast capture when the domain does not require it.
+- Established platform/media/date selection patterns are reused unless a documented product need requires otherwise.
 
 ### Media states
 
@@ -125,7 +145,7 @@ selected → validating → uploading → processing → ready
 ### Errors
 
 - Offline while saving: intentional de-DE state **„Noch nicht gespeichert“**; retain the draft locally in the form but do not represent it as synchronized content.
-- Validation: show field errors directly at the field.
+- Validation: show field/control errors directly at the affected input or decision.
 - Upload failure: Retry/Remove per file.
 - 409: Flow H.
 - 404 after Deep Link: neutral unavailable state without confirming existence.
@@ -134,16 +154,23 @@ selected → validating → uploading → processing → ready
 
 ## 6. Flow D — Capture a HeartMoment privately or shared
 
-**Goal:** Save an emotional moment with deliberate visibility.
+**Goal:** Capture an emotional moment with deliberate visibility and minimal interaction overhead.
 
-### Flow
+### Human flow
 
-1. The person enters text and emotion.
-2. Visibility is a required selection: intentional de-DE **„Nur für mich“** (`OWNER_ONLY`) or **„Mit Partner teilen“** (`SPACE_SHARED`).
+1. The person captures the thought/emotional content using the established HeartMoment composition. Text, emotion, media, or other supported context is presented according to the human task rather than a generic field stack.
+2. Visibility is a required, understandable decision before completion: intentional de-DE **„Nur für mich“** (`OWNER_ONLY`) or **„Mit Partner teilen“** (`SPACE_SHARED`). The control uses the established visibility pattern rather than exposing API terminology.
 3. Before the first switch to shared, the UI briefly explains that the content becomes visible in the shared Space.
-4. After saving, the detail state shows Privacy label and Sync result.
+4. Optional context is progressively disclosed and must not obscure the emotional content or privacy decision.
+5. After saving, the resulting detail/product state shows the Privacy label and Sync result while keeping the HeartMoment content as the primary meaning.
 
-### Invariants
+### Interaction invariants
+
+- Capture does not require a generic title or metadata-first sequence unless the domain specification explicitly makes that information necessary.
+- Important privacy state is recognized from visible text/icon state; it is never hidden behind a gesture or color alone.
+- Established mobile selection, media, Back, and completion patterns are reused unless a documented product reason requires deviation.
+
+### Domain invariants
 
 - `OWNER_ONLY` appears only to the owner, including Lists, Search, Story, Dashboard, notifications, Export, Attachments, and relations.
 - Comments are available only for shared HeartMoments.
@@ -170,7 +197,7 @@ selected → validating → uploading → processing → ready
 
 - Wishes and Plans are `SPACE_SHARED` in the Core unless the product specification defines a private variant.
 - An unfinished Plan can move back to Wish state in a controlled way.
-- A recommendation from the intentional de-DE area **„Entdecken“** creates a Wish or Plan only after explicit confirmation.
+- A recommendation/discovery experience inside `Momente` creates a Wish or Plan only after explicit confirmation.
 - Deleting a Chapter removes links, not Memories or Plans.
 
 ### Errors
@@ -179,21 +206,21 @@ selected → validating → uploading → processing → ready
 - 409 exposes current and own version; Flow H.
 - Feature not enabled/entitled: clear explanation, no disabled dead end.
 
-## 8. Flow F — Search Story and open content
+## 8. Flow F — Search Momente and open content
 
 **Goal:** Safely filter/search the shared history and open content through a Deep Link.
 
 ### Flow
 
-1. Story loads cursor-based and grouped by month.
+1. Momente loads cursor-based and grouped according to the current timeline/product composition.
 2. Type/year filters and Search are processed server-side with Space and Privacy filtering.
-3. Selection opens a page on Compact and the Detail Pane on Expanded.
+3. Selection opens a page on Compact and the Detail Pane on Expanded when the selected composition supports it.
 4. Back restores search term, filters, selection, and scroll position.
 5. The intentional de-DE feature **„Weißt du noch?“** links to originals and creates no copy.
 
 ### Privacy
 
-- Story contains Memories, Milestones, and shared HeartMoments — never `OWNER_ONLY`.
+- Momente contains Memories, Milestones, and shared HeartMoments — never `OWNER_ONLY`.
 - 404 is treated identically for nonexistent and unauthorized privacy-sensitive resources.
 - Result count, load time, and response size must not reveal private partner content.
 
@@ -274,6 +301,9 @@ Every flow is verified at minimum for:
 - Cloud and Self-Hosted where authentication or Provider differences matter.
 - normal Membership, foreign Space, `OWNER_ONLY`, expired session.
 - Loading, Empty, Validation, 401, privacy-safe 404, 409, 429, Offline, and server failure.
+- established platform/mobile interaction patterns or a documented deviation;
+- first-time discoverability without relying on hidden gestures or memorized controls;
+- minimized avoidable typing and keyboard burden on Compact.
 
 ## Related documents
 

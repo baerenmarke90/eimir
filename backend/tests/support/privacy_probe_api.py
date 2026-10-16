@@ -22,11 +22,11 @@ from fastapi import APIRouter, FastAPI, Path, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.api.deps import Authorization, DbSession
-from sidebyside.api.schema import ApiModel
-from sidebyside.authorization import readable, require_readable, require_writable
-from sidebyside.db.session import get_session
-from sidebyside.main import create_app
+from eimir.api.deps import Authorization, DbSession
+from eimir.api.schema import ApiModel
+from eimir.authorization import readable, require_readable, require_writable
+from eimir.db.session import get_session
+from eimir.main import create_app
 from tests.support.privacy_probe import PrivacyProbe
 
 router = APIRouter(tags=["privacy-probes"])

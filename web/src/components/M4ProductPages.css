@@ -34,6 +34,19 @@
   margin: 0;
 }
 
+/*
+ * The search invitation is a calm entry point rather than an admin filter
+ * bar: a warm brand-tinted panel instead of a plain bordered form.
+ */
+.m4-toolbar {
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-panel) 65%,
+    var(--color-brand-surface)
+  );
+}
+
 .m4-toolbar-row,
 .m4-item-actions,
 .m4-notification-summary {
@@ -41,6 +54,39 @@
   flex-wrap: wrap;
   align-items: end;
   gap: var(--space-3);
+}
+
+.m4-search-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.m4-search-input-icon {
+  position: absolute;
+  left: var(--space-4);
+  display: inline-flex;
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.m4-search-input-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.m4-search-field input[type="search"] {
+  border-radius: var(--radius-pill);
+  padding-left: calc(var(--space-4) * 2 + 1.05rem);
+}
+
+.m4-search-field input[type="search"]:focus-visible {
+  border-color: var(--color-brand);
 }
 
 .m4-item-actions {
@@ -92,15 +138,24 @@
 .m4-item {
   display: grid;
   gap: var(--space-2);
-  border: 1px solid transparent;
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-large);
   padding: var(--space-4);
-  background: var(--color-surface);
+  background: var(--color-surface-panel);
   box-shadow: var(--shadow-soft);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .m4-item-unread {
-  border-color: var(--color-brand);
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-raised) 70%,
+    var(--color-brand-surface)
+  );
 }
 
 .m4-item-heading {
@@ -192,14 +247,29 @@
   }
 }
 
+/*
+ * A quiet status line rather than an inbox counter: the panel carries the
+ * brand tint so the number reads as "where you two stand", not a task badge.
+ */
+.m4-notification-summary-panel {
+  border-color: var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-surface-panel) 60%,
+    var(--color-brand-surface)
+  );
+}
+
 .m4-unread-badge {
   display: inline-flex;
   align-items: center;
   min-height: 2rem;
+  border: 1px solid var(--color-brand-glow);
   border-radius: 999px;
-  padding: 0.2rem 0.7rem;
-  background: var(--color-surface-subtle);
-  font-weight: 650;
+  padding: 0.2rem 0.8rem;
+  background: var(--color-surface-raised);
+  color: var(--color-brand-text);
+  font-weight: 700;
 }
 
 @media (max-width: 760px) {
@@ -321,9 +391,9 @@
   background: var(--color-surface-panel);
   box-shadow: var(--shadow-soft);
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    transform var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .activity-result-link:hover .activity-card {
@@ -354,8 +424,8 @@
   font-weight: 300;
   line-height: 1;
   transition:
-    transform var(--motion-fast),
-    color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .activity-result-link:hover .activity-card-chevron {
@@ -393,12 +463,14 @@
   font-size: 0.82rem;
 }
 
+/*
+ * A quiet accent line rather than a second boxed card: the target reads as
+ * part of the same thought, not a nested surface.
+ */
 .activity-card-target {
   margin-top: auto;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-medium);
-  background: var(--color-surface-raised);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-brand-glow);
 }
 
 .activity-card-target-title {
@@ -419,6 +491,32 @@
     135deg,
     var(--color-surface-raised) 0%,
     var(--color-private-surface-soft) 100%
+  );
+}
+
+.activity-card-plan,
+.activity-card-chapter {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-discovery-surface-soft) 100%
+  );
+}
+
+.activity-card-wish,
+.activity-card-place {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-brand-surface) 100%
+  );
+}
+
+.activity-card-collection {
+  background: linear-gradient(
+    135deg,
+    var(--color-surface-raised) 0%,
+    var(--color-shared-surface) 100%
   );
 }
 
@@ -502,4 +600,17 @@
 .m4-read-status {
   margin-left: auto;
   flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-card,
+  .m4-item,
+  .m4-search-field input {
+    transition: none;
+  }
+
+  .activity-result-link:hover .activity-card,
+  .m4-notification-link:hover .m4-item-interactive {
+    transform: none;
+  }
 }

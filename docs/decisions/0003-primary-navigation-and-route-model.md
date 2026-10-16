@@ -1,6 +1,6 @@
 # ADR 0003 – Primary Navigation and Route Model
 
-**Status:** Accepted, amended by #374, amended by ADR 0008
+**Status:** Accepted for compatible route contracts; navigation amended by #374 and ADRs 0008–0010
 **Date:** August 31, 2026
 **Amended:** September 1, 2026 (#374), September 4, 2026 (ADR 0008)
 **Owning issue:** #360
@@ -14,6 +14,8 @@
 > Stable route IDs (`today`, `story`, `plan`, `more`) and detail deep links
 > (`/plan/chapters/:id`, `/plan/places/:id`, `/plan/collections/:id`) remain strictly
 > unchanged. See `0008-product-ia-harmonization-and-domain-alignment.md`.
+
+**Current relationship:** Stable route IDs, supported compatibility redirects, and domain authorization remain binding. The dated labels and reserved primary Discover slot below are superseded by [ADR 0008](./0008-product-ia-harmonization-and-domain-alignment.md), [Decision 0009](./0009-games-primary-navigation-and-premium-capability.md), and [Decision 0010](./0010-games-secondary-navigation-under-more.md), as consolidated in [Information Architecture](../INFORMATION-ARCHITECTURE.md). [Product Reference v1](../product/design/product-reference-v1.md) governs current product-design direction; the original shell descriptions are not separate composition authority.
 
 ## Context
 

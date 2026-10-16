@@ -1,12 +1,14 @@
-# SideBySide Component Contracts
+# eimir. Component Contracts
 
 **Status:** Binding product foundation  
-**Version:** 1.1  
-**As of:** August 24, 2026
+**Version:** 1.2<br/>
+**As of:** September 15, 2026
 
 Component Contracts describe the behavior and meaning of shared UI building
 blocks independently of the technical framework. WebApp and smartphone app may
 use different implementations, but they must satisfy the same contracts.
+
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
 ## 1. Contract structure
 
@@ -51,7 +53,7 @@ ActionState     = idle | submitting | success | error
 
 **Variants:**
 
-- `primary` – most important action in the view, generally once per section.
+- `primary` – the single visually dominant action for the current view/state; sections do not each gain an equally dominant action.
 - `secondary` – important alternative.
 - `tertiary` – lightweight contextual action.
 - `destructive` – potentially irreversible action.
@@ -109,6 +111,12 @@ message.
 - Segmented Control: two to four equivalent views or modes, not long-term
   navigation.
 
+`ShortTaskSheet` may accept an optional `footer` for a bounded choice with a
+long scrollable body. The shared footer stays outside body scrolling, protects
+the bottom safe area and remains separately scrollable for large text or error
+content. It does not introduce another modal, focus or dismissal lifecycle.
+App-icon selection uses this contract for its explicit Save and recovery state.
+
 ### 4.3 Date, Time, and Duration
 
 - Platform-native selection is allowed if result format and validation remain
@@ -154,7 +162,7 @@ action.
 
 ### 6.2 Content Card
 
-- A card summarizes one object or action, not decoration alone.
+- A card summarizes one meaningful bounded object or action, not decoration alone. It is not the default abstraction for photos, thoughts, plans, statistics, or every section; choose the content-type composition and surface role from Product Reference v1 first.
 - Nested cards are not allowed.
 - Clickable cards have visible focus and exactly one primary destination.
 - Secondary actions live in a clearly separated area.
@@ -162,7 +170,7 @@ action.
 
 ### 6.3 Timeline Item
 
-- Shows timestamp/date, author, content type, visibility, and sync state.
+- Leads with photo, text, or mixed content according to its meaning. Date, author, content type, visibility, and sync state remain available at the appropriate hierarchy; critical privacy or save state is never hidden. Metadata is not a required leading row on every item.
 - The visual line is decorative; semantic order remains in document flow.
 - Multiple events on the same day may be grouped without losing individual
   targets.
@@ -174,6 +182,39 @@ action.
 - Concurrent online changes use `version`; conflicts never overwrite silently.
 - Delete is available through a menu and may additionally be exposed as a
   gesture.
+
+### 6.5 Product Reference v1 visual roles
+
+These are additive platform adapter roles, not a universal content renderer.
+The [F1 delivery and evidence](product/design/f1-visual-foundations.md) records
+the concrete APIs, usage, existing consumers and validation scope.
+
+- Personal/content headings use the existing editorial family selectively;
+  utility headings, authored prose, support and actions use the UI family.
+  Semantic heading levels follow reading order independently of visual size.
+- Supporting text uses a compliant secondary-text role. Link text uses the
+  scheme-appropriate strong/bright coral pairing; filled actions retain
+  strong coral and on-accent. Existing legacy consumers are not silently
+  reclassified as migrated.
+- Page, readable content, meaningful tint and raised overlay retain separate
+  purposes. Spacing and content order normally separate sections; an ordinary
+  photo/text item does not gain a resting shadow or nested card boundary.
+- Media uses the existing large radius, independent bounded content the card
+  radius and sheets the sheet radius. Caption text remains readable below the
+  image. A full image view exposes the complete image; absent media differs
+  from loading or failed media.
+- Compact page gutters resolve to the tokenized narrow or comfortable value
+  from available width. Resizing does not reset content/selection. Insets and
+  keyboard protection remain platform responsibilities.
+- Fast feedback, ordinary transitions and contextual reveals use existing
+  duration/easing roles. Reduced motion retains status, meaning and actions.
+
+The internal Web fixture (the former Android debug Activity was removed in #1009) exercises photo, text,
+utility, loading/error/retry and overlay roles with synthetic data. Their
+detail/return and fixture-completion actions demonstrate the bounded proof;
+they do not implement production capture, persistence or F2 task lifecycle.
+Do not expose these fixtures as a public product destination or infer that
+R1–R5 have been migrated from their presence.
 
 ## 7. Privacy and status components
 
@@ -235,6 +276,35 @@ visible until resolved or deliberately discarded.
 - Width follows layout tokens; content has its own scrollable region.
 - Closing restores focus and list selection.
 
+### 8.4 Focused task, short sheet and return
+
+The bounded [F2 contract and consumers](product/design/f2-task-boundaries.md)
+implement Product Reference v1's create/result/return promise. This does not
+declare all existing editors migrated.
+
+- A short sheet has a name, visible Close, intentional initial focus, contained
+  traversal and inactive background. The innermost layer owns Escape/System/
+  Browser Back. Cancel restores its trigger; deliberate navigation closes the
+  layer before handing focus to the destination.
+- Sustained Memory capture uses a focused page and one completion action.
+  Dirty exits require deliberate discard; pending completion prevents duplicate
+  submission and guards exits. Platform unload warnings supplement in-session
+  protection; they do not promise process/browser restart persistence.
+- Confirmed creation, attachment association and later reads have separate
+  outcomes. Never retry a known-created Memory as a new create. An unconfirmed
+  create response remains explicitly uncertain until it can be reconciled.
+- Only the owning task/session may clear its submitted draft or open its result.
+  Account/Space transitions invalidate late completions and transient origins.
+- Return validates the originating context and restores supported scope,
+  loaded range and position through existing navigation/query ownership.
+  Untrusted, expired or absent context falls back to the canonical content home.
+  History contains opaque references, never draft/media/search payloads.
+- Filter selection in a contextual sheet is a draft until Apply. Cancel keeps
+  applied scope; the applied summary and filtered no-match remain recognizable.
+- Reduced motion preserves identical focus, state and result semantics. The
+  Web/native proof exercises production consumers; broader R1/R2 composition
+  and other lifecycle migrations retain their own acceptance owners.
+
 ## 9. Feedback components
 
 ### 9.1 Inline Message
@@ -272,7 +342,51 @@ visible until resolved or deliberately discarded.
 - Initials or neutral placeholders are available when no photo exists.
 - Status or role is supplemented with text when relevant.
 
-## 11. Analytics contract
+## 11. Relationship components
+
+These signature building blocks represent the core relationship-first identity of `eimir.`, ensuring that partnership is woven natively into the interface rather than treated as a peripheral profile setting.
+
+### 11.1 PartnerAvatarPair
+
+**Purpose:** Renders the two partners of a shared space as an interconnected unit with overlapping circles and connection state.
+
+- **Anatomy:** Primary user circle, overlapping secondary circle (partner or waiting invitation placeholder), optional active-presence pip.
+- **Variants:** `active`, `recent`, `unknown`, `waiting` (partner pending/invitation slot). The pip is rendered only for `active`; `recent` is text-only and `unknown` makes no Presence claim.
+- **States:** Default, hover/press on invitation slot, disabled.
+- **Accessibility:** Group container provides a composite accessible description combining user and partner names or announcing pending invitation status. Interactive invitation triggers use `role="button"` and clear accessible labels.
+- **Tokens:** Overlap offset derived from size (`-28%`), border uses `--color-surface` / `eimir.Theme.colors.surface` for crisp visual separation.
+
+### 11.2 CouplePresence
+
+**Purpose:** Anchors the top of the relationship home view (`/today`), presenting shared space identity, partner presence, and milestone duration.
+
+- **Anatomy:** `PartnerAvatarPair`, space name heading, optional bounded Presence text, relationship duration link, and optional contextual action slot.
+- **Variants:** `active` (localized active-presence text with pip), `recent` (localized recent-presence text, text-only), `unknown` (no Presence assertion), `waiting` (localized waiting/invitation text). Membership alone never selects a Presence state.
+- **Behavior:** Presence is server-authoritative and ephemeral; the client never receives an exact last-active timestamp. Clicking the relationship duration navigates to the relationship milestone details.
+- **Accessibility:** Headings use appropriate levels (`titleLarge`), interactive duration triggers announce their action explicitly.
+- **Tokens:** Use existing semantic typography, spacing, and identity tokens. The relationship masthead does not require a bounded elevated card; a radius, border, or elevation is used only when its selected v1 surface role needs that boundary.
+
+### 11.3 ThinkingOfYouButton
+
+**Purpose:** A tactile, low-friction micro-interaction to send an affectionate impulse to the partner.
+
+- **Anatomy:** Heart glyph (`♥`), state text, tactile press scaling, and confirmation checkmark (`✓`).
+- **Variants:** Standard (text and icon), compact (icon-only for condensed toolbars).
+- **States:** `idle`, `sending` (pulsing animation, disabled interaction), `sent` (optimistic confirmation, transitions back to idle after 2.5s).
+- **Accessibility:** Explicit button role and localized action description. Reduced-motion queries disable heartbeat and spring animations.
+- **Haptics:** Web has no haptic feedback today; tactile feedback on Android is a future native-capability slice (#500, #578), not part of the retired Compose implementation.
+
+### 11.4 VisibilityBadge
+
+**Purpose:** Communicates the exact access and privacy domain of an item (shared space vs. private draft vs. temporary shared view).
+
+- **Anatomy:** Purpose-built vector glyph (interlocking rings, padlock, clock) and localized label.
+- **Variants:** `SPACE_SHARED` / `shared`, `OWNER_ONLY` / `private`, `TEMPORARY_SHARED` / `temporary`.
+- **Sizes:** `small`, `medium`.
+- **Accessibility:** Uses `role="status"` with explicit aria-labels matching privacy terminology. Icons are scalable vector drawings without dependence on platform-specific emoji fonts.
+- **Tokens:** Colors map strictly to semantic token roles (`--color-shared`, `--color-private`, `--color-discovery`).
+
+## 12. Analytics contract
 
 Allowed events include:
 
@@ -291,7 +405,7 @@ direct resource IDs, and other sensitive user content are not allowed.
 Technical/pseudonymized references are transmitted only for a documented
 purpose and never as content characteristics.
 
-## 12. Definition of Done
+## 13. Definition of Done
 
 A shared component is ready when:
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.attachments.limits import (
+from eimir.attachments.limits import (
     IMAGE_MAX_EDGE,
     IMAGE_MAX_PIXELS,
     IMAGE_MAX_SIZE,
@@ -12,7 +12,7 @@ from sidebyside.attachments.limits import (
     rule_for,
     supported_mime_types,
 )
-from sidebyside.attachments.models import MediaType
+from eimir.attachments.models import MediaType
 
 
 def test_the_contract_allowlist_matches_m2_d04() -> None:

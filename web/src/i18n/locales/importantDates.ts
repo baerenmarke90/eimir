@@ -4,6 +4,16 @@ const importantDates = {
     'Geburtstage, Jahrestage und andere besondere Tage könnt ihr hier gemeinsam oder nur für euch festhalten.',
   createTitle: 'Besonderen Tag festhalten',
   editTitle: 'Besonderen Tag ändern',
+  meaningSectionTitle: 'Was möchtet ihr im Blick behalten?',
+  meaningSectionHelp:
+    'Datum und Anlass stehen zuerst. Alles Weitere bleibt bewusst nachgeordnet.',
+  relationshipSectionTitle: 'Bezug zu einem Menschen',
+  relationshipSectionHelp:
+    'Verknüpfe den Tag optional mit einer Person aus eurem Umfeld.',
+  detailsTitle: 'Art und Wiederholung',
+  lifecycleTitle: 'Besonderen Tag entfernen',
+  lifecycleHelp:
+    'Löschen ist bewusst vom Speichern getrennt und wird noch einmal bestätigt.',
   labelLabel: 'Was ist der Anlass?',
   dateLabel: 'Wann ist es soweit?',
   typeLabel: 'Art',
@@ -26,6 +36,8 @@ const importantDates = {
     'Haltet hier Tage fest, an die ihr euch erinnern oder die ihr gemeinsam im Blick behalten möchtet.',
   dateValue: '{{date}}',
   linkedPerson: 'Für {{name}}',
+  partnerBirthdayLabel: 'Geburtstag von {{name}}',
+  partnerBirthdayProfileSource: 'Aus dem Profil von {{name}}',
   edit: 'Bearbeiten',
   delete: 'Löschen',
   deleteQuestion: 'Diesen besonderen Tag wirklich löschen?',

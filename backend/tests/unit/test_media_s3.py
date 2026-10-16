@@ -11,8 +11,8 @@ from uuid import UUID
 import httpx
 import pytest
 
-from sidebyside.media.base import build_storage_key
-from sidebyside.media.s3 import S3MediaStore
+from eimir.media.base import build_storage_key
+from eimir.media.s3 import S3MediaStore
 
 
 @dataclass
@@ -88,7 +88,7 @@ def s3() -> tuple[S3MediaStore, PrivateS3, Clock, httpx.Client]:
     store = S3MediaStore(
         endpoint="https://s3.example.test",
         region="eu-central-1",
-        bucket="sidebyside-private",
+        bucket="eimir-private",
         access_key_id="AKIATEST",
         secret_access_key="very-secret-value",
         client=client,
@@ -111,7 +111,7 @@ def test_upload_url_is_bound_to_one_key_and_exactly_ten_minutes(
 
     assert parsed.scheme == "https"
     assert parsed.netloc == "s3.example.test"
-    assert parsed.path == f"/sidebyside-private/{key()}"
+    assert parsed.path == f"/eimir-private/{key()}"
     assert query["X-Amz-Expires"] == ["600"]
     assert query["X-Amz-Algorithm"] == ["AWS4-HMAC-SHA256"]
     assert query["X-Amz-SignedHeaders"] == ["cache-control;content-type;host;if-none-match"]
@@ -187,7 +187,7 @@ def test_provider_errors_do_not_expose_request_signatures() -> None:
     store = S3MediaStore(
         endpoint="https://s3.example.test",
         region="eu-central-1",
-        bucket="sidebyside-private",
+        bucket="eimir-private",
         access_key_id="AKIATEST",
         secret_access_key="very-secret-value",
         client=httpx.Client(transport=httpx.MockTransport(fail)),

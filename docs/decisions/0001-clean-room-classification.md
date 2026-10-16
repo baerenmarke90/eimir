@@ -5,7 +5,7 @@
 
 ## Context
 
-SideBySide Next is implemented in its own repository and from a written product specification. The existing `PROVENANCE.md`, however, documents that the assistant session that started the initial implementation had immediately before, within a separate project, seen substantial parts of the predecessor source code.
+eimir. is implemented in its own repository and from a written product specification. The existing `PROVENANCE.md`, however, documents that the assistant session that started the initial implementation had immediately before, within a separate project, seen substantial parts of the predecessor source code.
 
 Therefore, the personnel/context separation normally required by formal Clean-Room procedures between reviewing the original and implementing the replacement is not fulfilled. The dated target/actual review from August 24, 2026 explicitly records this process deviation.
 

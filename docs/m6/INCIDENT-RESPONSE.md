@@ -4,7 +4,7 @@
 **Consumes:** #189, #190, #334, #375, #523  
 **G5 evidence owner:** #524
 
-This is the authoritative SideBySide launch incident-response contract. It turns the
+This is the authoritative eimir. launch incident-response contract. It turns the
 existing health, structured-log, correlation, recovery and release primitives into an
 operator procedure. It does **not** create a monitoring backend, paging service,
 status-page provider, queue implementation or deployment platform.
@@ -42,7 +42,7 @@ The API exposes two intentionally different checks:
 - `GET /api/v1/health` answers process liveness without touching PostgreSQL;
 - `GET /api/v1/health/ready` checks PostgreSQL readiness and returns `503` with a
   sanitized body when the database is unavailable;
-- both responses expose `X-SideBySide-Revision` so the operator can verify the exact
+- both responses expose `X-Eimir-Revision` so the operator can verify the exact
   deployed revision.
 
 The Web container exposes `/healthz` for its own HTTP health check.
@@ -50,7 +50,7 @@ The Web container exposes `/healthz` for its own HTTP health check.
 Suggested non-authenticated checks:
 
 ```bash
-BASE_URL=https://sidebyside.example
+BASE_URL=https://eimir.example
 curl --silent --show-error --include "$BASE_URL/api/v1/health"
 curl --silent --show-error --include "$BASE_URL/api/v1/health/ready"
 curl --silent --show-error --include "$BASE_URL/healthz"
@@ -123,7 +123,7 @@ application-level containment mechanism.
 
 ## 3. Severity, ownership and escalation
 
-SideBySide uses a compact operational severity model. Severity is based on technical
+eimir. uses a compact operational severity model. Severity is based on technical
 impact, not on whose account is affected.
 
 | Severity | Launch interpretation | Initial response | Ownership |
@@ -214,7 +214,7 @@ diagnostic channel itself as part of the incident and follow Runbook 11.
 - Web `/healthz` fails or returns a non-success response;
 - API `/api/v1/health` fails;
 - reverse proxy/host reports connection refusal or repeated 5xx;
-- use `X-SideBySide-Revision` on successful API responses to rule out an unintended
+- use `X-Eimir-Revision` on successful API responses to rule out an unintended
   revision.
 
 ## Immediate containment
@@ -563,7 +563,7 @@ is affected. Do not identify users externally.
 
 ## Recovery actions
 
-1. verify SideBySide's own health/readiness independently of the provider;
+1. verify eimir.'s own health/readiness independently of the provider;
 2. validate provider reachability/config without printing secrets;
 3. restore provider/configuration or deploy tested fix;
 4. never switch to a weaker auth mode merely for availability.
@@ -774,9 +774,9 @@ actual provider backup.
 
 ## Recovery boundary
 
-#190 is authoritative. For `SBS_MEDIA_STORE=local`, use the repository recovery tool.
+#190 is authoritative. For `EIMIR_MEDIA_STORE=local`, use the repository recovery tool.
 For S3/object storage, coordinate the provider's consistent snapshot/export with the
-SideBySide database recovery point.
+eimir. database recovery point.
 
 ## Recovery actions
 
@@ -923,7 +923,7 @@ exists for that purpose.
 
 ## Recovery actions
 
-1. verify SideBySide Core health independently of the commercial source;
+1. verify eimir. Core health independently of the commercial source;
 2. confirm bounded cached/grace semantics are behaving as designed;
 3. restore provider connectivity or deploy tested adapter fix;
 4. resume idempotent reconciliation from authoritative source evidence;
@@ -956,7 +956,7 @@ External/operator communications may state:
 
 Do not state account/Space names, relationship details, private content, exact private
 locations, filenames, receipts, tokens or raw provider details. A public status-page
-provider is optional deployment tooling, not a SideBySide Core dependency.
+provider is optional deployment tooling, not a eimir. Core dependency.
 
 ## 7. Post-incident closeout
 

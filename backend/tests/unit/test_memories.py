@@ -6,9 +6,9 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy import CheckConstraint
 
-from sidebyside.api.v1.memories import MemoryCreate, MemoryUpdate
-from sidebyside.domain.payload import ProtectedPayload
-from sidebyside.memories.models import Memory, MemoryPayload
+from eimir.api.v1.memories import MemoryCreate, MemoryUpdate
+from eimir.domain.payload import ProtectedPayload
+from eimir.memories.models import Memory, MemoryPayload
 
 
 def test_memory_content_lives_only_in_protected_payload() -> None:

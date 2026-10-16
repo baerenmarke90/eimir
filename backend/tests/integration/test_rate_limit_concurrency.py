@@ -8,9 +8,9 @@ from threading import Barrier
 import pytest
 from sqlalchemy import func, select
 
-from sidebyside.auth import rate_limit
-from sidebyside.auth.tokens import hash_token
-from sidebyside.identity.models import RateLimitEvent
+from eimir.auth import rate_limit
+from eimir.auth.tokens import hash_token
+from eimir.identity.models import RateLimitEvent
 from tests.conftest import TEST_BOOTSTRAP_TOKEN, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

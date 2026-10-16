@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sidebyside.core.errors import ValidationError
-from sidebyside.search.service import MAX_QUERY_LENGTH, normalize_query
+from eimir.core.errors import ValidationError
+from eimir.search.service import MAX_QUERY_LENGTH, normalize_query
 
 
 def test_query_normalization_is_unicode_and_whitespace_stable() -> None:

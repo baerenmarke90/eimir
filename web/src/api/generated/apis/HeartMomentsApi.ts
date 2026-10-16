@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -59,6 +59,7 @@ export interface ChangeHeartMomentVisibilityRequest {
 export interface CreateHeartMomentRequest {
     spaceId: string;
     heartMomentCreate: HeartMomentCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteHeartMomentRequest {
@@ -188,6 +189,10 @@ export class HeartMomentsApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/heart-moments`;

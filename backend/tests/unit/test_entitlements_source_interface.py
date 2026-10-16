@@ -8,9 +8,9 @@ from uuid import uuid4
 
 import pytest
 
-from sidebyside.config import Environment
-from sidebyside.entitlements import service as entitlement_service
-from sidebyside.entitlements.models import (
+from eimir.config import Environment
+from eimir.entitlements import service as entitlement_service
+from eimir.entitlements.models import (
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,

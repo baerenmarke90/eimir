@@ -1,14 +1,14 @@
-# SideBySide Content and Privacy Guidelines
+# eimir. Content and Privacy Guidelines
 
 **Status:** Mandatory UX-writing and privacy foundation  
 **Version:** 1.0  
 **As of:** August 24, 2026
 
-SideBySide communicates calmly, warmly, and unambiguously. The language supports closeness without pressure, judgment, or therapeutic promises. Privacy statements describe only technically verifiable properties.
+eimir. communicates calmly, warmly, and unambiguously. The language supports closeness without pressure, judgment, or therapeutic promises. Privacy statements describe only technically verifiable properties.
 
 ## 1. Voice
 
-SideBySide is:
+eimir. is:
 
 - **approachable:** human, respectful, and not bureaucratic,
 - **calm:** short sentences, few exclamation marks, no artificial urgency,
@@ -17,7 +17,7 @@ SideBySide is:
 - **privacy-first:** visibility and data impact are understandable before an action,
 - **non-judgmental:** no relationship is evaluated based on usage, frequency, or mood.
 
-SideBySide is not:
+eimir. is not:
 
 - kitschy or infantilizing,
 - lecturing or moralizing,
@@ -55,7 +55,7 @@ The following are de-DE product-copy examples and are allowed only when the stat
 - **„Mit Partner geteilt“** — when both active Space members may access it.
 - **„Private Inhalte werden nicht für Produkt-Analytics verwendet.“** — when telemetry and operations demonstrably comply.
 - **„Medien sind nicht öffentlich zugänglich.“** — when retrieval is authorized or uses short-lived signed access.
-- **„SideBySide ist privacy-first gestaltet.“** — as a design principle, not as an absolute security guarantee.
+- **„eimir. ist privacy-first gestaltet.“** — as a design principle, not as an absolute security guarantee.
 
 ### Statements not allowed in the MVP
 
@@ -195,7 +195,7 @@ Intentional de-DE product copy:
 
 ```text
 Gemeinsame Momente nicht verpassen
-SideBySide kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben in der Vorschau standardmäßig verborgen.
+eimir. kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben in der Vorschau standardmäßig verborgen.
 ```
 
 - No permission is requested at app startup without context.
@@ -207,7 +207,7 @@ SideBySide kann dich an ausgewählte Termine erinnern. Sensible Inhalte bleiben 
 ### Default preview
 
 - No Memory titles, HeartMoment text, private notes, preference values, or precise locations.
-- Use neutral de-DE wording such as **„In SideBySide gibt es etwas Neues“**.
+- Use neutral de-DE wording such as **„In eimir. gibt es etwas Neues“**.
 - The partner's name appears only if the person deliberately allows it and the system lock-screen context has been considered.
 
 ### In-app

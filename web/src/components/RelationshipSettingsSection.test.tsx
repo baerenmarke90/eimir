@@ -1,9 +1,20 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi, afterEach } from 'vitest';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { RelationshipSettingsSection } from './ProfilePageBase';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
+
+afterEach(() => {
+  cleanup();
+});
 
 const SPACE_ID = 'test-space-123';
 
@@ -44,9 +55,11 @@ function renderSection(spacesApi: SpacesApi) {
   });
 
   return render(
-    <QueryClientProvider client={queryClient}>
-      <RelationshipSettingsSection spacesApi={spacesApi} spaceId={SPACE_ID} />
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={['/more/settings/relationship']}>
+      <QueryClientProvider client={queryClient}>
+        <RelationshipSettingsSection spacesApi={spacesApi} spaceId={SPACE_ID} />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -139,6 +152,6 @@ describe('RelationshipSettingsSection', () => {
     const notifLink = screen.getByRole('link', {
       name: /Jahrestag-Erinnerungen/,
     });
-    expect(notifLink.getAttribute('href')).toBe('#settings-notifications');
+    expect(notifLink.getAttribute('href')).toBe('/more/settings/notifications');
   });
 });

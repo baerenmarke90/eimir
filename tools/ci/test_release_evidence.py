@@ -13,6 +13,7 @@ ACTION = ROOT / ".github/actions/attest-release-artifact/action.yml"
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-node": "1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a",
     "actions/setup-java": "dd06d9cba3e5552c54d9f8ea23572deb30010f7c",
     "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
@@ -24,8 +25,8 @@ EXTERNAL_ACTION_PINS = {
 REQUIRED_SUBJECTS = {
     "release-evidence/backend-runtime.image.tar",
     "release-evidence/web-runtime.image.tar",
-    "release-evidence/android/sidebyside-release-unsigned.apk",
-    "release-evidence/android/sidebyside-release-unsigned.aab",
+    "release-evidence/android/eimir-release-unsigned.apk",
+    "release-evidence/android/eimir-release-unsigned.aab",
 }
 
 REQUIRED_SBOMS = {
@@ -63,10 +64,10 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_workflow_does_not_consume_signing_or_repository_secrets(self) -> None:
         forbidden = (
             "${{ secrets.",
-            "SBS_RELEASE_KEYSTORE",
-            "SBS_RELEASE_KEYSTORE_PASSWORD",
-            "SBS_RELEASE_KEY_ALIAS",
-            "SBS_RELEASE_KEY_PASSWORD",
+            "EIMIR_RELEASE_KEYSTORE",
+            "EIMIR_RELEASE_KEYSTORE_PASSWORD",
+            "EIMIR_RELEASE_KEY_ALIAS",
+            "EIMIR_RELEASE_KEY_PASSWORD",
         )
         for marker in forbidden:
             with self.subTest(marker=marker):
@@ -103,6 +104,75 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
         self.assertIn("docker image save", self.workflow)
         self.assertIn("docker-archive:", self.workflow)
 
+    def test_release_evidence_declares_android_channel_explicitly(self) -> None:
+        self.assertIn("include_android:", self.workflow)
+        self.assertIn("INCLUDE_ANDROID:", self.workflow)
+        self.assertIn('"included": True', self.workflow)
+        self.assertIn('"included": False', self.workflow)
+        self.assertIn('"signing": "not-applicable"', self.workflow)
+        self.assertIn(
+            "Android-excluded evidence must not provide Android URL/version inputs",
+            self.workflow,
+        )
+
+    def test_android_build_and_attestation_are_conditional(self) -> None:
+        android_steps = (
+            "Set up Node.js 24.21.0",
+            "Set up JDK 21",
+            "Set up Gradle cache and validate wrapper",
+            "Verify pinned Gradle wrapper JAR",
+            "Install Android SDK 36",
+            "Build and sync Capacitor web bundle",
+            "Build unsigned Android release artifacts",
+            "Verify APK and AAB packaging and runtime configuration",
+            "Verify APK badging",
+        )
+        for step_name in android_steps:
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: env.INCLUDE_ANDROID == 'true'", step)
+        for step_name in ("Attest Android APK", "Attest Android AAB"):
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: inputs.include_android || github.event_name == 'pull_request'", step)
+
+    def test_core_evidence_remains_unconditional(self) -> None:
+        for step_name in ("Build backend runtime image archive", "Build Web runtime image archive"):
+            step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+            self.assertNotIn("INCLUDE_ANDROID", step)
+        self.assertIn(
+            'verify_subject release-evidence/backend-runtime.image.tar backend-runtime',
+            self.workflow,
+        )
+        self.assertIn(
+            'verify_subject release-evidence/web-runtime.image.tar web-runtime',
+            self.workflow,
+        )
+
+    def test_runtime_images_carry_oci_identity_labels(self) -> None:
+        """Each runtime image names its own source revision and release version (#827).
+
+        The labels are baked into the build-once image, so they are covered by the
+        attested archive digest and can be verified again before publication.
+        """
+        for step_name in (
+            "Build backend runtime image archive",
+            "Build Web runtime image archive",
+        ):
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn(
+                    '--label "org.opencontainers.image.revision=$GITHUB_SHA"', step
+                )
+                self.assertIn(
+                    '--label "org.opencontainers.image.version=$RELEASE_VERSION"', step
+                )
+                self.assertIn(
+                    '--label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"',
+                    step,
+                )
+                self.assertIn("docker image save", step)
+
     def test_each_subject_has_spdx_23_json_evidence(self) -> None:
         for path in REQUIRED_SBOMS:
             with self.subTest(path=path):
@@ -121,6 +191,40 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
     def test_evidence_transport_is_checksum_verified(self) -> None:
         self.assertIn("SHA256SUMS", self.workflow)
         self.assertGreaterEqual(self.workflow.count("sha256sum --check --strict"), 3)
+
+    def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
+        self.assertIn('java-version: "21"', self.workflow)
+        self.assertIn("7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172", self.workflow)
+        self.assertIn('node-version: "24.21.0"', self.workflow)
+
+    def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
+        self.assertIn('ANDROID_PROJECT_DIR: "android"', self.workflow)
+        self.assertIn("working-directory: ${{ env.ANDROID_PROJECT_DIR }}", self.workflow)
+        self.assertIn('"platforms;android-36"', self.workflow)
+        self.assertIn("npm ci --ignore-scripts --no-audit --no-fund", self.workflow)
+        self.assertIn("npm run cap:sync", self.workflow)
+        self.assertIn('VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web', self.workflow)
+        self.assertIn("git diff --exit-code --", self.workflow)
+        self.assertIn("android/capacitor.settings.gradle", self.workflow)
+        self.assertIn("android/app/capacitor.build.gradle", self.workflow)
+
+    def test_apk_and_aab_packaging_and_badging_verified(self) -> None:
+        self.assertIn("dump badging", self.workflow)
+        self.assertIn("build-tools/36.0.0/aapt", self.workflow)
+        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("launchable-activity: name='de.eimir.app.MainActivity'", self.workflow)
+        self.assertIn("public/index.html", self.workflow)
+        self.assertIn("capacitor.config.json", self.workflow)
+        self.assertIn("CapacitorHttp", self.workflow)
+        self.assertIn("server.url", self.workflow)
+        self.assertIn("allowNavigation", self.workflow)
+
+    def test_canonical_android_directory_is_the_only_project(self) -> None:
+        # android/ is the Capacitor wrapper (#1009); the former staging path and
+        # the retired Kotlin/Compose build must not be referenced anymore.
+        self.assertNotIn("capacitor-android", self.workflow)
+        self.assertNotIn("working-directory: android", self.workflow)
+        self.assertNotIn("android/app/build.gradle.kts", self.workflow)
 
 
 if __name__ == "__main__":

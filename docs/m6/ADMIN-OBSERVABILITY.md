@@ -66,7 +66,7 @@ It must not expose:
 - host files, processes, containers or shell execution.
 
 If host orchestration is useful, use the existing external host/deployment platform
-rather than duplicating it in SideBySide.
+rather than duplicating it in eimir.
 
 ## 4. Safe configuration view
 

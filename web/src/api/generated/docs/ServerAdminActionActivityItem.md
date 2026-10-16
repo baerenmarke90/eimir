@@ -12,6 +12,7 @@ Name | Type
 `effectCount` | number
 `id` | string
 `targetAccountId` | string
+`targetSpaceId` | string
 
 ## Example
 
@@ -26,6 +27,7 @@ const example = {
   "effectCount": null,
   "id": null,
   "targetAccountId": null,
+  "targetSpaceId": null,
 } satisfies ServerAdminActionActivityItem
 
 console.log(example)

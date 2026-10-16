@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-from sidebyside.entitlements.offline_license import (
+from eimir.entitlements.offline_license import (
     LicenseValidationError,
     verify_offline_license,
 )

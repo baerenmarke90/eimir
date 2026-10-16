@@ -10,12 +10,12 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 
-from sidebyside.authorization import AuthorizationContext, PrivacyClass
-from sidebyside.comments import service as comment_service
-from sidebyside.comments.models import Comment, CommentTarget
-from sidebyside.core.errors import NotFoundError
-from sidebyside.heart_moments.models import HeartMoment
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.comments import service as comment_service
+from eimir.comments.models import Comment, CommentTarget
+from eimir.core.errors import NotFoundError
+from eimir.heart_moments.models import HeartMoment
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

@@ -1,6 +1,6 @@
 """Behavior of an instance without a mail transport.
 
-`SBS_MAIL_TRANSPORT=none` is an explicit opt-out. Mail-dependent sign-in paths
+`EIMIR_MAIL_TRANSPORT=none` is an explicit opt-out. Mail-dependent sign-in paths
 must report that condition instead of generating a token and returning
 `202 Accepted`; acknowledging a message that will never exist is worse than
 returning an error.
@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import pytest
 
-from sidebyside.config import MailTransport, Settings, get_settings
-from sidebyside.mail import MailTransportError, MailUnavailableError, sender
+from eimir.config import MailTransport, Settings, get_settings
+from eimir.mail import MailTransportError, MailUnavailableError, sender
 
 
 @pytest.fixture
 def without_mail_transport(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = get_settings().model_copy(update={"mail_transport": MailTransport.NONE})
-    monkeypatch.setattr("sidebyside.config.get_settings", lambda: settings)
+    monkeypatch.setattr("eimir.config.get_settings", lambda: settings)
 
 
 def test_sender_refuses_instead_of_sending_nowhere(without_mail_transport: None) -> None:

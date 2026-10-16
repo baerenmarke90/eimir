@@ -12,6 +12,8 @@ export interface ImportantDateDraft {
   visibility: ImportantDateFields['visibility'];
 }
 
+export const IMPORTANT_DATE_LABEL_MAX_LENGTH = 120;
+
 export const EMPTY_IMPORTANT_DATE_DRAFT: ImportantDateDraft = {
   date: '',
   label: '',

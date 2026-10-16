@@ -9,6 +9,7 @@ export function PageHeader({
   action,
   before,
   className = '',
+  variant = 'default',
 }: {
   eyebrow?: string;
   title: ReactNode;
@@ -18,20 +19,25 @@ export function PageHeader({
   action?: ReactNode;
   before?: ReactNode;
   className?: string;
+  variant?: 'default' | 'root';
 }) {
+  const variantClassName = variant === 'root' ? 'page-heading-root' : '';
+
   return (
     <>
       {before}
-      <header className={`page-heading ${className}`.trim()}>
+      <header
+        className={`page-heading ${variantClassName} ${className}`.trim()}
+      >
         <div>
           {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
           {titleEditor ? (
             titleEditor
           ) : (
-            <h1 className="page-heading-title-container">
-              <span>{title}</span>
+            <div className="page-heading-title-container">
+              <h1>{title}</h1>
               {titleAction}
-            </h1>
+            </div>
           )}
           {description ? <p>{description}</p> : null}
         </div>

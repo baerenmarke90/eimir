@@ -1,7 +1,7 @@
 import { ResponseError } from '../api/generated/runtime';
 import {
-  classifyProblemStatus,
   ClientProblemError,
+  classifyProblemStatus,
   normalizeClientError,
 } from './problemDetails';
 
@@ -48,5 +48,47 @@ describe('ProblemDetails mapping', () => {
     expect(error.kind).toBe('server');
     expect(error.status).toBe(503);
     expect(error.code).toBeUndefined();
+  });
+
+  it('exposes the structured Retry-After header, never parsed from error prose (regression #790/#791)', async () => {
+    const response = new Response(
+      JSON.stringify({
+        type: 'rate_limited',
+        title: 'Too many requests',
+        status: 429,
+        detail: 'Thinking-of-you is temporarily rate limited.',
+        code: 'THINKING_OF_YOU_COOLDOWN',
+      }),
+      {
+        status: 429,
+        headers: {
+          'content-type': 'application/json',
+          'Retry-After': '1620',
+        },
+      },
+    );
+
+    const error = await normalizeClientError(new ResponseError(response));
+
+    expect(error.kind).toBe('rateLimit');
+    expect(error.code).toBe('THINKING_OF_YOU_COOLDOWN');
+    expect(error.retryAfterSeconds).toBe(1620);
+  });
+
+  it('leaves retryAfterSeconds undefined when no Retry-After header is present', async () => {
+    const response = new Response(
+      JSON.stringify({
+        type: 'conflict',
+        title: 'Conflict',
+        status: 409,
+        detail: 'Version mismatch.',
+        code: 'MEMORY_VERSION_CONFLICT',
+      }),
+      { status: 409, headers: { 'content-type': 'application/json' } },
+    );
+
+    const error = await normalizeClientError(new ResponseError(response));
+
+    expect(error.retryAfterSeconds).toBeUndefined();
   });
 });

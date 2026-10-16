@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import pytest
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 SLUGS = ("memories", "heart-moments", "milestones")
 

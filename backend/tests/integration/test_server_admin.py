@@ -2,20 +2,31 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from urllib.parse import parse_qs, urlsplit
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import select
 
-from sidebyside.administration.models import InstanceAdministrationActionEvent
-from sidebyside.auth import passwords
-from sidebyside.config import get_settings
-from sidebyside.core.clock import now
-from sidebyside.identity import service as accounts
-from sidebyside.identity.models import AccountEmail, DeviceSession
-from sidebyside.jobs.models import Job, JobStatus
-from sidebyside.relationship import service as relationship
-from sidebyside.relationship.models import Space
+from eimir.administration.models import (
+    InstanceAdministrationActionEvent,
+    InstanceAdministrationEvent,
+)
+from eimir.api.v1 import server_admin as server_admin_api
+from eimir.auth import passwords, recent_auth
+from eimir.config import get_settings
+from eimir.core.clock import now
+from eimir.core.errors import ForbiddenError
+from eimir.identity import deletion_self_service
+from eimir.identity import service as accounts
+from eimir.identity.deletion_journal import DeletionJournal
+from eimir.identity.deletion_models import AccountDeletion
+from eimir.identity.models import Account, AccountEmail, DeviceSession
+from eimir.jobs.models import Job, JobStatus
+from eimir.mail import MailMessage, MailSender
+from eimir.relationship import service as relationship
+from eimir.relationship.models import Space
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -23,9 +34,17 @@ pytestmark = [pytest.mark.integration, requires_database]
 ADMIN_EMAIL = "operator@example.test"
 
 
+class RecordingMailbox(MailSender):
+    def __init__(self) -> None:
+        self.messages: list[MailMessage] = []
+
+    def send(self, message: MailMessage) -> None:
+        self.messages.append(message)
+
+
 @pytest.fixture
 def server_admin_allowlist(monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setenv("SBS_SERVER_ADMIN_EMAILS", f'["{ADMIN_EMAIL}"]')
+    monkeypatch.setenv("EIMIR_SERVER_ADMIN_EMAILS", f'["{ADMIN_EMAIL}"]')
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()
@@ -55,6 +74,19 @@ def _admin(session):  # type: ignore[no-untyped-def]
     return account, sign_in(session, account)
 
 
+def _grant_server_admin_action(session, account) -> None:  # type: ignore[no-untyped-def]
+    device_session = session.execute(
+        select(DeviceSession).where(DeviceSession.account_id == account.id)
+    ).scalar_one()
+    recent_auth.issue_grant(
+        session,
+        account,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+        method=recent_auth.RecentAuthenticationMethod.LOCAL_PASSWORD,
+    )
+
+
 def test_server_admin_endpoints_require_authentication(client) -> None:  # type: ignore[no-untyped-def]
     response = client.get("/api/v1/server-admin/overview")
     spaces = client.get("/api/v1/server-admin/spaces")
@@ -77,7 +109,15 @@ def test_allowlisted_but_unverified_email_does_not_grant_server_admin(
     spaces = client.get("/api/v1/server-admin/spaces", headers=auth(token))
 
     assert capability.status_code == 200
-    assert capability.json() == {"serverAdmin": False}
+    assert capability.json() == {
+        "serverAdmin": False,
+        "auth": {
+            "localPassword": True,
+            "passkey": True,
+            "magicLink": True,
+            "oidc": False,
+        },
+    }
     assert overview.status_code == 403
     assert overview.json()["code"] == "SERVER_ADMIN_REQUIRED"
     assert spaces.status_code == 403
@@ -101,7 +141,15 @@ def test_verified_allowlisted_account_gets_server_admin_capability_and_extended_
     overview = client.get("/api/v1/server-admin/overview", headers=auth(token))
 
     assert capability.status_code == 200
-    assert capability.json() == {"serverAdmin": True}
+    assert capability.json() == {
+        "serverAdmin": True,
+        "auth": {
+            "localPassword": True,
+            "passkey": True,
+            "magicLink": True,
+            "oidc": False,
+        },
+    }
     assert overview.status_code == 200
     payload = overview.json()
     assert payload["applicationStatus"] == "ok"
@@ -184,6 +232,7 @@ def test_account_directory_exposes_identity_metadata_only(
         "emailVerified",
         "createdAt",
         "disabledAt",
+        "deletionStatus",
         "authMethods",
         "activeSessionCount",
         "activeMembershipCount",
@@ -211,7 +260,7 @@ def test_space_directory_exposes_only_lifecycle_metadata(
     inactive_owner = make_account(session, "Inactive owner")
     inactive_space = make_space(session, inactive_owner)
     membership = relationship.require_membership(session, inactive_owner, inactive_space.id)
-    relationship.end_membership(membership)
+    relationship.end_membership(session, membership)
 
     empty_space = Space()
     session.add(empty_space)
@@ -412,12 +461,105 @@ def test_server_admin_can_revoke_all_account_sessions(
     assert response.json() == {"revokedSessions": 2}
 
 
+def test_server_admin_resends_normal_primary_email_verification(
+    client,
+    session,
+    server_admin_allowlist,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    email = _add_email(session, target, email="target@example.test", verified=False)
+    mailbox = RecordingMailbox()
+    monkeypatch.setattr(server_admin_api, "mail_sender", lambda: mailbox)
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 202
+    assert response.content == b""
+    assert len(mailbox.messages) == 1
+    assert mailbox.messages[0].to == email.email
+    session.refresh(email)
+    assert email.verified_at is None
+
+    verification_url = next(
+        line for line in mailbox.messages[0].body.splitlines() if line.startswith("http")
+    )
+    token = parse_qs(urlsplit(verification_url).query)["token"][0]
+    confirmed = client.post(
+        "/api/v1/auth/email/verification/confirm",
+        json={"token": token},
+    )
+    assert confirmed.status_code == 204
+    session.refresh(email)
+    assert email.verified_at is not None
+
+    # A verified target is an idempotent no-op and must not resolve mail again.
+    monkeypatch.setattr(
+        server_admin_api,
+        "mail_sender",
+        lambda: pytest.fail("mail sender resolved for an already verified address"),
+    )
+    replay = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+    assert replay.status_code == 202
+    assert len(mailbox.messages) == 1
+
+
+def test_server_admin_verification_resend_reports_mail_unavailable(
+    client,
+    session,
+    server_admin_allowlist,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    _add_email(session, target, email="target@example.test", verified=False)
+    monkeypatch.setenv("EIMIR_MAIL_TRANSPORT", "none")
+    get_settings.cache_clear()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "MAIL_TRANSPORT_UNAVAILABLE"
+    get_settings.cache_clear()
+
+
+def test_server_admin_verification_resend_rejects_suspended_account(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    _add_email(session, target, email="target@example.test", verified=False)
+    target.disabled_at = now()
+    session.flush()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/email-verification/request",
+        headers=auth(admin_token),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["code"] == "SERVER_ADMIN_ACCOUNT_DISABLED"
+
+
 def test_operator_email_verification_requires_exact_typed_confirmation(
     client,
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    _, token = _admin(session)
+    admin, token = _admin(session)
+    _grant_server_admin_action(session, admin)
     target = make_account(session, "Target")
     email = _add_email(session, target, email="target@example.test", verified=False)
 
@@ -447,7 +589,8 @@ def test_operator_assisted_recovery_reuses_normal_one_time_recovery_flow(
     session,
     server_admin_allowlist,
 ) -> None:  # type: ignore[no-untyped-def]
-    _, admin_token = _admin(session)
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
     target = accounts.create_account(
         session,
         display_name="Target",
@@ -514,7 +657,7 @@ def test_account_recovery_email_reports_mail_unavailable_without_issuing_operato
         email="target@example.test",
         password_hash=passwords.hash_password("old-password-value"),
     )
-    monkeypatch.setenv("SBS_MAIL_TRANSPORT", "none")
+    monkeypatch.setenv("EIMIR_MAIL_TRANSPORT", "none")
     get_settings.cache_clear()
 
     response = client.post(
@@ -525,3 +668,494 @@ def test_account_recovery_email_reports_mail_unavailable_without_issuing_operato
     assert response.status_code == 503
     assert response.json()["code"] == "MAIL_TRANSPORT_UNAVAILABLE"
     get_settings.cache_clear()
+
+
+def test_server_admin_delete_account_success(
+    client,
+    session,
+    server_admin_allowlist,
+    tmp_path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    journal_file = tmp_path / "deletions.journal"
+    journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
+    monkeypatch.setattr(deletion_self_service, "_configured_journal", lambda: journal)
+
+    target = make_account(session, "Delete Target")
+    target_email = _add_email(session, target, email="target-to-delete@example.test", verified=True)
+    sign_in(session, target)
+    device_session = session.execute(
+        select(DeviceSession).where(DeviceSession.account_id == target.id)
+    ).scalar_one()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {target_email.email}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["accountId"] == str(target.id)
+    assert data["status"] == "PENDING"
+    assert "acceptedAt" in data
+
+    # Account fail-closed
+    session.expire_all()
+    refreshed_target = session.get(Account, target.id)
+    assert refreshed_target.disabled_at is not None
+
+    # Device session revoked
+    refreshed_session = session.get(DeviceSession, device_session.id)
+    assert refreshed_session.revoked_at is not None
+
+    # AccountDeletion row exists
+    deletion_row = session.get(AccountDeletion, target.id)
+    assert deletion_row is not None
+    assert deletion_row.status == "PENDING"
+
+    # Background convergence job enqueued
+    jobs = (
+        session.execute(select(Job).where(Job.kind == "account_deletion_converge")).scalars().all()
+    )
+    assert len(jobs) == 1
+
+    # Audit event written
+    audit_events = (
+        session.execute(
+            select(InstanceAdministrationActionEvent).where(
+                InstanceAdministrationActionEvent.target_account_id == target.id
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(audit_events) == 1
+    assert audit_events[0].action == "account_deletion_requested"
+    assert audit_events[0].actor_id == admin.id
+
+    # Journal tombstone verified
+    tombstones = journal.read_all()
+    assert len(tombstones) == 1
+    assert tombstones[0].account_id == target.id
+
+    # Account Detail reflection
+    detail_res = client.get(
+        f"/api/v1/server-admin/accounts/{target.id}",
+        headers=auth(admin_token),
+    )
+    assert detail_res.status_code == 200
+    detail_json = detail_res.json()
+    assert detail_json["deletionStatus"] == "PENDING"
+    assert detail_json["deletionAcceptedAt"] is not None
+    assert detail_json["disabledAt"] is not None
+
+    # Account Directory list reflection
+    list_res = client.get(
+        f"/api/v1/server-admin/accounts?query={target_email.email}",
+        headers=auth(admin_token),
+    )
+    assert list_res.status_code == 200
+    items = list_res.json()["items"]
+    assert len(items) == 1
+    assert items[0]["deletionStatus"] == "PENDING"
+
+
+def test_server_admin_delete_account_idempotent_retry(
+    client,
+    session,
+    server_admin_allowlist,
+    tmp_path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    journal_file = tmp_path / "deletions.journal"
+    journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
+    monkeypatch.setattr(deletion_self_service, "_configured_journal", lambda: journal)
+
+    target = make_account(session, "Retry Target")
+    target_email = _add_email(session, target, email="retry-target@example.test", verified=True)
+
+    res1 = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {target_email.email}"},
+    )
+    assert res1.status_code == 200
+    accepted_at_1 = res1.json()["acceptedAt"]
+
+    # Second call (retry)
+    res2 = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {target_email.email}"},
+    )
+    assert res2.status_code == 200
+    assert res2.json()["acceptedAt"] == accepted_at_1
+    assert len(journal.read_all()) == 1
+
+
+def test_server_admin_delete_account_accepts_target_id_or_email(
+    client,
+    session,
+    server_admin_allowlist,
+    tmp_path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    journal_file = tmp_path / "deletions.journal"
+    journal = DeletionJournal.initialize(journal_file, instance_id=uuid4())
+    monkeypatch.setattr(deletion_self_service, "_configured_journal", lambda: journal)
+
+    # Test with exact target ID
+    target1 = make_account(session, "Target 1")
+    _add_email(session, target1, email="t1@example.test", verified=True)
+    res1 = client.post(
+        f"/api/v1/server-admin/accounts/{target1.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": str(target1.id)},
+    )
+    assert res1.status_code == 200
+
+    # Test with DELETE <id>
+    target2 = make_account(session, "Target 2")
+    _add_email(session, target2, email="t2@example.test", verified=True)
+    res2 = client.post(
+        f"/api/v1/server-admin/accounts/{target2.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {target2.id}"},
+    )
+    assert res2.status_code == 200
+
+    # Test with plain email (case-insensitive)
+    target3 = make_account(session, "Target 3")
+    email3 = _add_email(session, target3, email="t3@example.test", verified=True)
+    res3 = client.post(
+        f"/api/v1/server-admin/accounts/{target3.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f" {email3.email.upper()} "},
+    )
+    assert res3.status_code == 200
+
+
+def test_server_admin_delete_account_rejects_confirmation_mismatch(
+    client,
+    session,
+    server_admin_allowlist,
+    tmp_path,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    target = make_account(session, "Mismatch Target")
+    _add_email(session, target, email="mismatch@example.test", verified=True)
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": "DELETE other@example.test"},
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "SERVER_ADMIN_CONFIRMATION_MISMATCH"
+
+
+def test_server_admin_delete_account_requires_recent_auth(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    _, admin_token = _admin(session)
+    target = make_account(session, "Target")
+    email = _add_email(session, target, email="target@example.test", verified=True)
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {email.email}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["code"] == recent_auth.RecentAuthenticationErrorCode.REQUIRED
+
+
+def test_server_admin_cannot_delete_self(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{admin.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {ADMIN_EMAIL}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["code"] == "SERVER_ADMIN_SELF_LOCKOUT_BLOCKED"
+
+
+def test_server_admin_cannot_delete_last_active_verified_admin(
+    client,
+    session,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin1_email = "admin1@example.test"
+    admin2_email = "admin2@example.test"
+    monkeypatch.setenv("EIMIR_SERVER_ADMIN_EMAILS", f'["{admin1_email}", "{admin2_email}"]')
+    get_settings.cache_clear()
+
+    # Admin 1 (active)
+    admin1 = make_account(session, "Admin 1")
+    _add_email(session, admin1, email=admin1_email, verified=True)
+    sign_in(session, admin1)
+    _grant_server_admin_action(session, admin1)
+
+    # Admin 2 (also active and verified)
+    admin2 = make_account(session, "Admin 2")
+    _add_email(session, admin2, email=admin2_email, verified=True)
+
+    # Now simulate admin1 disabled or already deleted
+    admin1.disabled_at = now()
+    session.flush()
+
+    # Admin 2 signs in
+    sign_in(session, admin2)
+    _grant_server_admin_action(session, admin2)
+
+    # Temporarily enable admin1 just to issue the call
+    admin1.disabled_at = None
+    session.flush()
+
+    email1 = session.execute(
+        select(AccountEmail).where(
+            AccountEmail.account_id == admin1.id, AccountEmail.is_primary.is_(True)
+        )
+    ).scalar_one()
+    email1.verified_at = None
+    session.flush()
+
+    email2 = session.execute(
+        select(AccountEmail).where(
+            AccountEmail.account_id == admin2.id, AccountEmail.is_primary.is_(True)
+        )
+    ).scalar_one()
+    email2.verified_at = None
+    email1.verified_at = now()
+    session.flush()
+
+    # Now admin1 is the LAST active verified admin. Create admin3 who is disabled.
+    admin3_email = "admin3@example.test"
+    monkeypatch.setenv("EIMIR_SERVER_ADMIN_EMAILS", f'["{admin1_email}", "{admin3_email}"]')
+    get_settings.cache_clear()
+    admin3 = make_account(session, "Admin 3")
+    _add_email(session, admin3, email=admin3_email, verified=True)
+    sign_in(session, admin3)
+    _grant_server_admin_action(session, admin3)
+
+    admin3.disabled_at = now()
+    session.flush()
+
+    from eimir.administration import account_operations
+
+    with pytest.raises(ForbiddenError) as exc_info:
+        account_operations.delete_account(
+            session,
+            actor=admin3,
+            target_account_id=admin1.id,
+            confirmation=f"DELETE {admin1_email}",
+        )
+    assert exc_info.value.code == "SERVER_ADMIN_LAST_ADMIN_LOCKOUT_BLOCKED"
+
+    get_settings.cache_clear()
+
+
+def test_server_admin_cannot_delete_demo_account(
+    client,
+    session,
+    server_admin_allowlist,
+    monkeypatch,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    _grant_server_admin_action(session, admin)
+
+    target = make_account(session, "Demo Target")
+    email = _add_email(session, target, email="demo-target@example.test", verified=True)
+
+    monkeypatch.setenv("EIMIR_DEMO_MODE", "true")
+    get_settings.cache_clear()
+
+    response = client.post(
+        f"/api/v1/server-admin/accounts/{target.id}/deletion",
+        headers=auth(admin_token),
+        json={"confirmation": f"DELETE {email.email}"},
+    )
+    assert response.status_code == 403
+    assert response.json()["code"] == "ACCOUNT_DELETION_DEMO_FORBIDDEN"
+    get_settings.cache_clear()
+
+
+def test_unified_privileged_audit_filters_sorts_and_paginates(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    target = make_account(session, "Audit target")
+    space = make_space(session, admin)
+    current = now()
+
+    session.add(
+        InstanceAdministrationEvent(
+            actor_id=admin.id,
+            setting="maintenance_mode",
+            previous_value=False,
+            new_value=True,
+            created_at=current - timedelta(minutes=4),
+        )
+    )
+    session.add_all(
+        [
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_suspended",
+                effect_count=2,
+                created_at=current - timedelta(minutes=3),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_space_id=space.id,
+                action="space_entitlement_granted",
+                created_at=current - timedelta(minutes=2),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_requested",
+                created_at=current - timedelta(minutes=1),
+            ),
+        ]
+    )
+    session.flush()
+
+    first_page = client.get(
+        "/api/v1/server-admin/activity/privileged?limit=2",
+        headers=auth(admin_token),
+    )
+    assert first_page.status_code == 200
+    payload = first_page.json()
+    assert payload["total"] == 4
+    assert payload["limit"] == 2
+    assert payload["offset"] == 0
+    assert [item["category"] for item in payload["items"]] == [
+        "destructive",
+        "spaces",
+    ]
+
+    second_page = client.get(
+        "/api/v1/server-admin/activity/privileged?limit=2&offset=2",
+        headers=auth(admin_token),
+    )
+    assert second_page.status_code == 200
+    assert [item["category"] for item in second_page.json()["items"]] == [
+        "accounts",
+        "settings",
+    ]
+
+    spaces = client.get(
+        "/api/v1/server-admin/activity/privileged?category=spaces",
+        headers=auth(admin_token),
+    )
+    assert spaces.status_code == 200
+    assert spaces.json()["total"] == 1
+    assert spaces.json()["items"][0]["targetSpaceId"] == str(space.id)
+
+    accounts = client.get(
+        "/api/v1/server-admin/activity/privileged?category=accounts",
+        headers=auth(admin_token),
+    )
+    assert accounts.status_code == 200
+    assert accounts.json()["total"] == 1
+    assert accounts.json()["items"][0]["action"] == "account_suspended"
+
+    destructive = client.get(
+        f"/api/v1/server-admin/activity/privileged?category=destructive&targetId={target.id}",
+        headers=auth(admin_token),
+    )
+    assert destructive.status_code == 200
+    assert destructive.json()["total"] == 1
+    item = destructive.json()["items"][0]
+    assert item["action"] == "account_deletion_requested"
+    assert set(item) == {
+        "id",
+        "category",
+        "action",
+        "actorId",
+        "targetAccountId",
+        "targetSpaceId",
+        "previousValue",
+        "newValue",
+        "effectCount",
+        "createdAt",
+    }
+
+
+def test_unified_privileged_audit_filters_deletion_outcomes(
+    client,
+    session,
+    server_admin_allowlist,
+) -> None:  # type: ignore[no-untyped-def]
+    admin, admin_token = _admin(session)
+    target = make_account(session, "Deletion audit target")
+    current = now()
+    session.add_all(
+        [
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_requested",
+                created_at=current - timedelta(minutes=2),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_failed",
+                created_at=current - timedelta(minutes=1),
+            ),
+            InstanceAdministrationActionEvent(
+                actor_id=admin.id,
+                target_account_id=target.id,
+                action="account_deletion_completed",
+                created_at=current,
+            ),
+        ]
+    )
+    session.flush()
+
+    destructive = client.get(
+        f"/api/v1/server-admin/activity/privileged?category=destructive&targetId={target.id}",
+        headers=auth(admin_token),
+    )
+    assert destructive.status_code == 200
+    assert destructive.json()["total"] == 3
+    assert [item["action"] for item in destructive.json()["items"]] == [
+        "account_deletion_completed",
+        "account_deletion_failed",
+        "account_deletion_requested",
+    ]
+
+    failed = client.get(
+        "/api/v1/server-admin/activity/privileged?action=account_deletion_failed",
+        headers=auth(admin_token),
+    )
+    assert failed.status_code == 200
+    assert failed.json()["total"] == 1
+    assert failed.json()["items"][0]["targetAccountId"] == str(target.id)

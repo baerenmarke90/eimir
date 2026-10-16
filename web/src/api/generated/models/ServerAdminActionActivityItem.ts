@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -55,6 +55,12 @@ export interface ServerAdminActionActivityItem {
      * @memberof ServerAdminActionActivityItem
      */
     targetAccountId: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ServerAdminActionActivityItem
+     */
+    targetSpaceId: string | null;
 }
 
 /**
@@ -67,6 +73,7 @@ export function instanceOfServerAdminActionActivityItem(value: object): value is
     if (!('effectCount' in value) || value['effectCount'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('targetAccountId' in value) || value['targetAccountId'] === undefined) return false;
+    if (!('targetSpaceId' in value) || value['targetSpaceId'] === undefined) return false;
     return true;
 }
 
@@ -86,6 +93,7 @@ export function ServerAdminActionActivityItemFromJSONTyped(json: any, ignoreDisc
         'effectCount': json['effectCount'],
         'id': json['id'],
         'targetAccountId': json['targetAccountId'],
+        'targetSpaceId': json['targetSpaceId'],
     };
 }
 
@@ -106,6 +114,7 @@ export function ServerAdminActionActivityItemToJSONTyped(value?: ServerAdminActi
         'effectCount': value['effectCount'],
         'id': value['id'],
         'targetAccountId': value['targetAccountId'],
+        'targetSpaceId': value['targetSpaceId'],
     };
 }
 

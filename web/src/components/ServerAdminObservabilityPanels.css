@@ -1,0 +1,59 @@
+.server-admin-job-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+}
+
+.server-admin-job-filters label {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.server-admin-job-filters label > span {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.server-admin-job-filters input,
+.server-admin-job-filters select {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.server-admin-job-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.server-admin-badge.is-neutral {
+  color: var(--color-text-secondary);
+}
+
+.server-admin-job-retry-copy {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+}
+
+.server-admin-panel-privacy-note {
+  margin-bottom: 0;
+}
+
+.server-admin-storage-metrics {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 64rem) {
+  .server-admin-job-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 52rem) {
+  .server-admin-job-filters {
+    grid-template-columns: 1fr;
+  }
+}

@@ -8,10 +8,10 @@ from threading import Barrier
 import pytest
 from sqlalchemy import func, select
 
-from sidebyside.auth import passkey_abuse, passkeys
-from sidebyside.auth.tokens import hash_token
-from sidebyside.core.errors import RateLimitedError
-from sidebyside.identity.models import RateLimitEvent, WebAuthnChallenge
+from eimir.auth import passkey_abuse, passkeys
+from eimir.auth.tokens import hash_token
+from eimir.core.errors import RateLimitedError
+from eimir.identity.models import RateLimitEvent, WebAuthnChallenge
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

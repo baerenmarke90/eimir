@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 TIMELINE = "/api/v1/spaces/{spaceId}/timeline"
 CONTRACT = Path(__file__).parents[3] / "docs" / "m2" / "API-CONTRACT.json"
@@ -44,7 +44,9 @@ def test_query_matches_manifest() -> None:
 
 
 def test_no_visibility_parameter() -> None:
-    """M2-D22: Story has no owner mode, including as a filter."""
+    """#1021 (superseding M2-D22): the Timeline is viewer-authorized rather
+    than filtered by a client-chosen mode, so it still takes no `visibility`
+    parameter."""
     names = {
         parameter["name"]
         for parameter in _operation()["parameters"]  # type: ignore[index]
@@ -82,10 +84,15 @@ def test_union_is_discriminated_by_kind() -> None:
     assert set(discriminator["mapping"]) == {"MEMORY", "HEART_MOMENT", "MILESTONE"}
 
 
-def test_story_has_no_private_variant() -> None:
-    """The union has three variants; there is no private HeartMoment form."""
+def test_heart_moment_summary_reports_real_visibility() -> None:
+    """#1021 (superseding M2-D22): the union still has three variants, but a
+    HeartMoment's own PRIVATE items are now projected through the existing
+    HEART_MOMENT variant with their real visibility rather than being a
+    categorically separate/absent form."""
     schemas = _schema()["components"]["schemas"]  # type: ignore[index]
-    assert "visibility" not in schemas["SharedHeartMomentSummary"]["properties"]
+    heart_moment_summary = schemas["SharedHeartMomentSummary"]
+    assert "visibility" in heart_moment_summary["properties"]
+    assert "visibility" in heart_moment_summary["required"]
 
 
 def test_limit_and_year_have_contract_bounds() -> None:

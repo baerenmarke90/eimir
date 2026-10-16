@@ -8,12 +8,12 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.config import Environment
-from sidebyside.demo import create_demo_space
-from sidebyside.demo.reminders import MANUAL_REMINDER_TITLE
-from sidebyside.reminders import rules
-from sidebyside.reminders.models import Reminder, ReminderPreference, ReminderSource
-from sidebyside.reminders.runtime_models import RulePreference
+from eimir.config import Environment
+from eimir.demo import create_demo_space
+from eimir.demo.reminders import MANUAL_REMINDER_TITLE
+from eimir.reminders import rules
+from eimir.reminders.models import Reminder, ReminderPreference, ReminderSource
+from eimir.reminders.runtime_models import RulePreference
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

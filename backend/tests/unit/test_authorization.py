@@ -17,7 +17,7 @@ from sqlalchemy import MetaData, String, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from sidebyside.authorization import (
+from eimir.authorization import (
     ENFORCEABLE_PRIVACY_CLASSES,
     Access,
     AuthorizationContext,
@@ -30,9 +30,9 @@ from sidebyside.authorization import (
     readable,
     writable,
 )
-from sidebyside.authorization.rules import rules_for
-from sidebyside.core.ids import new_id
-from sidebyside.db.base import NAMING_CONVENTION
+from eimir.authorization.rules import rules_for
+from eimir.core.ids import new_id
+from eimir.db.base import NAMING_CONVENTION
 
 
 class ProbeBase(DeclarativeBase):
@@ -144,7 +144,7 @@ class TestCondition:
         If an empty condition were true instead of false, omitting a rule
         could expose the complete data set.
         """
-        from sidebyside.authorization import rules
+        from eimir.authorization import rules
 
         monkeypatch.setattr(rules, "_RULES", {Access.READ: {}})
         sql = str(privacy_clause(Probe, CONTEXT, Access.READ).compile(dialect=postgresql.dialect()))

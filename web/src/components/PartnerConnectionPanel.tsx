@@ -14,6 +14,19 @@ import { UiState } from './UiState';
 
 type CopyState = 'idle' | 'copied' | 'failed';
 
+type PartnerConnectionPanelProps = {
+  apiBaseUrl: string;
+  accessToken: string;
+  account: AccountView;
+  spaceId: string;
+};
+
+type IssuedInvitationState = {
+  accountId: string;
+  spaceId: string;
+  invitation: IssuedInvitationView;
+};
+
 function invitationDate(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
     dateStyle: 'medium',
@@ -21,21 +34,29 @@ function invitationDate(value: Date): string {
   }).format(value);
 }
 
-export function PartnerConnectionPanel({
+export function PartnerConnectionPanel(props: PartnerConnectionPanelProps) {
+  // One-time plaintext invitation state must not survive an authenticated
+  // Account/Space context boundary. The keyed child is recreated immediately
+  // when either stable, non-secret identifier changes; logout already unmounts
+  // the authenticated application tree.
+  return (
+    <PartnerConnectionPanelForContext
+      key={`${props.account.id}:${props.spaceId}`}
+      {...props}
+    />
+  );
+}
+
+function PartnerConnectionPanelForContext({
   apiBaseUrl,
   accessToken,
   account,
   spaceId,
-}: {
-  apiBaseUrl: string;
-  accessToken: string;
-  account: AccountView;
-  spaceId: string;
-}) {
+}: PartnerConnectionPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [issuedInvitation, setIssuedInvitation] =
-    useState<IssuedInvitationView | null>(null);
+    useState<IssuedInvitationState | null>(null);
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [createPending, setCreatePending] = useState(false);
   const [createError, setCreateError] = useState<unknown>(null);
@@ -90,6 +111,12 @@ export function PartnerConnectionPanel({
     retry: false,
   });
 
+  const currentIssuedInvitation =
+    issuedInvitation?.accountId === account.id &&
+    issuedInvitation.spaceId === spaceId
+      ? issuedInvitation.invitation
+      : null;
+
   const revokeMutation = useMutation({
     mutationFn: async (invitation: InvitationView) => {
       try {
@@ -104,7 +131,7 @@ export function PartnerConnectionPanel({
       }
     },
     onSuccess: async (_data, invitation) => {
-      if (issuedInvitation?.id === invitation.id) {
+      if (currentIssuedInvitation?.id === invitation.id) {
         setIssuedInvitation(null);
         setCopyState('idle');
       }
@@ -114,8 +141,8 @@ export function PartnerConnectionPanel({
     },
   });
 
-  const issuedLink = issuedInvitation
-    ? buildInvitationLink(window.location.origin, issuedInvitation.token)
+  const issuedLink = currentIssuedInvitation
+    ? buildInvitationLink(window.location.origin, currentIssuedInvitation.token)
     : null;
 
   async function createInvitation() {
@@ -126,7 +153,11 @@ export function PartnerConnectionPanel({
         await invitationsApi.createInvitationApiV1SpacesSpaceIdInvitationsPost({
           spaceId,
         });
-      setIssuedInvitation(invitation);
+      setIssuedInvitation({
+        accountId: account.id,
+        spaceId,
+        invitation,
+      });
       setCopyState('idle');
       await queryClient.invalidateQueries({
         queryKey: ['space-invitations', spaceId],
@@ -139,7 +170,10 @@ export function PartnerConnectionPanel({
   }
 
   async function copyIssuedLink() {
-    if (!issuedLink) return;
+    // Fail closed in the action path as well as the render path. A stale state
+    // object can never be copied outside the Account/Space provenance that
+    // issued it.
+    if (!currentIssuedInvitation || !issuedLink) return;
     try {
       if (!navigator.clipboard?.writeText)
         throw new Error('Clipboard unavailable');
@@ -234,7 +268,7 @@ export function PartnerConnectionPanel({
 
         {createError ? <ProblemState error={createError} /> : null}
 
-        {issuedInvitation && issuedLink ? (
+        {currentIssuedInvitation && issuedLink ? (
           <div className="inline-message inline-message-success" role="status">
             <strong>{t('partnerConnection.issuedTitle')}</strong>
             <span>{t('partnerConnection.issuedBody')}</span>
@@ -251,7 +285,7 @@ export function PartnerConnectionPanel({
             </div>
             <span>
               {t('partnerConnection.expiresAt', {
-                date: invitationDate(issuedInvitation.expiresAt),
+                date: invitationDate(currentIssuedInvitation.expiresAt),
               })}
             </span>
             <div className="form-actions">

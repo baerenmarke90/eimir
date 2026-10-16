@@ -13,9 +13,9 @@ from uuid import UUID
 
 import pytest
 
-from sidebyside.core.ids import new_id
-from sidebyside.media.base import build_storage_key
-from sidebyside.media.local import LocalMediaStore
+from eimir.core.ids import new_id
+from eimir.media.base import build_account_storage_key, build_storage_key
+from eimir.media.local import LocalMediaStore
 
 
 @pytest.fixture
@@ -40,6 +40,22 @@ class TestStorageKey:
         for malicious in ["../../etc/passwd", "a/b", ".."]:
             with pytest.raises(ValueError):
                 build_storage_key(new_id(), new_id(), malicious)
+
+
+class TestAccountStorageKey:
+    def test_account_owned_media_lives_outside_every_space_prefix(self) -> None:
+        """Account-global profile media must survive Space retention."""
+        account, attachment = new_id(), new_id()
+        key = build_account_storage_key(account, attachment)
+
+        assert key == f"accounts/{account}/attachments/{attachment}/original"
+        assert not key.startswith("spaces/")
+        assert key.count("/") == 4
+
+    def test_rejects_escaping_variant(self) -> None:
+        for malicious in ["../../etc/passwd", "a/b", ".."]:
+            with pytest.raises(ValueError):
+                build_account_storage_key(new_id(), new_id(), malicious)
 
 
 class TestStorage:

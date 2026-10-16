@@ -6,10 +6,10 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.dialects import postgresql
 
-from sidebyside.core.ids import new_id
-from sidebyside.domain.events import DomainEvent, EventType, PublicEventPayload
-from sidebyside.domain.payload import ProtectedPayload
-from sidebyside.outbox.payload import PublicEventPayloadJSON
+from eimir.core.ids import new_id
+from eimir.domain.events import DomainEvent, EventType, PublicEventPayload
+from eimir.domain.payload import ProtectedPayload
+from eimir.outbox.payload import PublicEventPayloadJSON
 
 
 class PrivateContent(ProtectedPayload):

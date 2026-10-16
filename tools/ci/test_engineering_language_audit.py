@@ -6,10 +6,29 @@ import unittest
 from pathlib import Path
 
 from documentation_language_audit import check_documentation_file, documentation_files
-from engineering_language_audit import check_file
+from engineering_language_audit import _is_excluded_platform_path, check_file
 
 
 class EngineeringLanguageAuditTest(unittest.TestCase):
+    def test_exclusions_cover_generated_output_but_not_wrapper_sources(self) -> None:
+        for generated in (
+            "android/app/src/main/assets/public/index.html",
+            "android/app/src/main/assets/capacitor.config.json",
+            "android/capacitor-cordova-android-plugins/build.gradle",
+            "web/e2e/fixtures/locales/de.ts",
+            "web/src/api/generated/models/index.ts",
+        ):
+            self.assertTrue(_is_excluded_platform_path(Path(generated)), generated)
+        for handwritten in (
+            "android/app/build.gradle",
+            "android/app/src/main/AndroidManifest.xml",
+            "android/app/src/main/java/de/eimir/app/MainActivity.java",
+            "android/app/src/main/res/values/strings.xml",
+            "web/e2e/fixtures/product-reference-foundations.tsx",
+            "web/e2e/tests/product-reference-foundations.spec.ts",
+        ):
+            self.assertFalse(_is_excluded_platform_path(Path(handwritten)), handwritten)
+
     def test_legacy_engineering_marker_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.md"
@@ -24,11 +43,24 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             path.write_text("## Summary\n", encoding="utf-8")
             self.assertEqual(check_file(path), [])
 
-    def test_localized_product_fixture_is_allowed_without_excluding_test_file(self) -> None:
+    def test_localized_product_fixture_is_allowed_without_excluding_test_file(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "localized.test.ts"
             path.write_text(
                 "expect(screen).toContain('Eure Story beginnt hier.');\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(check_file(path), [])
+
+    def test_pwa_offline_product_copy_is_allowed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "offline.html"
+            path.write_text(
+                "<h1>Gerade keine Verbindung.</h1>\n"
+                "<p>Deine privaten Inhalte werden nicht offline zwischengespeichert.</p>\n"
+                "<p>Sobald die Verbindung wieder da ist, kannst du eimir. normal weiterverwenden.</p>\n",
                 encoding="utf-8",
             )
             self.assertEqual(check_file(path), [])
@@ -66,9 +98,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.py"
             path.write_text(
-                "class TestRegistration:\n"
-                "    pass\n\n"
-                "SPACE_ENDPOINTS = ()\n",
+                "class TestRegistration:\n    pass\n\nSPACE_ENDPOINTS = ()\n",
                 encoding="utf-8",
             )
             self.assertEqual(check_file(path), [])
@@ -85,7 +115,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             path.write_text('sample = "Aktueller `main`"\n', encoding="utf-8")
             self.assertEqual(check_file(path), [])
 
-    def test_stable_markdown_link_target_is_not_treated_as_documentation_prose(self) -> None:
+    def test_stable_markdown_link_target_is_not_treated_as_documentation_prose(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             path = root / "docs" / "example.md"
@@ -96,7 +128,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             )
             self.assertEqual(check_documentation_file(path, root), [])
 
-    def test_stable_json_contract_target_is_not_treated_as_documentation_prose(self) -> None:
+    def test_stable_json_contract_target_is_not_treated_as_documentation_prose(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             path = root / "docs" / "manifest.json"
@@ -119,7 +153,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             findings = check_documentation_file(path, root)
             self.assertEqual(len(findings), 1)
 
-    def test_frozen_review_snapshots_are_outside_active_documentation_scope(self) -> None:
+    def test_frozen_review_snapshots_are_outside_active_documentation_scope(
+        self,
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             frozen = root / "docs" / "reviews" / "snapshot.md"
@@ -148,6 +184,34 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         for path in documentation_files():
             findings.extend(check_documentation_file(path))
         self.assertEqual(findings, [])
+
+    def test_generated_reference_quotes_do_not_exempt_surrounding_or_other_prose(self) -> None:
+        from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
+
+        for logical_path in (
+            Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),
+            Path("docs/product/design/references/508/plan-completion-generation.md"),
+            Path("docs/product/design/references/508/wish-completion-generation.md"),
+            Path("docs/product/design/references/508/partner-gesture/generation.md"),
+            Path("docs/product/design/references/508/daily-check-in-owner/generation.md"),
+        ):
+            product_copy = ALLOWED_DOCUMENTATION_TEXTS_BY_PATH[logical_path][0]
+            with self.subTest(path=str(logical_path)), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                path = root / logical_path
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    f'Status: "{product_copy}".\n'
+                    "Die Entscheidung wird im Client getroffen.\n",
+                    encoding="utf-8",
+                )
+                findings = check_documentation_file(path, root)
+                self.assertEqual(len(findings), 1)
+                self.assertIn("Die Entscheidung", findings[0])
+
+                other = root / "docs/other.md"
+                other.write_text(f'Status: "{product_copy}".\n', encoding="utf-8")
+                self.assertEqual(len(check_documentation_file(other, root)), 1)
 
     def test_python_comment_and_identifier_are_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -228,7 +292,7 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.py"
             path.write_text(
-                'subject = "Dein Anmeldelink fuer SideBySide"\nbody = "Nur fuer mich"\n',
+                'subject = "Dein Anmeldelink fuer Eimir"\nbody = "Nur fuer mich"\n',
                 encoding="utf-8",
             )
             self.assertEqual(check_file(path), [])
@@ -236,7 +300,9 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
     def test_exception_diagnostic_is_audited(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "example.py"
-            path.write_text('raise ValueError("Der Wert ist ungueltig")\n', encoding="utf-8")
+            path.write_text(
+                'raise ValueError("Der Wert ist ungueltig")\n', encoding="utf-8"
+            )
             findings = check_file(path)
             self.assertEqual(len(findings), 1)
 

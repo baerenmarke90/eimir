@@ -1,0 +1,3 @@
+memory-create-photos: top=150
+memory-create-body: top=210
+memory-create-title: top=336

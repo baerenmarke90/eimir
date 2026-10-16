@@ -1,9 +1,5 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { AccountView } from '../api/generated/models/AccountView';
-import { Configuration } from '../api/generated/runtime';
 import {
   ACTIVITY_ROUTE,
   MORE_PROFILE_ROUTE,
@@ -11,7 +7,7 @@ import {
   SERVER_ADMIN_ROUTE,
 } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
-import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
+import { useCurrentProfileIdentity } from '../client/useCurrentProfileIdentity';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PersonIdentity } from './PersonIdentity';
@@ -42,35 +38,12 @@ export function HeaderProfileMenu({
   const { isOpen, close, toggle, triggerRef, panelRef } =
     useDismissiblePopover();
 
-  const configuration = useMemo(
-    () =>
-      new Configuration({
-        basePath: apiBaseUrl,
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }),
-    [accessToken, apiBaseUrl],
-  );
-  const profilesApi = useMemo(
-    () => new ProfilesApi(configuration),
-    [configuration],
-  );
-  const profileQuery = useQuery({
-    queryKey: ['profile-identity', spaceId, account.id],
-    queryFn: () =>
-      profilesApi.getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet({
-        accountId: account.id,
-        spaceId,
-      }),
-    retry: false,
-  });
-  const profile = profileQuery.data;
-  const displayName = profile?.displayName ?? account.displayName;
-  const { avatarUrl } = useProfileAvatarUrl(
-    profilesApi,
+  const { displayName, avatarUrl } = useCurrentProfileIdentity({
+    apiBaseUrl,
+    accessToken,
+    account,
     spaceId,
-    account.id,
-    profile?.profileAttachmentId,
-  );
+  });
 
   return (
     <div

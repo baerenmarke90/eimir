@@ -10,12 +10,12 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from sidebyside.auth import oidc
-from sidebyside.config import OidcConnection
-from sidebyside.core.errors import ValidationError
+from eimir.auth import oidc
+from eimir.config import OidcConnection
+from eimir.core.errors import ValidationError
 
 ISSUER = "https://id.example"
-CLIENT_ID = "sidebyside"
+CLIENT_ID = "eimir"
 NONCE = "nonce-123"
 
 

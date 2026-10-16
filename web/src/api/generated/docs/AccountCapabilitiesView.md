@@ -7,6 +7,7 @@ Current account capabilities used only for client presentation.
 
 Name | Type
 ------------ | -------------
+`auth` | [AuthCapabilities](AuthCapabilities.md)
 `serverAdmin` | boolean
 
 ## Example
@@ -16,6 +17,7 @@ import type { AccountCapabilitiesView } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "auth": null,
   "serverAdmin": null,
 } satisfies AccountCapabilitiesView
 

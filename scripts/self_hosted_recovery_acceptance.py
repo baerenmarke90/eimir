@@ -36,8 +36,8 @@ ATTACHMENT_ID = "01990000-0000-7000-8000-000000000301"
 PRIVATE_HEART_ID = "01990000-0000-7000-8000-000000000401"
 PARTNER_PRIVATE_HEART_ID = "01990000-0000-7000-8000-000000000402"
 FOREIGN_PRIVATE_HEART_ID = "01990000-0000-7000-8000-000000000403"
-DURABLE_ORIGINAL = b"sidebyside-recovery-durable-original-v1"
-DURABLE_THUMBNAIL = b"sidebyside-recovery-durable-thumbnail-v1"
+DURABLE_ORIGINAL = b"eimir-recovery-durable-original-v1"
+DURABLE_THUMBNAIL = b"eimir-recovery-durable-thumbnail-v1"
 HTTP_TIMEOUT_SECONDS = 20
 
 
@@ -84,20 +84,21 @@ def write_environment(path: Path, project_name: str, api_port: int, web_port: in
         "\n".join(
             (
                 f"COMPOSE_PROJECT_NAME={project_name}",
-                "POSTGRES_USER=sidebyside",
+                "COMPOSE_PROFILES=self-hosted",
+                "POSTGRES_USER=eimir",
                 "POSTGRES_PASSWORD=synthetic-recovery-database-password",
-                "POSTGRES_DB=sidebyside",
-                "SBS_ENVIRONMENT=development",
-                "SBS_DEMO_MODE=false",
-                "SBS_MEDIA_STORE=local",
-                "SBS_CURSOR_SIGNING_KEY=synthetic-recovery-signing-key-at-least-32-characters",
-                'SBS_ALLOWED_HOSTS=["localhost","127.0.0.1"]',
-                f"SBS_PUBLIC_BASE_URL=http://127.0.0.1:{web_port}",
-                "SBS_BIND_IP=127.0.0.1",
+                "POSTGRES_DB=eimir",
+                "EIMIR_ENVIRONMENT=development",
+                "EIMIR_DEMO_MODE=false",
+                "EIMIR_MEDIA_STORE=local",
+                "EIMIR_CURSOR_SIGNING_KEY=synthetic-recovery-signing-key-at-least-32-characters",
+                'EIMIR_ALLOWED_HOSTS=["localhost","127.0.0.1"]',
+                f"EIMIR_PUBLIC_BASE_URL=http://127.0.0.1:{web_port}",
+                "EIMIR_BIND_IP=127.0.0.1",
                 f"API_PORT={api_port}",
                 f"WEB_PORT={web_port}",
-                "SBS_MAIL_TRANSPORT=log",
-                "SBS_MAIL_FROM=recovery@fixture.invalid",
+                "EIMIR_MAIL_TRANSPORT=log",
+                "EIMIR_MAIL_FROM=recovery@fixture.invalid",
                 "",
             )
         ),
@@ -126,6 +127,8 @@ class Scenario:
             "compose",
             "--project-name",
             self.project_name,
+            "--profile",
+            "self-hosted",
             "--env-file",
             str(self.env_file),
             "-f",
@@ -358,13 +361,13 @@ def step(message: str) -> None:
 
 
 def run_acceptance() -> None:
-    project_name = f"sbs-recovery-{uuid4().hex[:12]}"
+    project_name = f"eimir-recovery-{uuid4().hex[:12]}"
     api_port = available_port()
     web_port = available_port()
     if api_port == web_port:
         web_port = available_port()
 
-    with tempfile.TemporaryDirectory(prefix="sidebyside-recovery-acceptance-") as temp_name:
+    with tempfile.TemporaryDirectory(prefix="eimir-recovery-acceptance-") as temp_name:
         temp = Path(temp_name)
         env_file = temp / "synthetic.env"
         archive = temp / "verified-backup.tar"

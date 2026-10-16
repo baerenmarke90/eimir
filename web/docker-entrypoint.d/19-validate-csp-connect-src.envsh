@@ -4,44 +4,44 @@
 # Only exact HTTP(S) origins may enter the CSP header; wildcards, paths,
 # credentials, and arbitrary CSP expressions remain forbidden.
 
-sbs_csp_raw_origins=${SBS_WEB_CSP_CONNECT_ORIGINS:-}
-sbs_csp_normalized_origins=
+eimir_csp_raw_origins=${EIMIR_WEB_CSP_CONNECT_ORIGINS:-}
+eimir_csp_normalized_origins=
 
 # Shell globbing must never expand an administrative value against filenames in
 # the container. Whitespace separates multiple explicit origins.
 set -f
-for sbs_csp_origin in $sbs_csp_raw_origins; do
-    if ! printf '%s\n' "$sbs_csp_origin" \
+for eimir_csp_origin in $eimir_csp_raw_origins; do
+    if ! printf '%s\n' "$eimir_csp_origin" \
         | grep -Eq '^https?://([A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?|\[[0-9A-Fa-f:.]+\])(:[0-9]{1,5})?$'; then
-        echo "SBS_WEB_CSP_CONNECT_ORIGINS does not contain a valid exact HTTP(S) origin." >&2
+        echo "EIMIR_WEB_CSP_CONNECT_ORIGINS does not contain a valid exact HTTP(S) origin." >&2
         exit 1
     fi
 
-    sbs_csp_port=
-    case "$sbs_csp_origin" in
-        *]:*) sbs_csp_port=${sbs_csp_origin##*:} ;;
+    eimir_csp_port=
+    case "$eimir_csp_origin" in
+        *]:*) eimir_csp_port=${eimir_csp_origin##*:} ;;
         *]) ;;
-        http://*:*|https://*:*) sbs_csp_port=${sbs_csp_origin##*:} ;;
+        http://*:*|https://*:*) eimir_csp_port=${eimir_csp_origin##*:} ;;
     esac
-    if [ -n "$sbs_csp_port" ] \
-        && { [ "$sbs_csp_port" -lt 1 ] || [ "$sbs_csp_port" -gt 65535 ]; }; then
-        echo "SBS_WEB_CSP_CONNECT_ORIGINS contains an invalid port." >&2
+    if [ -n "$eimir_csp_port" ] \
+        && { [ "$eimir_csp_port" -lt 1 ] || [ "$eimir_csp_port" -gt 65535 ]; }; then
+        echo "EIMIR_WEB_CSP_CONNECT_ORIGINS contains an invalid port." >&2
         exit 1
     fi
 
-    if [ -n "$sbs_csp_normalized_origins" ]; then
-        sbs_csp_normalized_origins="$sbs_csp_normalized_origins $sbs_csp_origin"
+    if [ -n "$eimir_csp_normalized_origins" ]; then
+        eimir_csp_normalized_origins="$eimir_csp_normalized_origins $eimir_csp_origin"
     else
-        sbs_csp_normalized_origins=$sbs_csp_origin
+        eimir_csp_normalized_origins=$eimir_csp_origin
     fi
 done
 set +f
 
 # The leading space belongs to the template boundary. Without an additional
 # origin, the header remains exactly `connect-src 'self';`.
-if [ -n "$sbs_csp_normalized_origins" ]; then
-    SBS_WEB_CSP_CONNECT_ORIGINS=" $sbs_csp_normalized_origins"
+if [ -n "$eimir_csp_normalized_origins" ]; then
+    EIMIR_WEB_CSP_CONNECT_ORIGINS=" $eimir_csp_normalized_origins"
 else
-    SBS_WEB_CSP_CONNECT_ORIGINS=
+    EIMIR_WEB_CSP_CONNECT_ORIGINS=
 fi
-export SBS_WEB_CSP_CONNECT_ORIGINS
+export EIMIR_WEB_CSP_CONNECT_ORIGINS

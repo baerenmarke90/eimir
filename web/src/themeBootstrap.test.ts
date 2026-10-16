@@ -14,10 +14,15 @@ type ThemeDocument = {
     style: Record<string, string>;
   };
   querySelector(selector: string): { content: string } | null;
+  getElementById(id: string): { href: string } | null;
 };
 
 type ThemeWindow = {
-  localStorage: { getItem(key: string): string | null };
+  localStorage: {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+    removeItem(key: string): void;
+  };
   matchMedia(query: string): { matches: boolean };
 };
 
@@ -39,15 +44,29 @@ function runBootstrap(
   storedPreference: string | null,
   systemPrefersDark: boolean,
   storageThrows = false,
+  legacyStoredPreference: string | null = null,
 ) {
   const dataset: Record<string, string> = {};
   const style: Record<string, string> = {};
-  const themeColor = { content: '#faf8fc' };
+  const themeColor = { content: '#e6ebfa' };
+  const favicon = { href: '/identity/app-icon-light.png' };
+  const storage = new Map<string, string>();
+  if (storedPreference !== null) storage.set('eimir.theme', storedPreference);
+  if (legacyStoredPreference !== null)
+    storage.set('sidebyside.theme', legacyStoredPreference);
   const windowMock: ThemeWindow = {
     localStorage: {
-      getItem: () => {
+      getItem: (key) => {
         if (storageThrows) throw new Error('storage blocked');
-        return storedPreference;
+        return storage.get(key) ?? null;
+      },
+      setItem: (key, value) => {
+        if (storageThrows) throw new Error('storage blocked');
+        storage.set(key, value);
+      },
+      removeItem: (key) => {
+        if (storageThrows) throw new Error('storage blocked');
+        storage.delete(key);
       },
     },
     matchMedia: (query) => {
@@ -57,6 +76,7 @@ function runBootstrap(
   };
   const documentMock: ThemeDocument = {
     documentElement: { dataset, style },
+    getElementById: (id) => (id === 'app-favicon' ? favicon : null),
     querySelector: (selector) => {
       expect(selector).toBe('meta[name="theme-color"]');
       return themeColor;
@@ -66,7 +86,7 @@ function runBootstrap(
   const execute = new Function('window', 'document', readBootstrap());
   execute(windowMock, documentMock);
 
-  return { dataset, style, themeColor };
+  return { dataset, style, themeColor, favicon, storage };
 }
 
 describe('theme bootstrap', () => {
@@ -74,7 +94,8 @@ describe('theme bootstrap', () => {
     const result = runBootstrap('dark', false);
     expect(result.dataset).toEqual({ theme: 'dark', themePreference: 'dark' });
     expect(result.style.colorScheme).toBe('dark');
-    expect(result.themeColor.content).toBe('#1c1525');
+    expect(result.themeColor.content).toBe('#171b2f');
+    expect(result.favicon.href).toBe('/identity/app-icon-dark.png');
   });
 
   it('keeps an explicit light preference before app startup even on a dark system', () => {
@@ -84,7 +105,8 @@ describe('theme bootstrap', () => {
       themePreference: 'light',
     });
     expect(result.style.colorScheme).toBe('light');
-    expect(result.themeColor.content).toBe('#faf8fc');
+    expect(result.themeColor.content).toBe('#e6ebfa');
+    expect(result.favicon.href).toBe('/identity/app-icon-light.png');
   });
 
   it('follows the operating-system preference in system mode', () => {
@@ -93,7 +115,7 @@ describe('theme bootstrap', () => {
       theme: 'dark',
       themePreference: 'system',
     });
-    expect(result.themeColor.content).toBe('#1c1525');
+    expect(result.themeColor.content).toBe('#171b2f');
   });
 
   it('falls back to system for missing or invalid stored values', () => {
@@ -114,5 +136,12 @@ describe('theme bootstrap', () => {
       themePreference: 'system',
     });
     expect(result.style.colorScheme).toBe('dark');
+  });
+
+  it('migrates the deprecated preference before app startup', () => {
+    const result = runBootstrap(null, false, false, 'dark');
+    expect(result.dataset.theme).toBe('dark');
+    expect(result.storage.get('eimir.theme')).toBe('dark');
+    expect(result.storage.has('sidebyside.theme')).toBe(false);
   });
 });

@@ -7,18 +7,18 @@ import io
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import binding as attachment_binding
-from sidebyside.attachments import service as attachment_service
-from sidebyside.attachments.models import (
+from eimir.attachments import binding as attachment_binding
+from eimir.attachments import service as attachment_service
+from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
 )
-from sidebyside.authorization import PrivacyClass
-from sidebyside.core.clock import now
-from sidebyside.media import get_media_store
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import PrivacyClass
+from eimir.core.clock import now
+from eimir.media import get_media_store
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -146,6 +146,40 @@ def test_profile_projection_and_display_name_update(client, couple) -> None:  # 
     )
     assert invalid.status_code == 422
     assert invalid.json()["code"] == "DISPLAY_NAME_REQUIRED"
+
+
+def test_profile_birthday_is_self_write_partner_read_and_clear(client, couple) -> None:  # type: ignore[no-untyped-def]
+    initial = client.get(
+        profile_path(couple["space"].id, couple["anna"].id),
+        headers=auth(couple["token_a"]),
+    )
+    assert initial.status_code == 200
+    assert initial.json()["birthday"] is None
+
+    birthday_set = client.patch(
+        profile_path(couple["space"].id, couple["anna"].id),
+        json={"birthday": "1992-05-14"},
+        headers={**auth(couple["token_a"]), "If-Match": initial.headers["etag"]},
+    )
+    assert birthday_set.status_code == 200, birthday_set.text
+    assert birthday_set.json()["birthday"] == "1992-05-14"
+    assert birthday_set.json()["version"] == 2
+
+    partner_view = client.get(
+        profile_path(couple["space"].id, couple["anna"].id),
+        headers=auth(couple["token_b"]),
+    )
+    assert partner_view.status_code == 200
+    assert partner_view.json()["birthday"] == "1992-05-14"
+
+    cleared = client.patch(
+        profile_path(couple["space"].id, couple["anna"].id),
+        json={"birthday": None},
+        headers={**auth(couple["token_a"]), "If-Match": partner_view.headers["etag"]},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["birthday"] is None
+    assert cleared.json()["version"] == 3
 
 
 def test_avatar_set_remove_and_attachment_owner_boundary(

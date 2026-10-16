@@ -9,9 +9,9 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import passwords, rate_limit
-from sidebyside.auth.tokens import hash_token
-from sidebyside.identity.models import (
+from eimir.auth import passwords, rate_limit
+from eimir.auth.tokens import hash_token
+from eimir.identity.models import (
     Account,
     DeviceSession,
     InstanceBootstrapState,
@@ -159,7 +159,7 @@ class TestRegistration:
 
     def test_no_account_without_valid_password(self, client, session) -> None:  # type: ignore[no-untyped-def]
         "Otherwise an account could survive a failed registration."
-        from sidebyside.identity import service as accounts
+        from eimir.identity import service as accounts
 
         client.post(
             "/api/v1/auth/register",
@@ -219,8 +219,8 @@ class TestSignIn:
         assert wrong.json() == unknown.json()
 
     def test_disabled_account_cannot_sign_in(self, client, session, signed_in) -> None:  # type: ignore[no-untyped-def]
-        from sidebyside.core.clock import now
-        from sidebyside.identity import service as accounts
+        from eimir.core.clock import now
+        from eimir.identity import service as accounts
 
         account = accounts.find_by_email(session, signed_in)
         assert account is not None

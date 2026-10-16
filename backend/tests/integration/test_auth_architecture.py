@@ -9,11 +9,11 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import action_tokens
-from sidebyside.core.clock import now
-from sidebyside.core.errors import ValidationError
-from sidebyside.identity import service
-from sidebyside.identity.models import AccountEmail
+from eimir.auth import action_tokens
+from eimir.core.clock import now
+from eimir.core.errors import ValidationError
+from eimir.identity import service
+from eimir.identity.models import AccountEmail
 from tests.conftest import make_account, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

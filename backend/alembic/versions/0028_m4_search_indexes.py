@@ -14,90 +14,12 @@ from __future__ import annotations
 
 from alembic import op
 
+from eimir.search.index_migration import SEARCH_INDEXES, ensure_search_indexes
+
 revision = "0028"
 down_revision = "0027"
 branch_labels = None
 depends_on = None
-
-
-_INDEXES: tuple[tuple[str, str, str], ...] = (
-    (
-        "ix_memories_search_fts",
-        "memories",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B')",
-    ),
-    (
-        "ix_heart_moments_search_fts",
-        "heart_moments",
-        "setweight(to_tsvector('simple', coalesce(payload->>'text', '')), 'A')",
-    ),
-    (
-        "ix_milestones_search_fts",
-        "milestones",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B')",
-    ),
-    (
-        "ix_wishes_search_fts",
-        "wishes",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A')",
-    ),
-    (
-        "ix_plans_search_fts",
-        "plans",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B')",
-    ),
-    (
-        "ix_places_search_fts",
-        "places",
-        "setweight(to_tsvector('simple', coalesce(payload->>'name', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'address', '')), 'B')",
-    ),
-    (
-        "ix_chapters_search_fts",
-        "chapters",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B')",
-    ),
-    (
-        "ix_collections_search_fts",
-        "collections",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A')",
-    ),
-    (
-        "ix_collection_items_search_fts",
-        "collection_items",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A')",
-    ),
-    (
-        "ix_private_notes_search_fts",
-        "private_notes",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'body', '')), 'B')",
-    ),
-    (
-        "ix_gift_ideas_search_fts",
-        "gift_ideas",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'recipient', '')), 'B') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'occasion', '')), 'B') || "
-        "setweight(to_tsvector('simple', coalesce(payload->>'price_text', '')), 'B')",
-    ),
-    (
-        "ix_private_collections_search_fts",
-        "private_collections",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A')",
-    ),
-    (
-        "ix_private_collection_items_search_fts",
-        "private_collection_items",
-        "setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A')",
-    ),
-)
 
 
 def upgrade() -> None:
@@ -106,15 +28,17 @@ def upgrade() -> None:
     # IF NOT EXISTS handles indexes already completed by a previous attempt.
     # Runtime integration tests verify the resulting definitions, so the
     # resumability guard is not used as a substitute for schema validation.
+    #
+    # IF NOT EXISTS only checks the index *name*, not its validity. If a
+    # previous attempt was interrupted mid-build (killed migrate container,
+    # host restart), PostgreSQL leaves that index catalogued but invalid, and
+    # a bare retry would silently skip rebuilding it forever. Drop an invalid
+    # leftover first so the retry actually resumes instead of no-op'ing.
     with op.get_context().autocommit_block():
-        for name, table, expression in _INDEXES:
-            op.execute(
-                f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {name} "
-                f"ON {table} USING gin (({expression}))"
-            )
+        ensure_search_indexes(op.get_bind())
 
 
 def downgrade() -> None:
     with op.get_context().autocommit_block():
-        for name, _table, _expression in reversed(_INDEXES):
-            op.execute(f"DROP INDEX CONCURRENTLY IF EXISTS {name}")
+        for index in reversed(SEARCH_INDEXES):
+            op.execute(f"DROP INDEX CONCURRENTLY IF EXISTS {index.name}")

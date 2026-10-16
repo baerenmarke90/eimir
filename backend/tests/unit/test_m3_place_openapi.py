@@ -7,7 +7,7 @@ provider data, or radius search.
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/places"
 DETAIL = "/api/v1/spaces/{spaceId}/places/{placeId}"

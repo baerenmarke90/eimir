@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -21,9 +21,14 @@ import { ProblemState } from './ProblemState';
 import {
   DeleteConfirmation,
   LoadMoreButton,
-  PrivateAreaBackToMore,
+  PrivateAreaBackToHub,
+  PrivateAreaDetailBack,
+  PrivateEditorDiscardSheet,
+  usePrivateAreaTaskContext,
+  usePrivateTaskEditorLifecycle,
 } from './PrivateAreaLayout';
 import { UiState } from './UiState';
+import { useRequiredTitleValidation } from './useRequiredTitleValidation';
 
 const PAGE_SIZE = 20;
 
@@ -55,7 +60,13 @@ function usePrivateNote(
   return { noteId, query };
 }
 
-function PrivateNoteFields({ note }: { note?: PrivateNoteDetail }) {
+function PrivateNoteFields({
+  note,
+  titleValidation,
+}: {
+  note?: PrivateNoteDetail;
+  titleValidation: ReturnType<typeof useRequiredTitleValidation>;
+}) {
   const { t } = useTranslation();
   return (
     <>
@@ -64,12 +75,29 @@ function PrivateNoteFields({ note }: { note?: PrivateNoteDetail }) {
           {t('privateArea.notes.titleLabel')}
         </label>
         <input
+          ref={titleValidation.inputRef}
           id="private-note-title"
           name="title"
           required
           maxLength={200}
           defaultValue={note?.title ?? ''}
+          aria-invalid={titleValidation.invalid || undefined}
+          aria-describedby={
+            titleValidation.invalid ? 'private-note-title-error' : undefined
+          }
+          onChange={(event) =>
+            titleValidation.handleChange(event.currentTarget.value)
+          }
         />
+        {titleValidation.invalid ? (
+          <p
+            id="private-note-title-error"
+            className="status status-error"
+            role="alert"
+          >
+            {t('privateArea.titleRequired')}
+          </p>
+        ) : null}
       </div>
       <div className="field-group">
         <label htmlFor="private-note-body">
@@ -112,7 +140,7 @@ export function PrivateNotesListPage({ api, accountId, spaceId }: Props) {
   return (
     <>
       <PageHeader
-        before={<PrivateAreaBackToMore />}
+        before={<PrivateAreaBackToHub />}
         title={t('privateArea.notes.title')}
         description={t('privateArea.notes.intro')}
         action={
@@ -181,6 +209,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [dirty, setDirty] = useState(false);
   const mutation = useMutation({
     mutationFn: (values: { title: string; body: string; pinned: boolean }) =>
       privateApiCall(() =>
@@ -190,15 +219,39 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
       });
-      navigate(privateNotePath(note.id), { replace: true });
+      closeTask(() => {
+        navigate(privateNotePath(note.id), {
+          replace: true,
+          state: navigationState,
+        });
+      });
     },
+  });
+  const titleValidation = useRequiredTitleValidation(
+    mutation.error,
+    'PRIVATE_NOTE_TITLE_REQUIRED',
+    mutation.reset,
+  );
+  const {
+    navigationState,
+    showDiscardConfirm,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = usePrivateTaskEditorLifecycle({
+    fallbackPath: PRIVATE_NOTES_PATH,
+    isDirty: dirty,
+    isCloseBlocked: mutation.isPending,
   });
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation.isPending) return;
     const data = new FormData(event.currentTarget);
+    const title = titleValidation.validate(String(data.get('title') || ''));
+    if (title === null) return;
     mutation.mutate({
-      title: String(data.get('title') || '').trim(),
+      title,
       body: String(data.get('body') || '').trim(),
       pinned: data.get('pinned') === 'on',
     });
@@ -208,23 +261,34 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <Link className="back-link" to={PRIVATE_NOTES_PATH}>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={requestClose}
+            aria-disabled={mutation.isPending}
+          >
             {t('privateArea.notes.detailBack')}
-          </Link>
+          </button>
         }
         title={t('privateArea.notes.createTitle')}
         description={t('privateArea.notes.intro')}
       />
       <section className="form-card private-area-editor">
-        <form className="form-grid" onSubmit={submit}>
-          <PrivateNoteFields />
+        <form
+          className="form-grid"
+          onSubmit={submit}
+          onChange={() => setDirty(true)}
+        >
+          <PrivateNoteFields titleValidation={titleValidation} />
           <div className="form-actions">
-            <Link
+            <button
+              type="button"
               className="button-link secondary-link"
-              to={PRIVATE_NOTES_PATH}
+              onClick={requestClose}
+              disabled={mutation.isPending}
             >
               {t('common.cancel')}
-            </Link>
+            </button>
             <button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
                 ? t('privateArea.saving')
@@ -232,8 +296,15 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
             </button>
           </div>
         </form>
-        {mutation.error ? <ProblemState error={mutation.error} /> : null}
+        {mutation.error && !titleValidation.serverInvalid ? (
+          <ProblemState error={mutation.error} />
+        ) : null}
       </section>
+      <PrivateEditorDiscardSheet
+        open={showDiscardConfirm}
+        onKeep={keepEditing}
+        onDiscard={() => closeTask()}
+      />
     </>
   );
 }
@@ -241,6 +312,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
 export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const { query } = usePrivateNote(api, accountId, spaceId);
+  const { navigationState } = usePrivateAreaTaskContext(PRIVATE_NOTES_PATH);
 
   if (query.isLoading)
     return <UiState kind="loading" title={t('privateArea.notes.loading')} />;
@@ -255,9 +327,10 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <Link className="back-link" to={PRIVATE_NOTES_PATH}>
-            {t('privateArea.notes.detailBack')}
-          </Link>
+          <PrivateAreaDetailBack
+            fallbackPath={PRIVATE_NOTES_PATH}
+            fallbackLabel={t('privateArea.notes.detailBack')}
+          />
         }
         eyebrow={t('privateArea.privacyLabel')}
         title={note.title}
@@ -266,6 +339,7 @@ export function PrivateNoteDetailPage({ api, accountId, spaceId }: Props) {
             <Link
               className="button-link secondary-link"
               to={privateNoteEditPath(note.id)}
+              state={navigationState}
             >
               {t('privateArea.edit')}
             </Link>
@@ -290,6 +364,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [dirty, setDirty] = useState(false);
   const { noteId, query } = usePrivateNote(api, accountId, spaceId);
 
   const deleteMutation = useMutation({
@@ -310,7 +385,7 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
       });
-      navigate(PRIVATE_NOTES_PATH, { replace: true });
+      closeTask(() => navigate(PRIVATE_NOTES_PATH, { replace: true }));
     },
   });
 
@@ -338,8 +413,31 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
       });
-      navigate(privateNotePath(note.id), { replace: true });
+      closeTask(() => {
+        navigate(privateNotePath(note.id), {
+          replace: true,
+          state: navigationState,
+        });
+      });
     },
+  });
+  const titleValidation = useRequiredTitleValidation(
+    mutation.error,
+    'PRIVATE_NOTE_TITLE_REQUIRED',
+    mutation.reset,
+  );
+  const detailFallback = noteId ? privateNotePath(noteId) : PRIVATE_NOTES_PATH;
+  const {
+    navigationState,
+    showDiscardConfirm,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = usePrivateTaskEditorLifecycle({
+    fallbackPath: detailFallback,
+    isDirty: dirty,
+    isCloseBlocked: mutation.isPending || deleteMutation.isPending,
+    closeToFallback: true,
   });
 
   if (query.isLoading)
@@ -363,11 +461,14 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutation.isPending) return;
     const data = new FormData(event.currentTarget);
+    const title = titleValidation.validate(String(data.get('title') || ''));
+    if (title === null) return;
     mutation.mutate({
       note: editableNote,
       values: {
-        title: String(data.get('title') || '').trim(),
+        title,
         body: String(data.get('body') || '').trim(),
         pinned: data.get('pinned') === 'on',
       },
@@ -378,23 +479,34 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
     <>
       <PageHeader
         before={
-          <Link className="back-link" to={privateNotePath(note.id)}>
+          <button
+            type="button"
+            className="back-link tertiary"
+            onClick={requestClose}
+            aria-disabled={mutation.isPending || deleteMutation.isPending}
+          >
             {t('privateArea.notes.detailBack')}
-          </Link>
+          </button>
         }
         title={t('privateArea.notes.editTitle')}
         description={t('privateArea.notes.intro')}
       />
       <section className="form-card private-area-editor">
-        <form className="form-grid" onSubmit={submit}>
-          <PrivateNoteFields note={note} />
+        <form
+          className="form-grid"
+          onSubmit={submit}
+          onChange={() => setDirty(true)}
+        >
+          <PrivateNoteFields note={note} titleValidation={titleValidation} />
           <div className="form-actions">
-            <Link
+            <button
+              type="button"
               className="button-link secondary-link"
-              to={privateNotePath(note.id)}
+              onClick={requestClose}
+              disabled={mutation.isPending || deleteMutation.isPending}
             >
               {t('common.cancel')}
-            </Link>
+            </button>
             <button type="submit" disabled={mutation.isPending}>
               {mutation.isPending
                 ? t('privateArea.saving')
@@ -402,7 +514,9 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
             </button>
           </div>
         </form>
-        {mutation.error ? <ProblemState error={mutation.error} /> : null}
+        {mutation.error && !titleValidation.serverInvalid ? (
+          <ProblemState error={mutation.error} />
+        ) : null}
       </section>
 
       {note.capabilities.canDelete ? (
@@ -417,6 +531,11 @@ export function PrivateNoteEditPage({ api, accountId, spaceId }: Props) {
           />
         </article>
       ) : null}
+      <PrivateEditorDiscardSheet
+        open={showDiscardConfirm}
+        onKeep={keepEditing}
+        onDiscard={() => closeTask()}
+      />
     </>
   );
 }

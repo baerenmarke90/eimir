@@ -1,4 +1,4 @@
-"""Create, ensure, or reset the canonical SideBySide demo Space."""
+"""Create, ensure, or reset the canonical eimir. demo Space."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ import os
 import secrets
 from datetime import date
 
-from sidebyside.config import Environment, get_settings
-from sidebyside.db.session import unit_of_work
-from sidebyside.demo import create_demo_space, reset_demo_space
-from sidebyside.demo.assets import load_and_validate_assets
+from eimir.config import Environment, get_settings
+from eimir.db.session import unit_of_work
+from eimir.demo import create_demo_space, reset_demo_space
+from eimir.demo.assets import load_and_validate_assets
 
-LEA_PASSWORD_ENV = "SBS_DEMO_LEA_PASSWORD"
-ALEX_PASSWORD_ENV = "SBS_DEMO_ALEX_PASSWORD"
+LEA_PASSWORD_ENV = "EIMIR_DEMO_LEA_PASSWORD"
+ALEX_PASSWORD_ENV = "EIMIR_DEMO_ALEX_PASSWORD"
 
 
 def _reference_date(raw: str | None) -> date:
@@ -39,7 +39,7 @@ def _ephemeral_seed_password() -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Create, ensure, or reset the canonical SideBySide demo Space."
+        description="Create, ensure, or reset the canonical eimir. demo Space."
     )
     parser.add_argument(
         "action",

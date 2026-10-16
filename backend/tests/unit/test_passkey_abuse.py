@@ -1,6 +1,6 @@
 """Network identity for the anonymous passkey abuse key."""
 
-from sidebyside.auth.passkey_abuse import network_key
+from eimir.auth.passkey_abuse import network_key
 
 
 def test_ipv4_remains_separate_per_client() -> None:

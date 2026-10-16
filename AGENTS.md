@@ -1,4 +1,4 @@
-# SideBySide Next - Implementation Rules
+# eimir. - Implementation Rules
 
 These rules apply to AI-assisted and human implementation work in this repository.
 
@@ -15,15 +15,16 @@ Before relevant work, read at least these documents:
 7. `docs/EXTERNAL-PROVIDER-CANDIDATES.md` when providers, infrastructure, or platform components are affected
 8. `docs/ROADMAP.md` and the relevant milestone/project-control documentation
 
-For every user-facing Web or Android change, the following are additional mandatory sources before implementation starts:
+For every user-facing Web change (Android ships the same UI through the Capacitor wrapper), the following are additional mandatory sources before implementation starts:
 
-9. `docs/DESIGN-PRINCIPLES.md`
-10. `docs/PARTNER-APP-EXPERIENCE-STANDARD.md`
-11. `docs/UX-PATTERNS.md`
-12. `docs/SCREEN-TEMPLATES.md`
-13. `docs/COMPONENT-CONTRACTS.md`
-14. `docs/DESIGN-SYSTEM-DELIVERY.md`
-15. `design/tokens.json`
+9. `docs/product/design/README.md`, `docs/product/design/product-reference-v1.md`, and the relevant reference experience/system direction
+10. `docs/DESIGN-PRINCIPLES.md`
+11. `docs/PARTNER-APP-EXPERIENCE-STANDARD.md`
+12. `docs/UX-PATTERNS.md`
+13. `docs/SCREEN-TEMPLATES.md`
+14. `docs/COMPONENT-CONTRACTS.md`
+15. `docs/DESIGN-SYSTEM-DELIVERY.md`
+16. `design/tokens.json`
 
 ## Engineering language
 
@@ -63,7 +64,7 @@ When the change is relevant, the issue or pull request must document:
 
 Consistency with `docs/BUSINESS-MODEL.md` and `docs/FREEMIUM-FEATURE-MATRIX.md` is a mandatory development invariant, not a launch-only or monetization-only review.
 
-Every development issue and pull request must explicitly assess whether the change is consistent with the current SideBySide Next business/freemium model. The review is mandatory even when the conclusion is that the change has no business-model impact.
+Every development issue and pull request must explicitly assess whether the change is consistent with the current eimir. business/freemium model. The review is mandatory even when the conclusion is that the change has no business-model impact.
 
 For capabilities already classified in `docs/FREEMIUM-FEATURE-MATRIX.md`, that versioned matrix is the authoritative product-tier baseline. Until remaining future/unimplemented Free/Premium decisions from #262 are promoted into authoritative repository documentation, #262 remains the working source for those pending decisions. It must not become a permanent substitute for versioned repository documentation.
 
@@ -73,7 +74,7 @@ Assess at least the following when relevant:
 
 - Free, Premium, Mixed, or explicitly non-paywallable capability classification, including the current matrix row or the need to add/update one;
 - entitlement/capability boundaries and relationship/couple ownership semantics;
-- Self-Hosted versus SideBySide Cloud/Managed behavior;
+- Self-Hosted versus eimir. Cloud/Managed behavior;
 - managed infrastructure, storage, compute, rendering, provider/API, inference, email/push, or support cost;
 - quotas, storage limits, fair-use rules, retention, or other managed-resource constraints;
 - downgrade, trial, grandfathering, restore, export, and existing-data behavior;
@@ -101,13 +102,15 @@ Business-model consistency does not replace security, privacy, architecture, acc
 
 User-facing client work is product-design work, not a functional implementation followed by optional styling.
 
-SideBySide is a private partner app. Couple-facing screens must follow `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` and must not default to generic CRUD, admin-console, spreadsheet, or dashboard presentation.
+eimir. is a private partner app. Couple-facing screens must follow `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` and must not default to generic CRUD, admin-console, spreadsheet, or dashboard presentation.
+
+[eimir. Product Reference v1](docs/product/design/product-reference-v1.md), approved by #955, is the normative current product-design source. It takes precedence over conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. In particular, older near-1:1 Planen and Momente/Timeline references are no longer absolute constraints. Lower-level privacy, security, accessibility, domain/business contracts, tokens, and platform delivery gates remain binding. Start from the [design index](docs/product/design/README.md), then the relevant reference experience, pattern, and implementation evidence.
 
 ### Required before implementation starts
 
-For every new or materially changed user-facing Web or Android feature, identify in the issue or PR:
+For every new or materially changed user-facing Web feature or native capability, identify in the issue or PR:
 
-- the owning Screen Template or the reason a new pattern is required;
+- the relevant Product Reference v1 rules/reference experience, followed by the owning Screen Template or the reason a new pattern is required;
 - the existing design-system components and tokens to reuse;
 - the primary human/content focal point;
 - the primary action and visual hierarchy;
@@ -117,6 +120,26 @@ For every new or materially changed user-facing Web or Android feature, identify
 - privacy and relationship-state presentation where applicable.
 
 A new feature must use the shared product language in its first mergeable implementation. `Functionality first, design later` is not an acceptable UI delivery strategy.
+
+### Generated visual product reference is mandatory before implementation
+
+For every new or materially changed user-facing feature, the owning issue MUST contain at least one generated visual reference image before UI implementation starts.
+
+The visual-reference preflight is repository-aware, not a free-form concept exercise:
+
+- inspect current `main` and the actual destination screen/route before generating the image;
+- account for the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
+- preserve existing visible capabilities that remain in scope and represent them as they currently exist instead of silently replacing or omitting them;
+- integrate the new feature into the whole composition so placement, hierarchy, density, interaction entry points, and coexistence with neighboring features can be reviewed;
+- use Compact/smartphone as the primary generated composition; add an Expanded/Web visual only when its adaptation is materially different;
+- do not satisfy this gate with an isolated feature card, a blank replacement screen, generic SaaS/admin artwork, or a mockup detached from the current eimir. product;
+- attach/link the generated reference in the issue and record the baseline `main` SHA plus the existing screen/functions that were reviewed;
+- if the affected screen changes materially before implementation starts, regenerate or update the image against the new baseline;
+- for an existing feature issue that lacks this artifact, perform this visual preflight before writing or continuing UI implementation.
+
+The requirement to generate the image is binding. The generated image guides composition and Product Acceptance but is not automatically a pixel-perfect lock; normative Product Reference rules, accessibility, privacy, security, business/domain contracts, and later explicit Product Owner decisions still govern. If an issue needs particular visual decisions to be exact, it must say so explicitly.
+
+[#1151](https://github.com/baerenmarke90/eimir/issues/1151) may be consulted as a **non-binding example of the workflow only**. It does not establish a reusable layout, style template, or precedence for unrelated features.
 
 ### Couple-facing anti-patterns
 
@@ -132,6 +155,18 @@ Unless an explicit product decision justifies them, do not use these as the prim
 
 Administration and diagnostics may legitimately use denser information design, but that visual language must not leak into normal couple-facing surfaces.
 
+### Smartphone-first is a mandatory implementation invariant
+
+The Product Owner decision in `docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 0 is binding for all AI-assisted and human implementation work:
+
+- Smartphone/Compact is the normative product reference for couple-facing client work, not a later reduction of a desktop design.
+- Read the relevant design foundations (`docs/DESIGN-PRINCIPLES.md`, `docs/PARTNER-APP-EXPERIENCE-STANDARD.md`, `docs/UX-PATTERNS.md`, `docs/SCREEN-TEMPLATES.md`) before writing UI code, not after.
+- A Mobile Interaction Contract (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 10) must exist before UI implementation starts. If the owning issue lacks one, perform and document a Product Design Preflight first (section 15) rather than implementing against an incomplete brief.
+- Implementing a desktop/table/CRUD-first UI and making it responsive afterward is not an acceptable delivery strategy. Such a PR is not merge-ready regardless of functional correctness.
+- A technically complete UI is not automatically product-complete. Functional acceptance criteria do not by themselves satisfy this invariant.
+- Screen Templates (`docs/SCREEN-TEMPLATES.md`) are subordinate to this invariant: when a template's wording conflicts with it, the invariant wins. Correct the template, or document the conflict in the issue/PR, rather than following the template literally.
+- `Reuse before build` remains mandatory, but reuse is not a design justification by itself. No agent may argue "I reused the existing table/list component, therefore the design is correct" — an existing pattern that produces the wrong UX for the task is a design-system gap to close (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 17), not a pattern to keep reusing.
+
 ### Motion is required behavior
 
 Every material interaction must deliberately decide whether motion or feedback is needed. Reuse motion tokens and platform capabilities. State changes, reordering, sheets/panes, success feedback, and emotionally meaningful actions should not feel like abrupt DOM/data replacement.
@@ -142,7 +177,7 @@ All motion must remain non-blocking, accessible, and understandable with reduced
 
 A PR that changes couple-facing UI must include visual evidence sufficient to review the product result, including representative Compact and Expanded states where applicable. Theme-sensitive changes must be checked in Light and Dark. A textual assertion that the UI looks correct is not sufficient evidence by itself.
 
-A user-facing PR is not merge-ready when it is functionally correct but visibly violates the partner-app experience standard.
+A user-facing PR is not merge-ready when it is functionally correct but violates Product Reference v1 or the partner-app experience standard. Validate **Open → interact → save/complete → observe result → return**, including draft safety and restored context where applicable; screenshots alone cannot establish behavioral acceptance. Cover relevant ~360/~390/~430 px, sparse/dense, Light/Dark, and reduced-motion states alongside existing accessibility/reflow and native-device gates.
 
 ## Semantic design tokens
 
@@ -209,7 +244,7 @@ A relevant pull request without a traceable reuse review is not merge-ready. Pur
 
 Every development pull request must contain a traceable Business/Freemium Model Consistency result. `No business/freemium impact` is acceptable only with a short rationale. A recognizable conflict with `docs/BUSINESS-MODEL.md`, `docs/FREEMIUM-FEATURE-MATRIX.md`, or the current working decisions for unclassified future features must be resolved before merge or routed through an explicit owning product decision.
 
-Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web or Android changes must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
+Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web changes, or wrapper/native-capability changes that alter what couples see, must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
 
 Larger runtime slices, client features, and production user flows must document their relevant cross-cutting consequences in the pull request. The pull-request template is the minimum review surface; deeper decisions belong in the owning issue, decision document, or ADR.
 

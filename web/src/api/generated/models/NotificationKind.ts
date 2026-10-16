@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -20,6 +20,8 @@
 export const NotificationKind = {
     COMMENT_CREATED: 'COMMENT_CREATED',
     THINKING_OF_YOU: 'THINKING_OF_YOU',
+    PARTNER_KISS: 'PARTNER_KISS',
+    PARTNER_CHECK_IN: 'PARTNER_CHECK_IN',
     REMINDER_DUE: 'REMINDER_DUE'
 } as const;
 export type NotificationKind = typeof NotificationKind[keyof typeof NotificationKind];

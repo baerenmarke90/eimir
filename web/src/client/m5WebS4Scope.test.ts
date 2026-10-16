@@ -7,7 +7,7 @@ import {
   privateAreaQueryKeys,
 } from './privateArea';
 
-describe('SBS-M5-Web-S4-SCOPE', () => {
+describe('EIMIR-M5-Web-S4-SCOPE', () => {
   it('keeps the owner-only area out of shared primary navigation', () => {
     // The area is reachable under More rather than as a primary destination,
     // so its existence is never advertised beside the shared areas.
@@ -41,7 +41,7 @@ describe('SBS-M5-Web-S4-SCOPE', () => {
   });
 
   it('uses only space-scoped generated list requests without a partner selector', async () => {
-    const api = createPrivateAreaApi('https://sidebyside.invalid', 'token');
+    const api = createPrivateAreaApi('https://eimir.invalid', 'token');
     const notes = await api.listPrivateNotesRequestOpts({
       spaceId: 'space-a',
       limit: 20,

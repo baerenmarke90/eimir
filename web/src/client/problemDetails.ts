@@ -17,6 +17,13 @@ export class ClientProblemError extends Error {
     readonly kind: ClientProblemKind,
     readonly status?: number,
     readonly code?: string,
+    /**
+     * Seconds until the server allows the same request again, from the
+     * standard HTTP `Retry-After` response header (RFC 9110 §10.2.3) when the
+     * server sent one. Structured and server-authoritative — never parsed
+     * from the `detail` prose string.
+     */
+    readonly retryAfterSeconds?: number,
   ) {
     super(`Client request failed (${kind}).`);
     this.name = 'ClientProblemError';
@@ -65,10 +72,16 @@ export async function normalizeClientError(
     }
 
     const status = problem?.status ?? error.response.status;
+    const retryAfterHeader = error.response.headers.get('Retry-After');
+    const retryAfterSeconds =
+      retryAfterHeader !== null && /^\d+$/.test(retryAfterHeader)
+        ? Number(retryAfterHeader)
+        : undefined;
     return new ClientProblemError(
       classifyProblemStatus(status),
       status,
       problem?.code,
+      retryAfterSeconds,
     );
   }
 

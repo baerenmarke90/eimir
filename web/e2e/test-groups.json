@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "baseline": {
+    "main": "6a3d09724ab9aceefbdb35f730d2615b98d88e69",
+    "specFiles": 48,
+    "tests": 328,
+    "prCriticalTests": 164
+  },
+  "dispositions": {
+    "PR_CRITICAL": "Runs on every Web pull request and in the full regression.",
+    "FULL_REGRESSION": "Runs in the full regression after merge/manual execution, not every Web pull request.",
+    "LOWER_LEVEL": "Still runs in the full regression until equivalent lower-level coverage is committed and the browser case can be removed."
+  },
+  "specs": {
+    "browser-session-reload.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
+    },
+    "chapter-create-navigation.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
+    "cloud-onboarding-entry.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "create-surface-visual-checks.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 15
+    },
+    "f2-task-boundaries.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 35
+    },
+    "floating-bottom-nav-scroll.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "floating-bottom-nav.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9
+    },
+    "heart-moment-create-product-reference.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "hidden-file-inputs.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
+    "i18n-accessible-names.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "memory-carousel-stability.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "memory-create-defaults.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 7
+    },
+    "momente-discover-canonical.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "momente-timeline-filter-refresh.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
+    },
+    "momente-timeline-progressive-loading.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "momente-timeline-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 13
+    },
+    "optional-product-tour.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 2
+    },
+    "people-important-dates-mobile-first.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "partner-nickname.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "plan-inline-place-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "planning-completion-story-continuation.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 19
+    },
+    "planning-focused-create.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8
+    },
+    "planning-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 9
+    },
+    "planning-upcoming.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 8
+    },
+    "planning-wish-completion-continuation.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 6
+    },
+    "private-area-reference.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 25
+    },
+    "private-token-contrast.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 1,
+      "reason": "The contract is an axe scan against the rendered private-state route, not a static token-only invariant."
+    },
+    "product-accessibility.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 16
+    },
+    "product-gutters.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 4,
+      "reason": "Real CSS layout/container-query coverage remains browser-native; Phase B consolidates the full breakpoint matrix into four tests without dropping any checked width."
+    },
+    "product-reference-foundations.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11
+    },
+    "product-reflow.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 4,
+      "reason": "WCAG reflow and clipped-control checks depend on real rendered geometry across routed product surfaces and remain browser-native."
+    },
+    "quick-create-destination-handoff.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 18
+    },
+    "r1-memory-capture-evidence.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 11
+    },
+    "r2-momente-timeline-evidence.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5,
+      "reason": "Phase B keeps unique R2 behavior (month ordering, explicit order change, filtered Back restoration, Search return/deep-link behavior, reduced motion) and removes only presentation cases covered more strongly elsewhere.",
+      "removedRedundant": [
+        {
+          "test": "320px reflow produces no horizontal overflow with month headings",
+          "coveredBy": [
+            "momente-timeline-reference.spec.ts: 320px reflow produces no horizontal overflow and captures 03-momente-timeline-320-reflow.png",
+            "r2-timeline-card-hierarchy.spec.ts: 320px and 200% text keep the integrated shell free of collisions (#970)"
+          ]
+        },
+        {
+          "test": "dark mode captures month headings at 390x844",
+          "coveredBy": [
+            "momente-timeline-reference.spec.ts: dark mode at 390x844 captures 02-momente-timeline-390-dark.png",
+            "r2-timeline-card-hierarchy.spec.ts: dark mode keeps pinned heading and hidden bar coherent (#970)"
+          ]
+        },
+        {
+          "test": "representative Expanded (1280px) captures month headings",
+          "coveredBy": [
+            "r2-timeline-card-hierarchy.spec.ts: Expanded 1280px pins month headings without a bottom bar (#970)",
+            "r2-timeline-card-hierarchy.spec.ts: Expanded 1280px adapts the same card system"
+          ]
+        }
+      ],
+      "consolidated": [
+        {
+          "from": [
+            "opening a Heart Moment from a filtered Timeline and pressing Back restores that filter",
+            "opening a Milestone from a filtered Timeline and pressing Back restores that filter"
+          ],
+          "into": "filtered Timeline detail Back restores Heart Moment and Milestone scope"
+        },
+        {
+          "from": [
+            "Search restores its submitted query/kind after returning from a canonical detail",
+            "Search results for Heart Moment/Milestone deep-link to their canonical detail, not the Story landing"
+          ],
+          "into": "Search preserves return state and canonical Story detail routing"
+        }
+      ]
+    },
+    "r2-timeline-card-hierarchy.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 16
+    },
+    "shared-story-summary-visual.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "story-discover-tapestry.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 5
+    },
+    "story-featured-metadata.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "story-timeline-attachment-meta.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "story-timeline-comment-presence.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "story-years-product-reference.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7
+    },
+    "theme-forced-colors.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 1,
+      "reason": "Forced-colors behavior depends on Chromium media emulation and computed styles and remains browser-native."
+    },
+    "today-agenda-composition.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 7
+    },
+    "today-daily-energy.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "today-daily-quote.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "today-daily-vibe.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 17
+    },
+    "today-freshness.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "today-keepsake-precedence.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5
+    },
+    "today-living-home.spec.ts": {
+      "disposition": "FULL_REGRESSION",
+      "baselineTests": 24
+    },
+    "today-pro-insights.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 4
+    },
+    "today-recent-trace.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 5
+    },
+    "wish-detective.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 1
+    },
+    "today-pinned-collection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    },
+    "partner-quick-actions.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 9
+    },
+    "shared-photos.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 3
+    },
+    "app-icon-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
+    }
+  }
+}

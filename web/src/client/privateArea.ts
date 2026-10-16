@@ -2,7 +2,7 @@ import { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { Configuration } from '../api/generated/runtime';
 import { normalizeClientError } from './problemDetails';
 
-export const PRIVATE_AREA_ROOT_PATH = '/more/private/notes';
+export const PRIVATE_AREA_ROOT_PATH = '/more/private';
 export const PRIVATE_NOTES_PATH = '/more/private/notes';
 export const PRIVATE_GIFT_IDEAS_PATH = '/more/private/gift-ideas';
 export const PRIVATE_COLLECTIONS_PATH = '/more/private/collections';

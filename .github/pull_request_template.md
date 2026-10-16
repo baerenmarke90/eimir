@@ -1,3 +1,10 @@
+<!--
+Engineering language is English for repository work.
+PR titles, descriptions, review comments, commit messages, technical discussion, and engineering artifacts must be written in English.
+Follow docs/ENGINEERING-LANGUAGE.md.
+User-facing product copy remains governed by i18n and may be localized.
+-->
+
 ## Summary
 
 <!-- What does this PR change and why? -->
@@ -8,6 +15,8 @@
 
 ## Product Design / UX
 
+Current authority: [Product Reference v1](../docs/product/design/product-reference-v1.md), its [reference experiences](../docs/product/design/reference-screens.md), and [authority register](../docs/product/design/README.md). v1 wins over conflicting older design references unless a later explicit Product Owner decision supersedes it.
+
 Details: `docs/DESIGN-PRINCIPLES.md`, `docs/PARTNER-APP-EXPERIENCE-STANDARD.md`, `docs/UX-PATTERNS.md`, `docs/SCREEN-TEMPLATES.md`, and `docs/DESIGN-SYSTEM-DELIVERY.md`.
 
 Exactly one of the following options must be checked:
@@ -17,31 +26,41 @@ Exactly one of the following options must be checked:
 
 ### If user-facing UI / UX is affected
 
-All applicable items are mandatory before merge:
+Smartphone/Compact is the normative product reference (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 0); Web/Expanded adapts the same product, it does not replace it with a desktop management pattern. All applicable items are mandatory before merge:
 
 - [ ] Partner-app experience standard applied
+- [ ] Designed from Compact/smartphone outward
+- [ ] Mobile Interaction Contract implemented or deviations documented
 - [ ] Screen Template selected or a documented design-system gap explains why no existing template fits
 - [ ] Existing design-system components and semantic tokens reused or the gap is documented
 - [ ] Primary human/content focal point and dominant action are clear
-- [ ] Couple-facing UI does not default to spreadsheet/admin/CRUD composition
+- [ ] Primary actions smartphone-reachable and touch-target behavior reviewed
+- [ ] Progressive disclosure applied where appropriate
+- [ ] Established platform/mobile interaction pattern reused or deviation justified
+- [ ] Typing and keyboard burden minimized for Compact where applicable
+- [ ] Couple-facing composition is not spreadsheet/table/admin/CRM by default, or this is an explicit documented administrative/diagnostic exception
+- [ ] If table/list/master-detail is used, its necessity is explicitly justified
 - [ ] Result feels warm, modern, lively, beautiful, and not visually cold or sterile
 - [ ] Gentle playfulness / relationship personality deliberately applied or consciously not appropriate for this context
 - [ ] Love-message / relationship microcopy opportunity deliberately considered
-- [ ] Compact and Expanded behavior reviewed
+- [ ] Expanded/Web adapts the product instead of replacing it with a desktop management UI
 - [ ] Loading / Empty / Error / Offline / Success states reviewed where applicable
 - [ ] Motion / feedback behavior reviewed, including reduced motion
 - [ ] Privacy and relationship-state presentation reviewed where applicable
-- [ ] Visual evidence attached or linked
+- [ ] Representative Compact visual evidence attached or linked
+- [ ] Expanded visual evidence attached or linked when Web is affected
+- [ ] Light/Dark reviewed where theme-sensitive
+- [ ] Large text/reflow reviewed where relevant
 
 **Design result / rationale**
 
-<!-- Name the selected template/pattern, focal point, key hierarchy decision, warmth/playfulness decision, relationship microcopy decision, motion behavior, and any intentional exception. -->
+<!-- Identify the relevant Product Reference v1 sections and reference experience; explain any older reference retained or superseded. Name the selected template/pattern, focal point, key hierarchy decision, platform/mobile interaction pattern, typing/keyboard decision, warmth/playfulness decision, relationship microcopy decision, motion behavior, and any intentional exception (including administrative/diagnostic or table/list/master-detail justifications). -->
 
 -
 
 **Visual evidence**
 
-<!-- Link or attach representative screenshots/recordings. Include Compact and Expanded where applicable; include Light/Dark when theme-sensitive styling changed. -->
+<!-- Link representative screenshots/recordings and behavioral results for Open → interact → save/complete → observe result → return. Include draft/interruption safety and scope/filter/scroll restoration where relevant. Cover applicable ~360/~390/~430 px, sparse/dense/loading/error/success, Expanded, Light/Dark, reduced motion, large-text/reflow, and native device/emulator states. A static screenshot alone is not acceptance. -->
 
 -
 
@@ -72,7 +91,7 @@ When relevant, explicitly assess:
 
 - [ ] Free / Premium / Mixed / non-paywallable classification
 - [ ] entitlement/capability and couple/relationship ownership semantics
-- [ ] Self-Hosted vs. SideBySide Cloud/Managed behavior
+- [ ] Self-Hosted vs. eimir. Cloud/Managed behavior
 - [ ] managed storage / compute / provider / rendering / inference / email-push / support cost
 - [ ] quotas / fair-use / retention / resource limits
 - [ ] downgrade / trial / grandfathering / restore / export / existing-data behavior
@@ -149,6 +168,7 @@ For larger runtime slices, client features, and production user flows, document 
 - [ ] business/freemium model consistency result is complete and traceable
 - [ ] no Clean-Room, security, privacy, tenant-isolation, provenance, licensing, or engineering-language rule weakened
 - [ ] no recognizable cross-cutting consequence deferred without justification
+- [ ] PR title/body, review discussion, commit messages, and technical engineering prose are in English
 
 ## Notes / risks
 

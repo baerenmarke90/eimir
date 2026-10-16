@@ -9,8 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from sidebyside.api.deps import DbSession
-from sidebyside.db.session import get_session
+from eimir.api.deps import DbSession
+from eimir.db.session import get_session
 
 
 class ObserveResponseStart:

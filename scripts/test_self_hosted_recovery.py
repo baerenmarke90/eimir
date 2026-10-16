@@ -9,6 +9,7 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts import self_hosted_recovery
 
@@ -43,11 +44,12 @@ class RecoveryArchiveValidationTest(unittest.TestCase):
         media_archive: bytes | None = None,
         database_checksum: str | None = None,
         durable_object_count: int = 1,
+        archive_format: str = self_hosted_recovery.ARCHIVE_FORMAT,
     ) -> Path:
         if media_archive is None:
             media_archive = tar_bytes([regular_member(MEDIA_PATH, b"durable-media")])
         manifest = {
-            "format": self_hosted_recovery.ARCHIVE_FORMAT,
+            "format": archive_format,
             "formatVersion": self_hosted_recovery.ARCHIVE_VERSION,
             "createdAt": "2026-09-01T00:00:00Z",
             "sourceSchemaRevision": "0035_account_version",
@@ -90,6 +92,23 @@ class RecoveryArchiveValidationTest(unittest.TestCase):
 
             self.assertEqual(validated.media_paths, (MEDIA_PATH,))
             self.assertEqual(validated.manifest["sourceSchemaRevision"], "0035_account_version")
+
+    def test_legacy_archive_format_remains_restorable(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_name:
+            temp = Path(temp_name)
+            archive_path = self.write_backup(
+                temp,
+                archive_format=self_hosted_recovery.LEGACY_ARCHIVE_FORMAT,
+            )
+            extraction = temp / "validated"
+            extraction.mkdir()
+
+            validated = self_hosted_recovery.validate_archive(archive_path, extraction)
+
+            self.assertEqual(
+                validated.manifest["format"],
+                self_hosted_recovery.LEGACY_ARCHIVE_FORMAT,
+            )
 
     def test_modified_database_dump_is_rejected_by_checksum(self) -> None:
         with tempfile.TemporaryDirectory() as temp_name:
@@ -160,6 +179,33 @@ class RecoveryArchiveValidationTest(unittest.TestCase):
                 "member set",
             ):
                 self_hosted_recovery.validate_archive(archive_path, extraction)
+
+
+class ComposeSubprocessEnvironmentTest(unittest.TestCase):
+    """An operator-supplied environment must not widen the active profile.
+
+    Docker Compose's active profile set is the union of ``--profile`` and
+    ``COMPOSE_PROFILES``, not an override. Without pinning ``COMPOSE_PROFILES``
+    in the subprocess environment, a ``--env-file`` that sets
+    ``COMPOSE_PROFILES=cloud`` would silently add cloud services alongside
+    self-hosted recovery instead of being excluded (#746 review).
+    """
+
+    def test_forces_self_hosted_regardless_of_ambient_profiles(self) -> None:
+        with mock.patch.dict("os.environ", {"COMPOSE_PROFILES": "cloud,dev-db"}, clear=False):
+            env = self_hosted_recovery._compose_subprocess_env()
+        self.assertEqual(env["COMPOSE_PROFILES"], "self-hosted")
+
+    def test_every_compose_invocation_uses_the_forced_environment(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {"COMPOSE_PROFILES": "cloud"}, clear=False),
+            mock.patch(
+                "subprocess.run",
+                return_value=mock.Mock(returncode=0, stdout=b"", stderr=b""),
+            ) as mock_run,
+        ):
+            self_hosted_recovery._run(["docker", "volume", "inspect", "x"], check=False)
+        self.assertEqual(mock_run.call_args.kwargs["env"]["COMPOSE_PROFILES"], "self-hosted")
 
 
 if __name__ == "__main__":

@@ -10,8 +10,8 @@ from PIL import Image
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import service as attachment_service
-from sidebyside.identity.models import Account
+from eimir.attachments import service as attachment_service
+from eimir.identity.models import Account
 from tests.conftest import (
     TEST_BOOTSTRAP_TOKEN,
     auth,

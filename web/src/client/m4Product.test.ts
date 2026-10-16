@@ -6,12 +6,16 @@ import {
 } from './m4Product';
 
 describe('M5 S5/S3 product navigation', () => {
-  it('links productized search targets and keeps private S4 targets closed', () => {
+  it('links shared and private search targets to canonical product routes', () => {
     expect(searchResultPath('MEMORY', 'memory/with space')).toBe(
       '/story/memories/memory%2Fwith%20space',
     );
-    expect(searchResultPath('HEART_MOMENT', 'heart-id')).toBe('/story');
-    expect(searchResultPath('MILESTONE', 'milestone-id')).toBe('/story');
+    expect(searchResultPath('HEART_MOMENT', 'heart-id')).toBe(
+      '/story/heart-moments/heart-id',
+    );
+    expect(searchResultPath('MILESTONE', 'milestone-id')).toBe(
+      '/story/milestones/milestone-id',
+    );
     expect(searchResultPath('WISH', 'wish-id')).toBe('/plan/wishes/wish-id');
     expect(searchResultPath('PLAN', 'plan-id')).toBe('/plan/plans/plan-id');
     expect(searchResultPath('PLACE', 'place-id')).toBe('/plan/places/place-id');
@@ -23,9 +27,23 @@ describe('M5 S5/S3 product navigation', () => {
     );
     expect(searchResultPath('COLLECTION_ITEM', 'item-id')).toBe('/more');
 
-    expect(searchResultPath('PRIVATE_NOTE', 'private-id')).toBeNull();
-    expect(searchResultPath('GIFT_IDEA', 'gift-id')).toBeNull();
-    expect(searchResultPath('PRIVATE_COLLECTION', 'collection-id')).toBeNull();
+    expect(searchResultPath('PRIVATE_NOTE', 'private/id')).toBe(
+      '/more/private/notes/private%2Fid',
+    );
+    expect(searchResultPath('GIFT_IDEA', 'gift-id')).toBe(
+      '/more/private/gift-ideas/gift-id',
+    );
+    expect(
+      searchResultPath('PRIVATE_COLLECTION', 'private-collection-id'),
+    ).toBe('/more/private/collections/private-collection-id');
+    expect(
+      searchResultPath(
+        'PRIVATE_COLLECTION_ITEM',
+        'item-id',
+        'private-collection-id',
+      ),
+    ).toBe('/more/private/collections/private-collection-id');
+    expect(searchResultPath('PRIVATE_COLLECTION_ITEM', 'item-id')).toBeNull();
   });
 
   it('routes engagement targets to canonical detail routes and guards null targets', () => {
@@ -57,6 +75,15 @@ describe('M5 S5/S3 product navigation', () => {
   });
 
   it('routes dashboard entries through the productized domain surfaces', () => {
+    expect(dashboardItemPath('MEMORY', 'memory-id')).toBe(
+      '/story/memories/memory-id',
+    );
+    expect(dashboardItemPath('HEART_MOMENT', 'heart-id')).toBe(
+      '/story/heart-moments/heart-id',
+    );
+    expect(dashboardItemPath('MILESTONE', 'milestone-id')).toBe(
+      '/story/milestones/milestone-id',
+    );
     expect(dashboardItemPath('IMPORTANT_DATE', 'date-id')).toBe('/more/people');
     expect(dashboardItemPath('BIRTHDAY', 'birthday-id')).toBe('/more/people');
     expect(dashboardItemPath('ANNIVERSARY', 'anniversary-id')).toBe(

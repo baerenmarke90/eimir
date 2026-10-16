@@ -1,0 +1,338 @@
+.daily-energy-checkin {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.daily-energy-badge {
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.daily-energy-avatar-control {
+  position: absolute;
+  bottom: -12px;
+  left: 28px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.daily-energy-avatar-chip {
+  display: grid;
+  width: 30px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  box-shadow: 0 2px 8px var(--color-shadow-card);
+  transition:
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.daily-energy-badge:hover:not(:disabled) .daily-energy-avatar-chip,
+.daily-energy-badge:focus-visible .daily-energy-avatar-chip {
+  border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.daily-energy-badge:focus-visible {
+  outline: none;
+}
+
+.daily-energy-badge:focus-visible .daily-energy-avatar-chip {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.daily-energy-badge[data-pending="true"] .daily-energy-avatar-chip {
+  border-color: var(--color-brand);
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 3px var(--color-brand);
+}
+
+.daily-energy-badge:disabled {
+  cursor: default;
+}
+
+.daily-energy-badge:disabled .daily-energy-avatar-chip {
+  opacity: 0.64;
+}
+
+.daily-energy-battery-icon {
+  width: 20px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+
+.daily-energy-battery-shell,
+.daily-energy-battery-tip {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.daily-energy-battery-question {
+  fill: currentColor;
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.daily-energy-battery-fill {
+  fill: var(--color-shared);
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: daily-energy-battery-fill var(--duration-context)
+    var(--easing-enter) both;
+}
+
+.daily-energy-battery-icon[data-level="low"] .daily-energy-battery-fill {
+  fill: var(--color-brand);
+}
+
+.daily-energy-battery-icon[data-level="medium"] .daily-energy-battery-fill {
+  fill: var(--color-discovery);
+}
+
+.daily-energy-battery-icon[data-level="high"] .daily-energy-battery-fill {
+  fill: var(--color-shared);
+}
+
+.daily-energy-partner-battery {
+  position: absolute;
+  right: -14px;
+  bottom: -12px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: var(--color-text);
+  pointer-events: none;
+}
+
+.daily-energy-popover {
+  position: absolute;
+  top: calc(100% + var(--space-4));
+  left: 50%;
+  width: min(19rem, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--elevation-overlay);
+  z-index: 30;
+  pointer-events: auto;
+}
+
+.daily-energy-popover::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: calc(50% - 15px);
+  width: 12px;
+  height: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  border-left: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  transform: rotate(45deg);
+}
+
+.daily-energy-popover-heading {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.daily-energy-popover-heading > strong {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+}
+
+.daily-energy-popover-heading > span {
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.daily-energy-slider {
+  --daily-energy-progress: 44.444%;
+
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+}
+
+.daily-energy-slider:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
+
+.daily-energy-slider::-webkit-slider-runnable-track {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
+      var(--color-brand)
+    )
+    0 0 / var(--daily-energy-progress) 100% no-repeat,
+    var(--color-surface-subtle);
+}
+
+.daily-energy-slider::-moz-range-track {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-subtle);
+}
+
+.daily-energy-slider::-moz-range-progress {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--color-brand) 34%, var(--color-surface)),
+    var(--color-brand)
+  );
+}
+
+.daily-energy-slider::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+  margin-top: -11px;
+  border: 5px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow:
+    0 0 0 1px var(--color-border-subtle),
+    var(--shadow-soft);
+  appearance: none;
+}
+
+.daily-energy-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 5px solid var(--color-surface);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand);
+  box-shadow:
+    0 0 0 1px var(--color-border-subtle),
+    var(--shadow-soft);
+}
+
+.daily-energy-slider:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-pill);
+}
+
+.daily-energy-slider-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: calc(-1 * var(--space-2));
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.daily-energy-slider-labels > span:last-child {
+  text-align: right;
+}
+
+.daily-energy-popover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.daily-energy-save-status {
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.daily-energy-remove {
+  min-height: 36px;
+  color: var(--color-text-secondary);
+}
+
+.daily-energy-inline-error {
+  color: var(--color-text);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.daily-energy-retry {
+  display: block;
+  min-height: 44px;
+  margin-top: var(--space-2);
+}
+
+@keyframes daily-energy-battery-fill {
+  0% {
+    opacity: 0.45;
+    transform: scaleX(0.2);
+  }
+  72% {
+    opacity: 1;
+    transform: scaleX(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 360px) {
+  .daily-energy-popover {
+    width: min(17.5rem, calc(100vw - 1.5rem));
+  }
+}
+
+@media (forced-colors: active) {
+  .daily-energy-battery-fill {
+    fill: Highlight;
+  }
+
+  .daily-energy-slider {
+    accent-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-energy-avatar-chip {
+    transition: none;
+  }
+
+  .daily-energy-battery-fill {
+    animation: none;
+  }
+}

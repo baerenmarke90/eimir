@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -100,6 +100,12 @@ export interface PlanDetail {
      * @type {Date}
      * @memberof PlanDetail
      */
+    plannedOn?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PlanDetail
+     */
     plannedStart: Date | null;
     /**
      * 
@@ -183,6 +189,7 @@ export function PlanDetailFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'id': json['id'],
         'placeId': json['placeId'],
         'plannedEnd': (json['plannedEnd'] == null ? null : new Date(json['plannedEnd'])),
+        'plannedOn': json['plannedOn'] === undefined ? undefined : json['plannedOn'] === null ? null : (new Date(json['plannedOn'])),
         'plannedStart': (json['plannedStart'] == null ? null : new Date(json['plannedStart'])),
         'sourceWishId': json['sourceWishId'],
         'spaceId': json['spaceId'],
@@ -213,6 +220,7 @@ export function PlanDetailToJSONTyped(value?: PlanDetail | null, ignoreDiscrimin
         'id': value['id'],
         'placeId': value['placeId'],
         'plannedEnd': value['plannedEnd'] == null ? value['plannedEnd'] : value['plannedEnd'].toISOString(),
+        'plannedOn': value['plannedOn'] == null ? value['plannedOn'] : value['plannedOn'].toISOString().substring(0,10),
         'plannedStart': value['plannedStart'] == null ? value['plannedStart'] : value['plannedStart'].toISOString(),
         'sourceWishId': value['sourceWishId'],
         'spaceId': value['spaceId'],

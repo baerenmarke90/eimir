@@ -62,25 +62,6 @@
   color: var(--color-private);
 }
 
-.visibility-panel {
-  display: grid;
-  gap: var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius-large);
-  padding: var(--space-4);
-  background: var(--color-surface-overlay);
-  box-shadow: inset 0 2px 4px var(--color-shadow-soft);
-}
-
-.visibility-panel h2,
-.visibility-panel p {
-  margin: 0;
-}
-
-.visibility-panel button {
-  justify-self: start;
-}
-
 .coffee-table-layout {
   position: relative;
   overflow: hidden;
@@ -88,19 +69,6 @@
   padding: var(--space-10) var(--space-8);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-}
-
-.drop-cap::first-letter {
-  float: left;
-  font-family: var(--font-display);
-  font-size: 3.35rem;
-  line-height: 0.82;
-  font-weight: 700;
-  margin-top: 0.12rem;
-  margin-right: 0.55rem;
-  margin-bottom: -0.1rem;
-  color: var(--color-brand);
-  text-transform: uppercase;
 }
 
 .memory-detail-body {
@@ -180,33 +148,46 @@
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-duration-medium) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
-.story-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
-}
-
-.story-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+@media (hover: hover) and (pointer: fine) {
+  .story-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+  }
 }
 
 .story-card h4 {
   margin: var(--space-2) 0;
   color: var(--color-text);
+  font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
+}
+
+.tab-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.kicker-icon {
+  display: inline-flex;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.kind-glyph {
+  display: inline-flex;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.year-pill-icon {
+  display: inline-flex;
+  vertical-align: middle;
 }
 
 .story-preview {
@@ -216,15 +197,36 @@
   line-height: 1.5;
 }
 
+/* Single authoritative base for the Timeline card footer (#795, #969).
+ *
+ * This rule previously competed with an equal-specificity copy in
+ * `styles.css`, a `.story-card-link`-scoped layout copy in
+ * `StoryListPolish.css`, and a Memory Detail media query in
+ * `MemoryProductPage.css`. Load order, not intent, decided the result. The
+ * values below are the ones that combination actually produced, so the
+ * rendered footer is unchanged - it is now simply stated in one place.
+ *
+ * Descendants keep their own rules only where they express a deliberate
+ * distinction from this base: `time` and `.media-label` are quieter and
+ * smaller so date and attachment count read as one muted metadata pair.
+ *
+ * #969: one wrapping row instead of a stacked column on compact widths. Date
+ * starts the row and the author/visibility/photo group ends it; when they no
+ * longer fit (narrow screens, large text) the group moves to a second row and
+ * starts at the left edge, because `space-between` places a lone line item at
+ * the start. Nothing is truncated or allowed to escape the card. */
 .story-card-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  margin-top: var(--space-4);
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
   border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-3);
   color: var(--color-text-secondary);
   font-size: 0.9rem;
+  line-height: 1;
 }
 
 .story-card-footer-actions {
@@ -262,10 +264,6 @@
   font-size: 1.25rem;
 }
 
-.story-card-heart-moment .story-card-meta {
-  justify-content: center;
-}
-
 /* Milestone */
 .story-card-milestone {
   border-color: var(--color-discovery-surface-soft);
@@ -291,16 +289,8 @@
   margin: var(--space-2) 0 var(--space-4);
 }
 
-.story-card-memory.has-image .story-card-meta {
-  margin-bottom: var(--space-2);
-}
-
 .story-card-memory.has-image h4 {
   margin-top: 0;
-}
-
-.story-card-memory.has-image .story-card-footer {
-  margin-top: var(--space-3);
 }
 
 /* Story Timeline Filter Bar */
@@ -316,11 +306,30 @@
   box-shadow: var(--shadow-soft);
 }
 
+.story-timeline-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.story-filter-panel-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .story-filter-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--space-4);
+}
+
+/* Mobile-only funnel toggle (#790/#791): hidden on desktop, where the
+   controls stay directly visible per the existing behavior below. */
+.story-filter-toggle {
+  display: none;
 }
 
 .story-filter-group {
@@ -349,8 +358,8 @@
   font-family: inherit;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-group select:focus-visible {
@@ -371,7 +380,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   border-radius: var(--radius-medium);
-  transition: color 0.15s ease;
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-reset-header-action:hover {
@@ -389,7 +398,6 @@
   align-items: center;
   gap: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .active-chip {
@@ -405,8 +413,8 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .active-chip:hover {
@@ -445,7 +453,84 @@
 }
 
 @media (max-width: 600px) {
+  .story-filter-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: var(--space-4);
+  }
+
+  .story-timeline-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: var(--space-2);
+  }
+
+  .story-filter-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: auto;
+    height: 2.5rem;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-raised, var(--color-surface));
+    color: var(--color-text);
+    font-size: 0.9rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  .story-timeline-refresh {
+    height: 2.5rem;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-pill);
+    font-size: 0.88rem;
+  }
+
+  .story-filter-toggle:hover {
+    border-color: var(--color-brand);
+  }
+
+  .story-filter-toggle:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .story-filter-toggle-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--color-brand);
+  }
+
+  /* Default mobile state: the filter panel wrapper is collapsed behind the toggle
+     above and only appears once the React-driven "story-filter-panel-open"
+     class is applied. */
+  .story-filter-panel-wrapper {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    padding: var(--space-4);
+    margin-top: var(--space-3);
+  }
+
+  .story-filter-panel-wrapper.story-filter-panel-open {
+    display: flex;
+  }
+
   .story-filter-bar {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
   }
@@ -465,7 +550,7 @@
 .momente-tabs-container {
   display: flex;
   justify-content: center;
-  margin: var(--space-2) 0 var(--space-6);
+  margin: 0 0 var(--space-3);
 }
 
 .momente-tabs {
@@ -491,7 +576,10 @@
   font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;
-  transition: all var(--motion-duration-short) ease;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-tab-btn:hover {
@@ -513,7 +601,7 @@
 .momente-discover-page {
   display: grid;
   gap: var(--space-8);
-  max-width: 1000px;
+  max-width: 1200px;
   margin-inline: auto;
 }
 
@@ -528,7 +616,7 @@
   );
   border: 1px solid var(--color-brand-glow);
   box-shadow: var(--shadow-card);
-  transition: transform var(--motion-duration-medium) ease;
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-hero-highlight:hover {
@@ -575,7 +663,7 @@
 }
 
 .momente-hero-kicker {
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -636,8 +724,8 @@
   line-height: 1;
 }
 
-/* Horizontal Visual Stream (#492) */
-.momente-stream-section {
+/* Keepsake / Editorial Tapestry (#790): asymmetric mixed archive */
+.momente-tapestry-section {
   display: grid;
   gap: var(--space-4);
 }
@@ -665,7 +753,7 @@
 }
 
 .momente-stream-all-link {
-  color: var(--color-brand);
+  color: var(--color-link-text);
   font-weight: 700;
   font-size: 0.92rem;
   text-decoration: none;
@@ -679,62 +767,104 @@
   text-decoration: underline;
 }
 
-.momente-stream-track {
+/* Asymmetric tapestry: columns are pre-balanced in JS by an estimated content
+   weight per role (distributeIntoTapestryColumns in storyPresentation.ts),
+   then rendered as plain flex columns. CSS-only `columns:N` balancing was
+   tried first, but with a few tall break-inside-avoid photo tiles mixed
+   against short notes/markers, the browser's balance heuristic left one
+   column mostly empty against the real canonical demo dataset — exactly the
+   large dead zone this surface must not have. Each item still keeps its own
+   natural content height; a photographic Memory reads larger than a short
+   note or milestone marker without any min-height rule forcing dead space.
+   Mobile always renders a single column (see useTapestryColumnCount), which
+   is also DOM order, so tab order matches the plain chronological list. */
+/* Newest-first month bands (#790/#791): the greedy column balancer runs
+   per band instead of across the whole grid, so desktop chronology reads
+   as "newest month first, newest item first within it" without the viewer
+   needing to reverse-engineer a global column-balancing order. */
+.momente-tapestry-bands {
   display: flex;
-  gap: var(--space-4);
-  overflow-x: auto;
-  padding: var(--space-2) var(--space-1) var(--space-4);
-  margin: 0 calc(-1 * var(--space-1));
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
-.momente-stream-card-link {
-  flex: 0 0 clamp(260px, 32vw, 320px);
+.momente-band-heading {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.momente-tapestry {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.momente-tapestry-column {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Above the single-column mobile breakpoint (see TAPESTRY_TABLET_QUERY),
+   bound each column's width instead of letting `flex: 1 1 0` force it to
+   consume an equal 1/N share of the full row. Sparse bands render fewer
+   (non-empty) columns, so an equal-share column would balloon toward the
+   full page width - the "Karten zu groß" case with a single item in a
+   month. Capping the width keeps a lone column tapestry-scaled instead. */
+@media (min-width: 640px) {
+  .momente-tapestry-column {
+    flex: 1 1 300px;
+    max-width: 26rem;
+  }
+}
+
+.momente-tapestry-item {
   border-radius: var(--radius-card);
   color: inherit;
   text-decoration: none;
-  scroll-snap-align: start;
+  overflow: hidden;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
-.momente-stream-card-link:focus-visible {
+.momente-tapestry-item:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
 }
 
-.momente-stream-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 280px;
-  overflow: hidden;
+/* Memory + Media: image-first, the tapestry's photographic focal weight */
+.momente-tapestry-media {
   border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
   background: var(--color-surface);
   box-shadow: var(--shadow-soft);
-  transition:
-    transform var(--motion-duration-medium) ease,
-    box-shadow var(--motion-duration-medium) ease;
 }
 
-.momente-stream-card:hover {
+.momente-tapestry-media:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-card);
 }
 
-.momente-stream-card-media {
+.momente-tapestry-media-frame {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  /* Was 4/5 (tall portrait): at a media tile's real column width that read
+     as an oversized, dominant card and, combined with the much shorter
+     note/milestone tiles the weighted column balancer places beside it,
+     produced large dead space under the shorter column (#790/#791
+     follow-up). Square keeps photos prominent without that height. */
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   background: var(--color-surface-subtle);
-  margin: 0;
 }
 
-.momente-stream-card-media .story-media-preview,
-.momente-stream-card-media .story-media-skeleton,
-.momente-stream-card-media .story-media-placeholder {
+.momente-tapestry-media-frame .story-media-preview,
+.momente-tapestry-media-frame .story-media-skeleton,
+.momente-tapestry-media-frame .story-media-placeholder {
   width: 100%;
   height: 100%;
   aspect-ratio: auto;
@@ -744,27 +874,55 @@
   display: block;
 }
 
-.momente-stream-card-body {
+/* Memory without media: quiet editorial card, no forced photo area */
+.momente-tapestry-text {
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.momente-tapestry-text:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+
+/* Heart Moment: a tactile letter/note, sized to its own text */
+.momente-tapestry-note {
+  border: 1px solid var(--color-brand-glow);
+  background: linear-gradient(
+    150deg,
+    var(--color-brand-surface),
+    var(--color-surface-raised)
+  );
+  box-shadow: var(--shadow-soft);
+}
+
+.momente-tapestry-note:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+}
+
+.momente-tapestry-body {
+  padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  flex: 1;
+  gap: var(--space-2);
+}
+
+.momente-tapestry-media .momente-tapestry-body {
   padding: var(--space-4);
-  gap: var(--space-2);
 }
 
-.momente-stream-card-main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.momente-stream-card-kind {
+.momente-tapestry-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
 }
 
-.momente-stream-card-title {
+.momente-tapestry-title {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.15rem;
@@ -773,138 +931,168 @@
   line-height: 1.3;
 }
 
-.momente-stream-card-quote {
+.momente-tapestry-quote {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   color: var(--color-text);
-  line-height: 1.4;
-  margin: 0;
+  line-height: 1.5;
+  margin: var(--space-1) 0;
 }
 
-.momente-stream-card-meta {
-  margin-top: auto;
+.momente-tapestry-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-2);
   font-size: 0.82rem;
   color: var(--color-text-secondary);
   font-weight: 600;
-  padding-top: var(--space-2);
+  padding-top: var(--space-1);
 }
 
-/* Typography-first Card (no media) */
-.momente-stream-card.text-first {
-  background: linear-gradient(
-    150deg,
-    var(--color-surface-raised),
-    var(--color-surface-subtle)
-  );
-  border-color: var(--color-brand-glow);
-  padding: var(--space-5);
-}
-
-.momente-stream-card.text-first .momente-stream-card-body {
-  padding: 0;
-}
-
-.momente-stream-card.text-first .momente-stream-card-main {
-  flex: 1;
-  justify-content: center;
-  padding: var(--space-3) 0;
-}
-
-.momente-stream-card.text-first .momente-stream-card-title {
-  font-size: 1.25rem;
-  line-height: 1.35;
-}
-
-.momente-stream-card.text-first .momente-stream-card-quote {
-  font-size: 1.15rem;
-  line-height: 1.45;
-}
-
-/* Milestones and Chapters grid */
-.momente-grid-two {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-6);
-}
-
-@media (min-width: 768px) {
-  .momente-grid-two {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.momente-sub-card {
+/* Milestone: a compact celebratory marker, not another Memory-sized card */
+.momente-tapestry-milestone {
   display: flex;
-  flex-direction: column;
-  padding: var(--space-5);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-brand-glow);
+  background: linear-gradient(
+    120deg,
+    var(--color-brand-surface),
+    var(--color-surface-overlay)
+  );
   box-shadow: var(--shadow-soft);
-  text-decoration: none;
-  color: inherit;
-  transition: transform var(--motion-duration-short) ease;
 }
 
-.momente-sub-card:hover {
+.momente-tapestry-milestone:hover {
   transform: translateY(-2px);
 }
 
-.momente-sub-card-kicker {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-brand-strong);
-  margin-bottom: var(--space-2);
+.momente-tapestry-milestone-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
 }
 
-.momente-sub-card-title {
-  margin: 0 0 var(--space-2);
+.momente-tapestry-milestone-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.momente-tapestry-milestone-title {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.02rem;
   font-weight: 750;
+  color: var(--color-text);
+  line-height: 1.3;
 }
 
-.momente-sub-card-desc {
-  margin: 0;
-  font-size: 0.9rem;
+.momente-tapestry-milestone-date {
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
 
-/* Year Archive Pills */
-.momente-year-archive {
+/* Momente structural browse layer (#972): compact secondary navigation.
+ * Content is experienced in Discover/Timeline; structure is navigated here. */
+.momente-browse-layer {
   display: grid;
-  gap: var(--space-3);
-}
-
-.momente-year-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.momente-year-pill {
-  display: inline-flex;
-  align-items: center;
+  width: min(100%, 42rem);
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 750;
-  cursor: pointer;
-  transition: all var(--motion-duration-short) ease;
+  margin: 0 auto var(--space-6);
 }
 
-.momente-year-pill:hover {
-  border-color: var(--color-brand);
-  background: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  transform: translateY(-1px);
+.momente-browse-heading {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.momente-browse-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: var(--space-1);
+  padding: 4px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.momente-browse-link {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-large);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.momente-browse-link:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.momente-browse-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.momente-browse-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.momente-browse-icon {
+  flex: 0 0 auto;
+}
+
+/* =====================================================================
+ * Story Detail Alignment: HeartMoment & Milestone (#860)
+ * ===================================================================== */
+.heart-moment-detail-container,
+.milestone-detail-container {
+  max-width: var(--reading-max);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.heart-moment-provenance-footer,
+.milestone-provenance-footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+  text-align: center;
+}
+
+.heart-moment-provenance-footer p,
+.milestone-provenance-footer p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 550;
+  letter-spacing: 0.01em;
 }

@@ -1,13 +1,17 @@
-# SideBySide UX Patterns
+# eimir. UX Patterns
 
 **Status:** Binding product foundation  
-**Version:** 1.1  
-**As of:** August 24, 2026
+**Version:** 1.5<br/>
+**As of:** October 12, 2026
 
 This document defines recurring interaction patterns for the WebApp and
 smartphone app. Both surfaces share the same information architecture,
 semantics, and state logic. Concrete presentation adapts to platform, window
 width, and input method.
+
+The patterns below are platform-appropriate defaults, not a mandatory formula: the human task decides the pattern, and a table/list/master-detail composition is used only when it is genuinely the correct interaction for that task (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` sections 0 and 16).
+
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
 ## 1. Core rules
 
@@ -23,21 +27,46 @@ width, and input method.
 6. **No dead ends.** Every empty or error state provides a meaningful next step.
 7. **Progressive disclosure.** Frequent tasks remain directly accessible;
    uncommon options appear contextually.
+8. **Established interaction patterns first.** Common smartphone tasks use
+   platform/mobile conventions such as Back, Bottom Navigation, native/system
+   pickers, contextual Bottom Sheets, overflow actions, and system sharing unless
+   the documented human task requires a different pattern. eimir. differentiates
+   through relationship meaning, content, composition, language, imagery, and
+   brand treatment rather than by reinventing standard mechanics.
+9. **Recognition over recall.** Normal tasks do not depend on memorized gestures,
+   hidden modes, unexplained icons, or internal/domain terminology. Important
+   state and available actions remain discoverable in context.
+10. **Minimize typing and keyboard burden.** Free text is required only when the
+    user's actual content is textual or no lower-friction equivalent exists.
+    Prefer direct selection, appropriate native pickers, media, sensible defaults,
+    and progressively disclosed optional details where the domain permits it.
+11. **Direct interaction before redundant controls.** Where safe and
+    understandable, the content itself is the primary interaction target. Avoid
+    redundant `Open`, `Details`, or `Edit` controls when selecting the content
+    naturally performs the expected action; secondary actions remain explicit and
+    accessible.
+12. **Asymmetric participation, symmetric belonging.** Different levels of
+    contribution do not reduce either partner's place in the Space. Apply the
+    participation contract in section 3.5; preserve domain privacy and consent.
 
 ## 2. App Shell and navigation
 
 | Window class | Primary navigation | Secondary navigation | Detail view |
 |---|---|---|---|
-| Compact, up to 599 px | Bottom Navigation with at most 5 destinations | Tabs or local list | new page |
-| Medium, 600–839 px | Navigation Rail | Tabs or list | new page or second pane |
-| Expanded, from 840 px | persistent Sidebar/Rail | local navigation in content area | second or third pane |
+| Compact, up to 599 px | Bottom Navigation with at most 5 destinations | contextual tabs, filters, or task-appropriate navigation | new page |
+| Medium, 600–839 px | Bottom Navigation | task-appropriate local navigation | new page or optional supporting pane |
+| Expanded, from 840 px | Web horizontal header (also inside the Android wrapper) | local navigation in content area | full page or justified supporting pane |
+
+The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); the Android wrapper renders the same Web shell ([ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md) is historical). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
 
 - Primary destinations are the intentional de-DE product labels **Wir, Momente,
-  Planen, Entdecken, Mehr**. `Entdecken` depends on the M7 Discover domain: its
-  position is reserved and it is not rendered before that domain exists, so the
-  primary navigation carries four destinations until then. See
-  `decisions/0003-primary-navigation-and-route-model.md` and
-  `decisions/0008-product-ia-harmonization-and-domain-alignment.md`.
+  Planen, Mehr**. Discovery experiences remain product behavior inside `Momente`
+  and do not consume a persistent primary-navigation slot. `Spielen` is a
+  first-class product area entered under `Mehr`; while inside Games, `Mehr`
+  remains the active primary destination. See
+  `docs/INFORMATION-ARCHITECTURE.md`,
+  `decisions/0009-games-primary-navigation-and-premium-capability.md`, and
+  `decisions/0010-games-secondary-navigation-under-more.md`.
 - Search and Activity are not primary destinations. Search is a global utility
   in the header/app bar; Activity lives underneath the personal account
   navigation (`/today/activity`).
@@ -53,8 +82,8 @@ width, and input method.
 
 | Task | Smartphone | WebApp |
 |---|---|---|
-| Primary navigation | Bottom Navigation | Rail or Sidebar |
-| List and detail | separate pages | List-Detail layout from Medium upward |
+| Primary navigation | Bottom Navigation | Compact/Medium Bottom Navigation; Expanded horizontal header |
+| List and detail | separate pages | focused page or justified List-Detail layout |
 | Short input | Bottom Sheet or Dialog | Dialog or Side Pane |
 | Long form | dedicated page | dedicated page or wide Side Pane |
 | Filters | Filter Sheet | Popover or persistent filter bar |
@@ -62,26 +91,42 @@ width, and input method.
 | Confirmation | Dialog for high-risk actions | Dialog for high-risk actions |
 | Feedback | inline plus Snackbar when useful | inline plus Snackbar when useful |
 
+These are defaults, not permission to force every domain into list/form UI. The
+human outcome and the partner-app standard decide whether a list, feed, media
+composition, focused capture flow, picker, sheet, or another established
+pattern is appropriate.
+
 ### 3.1 List–Detail
 
 - One row or card opens exactly one detail object.
+- The row/card itself is the primary open target when that is the natural mobile
+  interaction; an additional `Open` button is normally unnecessary.
 - Selection state remains visible on wide layouts.
 - Filters, sorting, and scroll position are preserved when navigating back.
-- On Compact, detail replaces the list; on Expanded, the list remains visible.
+- On Compact, detail replaces the browse surface; on Expanded, the browse surface may remain visible only when it supports the same human task. Reading does not expose editing controls by default.
 - Direct links open the target object and activate the appropriate navigation
   context.
 
 ### 3.2 Create and edit
 
-- Short forms: at most five simple fields in a Sheet, Dialog, or Side Pane.
-- Long, branching, or media-heavy forms: dedicated page.
+- Start from the human capture task rather than the persistence model. A Memory
+  may begin with media, a HeartMoment with a thought, and a plan with the shared
+  intention; a generic title-first field stack is not the default.
+- Choose content-first compose, inline editing, a picker, or a contextual sheet from the task. Field count alone does not justify a form. Explicit forms remain appropriate for structured tasks such as settings or account setup.
+- Long, branching, or media-heavy capture: a dedicated page. Create and edit are distinct tasks; reading comes before editing.
+- Request only information required for the current step. Optional metadata is
+  progressively disclosed and must not delay the primary capture unnecessarily.
+- Prefer appropriate native/system pickers and direct selections to free-text
+  entry for dates, times, media, bounded choices, and permissions.
+- Do not focus a text field or summon the software keyboard merely because a
+  screen contains optional text input. Keyboard appearance follows user intent,
+  and the completion action remains reachable while the keyboard is visible.
 - Required fields are marked textually; errors appear next to the affected
   field.
 - Changes are autosaved only when the state is unambiguous, visible, and
   recoverable.
 - If unsaved changes exist, the app asks before leaving.
-- After successful creation, the app navigates to the new content or back to
-  the refreshed list.
+- After successful creation, show the persisted result and make it easy to find again. Return to the originating product context with scope, filters, selection, and scroll restored where applicable; explicitly offer a way to see the new item if the current filter excludes it. A success toast alone is insufficient continuity.
 
 ### 3.3 Dialog, Bottom Sheet, Side Pane, or page
 
@@ -91,6 +136,10 @@ width, and input method.
 | Bottom Sheet | mobile selection, short contextual action | critical long-form text |
 | Side Pane | Web detail, preview, short edit | central full-screen task on Compact |
 | dedicated page | focused, complex, or shareable task | single yes/no question |
+
+Use the platform's established implementation of these patterns where available.
+A custom interaction requires a documented reason when an equivalent conventional
+pattern already solves the task.
 
 ### 3.4 Search, filters, and sorting
 
@@ -102,6 +151,40 @@ width, and input method.
 - Result count and empty-search state explain the outcome.
 - Sorting changes no data and remains clearly distinct from filtering.
 - Search terms, filters, and sorting remain available throughout a session.
+
+### 3.5 Participation without equal contribution
+
+Owning issue: [#502](https://github.com/baerenmarke90/eimir/issues/502).
+The [current-flow audit](./product/design/502-participation-audit.md) records
+existing behavior, intentional exceptions and remaining product work.
+
+- Ordinary shared capture and planning remain useful when one person initiates
+  and the other reads, joins briefly, or returns later. Do not require matching
+  numbers of posts, uploads, answers or completed tasks.
+- Where relevant, distinguish initiating, joining and reacting. Reuse existing
+  actions and deliberate partner gestures before adding a reaction domain.
+  A content-specific reaction needs its own target, privacy and lifecycle
+  contract; a general partner ping does not establish one.
+- Optional enrichment and acknowledgement must not prevent the initiator from
+  saving or completing an otherwise valid task. Skipping optional participation
+  carries no penalty, streak loss or guilt message.
+- Bilateral consent and protected reveal remain domain requirements. A skip,
+  fabricated check-in or low-effort reaction must never substitute for required
+  authorization. Daily Check-in Mutual Reveal is dimension-specific; it does
+  not gate unrelated planning or history.
+- An intentional two-person game may require turns and eligible source content.
+  Record the reason and sparse fallback explicitly. Keep round scores within
+  that game; never convert them or content authorship into contribution rankings
+  or a relationship score.
+- Do not infer permanent active/passive partner roles from usage or introduce
+  personal contribution targets, comparative engagement counts, inactivity
+  reminders or a backlog of social obligations.
+
+Before a new or materially changed relationship flow is implemented, its
+existing Product Design Preflight must state what one person can finish alone,
+the smallest meaningful optional participation, and why any bilateral action
+is required. Changing an existing consent, reveal or game rule still belongs
+to its owning product decision.
 
 ## 4. States for every data-driven view
 
@@ -200,7 +283,7 @@ Media passes through `selected → preparing → uploading → processing → re
 ## 11. Motion and feedback
 
 - Animation explains hierarchy, causality, or movement between places.
-- Standard duration: 120–280 ms; no normal transition lasts longer than 320 ms.
+- Reuse the semantic duration roles `fast` (120 ms), `standard` (180 ms), and `emphasized` (280 ms); `maximum` (320 ms) is the normal upper bound. Do not invent local duration ranges.
 - `prefers-reduced-motion` and the platform reduced-motion setting are
   respected.
 - No content is readable only during an animation.
@@ -223,6 +306,8 @@ Media passes through `selected → preparing → uploading → processing → re
 - Cards nested inside cards without real hierarchy.
 - Multiple equally strong primary actions.
 - Icon-only treatment for uncommon or critical actions.
+- Essential actions available only through swipe, long-press, or another hidden
+  gesture.
 - Delete available only through swipe.
 - Critical errors shown only as transient Snackbars.
 - Disabled buttons without explanation of missing prerequisites.
@@ -230,6 +315,15 @@ Media passes through `selected → preparing → uploading → processing → re
 - Different terminology for the same feature on Web and Mobile.
 - Privacy claims not backed by technology and operations.
 - Desktop layout merely compressed onto a smartphone.
+- Requiring free-text entry for a value that has an established picker or
+  bounded selection without a documented reason.
+- Automatically opening the keyboard before the user has chosen a text-entry
+  task.
+- Redundant `Open` / `Details` buttons on content that already has one obvious
+  primary destination.
+- A list, table, or card grid chosen because multiple records exist, rather than because it is the correct task pattern.
+- An existing row/card/table/form component reused for a couple-facing task it was never designed for, merely because it already exists (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 17).
+- Expanded/Web adding more columns, boxes, or permanent actions than Compact merely because width is available.
 
 ## 14. Acceptance criteria
 
@@ -239,8 +333,13 @@ A new flow is ready for implementation only when:
 - Loading, Empty, Error, Offline, and Success are covered,
 - privacy and permission consequences are resolved,
 - keyboard, focus, screen reader, and large-text behavior are considered,
+- an established platform/mobile interaction pattern is reused or the deviation is documented,
+- typing and keyboard burden are minimized for Compact where applicable,
+- important actions and states can be recognized without relying on hidden gestures or memorized UI knowledge,
 - one primary action and a clear way back exist,
 - destructive actions are reversible or consciously confirmed,
+- individual participation is sufficient where permitted, and any bilateral
+  requirement has an explicit domain or product reason,
 - analytics events contain no sensitive content data.
 
 ## Related documents

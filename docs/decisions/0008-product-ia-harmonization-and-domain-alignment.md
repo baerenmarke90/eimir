@@ -6,6 +6,8 @@
 **Amends:** `decisions/0003-primary-navigation-and-route-model.md`
 **Affects:** `docs/INFORMATION-ARCHITECTURE.md`, `docs/UX-PATTERNS.md`, Web navigation, Android navigation
 
+**Current relationship:** Compatible domain homes and stable routes remain binding. Primary-navigation reservations below were superseded by [Decision 0009](./0009-games-primary-navigation-and-premium-capability.md) and [Decision 0010](./0010-games-secondary-navigation-under-more.md). Current product-design direction is [Product Reference v1](../product/design/product-reference-v1.md); this dated decision is not a separate screen-composition reference.
+
 ## Context
 
 ADR 0003 established the five-area product model (four until M7) and durable

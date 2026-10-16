@@ -1,9 +1,13 @@
 import {
   ACTIVITY_ROUTE,
   APP_ROUTES,
+  PRIMARY_APP_ROUTES,
+  CHAPTER_CREATE_ROUTE,
   CHAPTER_DETAIL_ROUTE_PATTERN,
   COLLECTION_DETAIL_ROUTE_PATTERN,
   DEFAULT_APP_ROUTE,
+  GAMES_MOMENTS_ROUTE,
+  GAMES_WISH_DETECTIVE_ROUTE,
   HEART_MOMENT_CREATE_ROUTE,
   HEART_MOMENT_DETAIL_ROUTE_PATTERN,
   HEART_MOMENT_EDIT_ROUTE_PATTERN,
@@ -17,11 +21,15 @@ import {
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
+  MORE_SETTINGS_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
   PLAN_DETAIL_ROUTE_PATTERN,
+  PLAN_CREATE_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
-  RESERVED_DISCOVER_ROUTE,
   SEARCH_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
+  WISH_CREATE_ROUTE,
   activeNavigationArea,
   appRoutePath,
   chapterDetailPath,
@@ -35,18 +43,27 @@ import {
   planDetailPath,
   placeDetailPath,
   rewriteLegacyPath,
+  settingsCategoryIdFromHash,
+  settingsCategoryPath,
   wishDetailPath,
 } from './routes';
 
 describe('primary navigation', () => {
-  it('carries at most five destinations in the documented order', () => {
-    expect(APP_ROUTES.map((route) => route.id)).toEqual([
+  it('keeps four primary destinations while preserving the stable Games route', () => {
+    expect(PRIMARY_APP_ROUTES.map((route) => route.id)).toEqual([
       'today',
       'story',
       'plan',
       'more',
     ]);
-    expect(APP_ROUTES.length).toBeLessThanOrEqual(5);
+    expect(PRIMARY_APP_ROUTES).toHaveLength(4);
+    expect(APP_ROUTES.map((route) => route.id)).toEqual([
+      'today',
+      'story',
+      'plan',
+      'games',
+      'more',
+    ]);
     expect(DEFAULT_APP_ROUTE).toBe('/today');
   });
 
@@ -54,6 +71,9 @@ describe('primary navigation', () => {
     expect(appRoutePath('today')).toBe('/today');
     expect(appRoutePath('story')).toBe('/story');
     expect(appRoutePath('plan')).toBe('/plan');
+    expect(appRoutePath('games')).toBe('/games');
+    expect(GAMES_MOMENTS_ROUTE).toBe('/games/our-moments');
+    expect(GAMES_WISH_DETECTIVE_ROUTE).toBe('/games/wish-detective');
     expect(appRoutePath('more')).toBe('/more');
   });
 
@@ -61,15 +81,16 @@ describe('primary navigation', () => {
     const withSubRoutes = APP_ROUTES.filter((route) => !route.end).map(
       (route) => route.id,
     );
-    expect(withSubRoutes).toEqual(['today', 'story', 'plan', 'more']);
+    expect(withSubRoutes).toEqual(['today', 'story', 'plan', 'games', 'more']);
   });
 
-  it('reserves Discover without routing it before its domain exists', () => {
-    expect(RESERVED_DISCOVER_ROUTE.path).toBe('/discover');
-    // Widened deliberately: the literal types already prove the path is absent,
-    // and this assertion has to keep holding once Discover ships in M7.
-    const paths: readonly string[] = APP_ROUTES.map((route) => route.path);
-    expect(paths).not.toContain(RESERVED_DISCOVER_ROUTE.path);
+  it('keeps Games out of the primary shell while preserving its canonical route', () => {
+    const primaryPaths: readonly string[] = PRIMARY_APP_ROUTES.map(
+      (route) => route.path,
+    );
+    expect(primaryPaths).not.toContain('/games');
+    expect(primaryPaths).not.toContain('/discover');
+    expect(appRoutePath('games')).toBe('/games');
   });
 
   it('keeps Search and Activity out of primary navigation', () => {
@@ -89,6 +110,42 @@ describe('primary navigation', () => {
     ]) {
       expect(path.startsWith('/more/')).toBe(true);
     }
+  });
+});
+
+describe('settings category routes', () => {
+  it('keeps focused settings tasks below the named Settings destination', () => {
+    expect(MORE_SETTINGS_ROUTE).toBe('/more/settings');
+    expect(MORE_SETTINGS_CATEGORY_ROUTE_PATTERN).toBe(
+      '/more/settings/:settingsCategory',
+    );
+    expect(SETTINGS_CATEGORY_ROUTES).toEqual({
+      relationship: '/more/settings/relationship',
+      notifications: '/more/settings/notifications',
+      today: '/more/settings/today',
+      appearance: '/more/settings/appearance',
+      data: '/more/settings/data',
+      account: '/more/settings/account',
+    });
+    expect(settingsCategoryPath('appearance')).toBe(
+      '/more/settings/appearance',
+    );
+  });
+
+  it('maps shipped settings hashes onto focused category routes', () => {
+    expect(settingsCategoryIdFromHash('#settings-connection')).toBe(
+      'relationship',
+    );
+    expect(settingsCategoryIdFromHash('#settings-notifications')).toBe(
+      'notifications',
+    );
+    expect(settingsCategoryIdFromHash('#settings-dashboard')).toBe('today');
+    expect(settingsCategoryIdFromHash('#settings-appearance')).toBe(
+      'appearance',
+    );
+    expect(settingsCategoryIdFromHash('#settings-data')).toBe('data');
+    expect(settingsCategoryIdFromHash('#settings-account')).toBe('account');
+    expect(settingsCategoryIdFromHash('#unknown')).toBeNull();
   });
 });
 
@@ -132,9 +189,12 @@ describe('content deep links', () => {
   });
 
   it('builds encoded planning deep links under the Plan area', () => {
+    expect(WISH_CREATE_ROUTE).toBe('/plan/wishes/new');
+    expect(PLAN_CREATE_ROUTE).toBe('/plan/plans/new');
     expect(WISH_DETAIL_ROUTE_PATTERN).toBe('/plan/wishes/:wishId');
     expect(PLAN_DETAIL_ROUTE_PATTERN).toBe('/plan/plans/:planId');
     expect(PLACE_DETAIL_ROUTE_PATTERN).toBe('/plan/places/:placeId');
+    expect(CHAPTER_CREATE_ROUTE).toBe('/plan/chapters/new');
     expect(CHAPTER_DETAIL_ROUTE_PATTERN).toBe('/plan/chapters/:chapterId');
     expect(COLLECTION_DETAIL_ROUTE_PATTERN).toBe(
       '/plan/collections/:collectionId',
@@ -154,6 +214,9 @@ describe('content deep links', () => {
     expect(activeNavigationArea('/story')).toBe('story');
     expect(activeNavigationArea('/story/chapters')).toBe('story');
     expect(activeNavigationArea('/plan/chapters/c1')).toBe('story');
+    expect(activeNavigationArea('/games')).toBe('more');
+    expect(activeNavigationArea('/games/our-moments')).toBe('more');
+    expect(activeNavigationArea('/games/wish-detective')).toBe('more');
     expect(activeNavigationArea('/more')).toBe('more');
     expect(activeNavigationArea('/more/places')).toBe('more');
     expect(activeNavigationArea('/plan/places/p1')).toBe('more');
@@ -210,6 +273,7 @@ describe('legacy paths', () => {
       '/today',
       '/story',
       '/plan',
+      '/games',
       '/more',
       '/search',
       '/story/memories/memory-1',

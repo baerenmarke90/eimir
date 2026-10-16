@@ -155,7 +155,7 @@ describe('Browser Session Restoration & Lifecycle Flow', () => {
     storeSession({ account: mockAccount, tokens: expiredAccessTokens });
 
     // Remember deep link before clearing
-    const savedTarget = rememberCurrentAuthReturnTarget();
+    const savedTarget = rememberCurrentAuthReturnTarget(mockAccount.id);
     expect(savedTarget).toBe('/plan/plans/p-123');
 
     vi.spyOn(referenceFlow, 'createReferenceApis').mockReturnValue({
@@ -179,8 +179,10 @@ describe('Browser Session Restoration & Lifecycle Flow', () => {
     expect(hasStoredSession()).toBe(false);
     expect(loadStoredSession()).toBeNull();
 
-    // After re-login, original target is consumable
-    expect(consumeAuthReturnTarget()).toBe('/plan/plans/p-123');
+    // After re-login as the same Account, original target is consumable
+    expect(consumeAuthReturnTarget(mockAccount.id, null)).toBe(
+      '/plan/plans/p-123',
+    );
   });
 
   it('clears session on logout so reload remains logged out', () => {

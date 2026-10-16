@@ -1,3 +1,36 @@
+/* Shared horizontal media-swipe contract.
+ *
+ * Product surfaces can choose their own frame size, peek amount, alignment and
+ * navigation chrome, but image carousels share the browser-native gesture
+ * mechanics here so touch behavior cannot drift between Today and Story.
+ */
+.eimir-media-snap-track {
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+.eimir-media-snap-track::-webkit-scrollbar {
+  display: none;
+}
+
+.eimir-media-snap-item {
+  scroll-snap-stop: always;
+}
+
+.eimir-media-snap-item-center {
+  scroll-snap-align: center;
+}
+
+.eimir-media-snap-item-start {
+  scroll-snap-align: start;
+}
+
 .story-media-preview,
 .story-media-skeleton,
 .story-media-placeholder {
@@ -16,9 +49,9 @@
 .story-media-skeleton {
   background: linear-gradient(
     100deg,
-    var(--color-shimmer-base, #f2eef5) 25%,
-    var(--color-shimmer-highlight, #faf8fc) 45%,
-    var(--color-shimmer-base, #f2eef5) 65%
+    var(--color-shimmer-base, #f0ebe4) 25%,
+    var(--color-shimmer-highlight, #faf7f5) 45%,
+    var(--color-shimmer-base, #f0ebe4) 65%
   );
   background-size: 200% 100%;
   animation: story-shimmer 1.6s linear infinite;
@@ -33,6 +66,27 @@
   color: var(--color-text-muted);
   text-align: center;
   font-size: 0.82rem;
+}
+
+/* Keep hidden file inputs under the shared accessibility helper instead of
+ * inheriting visible text-control geometry from the global form selector. */
+input.visually-hidden-input {
+  width: 1px;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+}
+
+/* The picker wrapper can be a grid item on edit surfaces. Let it shrink below
+ * its intrinsic copy width; the visible picker then owns truncation itself. */
+.attachment-draft-picker {
+  min-width: 0;
+}
+
+/* Allow the visible picker copy to shrink inside the flex row so its existing
+ * nowrap/ellipsis treatment owns long format text instead of widening the page. */
+.file-picker > span:not(.file-picker-icon) {
+  min-width: 0;
 }
 
 .visually-hidden-input:focus-visible + .file-picker {

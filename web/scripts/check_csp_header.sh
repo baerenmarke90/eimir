@@ -2,33 +2,33 @@
 
 set -eu
 
-sbs_url=${1:?Usage: check_csp_header.sh URL [additional-connect-origins]}
-sbs_extra_origins=${2:-}
-sbs_headers=$(mktemp)
-sbs_body=$(mktemp)
-trap 'rm -f "$sbs_headers" "$sbs_body"' EXIT HUP INT TERM
+eimir_url=${1:?Usage: check_csp_header.sh URL [additional-connect-origins]}
+eimir_extra_origins=${2:-}
+eimir_headers=$(mktemp)
+eimir_body=$(mktemp)
+trap 'rm -f "$eimir_headers" "$eimir_body"' EXIT HUP INT TERM
 
-curl --fail --silent --show-error --dump-header "$sbs_headers" \
-    --output "$sbs_body" "$sbs_url"
+curl --fail --silent --show-error --dump-header "$eimir_headers" \
+    --output "$eimir_body" "$eimir_url"
 
-sbs_header_count=$(grep -ic '^Content-Security-Policy:' "$sbs_headers" || true)
-if [ "$sbs_header_count" -ne 1 ]; then
-    echo "Expected exactly one Content-Security-Policy header, found: $sbs_header_count" >&2
+eimir_header_count=$(grep -ic '^Content-Security-Policy:' "$eimir_headers" || true)
+if [ "$eimir_header_count" -ne 1 ]; then
+    echo "Expected exactly one Content-Security-Policy header, found: $eimir_header_count" >&2
     exit 1
 fi
 
-sbs_actual=$(grep -i '^Content-Security-Policy:' "$sbs_headers" \
+eimir_actual=$(grep -i '^Content-Security-Policy:' "$eimir_headers" \
     | tr -d '\r' \
     | sed 's/^[^:]*:[[:space:]]*//')
-sbs_connect="'self'"
-if [ -n "$sbs_extra_origins" ]; then
-    sbs_connect="$sbs_connect $sbs_extra_origins"
+eimir_connect="'self'"
+if [ -n "$eimir_extra_origins" ]; then
+    eimir_connect="$eimir_connect $eimir_extra_origins"
 fi
-sbs_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob:; font-src 'self'; connect-src $sbs_connect; media-src 'none'; manifest-src 'none'; worker-src 'none'"
+eimir_expected="default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' blob:; font-src 'self'; connect-src $eimir_connect; media-src 'none'; manifest-src 'none'; worker-src 'none'"
 
-if [ "$sbs_actual" != "$sbs_expected" ]; then
+if [ "$eimir_actual" != "$eimir_expected" ]; then
     echo "Unexpected Content-Security-Policy:" >&2
-    echo "$sbs_actual" >&2
+    echo "$eimir_actual" >&2
     exit 1
 fi
 

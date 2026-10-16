@@ -69,6 +69,35 @@ describe('useDismissiblePopover', () => {
     document.body.removeChild(outside);
   });
 
+  it('can hand outside and Escape dismissal to a modal consumer', () => {
+    const { result } = renderHook(
+      () =>
+        useDismissiblePopover({
+          dismissOnOutsidePointerDown: false,
+          dismissOnEscape: false,
+        }),
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    );
+
+    act(() => {
+      result.current.open();
+    });
+
+    act(() => {
+      document.body.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true }),
+      );
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      result.current.close();
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
   it('closes on Escape key and restores focus to trigger', () => {
     const { result } = renderHook(() => useDismissiblePopover(), {
       wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter>,
@@ -91,6 +120,33 @@ describe('useDismissiblePopover', () => {
 
     expect(result.current.isOpen).toBe(false);
     expect(focusSpy).toHaveBeenCalledTimes(1);
+
+    document.body.removeChild(trigger);
+  });
+
+  it('closes on Escape without restoring focus when restoreFocusOnEscape is false', () => {
+    const { result } = renderHook(
+      () => useDismissiblePopover({ restoreFocusOnEscape: false }),
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> },
+    );
+
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    const focusSpy = vi.spyOn(trigger, 'focus');
+    result.current.triggerRef.current = trigger;
+
+    act(() => {
+      result.current.open();
+    });
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape' });
+      window.dispatchEvent(event);
+    });
+
+    expect(result.current.isOpen).toBe(false);
+    expect(focusSpy).not.toHaveBeenCalled();
 
     document.body.removeChild(trigger);
   });

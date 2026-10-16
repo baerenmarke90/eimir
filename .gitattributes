@@ -1,2 +1,3 @@
 android/gradlew text eol=lf
 android/gradlew.bat text eol=crlf
+web/src/api/generated/** whitespace=-trailing-space

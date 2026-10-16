@@ -8,11 +8,11 @@ from threading import Barrier
 import pytest
 from sqlalchemy import select
 
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.core.errors import DomainError
-from sidebyside.private_collections import service
-from sidebyside.private_collections.models import PrivateCollection, PrivateCollectionItem
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext
+from eimir.core.errors import DomainError
+from eimir.private_collections import service
+from eimir.private_collections.models import PrivateCollection, PrivateCollectionItem
+from eimir.relationship import service as relationship_service
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

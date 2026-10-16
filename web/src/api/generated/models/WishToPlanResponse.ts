@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -30,10 +30,6 @@ import {
 
 /**
  * Both resources returned from a conversion.
- * 
- * Conversion modifies the wish and creates the plan. Returning only one
- * would force the client to immediately reload the other and display stale
- * state in the meantime.
  * @export
  * @interface WishToPlanResponse
  */

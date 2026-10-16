@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -14,10 +14,30 @@
 
 import * as runtime from '../runtime';
 import {
+    type PartnerPresenceView,
+    PartnerPresenceViewFromJSON,
+    PartnerPresenceViewToJSON,
+} from '../models/PartnerPresenceView';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type SpaceConfigurationUpdate,
+    SpaceConfigurationUpdateFromJSON,
+    SpaceConfigurationUpdateToJSON,
+} from '../models/SpaceConfigurationUpdate';
+import {
+    type SpaceConfigurationView,
+    SpaceConfigurationViewFromJSON,
+    SpaceConfigurationViewToJSON,
+} from '../models/SpaceConfigurationView';
+import {
+    type SpaceMembershipExitView,
+    SpaceMembershipExitViewFromJSON,
+    SpaceMembershipExitViewToJSON,
+} from '../models/SpaceMembershipExitView';
 import {
     type SpaceProfileUpdate,
     SpaceProfileUpdateFromJSON,
@@ -34,12 +54,34 @@ import {
     SpaceViewToJSON,
 } from '../models/SpaceView';
 
+export interface GetPartnerPresenceRequest {
+    spaceId: string;
+}
+
 export interface GetSpaceApiV1SpacesSpaceIdGetRequest {
+    spaceId: string;
+}
+
+export interface GetSpaceConfigurationRequest {
     spaceId: string;
 }
 
 export interface GetSpaceProfileApiV1SpacesSpaceIdProfileGetRequest {
     spaceId: string;
+}
+
+export interface LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest {
+    spaceId: string;
+}
+
+export interface TouchPresenceRequest {
+    spaceId: string;
+}
+
+export interface UpdateSpaceConfigurationRequest {
+    spaceId: string;
+    ifMatch: string;
+    spaceConfigurationUpdate: SpaceConfigurationUpdate;
 }
 
 export interface UpdateSpaceProfileApiV1SpacesSpaceIdProfilePutRequest {
@@ -52,6 +94,92 @@ export interface UpdateSpaceProfileApiV1SpacesSpaceIdProfilePutRequest {
  * 
  */
 export class SpacesApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for createSpaceApiV1SpacesPost without sending the request
+     */
+    async createSpaceApiV1SpacesPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Create a private couple Space with the caller as its first partner.  The request has no body: the founder is always the authenticated Account. Allowed only while the Account has no active Membership, and serialized per Account, so retries and concurrent requests yield exactly one Space. Invite the partner afterwards through the ordinary invitation endpoints.
+     * Create the authenticated Account\'s own private Space
+     */
+    async createSpaceApiV1SpacesPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SpaceView>> {
+        const requestOptions = await this.createSpaceApiV1SpacesPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SpaceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Create a private couple Space with the caller as its first partner.  The request has no body: the founder is always the authenticated Account. Allowed only while the Account has no active Membership, and serialized per Account, so retries and concurrent requests yield exactly one Space. Invite the partner afterwards through the ordinary invitation endpoints.
+     * Create the authenticated Account\'s own private Space
+     */
+    async createSpaceApiV1SpacesPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceView> {
+        const response = await this.createSpaceApiV1SpacesPostRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getPartnerPresence without sending the request
+     */
+    async getPartnerPresenceRequestOpts(requestParameters: GetPartnerPresenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getPartnerPresence().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/presence`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Get Partner Presence
+     */
+    async getPartnerPresenceRaw(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
+        const requestOptions = await this.getPartnerPresenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerPresenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+     * Get Partner Presence
+     */
+    async getPartnerPresence(requestParameters: GetPartnerPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {
+        const response = await this.getPartnerPresenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getSpaceApiV1SpacesSpaceIdGet without sending the request
@@ -99,6 +227,53 @@ export class SpacesApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getSpaceConfiguration without sending the request
+     */
+    async getSpaceConfigurationRequestOpts(requestParameters: GetSpaceConfigurationRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getSpaceConfiguration().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/configuration`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return authoritative shared module configuration and caller capability.
+     * Get Space Configuration
+     */
+    async getSpaceConfigurationRaw(requestParameters: GetSpaceConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SpaceConfigurationView>> {
+        const requestOptions = await this.getSpaceConfigurationRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SpaceConfigurationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return authoritative shared module configuration and caller capability.
+     * Get Space Configuration
+     */
+    async getSpaceConfiguration(requestParameters: GetSpaceConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceConfigurationView> {
+        const response = await this.getSpaceConfigurationRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for getSpaceProfileApiV1SpacesSpaceIdProfileGet without sending the request
      */
     async getSpaceProfileApiV1SpacesSpaceIdProfileGetRequestOpts(requestParameters: GetSpaceProfileApiV1SpacesSpaceIdProfileGetRequest): Promise<runtime.RequestOpts> {
@@ -140,6 +315,168 @@ export class SpacesApi extends runtime.BaseAPI {
      */
     async getSpaceProfileApiV1SpacesSpaceIdProfileGet(requestParameters: GetSpaceProfileApiV1SpacesSpaceIdProfileGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceProfileView> {
         const response = await this.getSpaceProfileApiV1SpacesSpaceIdProfileGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost without sending the request
+     */
+    async leaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequestOpts(requestParameters: LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/membership/leave`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * End only the caller\'s own Membership, never the partner\'s.  This route intentionally does not depend on ``Tenant``. Once the first request commits, the normal tenant dependency correctly stops authorizing this Space; resolving the caller\'s historical Membership directly is what lets a retry return the same safe ended state instead of creating another lifecycle.
+     * Leave the authenticated Account\'s Membership in this Space
+     */
+    async leaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRaw(requestParameters: LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SpaceMembershipExitView>> {
+        const requestOptions = await this.leaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SpaceMembershipExitViewFromJSON(jsonValue));
+    }
+
+    /**
+     * End only the caller\'s own Membership, never the partner\'s.  This route intentionally does not depend on ``Tenant``. Once the first request commits, the normal tenant dependency correctly stops authorizing this Space; resolving the caller\'s historical Membership directly is what lets a retry return the same safe ended state instead of creating another lifecycle.
+     * Leave the authenticated Account\'s Membership in this Space
+     */
+    async leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost(requestParameters: LeaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceMembershipExitView> {
+        const response = await this.leaveSpaceApiV1SpacesSpaceIdMembershipLeavePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for touchPresence without sending the request
+     */
+    async touchPresenceRequestOpts(requestParameters: TouchPresenceRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling touchPresence().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/presence`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Renew caller presence and return the partner\'s bounded state.
+     * Touch Presence
+     */
+    async touchPresenceRaw(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PartnerPresenceView>> {
+        const requestOptions = await this.touchPresenceRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PartnerPresenceViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Renew caller presence and return the partner\'s bounded state.
+     * Touch Presence
+     */
+    async touchPresence(requestParameters: TouchPresenceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PartnerPresenceView> {
+        const response = await this.touchPresenceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for updateSpaceConfiguration without sending the request
+     */
+    async updateSpaceConfigurationRequestOpts(requestParameters: UpdateSpaceConfigurationRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling updateSpaceConfiguration().'
+            );
+        }
+
+        if (requestParameters['ifMatch'] == null) {
+            throw new runtime.RequiredError(
+                'ifMatch',
+                'Required parameter "ifMatch" was null or undefined when calling updateSpaceConfiguration().'
+            );
+        }
+
+        if (requestParameters['spaceConfigurationUpdate'] == null) {
+            throw new runtime.RequiredError(
+                'spaceConfigurationUpdate',
+                'Required parameter "spaceConfigurationUpdate" was null or undefined when calling updateSpaceConfiguration().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['ifMatch'] != null) {
+            headerParameters['If-Match'] = String(requestParameters['ifMatch']);
+        }
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/configuration`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SpaceConfigurationUpdateToJSON(requestParameters['spaceConfigurationUpdate']),
+        };
+    }
+
+    /**
+     * Apply a typed partial update under the existing If-Match contract.
+     * Update Space Configuration
+     */
+    async updateSpaceConfigurationRaw(requestParameters: UpdateSpaceConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SpaceConfigurationView>> {
+        const requestOptions = await this.updateSpaceConfigurationRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SpaceConfigurationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Apply a typed partial update under the existing If-Match contract.
+     * Update Space Configuration
+     */
+    async updateSpaceConfiguration(requestParameters: UpdateSpaceConfigurationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SpaceConfigurationView> {
+        const response = await this.updateSpaceConfigurationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -16,10 +16,9 @@ import { mapValues } from '../runtime';
 /**
  * Domain correction without changing lifecycle status.
  * 
- * ``status``, ``plannedStart``, and ``plannedEnd`` are intentionally absent
- * because lifecycle operations own them. ``experiencedOn`` is the one
- * exception: it may be corrected on a completed plan without reopening it
- * (M3-D04).
+ * Schedule fields remain owned by ``/schedule`` and ``/unschedule``.
+ * ``experiencedOn`` is the one exception: it may be corrected on a completed
+ * Plan without reopening it (M3-D04).
  * @export
  * @interface PlanUpdate
  */

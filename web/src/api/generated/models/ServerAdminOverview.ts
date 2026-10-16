@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -22,7 +22,7 @@ import {
 } from './ServerAdminFailedJob';
 
 /**
- * Privacy-safe operational projection for one SideBySide installation.
+ * Privacy-safe operational projection for one eimir. installation.
  * @export
  * @interface ServerAdminOverview
  */

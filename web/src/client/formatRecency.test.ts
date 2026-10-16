@@ -1,6 +1,10 @@
 import type { TFunction } from 'i18next';
 import { describe, expect, it } from 'vitest';
-import { formatRecency } from './formatRecency';
+import {
+  formatCalendarDate,
+  formatCompactCalendarDate,
+  formatRecency,
+} from './formatRecency';
 
 describe('formatRecency', () => {
   const mockT = ((key: string, opts?: { count?: number }) => {
@@ -38,5 +42,27 @@ describe('formatRecency', () => {
     const older = new Date('2026-02-16T12:00:00Z');
     const result = formatRecency(older, mockT, refNow, 'de-DE');
     expect(result).toMatch(/16\.\s*Feb\.?/);
+  });
+
+  it('keeps an OpenAPI calendar date on its encoded day across a negative timezone boundary', () => {
+    const calendarDate = new Date('2026-09-05T00:00:00Z');
+
+    expect(
+      new Intl.DateTimeFormat('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        timeZone: 'America/Los_Angeles',
+      }).format(calendarDate),
+    ).toBe('Fri, Sep 4');
+
+    expect(formatCompactCalendarDate(calendarDate, 'en-US')).toBe('Sat, Sep 5');
+  });
+
+  it('formats a full calendar day from its encoded UTC date without shifting it', () => {
+    const calendarDate = new Date('2026-09-11T00:00:00Z');
+
+    expect(formatCalendarDate(calendarDate, 'de-DE')).toBe('11.09.2026');
+    expect(formatCalendarDate(calendarDate, 'en-US')).toBe('09/11/2026');
   });
 });

@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { NotificationsApi } from '../api/generated/apis/NotificationsApi';
 import type { M4ProductApis } from '../client/m4Product';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import { i18n } from '../i18n';
 import { NotificationsProductPage } from './M4ProductPages';
 
 const SPACE_ID = 'space-1';
@@ -167,37 +175,49 @@ describe('Notifications Product Experience', () => {
       unreadCount: 3,
     });
 
+    let currentState: unknown = null;
+    let originContract!: ReturnType<typeof useTaskOrigin>;
     function LocationProbe() {
       const location = useLocation();
+      currentState = location.state;
       return <div data-testid="location-probe">{location.pathname}</div>;
+    }
+    function OriginProbe() {
+      originContract = useTaskOrigin();
+      return null;
     }
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={['/more/notifications']}>
-          <LocationProbe />
-          <Routes>
-            <Route
-              path="/more/notifications"
-              element={
-                <NotificationsProductPage
-                  apis={
-                    {
-                      notifications: {
-                        markNotificationRead,
-                      } as unknown as NotificationsApi,
-                    } as M4ProductApis
-                  }
-                  spaceId={SPACE_ID}
-                  currentAccountId="user-self"
-                />
-              }
-            />
-            <Route
-              path="/plan/plans/:planId"
-              element={<div data-testid="plan-detail-target">Plan Detail</div>}
-            />
-          </Routes>
+          <TaskOriginProvider accountId="user-self" spaceId={SPACE_ID}>
+            <LocationProbe />
+            <OriginProbe />
+            <Routes>
+              <Route
+                path="/more/notifications"
+                element={
+                  <NotificationsProductPage
+                    apis={
+                      {
+                        notifications: {
+                          markNotificationRead,
+                        } as unknown as NotificationsApi,
+                      } as M4ProductApis
+                    }
+                    spaceId={SPACE_ID}
+                    currentAccountId="user-self"
+                  />
+                }
+              />
+              <Route
+                path="/plan/plans/:planId"
+                element={
+                  <div data-testid="plan-detail-target">Plan Detail</div>
+                }
+              />
+            </Routes>
+          </TaskOriginProvider>
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -216,6 +236,12 @@ describe('Notifications Product Experience', () => {
     );
     expect(screen.getByTestId('plan-detail-target').textContent).toBe(
       'Plan Detail',
+    );
+    const taskOriginKey = (currentState as { taskOriginKey?: unknown } | null)
+      ?.taskOriginKey;
+    expect(taskOriginKey).toMatch(/^task-/);
+    expect(originContract.resolveOrigin(taskOriginKey)?.to).toBe(
+      '/more/notifications',
     );
 
     // Unread count decremented immediately in cache without waiting for API resolution
@@ -241,5 +267,199 @@ describe('Notifications Product Experience', () => {
       notificationId: 'notif-opt-1',
       spaceId: SPACE_ID,
     });
+
+    await act(async () => originContract.requestReturn(taskOriginKey));
+    expect(screen.getByTestId('location-probe').textContent).toBe(
+      '/more/notifications',
+    );
+  });
+
+  it('does not present a loading unread count as a known zero', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      },
+    });
+    queryClient.setQueryData(['m5-s5', 'notifications', SPACE_ID], {
+      pages: [{ items: [], nextCursor: null }],
+      pageParams: [null],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <NotificationsProductPage
+            apis={
+              {
+                notifications: {
+                  getNotificationUnreadCount: vi.fn(
+                    () => new Promise(() => undefined),
+                  ),
+                },
+              } as unknown as M4ProductApis
+            }
+            spaceId={SPACE_ID}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText(i18n.t('m5s5.notifications.unreadLoading')),
+    ).toBeTruthy();
+    expect(screen.queryByText('0 ungelesen')).toBeNull();
+    expect(
+      screen.getByText(i18n.t('m5s5.notifications.emptyTitle')),
+    ).toBeTruthy();
+  });
+
+  it('keeps an empty notification list distinct when the unread count fails', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: Number.POSITIVE_INFINITY },
+      },
+    });
+    queryClient.setQueryData(['m5-s5', 'notifications', SPACE_ID], {
+      pages: [{ items: [], nextCursor: null }],
+      pageParams: [null],
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <NotificationsProductPage
+            apis={
+              {
+                notifications: {
+                  getNotificationUnreadCount: vi
+                    .fn()
+                    .mockRejectedValue(new Error('unread unavailable')),
+                },
+              } as unknown as M4ProductApis
+            }
+            spaceId={SPACE_ID}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByText(i18n.t('m5s5.notifications.emptyTitle')),
+    ).toBeTruthy();
+    await waitFor(() => expect(screen.queryByText('0 ungelesen')).toBeNull());
+  });
+
+  it('does not let one failed mark-read roll back a different notification marked read concurrently', async () => {
+    function deferred<T>() {
+      let resolve!: (value: T) => void;
+      let reject!: (reason?: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    }
+
+    const pendingA = deferred<void>();
+    const pendingB = deferred<void>();
+    const markNotificationRead = vi.fn(
+      ({ notificationId }: { notificationId: string; spaceId: string }) =>
+        notificationId === 'notif-a' ? pendingA.promise : pendingB.promise,
+    );
+    // Never resolves: keeps the onSettled-triggered refetch from masking the
+    // intermediate cache state this test asserts on.
+    const getNotifications = vi.fn(() => new Promise(() => undefined));
+    const getNotificationUnreadCount = vi.fn(
+      () => new Promise(() => undefined),
+    );
+
+    function notification(id: string) {
+      return {
+        id,
+        sourceEventId: `evt-${id}`,
+        kind: 'THINKING_OF_YOU',
+        actorId: 'user-partner',
+        actor: null,
+        targetType: null,
+        targetId: null,
+        target: null,
+        createdAt: new Date('2026-09-03T18:03:00Z'),
+        readAt: null,
+      };
+    }
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const listKey = ['m5-s5', 'notifications', SPACE_ID];
+    const unreadKey = ['m5-s5', 'notification-unread-count', SPACE_ID];
+    queryClient.setQueryData(listKey, {
+      pages: [
+        {
+          items: [notification('notif-a'), notification('notif-b')],
+          nextCursor: null,
+        },
+      ],
+      pageParams: [null],
+    });
+    queryClient.setQueryData(unreadKey, { unreadCount: 2 });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <NotificationsProductPage
+            apis={
+              {
+                notifications: {
+                  markNotificationRead,
+                  getNotifications,
+                  getNotificationUnreadCount,
+                },
+              } as unknown as M4ProductApis
+            }
+            spaceId={SPACE_ID}
+            currentAccountId="user-self"
+          />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const markReadButtons = screen.getAllByRole('button', {
+      name: 'Als gelesen markieren',
+    });
+    expect(markReadButtons).toHaveLength(2);
+
+    fireEvent.click(markReadButtons[0]);
+    fireEvent.click(markReadButtons[1]);
+
+    await waitFor(() => {
+      const unreadData = queryClient.getQueryData<{ unreadCount: number }>(
+        unreadKey,
+      );
+      expect(unreadData?.unreadCount).toBe(0);
+    });
+
+    pendingA.reject(new Error('network error marking notif-a as read'));
+
+    await waitFor(() => {
+      const unreadData = queryClient.getQueryData<{ unreadCount: number }>(
+        unreadKey,
+      );
+      // notif-a's failure must only undo notif-a's own optimistic delta
+      // (unreadCount 0 -> 1), not restore a stale whole-cache snapshot that
+      // would also un-read notif-b.
+      expect(unreadData?.unreadCount).toBe(1);
+    });
+
+    const listData = queryClient.getQueryData<{
+      pages: Array<{ items: Array<{ id: string; readAt: Date | null }> }>;
+    }>(listKey);
+    const itemsById = new Map(
+      listData?.pages[0].items.map((item) => [item.id, item]) ?? [],
+    );
+    expect(itemsById.get('notif-a')?.readAt).toBeNull();
+    expect(itemsById.get('notif-b')?.readAt).not.toBeNull();
+
+    pendingB.resolve();
   });
 });

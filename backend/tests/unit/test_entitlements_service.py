@@ -5,15 +5,15 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from sidebyside.config import Deployment
-from sidebyside.entitlements.models import (
+from eimir.config import Deployment
+from eimir.entitlements.models import (
     Capability,
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,
     EntitlementTier,
 )
-from sidebyside.entitlements.service import (
+from eimir.entitlements.service import (
     ALL_PREMIUM_CAPABILITIES,
     evaluate_grant_validity,
     get_effective_space_entitlement,

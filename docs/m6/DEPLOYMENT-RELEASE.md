@@ -27,7 +27,7 @@ media storage, secrets, sessions, signing keys or provider credentials.
 #375 already provides:
 
 - persistent isolated Development;
-- `SBS_ENVIRONMENT=development|demo|production` separation;
+- `EIMIR_ENVIRONMENT=development|demo|production` separation;
 - exact Web/API revision reporting;
 - `scripts/compose_checked.py` for verified complete-checkout deployment;
 - Development-before-Production migration gates;
@@ -97,6 +97,15 @@ Delivered #194 freezes:
 
 These are `BEFORE_RELEASE`, not M5 Android feature work.
 
+Delivered #1008 (Slice B) migrates Android release packaging, signing, and publication to the Capacitor Android wrapper (`android/`, promoted from the staging path `capacitor-android/` by #1009):
+
+- build-time web bundle compilation with validated `android_api_base_url` (`VITE_EIMIR_API_BASE_URL`), native sync via `npm run cap:sync`, and native config drift checks;
+- Gradle project properties `eimirVersionCode` (with deprecated `sbs*` compatibility fallback) and `eimirVersionName`;
+- release signing credentials reading `eimirRelease*` (with deprecated `sbs*` fallbacks) materialized ephemerally in `$RUNNER_TEMP`;
+- strict dependency verification (`gradle/verification-metadata.xml`) and verified Gradle wrapper checksums;
+- verification of offline web assets, runtime security (`CapacitorHttp`), and dynamic badging (`de.sidebyside.app` / `de.eimir.app.MainActivity`);
+- the legacy Kotlin/Compose client was removed in #1009; `android/` is the single Android Gradle project.
+
 ## 6. Promotion contract
 
 The required release order is:
@@ -122,7 +131,8 @@ traceably the same approved source/release identity.
 
 Self-Hosted keeps #375/#190 as the supported baseline:
 
-- Docker Compose/Arcane deployment primitives;
+- the canonical root `compose.yaml` with `self-hosted` profile for complete
+  checkouts and Arcane;
 - immutable commit/release identity;
 - dedicated secrets/data/media;
 - pre-production migration verification;
@@ -136,9 +146,10 @@ Self-Hosted product merely to simplify managed hosting.
 
 ## 8. Cloud/Managed production
 
-#521 must produce the supported launch topology and deployment representation. It
-must preserve the same Domain/API/privacy semantics while deciding operational
-responsibilities for:
+`docs/m6/CLOUD-MANAGED-TOPOLOGY.md` (#521) freezes the supported launch topology.
+Its deployment representation is the `cloud` profile in the same root
+`compose.yaml` together with `deploy/cloud-managed.env.example`, preserving the
+same Domain/API/privacy semantics while deciding operational responsibilities for:
 
 - API/Web/worker/migrate processes;
 - PostgreSQL;
@@ -150,7 +161,9 @@ responsibilities for:
 - backup/restore;
 - capacity/restart/replica assumptions.
 
-Cloud convenience does not justify a Cloud-only Domain branch.
+Cloud convenience does not justify a Cloud-only Domain branch. `#524` performs
+the integrated rehearsal (including a real managed restore) against this
+topology.
 
 ## 9. Configuration and secrets
 

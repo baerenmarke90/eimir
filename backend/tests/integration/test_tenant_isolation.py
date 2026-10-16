@@ -17,9 +17,9 @@ from __future__ import annotations
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.core.errors import NotFoundError
-from sidebyside.relationship import service
-from sidebyside.relationship.models import MembershipStatus
+from eimir.core.errors import NotFoundError
+from eimir.relationship import service
+from eimir.relationship.models import MembershipStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -89,7 +89,7 @@ class TestOutsiderAccess:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         """Any difference could otherwise become an existence oracle."""
-        from sidebyside.core.ids import new_id
+        from eimir.core.ids import new_id
 
         real = client.get(
             f"/api/v1/spaces/{couple['space'].id}",
@@ -190,7 +190,7 @@ class TestEndedMembership:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership)
+        service.end_membership(session, membership)
         session.flush()
 
         response = client.get(
@@ -206,7 +206,7 @@ class TestEndedMembership:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership, removed=True)
+        service.end_membership(session, membership, removed=True)
         session.flush()
 
         response = client.get(
@@ -243,7 +243,7 @@ class TestUpperBound:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         """A couple Space has at most two active partners."""
-        from sidebyside.core.errors import ConflictError
+        from eimir.core.errors import ConflictError
 
         third = make_account(session, "Dritte Person")
         with pytest.raises(ConflictError) as error:
@@ -255,24 +255,27 @@ class TestUpperBound:
         session: Session,
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
-        from sidebyside.core.errors import ConflictError
+        from eimir.core.errors import ConflictError
 
         with pytest.raises(ConflictError) as error:
             service.add_member(session, couple["space"].id, couple["b"])
         assert error.value.code == "ACCOUNT_ALREADY_MEMBER"
 
-    def test_space_has_room_after_member_leaves(
+    def test_relationship_history_rejects_replacement_after_member_leaves(
         self,
         session: Session,
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
+        from eimir.core.errors import ConflictError
+
         membership = service.require_membership(session, couple["b"], couple["space"].id)
-        service.end_membership(membership)
+        service.end_membership(session, membership)
         session.flush()
 
         third = make_account(session, "Dritte Person")
-        new_membership = service.add_member(session, couple["space"].id, third)
-        assert new_membership.is_active
+        with pytest.raises(ConflictError) as error:
+            service.add_member(session, couple["space"].id, third)
+        assert error.value.code == service.SpaceErrorCode.RELATIONSHIP_ENDED
 
 
 class TestNoAuthenticationData:

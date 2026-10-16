@@ -1,19 +1,18 @@
-import type { FormEvent } from 'react';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Link, useLocation } from 'react-router-dom';
 import type { ChapterDetail } from '../api/generated/models/ChapterDetail';
-import { normalizeClientError } from '../client/problemDetails';
-import { appRoutePath, chapterDetailPath } from '../client/routes';
 import {
-  dateFromInput,
-  loadAllPlaces,
-  type SharedPlanningApis,
-} from '../client/sharedPlanning';
+  type DeleteFocusTarget,
+  PLANNING_DELETE_FOCUS_STATE_KEY,
+} from '../client/deleteFocusTarget';
+import { normalizeClientError } from '../client/problemDetails';
+import {
+  appRoutePath,
+  chapterDetailPath,
+  CHAPTER_CREATE_ROUTE,
+} from '../client/routes';
+import type { SharedPlanningApis } from '../client/sharedPlanning';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -52,7 +51,10 @@ export function ChaptersOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
+  const location = useLocation();
+  const createActionRef = useRef<HTMLAnchorElement>(null);
+  const chapterRefs = useRef(new Map<string, HTMLAnchorElement>());
+  const restoredDeleteFocusRef = useRef(false);
 
   const chapters = useInfiniteQuery({
     queryKey: ['m5-s3', 'chapters', spaceId],
@@ -69,52 +71,21 @@ export function ChaptersOverviewPage({
     retry: false,
   });
 
-  const placesQuery = useQuery({
-    queryKey: ['m5-s3', 'chapter-places', spaceId],
-    queryFn: () => apiCall(() => loadAllPlaces(apis, spaceId)),
-    staleTime: 30_000,
-    retry: false,
-  });
-
-  const createChapter = useMutation({
-    mutationFn: (values: {
-      title: string;
-      description?: string;
-      startOn?: Date;
-      endOn?: Date;
-      placeId?: string;
-    }) =>
-      apiCall(() =>
-        apis.chapters.createChapter({ spaceId, chapterCreate: values }),
-      ),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'chapters', spaceId],
-      });
-    },
-  });
-
   const chapterItems = chapters.data?.pages.flatMap((page) => page.items) ?? [];
+  const deleteFocusTarget = (
+    location.state as Record<string, unknown> | null
+  )?.[PLANNING_DELETE_FOCUS_STATE_KEY] as DeleteFocusTarget | undefined;
 
-  function submitChapter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const description = String(data.get('description')).trim();
-    const startOn = dateFromInput(String(data.get('startOn')).trim());
-    const endOn = dateFromInput(String(data.get('endOn')).trim());
-    const placeId = String(data.get('placeId')).trim();
-    createChapter.mutate(
-      {
-        title: String(data.get('title')).trim(),
-        description: description || undefined,
-        startOn: startOn ?? undefined,
-        endOn: endOn ?? undefined,
-        placeId: placeId || undefined,
-      },
-      { onSuccess: () => form.reset() },
-    );
-  }
+  useEffect(() => {
+    if (restoredDeleteFocusRef.current || !deleteFocusTarget) return;
+    const requestedTarget =
+      deleteFocusTarget.kind === 'item'
+        ? chapterRefs.current.get(deleteFocusTarget.id)
+        : createActionRef.current;
+    if (!requestedTarget && chapters.isFetching) return;
+    (requestedTarget ?? createActionRef.current)?.focus();
+    restoredDeleteFocusRef.current = true;
+  }, [chapters.isFetching, deleteFocusTarget]);
 
   return (
     <div className="page planning-page">
@@ -127,6 +98,15 @@ export function ChaptersOverviewPage({
         eyebrow={t('navigation.story')}
         title={t('m5s3.chapter.heading')}
         description={t('m5s3.chapter.intro')}
+        action={
+          <Link
+            ref={createActionRef}
+            className="button-link"
+            to={CHAPTER_CREATE_ROUTE}
+          >
+            {t('m5s3.chapter.create')}
+          </Link>
+        }
       />
 
       <section className="planning-subsection">
@@ -147,6 +127,10 @@ export function ChaptersOverviewPage({
             {chapterItems.map((chapter) => (
               <li className="planning-card-item" key={chapter.id}>
                 <Link
+                  ref={(element) => {
+                    if (element) chapterRefs.current.set(chapter.id, element);
+                    else chapterRefs.current.delete(chapter.id);
+                  }}
                   className="planning-card planning-card-link"
                   to={chapterDetailPath(chapter.id)}
                 >
@@ -176,53 +160,6 @@ export function ChaptersOverviewPage({
               : t('m5s3.common.loadMore')}
           </button>
         ) : null}
-
-        <details className="planning-create" id="chapter-create-details">
-          <summary id="chapter-title">{t('m5s3.chapter.create')}</summary>
-          <form
-            onSubmit={submitChapter}
-            className="form-grid planning-create-form"
-          >
-            <label htmlFor="chapter-name">{t('m5s3.common.title')}</label>
-            <input id="chapter-name" name="title" required maxLength={200} />
-            <label htmlFor="chapter-desc">{t('m5s3.common.description')}</label>
-            <textarea id="chapter-desc" name="description" rows={3} />
-            <div className="planning-coordinate-grid">
-              <div className="field-group">
-                <label htmlFor="chapter-start">
-                  {t('m5s3.chapter.startOn')}
-                </label>
-                <input id="chapter-start" name="startOn" type="date" />
-              </div>
-              <div className="field-group">
-                <label htmlFor="chapter-end">{t('m5s3.chapter.endOn')}</label>
-                <input id="chapter-end" name="endOn" type="date" />
-              </div>
-            </div>
-            <label htmlFor="chapter-place">{t('m5s3.common.place')}</label>
-            <select
-              id="chapter-place"
-              name="placeId"
-              defaultValue=""
-              disabled={placesQuery.isLoading}
-            >
-              <option value="">{t('m5s3.common.noPlace')}</option>
-              {(placesQuery.data ?? []).map((place) => (
-                <option key={place.id} value={place.id}>
-                  {place.name}
-                </option>
-              ))}
-            </select>
-            <button type="submit" disabled={createChapter.isPending}>
-              {createChapter.isPending
-                ? t('m5s3.common.saving')
-                : t('m5s3.common.save')}
-            </button>
-            {createChapter.error ? (
-              <ProblemState error={createChapter.error} />
-            ) : null}
-          </form>
-        </details>
       </section>
     </div>
   );

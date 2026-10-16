@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -78,6 +78,12 @@ export interface RelatedPersonView {
     relationship: PersonRelationship;
     /**
      * 
+     * @type {boolean}
+     * @memberof RelatedPersonView
+     */
+    showBirthdayOnDashboard: boolean;
+    /**
+     * 
      * @type {Date}
      * @memberof RelatedPersonView
      */
@@ -108,6 +114,7 @@ export function instanceOfRelatedPersonView(value: object): value is RelatedPers
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('relationship' in value) || value['relationship'] === undefined) return false;
+    if (!('showBirthdayOnDashboard' in value) || value['showBirthdayOnDashboard'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
     if (!('version' in value) || value['version'] === undefined) return false;
     if (!('visibility' in value) || value['visibility'] === undefined) return false;
@@ -131,6 +138,7 @@ export function RelatedPersonViewFromJSONTyped(json: any, ignoreDiscriminator: b
         'displayName': json['displayName'],
         'id': json['id'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
+        'showBirthdayOnDashboard': json['showBirthdayOnDashboard'],
         'updatedAt': (new Date(json['updatedAt'])),
         'version': json['version'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
@@ -155,6 +163,7 @@ export function RelatedPersonViewToJSONTyped(value?: RelatedPersonView | null, i
         'displayName': value['displayName'],
         'id': value['id'],
         'relationship': PersonRelationshipToJSON(value['relationship']),
+        'showBirthdayOnDashboard': value['showBirthdayOnDashboard'],
         'updatedAt': value['updatedAt'].toISOString(),
         'version': value['version'],
         'visibility': ContentVisibilityToJSON(value['visibility']),

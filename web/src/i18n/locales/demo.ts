@@ -1,5 +1,5 @@
 const demo = {
-  introHeading: 'SidebySide direkt ausprobieren.',
+  introHeading: 'eimir. direkt ausprobieren.',
   introBody:
     'Entdecke einen vorbereiteten gemeinsamen Space mit Erinnerungen, Plänen, Orten und privaten Beispieldaten.',
   eyebrow: 'Öffentliche Demo',

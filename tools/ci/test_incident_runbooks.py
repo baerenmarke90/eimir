@@ -136,7 +136,7 @@ class IncidentRunbookContractTest(unittest.TestCase):
         for marker in (
             "/api/v1/health",
             "/api/v1/health/ready",
-            "X-SideBySide-Revision",
+            "X-Eimir-Revision",
             "docker compose stop postgres",
             "docker compose start postgres",
             "scripts/deployment_smoke.py",

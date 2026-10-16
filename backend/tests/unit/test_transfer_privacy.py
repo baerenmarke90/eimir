@@ -4,10 +4,10 @@ from uuid import uuid4
 
 import pytest
 
-from sidebyside.core.errors import ErrorCode
-from sidebyside.transfer import service
-from sidebyside.transfer.archive import TransferArchiveError
-from sidebyside.transfer.models import TransferScope
+from eimir.core.errors import ErrorCode
+from eimir.transfer import service
+from eimir.transfer.archive import TransferArchiveError
+from eimir.transfer.models import TransferScope
 
 
 @pytest.mark.parametrize("table_name", ["rule_preferences", "reminder_preferences"])

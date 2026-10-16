@@ -1,6 +1,9 @@
 import {
   type ButtonHTMLAttributes,
   type PointerEvent as ReactPointerEvent,
+  forwardRef,
+  useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -56,20 +59,151 @@ type DragState = {
   pointerId: number;
   initialOrder: string[];
   order: string[];
+  clientX: number;
+  clientY: number;
+  scrollContainer: HTMLElement;
 };
+
+function scrollContainerFor(handle: HTMLElement): HTMLElement {
+  for (
+    let parent = handle.parentElement;
+    parent && parent !== document.body;
+    parent = parent.parentElement
+  ) {
+    const overflow = getComputedStyle(parent).overflowY;
+    if (
+      /auto|scroll/.test(overflow) &&
+      parent.scrollHeight > parent.clientHeight
+    )
+      return parent;
+  }
+  return (document.scrollingElement ?? document.documentElement) as HTMLElement;
+}
 
 export function useListItemReorder({
   itemIds,
   disabled,
   onReorder,
+  animatePreview = false,
 }: {
   itemIds: readonly string[];
   disabled: boolean;
-  onReorder: (itemIds: string[]) => void;
+  onReorder: (itemIds: string[], movedId: string) => void;
+  animatePreview?: boolean;
 }) {
   const dragRef = useRef<DragState | null>(null);
+  const scrollFrame = useRef<number | null>(null);
+  const previousRects = useRef<Map<string, number> | null>(null);
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
+
+  function captureRects() {
+    if (!animatePreview) return;
+    previousRects.current = new Map(
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[data-sortable-item-id]'),
+      )
+        .filter((row) => itemIds.includes(row.dataset.sortableItemId ?? ''))
+        .map((row) => [
+          row.dataset.sortableItemId ?? '',
+          row.getBoundingClientRect().top,
+        ]),
+    );
+  }
+
+  useLayoutEffect(() => {
+    const before = previousRects.current;
+    previousRects.current = null;
+    if (
+      !before ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    )
+      return;
+    const rawDuration = getComputedStyle(document.documentElement)
+      .getPropertyValue('--duration-transition')
+      .trim();
+    const duration = rawDuration.endsWith('ms')
+      ? parseFloat(rawDuration)
+      : parseFloat(rawDuration) * 1000;
+    const easing =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue('--easing-standard')
+        .trim() || 'ease-out';
+    for (const row of document.querySelectorAll<HTMLElement>(
+      '[data-sortable-item-id]',
+    )) {
+      const oldTop = before.get(row.dataset.sortableItemId ?? '');
+      if (oldTop === undefined || typeof row.animate !== 'function') continue;
+      const displacement = oldTop - row.getBoundingClientRect().top;
+      if (Math.abs(displacement) < 1) continue;
+      row.animate(
+        [
+          { transform: `translateY(${displacement}px)` },
+          { transform: 'translateY(0)' },
+        ],
+        { duration: Number.isFinite(duration) ? duration : 180, easing },
+      );
+    }
+  });
+
+  useEffect(
+    () => () => {
+      dragRef.current = null;
+      if (scrollFrame.current !== null)
+        cancelAnimationFrame(scrollFrame.current);
+    },
+    [],
+  );
+
+  function updateTarget(drag: DragState) {
+    const element = document.elementFromPoint(drag.clientX, drag.clientY);
+    const row = element?.closest(
+      '[data-sortable-item-id]',
+    ) as HTMLElement | null;
+    const targetId = row?.dataset.sortableItemId;
+    if (
+      !row ||
+      !targetId ||
+      targetId === drag.itemId ||
+      !drag.order.includes(targetId)
+    )
+      return;
+    const bounds = row.getBoundingClientRect();
+    const placement =
+      drag.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
+    const next = moveSortableItem(drag.order, drag.itemId, targetId, placement);
+    if (!sameOrder(drag.order, next)) {
+      captureRects();
+      drag.order = next;
+      setPreviewOrder(next);
+    }
+  }
+
+  function autoScroll() {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const container = drag.scrollContainer;
+    const isDocument =
+      container === document.scrollingElement ||
+      container === document.documentElement;
+    const bounds = isDocument
+      ? { top: 0, bottom: window.innerHeight }
+      : container.getBoundingClientRect();
+    const direction =
+      drag.clientY < bounds.top + 56
+        ? -1
+        : drag.clientY > bounds.bottom - 56
+          ? 1
+          : 0;
+    if (direction) {
+      if (isDocument) window.scrollBy(0, direction * 12);
+      else container.scrollBy(0, direction * 12);
+      updateTarget(drag);
+      scrollFrame.current = requestAnimationFrame(autoScroll);
+    } else {
+      scrollFrame.current = null;
+    }
+  }
 
   function finishPointer(
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -77,6 +211,9 @@ export function useListItemReorder({
   ) {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
+
+    if (scrollFrame.current !== null) cancelAnimationFrame(scrollFrame.current);
+    scrollFrame.current = null;
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -87,7 +224,7 @@ export function useListItemReorder({
     setActiveItemId(null);
 
     if (commit && !sameOrder(drag.initialOrder, drag.order)) {
-      onReorder(drag.order);
+      onReorder(drag.order, drag.itemId);
     }
   }
 
@@ -108,7 +245,10 @@ export function useListItemReorder({
           itemId,
           direction as -1 | 1,
         );
-        if (!sameOrder(itemIds, next)) onReorder(next);
+        if (!sameOrder(itemIds, next)) {
+          captureRects();
+          onReorder(next, itemId);
+        }
       },
       onPointerDown: (event) => {
         if (disabled || event.button !== 0) return;
@@ -118,9 +258,13 @@ export function useListItemReorder({
           pointerId: event.pointerId,
           initialOrder,
           order: initialOrder,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          scrollContainer: scrollContainerFor(event.currentTarget),
         };
         setPreviewOrder(initialOrder);
         setActiveItemId(itemId);
+        event.currentTarget.focus();
         event.currentTarget.setPointerCapture(event.pointerId);
         event.preventDefault();
       },
@@ -128,27 +272,10 @@ export function useListItemReorder({
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) return;
 
-        const element = document.elementFromPoint(event.clientX, event.clientY);
-        const row = element?.closest(
-          '[data-sortable-item-id]',
-        ) as HTMLElement | null;
-        const targetId = row?.dataset.sortableItemId;
-        if (!row || !targetId || targetId === drag.itemId) return;
-        if (!drag.order.includes(targetId)) return;
-
-        const bounds = row.getBoundingClientRect();
-        const placement =
-          event.clientY >= bounds.top + bounds.height / 2 ? 'after' : 'before';
-        const next = moveSortableItem(
-          drag.order,
-          drag.itemId,
-          targetId,
-          placement,
-        );
-        if (sameOrder(drag.order, next)) return;
-
-        drag.order = next;
-        setPreviewOrder(next);
+        drag.clientX = event.clientX;
+        drag.clientY = event.clientY;
+        updateTarget(drag);
+        if (scrollFrame.current === null) autoScroll();
       },
       onPointerUp: (event) => finishPointer(event, true),
       onPointerCancel: (event) => finishPointer(event, false),
@@ -171,14 +298,20 @@ type IconButtonProps = Omit<
   variant?: 'tertiary' | 'add';
 };
 
-export function ListEntryIconButton({
-  label,
-  icon,
-  variant = icon === 'add' ? 'add' : 'tertiary',
-  className,
-  type = 'button',
-  ...props
-}: IconButtonProps) {
+export const ListEntryIconButton = forwardRef<
+  HTMLButtonElement,
+  IconButtonProps
+>(function ListEntryIconButton(
+  {
+    label,
+    icon,
+    variant = icon === 'add' ? 'add' : 'tertiary',
+    className,
+    type = 'button',
+    ...props
+  },
+  ref,
+) {
   const classes = [
     'list-entry-icon-button',
     variant === 'add' ? 'list-entry-add-button' : null,
@@ -190,6 +323,7 @@ export function ListEntryIconButton({
 
   return (
     <button
+      ref={ref}
       {...props}
       type={type}
       className={classes}
@@ -199,11 +333,28 @@ export function ListEntryIconButton({
       <ListEntryIcon kind={icon} />
     </button>
   );
+});
+
+export function EditPencilIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className={className}
+    >
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+    </svg>
+  );
 }
 
 function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
   if (kind === 'add') {
     return <AddIcon className="list-entry-icon" />;
+  }
+
+  if (kind === 'edit') {
+    return <EditPencilIcon className="list-entry-icon" />;
   }
 
   return (
@@ -235,9 +386,6 @@ function ListEntryIcon({ kind }: { kind: IconButtonProps['icon'] }) {
           <path d="M5 12h14" />
           <path d="M5 17h14" />
         </>
-      ) : null}
-      {kind === 'edit' ? (
-        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
       ) : null}
     </svg>
   );

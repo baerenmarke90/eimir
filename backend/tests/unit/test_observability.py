@@ -9,9 +9,9 @@ import logging
 import pytest
 from starlette.responses import PlainTextResponse
 
-from sidebyside.config import Environment, LogFormat, Settings
-from sidebyside.core.ids import new_id
-from sidebyside.observability import (
+from eimir.config import Environment, LogFormat, Settings
+from eimir.core.ids import new_id
+from eimir.observability import (
     REDACTED,
     ConsoleLogFormatter,
     JsonLogFormatter,
@@ -198,7 +198,7 @@ class TestFormatters:
         set_space_id("space-test-json")
 
         record = logging.LogRecord(
-            name="sidebyside.test",
+            name="eimir.test",
             level=logging.INFO,
             pathname="test.py",
             lineno=20,
@@ -212,7 +212,7 @@ class TestFormatters:
         data = json.loads(formatted)
 
         assert data["level"] == "INFO"
-        assert data["logger"] == "sidebyside.test"
+        assert data["logger"] == "eimir.test"
         assert data["message"] == "Operation succeeded for item 123"
         assert data["request_id"] == "req-test-json"
         assert data["correlation_id"] == "corr-test-json"
@@ -226,7 +226,7 @@ class TestFormatters:
         set_request_id("req-console")
 
         record = logging.LogRecord(
-            name="sidebyside.test",
+            name="eimir.test",
             level=logging.INFO,
             pathname="test.py",
             lineno=20,
@@ -236,7 +236,7 @@ class TestFormatters:
         )
 
         formatted = formatter.format(record)
-        assert "INFO sidebyside.test [req=req-console] Hello console" in formatted
+        assert "INFO eimir.test [req=req-console] Hello console" in formatted
 
     def test_effective_log_format_in_settings(self) -> None:
         dev_settings = Settings(environment=Environment.DEVELOPMENT)

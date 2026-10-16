@@ -22,16 +22,16 @@ from uuid import UUID
 import pytest
 from sqlalchemy import func, select
 
-from sidebyside.authorization import AuthorizationContext, ContentVisibility
-from sidebyside.core.errors import DomainError
-from sidebyside.heart_moments import service as heart_moment_service
-from sidebyside.heart_moments.models import HeartMoment
-from sidebyside.memories.models import Memory
-from sidebyside.places import service as place_service
-from sidebyside.places.models import Place
-from sidebyside.relations import service as relation_service
-from sidebyside.relations.models import PlaceHeartMoment, PlaceMemory
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext, ContentVisibility
+from eimir.core.errors import DomainError
+from eimir.heart_moments import service as heart_moment_service
+from eimir.heart_moments.models import HeartMoment
+from eimir.memories.models import Memory
+from eimir.places import service as place_service
+from eimir.places.models import Place
+from eimir.relations import service as relation_service
+from eimir.relations.models import PlaceHeartMoment, PlaceMemory
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -178,7 +178,7 @@ def test_target_delete_against_relation_create(production_client) -> None:  # ty
 
     def delete():  # type: ignore[no-untyped-def]
         with maker.begin() as session:
-            from sidebyside.memories import service as memory_service
+            from eimir.memories import service as memory_service
 
             memory_service.delete_memory(
                 session,

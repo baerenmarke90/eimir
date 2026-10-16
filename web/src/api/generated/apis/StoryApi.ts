@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -14,10 +14,20 @@
 
 import * as runtime from '../runtime';
 import {
+    type DiscoverSelection,
+    DiscoverSelectionFromJSON,
+    DiscoverSelectionToJSON,
+} from '../models/DiscoverSelection';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type SharedPhotoPage,
+    SharedPhotoPageFromJSON,
+    SharedPhotoPageToJSON,
+} from '../models/SharedPhotoPage';
 import {
     type StoryKind,
     StoryKindFromJSON,
@@ -33,6 +43,21 @@ import {
     StoryPageFromJSON,
     StoryPageToJSON,
 } from '../models/StoryPage';
+import {
+    type StoryViewReceipt,
+    StoryViewReceiptFromJSON,
+    StoryViewReceiptToJSON,
+} from '../models/StoryViewReceipt';
+
+export interface GetSharedPhotosRequest {
+    spaceId: string;
+    cursor?: string | null;
+    limit?: number;
+}
+
+export interface GetStoryDiscoverRequest {
+    spaceId: string;
+}
 
 export interface GetStoryTimelineRequest {
     spaceId: string;
@@ -43,10 +68,117 @@ export interface GetStoryTimelineRequest {
     limit?: number;
 }
 
+export interface RecordStoryViewRequest {
+    spaceId: string;
+    storyViewReceipt: StoryViewReceipt;
+}
+
 /**
  * 
  */
 export class StoryApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for getSharedPhotos without sending the request
+     */
+    async getSharedPhotosRequestOpts(requestParameters: GetSharedPhotosRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getSharedPhotos().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['cursor'] != null) {
+            queryParameters['cursor'] = requestParameters['cursor'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/photos`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Browse READY images from currently shared Memory and HeartMoment parents.  Owner-private media is excluded even for its owner. Media bytes still use the existing parent-bound attachment read authorization.
+     * Get Shared Photos
+     */
+    async getSharedPhotosRaw(requestParameters: GetSharedPhotosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SharedPhotoPage>> {
+        const requestOptions = await this.getSharedPhotosRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SharedPhotoPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Browse READY images from currently shared Memory and HeartMoment parents.  Owner-private media is excluded even for its owner. Media bytes still use the existing parent-bound attachment read authorization.
+     * Get Shared Photos
+     */
+    async getSharedPhotos(requestParameters: GetSharedPhotosRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SharedPhotoPage> {
+        const response = await this.getSharedPhotosRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getStoryDiscover without sending the request
+     */
+    async getStoryDiscoverRequestOpts(requestParameters: GetStoryDiscoverRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling getStoryDiscover().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/discover`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Get Story Discover
+     */
+    async getStoryDiscoverRaw(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DiscoverSelection>> {
+        const requestOptions = await this.getStoryDiscoverRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DiscoverSelectionFromJSON(jsonValue));
+    }
+
+    /**
+     * Return today\'s finite backend-owned curated Story selection.  Snapshot order is canonical. If the original lead becomes unreadable, the first surviving reference becomes the response lead and all later survivors remain in their existing order. Nothing is refilled or reshuffled during that local day.
+     * Get Story Discover
+     */
+    async getStoryDiscover(requestParameters: GetStoryDiscoverRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DiscoverSelection> {
+        const response = await this.getStoryDiscoverRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getStoryTimeline without sending the request
@@ -96,7 +228,7 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the shared timeline of memories, milestones, and heart moments.  Private heart moments never appear here, including for their owner.
+     * Return the caller\'s viewer-authorized timeline of memories, milestones, and heart moments.  A heart moment the caller marked ``PRIVATE`` remains part of their own timeline; it never appears in their partner\'s (#1021).
      * Get Story Timeline
      */
     async getStoryTimelineRaw(requestParameters: GetStoryTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<StoryPage>> {
@@ -107,12 +239,68 @@ export class StoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return the shared timeline of memories, milestones, and heart moments.  Private heart moments never appear here, including for their owner.
+     * Return the caller\'s viewer-authorized timeline of memories, milestones, and heart moments.  A heart moment the caller marked ``PRIVATE`` remains part of their own timeline; it never appears in their partner\'s (#1021).
      * Get Story Timeline
      */
     async getStoryTimeline(requestParameters: GetStoryTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<StoryPage> {
         const response = await this.getStoryTimelineRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Creates request options for recordStoryView without sending the request
+     */
+    async recordStoryViewRequestOpts(requestParameters: RecordStoryViewRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling recordStoryView().'
+            );
+        }
+
+        if (requestParameters['storyViewReceipt'] == null) {
+            throw new runtime.RequiredError(
+                'storyViewReceipt',
+                'Required parameter "storyViewReceipt" was null or undefined when calling recordStoryView().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/spaces/{spaceId}/story-views`;
+        urlPath = urlPath.replace('{spaceId}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: StoryViewReceiptToJSON(requestParameters['storyViewReceipt']),
+        };
+    }
+
+    /**
+     * Record an intentional Story detail view without retaining an event history.
+     * Record Story View
+     */
+    async recordStoryViewRaw(requestParameters: RecordStoryViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.recordStoryViewRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Record an intentional Story detail view without retaining an event history.
+     * Record Story View
+     */
+    async recordStoryView(requestParameters: RecordStoryViewRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.recordStoryViewRaw(requestParameters, initOverrides);
     }
 
 }

@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from sidebyside.config import Environment, MailTransport, Settings
-from sidebyside.main import create_app
+from eimir.config import Environment, MailTransport, Settings
+from eimir.main import create_app
 
 
 @pytest.fixture
@@ -20,27 +20,39 @@ class TestHealth:
         response = client.get("/api/v1/health")
         assert response.status_code == 200
         assert response.json() == {"status": "ok"}
+        assert response.headers["X-Eimir-Revision"] == "unverified-local-checkout"
         assert response.headers["X-SideBySide-Revision"] == "unverified-local-checkout"
 
     def test_revision_header_uses_build_identity(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("SBS_BUILD_REVISION", "0123456789abcdef")
+        monkeypatch.setenv("EIMIR_BUILD_REVISION", "0123456789abcdef")
         response = client.get("/api/v1/health")
-        assert response.headers["X-SideBySide-Revision"] == "0123456789abcdef"
+        assert response.headers["X-Eimir-Revision"] == "0123456789abcdef"
+
+    def test_legacy_revision_environment_alias_is_accepted(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("EIMIR_BUILD_REVISION", raising=False)
+        monkeypatch.setenv("SBS_BUILD_REVISION", "legacy-build-revision")
+
+        response = client.get("/api/v1/health")
+
+        assert response.headers["X-Eimir-Revision"] == "legacy-build-revision"
+        assert response.headers["X-SideBySide-Revision"] == "legacy-build-revision"
 
     def test_revision_header_rejects_newlines(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("SBS_BUILD_REVISION", "main\r\nX-Injected: yes")
+        monkeypatch.setenv("EIMIR_BUILD_REVISION", "main\r\nX-Injected: yes")
         response = client.get("/api/v1/health")
-        assert response.headers["X-SideBySide-Revision"] == "unknown"
+        assert response.headers["X-Eimir-Revision"] == "unknown"
         assert "X-Injected" not in response.headers
 
     def test_readiness_reports_503_without_database(self, client: TestClient) -> None:
         response = client.get("/api/v1/health/ready")
         assert response.status_code in (200, 503)
-        assert response.headers["X-SideBySide-Revision"] == "unverified-local-checkout"
+        assert response.headers["X-Eimir-Revision"] == "unverified-local-checkout"
         if response.status_code == 503:
             assert response.json()["database"] == "unavailable"
 
@@ -68,7 +80,7 @@ class TestProduction:
     def test_schema_is_closed_in_production(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """An exposed schema is a map of the attack surface."""
         monkeypatch.setattr(
-            "sidebyside.main.get_settings",
+            "eimir.main.get_settings",
             lambda: Settings(
                 environment=Environment.PRODUCTION,
                 mail_transport=MailTransport.SMTP,
@@ -77,7 +89,10 @@ class TestProduction:
             ),
         )
         production = TestClient(
-            create_app(), base_url="http://localhost", raise_server_exceptions=False
+            create_app(),
+            base_url="http://localhost",
+            client=("127.0.0.1", 50000),
+            raise_server_exceptions=False,
         )
         assert production.get("/openapi.json").status_code == 404
         assert production.get("/docs").status_code == 404

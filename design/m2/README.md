@@ -4,7 +4,7 @@
 **Version:** 1.0  
 **As of:** August 24, 2026
 
-This package refines the existing SideBySide design foundation for **M2 - Memory Core**. It replaces neither the product, API, nor security specification; instead, it connects them into implementable screens, states, and platform rules.
+This package refines the existing eimir. design foundation for **M2 - Memory Core**. It replaces neither the product, API, nor security specification; instead, it connects them into implementable screens, states, and platform rules.
 
 ## Target experience
 

@@ -7,13 +7,13 @@ from datetime import UTC, date, datetime
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import AuthorizationContext, ContentVisibility
-from sidebyside.chapters import service as chapter_service
-from sidebyside.heart_moments import service as heart_moment_service
-from sidebyside.heart_moments.models import HeartEmotion
-from sidebyside.memories import service as memory_service
-from sidebyside.milestones import service as milestone_service
-from sidebyside.relationship import service as relationship_service
+from eimir.authorization import AuthorizationContext, ContentVisibility
+from eimir.chapters import service as chapter_service
+from eimir.heart_moments import service as heart_moment_service
+from eimir.heart_moments.models import HeartEmotion
+from eimir.memories import service as memory_service
+from eimir.milestones import service as milestone_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

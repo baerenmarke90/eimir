@@ -32,8 +32,8 @@ const m5s6 = {
     },
     import: {
       heading: 'Import',
-      fileLabel: 'SidebySide Transfer Bundle',
-      fileHelp: 'Wähle genau eine ZIP-Datei aus einem SidebySide-Export.',
+      fileLabel: 'eimir. Transfer Bundle',
+      fileHelp: 'Wähle genau eine ZIP-Datei aus einem eimir.-Export.',
       upload: 'Datei prüfen',
       uploading: 'Datei wird hochgeladen …',
       statusLabel: 'Importstatus',

@@ -16,19 +16,19 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import oidc
-from sidebyside.auth.tokens import hash_token
-from sidebyside.config import MailTransport, OidcConnection, Settings
-from sidebyside.core.clock import now
-from sidebyside.identity.models import Account, AccountEmail, AuthIdentity, OidcAuthRequest
-from sidebyside.relationship import invitations, service
-from sidebyside.relationship.models import Membership
+from eimir.auth import oidc
+from eimir.auth.tokens import hash_token
+from eimir.config import MailTransport, OidcConnection, Settings
+from eimir.core.clock import now
+from eimir.identity.models import Account, AccountEmail, AuthIdentity, OidcAuthRequest
+from eimir.relationship import invitations, service
+from eimir.relationship.models import Membership
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
 
 ISSUER = "https://onboarding-id.example"
-CLIENT_ID = "sidebyside-onboarding"
+CLIENT_ID = "eimir-onboarding"
 CONNECTION = "onboarding"
 
 

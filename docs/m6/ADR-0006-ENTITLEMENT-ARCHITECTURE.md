@@ -10,7 +10,7 @@
 
 ## 1. Context and Problem Statement
 
-SideBySide Next combines two operating models (**Self-Hosted** and **SideBySide Cloud**) and two product tiers (**Free/Core** and **Premium**).
+eimir. combines two operating models (**Self-Hosted** and **eimir. Cloud**) and two product tiers (**Free/Core** and **Premium**).
 
 Prior to this decision, the application codebase had zero runtime entitlement or paywalling logic. As commercial Premium capabilities (such as printable PDF yearbooks #517, 5-Year Reflection Mirrors #516, annual video recaps, and third-party integrations #88) are scheduled for delivery in M6–M8, the application requires a robust, centralized architectural foundation for commercial capability evaluation.
 
@@ -147,7 +147,7 @@ When a recurring subscription renewal fails (e.g. expired credit card on Play St
 
 ### 5.2 Self-Hosted Offline Cryptographic Licensing
 For commercial or enterprise Self-Hosted deployments:
-* The license key (`SBS_LICENSE_KEY`) is an Ed25519-signed JSON payload.
+* The license key (`EIMIR_LICENSE_KEY`) is an Ed25519-signed JSON payload.
 * The payload contains `instance_id`, `licensee`, `capabilities`, `issued_at`, and `expires_at`.
 * The server verifies the signature against a hardcoded Ed25519 public key at startup and during periodic evaluation.
 * **Zero outbound telemetry or phone-home requests** are made, ensuring complete data privacy and air-gap compatibility.

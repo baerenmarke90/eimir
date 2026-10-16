@@ -39,33 +39,37 @@
     "Instrument Sans", Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: Literata, Georgia, serif;
-  --color-background: #faf7f5;
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f5efe9;
-  --color-text: #231e28;
-  --color-text-secondary: #5e5466;
-  --color-text-muted: #8c8094;
-  --color-border: #e4ddd6;
-  --color-border-subtle: #eee8e2;
-  --color-brand: #d93d59;
-  --color-brand-strong: #be2340;
-  --color-brand-surface: #fff0f2;
-  --color-surface-panel: #ffffff;
-  --color-surface-panel-tint: #fcfaf8;
-  --color-page-tint-brand: #d93d5912;
-  --color-page-tint-shared: #20726610;
-  --color-shared: #207266;
-  --color-shared-accent: #2e8b7e;
-  --color-shared-surface: #edf7f5;
-  --color-success: var(--color-shared);
-  --color-private: #d13b65;
-  --color-error: #b81434;
-  --color-error-surface: #fff0f2;
-  --color-focus: #285f91;
+  --color-background: #e6ebfa;
+  --color-surface: #f3f5fc;
+  --color-surface-subtle: #d6e1f7;
+  --color-text: #19233e;
+  --color-text-secondary: #58627b;
+  --color-text-muted: #58627b;
+  --color-border: #bbc9e5;
+  --color-border-subtle: #bbc9e5;
+  --color-brand: #4c6ed0;
+  --color-brand-strong: #3055b8;
+  --color-brand-surface: #f9eaf4;
+  --color-surface-panel: #f3f5fc;
+  --color-surface-panel-tint: #d6e1f7;
+  --color-page-tint-brand: #f9eaf4;
+  --color-page-tint-shared: #d6e1f7;
+  --color-shared: #3055b8;
+  --color-shared-accent: #5685d1;
+  --color-shared-surface: #d6e1f7;
+  --color-success: #226a57;
+  --color-private: #aa4c86;
+  --color-discovery: #87561b;
+  --color-discovery-surface: #fff3dd;
+  --color-error: #a83f51;
+  --color-error-surface: #fdebf0;
+  --color-focus: #335dca;
   --content-max: 1200px;
   --reading-max: 720px;
   --rail-width: 21rem;
   --topbar-height: 72px;
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -84,7 +88,19 @@
   --radius-pill: 999px;
   --shadow-card: 0 20px 60px var(--color-shadow-card);
   --shadow-soft: 0 12px 32px var(--color-shadow-soft);
-  --motion-fast: 180ms ease-out;
+  /*
+   * Close, tactile elevation for a raised content surface.
+   *
+   * `--shadow-card` and `--shadow-soft` are wide ambient shadows: they make a
+   * surface float above the page, which is right for sheets and overlays but
+   * reads as haze under a small in-page tile. This is the third step of the
+   * same scale - a short contact shadow plus a tight ambient one - so a tile
+   * can feel physically lifted off the canvas without the page turning into a
+   * field of glowing rectangles (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md`
+   * section 5, warmth and materiality).
+   */
+  --shadow-raised:
+    0 1px 2px var(--color-shadow-card), 0 6px 16px var(--color-shadow-soft);
 }
 
 * {
@@ -92,17 +108,15 @@
 }
 
 :target {
-  scroll-margin-top: calc(var(--topbar-height, 72px) + var(--space-4));
+  scroll-margin-top: var(--space-4);
 }
 
 html {
-  min-width: 320px;
   background: var(--color-background);
 }
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
   background: var(--color-background);
 }
@@ -126,9 +140,9 @@ button,
   line-height: 1.2;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    filter var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    filter var(--duration-feedback) var(--easing-standard);
 }
 
 .button-link {
@@ -142,6 +156,11 @@ button:hover:not(:disabled),
 .button-link:hover {
   filter: brightness(0.96);
   transform: translateY(-1px);
+}
+
+button:active:not(:disabled),
+.button-link:active {
+  transform: translateY(0) scale(0.98);
 }
 
 button.secondary,
@@ -196,9 +215,9 @@ textarea {
   background: var(--color-surface);
   color: var(--color-text);
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast),
-    background var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 select {
@@ -374,15 +393,15 @@ code {
   letter-spacing: -0.035em;
 }
 
-.brand-suffix {
-  color: currentColor;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  opacity: 0.72;
+.brand-dot {
+  color: var(--color-brand);
 }
 
 .brand-inverse {
+  color: var(--color-on-accent);
+}
+
+.brand-inverse .brand-dot {
   color: var(--color-on-accent);
 }
 
@@ -436,6 +455,30 @@ code {
 
 .setup-card .brand {
   margin-bottom: clamp(var(--space-12), 8vw, var(--space-16));
+}
+
+.card-warm {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-soft);
+  padding: var(--space-5);
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.card-warm:hover {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-card);
+}
+
+.surface-elevated {
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .setup-content {
@@ -496,18 +539,17 @@ code {
 }
 
 .app-header {
-  position: sticky;
-  z-index: 10;
-  top: 0;
+  position: relative;
+  z-index: 40;
   width: 100%;
-  min-height: 72px;
+  min-height: calc(72px + var(--shell-header-safe-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--color-header-border);
-  padding: 0.75rem max(1.25rem, calc((100vw - var(--content-max)) / 2));
-  background: var(--color-header-surface);
+  padding: calc(0.75rem + var(--shell-header-safe-top, 0px))
+    max(1.25rem, calc((100vw - var(--content-max)) / 2)) 0.75rem;
+  background: transparent;
 }
 
 .header-actions {
@@ -675,83 +717,6 @@ code {
   box-shadow: 0 0 0 5px var(--color-brand-surface);
 }
 
-.story-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 1.85rem;
-  display: grid;
-  gap: 0.8rem;
-  border-left: 1px solid var(--color-border-subtle);
-}
-
-.story-card {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-large);
-  padding: 1rem 1.1rem;
-  background: var(--color-surface);
-  transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.story-card:hover {
-  border-color: var(--color-border);
-  box-shadow: var(--shadow-soft);
-  transform: translateY(-1px);
-}
-
-.story-card-heart-moment {
-  background: linear-gradient(
-    135deg,
-    var(--color-surface) 60%,
-    var(--color-private-surface-soft)
-  );
-}
-
-.story-card-milestone {
-  background: linear-gradient(
-    135deg,
-    var(--color-surface) 60%,
-    var(--color-discovery-surface-soft)
-  );
-}
-
-.story-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-bottom: 0.75rem;
-}
-
-.story-card-meta time {
-  margin-left: auto;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-
-.kind-badge,
-.shared-badge {
-  display: inline-flex;
-  min-height: 1.7rem;
-  align-items: center;
-  border-radius: var(--radius-pill);
-  padding: 0.25rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.kind-badge {
-  background: var(--color-brand-surface);
-  color: var(--color-brand-strong);
-}
-
-.shared-badge {
-  background: var(--color-shared-surface);
-  color: var(--color-shared);
-}
-
 .story-card h4 {
   margin-bottom: 0.4rem;
   font-size: 1.08rem;
@@ -764,19 +729,19 @@ code {
   font-size: 0.9rem;
 }
 
-.story-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 0.7rem;
-  color: var(--color-text-muted);
-  font-size: 0.78rem;
-}
-
+/* Attachment-count meta (e.g. "2 Fotos") reads as quiet secondary metadata,
+   matching the muted date/author text beside it (#791 second follow-up) -
+   the brand-colored, bold treatment made the count look like an emphasized
+   display number rather than plain metadata. Typography is still set
+   explicitly in `.story-card-link .story-card-footer .media-label`
+   (StoryListPolish.css) so the count and the neighbouring `time` state the
+   same muted role side by side. Since #795 that is a deliberate distinction
+   from the footer base rather than a workaround: the base now has a single
+   owner in StoryProductPages.css. */
 .media-label {
-  color: var(--color-shared);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
   white-space: nowrap;
 }
 
@@ -954,8 +919,8 @@ code {
 
 @media (max-width: 599px) {
   .app-header {
-    min-height: 64px;
-    padding: 0.55rem 1rem;
+    min-height: calc(64px + var(--shell-header-safe-top, 0px));
+    padding: calc(0.55rem + var(--shell-header-safe-top, 0px)) 1rem 0.55rem;
   }
 
   .brand {
@@ -1038,21 +1003,6 @@ code {
     padding-left: 1.25rem;
   }
 
-  .story-card-meta {
-    flex-wrap: wrap;
-  }
-
-  .story-card-meta time {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .story-card-footer {
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--space-2) var(--space-3);
-  }
-
   .form-actions {
     align-items: stretch;
     flex-direction: column-reverse;
@@ -1085,24 +1035,27 @@ code {
   }
 }
 
-/* Reusable Motion Semantics */
-@keyframes sbs-reveal {
+/* Shared bounded disclosure motion.
+   This transform-only primitive belongs to content revealed from a known
+   control or local state transition. Route, page, section, query-result and
+   create-surface mounts must not opt in. Keeping the primitive transform-only
+   also avoids transient descendant text-contrast changes from opacity
+   compositing (#790/#791). */
+@keyframes eimir-disclosure-reveal {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
 
-.sbs-motion-reveal {
-  animation: sbs-reveal var(--motion-duration-medium)
-    var(--motion-easing-reveal) forwards;
+.eimir-motion-disclosure {
+  animation: eimir-disclosure-reveal var(--duration-transition)
+    var(--easing-enter) forwards;
 }
 
-@keyframes sbs-lift {
+@keyframes eimir-lift {
   from {
     transform: translateY(0);
     box-shadow: 0 2px 4px var(--color-shadow-card);
@@ -1113,12 +1066,11 @@ code {
   }
 }
 
-.sbs-motion-lift:hover {
-  animation: sbs-lift var(--motion-duration-short) var(--motion-easing-lift)
-    forwards;
+.eimir-motion-lift:hover {
+  animation: eimir-lift var(--duration-feedback) var(--easing-standard) forwards;
 }
 
-@keyframes sbs-success {
+@keyframes eimir-success {
   0% {
     transform: scale(1);
   }
@@ -1130,12 +1082,11 @@ code {
   }
 }
 
-.sbs-motion-success {
-  animation: sbs-success var(--motion-duration-medium)
-    var(--motion-easing-reveal) forwards;
+.eimir-motion-success {
+  animation: eimir-success var(--duration-context) var(--easing-enter) forwards;
 }
 
-@keyframes sbs-affectionate-pulse {
+@keyframes eimir-affectionate-pulse {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -1150,12 +1101,12 @@ code {
   }
 }
 
-.sbs-motion-pulse {
-  animation: sbs-affectionate-pulse var(--motion-duration-long)
-    var(--motion-easing-pulse);
+.eimir-motion-pulse {
+  animation: eimir-affectionate-pulse var(--duration-context)
+    var(--easing-standard);
 }
 
-@keyframes sbs-context-change {
+@keyframes eimir-context-change {
   from {
     opacity: 0;
     filter: blur(4px);
@@ -1166,19 +1117,19 @@ code {
   }
 }
 
-.sbs-motion-context-change {
-  animation: sbs-context-change var(--motion-duration-medium)
-    var(--motion-easing-settle) forwards;
+.eimir-motion-context-change {
+  animation: eimir-context-change var(--duration-transition)
+    var(--easing-standard) forwards;
 }
 
-/* Immersive Creation */
+/* Immersive Creation Canvas (Direction B Sanctuary) */
 .immersive-create-card {
-  max-width: 640px;
-  margin: 0 auto;
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-large);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-soft);
+  max-width: 680px;
+  margin: var(--space-4) auto;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  padding: var(--space-8);
+  box-shadow: 0 16px 48px var(--color-shadow-card);
   border: 1px solid var(--color-border-subtle);
 }
 
@@ -1188,6 +1139,34 @@ code {
   gap: var(--space-6);
 }
 
+.immersive-sharing-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-shared-surface);
+  border: 1px solid var(--color-shared);
+  border-radius: var(--radius-pill);
+  color: var(--color-shared);
+  margin-bottom: var(--space-2);
+}
+
+.immersive-sharing-note .sharing-icon {
+  flex-shrink: 0;
+}
+
+.immersive-sharing-note strong {
+  font-size: 0.9rem;
+  margin-right: var(--space-2);
+}
+
+.immersive-sharing-note p {
+  margin: 0;
+  display: inline;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
 .immersive-create-hero {
   position: relative;
 }
@@ -1195,18 +1174,22 @@ code {
 .immersive-create-title {
   width: 100%;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-bottom: 2px solid var(--color-border-subtle);
   background: transparent;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 3.5vw, 1.85rem);
+  font-weight: 750;
   color: var(--color-text);
   padding: var(--space-2) 0;
-  transition: border-color var(--motion-duration-short);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .immersive-create-title::placeholder {
-  color: var(--color-text-inverse-muted);
-  opacity: 0.5;
+  color: var(--color-text-muted);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.6;
 }
 
 .immersive-create-title:focus {
@@ -1215,17 +1198,18 @@ code {
 }
 
 .immersive-create-media {
-  background: var(--color-surface);
-  border-radius: var(--radius-card);
-  padding: var(--space-4);
-  border: 1px dashed var(--color-border-subtle);
+  background: var(--color-brand-surface);
+  border-radius: var(--radius-large);
+  padding: var(--space-5);
+  border: 1.5px dashed var(--color-brand);
+  transition: border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .immersive-create-details {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-card);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
+  padding: var(--space-4);
+  background: var(--color-surface-subtle);
 }
 
 .immersive-create-details summary {
@@ -1246,21 +1230,13 @@ code {
   gap: var(--space-4);
 }
 
-.immersive-sharing-note {
-  margin-top: var(--space-2);
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: var(--color-text-secondary);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .sbs-motion-reveal,
-  .sbs-motion-lift,
-  .sbs-motion-lift:hover,
-  .sbs-motion-success,
-  .sbs-motion-pulse,
-  .sbs-motion-context-change {
+  .eimir-motion-disclosure,
+  .eimir-motion-lift,
+  .eimir-motion-lift:hover,
+  .eimir-motion-success,
+  .eimir-motion-pulse,
+  .eimir-motion-context-change {
     animation: none;
     transition: none;
     transform: none;

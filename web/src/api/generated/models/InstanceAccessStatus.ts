@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -13,12 +13,41 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AuthCapabilities } from './AuthCapabilities';
+import {
+    AuthCapabilitiesFromJSON,
+    AuthCapabilitiesFromJSONTyped,
+    AuthCapabilitiesToJSON,
+    AuthCapabilitiesToJSONTyped,
+} from './AuthCapabilities';
+
 /**
+ * Public access state.
  * 
+ * Three independent questions are answered separately so a client never
+ * derives one from another:
+ * 
+ * - ``registrationAvailable``: does the administrator currently admit new
+ *   Accounts at all (``false`` during maintenance)?
+ * - ``accountCreation``: through which path can a new Account come into being
+ *   on this deployment?
+ * - ``auth``: which methods can an existing Account use to sign in?
  * @export
  * @interface InstanceAccessStatus
  */
 export interface InstanceAccessStatus {
+    /**
+     * Deployment policy for new Accounts. `self_service`: a person proves control of an email address and creates their own Account (Cloud/Managed). `invitation`: a new Account requires an invitation; the first Self-Hosted Account is an operator bootstrap, which is not a client path.
+     * @type {InstanceAccessStatusAccountCreationEnum}
+     * @memberof InstanceAccessStatus
+     */
+    accountCreation?: InstanceAccessStatusAccountCreationEnum;
+    /**
+     * 
+     * @type {AuthCapabilities}
+     * @memberof InstanceAccessStatus
+     */
+    auth?: AuthCapabilities;
     /**
      * 
      * @type {boolean}
@@ -26,7 +55,7 @@ export interface InstanceAccessStatus {
      */
     maintenanceMode: boolean;
     /**
-     * 
+     * Whether the administrator currently admits new Accounts. It does not say how an Account is created and does not affect sign-in of existing Accounts.
      * @type {boolean}
      * @memberof InstanceAccessStatus
      */
@@ -37,8 +66,23 @@ export interface InstanceAccessStatus {
      * @memberof InstanceAccessStatus
      */
     registrationUnavailableReason: InstanceAccessStatusRegistrationUnavailableReasonEnum | null;
+    /**
+     * Whether a client should offer self-service signup right now: `accountCreation` is `self_service` and `registrationAvailable` is true.
+     * @type {boolean}
+     * @memberof InstanceAccessStatus
+     */
+    selfServiceSignupAvailable?: boolean;
 }
 
+
+/**
+ * @export
+ */
+export const InstanceAccessStatusAccountCreationEnum = {
+    self_service: 'self_service',
+    invitation: 'invitation'
+} as const;
+export type InstanceAccessStatusAccountCreationEnum = typeof InstanceAccessStatusAccountCreationEnum[keyof typeof InstanceAccessStatusAccountCreationEnum];
 
 /**
  * @export
@@ -70,9 +114,12 @@ export function InstanceAccessStatusFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
+        'accountCreation': json['accountCreation'] == null ? undefined : json['accountCreation'],
+        'auth': json['auth'] == null ? undefined : AuthCapabilitiesFromJSON(json['auth']),
         'maintenanceMode': json['maintenanceMode'],
         'registrationAvailable': json['registrationAvailable'],
         'registrationUnavailableReason': json['registrationUnavailableReason'],
+        'selfServiceSignupAvailable': json['selfServiceSignupAvailable'] == null ? undefined : json['selfServiceSignupAvailable'],
     };
 }
 
@@ -87,9 +134,12 @@ export function InstanceAccessStatusToJSONTyped(value?: InstanceAccessStatus | n
 
     return {
         
+        'accountCreation': value['accountCreation'],
+        'auth': AuthCapabilitiesToJSON(value['auth']),
         'maintenanceMode': value['maintenanceMode'],
         'registrationAvailable': value['registrationAvailable'],
         'registrationUnavailableReason': value['registrationUnavailableReason'],
+        'selfServiceSignupAvailable': value['selfServiceSignupAvailable'],
     };
 }
 

@@ -5,6 +5,8 @@ const de = {
     refresh: 'Aktualisieren',
     refreshing: 'Aktualisiert …',
     backToStart: 'Zur Startseite',
+    edit: 'Bearbeiten',
+    saving: 'Wird gespeichert …',
   },
   navigation: {
     skipToContent: 'Zum Inhalt springen',
@@ -16,7 +18,12 @@ const de = {
     eyebrow: 'Mehr',
     title: 'Alles Weitere',
     intro:
-      'Wichtige Menschen, Orte, gemeinsame Listen und dein Bereich für persönliche Gedanken.',
+      'Dein Profil, persönliche Bereiche, gemeinsame Organisation und die Einstellungen von eimir. an einem verlässlichen Ort.',
+    groups: {
+      personal: 'Für dich',
+      shared: 'Gemeinsam',
+      utility: 'App und Konto',
+    },
     people: {
       title: 'Menschen',
       description:
@@ -31,13 +38,17 @@ const de = {
       description: 'Packlisten, Ideen und Sammlungen für euch beide.',
     },
     private: {
-      title: 'Für mich',
+      title: 'Nur für mich',
       description:
-        'Notizen, Geschenkideen und Gedanken, die erst einmal nur für dich bestimmt sind.',
+        'Notizen, Geschenkideen und Gedanken, die ausschließlich für dich bestimmt sind.',
     },
     notifications: {
       title: 'Benachrichtigungen',
       description: 'Was es seit deinem letzten Besuch Neues für dich gibt.',
+    },
+    activity: {
+      description:
+        'Gemeinsame Änderungen und Aktionen in zeitlicher Reihenfolge.',
     },
     profile: {
       title: 'Profil',
@@ -79,7 +90,7 @@ const de = {
         'Offline – Änderungen und neue Inhalte benötigen eine Verbindung.',
     },
     server: {
-      title: 'SidebySide ist gerade nicht erreichbar.',
+      title: 'eimir. ist gerade nicht erreichbar.',
       body: 'Versuche es in einem Moment erneut.',
     },
     unknown: {
@@ -98,8 +109,7 @@ const de = {
     dark: 'Dunkel',
   },
   brand: {
-    suffix: '',
-    homeAria: 'SidebySide – zum gemeinsamen Start',
+    homeAria: 'eimir. – zum gemeinsamen Ort',
   },
   spaceContext: {
     eyebrow: 'Gemeinsamer Bereich',
@@ -112,10 +122,16 @@ const de = {
       'Wähle den gemeinsamen Bereich, mit dem du fortfahren möchtest.',
     pickerAria: 'Gemeinsamen Bereich auswählen',
     spaceFallback: 'Gemeinsamer Bereich {{index}}',
+    createFirstSpaceEyebrow: 'Euer gemeinsamer Ort',
+    createFirstSpaceTitle: 'Euren gemeinsamen Ort erstellen',
+    createFirstSpaceBody:
+      'Hier beginnt eure gemeinsame Geschichte. Erstellt euren privaten Raum für Erinnerungen, Momente und Pläne – privat und nur für euch beide.',
+    createFirstSpaceSubmit: 'Gemeinsamen Ort erstellen',
+    createFirstSpacePending: 'Gemeinsamer Ort wird erstellt …',
   },
   identity: {
-    entryAria: 'Zugang zu SidebySide',
-    invitationEyebrow: 'Einladung zu SidebySide',
+    entryAria: 'Zugang zu eimir.',
+    invitationEyebrow: 'Einladung zu eimir.',
     invitationTitle:
       'Dein Partner hat einen gemeinsamen Ort für euch vorbereitet.',
     invitationBody:
@@ -159,7 +175,7 @@ const de = {
     recoveryRequestEyebrow: 'Kontozugang wiederherstellen',
     recoveryRequestTitle: 'Passwort zurücksetzen',
     recoveryRequestBody:
-      'Gib deine E-Mail-Adresse ein. Wenn dafür ein lokales SidebySide-Konto existiert, erhältst du einen zeitlich begrenzten Link.',
+      'Gib deine E-Mail-Adresse ein. Wenn dafür ein lokales eimir.-Konto existiert, erhältst du einen zeitlich begrenzten Link.',
     recoveryRequestSubmit: 'Wiederherstellungslink anfordern',
     recoveryRequestPending: 'Anfrage wird gesendet …',
     mailRequestedTitle: 'Prüfe dein Postfach',
@@ -177,6 +193,19 @@ const de = {
     magicLinkFailedTitle: 'Dieser Anmeldelink funktioniert nicht mehr.',
     magicLinkFailedBody:
       'Fordere bei Bedarf einen neuen Anmeldelink an oder melde dich mit deinem Passwort an.',
+    startTogether: 'Gemeinsam starten',
+    startTogetherEyebrow: 'Neu bei eimir.',
+    startTogetherTitle: 'Gemeinsam starten',
+    startTogetherBody:
+      'Erstellt euer privates Zuhause für Erinnerungen, Wünsche und Momente. Nur für euch zwei.',
+    startTogetherSubmit: 'Gemeinsam starten',
+    startTogetherPending: 'Anfrage wird gesendet …',
+    alreadyRegistered: 'Bereits registriert? Anmelden',
+    signupOpening: 'Registrierung wird bestätigt …',
+    signupFailedTitle: 'Dieser Registrierungslink funktioniert nicht mehr.',
+    signupFailedBody:
+      'Der Registrierungslink ist möglicherweise abgelaufen oder wurde bereits verwendet. Bitte fordere einen neuen Link an.',
+    entryModesAria: 'Zugangsart wählen',
     verificationOpening: 'E-Mail-Adresse wird bestätigt …',
     verificationCompleteTitle: 'E-Mail-Adresse bestätigt',
     verificationCompleteBody: 'Deine E-Mail-Adresse ist jetzt bestätigt.',
@@ -198,7 +227,7 @@ const de = {
     pending: 'Anmeldung läuft …',
     errorFallback:
       'Anmeldung fehlgeschlagen. Bitte prüfe deine Zugangsdaten und versuche es erneut.',
-    assurance: 'Deine Anmeldung führt dich direkt zurück zu SidebySide.',
+    assurance: 'Deine Anmeldung führt dich direkt zurück zu eimir.',
   },
   story: {
     savedTitle: 'Erinnerung gespeichert.',
@@ -207,6 +236,8 @@ const de = {
     title: 'Unsere Momente',
     intro:
       'Erinnerungen, Herzensmomente und Meilensteine – euer ruhiges Zuhause für die Dinge, die bleiben.',
+    timelineTitle: 'Momente',
+    timelineIntro: 'Unsere besonderen Augenblicke – für immer festgehalten.',
     addMemory: 'Erinnerung',
     timelineKicker: 'Zeitleiste',
     timelineHeading: 'Gemeinsame Geschichte',
@@ -216,19 +247,23 @@ const de = {
     tabDiscover: 'Entdecken',
     tabTimeline: 'Zeitleiste',
     viewToggleAria: 'Ansicht wählen',
+    browseTitle: 'Durchstöbern',
+    browseMilestones: 'Meilensteine',
+    browseChapters: 'Kapitel',
+    browseYears: 'Jahre',
     streamAll: 'Alle in der Zeitleiste ansehen →',
     featuredHighlight: 'Besonderer Moment',
     featuredKicker: 'Aus euren Momenten',
-    milestonesKicker: 'Gemeinsam erreicht',
+    onThisDay_one: 'Heute vor einem Jahr',
+    onThisDay_other: 'Heute vor {{count}} Jahren',
     milestonesTitle: 'Meilensteine & gemeinsame Schritte',
     milestonesDesc: 'Große und kleine Stationen eurer gemeinsamen Geschichte.',
-    chaptersKicker: 'Unsere Reise',
     chaptersTitle: 'Kapitel unserer Geschichte',
     chaptersDesc:
       'Gemeinsame Erlebnisse und Reisen nach Lebensabschnitten bündeln.',
-    yearArchiveTitle: 'Jahre entdecken',
-    yearArchiveSubtitle:
-      'Direkt zu den Momenten eines bestimmten Jahres springen',
+    yearArchiveTitle: 'Unsere Jahre',
+    yearArchiveSubtitle: 'Eure gemeinsamen Momente, Jahr für Jahr.',
+    yearArchiveAll: 'Alle Jahre ansehen →',
     loadingAria: 'Momente werden geladen',
     loadErrorTitle: 'Die Momente konnten nicht geladen werden.',
     loadErrorFallback: 'Bitte versuche es erneut.',
@@ -237,6 +272,7 @@ const de = {
     emptyAction: 'Ersten Moment festhalten',
     aria: 'Gemeinsame Story',
     byAuthor: 'von {{author}}',
+    authorSelf: 'dir',
     kind: {
       memory: 'Erinnerung',
       heartMoment: 'Herzmoment',
@@ -255,20 +291,59 @@ const de = {
     photos_one: '{{count}} Foto',
     photos_other: '{{count}} Fotos',
   },
+  storyYears: {
+    backToMoments: '← Zurück zu Momente',
+    backToYears: '← Unsere Jahre',
+    eyebrow: 'Jahresarchiv',
+    title: 'Unsere Jahre',
+    intro: 'Eure gemeinsame Geschichte, Jahr für Jahr.',
+    listAria: 'Gemeinsame Jahre',
+    currentYearLabel: 'Unser Jahr bisher',
+    currentYearHint: 'Die Momente, die ihr dieses Jahr festgehalten habt.',
+    pastYearLabel: 'Unser Jahr {{year}}',
+    pastYearHint: 'Gemeinsame Momente aus diesem Jahr.',
+    openYear: 'Unser Jahr {{year}} öffnen',
+    detailTitle: 'Unser Jahr {{year}}',
+    currentYearIntro:
+      'Die Momente, die ihr {{year}} bisher miteinander festgehalten habt.',
+    pastYearIntro:
+      'Die gemeinsamen Momente, die ihr {{year}} festgehalten habt.',
+    emptyTitle: 'Noch keine gemeinsamen Jahre',
+    emptyBody:
+      'Sobald ihr gemeinsame Momente festhaltet, findet ihr sie hier nach Jahren wieder.',
+    unavailableTitle: 'Dieses Jahr ist noch leer',
+    unavailableBody:
+      'Für {{year}} gibt es keine gemeinsamen Momente in eurer Jahreschronik.',
+    invalidTitle: 'Jahr nicht gefunden',
+    invalidBody: 'Diese Jahresansicht ist nicht verfügbar.',
+    loadMore: 'Weitere Momente laden',
+    loadingMore: 'Weitere Momente werden geladen …',
+    offline: 'Offline – zuletzt gespeicherte Jahreschronik',
+  },
   memory: {
     backToStory: '← Zurück zu Momente',
     eyebrow: 'Moment festhalten',
     heading: 'Neue Erinnerung',
     intro:
-      'Ein Titel genügt. Fotos und weitere Details könnt ihr optional ergänzen.',
+      'Foto oder ein paar Worte reichen. Titel und weitere Details sind optional.',
     formAria: 'Erinnerung erstellen',
     titleLabel: 'Titel',
+    titleLabelOptional: 'Titel (optional)',
     titlePlaceholder: 'Zum Beispiel: Unser Tag am See',
     bodyLabel: 'Erinnerung',
     bodyPlaceholder: 'Was möchtet ihr von diesem Moment behalten?',
-    addMoreDetails: 'Mehr Details hinzufügen (optional)',
+    tagsLabel: 'Was passt zu diesem Moment?',
+    tagsHelp:
+      'Optional · Wähle aus, was euch später an diesen Moment erinnert.',
+    tagLabels: {
+      out_together: 'Unterwegs zusammen',
+      laughter: 'Lachen',
+      home: 'Zuhause',
+      special_day: 'Besonderer Tag',
+    },
     dateLabel: 'Datum',
     dateHelp: 'Optional – wenn der Moment an einem bestimmten Tag war.',
+    dateChangeAction: 'Ändern',
     photoLabel: 'Fotos',
     photoSelected: 'Foto ausgewählt',
     photoSelect: 'Fotos auswählen',
@@ -286,8 +361,12 @@ const de = {
     photoRemove: 'Entfernen',
     photoPendingSave:
       'Warte, bis alle laufenden Foto-Uploads abgeschlossen sind.',
+    photoLimitReached_one:
+      'Ein Foto wurde nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
+    photoLimitReached_other:
+      '{{count}} Fotos wurden nicht hinzugefügt, weil das Limit pro Erinnerung erreicht ist.',
     visibilityAria: 'Sichtbarkeit',
-    sharedTitle: 'Mit Partner geteilt',
+    sharedTitle: 'Für euch beide sichtbar',
     sharedBody:
       'Diese Erinnerung ist für beide Personen in eurem gemeinsamen Space sichtbar.',
     save: 'Erinnerung speichern',

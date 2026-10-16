@@ -20,9 +20,9 @@ from typing import ClassVar
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from sidebyside.authorization import PrivateResourceMixin, ResourceAbsence
-from sidebyside.db.base import Base
-from sidebyside.db.mixins import IdMixin, TimestampMixin
+from eimir.authorization import PrivateResourceMixin, ResourceAbsence
+from eimir.db.base import Base
+from eimir.db.mixins import IdMixin, TimestampMixin
 
 
 class PrivacyProbe(IdMixin, TimestampMixin, PrivateResourceMixin, Base):

@@ -12,6 +12,7 @@ describe('ServerAdmin section navigation', () => {
     expect(resolveServerAdminSection('accounts')).toBe('accounts');
     expect(resolveServerAdminSection('spaces')).toBe('spaces');
     expect(resolveServerAdminSection('jobs')).toBe('jobs');
+    expect(resolveServerAdminSection('storage')).toBe('storage');
     expect(resolveServerAdminSection('security')).toBe('security');
     expect(resolveServerAdminSection('settings')).toBe('settings');
     expect(resolveServerAdminSection('activity')).toBe('activity');
@@ -24,11 +25,12 @@ describe('ServerAdmin section navigation', () => {
       </MemoryRouter>,
     );
 
-    expect(html.match(/server-admin-section-link/g)).toHaveLength(7);
+    expect(html.match(/server-admin-section-link/g)).toHaveLength(8);
     expect(html).toContain('href="/server-admin"');
     expect(html).toContain('href="/server-admin?section=accounts"');
     expect(html).toContain('href="/server-admin?section=spaces"');
     expect(html).toContain('href="/server-admin?section=jobs"');
+    expect(html).toContain('href="/server-admin?section=storage"');
     expect(html).toContain('aria-current="page"');
   });
 });

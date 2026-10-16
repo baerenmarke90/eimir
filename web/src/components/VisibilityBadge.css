@@ -1,0 +1,78 @@
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
+}
+
+.visibility-size-small {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.visibility-size-small .visibility-badge-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.visibility-size-medium {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.visibility-size-medium .visibility-badge-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.visibility-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+}
+
+/* Variant: Shared */
+.visibility-shared {
+  background: var(--color-shared-surface);
+  color: var(--color-shared);
+  border: 1px solid var(--color-shared);
+}
+
+/* Variant: Private */
+.visibility-private {
+  background: var(--color-brand-surface);
+  color: var(--color-private);
+  border: 1px solid var(--color-private);
+}
+
+/* Variant: Temporary */
+.visibility-temporary {
+  background: var(--color-discovery-surface);
+  color: var(--color-discovery);
+  border: 1px solid var(--color-discovery);
+}
+
+/*
+ * Subtle: quiet metadata, not a status pill. Used where the badge chrome
+ * would compete with a Story title or content (#1014).
+ */
+.visibility-badge-subtle,
+.visibility-badge-subtle.visibility-shared,
+.visibility-badge-subtle.visibility-private,
+.visibility-badge-subtle.visibility-temporary {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-secondary);
+  padding: 0;
+  font-weight: 400;
+}

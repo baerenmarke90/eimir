@@ -21,15 +21,15 @@ from uuid import UUID
 import pytest
 from sqlalchemy import select
 
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.core.clock import today_in
-from sidebyside.core.errors import DomainError
-from sidebyside.identity.models import Account
-from sidebyside.plans import service as plan_service
-from sidebyside.plans.models import Plan, PlanStatus
-from sidebyside.relationship import service as relationship_service
-from sidebyside.wishes import service as wish_service
-from sidebyside.wishes.models import Wish, WishStatus
+from eimir.authorization import AuthorizationContext
+from eimir.core.clock import today_in
+from eimir.core.errors import DomainError
+from eimir.identity.models import Account
+from eimir.plans import service as plan_service
+from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import service as relationship_service
+from eimir.wishes import service as wish_service
+from eimir.wishes.models import Wish, WishStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

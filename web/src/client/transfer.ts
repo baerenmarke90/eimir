@@ -42,7 +42,7 @@ export function transferBundleFilename(
   now = new Date(),
 ): string {
   const date = now.toISOString().slice(0, 10);
-  return `sidebyside-${scope.toLowerCase()}-${date}.zip`;
+  return `eimir-${scope.toLowerCase()}-${date}.zip`;
 }
 
 export function triggerTransferDownload(blob: Blob, filename: string): void {

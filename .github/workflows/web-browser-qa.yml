@@ -5,29 +5,37 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/web-browser-qa.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/web-browser-qa.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: web-browser-qa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  browser:
-    name: Playwright + axe
+  pr-critical:
+    if: github.event_name == 'pull_request'
+    name: PR-critical ${{ matrix.shard }}/2
     runs-on: ubuntu-latest
-    container: node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install locked Web dependencies
         working-directory: web
         run: npm ci --ignore-scripts --no-audit --no-fund
-
-      - name: Audit Web dependencies
-        working-directory: web
-        run: npm audit --audit-level=high
 
       - name: Install locked browser QA dependencies
         working-directory: web/e2e
@@ -37,14 +45,288 @@ jobs:
         working-directory: web/e2e
         run: npm audit --audit-level=high
 
-      - name: Production build
+      - name: Typecheck internal visual proof
         working-directory: web
-        run: npm run build
+        run: ./node_modules/.bin/tsc -p e2e/fixtures/tsconfig.json
 
       - name: Install pinned Chromium runtime
         working-directory: web/e2e
         run: ./node_modules/.bin/playwright install --with-deps chromium
 
-      - name: Browser E2E and accessibility gate
+      - name: Validate browser test inventory
         working-directory: web/e2e
-        run: npm test
+        run: npm run test:inventory
+
+      - name: Run PR-critical shard
+        working-directory: web/e2e
+        run: >-
+          npm run test:pr --
+          --shard=${{ matrix.shard }}/2
+          --output=test-results-pr-${{ matrix.shard }}
+
+      - name: Upload PR failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}
+          path: web/e2e/test-results-pr-${{ matrix.shard }}/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload PR product visual evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-product-visual-evidence-pr-${{ matrix.shard }}-${{ github.sha }}
+          path: |
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/planning-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/shell-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/partner-quick-actions-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/private-area-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/*story-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/wish-detective-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/f1-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/f1-*.json
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/f2-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/notification-settings-*.png
+            web/e2e/test-results-pr-${{ matrix.shard }}/**/f2-*.json
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'success' && 1 || 3 }}
+
+  changed-spec-plan:
+    if: github.event_name == 'pull_request'
+    name: Changed browser spec plan
+    runs-on: ubuntu-latest
+    outputs:
+      has-specs: ${{ steps.plan.outputs.has-specs }}
+      specs: ${{ steps.plan.outputs.specs }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify changed-spec planning coverage
+        run: node --test web/e2e/scripts/changed-specs.test.mjs
+
+      - name: Resolve changed browser specs
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -eu
+          changed_specs="$(node web/e2e/scripts/changed-specs.mjs)"
+          if [ -z "$changed_specs" ]; then
+            echo "has-specs=false" >> "$GITHUB_OUTPUT"
+            echo "specs=" >> "$GITHUB_OUTPUT"
+            echo "No additional changed browser specs outside the PR-critical group."
+            exit 0
+          fi
+          echo "has-specs=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "specs<<EOF"
+            printf '%s\n' "$changed_specs"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          printf 'Changed browser specs:\n%s\n' "$changed_specs"
+
+  changed-specs:
+    if: needs.changed-spec-plan.outputs.has-specs == 'true'
+    needs: changed-spec-plan
+    name: Changed browser specs
+    runs-on: ubuntu-latest
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install locked Web dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install locked browser QA dependencies
+        working-directory: web/e2e
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Audit browser QA dependencies
+        working-directory: web/e2e
+        run: npm audit --audit-level=high
+
+      - name: Typecheck internal visual proof
+        working-directory: web
+        run: ./node_modules/.bin/tsc -p e2e/fixtures/tsconfig.json
+
+      - name: Install pinned Chromium runtime
+        working-directory: web/e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Validate browser test inventory
+        working-directory: web/e2e
+        run: npm run test:inventory
+
+      - name: Verify changed browser specs
+        working-directory: web/e2e
+        env:
+          CHANGED_SPECS: ${{ needs.changed-spec-plan.outputs.specs }}
+        run: |
+          set -eu
+          printf 'Changed browser specs:\n%s\n' "$CHANGED_SPECS"
+          # Spec filenames are repository-controlled and contain no whitespace.
+          # Intentional word splitting passes each changed spec as one Playwright argument.
+          npm run test:full -- $CHANGED_SPECS --output=test-results-changed-specs
+
+      - name: Upload changed-spec failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-changed-${{ github.sha }}
+          path: web/e2e/test-results-changed-specs/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload changed-spec product visual evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-product-visual-evidence-changed-${{ github.sha }}
+          path: |
+            web/e2e/test-results-changed-specs/**/planning-*.png
+            web/e2e/test-results-changed-specs/**/shell-*.png
+            web/e2e/test-results-changed-specs/**/today-*.png
+            web/e2e/test-results-changed-specs/**/partner-quick-actions-*.png
+            web/e2e/test-results-changed-specs/**/private-area-*.png
+            web/e2e/test-results-changed-specs/**/*story-*.png
+            web/e2e/test-results-changed-specs/**/wish-detective-*.png
+            web/e2e/test-results-changed-specs/**/f1-*.png
+            web/e2e/test-results-changed-specs/**/f1-*.json
+            web/e2e/test-results-changed-specs/**/f2-*.png
+            web/e2e/test-results-changed-specs/**/notification-settings-*.png
+            web/e2e/test-results-changed-specs/**/f2-*.json
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'success' && 1 || 3 }}
+
+  full-regression:
+    if: github.event_name != 'pull_request'
+    name: Full regression ${{ matrix.shard }}/4
+    runs-on: ubuntu-latest
+    container: node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install locked Web dependencies
+        working-directory: web
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install locked browser QA dependencies
+        working-directory: web/e2e
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Audit browser QA dependencies
+        working-directory: web/e2e
+        run: npm audit --audit-level=high
+
+      - name: Typecheck internal visual proof
+        working-directory: web
+        run: ./node_modules/.bin/tsc -p e2e/fixtures/tsconfig.json
+
+      - name: Install pinned Chromium runtime
+        working-directory: web/e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Validate browser test inventory
+        working-directory: web/e2e
+        run: npm run test:inventory
+
+      - name: Run full-regression shard
+        working-directory: web/e2e
+        run: >-
+          npm run test:full --
+          --shard=${{ matrix.shard }}/4
+          --output=test-results-full-${{ matrix.shard }}
+
+      - name: Upload full-regression failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}
+          path: web/e2e/test-results-full-${{ matrix.shard }}/
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Upload full-regression product visual evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: web-product-visual-evidence-full-${{ matrix.shard }}-${{ github.sha }}
+          path: |
+            web/e2e/test-results-full-${{ matrix.shard }}/**/planning-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/shell-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/today-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/partner-quick-actions-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/private-area-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/*story-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/wish-detective-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/f1-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/f1-*.json
+            web/e2e/test-results-full-${{ matrix.shard }}/**/f2-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/notification-settings-*.png
+            web/e2e/test-results-full-${{ matrix.shard }}/**/f2-*.json
+          if-no-files-found: ignore
+          retention-days: ${{ job.status == 'success' && 1 || 3 }}
+
+  browser:
+    if: always()
+    needs:
+      - pr-critical
+      - changed-spec-plan
+      - changed-specs
+      - full-regression
+    name: Playwright + axe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify browser QA topology
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_RESULT: ${{ needs.pr-critical.result }}
+          PLAN_RESULT: ${{ needs.changed-spec-plan.result }}
+          CHANGED_RESULT: ${{ needs.changed-specs.result }}
+          FULL_RESULT: ${{ needs.full-regression.result }}
+        run: |
+          set -eu
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            [ "$PR_RESULT" = "success" ] || {
+              echo "PR-critical shards: $PR_RESULT"
+              exit 1
+            }
+            [ "$PLAN_RESULT" = "success" ] || {
+              echo "Changed-spec plan: $PLAN_RESULT"
+              exit 1
+            }
+            if [ "$CHANGED_RESULT" != "success" ] && [ "$CHANGED_RESULT" != "skipped" ]; then
+              echo "Changed-spec verification: $CHANGED_RESULT"
+              exit 1
+            fi
+            [ "$FULL_RESULT" = "skipped" ] || {
+              echo "Full regression unexpectedly ran for a pull request: $FULL_RESULT"
+              exit 1
+            }
+          else
+            [ "$FULL_RESULT" = "success" ] || {
+              echo "Full-regression shards: $FULL_RESULT"
+              exit 1
+            }
+            [ "$PR_RESULT" = "skipped" ] || {
+              echo "PR-critical shards unexpectedly ran outside a pull request: $PR_RESULT"
+              exit 1
+            }
+            [ "$PLAN_RESULT" = "skipped" ] || {
+              echo "Changed-spec plan unexpectedly ran outside a pull request: $PLAN_RESULT"
+              exit 1
+            }
+            [ "$CHANGED_RESULT" = "skipped" ] || {
+              echo "Changed-spec verification unexpectedly ran outside a pull request: $CHANGED_RESULT"
+              exit 1
+            }
+          fi

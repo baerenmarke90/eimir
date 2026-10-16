@@ -1,5 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
+import {
+  authorDisplayName,
+  authorProfileAttachmentId,
+} from '../client/authorPresentation';
 import { useProfileAvatarUrl } from '../client/useProfileAvatarUrl';
 import './PersonIdentity.css';
 
@@ -79,27 +83,29 @@ export function AuthorAvatar({
   author: {
     id: string;
     displayName: string;
+    isFormerMember?: boolean;
     profileAttachmentId?: string | null;
   };
   profilesApi?: ProfilesApi | null;
   spaceId?: string | null;
   size?: PersonIdentitySize;
 }) {
+  const presentedName = authorDisplayName(author);
   const { avatarUrl } = useProfileAvatarUrl(
     profilesApi,
     spaceId ?? '',
     author.id,
-    author.profileAttachmentId,
+    authorProfileAttachmentId(author),
   );
 
   return (
     <PersonIdentity
-      displayName={author.displayName}
+      displayName={presentedName}
       imageUrl={avatarUrl}
       size={size}
       showName={false}
-      imageAlt={author.displayName}
-      fallbackAlt={author.displayName}
+      imageAlt={presentedName}
+      fallbackAlt={presentedName}
     />
   );
 }

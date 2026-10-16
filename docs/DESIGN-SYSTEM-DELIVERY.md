@@ -1,21 +1,23 @@
-# SideBySide Design System Delivery
+# eimir. Design System Delivery
 
 **Status:** Mandatory implementation framework  
-**Version:** 1.1  
-**As of:** August 26, 2026
+**Version:** 1.2<br/>
+**As of:** September 15, 2026
 
-This document turns design principles, tokens, and component contracts into an executable design system for React/TypeScript and Kotlin/Jetpack Compose. The goal is semantic parity, not pixel-identical platforms.
+This document contains the active React/TypeScript delivery framework together with historical Kotlin/Jetpack Compose delivery detail. ADR 0011 supersedes the Kotlin/Compose product-UI architecture: Web/Mobile Web is the canonical product UI and Android ships it through Capacitor. The Compose client and its adapters were removed in #1009; the Android/Compose sections below (Android token adapter, Compose components, Compose Semantics, Android proof Activity, Android parity levels) are retained only as history and are not delivery requirements. The active `design/component-manifest.json` therefore tracks the canonical Web product UI only; Android wrapper/native-capability acceptance is owned by the mobile delivery boundary, not by a second component-status column.
+
+[Product Reference v1](./product/design/product-reference-v1.md) is the normative current product-design direction approved in [#955](https://github.com/baerenmarke90/eimir/issues/955). It governs conflicting older design guidance, screenshots, issue wording, and implementation details unless a later explicit Product Owner decision supersedes it. This document remains binding for its compatible lower-level rules; privacy, security, accessibility, business/entitlement, and technical contracts are not weakened. See the [authority and legacy-reference register](./product/design/README.md).
 
 ## 1. Target architecture
 
 ```text
 design/tokens.json
         │
-        ├── Web Token Adapter ─────── React Components ───── Web Catalog
-        │
-        └── Android Token Adapter ─── Compose Components ─── Android Catalog
+        └── Web Token Adapter ─────── React Components ───── Web Catalog
+                                      │
+                                      └── Capacitor ──────── Android / iOS delivery
 docs/COMPONENT-CONTRACTS.md + design/component-manifest.json
-        └────────────────── shared behavioral contract
+        └────────────────── canonical shared-UI behavioral contract
 ```
 
 - `design/tokens.json` is the source for semantic design values.
@@ -51,13 +53,10 @@ web design system/
   icons
   catalog/examples
 
-android design system/
-  generated tokens/theme
-  primitives
-  components
-  patterns
-  icons
-  catalog/examples
+capacitor wrappers/
+  platform configuration
+  safe-area / lifecycle integration
+  bounded native capability adapters
 ```
 
 - Generated files carry a header and are not edited manually.
@@ -90,8 +89,8 @@ For colors, the following also applies:
 ### Android output
 
 - Compose `Color`, `Dp`, Shapes, Typography, and motion values.
-- Material 3 theme as an adapter without losing SideBySide semantics in generic Material names.
-- `SideBySideTheme` has separate Light/Dark `ColorScheme`s and follows `isSystemInDarkTheme()` by default.
+- Material 3 theme as an adapter without losing eimir. semantics in generic Material names.
+- `eimir.Theme` has separate Light/Dark `ColorScheme`s and follows `isSystemInDarkTheme()` by default.
 - The theme entry point must allow an explicit override so that a later **System / Hell / Dunkel** setting (de-DE product labels) can be added without restructuring screens.
 - Status and navigation bars follow the theme background and appropriate icon brightness.
 - Window Size Classes are mapped to Compact/Medium/Expanded.
@@ -121,7 +120,7 @@ For colors, the following also applies:
 
 ### P1 — Product patterns
 
-- App Shell for Bottom Bar/Rail/Sidebar,
+- App Shell for Bottom Navigation and the Expanded Web header,
 - adaptive List-Detail structure,
 - form page with error summary,
 - Story Timeline Item and month group,
@@ -157,6 +156,13 @@ Each entry shows:
 
 The catalog is a development tool, not a public product page.
 
+The first bounded v1 proof is [F1 visual foundations](product/design/f1-visual-foundations.md):
+one Web development/test entry and one Android debug-only Activity. Its role
+mapping and evidence identify what is delivered; it does not claim a complete
+catalog, migrated R1–R5 screens or a shared F2 sheet implementation. The
+production Web build and Android release manifest must exclude the proof entry
+and its fixture assets.
+
 ## 7. Component API rules
 
 - Components are named by purpose, not appearance: `VisibilityControl`, not `PinkChip`.
@@ -186,8 +192,8 @@ Web may implement this as a native `<button>`; Android may use a Compose Button 
 ## 9. Adaptive layout delivery
 
 - Breakpoints come from tokens.
-- Navigation changes Bottom Bar → Rail → Sidebar without changing route IDs.
-- List-Detail is enabled from Medium only when selection and focus are preserved.
+- Web uses Compact/Medium Bottom Navigation and Expanded horizontal header navigation under the accepted A1 shell decision; Android keeps Bottom Navigation at every size under ADR 0004. Route IDs remain stable.
+- List-Detail may be used from Medium only when justified by the human task and when selection, focus, and return context are preserved.
 - Screen templates are implemented as reusable layout patterns, not copied per domain.
 - Android uses Window Size Classes; Web follows the available container/window width.
 - A size change does not discard a draft and does not trigger a new domain action.
@@ -245,6 +251,8 @@ For each P0/P1 component, the following are named:
 
 New patterns are documented first as a contract/decision. A local special case in a screen does not automatically become part of the system.
 
+The original DS0–DS4 phases below describe the system delivery framework; they do not replace the current [F1 → F2 → R1–R5 → P1–P2 → C1 sequence](./product/design/implementation-roadmap.md). F1 establishes only missing visual roles needed by v1; F2 establishes only needed interaction boundaries. Neither authorizes a blanket CSS/component rewrite. Reuse correct existing primitives, prove them on bounded surfaces, and retire weak mechanisms after replacements are accepted.
+
 ## 13. Delivery phases
 
 ### Phase DS0 — Pipeline
@@ -295,6 +303,29 @@ New patterns are documented first as a contract/decision. A local special case i
 - The offline MVP shows the read cache but no invented write sync.
 - Web and Android pass the same flow examples against the same API mock.
 - Manifest status and documentation match the shipped state.
+
+## 15. Presentation and runtime source governance
+
+Per Issue #675, pull requests affecting presentation, brand identity, or
+design tokens are subject to the mandatory Product Design / UX review gate,
+even when they do not modify components inside `web/src`.
+
+The authoritative presentation/runtime source graph is evaluated by
+`scripts/classify_product_design_paths.py` and includes:
+
+- `design/tokens.json` and design-system machine-readable assets under `design/**`;
+- Web runtime presentation assets: `web/public/**` (favicons, touch icons, fonts, entry scripts);
+- Web entry point: `web/index.html`;
+- Web client source: `web/src/**` (excluding contract-generated OpenAPI clients in `web/src/api/generated/**`).
+
+Capacitor wrapper/configuration and narrowly scoped native capability code are
+not classified as a second product-UI implementation. Their platform-specific
+review belongs to the mobile delivery boundary rather than ordinary Product
+Design parity.
+
+New design-system or runtime presentation sources must be registered in
+`USER_FACING_PATTERNS` in `scripts/classify_product_design_paths.py` and covered
+by `scripts/test_classify_product_design_paths.py`.
 
 ## Related documents
 

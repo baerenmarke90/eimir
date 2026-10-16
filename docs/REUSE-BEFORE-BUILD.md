@@ -2,7 +2,7 @@
 
 ## Status
 
-This document is a mandatory governance addendum for SideBySide Next.
+This document is a mandatory governance addendum for eimir.
 
 The historical Clean-Room Master Specification remains unchanged as the original specification. For new technical decisions, this rule applies in addition.
 
@@ -57,7 +57,7 @@ For a relevant feature, the issue or Pull Request must answer these questions tr
 For third-party components or providers, also cover:
 
 - license and terms of service
-- commercial usability for SideBySide Cloud
+- commercial usability for eimir. Cloud
 - Self-Hosted usability
 - data flow and privacy
 - storage, caching, deletion obligations, and attribution
@@ -68,7 +68,7 @@ For third-party components or providers, also cover:
 
 ## Product rule
 
-Normal SideBySide users must not need to configure technical integration details.
+Normal eimir. users must not need to configure technical integration details.
 
 Target state:
 

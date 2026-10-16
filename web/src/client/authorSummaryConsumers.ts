@@ -1,5 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+const placeRootKey = (spaceId: string) => ['m5-s3', 'places', spaceId] as const;
+
 /**
  * Canonical TanStack Query keys for all domain models and views that consume AuthorSummary projections.
  *
@@ -42,7 +44,11 @@ export const authorSummaryQueryKeys = {
   search: (spaceId: string) => ['m5-s5', 'search', spaceId] as const,
   wishes: (spaceId: string) => ['m5-s3', 'wishes', spaceId] as const,
   plans: (spaceId: string) => ['m5-s3', 'plans', spaceId] as const,
-  places: (spaceId: string) => ['m5-s3', 'places', spaceId] as const,
+  places: placeRootKey,
+  placesOverview: (spaceId: string) =>
+    [...placeRootKey(spaceId), 'overview'] as const,
+  placeOptions: (spaceId: string) =>
+    [...placeRootKey(spaceId), 'options'] as const,
   chapters: (spaceId: string) => ['m5-s3', 'chapters', spaceId] as const,
   collections: (spaceId: string) => ['m5-s3', 'collections', spaceId] as const,
   relationTargets: (spaceId: string) =>
@@ -57,8 +63,8 @@ export const authorSummaryQueryKeys = {
       : (['m5-s3', 'plan', spaceId] as const),
   placeDetail: (spaceId: string, placeId?: string) =>
     placeId
-      ? (['m5-s3', 'place', spaceId, placeId] as const)
-      : (['m5-s3', 'place', spaceId] as const),
+      ? ([...placeRootKey(spaceId), 'detail', placeId] as const)
+      : ([...placeRootKey(spaceId), 'detail'] as const),
   chapterDetail: (spaceId: string, chapterId?: string) =>
     chapterId
       ? (['m5-s3', 'chapter', spaceId, chapterId] as const)
@@ -69,12 +75,37 @@ export const authorSummaryQueryKeys = {
       : (['m5-s3', 'collection', spaceId] as const),
 };
 
+/** Invalidate every Place view and selector in one Space without touching another Space. */
+export async function invalidatePlaceConsumers(
+  queryClient: QueryClient,
+  spaceId: string,
+): Promise<void> {
+  await queryClient.invalidateQueries({
+    queryKey: authorSummaryQueryKeys.places(spaceId),
+  });
+}
+
+/** Keep the Story timeline and its relation-target projection coherent. */
+export async function invalidateStoryProjections(
+  queryClient: QueryClient,
+  spaceId: string,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.story(spaceId),
+    }),
+    queryClient.invalidateQueries({
+      queryKey: authorSummaryQueryKeys.relationTargets(spaceId),
+    }),
+  ]);
+}
+
 /**
  * Centrally invalidates all TanStack Query caches that consume AuthorSummary projections.
  *
- * When an account's displayName or profileAttachmentId changes, this helper ensures
- * that all timelines, activity logs, dashboards, comments, and collaborative items
- * in the space immediately refetch the fresh author identity.
+ * When an account's presentation identity changes, this helper ensures that all
+ * timelines, profile/date projections, activity logs, dashboards, comments, and
+ * collaborative items in the space immediately refetch the fresh identity.
  */
 export async function invalidateAuthorSummaryConsumers(
   queryClient: QueryClient,

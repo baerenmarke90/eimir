@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import pytest
 
-from sidebyside.providers.base import (
+from eimir.providers.base import (
     DiscoveryProvider,
     EntertainmentProvider,
     ExternalMediaProvider,
@@ -19,7 +19,7 @@ from sidebyside.providers.base import (
     PlacesProvider,
     RecipeProvider,
 )
-from sidebyside.providers.registry import ProviderRegistry
+from eimir.providers.registry import ProviderRegistry
 
 
 class StraightLineMap(MapProvider):
@@ -71,4 +71,4 @@ def test_map_contract_returns_normalized_internal_model() -> None:
 
     assert isinstance(route, MapRoute)
     assert route.geometry == (start, destination)
-    assert type(route).__module__ == "sidebyside.providers.base"
+    assert type(route).__module__ == "eimir.providers.base"

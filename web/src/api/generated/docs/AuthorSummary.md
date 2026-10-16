@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `displayName` | string
 `id` | string
+`isFormerMember` | boolean
 `profileAttachmentId` | string
 
 ## Example
@@ -19,6 +20,7 @@ import type { AuthorSummary } from ''
 const example = {
   "displayName": null,
   "id": null,
+  "isFormerMember": null,
   "profileAttachmentId": null,
 } satisfies AuthorSummary
 

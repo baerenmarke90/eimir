@@ -6,12 +6,12 @@ import argparse
 
 from sqlalchemy import select
 
-from sidebyside.administration import service as administration
-from sidebyside.administration.models import AdministrationAction
-from sidebyside.core.clock import now
-from sidebyside.db.session import unit_of_work
-from sidebyside.identity import service as accounts
-from sidebyside.identity.models import AccountEmail
+from eimir.administration import service as administration
+from eimir.administration.models import AdministrationAction
+from eimir.core.clock import now
+from eimir.db.session import unit_of_work
+from eimir.identity import service as accounts
+from eimir.identity.models import AccountEmail
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,7 +37,7 @@ def _verify_email(raw_email: str) -> int:
             select(AccountEmail).where(AccountEmail.email == address).with_for_update()
         ).scalar_one_or_none()
         if email_record is None:
-            raise SystemExit("No existing SideBySide AccountEmail matches that address.")
+            raise SystemExit("No existing eimir. AccountEmail matches that address.")
 
         if email_record.verified_at is None:
             email_record.verified_at = now()
@@ -54,7 +54,7 @@ def _verify_email(raw_email: str) -> int:
     state = "verified" if changed else "already verified"
     print(
         f"Account email {state}: {address}. "
-        "ServerAdmin access still requires SBS_SERVER_ADMIN_EMAILS to include this address."
+        "ServerAdmin access still requires EIMIR_SERVER_ADMIN_EMAILS to include this address."
     )
     return 0
 

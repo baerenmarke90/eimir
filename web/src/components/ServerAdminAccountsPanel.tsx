@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import type { ServerAdminApi } from '../api/generated/apis/ServerAdminApi';
 import type { ServerAdminAccountDetail } from '../api/generated/models/ServerAdminAccountDetail';
-import type { ServerAdminActionActivityItem } from '../api/generated/models/ServerAdminActionActivityItem';
+import { normalizeClientError } from '../client/problemDetails';
+import { isRecentAuthRequired } from '../client/recentAuthentication';
+import { SERVER_ADMIN_ROUTE } from '../client/routes';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { ServerAdminAccountDeletionDialog } from './ServerAdminAccountDeletionDialog';
+import { ServerAdminRecentAuthModal } from './ServerAdminRecentAuthModal';
 
 const PAGE_SIZE = 25;
 
@@ -30,83 +35,21 @@ function authMethodLabel(method: string): string {
   }
 }
 
-function actionLabel(action: string, t: (key: string) => string): string {
-  switch (action) {
-    case 'account_suspended':
-      return t('serverAdmin.accounts.audit.suspended');
-    case 'account_unsuspended':
-      return t('serverAdmin.accounts.audit.unsuspended');
-    case 'account_sessions_revoked':
-      return t('serverAdmin.accounts.audit.sessionsRevoked');
-    case 'account_email_verified':
-      return t('serverAdmin.accounts.audit.emailVerified');
-    case 'account_recovery_email_requested':
-      return t('serverAdmin.accounts.audit.recoveryEmail');
-    case 'account_recovery_issued':
-      return t('serverAdmin.accounts.audit.operatorRecovery');
-    default:
-      return t('serverAdmin.accounts.audit.unknown');
-  }
-}
-
-function ActionAudit({ items }: { items: ServerAdminActionActivityItem[] }) {
-  const { t } = useTranslation();
-  return (
-    <section
-      className="server-admin-panel server-admin-panel-wide"
-      aria-labelledby="server-account-audit-title"
-    >
-      <h2 id="server-account-audit-title">
-        {t('serverAdmin.accounts.audit.title')}
-      </h2>
-      <p className="server-admin-muted">
-        {t('serverAdmin.accounts.audit.body')}
-      </p>
-      {items.length === 0 ? (
-        <p className="server-admin-muted">
-          {t('serverAdmin.accounts.audit.empty')}
-        </p>
-      ) : (
-        <div className="server-admin-table-scroll">
-          <table className="server-admin-table">
-            <thead>
-              <tr>
-                <th scope="col">{t('serverAdmin.accounts.audit.action')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.target')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.actor')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.effect')}</th>
-                <th scope="col">{t('serverAdmin.accounts.audit.time')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id}>
-                  <td>{actionLabel(item.action, t)}</td>
-                  <td className="server-admin-actor-id">
-                    {item.targetAccountId ?? '–'}
-                  </td>
-                  <td className="server-admin-actor-id">
-                    {item.actorId ?? t('serverAdmin.activity.systemActor')}
-                  </td>
-                  <td>{item.effectCount ?? '–'}</td>
-                  <td>{formatDate(item.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
+type PendingPrivilegedAction =
+  | { kind: 'verify-email'; emailId: string; email: string }
+  | { kind: 'operator-recovery' };
 
 function AccountDetail({
   account,
   api,
+  apiBaseUrl,
+  accessToken,
   onChanged,
 }: {
   account: ServerAdminAccountDetail;
   api: ServerAdminApi;
+  apiBaseUrl: string;
+  accessToken: string;
   onChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -114,6 +57,9 @@ function AccountDetail({
   const [verificationText, setVerificationText] = useState('');
   const [recoveryUrl, setRecoveryUrl] = useState<string | null>(null);
   const [recoveryExpiry, setRecoveryExpiry] = useState<Date | null>(null);
+  const [pendingPrivilegedAction, setPendingPrivilegedAction] =
+    useState<PendingPrivilegedAction | null>(null);
+  const [deletionDialogOpen, setDeletionDialogOpen] = useState(false);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({
@@ -124,9 +70,6 @@ function AccountDetail({
     });
     void queryClient.invalidateQueries({
       queryKey: ['server-admin', 'overview'],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['server-admin', 'action-activity'],
     });
     onChanged();
   };
@@ -149,18 +92,46 @@ function AccountDetail({
     onSuccess: invalidate,
   });
   const verificationMutation = useMutation({
-    mutationFn: ({ emailId, email }: { emailId: string; email: string }) =>
-      api.verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost(
-        {
-          accountId: account.id,
-          accountEmailId: emailId,
-          serverAdminEmailVerificationRequest: { confirmationEmail: email },
-        },
-      ),
+    mutationFn: async ({
+      emailId,
+      email,
+    }: {
+      emailId: string;
+      email: string;
+    }) => {
+      try {
+        return await api.verifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdEmailsAccountEmailIdVerifyPost(
+          {
+            accountId: account.id,
+            accountEmailId: emailId,
+            serverAdminEmailVerificationRequest: { confirmationEmail: email },
+          },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
     onSuccess: () => {
       setVerificationText('');
       invalidate();
     },
+    onError: (error, variables) => {
+      if (isRecentAuthRequired(error)) {
+        setPendingPrivilegedAction({ kind: 'verify-email', ...variables });
+      }
+    },
+  });
+  const verificationRequestMutation = useMutation({
+    mutationFn: async () => {
+      try {
+        await api.requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost(
+          { accountId: account.id },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
+    onSuccess: invalidate,
   });
   const recoveryEmailMutation = useMutation({
     mutationFn: () =>
@@ -170,27 +141,45 @@ function AccountDetail({
     onSuccess: invalidate,
   });
   const operatorRecoveryMutation = useMutation({
-    mutationFn: () =>
-      api.issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost(
-        { accountId: account.id },
-      ),
+    mutationFn: async () => {
+      try {
+        return await api.issueServerAdminOperatorRecoveryApiV1ServerAdminAccountsAccountIdRecoveryOperatorPost(
+          { accountId: account.id },
+        );
+      } catch (error) {
+        throw await normalizeClientError(error);
+      }
+    },
     onSuccess: (proof) => {
       setRecoveryUrl(proof.recoveryUrl);
       setRecoveryExpiry(proof.expiresAt);
       invalidate();
+    },
+    onError: (error) => {
+      if (isRecentAuthRequired(error)) {
+        setPendingPrivilegedAction({ kind: 'operator-recovery' });
+      }
     },
   });
 
   const actionError =
     suspensionMutation.error ??
     revokeSessionsMutation.error ??
-    verificationMutation.error ??
+    (verificationMutation.error &&
+    !isRecentAuthRequired(verificationMutation.error)
+      ? verificationMutation.error
+      : null) ??
+    verificationRequestMutation.error ??
     recoveryEmailMutation.error ??
-    operatorRecoveryMutation.error;
+    (operatorRecoveryMutation.error &&
+    !isRecentAuthRequired(operatorRecoveryMutation.error)
+      ? operatorRecoveryMutation.error
+      : null);
   const pending =
     suspensionMutation.isPending ||
     revokeSessionsMutation.isPending ||
     verificationMutation.isPending ||
+    verificationRequestMutation.isPending ||
     recoveryEmailMutation.isPending ||
     operatorRecoveryMutation.isPending;
 
@@ -220,6 +209,22 @@ function AccountDetail({
     }
   }
 
+  function retryPrivilegedAction() {
+    const action = pendingPrivilegedAction;
+    setPendingPrivilegedAction(null);
+    if (!action) return;
+    if (action.kind === 'verify-email') {
+      verificationMutation.reset();
+      verificationMutation.mutate({
+        emailId: action.emailId,
+        email: action.email,
+      });
+      return;
+    }
+    operatorRecoveryMutation.reset();
+    operatorRecoveryMutation.mutate();
+  }
+
   return (
     <div className="server-admin-account-detail">
       <div className="server-admin-account-detail-heading">
@@ -231,13 +236,24 @@ function AccountDetail({
           </p>
         </div>
         <span
-          className={`server-admin-badge ${account.disabledAt ? 'is-warning' : 'is-ok'}`}
+          className={`server-admin-badge ${
+            account.deletionStatus === 'PENDING' ||
+            account.deletionStatus === 'COMPLETED'
+              ? 'is-danger'
+              : account.disabledAt
+                ? 'is-warning'
+                : 'is-ok'
+          }`}
         >
-          {t(
-            account.disabledAt
-              ? 'serverAdmin.accounts.status.suspended'
-              : 'serverAdmin.accounts.status.active',
-          )}
+          {account.deletionStatus === 'PENDING'
+            ? t('serverAdmin.accounts.status.pendingDeletion')
+            : account.deletionStatus === 'COMPLETED'
+              ? t('serverAdmin.accounts.status.deleted')
+              : t(
+                  account.disabledAt
+                    ? 'serverAdmin.accounts.status.suspended'
+                    : 'serverAdmin.accounts.status.active',
+                )}
         </span>
       </div>
 
@@ -291,6 +307,16 @@ function AccountDetail({
             </div>
             {email.verifiedAt === null ? (
               <div className="server-admin-inline-confirmation">
+                {email.isPrimary ? (
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={pending || account.disabledAt !== null}
+                    onClick={() => verificationRequestMutation.mutate()}
+                  >
+                    {t('serverAdmin.accounts.detail.resendVerification')}
+                  </button>
+                ) : null}
                 <label htmlFor={`verify-${email.id}`}>
                   {t('serverAdmin.accounts.detail.typeEmailToVerify')}
                 </label>
@@ -323,6 +349,12 @@ function AccountDetail({
           </div>
         ))}
       </div>
+
+      {verificationRequestMutation.isSuccess ? (
+        <p className="status status-success" role="status">
+          {t('serverAdmin.accounts.detail.verificationRequested')}
+        </p>
+      ) : null}
 
       <h4>{t('serverAdmin.accounts.detail.actionsTitle')}</h4>
       <div className="server-admin-account-actions">
@@ -397,28 +429,72 @@ function AccountDetail({
 
       {actionError ? (
         <p className="status status-error" role="alert">
-          {t('serverAdmin.accounts.detail.actionError')}
+          {(actionError as { code?: string }).code ===
+          'MAIL_TRANSPORT_UNAVAILABLE'
+            ? t('serverAdmin.accounts.detail.mailUnavailable')
+            : t('serverAdmin.accounts.detail.actionError')}
         </p>
       ) : null}
 
       <div className="server-admin-danger-zone">
         <strong>{t('serverAdmin.accounts.detail.deletionTitle')}</strong>
-        <p className="server-admin-muted">
-          {t('serverAdmin.accounts.detail.deletionDeferred')}
-        </p>
-        <button type="button" disabled>
-          {t('serverAdmin.accounts.detail.deleteAccount')}
-        </button>
+        {account.deletionStatus === 'PENDING' ||
+        account.deletionStatus === 'COMPLETED' ? (
+          <p className="status status-warning" role="status">
+            {t('serverAdmin.accounts.detail.deletionNotice')}
+          </p>
+        ) : (
+          <>
+            <p className="server-admin-muted">
+              {t('serverAdmin.accounts.detail.deletionWarning')}
+            </p>
+            <button
+              type="button"
+              className="danger-button"
+              disabled={pending}
+              onClick={() => setDeletionDialogOpen(true)}
+            >
+              {t('serverAdmin.accounts.detail.deleteAccount')}
+            </button>
+          </>
+        )}
       </div>
+
+      {deletionDialogOpen ? (
+        <ServerAdminAccountDeletionDialog
+          api={api}
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          account={account}
+          onClose={() => setDeletionDialogOpen(false)}
+          onSuccess={() => {
+            setDeletionDialogOpen(false);
+            invalidate();
+          }}
+        />
+      ) : null}
+
+      {pendingPrivilegedAction ? (
+        <ServerAdminRecentAuthModal
+          apiBaseUrl={apiBaseUrl}
+          accessToken={accessToken}
+          onCancel={() => setPendingPrivilegedAction(null)}
+          onSuccess={retryPrivilegedAction}
+        />
+      ) : null}
     </div>
   );
 }
 
 export function ServerAdminAccountsPanel({
   api,
+  apiBaseUrl,
+  accessToken,
   onOverviewChanged,
 }: {
   api: ServerAdminApi;
+  apiBaseUrl: string;
+  accessToken: string;
   onOverviewChanged: () => void;
 }) {
   const { t } = useTranslation();
@@ -455,12 +531,6 @@ export function ServerAdminAccountsPanel({
         accountId: selectedAccountId as string,
       }),
     enabled: selectedAccountId !== null,
-    retry: false,
-  });
-  const actionActivityQuery = useQuery({
-    queryKey: ['server-admin', 'action-activity'],
-    queryFn: () =>
-      api.getServerAdminActionActivityApiV1ServerAdminActivityActionsGet(),
     retry: false,
   });
 
@@ -596,11 +666,15 @@ export function ServerAdminAccountsPanel({
                       </td>
                       <td>{account.primaryEmail ?? '–'}</td>
                       <td>
-                        {t(
-                          account.disabledAt
-                            ? 'serverAdmin.accounts.status.suspended'
-                            : 'serverAdmin.accounts.status.active',
-                        )}
+                        {account.deletionStatus === 'PENDING'
+                          ? t('serverAdmin.accounts.status.pendingDeletion')
+                          : account.deletionStatus === 'COMPLETED'
+                            ? t('serverAdmin.accounts.status.deleted')
+                            : t(
+                                account.disabledAt
+                                  ? 'serverAdmin.accounts.status.suspended'
+                                  : 'serverAdmin.accounts.status.active',
+                              )}
                       </td>
                       <td>
                         {t(
@@ -676,6 +750,8 @@ export function ServerAdminAccountsPanel({
               <AccountDetail
                 account={detailQuery.data}
                 api={api}
+                apiBaseUrl={apiBaseUrl}
+                accessToken={accessToken}
                 onChanged={() => {
                   void detailQuery.refetch();
                   onOverviewChanged();
@@ -686,21 +762,18 @@ export function ServerAdminAccountsPanel({
         ) : null}
       </section>
 
-      {actionActivityQuery.isPending ? (
-        <section className="server-admin-panel server-admin-panel-wide">
-          <p className="server-admin-muted">
-            {t('serverAdmin.accounts.audit.loading')}
-          </p>
-        </section>
-      ) : actionActivityQuery.error ? (
-        <section className="server-admin-panel server-admin-panel-wide">
-          <p className="status status-error" role="alert">
-            {t('serverAdmin.accounts.audit.error')}
-          </p>
-        </section>
-      ) : actionActivityQuery.data ? (
-        <ActionAudit items={actionActivityQuery.data} />
-      ) : null}
+      <section className="server-admin-panel server-admin-panel-wide">
+        <h2>{t('serverAdmin.accounts.audit.title')}</h2>
+        <p className="server-admin-muted">
+          {t('serverAdmin.accounts.audit.body')}
+        </p>
+        <Link
+          className="secondary-link"
+          to={`${SERVER_ADMIN_ROUTE}?section=activity&category=accounts`}
+        >
+          {t('serverAdmin.accounts.audit.openUnified')}
+        </Link>
+      </section>
     </>
   );
 }

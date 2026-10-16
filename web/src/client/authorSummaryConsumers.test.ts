@@ -2,6 +2,8 @@ import { QueryClient } from '@tanstack/react-query';
 import {
   authorSummaryQueryKeys,
   invalidateAuthorSummaryConsumers,
+  invalidatePlaceConsumers,
+  invalidateStoryProjections,
 } from './authorSummaryConsumers';
 
 describe('invalidateAuthorSummaryConsumers', () => {
@@ -89,7 +91,7 @@ describe('invalidateAuthorSummaryConsumers', () => {
     expect(calledKeys).toContainEqual(['heartMoment', spaceId]);
     expect(calledKeys).toContainEqual(['m5-s3', 'wish', spaceId]);
     expect(calledKeys).toContainEqual(['m5-s3', 'plan', spaceId]);
-    expect(calledKeys).toContainEqual(['m5-s3', 'place', spaceId]);
+    expect(calledKeys).toContainEqual(['m5-s3', 'places', spaceId, 'detail']);
     expect(calledKeys).toContainEqual(['m5-s3', 'chapter', spaceId]);
     expect(calledKeys).toContainEqual(['m5-s3', 'collection', spaceId]);
 
@@ -99,5 +101,76 @@ describe('invalidateAuthorSummaryConsumers', () => {
     expect(calledKeys).not.toContainEqual(['plan', spaceId]);
     expect(calledKeys).not.toContainEqual(['place', spaceId]);
     expect(calledKeys).not.toContainEqual(['collection', spaceId]);
+  });
+});
+
+describe('planning cache contracts', () => {
+  it('invalidates every Place consumer in one Space without a global wipe', async () => {
+    const queryClient = new QueryClient();
+    const keys = [
+      authorSummaryQueryKeys.placesOverview('space-1'),
+      authorSummaryQueryKeys.placeOptions('space-1'),
+      authorSummaryQueryKeys.placeDetail('space-1', 'place-1'),
+    ];
+    for (const key of keys) queryClient.setQueryData(key, { value: key });
+    const otherSpaceKey = authorSummaryQueryKeys.placeOptions('space-2');
+    queryClient.setQueryData(otherSpaceKey, []);
+
+    await invalidatePlaceConsumers(queryClient, 'space-1');
+
+    for (const key of keys) {
+      expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+    }
+    expect(queryClient.getQueryState(otherSpaceKey)?.isInvalidated).toBe(false);
+  });
+
+  it('invalidates Story and relation-target projections together', async () => {
+    const queryClient = new QueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await invalidateStoryProjections(queryClient, 'space-1');
+
+    const calledKeys = invalidateSpy.mock.calls.map(
+      (call) => (call[0] as { queryKey: unknown[] }).queryKey,
+    );
+    expect(calledKeys).toContainEqual(authorSummaryQueryKeys.story('space-1'));
+    expect(calledKeys).toContainEqual(
+      authorSummaryQueryKeys.relationTargets('space-1'),
+    );
+  });
+
+  it('refreshes relation targets after create, edit, delete, and privacy transitions', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const relationKey = authorSummaryQueryKeys.relationTargets('space-1');
+    let eligibleTargets: Array<{ id: string; title: string }> = [];
+    const loadTargets = () => Promise.resolve([...eligibleTargets]);
+    const readTargets = () =>
+      queryClient.fetchQuery({ queryKey: relationKey, queryFn: loadTargets });
+
+    expect(await readTargets()).toEqual([]);
+
+    eligibleTargets = [{ id: 'memory-1', title: 'Picnic' }];
+    await invalidateStoryProjections(queryClient, 'space-1');
+    expect(await readTargets()).toEqual(eligibleTargets);
+
+    eligibleTargets = [{ id: 'memory-1', title: 'Picnic by the lake' }];
+    await invalidateStoryProjections(queryClient, 'space-1');
+    expect(await readTargets()).toEqual(eligibleTargets);
+
+    eligibleTargets = [];
+    await invalidateStoryProjections(queryClient, 'space-1');
+    expect(await readTargets()).toEqual([]);
+
+    eligibleTargets = [{ id: 'heart-1', title: 'A shared smile' }];
+    await invalidateStoryProjections(queryClient, 'space-1');
+    expect(await readTargets()).toEqual(eligibleTargets);
+
+    // A visibility change to private is represented by the authorized server
+    // projection omitting the target; invalidation must remove the stale choice.
+    eligibleTargets = [];
+    await invalidateStoryProjections(queryClient, 'space-1');
+    expect(await readTargets()).toEqual([]);
   });
 });

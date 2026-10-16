@@ -1,0 +1,18 @@
+{
+  "device": "emulator-5554",
+  "avdTarget": "android-35 arm64-v8a (disposable, session-local)",
+  "apkSha256": "f2e5b9a5273ddd0a2d57b9435c3cafef0e5a5d62509ba6cb65a81eb79a000faf",
+  "apkSha256Note": "Matches docs/product/design/evidence/f2/android/f2-android-build.json; same debug build installed fresh for this supplement.",
+  "accessibilityService": "com.android.talkback/com.google.android.marvin.talkback.TalkBackService",
+  "talkbackVersionName": "TfPu_release_16_2-2026_09_16_0900",
+  "enabledAccessibilityServices": "com.android.talkback/com.google.android.marvin.talkback.TalkBackService",
+  "touchExplorationEnabled": true,
+  "verified": [
+    "TalkBack is installed, enabled and bound (adb shell dumpsys accessibility shows it in Bound services and Enabled services) against the exact APK above.",
+    "On production Home load, TalkBack placed initial accessibility focus on meaningful content (the avatar/create-partner-link control), not on an unlabeled root view. See f2-android-talkback-focus-home.png.",
+    "Opening the Quick Create ModalBottomSheet with TalkBack active moves accessibility focus into the newly opened sheet (its drag handle), matching expected modal-focus-containment behavior instead of leaving focus on now-obscured background content. See f2-android-talkback-focus-quick-create.png.",
+    "The Quick Create sheet, its type choices and the Memory composer remain operable (tap-activatable) with TalkBack/touch exploration active; no interaction lockout was observed."
+  ],
+  "limitation": "A full linear-navigation, element-by-element spoken-announcement transcript across the whole F2 journey was not produced. adb-injected touch gestures (`input touchscreen swipe`, `input tap`) do not reliably reproduce TalkBack's real touch-exploration semantics (explore-to-focus vs. double-tap-to-activate): injected single taps were observed to activate controls directly rather than only moving accessibility focus, and injected linear-navigation swipes advanced focus inconsistently between steps. This is a synthetic-input/automation-tooling gap in this headless emulator, not an observed defect in the app's semantics. The existing Compose semantics assertions (MemoryTaskTest.kt and related F1/F2 suites) remain the source of truth for accessible name/role/state per control; this file adds live-service confirmation on top of them, not a replacement.",
+  "scope": "Session-local supplement to f2-android-report.json; does not repeat its screenshot/behavior matrix."
+}

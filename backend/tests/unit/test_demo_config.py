@@ -5,7 +5,7 @@ from datetime import timedelta
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from sidebyside.config import (
+from eimir.config import (
     Environment,
     MailTransport,
     Settings,
@@ -35,7 +35,10 @@ def test_demo_environment_keeps_public_runtime_hardening() -> None:
 
 
 def test_demo_environment_requires_explicit_demo_mode() -> None:
-    with pytest.raises(ValidationError, match="SBS_ENVIRONMENT=demo requires SBS_DEMO_MODE=true"):
+    with pytest.raises(
+        ValidationError,
+        match="EIMIR_ENVIRONMENT=demo requires EIMIR_DEMO_MODE=true",
+    ):
         _public_settings(demo_mode=False)
 
 
@@ -45,7 +48,7 @@ def test_ordinary_production_rejects_demo_mode() -> None:
 
 
 def test_reset_timer_requires_demo_mode() -> None:
-    with pytest.raises(ValidationError, match="RESET_TIMER requires SBS_DEMO_MODE=true"):
+    with pytest.raises(ValidationError, match="RESET_TIMER requires EIMIR_DEMO_MODE=true"):
         Settings.model_validate(
             {
                 "environment": Environment.DEVELOPMENT,

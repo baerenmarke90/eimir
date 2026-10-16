@@ -6,9 +6,9 @@ A **modular monolith**. No microservices unless a concrete technical need
 requires them.
 
 ```text
-        Android (Kotlin/Compose)     Web (React/TypeScript)
-                    │                        │
-                    └────────  HTTPS  ───────┘
+        Web / PWA (React/TypeScript) ── same bundle ──▶ Capacitor Android wrapper
+                    │                                          │
+                    └──────────────────  HTTPS  ───────────────┘
                                  │
                            REST API v1
                                  │
@@ -30,13 +30,13 @@ storage, mail, auth, push — rather than in domain logic.
 
 ## Layers
 
-**API** (`sidebyside.api`) — HTTP, serialization, error mapping. Contains no
+**API** (`eimir.api`) — HTTP, serialization, error mapping. Contains no
 domain rules.
 
-**Domain** (`sidebyside.domain`) — domain objects, rules, and events. Knows
+**Domain** (`eimir.domain`) — domain objects, rules, and events. Knows
 neither HTTP nor a concrete provider.
 
-**Infrastructure** (`sidebyside.db`, `.media`, `.providers`) — persistence and
+**Infrastructure** (`eimir.db`, `.media`, `.providers`) — persistence and
 external systems behind interfaces.
 
 Dependencies point inward: API knows Domain; Domain knows Infrastructure only
@@ -204,14 +204,18 @@ Every sensitive domain object therefore separates two areas:
 | `happened_on`, `created_at` | additional sensitive fields |
 | `crypto_version` | |
 
-In version 1 the payload is plaintext (`crypto_version = 0`). The boundary
-already exists in API and persistence, so a later switch to client-generated
-ciphertext is a format change rather than an architectural rewrite.
+`crypto_version = 0` is legacy plaintext. `crypto_version = 2` is an
+application-encrypted envelope (issue #797, [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)):
+the server encrypts with operator-held keys and can still read the content, so this is
+encryption at rest, not end-to-end encryption. `crypto_version = 1` remains reserved for
+client-generated ciphertext. Because the boundary already exists in API and persistence,
+a later switch to client-generated ciphertext is a format change rather than an
+architectural rewrite.
 
 Persistence uses `ProtectedPayloadJSON` with a concrete `ProtectedPayload`
 class. A raw dictionary or payload from another domain is rejected before SQL
-binding. This is a type and architecture boundary, **not encryption**: with
-`crypto_version = 0`, the server can still read the content.
+binding, and this layer applies the active encryption mode: it seals on write and
+authenticates and decrypts on read, so domain code never handles ciphertext.
 
 Outbox events enforce the opposite boundary. Their payload is not an arbitrary
 JSON dictionary but `PublicEventPayload` with a central allowlist of
@@ -221,7 +225,9 @@ ProtectedPayload and is not persistently copied into Outbox, worker, or logs.
 
 Derived functionality — Dashboard, recaps, rules, notifications — should use
 metadata whenever possible. Anything that requires plaintext will no longer
-work once real E2EE is introduced.
+work once real E2EE is introduced. Database indexes over payload text are not
+permitted: they would be an unencrypted copy of protected content (Search matches
+in the application instead, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)).
 
 See [SECURITY.md](SECURITY.md).
 
@@ -232,12 +238,12 @@ places, discovery, recipes, entertainment, external media, and location
 history.
 
 Domain code knows no concrete provider. External data is transformed into
-SideBySide-owned normalized forms before entering the Domain.
+eimir.-owned normalized forms before entering the Domain.
 
 The contracts are named `MapProvider`, `GeocodingProvider`, `PlacesProvider`,
 `DiscoveryProvider`, `RecipeProvider`, `EntertainmentProvider`,
 `ExternalMediaProvider`, and `LocationHistoryProvider`. They return only
-SideBySide-owned immutable models such as `GeoPoint`, `MapRoute`,
+eimir.-owned immutable models such as `GeoPoint`, `MapRoute`,
 `PlaceCandidate`, `RecipeItem`, or `EntertainmentItem`; provider-specific DTOs
 end at the adapter boundary.
 

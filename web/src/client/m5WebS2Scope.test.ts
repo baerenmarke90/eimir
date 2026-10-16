@@ -11,7 +11,7 @@ import {
   MILESTONE_EDIT_ROUTE_PATTERN,
 } from './routes';
 
-describe('SBS-M5-Web-S2-SCOPE', () => {
+describe('EIMIR-M5-Web-S2-SCOPE', () => {
   it('keeps all story product deep-link surfaces registered', () => {
     expect([
       MEMORY_DETAIL_ROUTE_PATTERN,

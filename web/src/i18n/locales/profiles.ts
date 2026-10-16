@@ -1,18 +1,30 @@
 const profiles = {
   eyebrow: 'Profil',
-  title: 'Dein Profil und Partner',
+  title: 'Du und dein Partner',
   intro:
-    'Dein persönliches Profil, deine freigegebenen Vorlieben und das Profil deines Partners.',
+    'Deine Identität, freigegebenen Vorlieben und das Profil deines Partners – klar getrennt von privaten Notizen.',
   settingsRailAria: 'Konto und Beziehung',
   accountTitle: 'Mein Konto',
   accountName: 'Anzeigename',
+  premium: {
+    eyebrow: 'Premium',
+    title: 'eimir.Pro',
+    badge: 'Pro',
+    gamesTitle: 'Mehr gemeinsame Momente mit eimir.Pro.',
+    gamesBody:
+      'Pro ergänzt eure gemeinsame Welt um Spiele, vertiefende Einblicke, das Zitat des Tages und zusätzliche persönliche Partneraktionen. Eure normalen Erinnerungen, Wünsche, Pläne und „Ich denke an dich“ bleiben davon unabhängig.',
+    action: 'Premium ansehen',
+    detailsTitle: 'Ein Premium-Bereich für euch beide',
+    detailsBody:
+      'Ein Pro-Zugang gilt für euren gemeinsamen Bereich und schaltet die enthaltenen Pro-Funktionen für euch beide frei. Eure bestehenden Inhalte und die kostenlosen Beziehungsfunktionen bleiben unabhängig davon erhalten.',
+  },
   relationshipTitle: 'Eure Beziehung',
   relationshipIntro:
     'Euer gemeinsamer Startpunkt für Jahrestage und eure Beziehungsdauer.',
   relationshipStartLabel: 'Zusammen seit',
   relationshipDurationLabel: 'Gemeinsame Zeit anzeigen',
   relationshipDurationHelp:
-    'Zeigt eure gemeinsame Zeit auf „Wir“ und an passenden Stellen in SideBySide.',
+    'Zeigt eure gemeinsame Zeit auf „Wir“ und an passenden Stellen in eimir.',
   relationshipModeLabel: 'Beziehungsdauer anzeigen als',
   relationshipModeYearsMonths: 'Jahre und Monate',
   relationshipModeDays: 'Tage',
@@ -40,6 +52,18 @@ const profiles = {
   partnerIntro:
     'Hier siehst du ausschließlich die Vorlieben, die dein Partner für sein Profil freigegeben hat.',
   partnerEmpty: '{{name}} hat noch keine freigegebenen Vorlieben.',
+  nickname: {
+    title: 'So nennst du {{name}}',
+    fallback: '{{name}} · Vorname',
+    privateHelp: 'Dieser Spitzname ist nur für dich sichtbar.',
+    add: 'Spitznamen vergeben',
+    edit: 'Spitznamen ändern',
+    inputLabel: 'Spitzname für {{name}}',
+    save: 'Speichern',
+    remove: 'Spitznamen entfernen',
+    saved: 'Spitzname gespeichert.',
+    removed: 'Wieder der Vorname angezeigt.',
+  },
   noPartnerTitle: 'Noch kein Partner verbunden',
   noPartnerBody:
     'Sobald ein Partner mit diesem Bereich verbunden ist, erscheint hier sein freigegebenes Profil.',

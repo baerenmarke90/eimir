@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/heart-moments"
 DETAIL = "/api/v1/spaces/{spaceId}/heart-moments/{heartMomentId}"
@@ -52,12 +52,13 @@ def test_write_dtos_only_expose_approved_fields() -> None:
         "visibility",
         "happenedOn",
         "attachmentId",
+        "tags",
     }
     assert set(create["required"]) == {"text", "emotion", "visibility", "happenedOn"}
     assert create["additionalProperties"] is False
 
     update = components["HeartMomentUpdate"]
-    assert set(update["properties"]) == {"text", "emotion", "happenedOn", "attachmentId"}
+    assert set(update["properties"]) == {"text", "emotion", "happenedOn", "attachmentId", "tags"}
     assert update["additionalProperties"] is False
 
     change = components["HeartMomentVisibilityChange"]

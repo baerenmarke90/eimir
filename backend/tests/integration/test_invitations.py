@@ -14,10 +14,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.core.clock import now
-from sidebyside.core.errors import ConflictError, NotFoundError, ValidationError
-from sidebyside.relationship import invitations, service
-from sidebyside.relationship.models import Invitation
+from eimir.core.clock import now
+from eimir.core.errors import ConflictError, NotFoundError, ValidationError
+from eimir.relationship import invitations, service
+from eimir.relationship.models import Invitation
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

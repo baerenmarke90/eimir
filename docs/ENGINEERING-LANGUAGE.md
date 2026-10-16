@@ -2,7 +2,7 @@
 
 ## Status
 
-This document is a mandatory engineering policy for SideBySide Next.
+This document is a mandatory engineering policy for eimir.
 
 > **Engineering language = English. Product language = i18n.**
 

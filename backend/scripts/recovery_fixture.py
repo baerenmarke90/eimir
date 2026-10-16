@@ -19,9 +19,9 @@ from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import passwords
-from sidebyside.config import DatabaseSettings
-from sidebyside.media.base import build_storage_key
+from eimir.auth import passwords
+from eimir.config import DatabaseSettings
+from eimir.media.base import build_storage_key
 
 FIXTURE_PASSWORD = "recovery-fixture-password"
 OWNER_EMAIL = "recovery-owner@fixture.invalid"
@@ -40,9 +40,9 @@ PRIVATE_HEART_ID = UUID("01990000-0000-7000-8000-000000000401")
 PARTNER_PRIVATE_HEART_ID = UUID("01990000-0000-7000-8000-000000000402")
 FOREIGN_PRIVATE_HEART_ID = UUID("01990000-0000-7000-8000-000000000403")
 
-DURABLE_ORIGINAL = b"sidebyside-recovery-durable-original-v1"
-DURABLE_THUMBNAIL = b"sidebyside-recovery-durable-thumbnail-v1"
-TEMPORARY_MEDIA = b"sidebyside-recovery-temporary-upload-v1"
+DURABLE_ORIGINAL = b"eimir-recovery-durable-original-v1"
+DURABLE_THUMBNAIL = b"eimir-recovery-durable-thumbnail-v1"
+TEMPORARY_MEDIA = b"eimir-recovery-temporary-upload-v1"
 
 
 class FixtureError(RuntimeError):
@@ -71,33 +71,33 @@ def _current_models() -> None:
     # Import the same production models Alembic and the application register.
     # Keeping imports local lets seed-0032 use the current image without asking
     # current ORM metadata to operate against the older schema.
-    from sidebyside.attachments import binding as _binding  # noqa: F401
-    from sidebyside.attachments import models as _attachments  # noqa: F401
-    from sidebyside.heart_moments import models as _heart_moments  # noqa: F401
-    from sidebyside.identity import models as _identity  # noqa: F401
-    from sidebyside.memories import models as _memories  # noqa: F401
-    from sidebyside.relationship import models as _relationship  # noqa: F401
+    from eimir.attachments import binding as _binding  # noqa: F401
+    from eimir.attachments import models as _attachments  # noqa: F401
+    from eimir.heart_moments import models as _heart_moments  # noqa: F401
+    from eimir.identity import models as _identity  # noqa: F401
+    from eimir.memories import models as _memories  # noqa: F401
+    from eimir.relationship import models as _relationship  # noqa: F401
 
 
 def seed_current() -> None:
     _current_models()
-    from sidebyside.attachments.binding import MemoryAttachment
-    from sidebyside.attachments.models import (
+    from eimir.attachments.binding import MemoryAttachment
+    from eimir.attachments.models import (
         Attachment,
         AttachmentPayload,
         AttachmentStatus,
         MediaType,
     )
-    from sidebyside.authorization import ContentVisibility, PrivacyClass, privacy_for
-    from sidebyside.heart_moments.models import (
+    from eimir.authorization import ContentVisibility, PrivacyClass, privacy_for
+    from eimir.heart_moments.models import (
         HeartEmotion,
         HeartMoment,
         HeartMomentPayload,
     )
-    from sidebyside.identity.models import Account, AccountEmail, AuthIdentity, AuthProvider
-    from sidebyside.media import get_media_store
-    from sidebyside.memories.models import Memory, MemoryPayload
-    from sidebyside.relationship.models import (
+    from eimir.identity.models import Account, AccountEmail, AuthIdentity, AuthProvider
+    from eimir.media import get_media_store
+    from eimir.memories.models import Memory, MemoryPayload
+    from eimir.relationship.models import (
         DurationDisplayMode,
         Membership,
         MembershipRole,
@@ -509,11 +509,11 @@ def seed_0032() -> None:
             raise FixtureError("Upgrade fixture requires Alembic revision 0032.")
         _seed_0032_rows(session)
 
-    from sidebyside.media.local import LocalMediaStore
+    from eimir.media.local import LocalMediaStore
 
     # DatabaseSettings intentionally contains only the database URL. Read the
     # media root directly without loading full production validation.
-    store = LocalMediaStore(os.environ.get("SBS_MEDIA_ROOT", "./data/media"))
+    store = LocalMediaStore(os.environ.get("EIMIR_MEDIA_ROOT", "./data/media"))
     store.put(
         build_storage_key(SPACE_ID, ATTACHMENT_ID),
         BytesIO(DURABLE_ORIGINAL),
@@ -533,14 +533,14 @@ def seed_0032() -> None:
 
 def verify(*, temporary_media_expected: bool) -> None:
     _current_models()
-    from sidebyside.attachments.binding import MemoryAttachment
-    from sidebyside.attachments.models import Attachment, AttachmentStatus
-    from sidebyside.authorization import PrivacyClass
-    from sidebyside.heart_moments.models import HeartMoment
-    from sidebyside.identity.models import Account, AccountEmail
-    from sidebyside.media import get_media_store
-    from sidebyside.memories.models import Memory
-    from sidebyside.relationship.models import Membership, MembershipStatus
+    from eimir.attachments.binding import MemoryAttachment
+    from eimir.attachments.models import Attachment, AttachmentStatus
+    from eimir.authorization import PrivacyClass
+    from eimir.heart_moments.models import HeartMoment
+    from eimir.identity.models import Account, AccountEmail
+    from eimir.media import get_media_store
+    from eimir.memories.models import Memory
+    from eimir.relationship.models import Membership, MembershipStatus
 
     with Session(_engine()) as session:
         if _database_revision(session) != _expected_head():

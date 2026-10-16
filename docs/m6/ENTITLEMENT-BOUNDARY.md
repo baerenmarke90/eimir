@@ -11,7 +11,7 @@ This document records the **runtime boundary** and technical architecture define
 
 The repository has frozen these commercial and architectural principles:
 
-- SideBySide uses a genuine freemium model;
+- eimir. uses a genuine freemium model;
 - Commercial entitlements are Space/couple-scoped (one partner purchases, both benefit);
 - Self-Hosted vs. Cloud/Managed is an operating-model axis separate from Free vs. Premium;
 - Essential Security, Privacy, Accessibility, Account/data deletion and portability are non-paywallable;
@@ -143,6 +143,42 @@ sources needed by the declared first launch channels. #525 may mark an unselecte
 source `NOT_APPLICABLE` only when the launch scope makes that honest.
 
 Do not create one omnibus multi-provider PR.
+
+### 7.1 Declared first launch channel
+
+Resolved (2026-09-05): **the first launch uses `ADMIN_GRANT` only.** No real
+payment/store provider is part of the initial launch target.
+
+- **`ADMIN_GRANT`** — required and implemented. A ServerAdmin-authorized
+  manual grant/revoke surface
+  (`POST/GET /server-admin/spaces/{spaceId}/entitlement...`) reuses the
+  existing normalized `record_grant`/`revoke_grant` source-update interface
+  from `#523` unchanged. This is the only entitlement source a launch actually
+  needs before a real commercial channel is selected: it lets an operator
+  extend Premium to a specific Space (beta testers, support cases, promotions)
+  without inventing a second grant-mutation path.
+- **`GOOGLE_PLAY`** — `NOT_APPLICABLE` for this launch. No Play Console
+  access, product IDs, or server-side purchase-verification service account
+  exist yet, and none are required for the declared first launch scope. Not
+  implemented; no Play Billing SDK dependency was added.
+- **`CLOUD_STRIPE`** — `NOT_APPLICABLE` for this launch. No Stripe account,
+  product/price IDs, or webhook secret exist yet, and none are required for
+  the declared first launch scope. Not implemented; no Stripe SDK dependency
+  was added.
+- **`SELF_HOSTED_KEY`** — `NOT_APPLICABLE` for this launch, despite the Ed25519
+  offline-license verifier already existing
+  (`backend/src/eimir/entitlements/offline_license.py`, unit-tested in
+  isolation). That verifier is intentionally not wired into `record_grant`,
+  configuration, or any endpoint: #523 explicitly scoped "Self-Hosted license
+  issuer/adapter implementation" out, and no accepted decision requires it for
+  the first launch.
+- **`TEST_FIXTURE`** — unchanged: deterministic Development/Demo-only fixture
+  path, already rejected in Production by
+  `entitlements/service.py::_ensure_source_allowed`.
+
+A future real commercial channel remains a separate, focused
+issue/branch/PR when the product actually needs one — this decision does not
+close that door, it only states what launch actually requires today.
 
 ## 8. Couple / relationship ownership
 

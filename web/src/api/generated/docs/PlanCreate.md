@@ -1,7 +1,7 @@
 
 # PlanCreate
 
-Direct plan creation defined by M3-D30.  ``status``, ``sourceWishId``, and all schedule fields are intentionally absent. A plan starts as an idea; ``/schedule`` schedules it and ``/complete`` completes it.
+Direct Plan creation with an optional atomic schedule.  Lifecycle state remains server-owned. Omitting ``schedule`` creates an ``IDEA``; supplying a valid date-only or timed schedule creates a ``PLANNED`` Plan in the same transaction.
 
 ## Properties
 
@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `description` | string
 `placeId` | string
+`schedule` | [PlanSchedule](PlanSchedule.md)
 `title` | string
 
 ## Example
@@ -20,6 +21,7 @@ import type { PlanCreate } from ''
 const example = {
   "description": null,
   "placeId": null,
+  "schedule": null,
   "title": null,
 } satisfies PlanCreate
 

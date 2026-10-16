@@ -20,11 +20,11 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.heart_moments.models import HeartMoment
-from sidebyside.memories.models import Memory
-from sidebyside.milestones.models import Milestone
-from sidebyside.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
-from sidebyside.relationship import service as relationship_service
+from eimir.heart_moments.models import HeartMoment
+from eimir.memories.models import Memory
+from eimir.milestones.models import Milestone
+from eimir.relations.models import PlaceHeartMoment, PlaceMemory, PlaceMilestone
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

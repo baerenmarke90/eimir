@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,45 +15,12 @@ import {
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { MORE_NOTIFICATIONS_ROUTE } from '../client/routes';
 import { useDismissiblePopover } from '../client/useDismissiblePopover';
+import { useMediaQuery } from '../client/useMediaQuery';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
-
-function useIsCompact(query = '(max-width: 640px)'): boolean {
-  const [isCompact, setIsCompact] = useState(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return false;
-    }
-    return window.matchMedia(query).matches;
-  });
-
-  useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      typeof window.matchMedia !== 'function'
-    ) {
-      return;
-    }
-    const media = window.matchMedia(query);
-    setIsCompact(media.matches);
-
-    const listener = (event: MediaQueryListEvent) => {
-      setIsCompact(event.matches);
-    };
-
-    if (typeof media.addEventListener === 'function') {
-      media.addEventListener('change', listener);
-      return () => media.removeEventListener('change', listener);
-    }
-    media.addListener?.(listener);
-    return () => media.removeListener?.(listener);
-  }, [query]);
-
-  return isCompact;
-}
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { useOverlayPresence } from './useOverlayPresence';
 
 export interface HeaderNotificationsMenuProps {
   apiBaseUrl: string;
@@ -75,8 +42,18 @@ export function HeaderNotificationsMenu({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isOpen, close, toggle, triggerRef, panelRef } =
-    useDismissiblePopover();
+  const isCompact = useMediaQuery('(max-width: 640px)');
+  const { isOpen, close, toggle, triggerRef, panelRef } = useDismissiblePopover(
+    { restoreFocusOnEscape: !isCompact },
+  );
+  const compactDialogRef = useRef<HTMLDivElement>(null);
+  const compactNavigatingRef = useRef(false);
+  const compactPendingNavigationRef = useRef<(() => void) | null>(null);
+  const {
+    present: compactPresent,
+    presenceState: compactPresenceState,
+    completeExit: completeCompactExit,
+  } = useOverlayPresence(isOpen && isCompact);
 
   const configuration = useMemo(
     () =>
@@ -159,31 +136,62 @@ export function HeaderNotificationsMenu({
         });
     }
 
-    close();
-
-    if (path) {
-      navigate(path);
+    if (isCompact) {
+      // Navigation is handed off only once the retained exit presentation is
+      // actually gone, so the destination never receives focus while the
+      // sheet is still visibly closing (see the effect below).
+      if (path) {
+        compactNavigatingRef.current = true;
+        compactPendingNavigationRef.current = () => navigate(path);
+      }
+      close();
+      return;
     }
+
+    close();
+    if (path) navigate(path);
   }
 
-  const isCompact = useIsCompact();
-
-  // Manage body scroll locking when mobile bottom sheet is open
   useEffect(() => {
-    if (!isOpen || !isCompact || typeof document === 'undefined') return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen, isCompact]);
+    if (isOpen && isCompact) {
+      compactNavigatingRef.current = false;
+      compactPendingNavigationRef.current = null;
+    }
+  }, [isCompact, isOpen]);
+
+  useEffect(() => {
+    if (compactPresent) return;
+    const runNavigation = compactPendingNavigationRef.current;
+    if (!runNavigation) return;
+    compactPendingNavigationRef.current = null;
+    // React runs passive cleanup for the prior presentation before setup
+    // effects for this closed state, so modality and scroll ownership are
+    // already released before the destination can assign focus.
+    runNavigation();
+  }, [compactPresent]);
+
+  useModalLifecycle({
+    active: compactPresent,
+    initialFocusRef: compactDialogRef,
+    restoreFocusRef: triggerRef,
+    deferRestoreFocus: true,
+    shouldRestoreFocus: () => !compactNavigatingRef.current,
+  });
 
   const popoverContent = (
     <section
       ref={panelRef as React.RefObject<HTMLElement>}
-      className={`header-notifications-popover${isCompact ? ' header-notifications-bottom-sheet' : ''}`}
+      className={`header-notifications-popover${compactPresent ? ' header-notifications-bottom-sheet' : ''}`}
       aria-label={t('m5s5.notifications.previewTitle')}
-      hidden={!isOpen}
+      hidden={compactPresent ? false : !isOpen}
+      onAnimationEnd={(event) => {
+        if (
+          event.target !== event.currentTarget ||
+          compactPresenceState !== 'exiting'
+        )
+          return;
+        completeCompactExit();
+      }}
     >
       <div className="header-notifications-head">
         <h2 className="header-notifications-title">
@@ -279,7 +287,17 @@ export function HeaderNotificationsMenu({
         <Link
           to={MORE_NOTIFICATIONS_ROUTE}
           className="header-notifications-all-link"
-          onClick={() => close()}
+          onClick={(event) => {
+            if (isCompact) {
+              // Same deferred handoff as an individual notification: the
+              // route change waits for the retained exit to actually finish.
+              event.preventDefault();
+              compactNavigatingRef.current = true;
+              compactPendingNavigationRef.current = () =>
+                navigate(MORE_NOTIFICATIONS_ROUTE);
+            }
+            close();
+          }}
         >
           {t('m5s5.notifications.showAll')}
         </Link>
@@ -311,14 +329,22 @@ export function HeaderNotificationsMenu({
       </button>
 
       {/* Mobile: Viewport-level bottom sheet portalled outside header containing block */}
-      {isCompact && isOpen && typeof document !== 'undefined'
+      {compactPresent && typeof document !== 'undefined'
         ? createPortal(
             <div
+              ref={compactDialogRef}
               className="header-notifications-portal"
               data-testid="header-notifications-portal"
+              data-presence={compactPresenceState}
               role="dialog"
               aria-modal="true"
               aria-label={t('m5s5.notifications.previewTitle')}
+              tabIndex={-1}
+              onKeyDown={(event) => {
+                containModalTabFocus(event, panelRef.current, {
+                  wrapFromOutside: true,
+                });
+              }}
             >
               <div
                 className="header-notifications-backdrop"
@@ -331,8 +357,10 @@ export function HeaderNotificationsMenu({
           )
         : null}
 
-      {/* Desktop: Anchored popover in normal header flow */}
-      {!isCompact ? popoverContent : null}
+      {/* Desktop: Anchored popover in normal header flow. Gated on the
+          compact presentation being fully gone so a viewport resize past the
+          breakpoint while open cannot mount the shared content twice. */}
+      {!isCompact && !compactPresent ? popoverContent : null}
     </div>
   );
 }

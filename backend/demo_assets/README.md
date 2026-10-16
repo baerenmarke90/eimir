@@ -24,7 +24,7 @@ The files in this directory are the reproducible local media set for the canonic
 - SHA-256 and MIME type;
 - German alt text and intended demo usage.
 
-`sidebyside.demo.assets` validates the whole manifest, every hash, every image type, and the exact directory contents before the demo mutates its database. A validation failure aborts creation/reset before destructive work begins.
+`eimir.demo.assets` validates the whole manifest, every hash, every image type, and the exact directory contents before the demo mutates its database. A validation failure aborts creation/reset before destructive work begins.
 
 ## Adding or replacing an image
 
@@ -39,6 +39,6 @@ The files in this directory are the reproducible local media set for the canonic
 
 ## MediaStore and reset
 
-The local files are input fixtures only. Seeding uses the normal SideBySide attachment lifecycle: upload registration, product MIME/size checks, MediaStore write, finalize, image decoding/sanitization, thumbnailing, READY state, and normal parent binding. There is no demo-specific media store.
+The local files are input fixtures only. Seeding uses the normal Eimir attachment lifecycle: upload registration, product MIME/size checks, MediaStore write, finalize, image decoding/sanitization, thumbnailing, READY state, and normal parent binding. There is no demo-specific media store.
 
 Reset detaches canonical and visitor-added demo media, purges their normal MediaStore objects, deletes the verified demo Space, and imports the same hash-pinned local assets again. No provider network access is required.

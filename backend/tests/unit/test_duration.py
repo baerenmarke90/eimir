@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from sidebyside.relationship.duration import since
+from eimir.relationship.duration import since
 
 
 class TestCalculation:

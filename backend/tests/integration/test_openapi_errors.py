@@ -8,8 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from sidebyside.api.errors import ProblemDetails
-from sidebyside.auth import local, rate_limit
+from eimir.api.errors import ProblemDetails
+from eimir.auth import local, rate_limit
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

@@ -7,15 +7,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import binding
-from sidebyside.attachments.models import (
+from eimir.attachments import binding
+from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
 )
-from sidebyside.authorization import PrivacyClass
-from sidebyside.core.errors import ConflictError, ErrorCode
+from eimir.authorization import PrivacyClass
+from eimir.core.errors import ConflictError, ErrorCode
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

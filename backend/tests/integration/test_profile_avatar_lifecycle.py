@@ -7,17 +7,17 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import binding as attachment_binding
-from sidebyside.attachments.models import (
+from eimir.attachments import binding as attachment_binding
+from eimir.attachments.models import (
     Attachment,
     AttachmentPayload,
     AttachmentStatus,
     MediaType,
 )
-from sidebyside.authorization import AuthorizationContext, PrivacyClass
-from sidebyside.core.clock import now
-from sidebyside.core.errors import NotFoundError, ValidationError
-from sidebyside.profiles import service
+from eimir.authorization import AuthorizationContext, PrivacyClass
+from eimir.core.clock import now
+from eimir.core.errors import NotFoundError, ValidationError
+from eimir.profiles import service
 from tests.conftest import make_account, make_space, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

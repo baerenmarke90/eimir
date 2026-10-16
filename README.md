@@ -1,12 +1,14 @@
-# SideBySide Next
+# eimir.
+
+<!-- status-surface: secondary-overview -->
 
 A private digital companion for a couple's shared life.
 
-SideBySide Next is an independent reimplementation. It is offered in two
+eimir. is an independent reimplementation. It is offered in two
 operating models:
 
-- **SideBySide Cloud** — a managed service for users who do not want to administer their own infrastructure
-- **SideBySide Self-Hosted** — a self-operated installation for personal and noncommercial use
+- **eimir. Cloud** — a managed service for users who do not want to administer their own infrastructure
+- **eimir. Self-Hosted** — a self-operated installation for personal and noncommercial use
 
 Both share the same Application Core. The Cloud monetizes operations,
 convenience, and service; Self-Hosted must not be artificially deprived of
@@ -19,11 +21,11 @@ The product-preview artwork and labels below intentionally remain de-DE
 localized product content.
 
 <p align="center">
-  <img src="docs/assets/playstore/app-icon.png" alt="SideBySide Next App-Icon" width="112">
+  <img src="docs/assets/playstore/app-icon.png" alt="eimir. App-Icon" width="112">
 </p>
 
 <p align="center">
-  <img src="docs/assets/playstore/feature-graphic.png" alt="SideBySide Next – gemeinsam leben, privat verbunden" width="100%">
+  <img src="docs/assets/playstore/feature-graphic.png" alt="eimir. – gemeinsam leben, privat verbunden" width="100%">
 </p>
 
 <p align="center">
@@ -35,18 +37,19 @@ localized product content.
 
 ### Design and UX foundations
 
-- [Design Principles](docs/DESIGN-PRINCIPLES.md) — visual language, Accessibility, and Privacy-first guidance
+- [Product Reference v1 and design authority](docs/product/design/README.md) — current eimir. direction, five reference experiences, legacy precedence, and implementation sequence
+- [Design Principles](docs/DESIGN-PRINCIPLES.md) — compatible visual, Accessibility, and Privacy-first foundations
 - [Information Architecture](docs/INFORMATION-ARCHITECTURE.md) — navigation, areas, routes, and Deep Links
 - [Critical User Flows](docs/USER-FLOWS.md) — end-to-end flows for Auth, invitations, content, Offline, and conflicts
 - [UX Patterns](docs/UX-PATTERNS.md) — cross-platform interaction and state patterns
 - [Screen Templates](docs/SCREEN-TEMPLATES.md) — responsive layouts for Compact, Medium, and Expanded
 - [Component Contracts](docs/COMPONENT-CONTRACTS.md) — behavior, variants, and Accessibility of shared components
 - [API/UI Contracts](docs/API-UI-CONTRACTS.md) — shared DTOs, errors, Privacy classes, Cache, and Concurrency
-- [Accessibility and QA Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) — binding Release Gates for Web and Android
+- [Accessibility and QA Matrix](docs/ACCESSIBILITY-QA-MATRIX.md) — binding Release Gates for Web and the Android wrapper
 - [Content and Privacy Guidelines](docs/CONTENT-PRIVACY-GUIDELINES.md) — tone, system text, Notifications, and Analytics boundaries
 - [Design System Delivery](docs/DESIGN-SYSTEM-DELIVERY.md) — Token pipeline, component stages, and delivery phases
 - [Design Tokens](design/tokens.json) — colors, typography, spacing, layout, and Motion as a machine-readable source
-- [Component Manifest](design/component-manifest.json) — cross-platform implementation status
+- [Component Manifest](design/component-manifest.json) — canonical Web product-UI implementation status
 
 <table>
   <tr>
@@ -79,16 +82,14 @@ localized product content.
 
 <p align="center">
   <a href="docs/ROADMAP.md">
-    <img src="docs/assets/roadmap/roadmap-overview.svg" alt="SideBySide Next Roadmap von Foundation bis Release" width="100%">
+    <img src="docs/assets/roadmap/roadmap-overview.svg" alt="eimir. Roadmap von Foundation bis Release" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <strong>Current: M4 is complete. M5 — Client Completion & Parity is the active roadmap milestone.</strong><br>
-  <a href="docs/ROADMAP.md">View roadmap, parallel workstreams, and Release Gates</a> ·
-  <a href="docs/IMPLEMENTATION-STATUS.md">Open the actual implementation state</a> ·
-  <a href="docs/m4/M4-EVIDENCE.md">Open M4 completion evidence</a> ·
-  <a href="docs/reviews/2026-08-30-g3-gate-review.md">Open the final G3 Gate Review</a>
+  <a href="docs/IMPLEMENTATION-STATUS.md"><strong>Open the authoritative current implementation and gate status</strong></a><br>
+  <a href="docs/ROADMAP.md">View milestone sequence and Release Gate definitions</a> ·
+  <a href="docs/STATUS-SOURCES.md">View status-source and drift rules</a>
 </p>
 
 ## Principles
@@ -109,10 +110,9 @@ Clients do not redundantly write `privacyClass` as a second source of truth.
 ```text
 backend/             FastAPI, SQLAlchemy 2, Alembic, PostgreSQL
 web/                 React, TypeScript, Vite
-android/             Kotlin, Jetpack Compose
-compose.yaml         Docker Compose for complete Self-Hosted checkouts
-compose.arcane.yaml  remote-Git builds for Arcane/remote workspaces
-deploy/              Docker Compose for the development database
+android/             Capacitor Android wrapper around the canonical React/Vite Web product
+compose.yaml         the single Docker Compose manifest for all supported profiles
+deploy/              deployment environment templates and PostgreSQL init data
 docs/                architecture, security, Privacy model, dependencies
 specification/       product specification as the binding requirement
 tools/               helper scripts
@@ -132,12 +132,15 @@ false sense of confidence rather than equivalent coverage.
 
 ### Backend
 
+The development database uses the `dev-db` profile of the canonical
+`compose.yaml`:
+
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d
-python -m pip install uv==0.12.5
+docker compose --profile dev-db up -d dev-postgres
+python -m pip install uv==0.12.15
 cd backend && uv sync --frozen
 uv run alembic upgrade head
-uv run uvicorn sidebyside.main:app --reload
+uv run uvicorn eimir.main:app --reload
 ```
 
 ### Web
@@ -149,30 +152,31 @@ npm run dev
 
 ### Tests
 
-Integration tests run against a dedicated `sidebyside_test` database created
-by `deploy/docker-compose.dev.yml` on first startup. The test fixture creates
-its own schema there and removes it again at the end — running that lifecycle
-against the development database would be data loss, not a test run.
+Integration tests run against a dedicated `eimir_test` database created
+by `deploy/postgres-init/10-testdatenbank.sql` when the `dev-db` profile starts
+with an empty volume. The test fixture creates its own schema there and removes
+it again at the end — running that lifecycle against the development database
+would be data loss, not a test run.
 
 ```bash
-export SBS_TEST_DATABASE_URL=postgresql+psycopg://sidebyside:sidebyside@localhost:5432/sidebyside_test
+export EIMIR_TEST_DATABASE_URL=postgresql+psycopg://eimir:eimir@localhost:5432/eimir_test
 cd backend && uv run pytest                         # everything
 cd backend && uv run pytest -m "not integration"   # without database
 ```
 
-**Without `SBS_TEST_DATABASE_URL`, all Integration Tests are skipped** — even
+**Without `EIMIR_TEST_DATABASE_URL`, all Integration Tests are skipped** — even
 when the development database is running and reachable. `pytest` can still
 report the run as green, for example `353 passed, 1141 skipped`. That is not a
 complete run. Skipped means skipped and must not silently be treated as
 passed; without the variable, only the Unit level is being tested.
 
 If the database volume predates the initialization script,
-`sidebyside_test` is missing. The Postgres image runs `deploy/postgres-init/`
+`eimir_test` is missing. The Postgres image runs `deploy/postgres-init/`
 only for an empty data directory. Create it once manually:
 
 ```bash
-docker compose -f deploy/docker-compose.dev.yml exec postgres \
-  createdb -U sidebyside sidebyside_test
+docker compose --profile dev-db exec dev-postgres \
+  createdb -U eimir eimir_test
 ```
 
 The Web client is tested with `cd web && npm test`.
@@ -184,8 +188,8 @@ schema of the actual application.
 
 ## Self-Hosted
 
-For a complete repository checkout, `compose.yaml` remains the normal entry
-point:
+eimir. supports exactly one Docker Compose manifest: root `compose.yaml`.
+`.env.example` selects the `self-hosted` profile for a normal complete checkout:
 
 ```bash
 cp .env.example .env    # then fill in the required values
@@ -197,12 +201,12 @@ is deliberately restricted to the local host. Access from a LAN or the
 Internet requires an HTTPS reverse proxy; the API must not be published
 directly on all interfaces for that purpose.
 
-Management surfaces such as **Arcane**, whose project workspace does not
-contain the complete repository checkout, use `compose.arcane.yaml` instead.
-This variant builds `backend` and `web` directly from the configured Git
-repository and therefore does not require local `./backend` or `./web`
-directories in the workspace. Setup, private repositories, and Release refs
-are documented in [docs/ARCANE.md](docs/ARCANE.md).
+Management surfaces such as **Arcane** use the same `compose.yaml` and
+`self-hosted` profile. When the Arcane workspace does not contain a full
+checkout, Backend and Web build contexts are configured as Git/BuildKit URLs
+through environment values rather than through another Compose file. Setup,
+private repositories, and Release refs are documented in
+[docs/ARCANE.md](docs/ARCANE.md).
 
 The `migrate` service upgrades the schema once before `api` and `worker`
 start. The application does not migrate itself; otherwise two starting API
@@ -210,61 +214,22 @@ containers could attempt the migration concurrently.
 
 The complete secure startup procedure, reverse-proxy requirements, and a
 Smoke Test are documented in [docs/SELF-HOSTING.md](docs/SELF-HOSTING.md).
+Existing installations must also follow the
+[project-identity migration guide](docs/PROJECT-IDENTITY-MIGRATION.md) before
+changing a checkout path, Compose project name, image identity, or legacy
+configuration keys.
 
 ## Status
 
-**M0 — technical platform complete.** Error format, Transactional Outbox, Job
-Queue, MediaStore and Provider interfaces, ProtectedPayload boundary,
-reproducible dependencies, OpenAPI contract, and CI/Supply-Chain checks exist
-for the M0 scope.
+[docs/IMPLEMENTATION-STATUS.md](docs/IMPLEMENTATION-STATUS.md) is the single
+authoritative living source for current milestone, gate, launch-blocker, and
+acceptance status. This README intentionally does not duplicate that detailed
+state.
 
-**M1 / G1 — complete and passed.** Account, Space, Membership, Tenant Context,
-Owner/Privacy Guard, and Device Sessions with rotating Tokens are implemented.
-Local password, OIDC with PKCE/State/Nonce, OIDC invitation onboarding,
-Passkeys, Magic Link, email verification, Recovery, Invitations, SpaceProfile,
-PartnerProfile/ProfilePreference, and RelatedPerson/ImportantDate are present
-in the Backend and covered by PostgreSQL/Privacy/Tenant tests. #61 was closed
-with an explicit `preserve`/`cascade` Delete Policy and no destructive default.
-
-The [G1 Gate Review after #61](docs/reviews/2026-08-25-g1-gate-review-after-61.md)
-sets G1 to **PASSED**. #59 and #60 remain mandatory Pre-Exposure hardening
-before public/Managed operation; #25 remains Repository Hardening.
-
-**M2 / G2 — complete and passed.** Memory CRUD, HeartMoment with owner-only
-Privacy, image Attachments including safe ingest and binding, Milestone,
-Comments, S3-compatible MediaStore, Story Read Model, and the thin Web/Android
-reference flows are delivered. The real critical Memory/Media/Story flow was
-demonstrated against API, Worker, PostgreSQL, and LocalMediaStore on both
-client paths.
-
-The [final G2 Gate Review](docs/reviews/2026-08-26-g2-final-gate-review.md)
-sets G2 explicitly to **PASSED**. Manual Accessibility acceptance was not
-claimed as passed there; it remains part of later Client/Release QA in M5/G4.
-
-**M3 / G3 — complete and passed.** Wishes, Plans, Places, typed content
-relations, Chapters, Shared Collections, PrivateNote, GiftIdea, and
-PrivateCollection are delivered through the versioned REST/OpenAPI contract.
-M3-S9 assembled the five mandatory real HTTP/PostgreSQL G3 flows plus the
-binding Cross-Tenant, `OWNER_ONLY`, race, delete-preservation, redaction, and
-contract evidence.
-
-The [final G3 Gate Review](docs/reviews/2026-08-30-g3-gate-review.md) reviewed
-the merged S9 tree and exact successful workflow runs and sets G3 explicitly
-to **PASSED**. Complete client parity, Accessibility, Read Cache, Export/Import,
-Deep Links, and client performance remain M5/G4.
-
-**Next milestone: M4 — Engage.** The first defined delivery boundary is M4-A
-Search + Dashboard Read Models, followed by M4-B Activity + Notifications and
-M4-C Reminders + Rules. M3-S10 closes G3 only; it does not start M4
-implementation.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the target architecture,
-[docs/SECURITY.md](docs/SECURITY.md) for Security invariants,
-[docs/m3/README.md](docs/m3/README.md) for the completed M3 package,
-[docs/reviews/2026-08-30-g3-gate-review.md](docs/reviews/2026-08-30-g3-gate-review.md)
-for the current gate decision, and
-[specification/PRODUCT-SPEC.md](specification/PRODUCT-SPEC.md) for functional
-scope.
+Use [docs/ROADMAP.md](docs/ROADMAP.md) for milestone order and gate definitions.
+For G5 evidence and decision records, follow the links from the living status
+rather than inferring launch readiness from a green CI run or a closed
+implementation issue.
 
 ## Project control
 
@@ -276,9 +241,11 @@ review snapshots; if they conflict with current normative guidance, the Master
 Specification remains authoritative.
 
 Parallel implementation work is coordinated through clearly scoped GitHub
-Issues, separate branches, and Pull Requests. While Branch Protection cannot
-be enforced technically for this private repository under the current plan,
-the PR/CI requirement remains a project rule.
+Issues, separate branches, and Pull Requests. Enforcement for `main` is
+defined by the repository's [active GitHub ruleset](https://github.com/baerenmarke90/eimir/rules/21286018);
+GitHub is the canonical source for repository visibility, required checks, and
+rule enforcement. This README intentionally does not copy a static required-check
+list that would drift independently.
 
 ## Security
 
@@ -297,7 +264,7 @@ documented separately in [docs/SECURITY.md](docs/SECURITY.md).
 
 ## License
 
-SideBySide Next's own source code is provided under the **PolyForm
+eimir.'s own source code is provided under the **PolyForm
 Noncommercial License 1.0.0**. Noncommercial use, modification, and
 distribution are allowed under that license. Commercial use requires a
 separate commercial license from the rights holder.
@@ -306,9 +273,9 @@ separate commercial license from the rights holder.
 - [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) — commercial licensing
 - [CONTRIBUTING.md](CONTRIBUTING.md) and [CLA.md](CLA.md) — contributions and contribution rights
 - [TRADEMARKS.md](TRADEMARKS.md) — name, logo, and branding
-- [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) — Self-Hosted, SideBySide Cloud, and product principles
+- [docs/BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) — Self-Hosted, eimir. Cloud, and product principles
 
-SideBySide Next is therefore **source-available**, not Open Source in the
+eimir. is therefore **source-available**, not Open Source in the
 narrower OSI sense, because commercial use is not granted generally.
 Third-party dependencies remain under their respective licenses; obligations
 are documented in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).

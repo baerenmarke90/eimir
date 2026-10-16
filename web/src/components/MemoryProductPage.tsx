@@ -1,39 +1,62 @@
-import { type FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { MemoryDetail } from '../api/generated/models/MemoryDetail';
 import {
   MemoryDetailFromJSON,
   MemoryDetailToJSON,
 } from '../api/generated/models/MemoryDetail';
+import { MAX_MEMORY_ATTACHMENTS } from '../client/attachmentLimits';
+import {
+  authorSummaryQueryKeys,
+  invalidateStoryProjections,
+} from '../client/authorSummaryConsumers';
+import { invalidateDashboard } from '../client/dashboardQueries';
+import { splitFirstGrapheme } from '../client/graphemeSplit';
+import { usePartnerNickname } from '../client/partnerNickname';
+import {
+  type MemoryEditValues,
+  memoryDateInputValue,
+  memoryIfMatch,
+  memoryUpdatePayload,
+} from '../client/memoryProduct';
+import {
+  clientProblemKind,
+  normalizeClientError,
+} from '../client/problemDetails';
+import { useStoryViewReceipt } from '../client/storyViewReceipt';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
 } from '../client/productReadCache';
-import {
-  memoryDateInputValue,
-  memoryIfMatch,
-  memoryUpdatePayload,
-  type MemoryEditValues,
-} from '../client/memoryProduct';
-import { normalizeClientError } from '../client/problemDetails';
 import type { ReferenceApis } from '../client/referenceFlow';
 import {
   appRoutePath,
   memoryDetailPath,
   memoryEditPath,
 } from '../client/routes';
-import { invalidateDashboard } from '../client/dashboardQueries';
-import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { postSnackbar } from '../client/snackbar';
-import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
+import { useTaskOrigin } from '../client/taskOrigin';
+import {
+  formatAttachmentDraftContextKey,
+  useAttachmentDrafts,
+} from '../client/useAttachmentDrafts';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MEMORY_TAGS,
+  MemoryTagChoices,
+  type MemoryTag,
+} from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
+import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
+import { StoryEditorPageShell } from './StoryFormPageShell';
+import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
 export type MemoryProductMode = 'detail' | 'edit';
@@ -47,7 +70,9 @@ function formatDateOnly(value: Date): string {
 
 function formatCreatedAt(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
-    dateStyle: 'medium',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   }).format(value);
 }
 
@@ -66,24 +91,74 @@ export function MemoryProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const taskState = location.state as {
+    taskOriginKey?: unknown;
+    memorySaved?: boolean;
+    photosUnconfirmed?: boolean;
+  } | null;
+  const originKey = taskState?.taskOriginKey;
+  const returnControl = (
+    <button
+      type="button"
+      className="back-link tertiary"
+      onClick={() => requestReturn(originKey)}
+    >
+      {t(
+        resolveOrigin(originKey)
+          ? 'taskBoundary.back'
+          : 'memoryProduct.backToStory',
+      )}
+    </button>
+  );
   const params = useParams();
   const queryClient = useQueryClient();
   const memoryId = params.memoryId;
   const memoryKey = authorSummaryQueryKeys.memory(spaceId, memoryId);
+  const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<Set<string>>(
-    () => new Set(),
+  const [removedAttachmentState, setRemovedAttachmentState] = useState<{
+    contextKey: string;
+    ids: Set<string>;
+  }>(() => ({
+    contextKey,
+    ids: new Set(),
+  }));
+
+  const removedAttachmentIds =
+    removedAttachmentState.contextKey === contextKey
+      ? removedAttachmentState.ids
+      : new Set<string>();
+
+  useLayoutEffect(() => {
+    setRemovedAttachmentState((current) =>
+      current.contextKey === contextKey
+        ? current
+        : { contextKey, ids: new Set() },
+    );
+  }, [contextKey]);
+
+  const setRemovedAttachmentIds = useCallback(
+    (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+      setRemovedAttachmentState((current) => {
+        const active =
+          current.contextKey === contextKey ? current.ids : new Set<string>();
+        const next = typeof updater === 'function' ? updater(active) : updater;
+        return { contextKey, ids: next };
+      });
+    },
+    [contextKey],
   );
-  const attachments = useAttachmentDrafts({
-    apis,
-    apiBaseUrl,
-    accessToken,
-    spaceId,
-  });
 
   const memoryQuery = useQuery({
     queryKey: memoryKey,
@@ -101,6 +176,38 @@ export function MemoryProductPage({
     },
     enabled: Boolean(memoryId),
     retry: false,
+  });
+  const [tagDraft, setTagDraft] = useState<{
+    memoryId: string;
+    tags: MemoryTag[];
+  } | null>(null);
+
+  useStoryViewReceipt({
+    apis,
+    spaceId,
+    kind: 'MEMORY',
+    itemId: memoryId ?? '',
+    presented: mode === 'detail' && memoryQuery.isSuccess,
+  });
+
+  // Edit accepts new draft uploads only up to the capacity the Memory's
+  // already-bound attachments (minus any the user has marked for removal)
+  // leave available; the backend's MAX_MEMORY_ATTACHMENTS stays authoritative
+  // regardless (#701).
+  const keptBoundAttachmentCount = memoryQuery.data
+    ? memoryQuery.data.value.attachments.filter(
+        (attachment) =>
+          attachment.status === 'READY' &&
+          !removedAttachmentIds.has(attachment.id),
+      ).length
+    : 0;
+  const attachments = useAttachmentDrafts({
+    apis,
+    apiBaseUrl,
+    accessToken,
+    spaceId,
+    accountId: currentAccountId,
+    maxAttachments: MAX_MEMORY_ATTACHMENTS - keptBoundAttachmentCount,
   });
 
   const updateMutation = useMutation({
@@ -152,6 +259,7 @@ export function MemoryProductPage({
           ...memory,
           title: values.title,
           body: values.body,
+          tags: values.tags,
           happenedOn: values.happenedOn
             ? new Date(`${values.happenedOn}T00:00:00Z`)
             : null,
@@ -171,11 +279,14 @@ export function MemoryProductPage({
       setRemovedAttachmentIds(new Set());
       queryClient.setQueryData(memoryKey, { value: memory, source: 'network' });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['story', spaceId] }),
+        invalidateStoryProjections(queryClient, spaceId),
         queryClient.invalidateQueries({ queryKey: memoryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(memoryDetailPath(memory.id), { replace: true });
+      navigate(memoryDetailPath(memory.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -200,7 +311,7 @@ export function MemoryProductPage({
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: memoryKey });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['story', spaceId] }),
+        invalidateStoryProjections(queryClient, spaceId),
         invalidateDashboard(queryClient, spaceId),
       ]);
       navigate(appRoutePath('story'), { replace: true });
@@ -236,22 +347,39 @@ export function MemoryProductPage({
   }
 
   if (memoryQuery.isLoading) {
-    return <UiState kind="loading" title={t('memoryProduct.loading')} />;
+    return (
+      <div className="page page-reading">
+        <UiState kind="loading" title={t('memoryProduct.loading')} />
+      </div>
+    );
   }
 
-  if (memoryQuery.error) {
+  const readDenied =
+    memoryQuery.error &&
+    ['unauthorized', 'permission', 'notFound'].includes(
+      clientProblemKind(memoryQuery.error),
+    );
+  if (
+    memoryQuery.error &&
+    (!memoryQuery.data || readDenied || mode === 'edit')
+  ) {
     return (
-      <ProblemState
-        error={memoryQuery.error}
-        onRetry={() => void memoryQuery.refetch()}
-      />
+      <div className="page page-reading">
+        {returnControl}
+        <ProblemState
+          error={memoryQuery.error}
+          onRetry={() => void memoryQuery.refetch()}
+        />
+      </div>
     );
   }
 
   const result = memoryQuery.data;
   if (!result) return null;
   const memory = result.value;
-  const offline = result.source === 'cache';
+  const selectedTags =
+    tagDraft?.memoryId === memory.id ? tagDraft.tags : (memory.tags ?? []);
+  const offline = result.source === 'cache' || Boolean(memoryQuery.error);
   const readyAttachments = [...memory.attachments]
     .filter((attachment) => attachment.status === 'READY')
     .sort((left, right) => left.position - right.position);
@@ -262,7 +390,11 @@ export function MemoryProductPage({
         <div className="page page-reading">
           <PageHeader
             before={
-              <Link className="back-link" to={memoryDetailPath(memory.id)}>
+              <Link
+                className="back-link"
+                to={memoryDetailPath(memory.id)}
+                state={{ taskOriginKey: originKey }}
+              >
                 {t('memoryProduct.backToMemory')}
               </Link>
             }
@@ -298,32 +430,31 @@ export function MemoryProductPage({
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
+          tags: [...selectedTags],
           happenedOn: String(data.get('happenedOn') || ''),
         },
       });
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link className="back-link" to={memoryDetailPath(memory.id)}>
-              {t('memoryProduct.backToMemory')}
-            </Link>
-          }
-          eyebrow={t('memoryProduct.editEyebrow')}
-          title={t('memoryProduct.editHeading')}
-          description={t('memoryProduct.editIntro')}
-          className="create-heading"
-        />
-
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="memory-edit-heading"
-        >
-          <h2 id="memory-edit-heading" className="sr-only">
-            {t('memoryProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={memoryDetailPath(memory.id)}
+            state={{ taskOriginKey: originKey }}
+          >
+            {t('memoryProduct.backToMemory')}
+          </Link>
+        }
+        eyebrow={t('memoryProduct.editEyebrow')}
+        title={t('memoryProduct.editHeading')}
+        description={t('memoryProduct.editIntro')}
+        headerClassName="create-heading"
+        sectionLabelledBy="memory-edit-heading"
+        sectionHeading={t('memoryProduct.formAria')}
+      >
+        <>
           <form
             key={memory.version}
             onSubmit={submit}
@@ -359,6 +490,12 @@ export function MemoryProductPage({
                 defaultValue={memoryDateInputValue(memory.happenedOn)}
               />
             </div>
+
+            <MemoryTagChoices
+              selected={selectedTags}
+              onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
+              disabled={updateMutation.isPending}
+            />
 
             {readyAttachments.length > 0 ? (
               <fieldset className="memory-existing-attachments">
@@ -424,6 +561,7 @@ export function MemoryProductPage({
               <Link
                 className="button-link secondary-link"
                 to={memoryDetailPath(memory.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -495,8 +633,8 @@ export function MemoryProductPage({
               )}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 
@@ -504,84 +642,108 @@ export function MemoryProductPage({
     ? `${t('memoryProduct.detailEyebrow').toUpperCase()} · ${formatDateOnly(memory.happenedOn)}`
     : t('memoryProduct.detailEyebrow').toUpperCase();
 
+  const bodyText = memory.body || t('memoryProduct.noBody');
+  const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
+  const provenanceAuthor = storyAuthorLabel(
+    memory.author,
+    currentAccountId,
+    nicknameFor,
+  );
+
   return (
-    <div className="page memory-product-page">
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        before={
-          <Link className="back-link" to={appRoutePath('story')}>
-            {t('memoryProduct.backToStory')}
-          </Link>
-        }
-        eyebrow={memoryEyebrow}
-        title={memory.title}
-        description={t('memoryProduct.detailIntro')}
-        action={
-          memory.capabilities.canEdit && !offline ? (
-            <Link
-              className="button-link secondary-link"
-              to={memoryEditPath(memory.id)}
+    <StoryDetailPageShell
+      eyebrow={memoryEyebrow}
+      title={memory.title}
+      titleAction={
+        memory.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={memoryEditPath(memory.id)}
+            label={t('memoryProduct.edit')}
+            state={{ taskOriginKey: originKey }}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      beforeHeader={
+        <>
+          {taskState?.memorySaved ? (
+            <div
+              className="inline-message inline-message-success"
+              role="status"
             >
-              {t('memoryProduct.edit')}
-            </Link>
-          ) : undefined
-        }
+              {t(
+                taskState.photosUnconfirmed
+                  ? 'taskBoundary.photosUnconfirmed'
+                  : 'taskBoundary.saved',
+              )}
+            </div>
+          ) : null}
+          {memoryQuery.error ? (
+            <ProblemState
+              error={memoryQuery.error}
+              onRetry={() => void memoryQuery.refetch()}
+            />
+          ) : null}
+        </>
+      }
+      pageClassName="memory-product-page"
+      containerClassName="memory-detail-container"
+      articleClassName="memory-detail-card"
+    >
+      <p className="memory-detail-body">
+        {bodyDropCap ? (
+          <span className="drop-cap-letter">{bodyDropCap}</span>
+        ) : null}
+        {bodyRest}
+      </p>
+
+      {(memory.tags ?? []).length > 0 ? (
+        <section aria-label={t('memory.tagsLabel')}>
+          <ul className="memory-tag-summary">
+            {memory.tags.map((tag) => (
+              <li key={tag}>
+                {(MEMORY_TAGS as readonly string[]).includes(tag)
+                  ? t(`memory.tagLabels.${tag}`)
+                  : tag}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {readyAttachments.length > 0 ? (
+        <section aria-label={t('memory.photoLabel')}>
+          <MediaGallery
+            items={readyAttachments.map((attachment) => ({
+              id: attachment.id,
+              mediaType: attachment.mediaType,
+            }))}
+            loadMedia={(attachmentId, signal) =>
+              loadMemoryImage(memory.id, attachmentId, signal)
+            }
+            resourceScopeKey={`memory:${memory.id}`}
+          />
+        </section>
+      ) : null}
+
+      <CommentsPanel
+        commentsApi={apis.comments}
+        spaceId={spaceId}
+        parentKind="memory"
+        parentId={memory.id}
+        currentAccountId={currentAccountId}
+        canComment={memory.capabilities.canComment}
+        offline={offline}
       />
 
-      <div className="memory-detail-container">
-        <article className="story-surface memory-detail-card coffee-table-layout">
-          <p className="memory-detail-body drop-cap">
-            {memory.body || t('memoryProduct.noBody')}
-          </p>
-
-          <section aria-labelledby="memory-photos-heading">
-            <div className="section-head memory-section-head">
-              <div>
-                <p className="section-kicker">{t('memory.photoLabel')}</p>
-                <h2 id="memory-photos-heading">
-                  {t('memoryProduct.photosHeading')}
-                </h2>
-              </div>
-            </div>
-            {readyAttachments.length > 0 ? (
-              <MediaGallery
-                items={readyAttachments.map((attachment) => ({
-                  id: attachment.id,
-                  mediaType: attachment.mediaType,
-                }))}
-                loadMedia={(attachmentId) =>
-                  loadMemoryImage(memory.id, attachmentId)
-                }
-              />
-            ) : (
-              <p className="muted">{t('memoryProduct.noPhotos')}</p>
-            )}
-          </section>
-
-          <CommentsPanel
-            commentsApi={apis.comments}
-            spaceId={spaceId}
-            parentKind="memory"
-            parentId={memory.id}
-            currentAccountId={currentAccountId}
-            canComment={memory.capabilities.canComment}
-            offline={offline}
-          />
-
-          <footer className="memory-provenance-footer">
-            <p>
-              {t('memoryProduct.provenance', {
-                author: memory.author.displayName,
-                createdAt: formatCreatedAt(memory.createdAt),
-              })}
-            </p>
-          </footer>
-        </article>
-      </div>
-    </div>
+      <footer className="memory-provenance-footer">
+        <p>
+          {t('memoryProduct.provenance', {
+            author: provenanceAuthor,
+            createdAt: formatCreatedAt(memory.createdAt),
+          })}
+        </p>
+      </footer>
+    </StoryDetailPageShell>
   );
 }

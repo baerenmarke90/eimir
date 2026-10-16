@@ -251,7 +251,7 @@ Scope:
 - content-free `POST /api/v1/spaces/{spaceId}/thinking-of-you`;
 - `clientRequestId` idempotency;
 - server-derived active partner recipient;
-- rolling 60-second sender/Space cooldown;
+- rolling 30-minute sender/Space cooldown (product decision, #790/#791), server-authoritative and exposed via `Dashboard.thinkingOfYouAvailableAt`;
 - recipient in-app Notification;
 - provider-neutral PushDelivery persistence/adapter/job boundary;
 - stable logical push idempotency identity;

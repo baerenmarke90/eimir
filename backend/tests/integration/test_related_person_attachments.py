@@ -10,9 +10,9 @@ from PIL import Image
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import service
-from sidebyside.attachments.models import Attachment, AttachmentStatus
-from sidebyside.relationship import service as relationship_service
+from eimir.attachments import service
+from eimir.attachments.models import Attachment, AttachmentStatus
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]

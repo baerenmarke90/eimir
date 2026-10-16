@@ -15,12 +15,12 @@ import pytest
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidebyside.auth import rate_limit, sessions
-from sidebyside.core.clock import now
-from sidebyside.identity.models import ConsumedRefreshToken, RateLimitEvent
-from sidebyside.jobs import maintenance
-from sidebyside.jobs.models import Job, JobStatus
-from sidebyside.jobs.worker import JobRegistry
+from eimir.auth import rate_limit, sessions
+from eimir.core.clock import now
+from eimir.identity.models import ConsumedRefreshToken, RateLimitEvent
+from eimir.jobs import maintenance
+from eimir.jobs.models import Job, JobStatus
+from eimir.jobs.worker import JobRegistry
 from tests.conftest import make_account, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -183,8 +183,8 @@ class TestThroughWorker:
         monkeypatch,
     ) -> None:  # type: ignore[no-untyped-def]
         """Complete path: scheduled, claimed, executed, and scheduled again."""
-        from sidebyside.db import session as db_session
-        from sidebyside.jobs import worker
+        from eimir.db import session as db_session
+        from eimir.jobs import worker
 
         monkeypatch.setattr(db_session, "get_sessionmaker", lambda: jobs)
 

@@ -1,16 +1,23 @@
-import { type FormEvent, useState } from 'react';
+import {
+  type FormEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { ActivityItem } from '../api/generated/models/ActivityItem';
 import type { NotificationItem } from '../api/generated/models/NotificationItem';
 import type { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import type { SearchKind } from '../api/generated/models/SearchKind';
 import type { SearchResult } from '../api/generated/models/SearchResult';
+import { authorDisplayName } from '../client/authorPresentation';
 import {
   engagementTargetPath,
   opaqueNextCursor,
@@ -23,7 +30,10 @@ import {
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
+import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
+import { DestinationIcon } from './DestinationIcon';
 import { AuthorAvatar } from './PersonIdentity';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
@@ -70,14 +80,30 @@ function formatDateTime(value: Date): string {
   }).format(value);
 }
 
-function SearchResultCard({ item }: { item: SearchResult }) {
+function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
+function SearchResultCard({
+  item,
+  onOpen,
+}: {
+  item: SearchResult;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
+}) {
   const { t } = useTranslation();
-  const path = searchResultPath(item.type, item.id);
+  const path = searchResultPath(item.type, item.id, item.parentId);
   const date = formatDate(item.occurredOn);
 
   const inner = (
     <div
-      className={`search-result-card search-result-${item.type.toLowerCase()} sbs-motion-lift`}
+      className={`search-result-card search-result-${item.type.toLowerCase()} eimir-motion-lift`}
     >
       <div className="search-result-content">
         <span className="search-result-kind">
@@ -96,9 +122,13 @@ function SearchResultCard({ item }: { item: SearchResult }) {
   );
 
   return (
-    <li className="search-result-wrapper sbs-motion-reveal">
+    <li className="search-result-wrapper">
       {path ? (
-        <Link className="search-result-link" to={path}>
+        <Link
+          className="search-result-link"
+          to={path}
+          onClick={(event) => onOpen?.(event, path)}
+        >
           {inner}
         </Link>
       ) : (
@@ -116,9 +146,40 @@ export function SearchProductPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { captureOrigin, resolveOrigin, registerOriginMetadata } =
+    useTaskOrigin();
   const [draftQuery, setDraftQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState<SearchKind | ''>('');
+
+  const returnKey = (location.state as { taskReturnKey?: unknown } | null)
+    ?.taskReturnKey;
+  const restoredKeyRef = useRef<unknown>(undefined);
+  useEffect(() => {
+    if (restoredKeyRef.current === returnKey) return;
+    restoredKeyRef.current = returnKey;
+    const candidateOrigin = resolveOrigin(returnKey);
+    const returnOrigin =
+      candidateOrigin?.to === taskOriginPath(location.pathname, location.search)
+        ? candidateOrigin
+        : null;
+    if (returnOrigin?.searchQuery) {
+      setDraftQuery(returnOrigin.searchQuery);
+      setSubmittedQuery(returnOrigin.searchQuery);
+      setKind((returnOrigin.searchKind as SearchKind | undefined) ?? '');
+    }
+  }, [returnKey, resolveOrigin, location.pathname, location.search]);
+
+  useEffect(
+    () =>
+      registerOriginMetadata({
+        searchQuery: submittedQuery || undefined,
+        searchKind: kind || undefined,
+      }),
+    [submittedQuery, kind, registerOriginMetadata],
+  );
 
   const searchQuery = useInfiniteQuery({
     queryKey: ['m5-s5', 'search', spaceId, submittedQuery, kind],
@@ -157,14 +218,19 @@ export function SearchProductPage({
         <div className="m4-toolbar-row">
           <div className="field-group m4-search-field">
             <label htmlFor="m4-search-query">{t('m5s5.search.label')}</label>
-            <input
-              id="m4-search-query"
-              type="search"
-              value={draftQuery}
-              onChange={(event) => setDraftQuery(event.currentTarget.value)}
-              placeholder={t('m5s5.search.placeholder')}
-              autoComplete="off"
-            />
+            <div className="m4-search-input-shell">
+              <span className="m4-search-input-icon" aria-hidden="true">
+                <DestinationIcon icon="search" />
+              </span>
+              <input
+                id="m4-search-query"
+                type="search"
+                value={draftQuery}
+                onChange={(event) => setDraftQuery(event.currentTarget.value)}
+                placeholder={t('m5s5.search.placeholder')}
+                autoComplete="off"
+              />
+            </div>
           </div>
           <div className="field-group">
             <label htmlFor="m4-search-kind">{t('m5s5.search.typeLabel')}</label>
@@ -226,7 +292,17 @@ export function SearchProductPage({
           </h2>
           <ul className="m4-list layout-columns layout-columns-dense">
             {items.map((item) => (
-              <SearchResultCard key={`${item.type}:${item.id}`} item={item} />
+              <SearchResultCard
+                key={`${item.type}:${item.id}`}
+                item={item}
+                onOpen={(event, path) => {
+                  if (!isPlainPrimaryClick(event)) return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
+              />
             ))}
           </ul>
           {searchQuery.hasNextPage ? (
@@ -252,19 +328,32 @@ function ActivityCard({
   profilesApi,
   spaceId,
   currentAccountId,
+  onOpen,
 }: {
   item: ActivityItem;
   profilesApi?: ProfilesApi | null;
   spaceId: string;
   currentAccountId?: string;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
   const isOwn = Boolean(
     currentAccountId && item.actor?.id === currentAccountId,
   );
-  const actorName = isOwn ? t('m5s5.activity.you') : item.actor?.displayName;
+  const actorName = isOwn
+    ? t('m5s5.activity.you')
+    : item.actor
+      ? item.actor.isFormerMember
+        ? authorDisplayName(item.actor)
+        : relationshipLabel(
+            item.actor.id,
+            item.actor.displayName,
+            t('couplePresencePartnerFallback'),
+          )
+      : undefined;
 
   const actionText = isOwn
     ? t(`m5s5.activityActionOwn.${item.kind}`)
@@ -274,7 +363,7 @@ function ActivityCard({
 
   const inner = (
     <div
-      className={`activity-card ${path ? 'activity-card-interactive sbs-motion-lift' : 'activity-card-static'} activity-card-${item.targetType?.toLowerCase() ?? 'unknown'}`}
+      className={`activity-card ${path ? 'activity-card-interactive eimir-motion-lift' : 'activity-card-static'} activity-card-${item.targetType?.toLowerCase() ?? 'unknown'}`}
     >
       <div className="activity-card-header">
         {item.actor ? (
@@ -323,9 +412,13 @@ function ActivityCard({
   );
 
   return (
-    <li className="activity-result-wrapper sbs-motion-reveal">
+    <li className="activity-result-wrapper">
       {path ? (
-        <Link className="activity-result-link" to={path}>
+        <Link
+          className="activity-result-link"
+          to={path}
+          onClick={(event) => onOpen?.(event, path)}
+        >
           {inner}
         </Link>
       ) : (
@@ -347,6 +440,8 @@ export function ActivityProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const activityQuery = useInfiniteQuery({
     queryKey: ['m5-s5', 'activity', spaceId],
     queryFn: ({ pageParam }) =>
@@ -408,6 +503,13 @@ export function ActivityProductPage({
                 profilesApi={profilesApi}
                 spaceId={spaceId}
                 currentAccountId={currentAccountId}
+                onOpen={(event, path) => {
+                  if (!isPlainPrimaryClick(event)) return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
               />
             ))}
           </ul>
@@ -436,6 +538,7 @@ function NotificationCard({
   currentAccountId,
   onMarkRead,
   isMarkingRead,
+  onOpen,
 }: {
   item: NotificationItem;
   spaceId: string;
@@ -443,6 +546,7 @@ function NotificationCard({
   currentAccountId?: string;
   onMarkRead: (id: string) => void;
   isMarkingRead: boolean;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
   const path = engagementTargetPath(item.targetType, item.targetId);
@@ -453,7 +557,7 @@ function NotificationCard({
 
   const inner = (
     <div
-      className={`m4-item sbs-motion-lift ${path ? 'm4-item-interactive' : 'm4-item-static'}${item.readAt ? '' : ' m4-item-unread'}`}
+      className={`m4-item eimir-motion-lift ${path ? 'm4-item-interactive' : 'm4-item-static'}${item.readAt ? '' : ' m4-item-unread'}`}
     >
       <div className="m4-notification-header">
         {item.actor ? (
@@ -510,15 +614,16 @@ function NotificationCard({
   );
 
   return (
-    <li className="m4-notification-wrapper sbs-motion-reveal">
+    <li className="m4-notification-wrapper">
       {path ? (
         <Link
           className="m4-notification-link"
           to={path}
-          onClick={() => {
+          onClick={(event) => {
             if (!item.readAt) {
               onMarkRead(item.id);
             }
+            onOpen?.(event, path);
           }}
         >
           {inner}
@@ -542,6 +647,8 @@ export function NotificationsProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const queryClient = useQueryClient();
   const listKey = notificationsListQueryKey(spaceId);
   const unreadKey = notificationUnreadCountQueryKey(spaceId);
@@ -584,14 +691,43 @@ export function NotificationsProductPage({
         queryClient.cancelQueries({ queryKey: listKey }),
         queryClient.cancelQueries({ queryKey: unreadKey }),
       ]);
-      const previousList = queryClient.getQueryData(listKey);
-      const previousUnread = queryClient.getQueryData(unreadKey);
 
-      queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
+      // Track only whether *this* notification actually transitioned to read,
+      // not a snapshot of the whole cache: two notifications can be marked
+      // read in quick succession while both requests are still in flight, and
+      // restoring a stale whole-cache snapshot on one's failure would also
+      // wipe out the other's already-applied (and possibly already
+      // successful) optimistic update.
+      let markedReadNow = false;
+      queryClient.setQueryData<{
+        pages: Array<{ items: NotificationItem[]; nextCursor: string | null }>;
+        pageParams: unknown[];
+      }>(listKey, (old) => {
         if (!old) return old;
-        return { unreadCount: Math.max(0, old.unreadCount - 1) };
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            items: page.items.map((it) => {
+              if (it.id !== notificationId || it.readAt) return it;
+              markedReadNow = true;
+              return { ...it, readAt: new Date() };
+            }),
+          })),
+        };
       });
 
+      if (markedReadNow) {
+        queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
+          if (!old) return old;
+          return { unreadCount: Math.max(0, old.unreadCount - 1) };
+        });
+      }
+
+      return { markedReadNow };
+    },
+    onError: (_err, notificationId, context) => {
+      if (!context?.markedReadNow) return;
       queryClient.setQueryData<{
         pages: Array<{ items: NotificationItem[]; nextCursor: string | null }>;
         pageParams: unknown[];
@@ -602,19 +738,15 @@ export function NotificationsProductPage({
           pages: old.pages.map((page) => ({
             ...page,
             items: page.items.map((it) =>
-              it.id === notificationId ? { ...it, readAt: new Date() } : it,
+              it.id === notificationId ? { ...it, readAt: null } : it,
             ),
           })),
         };
       });
-
-      return { previousList, previousUnread };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previousList)
-        queryClient.setQueryData(listKey, context.previousList);
-      if (context?.previousUnread)
-        queryClient.setQueryData(unreadKey, context.previousUnread);
+      queryClient.setQueryData<{ unreadCount: number }>(unreadKey, (old) => {
+        if (!old) return old;
+        return { unreadCount: old.unreadCount + 1 };
+      });
     },
     onSettled: refreshNotifications,
   });
@@ -626,7 +758,7 @@ export function NotificationsProductPage({
 
   const items =
     notificationsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+  const unreadCount = unreadQuery.data?.unreadCount;
 
   return (
     <div className="page m4-product-page">
@@ -651,32 +783,43 @@ export function NotificationsProductPage({
         }
       />
 
-      <section
-        className="layout-panel layout-panel-quiet"
-        aria-labelledby="m4-notification-summary"
-      >
-        <div className="m4-notification-summary">
-          <h2
-            id="m4-notification-summary"
-            className="m4-unread-badge"
-            aria-live="polite"
-          >
-            {t('m5s5.notifications.unreadCount', { count: unreadCount })}
-          </h2>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => markAll.mutate()}
-            disabled={markAll.isPending || unreadCount === 0}
-          >
-            {markAll.isPending
-              ? t('m5s5.notifications.markingAllRead')
-              : t('m5s5.notifications.markAllRead')}
-          </button>
-        </div>
-      </section>
+      {unreadQuery.isLoading ? (
+        <section
+          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
+          aria-live="polite"
+        >
+          <p className="planning-meta">
+            {t('m5s5.notifications.unreadLoading')}
+          </p>
+        </section>
+      ) : unreadQuery.isSuccess && unreadCount !== undefined ? (
+        <section
+          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
+          aria-labelledby="m4-notification-summary"
+        >
+          <div className="m4-notification-summary">
+            <h2
+              id="m4-notification-summary"
+              className="m4-unread-badge"
+              aria-live="polite"
+            >
+              {t('m5s5.notifications.unreadCount', { count: unreadCount })}
+            </h2>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => markAll.mutate()}
+              disabled={markAll.isPending || unreadCount === 0}
+            >
+              {markAll.isPending
+                ? t('m5s5.notifications.markingAllRead')
+                : t('m5s5.notifications.markAllRead')}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-      {notificationsQuery.isLoading || unreadQuery.isLoading ? (
+      {notificationsQuery.isLoading ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : null}
       {notificationsQuery.error ? (
@@ -716,6 +859,13 @@ export function NotificationsProductPage({
                 isMarkingRead={
                   markOne.isPending && markOne.variables === item.id
                 }
+                onOpen={(event, path) => {
+                  if (!isPlainPrimaryClick(event)) return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
               />
             ))}
           </ul>

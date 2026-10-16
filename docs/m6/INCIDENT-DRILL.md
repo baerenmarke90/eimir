@@ -31,7 +31,7 @@ Before starting:
 
 ## 2. Recommended drill scenario: database readiness loss
 
-This scenario is preferred because SideBySide has a deliberate liveness/readiness
+This scenario is preferred because eimir. has a deliberate liveness/readiness
 split and the failure can be created/recovered without editing application data.
 
 Expected behavior:
@@ -65,7 +65,7 @@ Reviewer:
 Use shell variables only for non-secret technical values:
 
 ```bash
-export BASE_URL=https://dev.sidebyside.example
+export BASE_URL=https://dev.eimir.example
 export EXPECTED_REVISION=<exact-40-char-commit-sha>
 ```
 
@@ -88,7 +88,7 @@ python3 scripts/deployment_smoke.py \
 Record only:
 
 - HTTP status;
-- `X-SideBySide-Revision`;
+- `X-Eimir-Revision`;
 - baseline timestamp;
 - deployment-smoke pass/fail.
 

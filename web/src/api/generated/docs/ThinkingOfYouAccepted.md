@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `clientRequestId` | string
+`thinkingOfYouAvailableAt` | Date
 
 ## Example
 
@@ -16,6 +17,7 @@ import type { ThinkingOfYouAccepted } from ''
 // TODO: Update the object below with actual values
 const example = {
   "clientRequestId": null,
+  "thinkingOfYouAvailableAt": null,
 } satisfies ThinkingOfYouAccepted
 
 console.log(example)

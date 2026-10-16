@@ -607,7 +607,7 @@ Do not add in M4-C v1 without a new explicit decision:
 - executable user scripts;
 - an AI scheduling dependency.
 
-A small SideBySide-specific Reminder occurrence ledger and controlled Rule catalog are application Domain/metadata that cannot be replaced by a generic queue package without losing the required semantics.
+A small eimir.-specific Reminder occurrence ledger and controlled Rule catalog are application Domain/metadata that cannot be replaced by a generic queue package without losing the required semantics.
 
 ## Runtime delivery sequence
 

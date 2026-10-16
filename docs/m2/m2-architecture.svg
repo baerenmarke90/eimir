@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
-  <title id="title">SideBySide Next – M2 Memory Core target architecture</title>
+  <title id="title">eimir. – M2 Memory Core target architecture</title>
   <desc id="desc">Human-readable architecture overview for Web and Android, REST API, Tenant Guard, M2 Domains, Story Read Model, Attachments, MediaStore, database, Outbox, and Privacy boundaries.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -69,7 +69,7 @@
   <g transform="translate(1366 82)">
     <circle cx="34" cy="34" r="34" fill="url(#hero)" filter="url(#soft)"/>
     <path d="M20 35 C20 24, 33 21, 38 31 C43 21, 56 24, 56 35 C56 46, 38 56, 38 56 C38 56, 20 46, 20 35Z" fill="#FFFFFF"/>
-    <text x="82" y="30" class="small" fill="#211A2B">SideBySide</text>
+    <text x="82" y="30" class="small" fill="#211A2B">eimir.</text>
     <text x="82" y="51" class="micro">NEXT · TARGET VIEW</text>
   </g>
 

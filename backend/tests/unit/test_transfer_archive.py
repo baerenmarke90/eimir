@@ -11,9 +11,9 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 import pytest
 
-from sidebyside.core.errors import ErrorCode
-from sidebyside.transfer import archive as transfer_archive
-from sidebyside.transfer.archive import TransferArchiveError, validate_zip
+from eimir.core.errors import ErrorCode
+from eimir.transfer import archive as transfer_archive
+from eimir.transfer.archive import TransferArchiveError, validate_zip
 
 
 def _json(value: object) -> bytes:

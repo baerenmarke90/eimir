@@ -1,18 +1,15 @@
-"""Verify the Plan slice reflects the contract decided in M3-D02 through M3-D05 and M3-D30.
-
-As with Wish, several decisions exist only in the shape of the contract:
-`status`, `sourceWishId`, and scheduling dates are server-owned, every
-lifecycle operation requires `If-Match`, and conversion has two successful
-responses rather than one.
-"""
+"""Verify the Plan slice reflects the current shared scheduling contract."""
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/plans"
 DETAIL = "/api/v1/spaces/{spaceId}/plans/{planId}"
-CONVERT = "/api/v1/spaces/{spaceId}/wishes/{wishId}/plan"
+WISH_COLLECTION = "/api/v1/spaces/{spaceId}/wishes"
+WISH_DETAIL = f"{WISH_COLLECTION}/{{wishId}}"
+WISH_COMPLETE = f"{WISH_DETAIL}/complete"
+CONVERT = f"{WISH_DETAIL}/plan"
 LIFECYCLE = (
     f"{DETAIL}/schedule",
     f"{DETAIL}/unschedule",
@@ -33,6 +30,14 @@ def _components() -> dict[str, dict]:
     return _schema()["components"]["schemas"]  # type: ignore[index,return-value]
 
 
+def _wish_paths() -> set[str]:
+    return {
+        path
+        for path in _paths()
+        if path == WISH_COLLECTION or path.startswith(f"{WISH_COLLECTION}/")
+    }
+
+
 def test_plan_routes_have_frozen_operation_ids() -> None:
     paths = _paths()
     assert paths[COLLECTION]["post"]["operationId"] == "createPlan"
@@ -45,35 +50,28 @@ def test_plan_routes_have_frozen_operation_ids() -> None:
     assert paths[f"{DETAIL}/complete"]["post"]["operationId"] == "completePlan"
     assert paths[f"{DETAIL}/return-to-wish"]["post"]["operationId"] == "returnPlanToWish"
     assert paths[CONVERT]["post"]["operationId"] == "convertWishToPlan"
+    assert paths[WISH_COMPLETE]["post"]["operationId"] == "completeWish"
 
 
 def test_the_decided_wish_and_plan_surface_is_now_complete() -> None:
-    """M3-D02 defines six Wish and nine Plan operations.
-
-    M3-S1 omitted conversion because Plans did not exist yet. This slice makes
-    the surface complete, and this test freezes it so no operation can silently
-    appear or disappear.
-    """
-    wish_paths = {path for path in _paths() if "/wishes" in path}
+    wish_paths = _wish_paths()
     plan_paths = {path for path in _paths() if "/plans" in path}
     assert wish_paths == {
-        "/api/v1/spaces/{spaceId}/wishes",
-        "/api/v1/spaces/{spaceId}/wishes/{wishId}",
+        WISH_COLLECTION,
+        WISH_DETAIL,
+        WISH_COMPLETE,
         CONVERT,
     }
     assert plan_paths == {COLLECTION, DETAIL, *LIFECYCLE}
 
 
 def test_every_lifecycle_operation_requires_if_match() -> None:
-    """This also applies to `unschedule` and `return-to-wish`.
-
-    They have no request body, but they still mutate state.
-    """
     paths = _paths()
     versioned = [
         (DETAIL, "patch"),
         (DETAIL, "delete"),
         (CONVERT, "post"),
+        (WISH_COMPLETE, "post"),
         *((path, "post") for path in LIFECYCLE),
     ]
     for path, method in versioned:
@@ -88,7 +86,6 @@ def test_create_does_not_require_if_match() -> None:
 
 
 def test_no_request_body_accepts_server_owned_fields() -> None:
-    """M3-D04/D30: status, origin, and scheduling fields are server-owned."""
     forbidden = {
         "status",
         "sourceWishId",
@@ -105,11 +102,21 @@ def test_no_request_body_accepts_server_owned_fields() -> None:
         assert schema.get("additionalProperties") is False, name
 
 
-def test_only_schedule_accepts_planned_dates() -> None:
-    """`plannedStart` and `plannedEnd` belong to scheduling, not PATCH."""
-    assert set(_components()["PlanSchedule"]["properties"]) == {"plannedStart", "plannedEnd"}
-    assert _components()["PlanSchedule"]["required"] == ["plannedStart"]
+def test_schedule_contract_distinguishes_calendar_date_from_instant() -> None:
+    schedule = _components()["PlanSchedule"]
+    assert set(schedule["properties"]) == {"plannedOn", "plannedStart", "plannedEnd"}
+    assert "required" not in schedule
+    assert schedule["properties"]["plannedOn"]["format"] == "date"
+    assert schedule["properties"]["plannedStart"]["format"] == "date-time"
+    assert schedule["properties"]["plannedEnd"]["format"] == "date-time"
+
+    # Create and Wish conversion may carry the same nested schedule atomically;
+    # PATCH stays lifecycle-neutral and raw schedule fields never leak outward.
+    assert "schedule" in _components()["PlanCreate"]["properties"]
+    assert "schedule" in _components()["WishToPlan"]["properties"]
+    assert "schedule" not in _components()["PlanUpdate"]["properties"]
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan"):
+        assert "plannedOn" not in _components()[name]["properties"], name
         assert "plannedStart" not in _components()[name]["properties"], name
         assert "plannedEnd" not in _components()[name]["properties"], name
 
@@ -117,34 +124,30 @@ def test_only_schedule_accepts_planned_dates() -> None:
 def test_only_complete_and_patch_carry_the_experienced_day() -> None:
     assert set(_components()["PlanComplete"]["properties"]) == {"experiencedOn"}
     assert _components()["PlanComplete"]["required"] == ["experiencedOn"]
-    # Correction of an already completed Plan (M3-D04).
     assert "experiencedOn" in _components()["PlanUpdate"]["properties"]
     assert "experiencedOn" not in _components()["PlanCreate"]["properties"]
 
 
 def test_direct_create_needs_only_a_title() -> None:
     schema = _components()["PlanCreate"]
-    assert set(schema["properties"]) == {"title", "description", "placeId"}
+    assert set(schema["properties"]) == {"title", "description", "placeId", "schedule"}
     assert schema["required"] == ["title"]
 
 
 def test_conversion_carries_no_required_field() -> None:
-    """Without an explicit title, the Plan inherits the Wish title."""
     schema = _components()["WishToPlan"]
-    assert set(schema["properties"]) == {"title", "description", "placeId"}
+    assert set(schema["properties"]) == {"title", "description", "placeId", "schedule"}
     assert "required" not in schema
 
 
 def test_conversion_documents_both_success_answers() -> None:
-    """The idempotent retry response is part of the contract.
-
-    A client that knows only 201 would treat the 200 response as an error and
-    could then attempt to create a second Plan.
-    """
     responses = _paths()[CONVERT]["post"]["responses"]
     assert "201" in responses
     assert "200" in responses
     assert "409" in responses
+    expected_schema = {"$ref": "#/components/schemas/WishToPlanResponse"}
+    assert responses["200"]["content"]["application/json"]["schema"] == expected_schema
+    assert responses["201"]["content"]["application/json"]["schema"] == expected_schema
 
 
 def test_conversion_returns_both_resources() -> None:
@@ -153,7 +156,6 @@ def test_conversion_returns_both_resources() -> None:
 
 
 def test_return_to_wish_answers_with_the_wish_and_the_removed_id() -> None:
-    """The Plan no longer exists afterward, so returning it would be incorrect."""
     schema = _components()["PlanReturnToWishResponse"]
     assert set(schema["properties"]) == {"wish", "removedPlanId"}
 
@@ -163,12 +165,14 @@ def test_detail_exposes_lifecycle_state_read_only() -> None:
     assert {
         "status",
         "sourceWishId",
+        "plannedOn",
         "plannedStart",
         "plannedEnd",
         "experiencedOn",
         "createdBy",
         "capabilities",
     } <= set(schema["properties"])
+    assert schema["properties"]["plannedOn"]["anyOf"][0]["format"] == "date"
     assert set(_components()["PlanStatus"]["enum"]) == {"IDEA", "PLANNED", "COMPLETED"}
 
 
@@ -179,13 +183,7 @@ def test_list_filters_by_status_and_not_by_free_text() -> None:
 
 
 def test_the_place_is_a_single_canonical_field() -> None:
-    """`placeId` was added in M3-S3 (M3-D08/D31).
-
-    A Plan has at most one canonical primary Place and there is no parallel
-    `place_plans` surface. `test_m3_place_openapi` verifies the field shape;
-    this test only verifies that exactly one field exists and no secondary
-    assignment route is exposed.
-    """
+    """A Plan has one canonical Place field and no secondary place route."""
     for name in ("PlanCreate", "PlanUpdate", "WishToPlan", "PlanDetail"):
         assert "placeId" in _components()[name]["properties"], name
         assert "placeIds" not in _components()[name]["properties"], name

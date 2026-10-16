@@ -415,7 +415,8 @@
     "AttachmentFinalize": [],
     "AttachmentReadRequest": [
       "parentType",
-      "parentId"
+      "parentId",
+      "variant"
     ]
   },
   "attachmentPublicFields": [

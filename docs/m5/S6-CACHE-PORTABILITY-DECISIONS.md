@@ -13,7 +13,7 @@ change these semantics.
 
 ## Decision summary
 
-1. **M2-D17 is DECIDED.** SideBySide exposes two user-portability scopes:
+1. **M2-D17 is DECIDED.** eimir. exposes two user-portability scopes:
    `SHARED` and `PERSONAL`. `PERSONAL` is the shared portable dataset plus only
    the requesting account's `OWNER_ONLY` data. No export may contain the
    partner's `OWNER_ONLY` content.
@@ -31,7 +31,7 @@ change these semantics.
 5. **The neutral Transfer Bundle is versioned and server-owned.** Clients do not
    assemble or parse application ZIPs as a competing portability
    implementation. Export/import use a stable asynchronous API and the same
-   bundle format on SideBySide Cloud and Self-Hosted.
+   bundle format on eimir. Cloud and Self-Hosted.
 6. **Deep links contain identity, never content.** Canonical client routes may
    contain opaque resource IDs but no ProtectedPayload, private title, query
    text, token, signed media URL, or other sensitive presentation data.
@@ -71,7 +71,7 @@ member's private data.
 ### Portable data
 
 The Transfer Bundle contains durable user-created/user-configured data required
-to move the relationship history to another SideBySide Next installation.
+to move the relationship history to another eimir. installation.
 Examples include, where present in the current runtime:
 
 - portable Account profile identity required for attribution and member mapping;
@@ -157,7 +157,7 @@ network response was received; changing device wall-clock time must not extend
 retention indefinitely where a monotonic/runtime-safe comparison is available.
 
 Logout, session invalidation, Account change, and active Space change clear all
-SideBySide persistent read-cache data on that client, not merely the currently
+eimir. persistent read-cache data on that client, not merely the currently
 visible query. Normal cache eviction by the browser/OS is allowed because cache
 content is an optimization, never the source of truth.
 
@@ -174,7 +174,7 @@ server availability failure. It must not mask:
 The cached presentation is always visibly read-only and shows the age of the
 cached snapshot. Create, Update, Delete, visibility changes, reorder,
 conversion, comment mutation, and every other write remain disabled/offline-
-failed while the authoritative server is unavailable. SideBySide does not
+failed while the authoritative server is unavailable. eimir. does not
 queue writes for later synchronization in M5.
 
 Tokens, credentials, presigned URLs, signed media URLs, and upload state are
@@ -269,14 +269,14 @@ App Links should resolve from a small logical target tuple such as resource
 kind + resource ID, then map to the current client's canonical route. Persisted
 server events must not store a full Web URL containing product content.
 
-## Versioned SideBySide Transfer Bundle
+## Versioned eimir. Transfer Bundle
 
 ### Format identity
 
 The neutral archive is named conceptually:
 
 ```text
-sidebyside-export.zip
+eimir-export.zip
 ```
 
 Format version 1 uses:
@@ -326,7 +326,7 @@ records carry stable source IDs so relations and media references can be
 remapped during import. Source IDs are data-mapping identifiers only and never
 bypass target-instance authorization.
 
-Media in the bundle is the already-sanitized authorized media that SideBySide
+Media in the bundle is the already-sanitized authorized media that eimir.
 serves, not the original pre-ingest upload. Every media entry is referenced by
 an included Domain record; unreachable/orphan media is not exported.
 
@@ -433,7 +433,7 @@ stable error codes, not private titles or content excerpts.
 
 ### Import semantics
 
-Normal import targets an existing authenticated SideBySide Space. It does not
+Normal import targets an existing authenticated eimir. Space. It does not
 restore AuthIdentity, credentials, DeviceSessions, Entitlements, or server
 configuration.
 
@@ -453,7 +453,7 @@ uses the existing MediaStore lifecycle and cleanup semantics; failed staging
 must not leave readable orphan objects.
 
 Version 1 does **not** implement destructive replace, database restore, or
-foreign/predecessor database import. A future SideBySide Classic exporter must
+foreign/predecessor database import. A future eimir. Classic exporter must
 produce this neutral format without the Next importer reading Classic source or
 schema.
 
@@ -499,7 +499,7 @@ excessive expansion, and checksum mismatch fail closed before Domain apply.
 Selected reusable foundations:
 
 - the standard ZIP/JSON/SHA-256 capabilities of the server runtime;
-- existing SideBySide Job/Worker infrastructure for long-running generation and
+- existing eimir. Job/Worker infrastructure for long-running generation and
   validation;
 - existing private MediaStore abstraction for staged/generated archive
   artifacts and imported media;

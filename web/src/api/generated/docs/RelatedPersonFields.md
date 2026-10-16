@@ -11,6 +11,7 @@ Name | Type
 `birthdayYearKnown` | boolean
 `displayName` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
+`showBirthdayOnDashboard` | boolean
 `visibility` | [ContentVisibility](ContentVisibility.md)
 
 ## Example
@@ -25,6 +26,7 @@ const example = {
   "birthdayYearKnown": null,
   "displayName": null,
   "relationship": null,
+  "showBirthdayOnDashboard": null,
   "visibility": null,
 } satisfies RelatedPersonFields
 

@@ -13,16 +13,16 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import rate_limit, sessions
-from sidebyside.auth.tokens import (
+from eimir.auth import rate_limit, sessions
+from eimir.auth.tokens import (
     ACCESS_TOKEN_LIFETIME,
     REFRESH_TOKEN_LIFETIME,
     SESSION_ABSOLUTE_LIFETIME,
     hash_token,
 )
-from sidebyside.core.clock import now
-from sidebyside.core.errors import RateLimitedError, UnauthenticatedError
-from sidebyside.identity.models import ConsumedRefreshToken, DeviceSession, RateLimitEvent
+from eimir.core.clock import now
+from eimir.core.errors import RateLimitedError, UnauthenticatedError
+from eimir.identity.models import ConsumedRefreshToken, DeviceSession, RateLimitEvent
 from tests.conftest import make_account, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

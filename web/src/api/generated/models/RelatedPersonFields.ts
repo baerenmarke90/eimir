@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -66,6 +66,12 @@ export interface RelatedPersonFields {
     relationship: PersonRelationship;
     /**
      * 
+     * @type {boolean}
+     * @memberof RelatedPersonFields
+     */
+    showBirthdayOnDashboard?: boolean;
+    /**
+     * 
      * @type {ContentVisibility}
      * @memberof RelatedPersonFields
      */
@@ -99,6 +105,7 @@ export function RelatedPersonFieldsFromJSONTyped(json: any, ignoreDiscriminator:
         'birthdayYearKnown': json['birthdayYearKnown'] == null ? undefined : json['birthdayYearKnown'],
         'displayName': json['displayName'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
+        'showBirthdayOnDashboard': json['showBirthdayOnDashboard'] == null ? undefined : json['showBirthdayOnDashboard'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
     };
 }
@@ -119,6 +126,7 @@ export function RelatedPersonFieldsToJSONTyped(value?: RelatedPersonFields | nul
         'birthdayYearKnown': value['birthdayYearKnown'],
         'displayName': value['displayName'],
         'relationship': PersonRelationshipToJSON(value['relationship']),
+        'showBirthdayOnDashboard': value['showBirthdayOnDashboard'],
         'visibility': ContentVisibilityToJSON(value['visibility']),
     };
 }

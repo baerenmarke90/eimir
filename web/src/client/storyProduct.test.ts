@@ -11,7 +11,7 @@ import {
   storyRequest,
 } from './storyProduct';
 
-describe('SBS-M5-Web-S2-SCOPE Story product query', () => {
+describe('EIMIR-M5-Web-S2-SCOPE Story product query', () => {
   it('parses only supported Story filters and preserves a stable cache identity', () => {
     const filters = parseStoryFilters(
       new URLSearchParams('type=HEART_MOMENT&year=2026&order=ASC'),

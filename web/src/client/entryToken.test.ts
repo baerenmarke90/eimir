@@ -13,7 +13,7 @@ describe('sensitive identity entry tokens', () => {
     });
   });
 
-  it('distinguishes magic-link, verification and invitation entry paths', () => {
+  it('distinguishes magic-link, verification, invitation and signup entry paths', () => {
     expect(readSensitiveEntryToken('/auth/magic-link', '?token=magic')).toEqual(
       {
         kind: 'magicLink',
@@ -31,6 +31,12 @@ describe('sensitive identity entry tokens', () => {
     ).toEqual({
       kind: 'invitation',
       token: 'invite',
+    });
+    expect(
+      readSensitiveEntryToken('/auth/signup', '?token=signup-proof'),
+    ).toEqual({
+      kind: 'signup',
+      token: 'signup-proof',
     });
   });
 

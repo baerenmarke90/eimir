@@ -1,5 +1,11 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { moveSortableItem, moveSortableItemByOffset } from './ListEntryActions';
+import {
+  ListEntryIconButton,
+  moveSortableItem,
+  moveSortableItemByOffset,
+} from './ListEntryActions';
 
 describe('list entry reorder helpers', () => {
   it('moves an item before another item', () => {
@@ -41,5 +47,18 @@ describe('list entry reorder helpers', () => {
   it('does not move beyond list boundaries', () => {
     expect(moveSortableItemByOffset(['a', 'b'], 'a', -1)).toEqual(['a', 'b']);
     expect(moveSortableItemByOffset(['a', 'b'], 'b', 1)).toEqual(['a', 'b']);
+  });
+
+  it('uses the provided label as the icon button accessible name', () => {
+    const html = renderToStaticMarkup(
+      createElement(ListEntryIconButton, {
+        icon: 'edit',
+        label: 'Bearbeiten',
+      }),
+    );
+
+    expect(html).toContain('aria-label="Bearbeiten"');
+    expect(html).toContain('title="Bearbeiten"');
+    expect(html).not.toContain('aria-label="common.edit"');
   });
 });

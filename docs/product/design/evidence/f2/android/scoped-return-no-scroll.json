@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "0616ed02e2acf2ded76292ced51e1c83a420fb41",
+  "apkSha256": "f2e5b9a5273ddd0a2d57b9435c3cafef0e5a5d62509ba6cb65a81eb79a000faf",
+  "scope": {
+    "year": 2025,
+    "type": "MEMORY"
+  },
+  "item": "story-memory-00000000-0000-03be-0000-000000000009",
+  "beforeBounds": [
+    40,
+    856,
+    740,
+    1137
+  ],
+  "afterBounds": [
+    40,
+    856,
+    740,
+    1137
+  ],
+  "afterBackOperations": [
+    "UIAutomator read",
+    "bounds equality assertion",
+    "screenshot"
+  ],
+  "scrollOrRevealAfterBack": false,
+  "passed": true
+}

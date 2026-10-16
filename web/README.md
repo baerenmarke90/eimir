@@ -55,7 +55,7 @@ The product-oriented surface adds:
 Technical values are operator configuration and are not exposed to normal
 users as input fields:
 
-- `VITE_SBS_API_BASE_URL` — API base URL; an empty value uses same-origin.
+- `VITE_EIMIR_API_BASE_URL` — API base URL; an empty value uses same-origin.
 
 The active Space is derived only after authentication from the account's server-authorized Memberships; it is not a build-time or operator value.
 Access and refresh tokens remain exclusively in ephemeral React state. Logout

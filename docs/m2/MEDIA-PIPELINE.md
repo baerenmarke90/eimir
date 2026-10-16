@@ -96,6 +96,18 @@ spaces/{spaceUuid}/attachments/{attachmentUuid}/original
 - Variants use only controlled server-side suffixes.
 - `originalName` is Protected/support metadata only and is never trusted for path, Authorization, or Content-Type.
 
+### 5.1 Account storage home
+
+Media whose authoritative lifecycle parent is an Account rather than a Space uses the same rules under a second prefix:
+
+```text
+accounts/{accountUuid}/attachments/{attachmentUuid}/original
+```
+
+Today this applies to exactly one case: Account-global profile media (the avatar). Such a row has `attachments.space_id = NULL`, and that column is the only authority for which home applies — the key is still never persisted. Binding an attachment as Account profile media relocates it into this prefix; see `docs/PROFILES.md`.
+
+A storage prefix is not an authorization statement in either case. Reads keep going through the owning domain's authorization rule, and Account-owned media is unreachable through Space-scoped attachment routes because a Space comparison against `NULL` is never true.
+
 ## 6. Binding M2 Media limits
 
 M2 deliberately supports a small positive allowlist:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from sidebyside.core.errors import ValidationError
-from sidebyside.identity.service import (
+from eimir.core.errors import ValidationError
+from eimir.identity.service import (
     MAX_DISPLAY_NAME,
     AccountErrorCode,
     normalize_display_name,

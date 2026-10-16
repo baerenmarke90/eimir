@@ -7,19 +7,19 @@ from datetime import timedelta
 import pytest
 from sqlalchemy import select
 
-from sidebyside.api.deps import ensure_capability
-from sidebyside.core.clock import now
-from sidebyside.core.errors import PremiumEntitlementRequiredError
-from sidebyside.entitlements import service as entitlement_service
-from sidebyside.entitlements.models import (
+from eimir.api.deps import ensure_capability
+from eimir.core.clock import now
+from eimir.core.errors import PremiumEntitlementRequiredError
+from eimir.entitlements import service as entitlement_service
+from eimir.entitlements.models import (
     Capability,
     EntitlementGrant,
     EntitlementSourceType,
     EntitlementStatus,
     EntitlementTier,
 )
-from sidebyside.entitlements.service import ALL_PREMIUM_CAPABILITIES
-from sidebyside.relationship.models import Membership, MembershipStatus
+from eimir.entitlements.service import ALL_PREMIUM_CAPABILITIES
+from eimir.relationship.models import Membership, MembershipStatus
 from tests.conftest import (
     auth,
     make_account,

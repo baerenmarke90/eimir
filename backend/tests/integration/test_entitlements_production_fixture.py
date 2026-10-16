@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from sidebyside.config import Deployment, Environment
-from sidebyside.core.clock import now
-from sidebyside.entitlements import service as entitlement_service
-from sidebyside.entitlements.models import (
+from eimir.config import Deployment, Environment
+from eimir.core.clock import now
+from eimir.entitlements import service as entitlement_service
+from eimir.entitlements.models import (
     Capability,
     EntitlementGrant,
     EntitlementSourceType,

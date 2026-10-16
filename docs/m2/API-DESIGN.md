@@ -46,7 +46,7 @@ This document freezes routes, DTO names, Concurrency, and Pagination semantics f
 | PATCH | `/spaces/{spaceId}/heart-moments/{heartMomentId}/visibility` | `changeHeartMomentVisibility` | `If-Match`, `HeartMomentVisibilityChange` | `HeartMomentDetail` |
 | DELETE | `/spaces/{spaceId}/heart-moments/{heartMomentId}` | `deleteHeartMoment` | `If-Match` | `204` |
 
-`SHARED -> PRIVATE` is the atomic Privacy operation defined in #68. Private HeartMoments are visible only to the owner and are never Story items.
+`SHARED -> PRIVATE` is the atomic Privacy operation defined in #68. Private HeartMoments are visible only to the owner. #1021 superseded M2-D22: a private HeartMoment now remains a Story item in its owner's own Timeline (never the partner's) — see section 4.
 
 ### Milestone
 
@@ -270,7 +270,12 @@ type StoryItem =
   | { kind: "MILESTONE"; effectiveDate: LocalDate; milestone: MilestoneSummary };
 ```
 
-There is no `PRIVATE` HeartMoment variant in the Story schema.
+`SharedHeartMomentSummary` keeps its established name (renaming would only
+churn every generated client for no behavioral gain), but it is no longer
+shared-only: #1021 superseded M2-D22 and added `visibility: "SHARED" |
+"PRIVATE"` reporting the item's real domain visibility. A caller's own
+`PRIVATE` HeartMoment is projected here at its ordinary Timeline position;
+the server never projects a `PRIVATE` HeartMoment belonging to the partner.
 
 ## 5. Story ordering and Cursor — M2-D08
 
@@ -307,7 +312,7 @@ Cursor format is opaque to clients. Server-side, version 1 encodes at least:
 }
 ```
 
-The Cursor is integrity-protected/signed and bound to Space, `type`, `year`, `order`, and the filter context independent of `limit`. A Cursor from another Space or with changed filters is neutrally rejected as `400 INVALID_CURSOR`. `limit` may be reduced/increased between pages without changing the logical continuation point.
+The Cursor is integrity-protected/signed and bound to Space, requesting Account, `type`, `year`, `order`, and the filter context independent of `limit`. The Account binding was added by #1021: since the Timeline became viewer-authorized, two Accounts in the same Space can have different authorized result sets, so a Cursor minted for one Account must not be redeemable by the other even though Space and filters match. A Cursor from another Space or Account, or with changed filters, is neutrally rejected as `400 INVALID_CURSOR`. `limit` may be reduced/increased between pages without changing the logical continuation point.
 
 With concurrent domain changes to sort fields, no historical snapshot is promised; clients may reload after Refresh. The invariant "no tie duplicates/gaps" applies to an unchanged sorted dataset between two pages.
 

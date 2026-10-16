@@ -18,9 +18,10 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.engagement.models import Notification, NotificationKind
-from sidebyside.main import create_app
-from sidebyside.relationship import service as relationship_service
+from eimir.dashboard.preferences import CATALOG as DASHBOARD_CATALOG
+from eimir.engagement.models import Notification, NotificationKind
+from eimir.main import create_app
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -119,6 +120,7 @@ PLACE = {"name": "Matrix Place", "latitude": 52.520008, "longitude": 13.404954}
 CHAPTER = {"title": "Matrix Chapter", "description": "Text"}
 COLLECTION = {"title": "Matrix Collection"}
 COLLECTION_ITEM = {"title": "Matrix Collection Item"}
+STORY_VIEW = {"kind": "MEMORY", "itemId": str(uuid4())}
 PRIVATE_NOTE = {"title": "Matrix Private Note", "body": "Private body"}
 GIFT_IDEA = {"title": "Matrix Gift Idea"}
 PRIVATE_COLLECTION = {"title": "Matrix Private Collection"}
@@ -130,9 +132,52 @@ PRIVATE_COLLECTION_FIXTURES = {
 
 SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint("GET", "/api/v1/spaces/{spaceId}"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/presence"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/presence"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/membership/leave"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/entitlements"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/appearance/app-icon"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/appearance/app-icon",
+        body={"iconId": "original"},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/configuration"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/configuration",
+        body={"loveNotesEnabled": True},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/today"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/daily-check-in/today",
+        body={"energyLevel": 50},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-check-in/insights"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/catalog"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/daily-quote/preferences"),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/daily-quote/preferences",
+        body={"enabled": True},
+        if_match=True,
+    ),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/moments/candidates"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/games/wishes/candidates"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/profile"),
     Endpoint("PUT", "/api/v1/spaces/{spaceId}/profile", body=PROFILE, if_match=True),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/partner-nickname"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/partner-nickname",
+        body={"nickname": "Matrix Partner"},
+        if_match=True,
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/invitations"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/invitations", body={}),
     Endpoint(
@@ -277,12 +322,26 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         resource_absence="RESOURCE_NOT_FOUND",
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/timeline"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/photos"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/discover"),
+    Endpoint("POST", "/api/v1/spaces/{spaceId}/story-views", body=STORY_VIEW),
     Endpoint(
         "GET",
         "/api/v1/spaces/{spaceId}/search",
         query={"q": "Matrix"},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard"),
+    Endpoint("GET", "/api/v1/spaces/{spaceId}/dashboard/preferences"),
+    Endpoint(
+        "PUT",
+        "/api/v1/spaces/{spaceId}/dashboard/preferences/order",
+        body={"moduleKeys": [definition.key.value for definition in DASHBOARD_CATALOG]},
+    ),
+    Endpoint(
+        "PATCH",
+        "/api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey}",
+        body={"itemLimit": 2},
+    ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/activity"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications"),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/notifications/unread-count"),
@@ -296,6 +355,11 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
         "POST",
         "/api/v1/spaces/{spaceId}/thinking-of-you",
         body={"clientRequestId": str(uuid4())},
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/partner-quick-actions",
+        body={"kind": "KISS", "clientRequestId": str(uuid4())},
     ),
     Endpoint("GET", "/api/v1/spaces/{spaceId}/reminders"),
     Endpoint("POST", "/api/v1/spaces/{spaceId}/reminders", body=REMINDER),
@@ -416,6 +480,12 @@ SPACE_ENDPOINTS: tuple[Endpoint, ...] = (
     Endpoint(
         "DELETE",
         "/api/v1/spaces/{spaceId}/wishes/{wishId}",
+        if_match=True,
+        resource_absence="WISH_NOT_FOUND",
+    ),
+    Endpoint(
+        "POST",
+        "/api/v1/spaces/{spaceId}/wishes/{wishId}/complete",
         if_match=True,
         resource_absence="WISH_NOT_FOUND",
     ),
@@ -843,6 +913,19 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     ("GET", "/api/v1/auth/me"),
     ("GET", "/api/v1/auth/capabilities"),
     ("GET", "/api/v1/auth/memberships"),
+    ("GET", "/api/v1/auth/recent-authentication/account-deletion"),
+    ("POST", "/api/v1/auth/recent-authentication/account-deletion/password"),
+    ("POST", "/api/v1/auth/recent-authentication/account-deletion/passkeys/start"),
+    ("POST", "/api/v1/auth/recent-authentication/account-deletion/passkeys/finish"),
+    ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start"),
+    ("POST", "/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback"),
+    ("POST", "/api/v1/account/deletion"),
+    ("GET", "/api/v1/notification-preferences"),
+    ("PATCH", "/api/v1/notification-preferences/quiet-hours"),
+    ("PATCH", "/api/v1/notification-preferences/{kind}/{channel}"),
+    ("GET", "/api/v1/push-endpoints/unifiedpush-configuration"),
+    ("POST", "/api/v1/push-endpoints"),
+    ("DELETE", "/api/v1/push-endpoints/{endpointId}"),
     ("POST", "/api/v1/auth/sign-out"),
     ("POST", "/api/v1/auth/password"),
     ("POST", "/api/v1/auth/email/verification/request"),
@@ -853,25 +936,44 @@ AUTHENTICATED_ONLY: tuple[tuple[str, str], ...] = (
     # registered from an authenticated session.
     ("POST", "/api/v1/auth/passkeys/registration/start"),
     ("POST", "/api/v1/auth/passkeys/registration/finish"),
+    # Founding a Space has no Space yet to be scoped by; the founder is always
+    # the authenticated Account.
+    ("POST", "/api/v1/spaces"),
 )
 """Account-scoped but not space-scoped. Anonymous requests receive 401."""
 
 SERVER_ADMIN_ONLY: tuple[tuple[str, str], ...] = (
+    ("GET", "/api/v1/auth/recent-authentication/server-admin"),
+    ("GET", "/api/v1/auth/recent-authentication/server-admin/capabilities"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/password"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/start"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/passkeys/finish"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start"),
+    ("POST", "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback"),
     ("GET", "/api/v1/server-admin/overview"),
     ("GET", "/api/v1/server-admin/spaces"),
     ("GET", "/api/v1/server-admin/spaces/{space_id}"),
+    ("POST", "/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile"),
+    ("GET", "/api/v1/server-admin/spaces/{space_id}/entitlement"),
+    ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants"),
+    ("POST", "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke"),
     ("GET", "/api/v1/server-admin/settings"),
     ("PUT", "/api/v1/server-admin/settings/registration"),
     ("PUT", "/api/v1/server-admin/settings/maintenance"),
     ("GET", "/api/v1/server-admin/activity"),
     ("GET", "/api/v1/server-admin/activity/actions"),
+    ("GET", "/api/v1/server-admin/activity/privileged"),
+    ("GET", "/api/v1/server-admin/jobs"),
+    ("GET", "/api/v1/server-admin/storage"),
     ("GET", "/api/v1/server-admin/accounts"),
     ("GET", "/api/v1/server-admin/accounts/{accountId}"),
     ("PUT", "/api/v1/server-admin/accounts/{accountId}/suspension"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/sessions/revoke"),
+    ("POST", "/api/v1/server-admin/accounts/{accountId}/email-verification/request"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/email"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/recovery/operator"),
     ("POST", "/api/v1/server-admin/accounts/{accountId}/emails/{accountEmailId}/verify"),
+    ("POST", "/api/v1/server-admin/accounts/{accountId}/deletion"),
 )
 """Instance-scoped operations that require authenticated ServerAdmin authority."""
 
@@ -887,6 +989,8 @@ PUBLIC_ENDPOINTS: tuple[tuple[str, str], ...] = (
     # use the single-use token delivered by mail as their proof.
     ("POST", "/api/v1/auth/magic-link/request"),
     ("POST", "/api/v1/auth/magic-link/consume"),
+    ("POST", "/api/v1/auth/signup/request"),
+    ("POST", "/api/v1/auth/signup/consume"),
     ("POST", "/api/v1/auth/email/verification/confirm"),
     ("POST", "/api/v1/auth/recovery/request"),
     ("POST", "/api/v1/auth/recovery/consume"),
@@ -1001,6 +1105,7 @@ def scenario(client, session: Session):  # type: ignore[no-untyped-def]
             "planId": plan["id"],
             "reminderId": reminder["id"],
             "ruleKey": "important_date_reminder",
+            "moduleKey": "upcoming",
             "placeId": place["id"],
             "chapterId": chapter["id"],
             "collectionId": collection["id"],

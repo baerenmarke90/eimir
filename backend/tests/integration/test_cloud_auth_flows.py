@@ -15,10 +15,10 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import rate_limit
-from sidebyside.auth.tokens import hash_token
-from sidebyside.core.clock import now
-from sidebyside.identity.models import (
+from eimir.auth import rate_limit
+from eimir.auth.tokens import hash_token
+from eimir.core.clock import now
+from eimir.identity.models import (
     Account,
     AccountEmail,
     AccountRecoveryToken,
@@ -28,7 +28,7 @@ from sidebyside.identity.models import (
     EmailVerificationToken,
     MagicLinkToken,
 )
-from sidebyside.mail import MailMessage, MailSender
+from eimir.mail import MailMessage, MailSender
 from tests.conftest import auth, requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -64,9 +64,9 @@ def client(session: Session, mailbox: Mailbox) -> Iterator[object]:  # type: ign
     "Use the shared client configuration with a capturing mailbox."
     from fastapi.testclient import TestClient
 
-    from sidebyside.db.session import get_session
-    from sidebyside.mail import sender
-    from sidebyside.main import create_app
+    from eimir.db.session import get_session
+    from eimir.mail import sender
+    from eimir.main import create_app
 
     app = create_app()
     app.dependency_overrides[get_session] = lambda: session
@@ -97,7 +97,7 @@ def address_for(session: Session) -> AccountEmail:
 
 
 class TestInstanceWithoutMailTransport:
-    """`SBS_MAIL_TRANSPORT=none` makes mail-backed capabilities unavailable.
+    """`EIMIR_MAIL_TRANSPORT=none` makes mail-backed capabilities unavailable.
 
     Returning `202 Accepted` would be incorrect because no message is created,
     while a token and consumed rate-limit budget could still be stored.
@@ -107,12 +107,12 @@ class TestInstanceWithoutMailTransport:
     def client_without_mail_transport(self, session: Session, monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
         from fastapi.testclient import TestClient
 
-        from sidebyside.config import MailTransport, get_settings
-        from sidebyside.db.session import get_session
-        from sidebyside.main import create_app
+        from eimir.config import MailTransport, get_settings
+        from eimir.db.session import get_session
+        from eimir.main import create_app
 
         settings = get_settings().model_copy(update={"mail_transport": MailTransport.NONE})
-        monkeypatch.setattr("sidebyside.config.get_settings", lambda: settings)
+        monkeypatch.setattr("eimir.config.get_settings", lambda: settings)
 
         app = create_app()
         app.dependency_overrides[get_session] = lambda: session

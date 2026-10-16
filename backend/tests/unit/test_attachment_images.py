@@ -7,8 +7,8 @@ import io
 import pytest
 from PIL import Image
 
-from sidebyside.attachments import images
-from sidebyside.attachments.limits import MediaRule, rule_for
+from eimir.attachments import images
+from eimir.attachments.limits import MediaRule, rule_for
 
 MANUFACTURER = "GeheimKamera GmbH"
 COMMENT = "privater Kommentar"

@@ -8,12 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from sidebyside.demo.assets import (
+from eimir.demo.assets import (
     DemoAssetError,
     load_and_validate_assets,
     resolve_asset_root,
 )
-from sidebyside.demo.story import MEMORIES
+from eimir.demo.story import MEMORIES
 
 
 def _copy_assets(tmp_path: Path) -> Path:

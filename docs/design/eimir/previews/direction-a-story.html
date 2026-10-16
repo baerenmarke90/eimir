@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direction A: Momente / Entdecken (Current #773)</title>
+  <link rel="stylesheet" href="/web/src/styles.css">
+  <link rel="stylesheet" href="/web/src/theme.css">
+  <link rel="stylesheet" href="/web/src/shell.css">
+  <link rel="stylesheet" href="/web/src/layout.css">
+  <link rel="stylesheet" href="/web/src/components/VisibilityBadge.css">
+  <link rel="stylesheet" href="/web/src/components/StoryProductPages.css">
+  <link rel="stylesheet" href="./shared-preview.css">
+</head>
+<body>
+  <header class="mock-header">
+    <div style="display:flex; align-items:center; gap:var(--space-6);">
+      <a href="#" class="mock-logo">eimir<span class="brand-dot">.</span></a>
+      <nav class="mock-nav">
+        <a href="#" class="mock-nav-item">Wir</a>
+        <a href="#" class="mock-nav-item active">Momente</a>
+        <a href="#" class="mock-nav-item">Planen</a>
+        <a href="#" class="mock-nav-item">Mehr</a>
+      </nav>
+    </div>
+    <div class="mock-user-profile">
+      <div class="mock-avatar-chip" title="Philipp">P</div>
+    </div>
+  </header>
+
+  <main class="preview-container">
+    <div class="story-product-page">
+      <!-- Title & Tab bar -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-5);">
+        <h1 style="margin:0; font-family:var(--font-display); font-size:2rem; font-weight:750; color:var(--color-text);">Momente</h1>
+        <a href="#new" style="display:inline-flex; align-items:center; gap:var(--space-2); padding:0.55rem 1.15rem; border-radius:var(--radius-pill); background:var(--color-brand); color:white; font-weight:600; text-decoration:none;">
+          <span>+ Moment festhalten</span>
+        </a>
+      </div>
+
+      <nav class="momente-tabs" aria-label="Momente Bereiche" style="display:flex; gap:var(--space-2); margin-bottom:var(--space-6);">
+        <button class="momente-tab active" style="display:inline-flex; align-items:center; gap:var(--space-2); padding:0.5rem 1rem; border-radius:var(--radius-pill); border:1px solid var(--color-brand); background:var(--color-brand-surface); color:var(--color-brand-strong); font-weight:600; cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z"/></svg>
+          <span>Entdecken</span>
+        </button>
+        <button class="momente-tab" style="display:inline-flex; align-items:center; gap:var(--space-2); padding:0.5rem 1rem; border-radius:var(--radius-pill); border:1px solid var(--color-border); background:var(--color-surface); color:var(--color-text-secondary); font-weight:600; cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="tab-icon"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+          <span>Chronik</span>
+        </button>
+      </nav>
+
+      <!-- Sub-cards: Milestones & Chapters -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:var(--space-4); margin-bottom:var(--space-8);">
+        <div style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-5); box-shadow:0 2px 10px var(--color-shadow-soft);">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; color:var(--color-discovery); margin-bottom:4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z"/></svg>
+            <span>Meilensteine</span>
+          </span>
+          <h3 style="margin:0 0 4px; font-size:1.15rem; font-weight:600; color:var(--color-text);">Eure Höhepunkte</h3>
+          <p style="margin:0; font-size:0.875rem; color:var(--color-text-secondary);">4 gemeinsame Meilensteine erreicht</p>
+        </div>
+        <div style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-5); box-shadow:0 2px 10px var(--color-shadow-soft);">
+          <span style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:700; color:var(--color-shared); margin-bottom:4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+            <span>Kapitel</span>
+          </span>
+          <h3 style="margin:0 0 4px; font-size:1.15rem; font-weight:600; color:var(--color-text);">Lebensabschnitte</h3>
+          <p style="margin:0; font-size:0.875rem; color:var(--color-text-secondary);">2 aktive Lebenskapitel</p>
+        </div>
+      </div>
+
+      <!-- Year Pills -->
+      <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-6);">
+        <button style="display:inline-flex; align-items:center; gap:4px; padding:0.35rem 0.8rem; border-radius:var(--radius-pill); border:1px solid var(--color-brand); background:var(--color-brand-surface); color:var(--color-brand-strong); font-weight:700; font-size:0.85rem;">
+          <span>2026</span>
+        </button>
+        <button style="display:inline-flex; align-items:center; gap:4px; padding:0.35rem 0.8rem; border-radius:var(--radius-pill); border:1px solid var(--color-border); background:var(--color-surface); color:var(--color-text-secondary); font-weight:600; font-size:0.85rem;">
+          <span>2025</span>
+        </button>
+      </div>
+
+      <!-- Stream Feed -->
+      <div style="display:flex; flex-direction:column; gap:var(--space-6);">
+        <!-- Memory Card -->
+        <article class="story-card" style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-6); box-shadow:0 4px 14px var(--color-shadow-soft);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-3);">
+            <div style="display:flex; align-items:center; gap:var(--space-3);">
+              <span class="visibility-badge badge-shared badge-small">
+                <span class="visibility-badge-label">Mit Partner geteilt</span>
+              </span>
+              <span style="font-size:0.85rem; color:var(--color-text-muted);">5. September 2026</span>
+            </div>
+            <span style="font-size:0.85rem; color:var(--color-text-secondary);">Von Lea</span>
+          </div>
+
+          <h4 style="margin:0 0 var(--space-3); font-family:var(--font-display); font-size:1.35rem; font-weight:700; color:var(--color-text);">
+            Herbstspaziergang am Seeufer
+          </h4>
+
+          <p style="margin:0 0 var(--space-4); font-size:0.95rem; line-height:1.5; color:var(--color-text-secondary);">
+            Die Blätter färben sich langsam gold. Wir haben heißen Apfeltee mitgenommen und uns auf den Steg gesetzt.
+          </p>
+
+          <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:var(--space-3);">
+            <img src="./assets/cabin-lake.jpg" alt="See" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--radius-medium);">
+            <img src="./assets/sunset-field.jpg" alt="Feld" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--radius-medium);">
+            <img src="./assets/books-cozy-evening.jpg" alt="Bücher" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:var(--radius-medium);">
+          </div>
+        </article>
+
+        <!-- Heart Moment Card -->
+        <article class="story-card" style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); padding:var(--space-6); box-shadow:0 4px 14px var(--color-shadow-soft);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-3);">
+            <div style="display:flex; align-items:center; gap:var(--space-3);">
+              <span class="visibility-badge badge-shared badge-small">
+                <span class="visibility-badge-label">Liebesbotschaft</span>
+              </span>
+              <span style="font-size:0.85rem; color:var(--color-text-muted);">Gestern</span>
+            </div>
+            <span style="font-size:0.85rem; color:var(--color-text-secondary);">Von Philipp</span>
+          </div>
+
+          <blockquote style="margin:0; font-family:var(--font-display); font-style:italic; font-size:1.2rem; line-height:1.45; color:var(--color-text);">
+            „Danke für deine Geduld heute bei all dem Trubel. An deiner Seite fühlt sich die Welt immer ruhig an.“
+          </blockquote>
+        </article>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

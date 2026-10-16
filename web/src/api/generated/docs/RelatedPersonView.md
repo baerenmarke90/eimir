@@ -13,6 +13,7 @@ Name | Type
 `displayName` | string
 `id` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
+`showBirthdayOnDashboard` | boolean
 `updatedAt` | Date
 `version` | number
 `visibility` | [ContentVisibility](ContentVisibility.md)
@@ -31,6 +32,7 @@ const example = {
   "displayName": null,
   "id": null,
   "relationship": null,
+  "showBirthdayOnDashboard": null,
   "updatedAt": null,
   "version": null,
   "visibility": null,

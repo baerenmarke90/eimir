@@ -1,0 +1,96 @@
+{
+  "theme": "dark",
+  "width": 320,
+  "pageBox": {
+    "x": 16,
+    "y": 0,
+    "width": 288,
+    "height": 886.671875
+  },
+  "photoBox": {
+    "x": 16,
+    "y": 71.5,
+    "width": 288,
+    "height": 180
+  },
+  "contrast": {
+    "body": {
+      "foreground": [
+        252,
+        248,
+        250
+      ],
+      "background": [
+        35,
+        28,
+        41
+      ],
+      "ratio": 15.711012677106346
+    },
+    "supporting": {
+      "foreground": [
+        214,
+        203,
+        224
+      ],
+      "background": [
+        24,
+        19,
+        29
+      ],
+      "ratio": 11.72273677084097
+    },
+    "shared": {
+      "foreground": [
+        114,
+        216,
+        196
+      ],
+      "background": [
+        20,
+        54,
+        48
+      ],
+      "ratio": 7.708893258600608
+    },
+    "utility": {
+      "foreground": [
+        252,
+        248,
+        250
+      ],
+      "background": [
+        24,
+        19,
+        29
+      ],
+      "ratio": 17.348854876531824
+    },
+    "link": {
+      "foreground": [
+        255,
+        107,
+        133
+      ],
+      "background": [
+        24,
+        19,
+        29
+      ],
+      "ratio": 6.691812922371796
+    },
+    "focus": {
+      "foreground": [
+        126,
+        180,
+        255
+      ],
+      "background": [
+        24,
+        19,
+        29
+      ],
+      "ratio": 8.575612356473204
+    }
+  }
+}

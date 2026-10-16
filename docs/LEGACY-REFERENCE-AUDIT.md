@@ -7,7 +7,7 @@
 
 ## Purpose
 
-SideBySide Next is an independent new implementation maintained in its own
+eimir. is an independent new implementation maintained in its own
 repository and implemented from its own written specification. Active product
 and engineering content must not present the current codebase as a fork,
 rebrand, successor, continuation, or incremental evolution of a previous
@@ -31,13 +31,13 @@ phrasing that could imply current code lineage. Searches included at least:
 
 - `SharedMoments`
 - `Shared Moments`
-- `SideBySide Classic`
+- `eimir. Classic`
 - legacy repository owner/name and `.git` URL patterns
 - `fork`
 - `rebrand`
 - `successor`
 - migration/predecessor wording
-- equivalent framing that could describe SideBySide Next as derived from a
+- equivalent framing that could describe eimir. as derived from a
   previous implementation
 
 Generated or dependency-owned text was not edited merely because a generic term
@@ -46,10 +46,10 @@ classified by context rather than by string alone.
 
 ## Findings
 
-No obsolete active reference was found that presents SideBySide Next as a fork,
+No obsolete active reference was found that presents eimir. as a fork,
 rebrand, successor, continuation, or incremental evolution of a previous
 codebase. No active legacy repository URL was found. Current deployment and
-build configuration points to the `SideBySide-Next` repository.
+build configuration points to the `eimir` repository.
 
 The following remaining references are intentional exceptions:
 
@@ -58,10 +58,10 @@ The following remaining references are intentional exceptions:
 | `PROVENANCE.md` | Provenance / legal-development record | Names the historical applications to state explicitly that their source code was not copied and to preserve the documented prior-exposure disclosure. Removing the names would make the provenance statement less precise. |
 | `specification/CLEAN-ROOM-MASTER-SPEC.md` | Normative specification / historical boundary | Identifies the legacy codebases only to forbid reading, copying, porting, or using them as implementation templates. This is a clean-room boundary, not a lineage claim. |
 | `docs/reviews/2026-08-24-spec-gap-review.md` | Immutable historical review snapshot | The document explicitly identifies itself as a dated review snapshot that must not be retrospectively rewritten. Its legacy references describe the state and process reviewed on that date. |
-| `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md` | Narrow migration / portability exception | Refers to a future external legacy exporter only to require conversion into the neutral SideBySide Next transfer format while forbidding the Next importer from reading foreign source code or schema. It does not describe the current implementation as derived from that application. |
+| `docs/m5/S6-CACHE-PORTABILITY-DECISIONS.md` | Narrow migration / portability exception | Refers to a future external legacy exporter only to require conversion into the neutral eimir. transfer format while forbidding the Next importer from reading foreign source code or schema. It does not describe the current implementation as derived from that application. |
 | `docs/DESIGN-PRINCIPLES.md` | False positive | The lower-case phrase “shared moments” is ordinary product-language prose meaning moments shared by the couple. It is not the legacy project name and contains no code-lineage claim. |
-| `docs/BUSINESS-MODEL.md` | False positive | “Community forks” describes ordinary GitHub contribution forks of the current SideBySide Next repository. It does not refer to a predecessor project. |
-| `backend/src/sidebyside/jobs/maintenance.py` and related tests | False positive | “Successor” describes a maintenance job scheduling its next queue job. It is unrelated to project history. |
+| `docs/BUSINESS-MODEL.md` | False positive | “Community forks” describes ordinary GitHub contribution forks of the current eimir. repository. It does not refer to a predecessor project. |
+| `backend/src/eimir/jobs/maintenance.py` and related tests | False positive | “Successor” describes a maintenance job scheduling its next queue job. It is unrelated to project history. |
 
 This file is the canonical exception ledger for #218 and therefore intentionally
 contains the legacy terminology needed to identify and justify the exceptions.
@@ -71,7 +71,7 @@ contains the legacy terminology needed to identify and justify the exceptions.
 New active engineering, product, configuration, governance, and documentation
 content must follow these rules:
 
-1. Describe SideBySide Next as an independent new implementation with its own
+1. Describe eimir. as an independent new implementation with its own
    source tree, architecture, contracts, clients, and documentation.
 2. Do not call the current codebase a fork, rebrand, successor, continuation, or
    migration of an older implementation.

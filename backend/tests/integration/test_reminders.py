@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-from sidebyside.authorization import PrivacyClass
-from sidebyside.relationship import service as relationship_service
-from sidebyside.reminders import service
-from sidebyside.reminders.models import (
+from eimir.authorization import PrivacyClass
+from eimir.relationship import service as relationship_service
+from eimir.reminders import service
+from eimir.reminders.models import (
     Reminder,
     ReminderPayload,
     ReminderScheduleType,

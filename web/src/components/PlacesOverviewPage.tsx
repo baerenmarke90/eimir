@@ -1,11 +1,19 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { PlaceDetail } from '../api/generated/models/PlaceDetail';
+import {
+  authorSummaryQueryKeys,
+  invalidatePlaceConsumers,
+} from '../client/authorSummaryConsumers';
+import {
+  type DeleteFocusTarget,
+  PLANNING_DELETE_FOCUS_STATE_KEY,
+} from '../client/deleteFocusTarget';
 import { normalizeClientError } from '../client/problemDetails';
 import { appRoutePath, placeDetailPath } from '../client/routes';
 import type { SharedPlanningApis } from '../client/sharedPlanning';
@@ -39,11 +47,15 @@ export function PlacesOverviewPage({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [coordinateError, setCoordinateError] = useState(false);
+  const createActionRef = useRef<HTMLElement>(null);
+  const placeRefs = useRef(new Map<string, HTMLAnchorElement>());
+  const restoredDeleteFocusRef = useRef(false);
 
   const places = useInfiniteQuery({
-    queryKey: ['m5-s3', 'places', spaceId],
+    queryKey: authorSummaryQueryKeys.placesOverview(spaceId),
     queryFn: ({ pageParam }) =>
       apiCall(() =>
         apis.places.listPlaces({
@@ -67,13 +79,25 @@ export function PlacesOverviewPage({
     }) =>
       apiCall(() => apis.places.createPlace({ spaceId, placeCreate: values })),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['m5-s3', 'places', spaceId],
-      });
+      void invalidatePlaceConsumers(queryClient, spaceId);
     },
   });
 
   const placeItems = places.data?.pages.flatMap((page) => page.items) ?? [];
+  const deleteFocusTarget = (
+    location.state as Record<string, unknown> | null
+  )?.[PLANNING_DELETE_FOCUS_STATE_KEY] as DeleteFocusTarget | undefined;
+
+  useEffect(() => {
+    if (restoredDeleteFocusRef.current || !deleteFocusTarget) return;
+    const requestedTarget =
+      deleteFocusTarget.kind === 'item'
+        ? placeRefs.current.get(deleteFocusTarget.id)
+        : createActionRef.current;
+    if (!requestedTarget && places.isFetching) return;
+    (requestedTarget ?? createActionRef.current)?.focus();
+    restoredDeleteFocusRef.current = true;
+  }, [deleteFocusTarget, places.isFetching]);
 
   function submitPlace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -106,7 +130,7 @@ export function PlacesOverviewPage({
   }
 
   return (
-    <div className="page planning-page">
+    <div className="page planning-page planning-sanctuary">
       <PageHeader
         before={
           <Link className="back-link" to={appRoutePath('more')}>
@@ -130,12 +154,16 @@ export function PlacesOverviewPage({
         ) : null}
 
         {placeItems.length === 0 && !places.isLoading && !places.error ? (
-          <p className="planning-empty">{t('m5s3.common.empty')}</p>
+          <p className="planning-empty">{t('m5s3.place.emptyOverview')}</p>
         ) : (
           <ul className="planning-list">
             {placeItems.map((place) => (
               <li className="planning-card-item" key={place.id}>
                 <Link
+                  ref={(element) => {
+                    if (element) placeRefs.current.set(place.id, element);
+                    else placeRefs.current.delete(place.id);
+                  }}
                   className="planning-card planning-card-link"
                   to={placeDetailPath(place.id)}
                 >
@@ -172,7 +200,9 @@ export function PlacesOverviewPage({
         ) : null}
 
         <details className="planning-create" id="place-create-details">
-          <summary id="place-name">{t('m5s3.place.create')}</summary>
+          <summary ref={createActionRef} id="place-name">
+            {t('m5s3.place.create')}
+          </summary>
           <form
             onSubmit={submitPlace}
             className="form-grid planning-create-form"
@@ -236,7 +266,10 @@ export function PlacesOverviewPage({
                 />
               </div>
             </div>
-            <p id="create-place-coordinate-help" className="field-help">
+            <p
+              id="create-place-coordinate-help"
+              className="field-help planning-coordinate-help"
+            >
               {t('m5s3.place.coordinateHelp')}
             </p>
             {coordinateError ? (

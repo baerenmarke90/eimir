@@ -11,7 +11,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidebyside.relationship import service as relationship_service
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -32,6 +32,7 @@ def person_body(
     birthday: str | None = "2016-02-29",
     birthday_year_known: bool = True,
     visibility: str = "SHARED",
+    show_birthday_on_dashboard: bool = False,
 ) -> dict[str, Any]:
     return {
         "displayName": display_name,
@@ -39,6 +40,7 @@ def person_body(
         "birthday": birthday,
         "birthdayYearKnown": birthday_year_known,
         "visibility": visibility,
+        "showBirthdayOnDashboard": show_birthday_on_dashboard,
     }
 
 
@@ -248,6 +250,70 @@ class TestBirthdayWithoutYear:
         assert response.json()["birthday"] is None
 
 
+class TestDashboardBirthdayVisibility:
+    """#699 Finding 1: explicit opt-in for a birthday to appear on `/today`."""
+
+    def test_omitted_field_defaults_to_false(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """A request that never mentions the field still gets the safe default."""
+        body = person_body()
+        del body["showBirthdayOnDashboard"]
+        response = client.post(
+            persons_path(couple["space"].id),
+            json=body,
+            headers=auth(couple["token_a"]),
+        )
+        assert response.status_code == 201
+        assert response.json()["showBirthdayOnDashboard"] is False
+
+    def test_can_be_enabled_when_birthday_present(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        response = create_person(client, couple, show_birthday_on_dashboard=True)
+        assert response.status_code == 201
+        assert response.json()["showBirthdayOnDashboard"] is True
+
+    def test_requires_a_birthday(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        response = create_person(
+            client,
+            couple,
+            birthday=None,
+            birthday_year_known=False,
+            show_birthday_on_dashboard=True,
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "RELATED_PERSON_DASHBOARD_VISIBILITY_NEEDS_A_BIRTHDAY"
+
+    def test_toggles_independently_on_update(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        person = create_person(client, couple, show_birthday_on_dashboard=False).json()
+
+        enabled = client.put(
+            f"{persons_path(couple['space'].id)}/{person['id']}",
+            json=person_body(show_birthday_on_dashboard=True),
+            headers=if_match(couple["token_a"], person["version"]),
+        )
+        assert enabled.status_code == 200
+        assert enabled.json()["showBirthdayOnDashboard"] is True
+
+        disabled = client.put(
+            f"{persons_path(couple['space'].id)}/{person['id']}",
+            json=person_body(show_birthday_on_dashboard=False),
+            headers=if_match(couple["token_a"], enabled.json()["version"]),
+        )
+        assert disabled.status_code == 200
+        assert disabled.json()["showBirthdayOnDashboard"] is False
+
+    def test_persists_independent_of_visibility(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        """Writing the flag is not gated by SPACE_SHARED; only projection is."""
+        response = create_person(
+            client,
+            couple,
+            visibility="PRIVATE",
+            show_birthday_on_dashboard=True,
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["visibility"] == "PRIVATE"
+        assert body["showBirthdayOnDashboard"] is True
+
+
 class TestImportantDate:
     def test_date_without_person_is_allowed(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         response = create_date(
@@ -426,8 +492,8 @@ class TestDateNeverMoreVisibleThanPerson:
         couple,
     ) -> None:  # type: ignore[no-untyped-def]
         """The rule is a schema fact, not only a service validation."""
-        from sidebyside.core.ids import new_id
-        from sidebyside.people.models import RelatedPerson, RelatedPersonPayload
+        from eimir.core.ids import new_id
+        from eimir.people.models import RelatedPerson, RelatedPersonPayload
 
         person = RelatedPerson(
             space_id=couple["space"].id,

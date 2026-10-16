@@ -8,17 +8,17 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.attachments import binding as attachment_binding
-from sidebyside.authorization import AuthorizationContext
-from sidebyside.chapters.models import Chapter
-from sidebyside.config import Environment
-from sidebyside.demo import create_demo_space, reset_demo_space
-from sidebyside.demo.story import CHAPTERS, MEMORIES
-from sidebyside.memories import service as memory_service
-from sidebyside.memories.models import Memory
-from sidebyside.places import service as place_service
-from sidebyside.places.models import Place
-from sidebyside.relations import service as relation_service
+from eimir.attachments import binding as attachment_binding
+from eimir.authorization import AuthorizationContext
+from eimir.chapters.models import Chapter
+from eimir.config import Environment
+from eimir.demo import create_demo_space, reset_demo_space
+from eimir.demo.story import CHAPTERS, MEMORIES
+from eimir.memories import service as memory_service
+from eimir.memories.models import Memory
+from eimir.places import service as place_service
+from eimir.places.models import Place
+from eimir.relations import service as relation_service
 from tests.conftest import requires_database
 
 pytestmark = [pytest.mark.integration, requires_database]

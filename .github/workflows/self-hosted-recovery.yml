@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '53 4 * * 1'
   workflow_dispatch:
 
 concurrency:
@@ -27,17 +29,39 @@ jobs:
       - name: Determine relevant change scopes
         id: scope
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+
+          case "$GITHUB_EVENT_NAME" in
+            pull_request)
+              base_sha="$PR_BASE_SHA"
+              head_sha="$PR_HEAD_SHA"
+              ;;
+            push)
+              base_sha="$PUSH_BASE_SHA"
+              head_sha="$PUSH_HEAD_SHA"
+              ;;
+            *)
+              echo "recovery=true" >> "$GITHUB_OUTPUT"
+              echo "Scheduled/manual run: Self-Hosted Recovery remains fully active."
+              exit 0
+              ;;
+          esac
+
+          if [ -z "$base_sha" ] || [ -z "$head_sha" ] \
+            || [[ "$base_sha" =~ ^0+$ ]] \
+            || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null \
+            || ! git cat-file -e "${head_sha}^{commit}" 2>/dev/null; then
             echo "recovery=true" >> "$GITHUB_OUTPUT"
-            echo "Push/manual run: Self-Hosted Recovery remains active."
+            echo "Change range unavailable; failing closed to Self-Hosted Recovery."
             exit 0
           fi
 
-          git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA" > /tmp/changed-files.txt
+          git diff --name-only --no-renames "$base_sha" "$head_sha" > /tmp/changed-files.txt
           echo "Changed files:"
           cat /tmp/changed-files.txt
           python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
@@ -47,7 +71,12 @@ jobs:
     needs: changes
     if: needs.changes.outputs.recovery == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
+    env:
+      EIMIR_SELF_HOSTED_BACKEND_IMAGE: eimir-backend:source-recovery
+      EIMIR_SELF_HOSTED_WEB_IMAGE: eimir-web:source-recovery
+      EIMIR_SELF_HOSTED_PULL_POLICY: never
+      EIMIR_BUILD_REVISION: unverified-local-checkout
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,11 +85,24 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile \
+            scripts/build_self_hosted_source.py \
             scripts/self_hosted_recovery.py \
+            scripts/self_hosted_deletion_reconcile.py \
             scripts/self_hosted_recovery_acceptance.py \
+            scripts/account_deletion_recovery_acceptance.py \
             scripts/test_self_hosted_recovery.py \
-            backend/scripts/recovery_fixture.py
-          python3 -m unittest scripts.test_self_hosted_recovery
+            scripts/test_self_hosted_deletion_reconcile.py \
+            backend/scripts/recovery_fixture.py \
+            backend/src/eimir/identity/deletion_reconcile.py
+          python3 -m unittest \
+            scripts.test_self_hosted_recovery \
+            scripts.test_self_hosted_deletion_reconcile
+
+      - name: Build local source images for recovery acceptance
+        run: python3 scripts/build_self_hosted_source.py
 
       - name: Fresh restore and prior-schema upgrade acceptance
         run: python3 scripts/self_hosted_recovery_acceptance.py
+
+      - name: Account deletion survives older restore
+        run: python3 scripts/account_deletion_recovery_acceptance.py

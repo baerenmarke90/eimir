@@ -1,15 +1,21 @@
 import { InvitationsApi } from '../api/generated/apis/InvitationsApi';
 import type { SessionView } from '../api/generated/models/SessionView';
+import type { SignupSessionView } from '../api/generated/models/SignupSessionView';
 import { Configuration } from '../api/generated/runtime';
-import {
-  rememberCurrentAuthReturnTarget,
-  restoreAuthReturnTarget,
-} from './deepLinks';
 import { normalizeClientError } from './problemDetails';
 import { createReferenceApis } from './referenceFlow';
 
-const WEB_DEVICE_NAME = 'SideBySide Web';
+const WEB_DEVICE_NAME = 'eimir. Web';
 const WEB_PLATFORM = 'web';
+
+// Auth-return restoration deliberately does not happen here (#689): the
+// Account that just authenticated is known immediately, but its active
+// Space is not resolved until later membership/space-context loading
+// completes. App.tsx restores the remembered target once both are known,
+// so a Space-bound route is never blindly restored into the wrong Space.
+// Calling `rememberCurrentAuthReturnTarget()` again here, before any
+// Account is known, would also have overwritten an already-correctly-
+// bound target (from a prior session's expiry) with an unbound one.
 
 export async function signInAndJoinInvitation(
   apiBaseUrl: string,
@@ -17,7 +23,6 @@ export async function signInAndJoinInvitation(
   password: string,
   invitationToken?: string | null,
 ): Promise<SessionView> {
-  rememberCurrentAuthReturnTarget();
   try {
     const session = await createReferenceApis(
       apiBaseUrl,
@@ -31,7 +36,6 @@ export async function signInAndJoinInvitation(
     });
 
     if (!invitationToken) {
-      restoreAuthReturnTarget();
       return session;
     }
 
@@ -44,7 +48,6 @@ export async function signInAndJoinInvitation(
     await invitations.acceptInvitationApiV1InvitationsAcceptPost({
       acceptRequest: { token: invitationToken },
     });
-    restoreAuthReturnTarget();
     return session;
   } catch (error) {
     throw await normalizeClientError(error);
@@ -116,7 +119,6 @@ export async function requestMagicLink(
   apiBaseUrl: string,
   email: string,
 ): Promise<void> {
-  rememberCurrentAuthReturnTarget();
   try {
     await createReferenceApis(
       apiBaseUrl,
@@ -133,7 +135,7 @@ export async function consumeMagicLink(
   token: string,
 ): Promise<SessionView> {
   try {
-    const session = await createReferenceApis(
+    return await createReferenceApis(
       apiBaseUrl,
     ).auth.consumeMagicLinkApiV1AuthMagicLinkConsumePost({
       magicLinkConsumeRequest: {
@@ -142,8 +144,6 @@ export async function consumeMagicLink(
         platform: WEB_PLATFORM,
       },
     });
-    restoreAuthReturnTarget();
-    return session;
   } catch (error) {
     throw await normalizeClientError(error);
   }
@@ -158,6 +158,40 @@ export async function confirmEmailAddress(
       apiBaseUrl,
     ).auth.confirmEmailApiV1AuthEmailVerificationConfirmPost({
       tokenOnlyRequest: { token },
+    });
+  } catch (error) {
+    throw await normalizeClientError(error);
+  }
+}
+
+export async function requestSignup(
+  apiBaseUrl: string,
+  email: string,
+): Promise<void> {
+  try {
+    await createReferenceApis(
+      apiBaseUrl,
+    ).auth.requestSignupApiV1AuthSignupRequestPost({
+      emailRequest: { email },
+    });
+  } catch (error) {
+    throw await normalizeClientError(error);
+  }
+}
+
+export async function consumeSignup(
+  apiBaseUrl: string,
+  token: string,
+): Promise<SignupSessionView> {
+  try {
+    return await createReferenceApis(
+      apiBaseUrl,
+    ).auth.consumeSignupApiV1AuthSignupConsumePost({
+      signupConsumeRequest: {
+        token,
+        deviceName: WEB_DEVICE_NAME,
+        platform: WEB_PLATFORM,
+      },
     });
   } catch (error) {
     throw await normalizeClientError(error);

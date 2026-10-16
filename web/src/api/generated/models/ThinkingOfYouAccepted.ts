@@ -1,7 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
+ * eimir.
  * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
@@ -25,6 +25,12 @@ export interface ThinkingOfYouAccepted {
      * @memberof ThinkingOfYouAccepted
      */
     clientRequestId: string;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ThinkingOfYouAccepted
+     */
+    thinkingOfYouAvailableAt: Date;
 }
 
 /**
@@ -32,6 +38,7 @@ export interface ThinkingOfYouAccepted {
  */
 export function instanceOfThinkingOfYouAccepted(value: object): value is ThinkingOfYouAccepted {
     if (!('clientRequestId' in value) || value['clientRequestId'] === undefined) return false;
+    if (!('thinkingOfYouAvailableAt' in value) || value['thinkingOfYouAvailableAt'] === undefined) return false;
     return true;
 }
 
@@ -46,6 +53,7 @@ export function ThinkingOfYouAcceptedFromJSONTyped(json: any, ignoreDiscriminato
     return {
         
         'clientRequestId': json['clientRequestId'],
+        'thinkingOfYouAvailableAt': (new Date(json['thinkingOfYouAvailableAt'])),
     };
 }
 
@@ -61,6 +69,7 @@ export function ThinkingOfYouAcceptedToJSONTyped(value?: ThinkingOfYouAccepted |
     return {
         
         'clientRequestId': value['clientRequestId'],
+        'thinkingOfYouAvailableAt': value['thinkingOfYouAvailableAt'].toISOString(),
     };
 }
 

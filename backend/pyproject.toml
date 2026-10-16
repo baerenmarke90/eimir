@@ -1,7 +1,7 @@
 [project]
-name = "sidebyside"
+name = "eimir"
 version = "0.1.0"
-description = "SideBySide Next — Application Core"
+description = "eimir. — Application Core"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.141",
@@ -15,9 +15,17 @@ dependencies = [
     "argon2-cffi>=25.1",
     # Ausgehendes HTTP fuer OIDC: Discovery, JWKS und Token-Endpunkt.
     "httpx>=0.28",
-    # ID-Token-Pruefung. Signaturverfahren selbst zu schreiben waere im
-    # Auth-Pfad genau der falsche Ort fuer Eigenbau.
-    "pyjwt[crypto]>=2.10",
+    # ID Token verification uses the maintained library, including the fixed
+    # key and claim validation boundary; no custom signature implementation.
+    "pyjwt[crypto]>=2.15.1",
+    # Application-controlled encryption at rest (#797): AES-256-GCM only. No
+    # cryptographic primitive is implemented in this repository. Already
+    # present transitively through pyjwt[crypto]; declared because the
+    # application now imports it directly.
+    "cryptography>=46.0",
+    # UnifiedPush uses RFC 8291 Web Push encryption and optional VAPID auth.
+    # Protocol cryptography stays in the maintained Web Push library.
+    "pywebpush>=2.3,<3",
     # WebAuthn: CBOR, COSE und Attestation von Hand zu lesen waere
     # Eigenbau an der empfindlichsten Stelle.
     "webauthn>=2.5",
@@ -44,9 +52,9 @@ dev = [
 ]
 
 [tool.uv]
-# uv.lock und das Installationsverhalten sind Teil des Builds. Ein anderer
-# uv-Minor kann ein anderes Lockformat oder andere Aufloesungsregeln nutzen.
-required-version = "==0.12.5"
+# The lockfile and installation behavior are part of the build. A different uv
+# version may use another lockfile format or different resolution rules.
+required-version = "==0.12.15"
 
 [build-system]
 requires = ["setuptools==84.0.0"]
@@ -87,7 +95,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
 [tool.ruff.lint.isort]
 # Ausdruecklich, nicht geraten: in der CI ist das Paket installiert und
 # waere sonst Fremdcode, lokal liegt es unter src und waere eigener.
-known-first-party = ["sidebyside", "tests", "scripts"]
+known-first-party = ["eimir", "tests", "scripts"]
 
 [tool.mypy]
 python_version = "3.12"

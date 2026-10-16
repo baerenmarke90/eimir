@@ -4,7 +4,7 @@
 
 ## Purpose
 
-SideBySide Next uses semantic design tokens as the shared source for reusable visual decisions. Components consume meaning, not implementation values.
+eimir. uses semantic design tokens as the shared source for reusable visual decisions. Components consume meaning, not implementation values.
 
 The goal is consistent theming, accessibility, maintainability, and predictable design evolution across clients.
 

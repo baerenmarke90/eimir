@@ -217,7 +217,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 
 | Component | Version | Source | License |
 |---|---|---|---|
-| Node.js build image | 24.21.0-bookworm-slim, `sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
+| Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
 | nginx-unprivileged | 1.31.6, `sha256:e44b470e571b20d935336bfb9f8277c1468d15e1e4d105a12ab5609d0b4682cb` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
@@ -274,7 +274,7 @@ pinned to commit SHAs.
 |---|---|---|---|
 | python | 3.14.6-slim@sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
-| node | 24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
+| node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 
 ## Build-time tools
 

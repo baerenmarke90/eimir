@@ -3,6 +3,7 @@ import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -102,6 +103,11 @@ async function installMocks(
   let finalCompletionFailed = false;
   let collectionGetCount = 0;
   let dashboardGetCount = 0;
+  const itemWrites: {
+    itemId: string;
+    completed?: boolean;
+    ifMatch?: string;
+  }[] = [];
   let collectionVersion = 1;
 
   const collection = () => ({
@@ -118,6 +124,7 @@ async function installMocks(
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -369,6 +376,11 @@ async function installMocks(
         completed?: boolean;
         title?: string;
       };
+      itemWrites.push({
+        itemId: item.id,
+        completed: body.completed,
+        ifMatch: request.headers()['if-match'],
+      });
       const wasComplete =
         items.length > 0 && items.every((candidate) => candidate.completed);
       const completesFinalItem =
@@ -439,6 +451,7 @@ async function installMocks(
   });
 
   return {
+    itemWrites,
     collectionGetCount: () => collectionGetCount,
     dashboardGetCount: () => dashboardGetCount,
     pin: (selectedCollectionId: string | null) => {
@@ -459,7 +472,20 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+  await expectToday(page);
+}
+
+async function expectToday(page: Page): Promise<void> {
+  await expect(
+    page.getByRole('heading', { name: m5s5.today.headerTitle, exact: true }),
+  ).toBeVisible();
+}
+
+async function openToday(page: Page): Promise<void> {
+  await page.goto('/today');
+  await expectToday(page);
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -719,7 +745,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
     page.getByRole('button', { name: m5s3.collection.unpinFromToday }),
   ).toBeVisible();
 
-  await page.goto('/today');
+  await openToday(page);
   const pinnedSection = page.locator('.today-section-pinned-collection');
   await expect(pinnedSection).toBeVisible();
   await expect(
@@ -780,6 +806,106 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
     new RegExp(`/plan/collections/${COLLECTION_ID}$`),
   );
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const, largeText: false },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const, largeText: false },
+  {
+    name: '320-dark-200pct',
+    width: 320,
+    scheme: 'dark' as const,
+    largeText: true,
+  },
+]) {
+  test(`offline Today checkbox rolls back without replay and allows a deliberate later toggle at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page, { initiallyPinned: true });
+    await signIn(page);
+    if (view.largeText)
+      await page.addStyleTag({ content: 'html { font-size: 200%; }' });
+    const pinned = page.locator('.today-section-pinned-collection');
+    const markDone = m5s3.collection.markDone.replace('{{title}}', 'Milch');
+    const markOpen = m5s3.collection.markOpen.replace('{{title}}', 'Milch');
+    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await pinned.getByRole('button', { name: markDone }).click();
+    await expect(
+      page.getByText(m5s5.today.pinnedCollection.toggleFailed, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      pinned.getByRole('button', { name: markDone }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(network.itemWrites).toEqual([]);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-checklist-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
+    await page.context().setOffline(false);
+    await expect(
+      page.getByText(de.states.offline.banner, { exact: true }),
+    ).toHaveCount(0);
+    const openListName = m5s5.today.pinnedCollection.openAriaLabel.replace(
+      '{{title}}',
+      'Einkauf',
+    );
+    await pinned.getByRole('link', { name: openListName }).click();
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await expect(page.getByRole('button', { name: markDone })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(network.itemWrites).toEqual([]);
+    await page.goBack();
+    await expect(pinned.getByRole('button', { name: markDone })).toBeEnabled();
+    expect(network.itemWrites).toEqual([]);
+
+    await pinned.getByRole('button', { name: markDone }).click();
+    await expect.poll(() => network.itemWrites.length).toBe(1);
+    await expect(
+      pinned.getByRole('button', { name: markOpen }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await pinned.getByRole('link', { name: openListName }).click();
+    await expect(page.getByRole('button', { name: markOpen })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await page.goBack();
+    await expect(pinned.getByRole('button', { name: markOpen })).toBeEnabled();
+    await pinned.getByRole('button', { name: markOpen }).click();
+    await expect.poll(() => network.itemWrites.length).toBe(2);
+    await expect(
+      pinned.getByRole('button', { name: markDone }),
+    ).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      network.itemWrites.map(({ completed, ifMatch }) => ({
+        completed,
+        ifMatch,
+      })),
+    ).toEqual([
+      { completed: true, ifMatch: '1' },
+      { completed: false, ifMatch: '2' },
+    ]);
+    await page.screenshot({
+      path: testInfo.outputPath(`today-checklist-confirmed-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+  });
+}
 
 test('celebrates only the confirmed final pinned Collection completion and stays retry-safe', async ({
   page,
@@ -1181,7 +1307,7 @@ for (const view of [
     await held.confirm();
     await expect(button).toBeEnabled();
     await expect(action.getByRole('status')).toHaveCount(0);
-    await page.goto('/today');
+    await openToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
     ).toBeVisible();
@@ -1194,7 +1320,90 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await page.goto('/today');
+    await openToday(page);
+    await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
+      0,
+    );
+    expect(held.writes).toEqual([COLLECTION_ID, null]);
+  });
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  test(`offline personal pin has no reconnect replay and requires explicit activation at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page);
+    await signIn(page);
+    const held = await holdPersonalPin(page, network);
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    const action = page.locator('.planning-collection-dashboard-action');
+    const button = action.getByRole('button').first();
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([]);
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`collection-pin-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
+    await page.context().setOffline(false);
+    const readsBeforeRetry = held.reads();
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
+    await expect(button).toBeEnabled();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(held.writes).toEqual([]);
+    await button.click();
+    await expect.poll(() => held.writes.length).toBe(1);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await openToday(page);
+    await expect(
+      page.locator('.today-section-pinned-collection'),
+    ).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await page.context().setOffline(false);
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect(button).toBeEnabled();
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await button.click();
+    await expect.poll(() => held.writes.length).toBe(2);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await openToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
     );
@@ -1256,3 +1465,116 @@ test('personal pin recovers failed writes, conflicts and reads without replaying
   await expect(button).toBeEnabled();
   expect(held.writes).toEqual([COLLECTION_ID, COLLECTION_ID, null]);
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const action of ['checkbox', 'reorder'] as const) {
+    test(`offline shared ${action} ends without reconnect replay at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const network = await installMocks(page);
+      await signIn(page);
+      const writes: string[] = [];
+      page.on('request', (request) => {
+        if (
+          ['PATCH', 'PUT'].includes(request.method()) &&
+          request.url().includes(`/collections/${COLLECTION_ID}/`)
+        )
+          writes.push(request.method());
+      });
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+        async (route) => {
+          await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify(
+              network.reorder(route.request().postDataJSON().itemIds),
+            ),
+          });
+        },
+      );
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      const row = page.locator(
+        '[data-sortable-item-id="00000000-0000-0000-0000-000000000031"]',
+      );
+      const titles = () =>
+        page
+          .locator('[data-sortable-item-id] input[name="title"]')
+          .evaluateAll((inputs) =>
+            inputs.map((input) => (input as HTMLInputElement).value),
+          );
+      await expect(row).toBeVisible();
+      await page.context().setOffline(true);
+      if (action === 'checkbox')
+        await row
+          .getByRole('button', {
+            name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+          })
+          .click();
+      else {
+        await page
+          .getByRole('button', {
+            name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+          })
+          .focus();
+        await page.keyboard.press('ArrowUp');
+      }
+      await expect(
+        page.getByText(de.states.offline.title, { exact: true }),
+      ).toBeVisible();
+      if (action === 'checkbox')
+        await expect(
+          row.getByRole('button', {
+            name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+          }),
+        ).toHaveAttribute('aria-pressed', 'false');
+      else await expect.poll(titles).toEqual(['Milch', 'Brot', 'Äpfel']);
+      expect(writes).toEqual([]);
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`shared-${action}-offline-${view.name}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.context().setOffline(false);
+      await expect(
+        page.getByText(de.states.offline.banner, { exact: true }),
+      ).toHaveCount(0);
+      expect(writes).toEqual([]);
+      await page.getByRole('button', { name: de.common.retry }).click();
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toHaveCount(0);
+      await expect.poll(() => writes.length).toBe(1);
+      if (action === 'checkbox')
+        await expect(
+          row.getByRole('button', {
+            name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+          }),
+        ).toHaveAttribute('aria-pressed', 'true');
+      else await expect.poll(titles).toEqual(['Milch', 'Äpfel', 'Brot']);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shared-${action}-confirmed-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await openToday(page);
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      await expect(row).toBeVisible();
+      expect(writes).toHaveLength(1);
+    });
+  }
+}

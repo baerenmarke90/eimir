@@ -62,16 +62,36 @@ assert len(svgs) == 10, len(svgs)
 for svg in svgs:
     ElementTree.parse(svg)
 
-for name in ('light', 'dark', 'mono', 'natural', 'warm'):
-    mark = '' if name == 'light' else f'-{name}'
-    for asset in (f'logo-mark{mark}.svg', f'app-icon-{name}.svg'):
-        assert (BASE / 'assets' / asset).read_bytes() == (WEB / 'public/identity' / asset).read_bytes(), asset
-for name in ('light', 'dark'):
-    favicon = 'favicon.svg' if name == 'light' else 'favicon-dark.svg'
-    assert (BASE / 'assets' / f'app-icon-{name}.svg').read_bytes() == (WEB / 'public' / favicon).read_bytes(), favicon
-dark = (BASE / 'assets/app-icon-dark.svg').read_text()
-assert 'dark cutout' in dark and 'url(#dark-finish)' in dark and 'stroke="#20233B"' in dark
-assert 'stroke="#FFFEFD"' not in dark
+icon_bounds = {
+    'light': (132, 76, 482, 426),
+    'dark': (1068, 232, 1209, 373),
+    'mono': (1068, 420, 1209, 561),
+}
+with Image.open(BASE / 'references/owner-app-logo.png') as poster:
+    for name, bounds in icon_bounds.items():
+        asset = f'app-icon-{name}.png'
+        source = BASE / 'assets' / asset
+        delivered = WEB / 'public/identity' / asset
+        with Image.open(source) as icon:
+            assert icon.mode == 'RGB' and icon.size == (
+                bounds[2] - bounds[0], bounds[3] - bounds[1]
+            ), asset
+            assert icon.tobytes() == poster.crop(bounds).convert('RGB').tobytes(), asset
+        assert source.read_bytes() == delivered.read_bytes(), asset
+
+with Image.open(BASE / 'assets/app-icon-light.png') as light:
+    for filename, size in (('pwa-192.png', 192), ('pwa-512.png', 512),
+                           ('apple-touch-icon.png', 180)):
+        with Image.open(WEB / 'public' / filename) as icon:
+            assert icon.size == (size, size), filename
+            assert icon.tobytes() == light.resize(
+                (size, size), Image.Resampling.LANCZOS
+            ).tobytes(), filename
+    with Image.open(WEB / 'public/pwa-maskable.png') as icon:
+        assert icon.size == (512, 512)
+        assert icon.tobytes() == light.resize(
+            (512, 512), Image.Resampling.LANCZOS
+        ).tobytes()
 
 sizes = {'identity': (1500, 1800), 'icons': (1500, 1850),
          'screens-light': (1500, 1490), 'screens-dark': (1500, 1490),
@@ -84,8 +104,13 @@ for width, minimum_height in ((390, 844), (1440, 900)):
         filename = f'private-area-{width}-{mode}-1245.png'
         with Image.open(BASE / 'evidence' / filename) as image:
             assert image.width == width and image.height >= minimum_height, (filename, image.size)
+for width, minimum_height in ((390, 844), (1440, 900)):
+    for mode in ('light', 'dark'):
+        filename = f'private-area-{width}-{mode}-original-raster.png'
+        with Image.open(BASE / 'evidence' / filename) as image:
+            assert image.width == width and image.height >= minimum_height, (filename, image.size)
 for line in (BASE / 'SHA256SUMS').read_text().splitlines():
     checksum, filename = line.split('  ', 1)
     actual = hashlib.sha256((BASE / filename).read_bytes()).hexdigest()
     assert actual == checksum, filename
-print(f'30 unique icons, {len(svgs)} valid SVGs, 5 historical boards, 4 current app screenshots, minimum checked contrast {min(ratios):.2f}:1')
+print(f'3 pixel-exact poster crops, 30 unique icons, {len(svgs)} historical SVGs, 5 historical boards, 4 current and 4 historical app screenshots, minimum checked contrast {min(ratios):.2f}:1')

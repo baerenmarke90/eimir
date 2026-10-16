@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload PR failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-browser-failure-pr-${{ matrix.shard }}-${{ github.sha }}
           path: web/e2e/test-results-pr-${{ matrix.shard }}/
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload PR product visual evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-product-visual-evidence-pr-${{ matrix.shard }}-${{ github.sha }}
           path: |
@@ -104,6 +104,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Verify changed-spec planning coverage
+        run: node --test web/e2e/scripts/changed-specs.test.mjs
+
       - name: Resolve changed browser specs
         id: plan
         env:
@@ -115,7 +118,7 @@ jobs:
           if [ -z "$changed_specs" ]; then
             echo "has-specs=false" >> "$GITHUB_OUTPUT"
             echo "specs=" >> "$GITHUB_OUTPUT"
-            echo "No browser spec files changed."
+            echo "No additional changed browser specs outside the PR-critical group."
             exit 0
           fi
           echo "has-specs=true" >> "$GITHUB_OUTPUT"
@@ -172,7 +175,7 @@ jobs:
 
       - name: Upload changed-spec failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-browser-failure-changed-${{ github.sha }}
           path: web/e2e/test-results-changed-specs/
@@ -181,7 +184,7 @@ jobs:
 
       - name: Upload changed-spec product visual evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-product-visual-evidence-changed-${{ github.sha }}
           path: |
@@ -245,7 +248,7 @@ jobs:
 
       - name: Upload full-regression failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-browser-failure-full-${{ matrix.shard }}-${{ github.sha }}
           path: web/e2e/test-results-full-${{ matrix.shard }}/
@@ -254,7 +257,7 @@ jobs:
 
       - name: Upload full-regression product visual evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-product-visual-evidence-full-${{ matrix.shard }}-${{ github.sha }}
           path: |

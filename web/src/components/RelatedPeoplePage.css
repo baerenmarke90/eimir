@@ -315,8 +315,9 @@
 }
 
 button.danger {
-  background: var(--color-error);
-  color: white;
+  background: var(--color-error-surface);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 button.danger:hover:not(:disabled) {

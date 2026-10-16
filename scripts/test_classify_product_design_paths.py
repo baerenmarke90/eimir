@@ -29,7 +29,7 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
 
     def test_web_runtime_assets_classified_as_user_facing(self) -> None:
         self.assertTrue(is_user_facing_path("web/index.html"))
-        self.assertTrue(is_user_facing_path("web/public/favicon.svg"))
+        self.assertTrue(is_user_facing_path("web/public/identity/app-icon-light.png"))
         self.assertTrue(is_user_facing_path("web/public/apple-touch-icon.png"))
         self.assertTrue(is_user_facing_path("web/public/theme-bootstrap.js"))
         self.assertTrue(is_user_facing_path("web/public/fonts/instrument-sans-latin-variable.woff2"))
@@ -72,13 +72,13 @@ class TestClassifyProductDesignPaths(unittest.TestCase):
             "design/tokens.json",
             "docs/README.md",
             "web/src/api/generated/models/User.ts",
-            "web/public/favicon.svg",
+            "web/public/identity/app-icon-light.png",
             "android/app/src/main/res/values/strings.xml",
             "scripts/compose_checked.py",
         ]
         expected = [
             "design/tokens.json",
-            "web/public/favicon.svg",
+            "web/public/identity/app-icon-light.png",
         ]
         self.assertEqual(classify_paths(input_paths), expected)
 

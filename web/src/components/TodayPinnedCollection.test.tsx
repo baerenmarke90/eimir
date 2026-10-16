@@ -1,22 +1,33 @@
 // @vitest-environment jsdom
 import {
+  onlineManager,
   QueryClient,
   QueryClientProvider,
   useQuery,
 } from '@tanstack/react-query';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import type { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import * as snackbar from '../client/snackbar';
 import { i18n } from '../i18n';
 import taskSheets from '../i18n/locales/taskSheets';
 import { TodayPinnedCollection } from './TodayPinnedCollection';
@@ -130,6 +141,12 @@ beforeEach(() => {
   window.history.replaceState({ idx: 0 }, '', '/today');
 });
 
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+  vi.restoreAllMocks();
+});
+
 function renderPinned(
   api: Partial<CollectionsApi>,
   {
@@ -183,6 +200,251 @@ function renderPinned(
 }
 
 describe('TodayPinnedCollection', () => {
+  it.each(['query manager', 'browser'])(
+    'ends a Today checkbox attempt reported offline by the %s without replay',
+    async (source) => {
+      const update = vi
+        .fn()
+        .mockResolvedValue(
+          rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+        );
+      const { queryClient, key } = renderPinned({
+        updateCollectionItemRaw: update,
+      });
+      const feedback = vi.spyOn(snackbar, 'postSnackbar');
+      if (source === 'query manager') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(feedback).toHaveBeenCalledWith(
+          'm5s5.today.pinnedCollection.toggleFailed',
+        ),
+      );
+      expect(queryClient.isMutating()).toBe(0);
+      expect(queryClient.getQueryState(key)?.fetchStatus).toBe('idle');
+      expect(update).not.toHaveBeenCalled();
+      expect(
+        queryClient.getQueryData<CollectionDetail>(key)?.items[0].completed,
+      ).toBe(false);
+      expect(
+        screen
+          .getByRole('button', {
+            name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+          })
+          .getAttribute('aria-pressed'),
+      ).toBe('false');
+
+      vi.restoreAllMocks();
+      await act(async () => onlineManager.setOnline(true));
+      expect(update).not.toHaveBeenCalled();
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(
+        queryClient.getQueryData<CollectionDetail>(key)?.items[0],
+      ).toMatchObject({
+        completed: true,
+        version: 2,
+      });
+    },
+  );
+
+  it.each(['query manager', 'browser'])(
+    'rejects a new offline Today intent from the %s without superseding its online predecessor',
+    async (source) => {
+      const first = deferred<ReturnType<typeof rawUpdateResponse>>();
+      const update = vi
+        .fn()
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(
+          rawUpdateResponse(item('item-1', 'Milch', false, 0, 3), null),
+        );
+      const { queryClient, key } = renderPinned({
+        updateCollectionItemRaw: update,
+      });
+      const feedback = vi.spyOn(snackbar, 'postSnackbar');
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      if (source === 'query manager') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() =>
+        expect(feedback).toHaveBeenCalledWith(
+          'm5s5.today.pinnedCollection.toggleFailed',
+        ),
+      );
+      expect(queryClient.isMutating()).toBe(1);
+      expect(
+        queryClient.getQueryData<CollectionDetail>(key)?.items[0].completed,
+      ).toBe(true);
+
+      vi.restoreAllMocks();
+      await act(async () => onlineManager.setOnline(true));
+      await act(async () => {
+        first.resolve(
+          rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+        );
+        await first.promise;
+      });
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(
+        queryClient.getQueryData<CollectionDetail>(key)?.items[0],
+      ).toMatchObject({
+        completed: true,
+        version: 2,
+      });
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+      expect(update.mock.calls[1][0]).toMatchObject({
+        ifMatch: '2',
+        collectionItemUpdate: { completed: false },
+      });
+    },
+  );
+
+  it.each(['query manager', 'browser'])(
+    'rechecks the %s at dispatch when an earlier Today checkbox write was held',
+    async (source) => {
+      const first = deferred<ReturnType<typeof rawUpdateResponse>>();
+      const update = vi
+        .fn()
+        .mockReturnValueOnce(first.promise)
+        .mockResolvedValue(
+          rawUpdateResponse(item('item-1', 'Milch', false, 0, 3), null),
+        );
+      const { queryClient, queryFn, key } = renderPinned({
+        updateCollectionItemRaw: update,
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(queryClient.isMutating()).toBe(2));
+      if (source === 'query manager') onlineManager.setOnline(false);
+      else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+
+      await act(async () => {
+        first.resolve(
+          rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+        );
+        await first.promise;
+      });
+      await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(
+        queryClient.getQueryData<CollectionDetail>(key)?.items[0],
+      ).toMatchObject({
+        completed: true,
+        version: 2,
+      });
+      expect(queryClient.getQueryState(key)?.fetchStatus).toBe('idle');
+      queryFn.mockResolvedValue({
+        ...collection(),
+        items: [
+          item('item-1', 'Milch', true, 0, 2),
+          ...collection().items.slice(1),
+        ],
+      });
+
+      vi.restoreAllMocks();
+      await act(async () => onlineManager.setOnline(true));
+      expect(update).toHaveBeenCalledTimes(1);
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+        }),
+      );
+      await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+      expect(update.mock.calls[1][0]).toMatchObject({
+        ifMatch: '2',
+        collectionItemUpdate: { completed: false },
+      });
+    },
+  );
+
+  it('ends a queued Today checkbox attempt after its predecessor fails offline', async () => {
+    const first = deferred<ReturnType<typeof rawUpdateResponse>>();
+    const update = vi
+      .fn()
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(
+        rawUpdateResponse(item('item-1', 'Milch', true, 0, 2), null),
+      );
+    const { queryClient, key } = renderPinned({
+      updateCollectionItemRaw: update,
+    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markOpen', { title: 'Milch' }),
+      }),
+    );
+    await waitFor(() => expect(queryClient.isMutating()).toBe(2));
+    onlineManager.setOnline(false);
+    await act(async () => {
+      first.reject(new Error('connection lost'));
+      await first.promise.catch(() => undefined);
+    });
+    await waitFor(() => expect(queryClient.isMutating()).toBe(0));
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(
+      queryClient.getQueryData<CollectionDetail>(key)?.items[0],
+    ).toMatchObject({
+      completed: false,
+      version: 1,
+    });
+    expect(queryClient.getQueryState(key)?.fetchStatus).toBe('idle');
+    await act(async () => onlineManager.setOnline(true));
+    expect(update).toHaveBeenCalledTimes(1);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('m5s3.collection.markDone', { title: 'Milch' }),
+      }),
+    );
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(update.mock.calls[1][0]).toMatchObject({
+      ifMatch: '1',
+      collectionItemUpdate: { completed: true },
+    });
+  });
+
   it('keeps open work visible and progressively discloses the rest', () => {
     renderPinned({});
 

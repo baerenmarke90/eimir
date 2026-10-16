@@ -1,7 +1,9 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -18,6 +20,8 @@ async function installMocks(
     partnerName = 'Ben',
     accountProfileAttachmentId = null,
     partnerProfileAttachmentId = null,
+    holdFirstGesture = false,
+    failFirstGesture = false,
   }: {
     hasExtendedCapability?: boolean;
     thinkingOfYouAvailableAt?: string | null;
@@ -25,12 +29,20 @@ async function installMocks(
     partnerName?: string;
     accountProfileAttachmentId?: string | null;
     partnerProfileAttachmentId?: string | null;
+    holdFirstGesture?: boolean;
+    failFirstGesture?: boolean;
   } = {},
 ) {
   let entitlementGetCount = 0;
   const sentActions: Array<{ kind: string; clientRequestId: string }> = [];
+  const gestures: Array<{ kind: string; clientRequestId: string }> = [];
+  let releaseGesture!: () => void;
+  const held = new Promise<void>((resolve) => {
+    releaseGesture = resolve;
+  });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -249,6 +261,27 @@ async function installMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/thinking-of-you`
     ) {
       const body = request.postDataJSON() as { clientRequestId: string };
+      gestures.push({
+        kind: 'THINKING',
+        clientRequestId: body.clientRequestId,
+      });
+      if (holdFirstGesture && gestures.length === 1) await held;
+      if (failFirstGesture && gestures.length === 1) {
+        await json(
+          {
+            code: 'INTERNAL_ERROR',
+            detail: 'Response could not be confirmed.',
+            status: 503,
+            title: 'Unavailable',
+            type: 'about:blank',
+          },
+          503,
+        );
+        return;
+      }
+      thinkingOfYouAvailableAt = new Date(
+        Date.now() + 30 * 60_000,
+      ).toISOString();
       await json({
         clientRequestId: body.clientRequestId,
         thinkingOfYouAvailableAt: new Date(
@@ -277,6 +310,8 @@ async function installMocks(
         );
         return;
       }
+      gestures.push(body);
+      if (holdFirstGesture && gestures.length === 1) await held;
       sentActions.push(body);
       await json({
         kind: body.kind,
@@ -297,9 +332,13 @@ async function installMocks(
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, PARTNER_ID);
+
   return {
     entitlementGetCount: () => entitlementGetCount,
     sentActions: () => sentActions,
+    gestures: () => gestures,
+    releaseGesture,
   };
 }
 
@@ -308,6 +347,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
 }
 
@@ -331,6 +371,216 @@ function triggerLocator(page: Page, partnerName = 'Ben') {
     name: copy.trigger.replace('{{partner}}', partnerName),
   });
 }
+
+for (const scenario of [
+  {
+    kind: 'THINKING',
+    label: copy.thinking,
+    pending: copy.sendingThinking,
+    confirmed: copy.sentThinking,
+    width: 390,
+    theme: 'light',
+  },
+  {
+    kind: 'KISS',
+    label: copy.kiss,
+    pending: copy.sendingKiss,
+    confirmed: copy.sentKiss,
+    width: 360,
+    theme: 'light',
+  },
+  {
+    kind: 'CHECK_IN',
+    label: copy.checkIn,
+    pending: copy.sendingCheckIn,
+    confirmed: copy.sentCheckIn,
+    width: 430,
+    theme: 'dark',
+  },
+] as const) {
+  test(`gesture ${scenario.kind}: pending survives navigation, excludes duplicate sends and confirms only after the server`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: scenario.width, height: 844 });
+    await page.emulateMedia({ colorScheme: scenario.theme });
+    const network = await installMocks(page, {
+      hasExtendedCapability: true,
+      holdFirstGesture: true,
+    });
+    await signIn(page);
+    await triggerLocator(page).click();
+    let surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    const action = surface.getByRole('button', {
+      name: new RegExp(scenario.label.replace('?', '\\?')),
+    });
+    await action.focus();
+    await action.evaluate((button: HTMLButtonElement) => {
+      button.click();
+      button.click();
+    });
+    await expect(surface.getByText(scenario.pending)).toBeVisible();
+    await expect(action).toBeFocused();
+    await expect(action).toHaveAttribute('aria-disabled', 'true');
+    await expect(surface.getByText(scenario.confirmed)).toHaveCount(0);
+    await expect.poll(() => network.gestures().length).toBe(1);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `gesture-${scenario.kind}-pending-${scenario.width}-${scenario.theme}.png`,
+      ),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.keyboard.press('Escape');
+    await expect(surface).toHaveCount(0);
+    await expect(triggerLocator(page)).toBeFocused();
+    await page
+      .getByRole('link', { name: de.more.eyebrow, exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/more$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/today$/);
+    await triggerLocator(page).click();
+    surface = page.getByRole('dialog', {
+      name: copy.title.replace('{{partner}}', 'Ben'),
+    });
+    await expect(surface.getByText(scenario.pending)).toBeVisible();
+    await surface
+      .getByRole('button', { name: new RegExp(copy.thinking) })
+      .evaluate((button: HTMLButtonElement) => button.click());
+    expect(network.gestures()).toHaveLength(1);
+    network.releaseGesture();
+    await expect(surface.getByText(scenario.confirmed)).toBeVisible();
+    await expect(surface.getByText(scenario.pending)).toHaveCount(0);
+    await expect(
+      surface.getByRole('button', {
+        name: new RegExp(scenario.label.replace('?', '\\?')),
+      }),
+    ).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(surface).toHaveCount(0);
+    await expect(triggerLocator(page)).toBeFocused();
+  });
+}
+
+test('gesture failure survives leaving and returning; explicit retry reconciles the same request identity', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const network = await installMocks(page, { failFirstGesture: true });
+  await signIn(page);
+  await triggerLocator(page).click();
+  await page.getByRole('button', { name: copy.thinking }).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: copy.sendError }),
+  ).toBeVisible();
+  const requestId = network.gestures()[0].clientRequestId;
+  await page.keyboard.press('Escape');
+  await page.getByRole('link', { name: de.more.eyebrow, exact: true }).click();
+  await page.goBack();
+  await triggerLocator(page).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: copy.sendError }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath('gesture-failed-remount-390-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.getByRole('button', { name: copy.thinking }).click();
+  await expect(
+    page
+      .getByRole('dialog', { name: copy.title.replace('{{partner}}', 'Ben') })
+      .getByText(copy.sentThinking),
+  ).toBeVisible();
+  expect(network.gestures().map((gesture) => gesture.clientRequestId)).toEqual([
+    requestId,
+    requestId,
+  ]);
+});
+
+test('offline gesture has no reconnect replay and requires explicit activation', async ({
+  page,
+}) => {
+  const network = await installMocks(page);
+  await signIn(page);
+  await triggerLocator(page).click();
+  await page.context().setOffline(true);
+  await page.getByRole('button', { name: copy.thinking }).click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: copy.offline }),
+  ).toBeVisible();
+  expect(network.gestures()).toEqual([]);
+  await page.context().setOffline(false);
+  await expect(page.getByRole('button', { name: copy.thinking })).toBeEnabled();
+  await expect(
+    page.getByRole('alert').filter({ hasText: copy.offline }),
+  ).toBeVisible();
+  expect(network.gestures()).toEqual([]);
+  await page.getByRole('button', { name: copy.thinking }).click();
+  await expect(
+    page
+      .getByRole('dialog', { name: copy.title.replace('{{partner}}', 'Ben') })
+      .getByText(copy.sentThinking),
+  ).toBeVisible();
+  expect(network.gestures()).toHaveLength(1);
+});
+
+test('Expanded and narrow reduced-motion pending surfaces remain readable and dismissible', async ({
+  page,
+}, testInfo) => {
+  const network = await installMocks(page, {
+    hasExtendedCapability: true,
+    holdFirstGesture: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await signIn(page);
+  await triggerLocator(page).click();
+  await page.getByRole('button', { name: copy.thinking }).click();
+  await expect(page.getByText(copy.sendingThinking)).toBeVisible();
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('gesture-pending-1280-light.png'),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  const surface = page.getByRole('dialog', {
+    name: copy.title.replace('{{partner}}', 'Ben'),
+  });
+  await expect(surface.getByText(copy.sendingThinking)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath(
+      'gesture-pending-320-dark-200pct-reduced-motion.png',
+    ),
+    fullPage: true,
+    animations: 'disabled',
+  });
+  for (const label of [copy.thinking, copy.kiss, copy.checkIn]) {
+    const action = surface.getByRole('button', {
+      name: new RegExp(label.replace('?', '\\?')),
+    });
+    await action.scrollIntoViewIfNeeded();
+    await expect(action).toBeInViewport();
+  }
+  network.releaseGesture();
+  await expect(surface.getByText(copy.sentThinking)).toBeVisible();
+  await expect(surface.locator('.eimir-motion-success')).toHaveCSS(
+    'animation-name',
+    'none',
+  );
+  await page.keyboard.press('Escape');
+  await expect(surface).toHaveCount(0);
+  await expect(triggerLocator(page)).toBeFocused();
+});
 
 test('opens the Compact avatar quick-actions hub as one overlapping-pair trigger and sends the free Thinking-of-you gesture', async ({
   page,

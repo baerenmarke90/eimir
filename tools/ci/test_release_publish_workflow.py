@@ -20,9 +20,9 @@ WORKFLOW_DIR = ROOT / ".github/workflows"
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions/setup-node": "1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a",
-    "actions/setup-java": "dd06d9cba3e5552c54d9f8ea23572deb30010f7c",
+    "actions/setup-java": "de7274f081f381c8f8158605e0321c36c376e2e6",
     "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
-    "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
+    "actions/upload-artifact": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
     "actions/download-artifact": "634f93cb2916e3fdff6788551b99b062d0335ce0",
 }
 

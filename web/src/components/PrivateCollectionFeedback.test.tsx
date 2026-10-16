@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -19,7 +23,11 @@ import de from '../i18n/locales/de';
 import privateArea from '../i18n/locales/privateArea';
 import { PrivateCollectionDetailPage } from './PrivateCollectionsPage';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+  vi.restoreAllMocks();
+});
 
 const capabilities = { canComment: false, canDelete: true, canEdit: true };
 const accountId = 'owner-1';
@@ -334,3 +342,76 @@ it('hides private content immediately on a denied write and denied recovery', as
   await waitFor(() => expect(screen.queryByText('Book tickets')).toBeNull());
   expect(harness.queryClient.getQueryData(key)).toBeUndefined();
 });
+
+it.each(['query manager', 'browser'])(
+  'ends an offline update reported by the %s without reconnect replay',
+  async (source) => {
+    const h = setup();
+    if (source === 'query manager') onlineManager.setOnline(false);
+    else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    fireEvent.click(firstToggle());
+    await waitFor(() =>
+      expect(screen.getByText(de.states.offline.title)).toBeDefined(),
+    );
+    expect(firstToggle().getAttribute('aria-pressed')).toBe('false');
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.queryClient.isMutating()).toBe(0);
+    expect(screen.queryByText(de.common.saving)).toBeNull();
+    vi.restoreAllMocks();
+    await act(async () => onlineManager.setOnline(true));
+    fireEvent.click(screen.getByRole('button', { name: de.common.retry }));
+    await waitFor(() => expect(h.get).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByText(de.states.offline.title)).toBeNull(),
+    );
+    expect(h.update).not.toHaveBeenCalled();
+    fireEvent.click(firstToggle());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+  },
+);
+
+it('rejects a update when connectivity is lost during query cancellation', async () => {
+  const h = setup();
+  const cancellation = deferred<void>();
+  vi.spyOn(h.queryClient, 'cancelQueries').mockReturnValue(
+    cancellation.promise,
+  );
+  fireEvent.click(firstToggle());
+  await act(async () => {
+    onlineManager.setOnline(false);
+    cancellation.resolve();
+  });
+  await waitFor(() =>
+    expect(screen.getByText(de.states.offline.title)).toBeDefined(),
+  );
+  expect(firstToggle().getAttribute('aria-pressed')).toBe('false');
+  expect(h.queryClient.isMutating()).toBe(0);
+  expect(h.update).not.toHaveBeenCalled();
+  await act(async () => onlineManager.setOnline(true));
+  expect(h.update).not.toHaveBeenCalled();
+});
+
+it.each(['success', 'failure'])(
+  'releases a update with %s after connectivity is lost without a paused recovery lock',
+  async (outcome) => {
+    const h = setup();
+    fireEvent.click(firstToggle());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    onlineManager.setOnline(false);
+    await act(async () => {
+      if (outcome === 'success') {
+        h.write.resolve({
+          ...h.current().items[0],
+          completed: true,
+          version: 2,
+        });
+      } else h.write.reject(new ClientProblemError('server', 500));
+    });
+    await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+    expect(screen.queryByText(de.common.saving)).toBeNull();
+    expect(h.get).not.toHaveBeenCalled();
+    await act(async () => onlineManager.setOnline(true));
+    await waitFor(() => expect(h.get).toHaveBeenCalled());
+    expect(h.update).toHaveBeenCalledTimes(1);
+  },
+);

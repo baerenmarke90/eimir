@@ -31,9 +31,12 @@ worker cannot promote an older comment receipt into another send for that
 hour. A pre-provider `UNAVAILABLE` receipt does not close the bucket, so an
 eligible older receipt can still deliver. This uses the existing Account
 lock, receipt statuses and indexed hourly lookup, without a new rate ledger.
-Daily summary, wider Activity kinds and cross-kind noise rules require a
-separate product decision rather than silent suppression of deliberate
-gestures or user-selected channels.
+A daily summary is deferred: the Product Owner decision on #1268
+(2026-09-25, closed as not planned) adds no daily consent, schedule, delivery
+job or UI, and existing hourly consent choices are unchanged. A later proposal needs a
+fresh explicit product decision. Wider Activity kinds and cross-kind noise
+rules likewise require a separate product decision rather than silent
+suppression of deliberate gestures or user-selected channels.
 
 `IN_APP_ONLY` is an available catalog class for future explicitly approved
 notification kinds, not a wildcard for arbitrary Outbox/Activity events.
@@ -58,8 +61,12 @@ No new provider, broker, job queue or storage is needed; the existing Outbox,
 PushDelivery and PostgreSQL Job Queue are reused. External libraries,
 WebSocket and secondary preference stores are unsuitable for this catalog.
 
-**Still separate:** #515's daily summary, wider rate/noise policy and category
-controls; #565's provider transport. Do not infer that a new notification class enables email, a
+**Still separate:** wider Activity kinds and cross-kind noise policy (see the
+daily-summary deferral above), and the remainder of #565's Push transport. #565 now has
+the authenticated endpoint API and a configured-only
+[UnifiedPush backend sender](./UNIFIEDPUSH-TRANSPORT.md); the Capacitor device
+lifecycle, FCM and real-device acceptance of Push delivery and tap routing are
+not delivered, so a green backend test is not live-device acceptance. Do not infer that a new notification class enables email, a
 foreground banner or a richer lock-screen preview. #1211 retains the current
 badge/preview/Center, and #1212 rejects motion from unread-count polling.
 Later deliveries must intersect the #515 class, the #638 recipient channel

@@ -12,6 +12,7 @@ import type { CollectionDetail } from '../api/generated/models/CollectionDetail'
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import { captureCollectionOrder } from '../client/collectionOrder';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
@@ -327,79 +328,20 @@ function CollectionProductDetail({
         }),
       );
     },
-    onMutate: async ({ collection, item, completed }) => {
-      const key = authorSummaryQueryKeys.collectionDetail(
-        collection.spaceId,
-        collection.id,
-      );
-      const isCurrentQuery = captureQueryIdentity(queryClient, key);
-      if (completed === undefined) return { key, isCurrentQuery };
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      if (!isCurrentQuery()) return { key, isCurrentQuery };
-      const previousItem = queryClient
-        .getQueryData<CollectionDetail>(key)
-        ?.items.find((entry) => entry.id === item.id);
-      // A read may have advanced the row while cancellation was pending.
-      if (previousItem?.version === item.version) {
-        queryClient.setQueryData<CollectionDetail>(key, (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((entry) =>
-                  entry === previousItem ? { ...entry, completed } : entry,
-                ),
-              }
-            : current,
-        );
-        return { key, isCurrentQuery, previousItem };
-      }
-      return { key, isCurrentQuery };
-    },
-    onError: (_error, { completed }, context) => {
-      if (
-        completed === undefined ||
-        !context?.isCurrentQuery() ||
-        !context.previousItem
-      )
-        return;
-      const previousItem = context.previousItem;
-      queryClient.setQueryData<CollectionDetail>(context.key, (current) =>
-        current
-          ? {
-              ...current,
-              items: current.items.map((entry) =>
-                entry.id === previousItem.id &&
-                entry.version === previousItem.version &&
-                entry.completed === completed
-                  ? { ...entry, completed: previousItem.completed }
-                  : entry,
-              ),
-            }
-          : current,
-      );
-    },
-    onSuccess: async (updatedItem, { completed }, context) => {
+    onMutate: ({ collection, item, title, completed }) =>
+      captureCollectionItemUpdate<CollectionDetail>(
+        queryClient,
+        authorSummaryQueryKeys.collectionDetail(
+          collection.spaceId,
+          collection.id,
+        ),
+        item,
+        { title, completed },
+      ),
+    onError: (_error, _variables, context) => context?.rollback(),
+    onSuccess: async (updatedItem, _variables, context) => {
       if (!context?.isCurrentQuery()) return;
-      if (completed !== undefined) {
-        queryClient.setQueryData<CollectionDetail>(context.key, (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((entry) =>
-                  entry.id === updatedItem.id &&
-                  entry.version < updatedItem.version
-                    ? {
-                        ...entry,
-                        completed: updatedItem.completed,
-                        version: updatedItem.version,
-                        updatedAt: updatedItem.updatedAt,
-                      }
-                    : entry,
-                ),
-              }
-            : current,
-        );
-      }
+      context.confirm(updatedItem);
       await queryClient.invalidateQueries({
         queryKey: context.key,
         exact: true,

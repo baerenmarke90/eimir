@@ -727,6 +727,54 @@ describe('CollectionProductPage', () => {
     },
   );
 
+  for (const [kind, status] of [
+    ['unauthorized', 401],
+    ['permission', 403],
+    ['notFound', 404],
+  ] as const) {
+    it.each(['success', 'failure'] as const)(
+      `keeps a newer shared ${status} read authoritative after checkbox %s`,
+      async (outcome) => {
+        let resolve!: (item: unknown) => void;
+        let reject!: (error: Error) => void;
+        const update = vi.fn(
+          () =>
+            new Promise((yes, no) => {
+              resolve = yes;
+              reject = no;
+            }),
+        );
+        const h = renderToggleCollection(update);
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: i18n.t('m5s3.collection.markDone', { title: 'Passport' }),
+          }),
+        );
+        await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+        const denied = new ClientProblemError(kind, status);
+        h.getCollection.mockRejectedValue(denied);
+        await act(async () =>
+          h.queryClient.refetchQueries({ queryKey: h.key, exact: true }),
+        );
+        await waitFor(() =>
+          expect(screen.queryAllByRole('textbox')).toHaveLength(0),
+        );
+        const invalidate = vi
+          .spyOn(h.queryClient, 'invalidateQueries')
+          .mockResolvedValue();
+        await act(async () =>
+          outcome === 'success'
+            ? resolve({ ...h.firstItem, completed: true, version: 2 })
+            : reject(new Error('Connection lost')),
+        );
+        await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+        expect(h.queryClient.getQueryState(h.key)?.error).toBe(denied);
+        expect(invalidate).not.toHaveBeenCalled();
+        expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+      },
+    );
+  }
+
   it('rolls back only shared completion while retaining concurrent title and order changes', async () => {
     let reject!: (error: Error) => void;
     const update = vi.fn(

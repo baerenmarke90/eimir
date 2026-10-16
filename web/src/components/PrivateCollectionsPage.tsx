@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { captureCollectionOrder } from '../client/collectionOrder';
+import { captureCollectionItemUpdate } from '../client/collectionItemUpdate';
 import { captureQueryIdentity } from '../client/queryIdentity';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
@@ -324,6 +325,7 @@ function CollectionItems({
   const [pendingOrder, setPendingOrder] = useState<string[] | null>(null);
   const [pendingToggle, setPendingToggle] = useState<{
     itemId: string;
+    version: number;
     completed: boolean;
   } | null>(null);
   const collectionKey = privateAreaQueryKeys.collection(
@@ -378,46 +380,30 @@ function CollectionItems({
         scope.spaceId,
         scope.collectionId,
       );
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const previousItem = queryClient
-        .getQueryData<PrivateCollectionDetail>(key)
-        ?.items.find((entry) => entry.id === item.id);
-      const completed = update.completed;
-      if (completed !== undefined && previousItem) {
-        setPendingToggle({ itemId: item.id, completed });
-        queryClient.setQueryData<PrivateCollectionDetail>(key, (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((entry) =>
-                  entry.id === item.id ? { ...entry, completed } : entry,
-                ),
-              }
-            : current,
-        );
+      const listKey = privateAreaQueryKeys.collections(
+        scope.accountId,
+        scope.spaceId,
+      );
+      const isCurrentList = captureQueryIdentity(queryClient, listKey);
+      const patch = await captureCollectionItemUpdate<PrivateCollectionDetail>(
+        queryClient,
+        key,
+        item,
+        update,
+      );
+      if (update.completed !== undefined && patch.previousItem) {
+        setPendingToggle({
+          itemId: item.id,
+          version: item.version,
+          completed: update.completed,
+        });
       }
-      return { key, previousItem };
+      return { ...patch, listKey, isCurrentList };
     },
-    onError: async (error, { update }, context) => {
+    onError: async (error, _variables, context) => {
       setPendingToggle(null);
-      if (update.completed !== undefined && context?.previousItem) {
-        const previousItem = context.previousItem;
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) =>
-            current
-              ? {
-                  ...current,
-                  items: current.items.map((entry) =>
-                    entry.id === previousItem.id &&
-                    entry.version === previousItem.version
-                      ? { ...entry, completed: previousItem.completed }
-                      : entry,
-                  ),
-                }
-              : current,
-        );
-      }
+      if (!context?.isCurrentQuery()) return;
+      context.rollback();
       if (
         context &&
         ['unauthorized', 'permission', 'notFound'].includes(
@@ -428,46 +414,30 @@ function CollectionItems({
       }
     },
     onSuccess: (updatedItem, _variables, context) => {
-      if (context) {
-        queryClient.setQueryData<PrivateCollectionDetail>(
-          context.key,
-          (current) =>
-            current
-              ? {
-                  ...current,
-                  items: current.items.map((entry) =>
-                    entry.id === updatedItem.id &&
-                    entry.version <= updatedItem.version
-                      ? updatedItem
-                      : entry,
-                  ),
-                }
-              : current,
-        );
-      }
+      context?.confirm(updatedItem);
       setPendingToggle(null);
     },
-    onSettled: async (_data, error, { scope }, context) => {
-      if (
-        context &&
-        !['unauthorized', 'permission', 'notFound'].includes(
-          clientProblemKind(error),
-        )
-      ) {
-        await queryClient.invalidateQueries({
-          queryKey: context.key,
-          exact: true,
-          refetchType: isClientOnline() ? 'active' : 'none',
-        });
+    onSettled: async (_data, error, _variables, context) => {
+      if (context?.isCurrentQuery()) {
+        if (
+          !['unauthorized', 'permission', 'notFound'].includes(
+            clientProblemKind(error),
+          )
+        ) {
+          await queryClient.invalidateQueries({
+            queryKey: context.key,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
+        if (context.isCurrentQuery() && context.isCurrentList()) {
+          await queryClient.invalidateQueries({
+            queryKey: context.listKey,
+            exact: true,
+            refetchType: isClientOnline() ? 'active' : 'none',
+          });
+        }
       }
-      await queryClient.invalidateQueries({
-        queryKey: privateAreaQueryKeys.collections(
-          scope.accountId,
-          scope.spaceId,
-        ),
-        exact: true,
-        refetchType: isClientOnline() ? 'active' : 'none',
-      });
       itemUpdateInFlightRef.current = false;
     },
   });
@@ -667,7 +637,10 @@ function CollectionItems({
   }
 
   function renderChecklistItem(item: PrivateCollectionItemDetail) {
-    const isTogglePending = pendingToggle?.itemId === item.id;
+    const isTogglePending =
+      pendingToggle?.itemId === item.id &&
+      pendingToggle.version === item.version &&
+      updateMutation.context?.isCurrentQuery();
     const completed = isTogglePending
       ? pendingToggle.completed
       : item.completed;
@@ -841,7 +814,7 @@ function CollectionItems({
       {reorderMutation.isPending ? (
         <p role="status">{t('privateArea.collections.reordering')}</p>
       ) : null}
-      {updateMutation.error ? (
+      {updateMutation.error && updateMutation.context?.isCurrentQuery() ? (
         <ProblemState
           error={updateMutation.error}
           onRetry={async () => {

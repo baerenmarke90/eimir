@@ -3,7 +3,8 @@
 ## Scope and decision
 
 Refs #503. Baseline: `main@dda7c4a2a2100dd36be36db73dd43eec366c403b`.
-Accepted final source commit: `6dea633c47cdc4b87b83309c4e61a96fb095e6c9`.
+Initial write-admission source commit: `6dea633c47cdc4b87b83309c4e61a96fb095e6c9`.
+The final list-lifetime refinement is identified by the source blob manifest below; the PR conversation records its final head and hosted CI.
 Initial ownership-only source: `fbef3f9fe501c1a29d29495a7bd399cbbccb5d3b`.
 
 The [pre-implementation review](https://github.com/baerenmarke90/eimir/issues/503#issuecomment-6226366910) records reuse, design, business and cross-cutting decisions before runtime changes; the [conflicting-write extension](https://github.com/baerenmarke90/eimir/issues/503#issuecomment-6226488819) precedes its state-handling changes. This repairs whole-resource deletion of private notes, gift ideas and private collections. It does not complete #503/#508, activate final audit #946, or replace #1271's physical-device acceptance.
@@ -36,17 +37,20 @@ Local Node: 24.19.0. Browser acceptance uses the real Vite production bundle wit
 
 | Check | Result |
 | --- | --- |
-| Three production-deletion consumer matrix | 57/57 pass |
-| Same final matrix on unchanged baseline runtime | 46 fail / 11 pass; normal confirmed deletes and failed-delete preservation pass |
-| Complete Web suite | 1,641 pass / one existing skip |
+| Three production-deletion consumer matrix | 60/60 pass |
+| Same final matrix on unchanged baseline runtime | 46 fail / 14 pass; normal confirmed deletes and failed-delete preservation pass |
+| Complete Web suite | 1,644 pass / one existing skip |
 | New production-preview journeys | 12/12 pass, zero retries |
 | Same twelve journeys on separately built unchanged baseline | Six normal deletes pass; all six abandoned-task cases fail at unwanted navigation |
-| Complete final affected private production-preview suite | 70/70 pass, one worker, zero retries/flakes |
+| Complete private production-preview suite at `6dea633c` | 70/70 pass, one worker, zero retries/flakes |
+| Final refinement production-preview deletion journeys | 12/12 pass, one worker, zero retries |
 | TypeScript, lint, format, tokens/PWA, Capacitor foundation, production build | Pass; existing lint warnings remain visible |
 | Engineering/documentation language audits | Pass |
 | Dependency audit at unchanged high-severity gate | Pass; three existing moderate Capacitor CLI/xcode/uuid findings remain visible |
 
-The final matrix also covers direct form submission during DELETE and deletion during save with confirmation both closed and already open. Seven of these nine added cases fail on the ownership-only implementation; the collection already blocked both UI deletion controls during save.
+The [final list-lifetime review](https://github.com/baerenmarke90/eimir/issues/503#issuecomment-6226575550) removes an overstrict navigation condition introduced by the first PR runtime. List collection/replacement owns recovery only; it is not evidence that the authorized detail or current task ended. Six characterizations fail on that runtime and pass after the refinement: three new collected-list cases and three corrected replacement-list completion cases. The original authorized detail and task still gate completion across awaits/history; session and denied-read assertions are unchanged. This is a concrete ownership correction, not a relaxed session assertion.
+
+The matrix also covers direct form submission during DELETE and deletion during save with confirmation both closed and already open. Seven of the nine write-admission cases fail on the ownership-only implementation; the collection already blocked both UI deletion controls during save.
 
 The component matrix includes removed/replacement sessions, abandoned tasks, 401/403/404 detail and list reads, session/detail replacement during held list recovery, original/replacement lists, unrelated sibling details, deep links, normal confirmed deletion and failure. The browser matrix follows Open → Edit → confirm Delete → held response → normal result or deliberate private-tab navigation → old completion → observe → return to the original list. It verifies If-Match, one DELETE, pending disable, actual removed content, strict full-page Axe and no horizontal overflow.
 
@@ -54,10 +58,22 @@ The retained private suite also exercises 320/360/390/430 px, 200% text/reflow, 
 
 Initial browser-test fixture corrections kept the actual product assertions: supply the independently visited gift-list API instead of an unintended 500; assert the bodyless DELETE's 204 response and resulting UI rather than waiting for a response-body completion that never arrived in the fallback browser. The initial browser-case source at `fbef3f9f` passes against that ownership fix and exposes the intended six old-code navigation failures. The final source additionally asserts disabled Save during actual held note/gift DELETE; the final 57-case component counterfactual covers both defects on unchanged baseline. These identities are not conflated. No timeout, retry count, Axe assertion or product gate was relaxed.
 
-## Production bundle fingerprints
+## Final runtime source manifest
 
-- `index-BT04Jcc2.js` — SHA-256 `6a09315d335ca2aadde4059b50a4683ec8b734fdba0a6e0bb6492ca211374073`.
+Git blob SHAs identify the exact seven tested runtime/test files independently of later evidence-only commits. The final hosted checks and PR head are recorded in the PR conversation.
+
+- `web/src/client/privateArea.ts` — `67cfcfb31fde659423d6c474d534c0f5ed79410b`.
+- `web/src/components/PrivateNotesPage.tsx` — `77a40dda6aaa561471fe82478b5caf6be3dcd95a`.
+- `web/src/components/GiftIdeasPage.tsx` — `71c7ec13560d19dbf16b5eb460cd692b382dfba1`.
+- `web/src/components/PrivateCollectionsPage.tsx` — `9fd25f13d2a7561b579e9ffe285ca86e0a1411ff`.
+- `web/src/components/PrivateAreaLayout.tsx` — `2dd8963f2d8a7c85f93a22a3fb60f6c5536d9201`.
+- `web/src/components/PrivateDeleteOwnership.test.tsx` — `41c67c813bc32734906afbe6f70e4e6c5dc5fe14`.
+- `web/e2e/tests/private-area-reference.spec.ts` — `b6fbaac28266c8c19001f2d0cfb0ea14f0d54d7e`.
+
+## Final production bundle fingerprints
+
 - `index-D46K-c7Q.css` — SHA-256 `5a0671f0169db7c9502f7709de7b79f2568b81e89a09a3ad57a6e77202b0d3f2`.
+- `index-yDYdDolh.js` — SHA-256 `98c329c210ed0ceb3e7203ceb5723c62e81294cedd12e99dc5b1f28890b4e699`.
 
 ## Reviewed captures
 

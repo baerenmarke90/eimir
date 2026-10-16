@@ -307,7 +307,7 @@ for (const d of definitions) {
       },
     );
 
-    it('does not invalidate a replacement list or an unrelated detail', async () => {
+    it('returns to a replacement list without invalidating it or an unrelated detail', async () => {
       const h = setup();
       await h.submit();
       h.client.removeQueries({ queryKey: d.listKey, exact: true });
@@ -315,9 +315,20 @@ for (const d of definitions) {
       const siblingKey = [...d.listKey, 'sibling'];
       h.client.setQueryData(siblingKey, { ...d.resource, id: 'sibling' });
       await act(async () => h.write.resolve());
+      await screen.findByText('Private list after delete');
       expect(h.client.getQueryState(d.listKey)?.isInvalidated).toBe(false);
       expect(h.client.getQueryState(siblingKey)?.isInvalidated).toBe(false);
-      expect(screen.getByTestId('location').textContent).toBe(d.path);
+      expect(screen.getByTestId('location').textContent).toBe(d.home);
+    });
+
+    it('completes the owning task after its inactive list cache is collected', async () => {
+      const h = setup();
+      await h.submit();
+      h.client.removeQueries({ queryKey: d.listKey, exact: true });
+      await act(async () => h.write.resolve());
+      await screen.findByText('Private list after delete');
+      expect(h.client.getQueryData(d.key)).toBeUndefined();
+      expect(h.client.getQueryState(d.listKey)).toBeUndefined();
     });
 
     it.each([

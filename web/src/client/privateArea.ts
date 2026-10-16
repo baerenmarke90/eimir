@@ -53,12 +53,9 @@ export function capturePrivateDelete(
   ownsTask: () => boolean,
 ) {
   const isCurrent = captureAuthorizedQuery(client, key);
-  const hadList = client.getQueryState(listKey) !== undefined;
-  const isCurrentList = captureQueryIdentity(client, listKey);
   const canRefreshList = captureAuthorizedQuery(client, listKey);
   return {
-    isCurrentTask: () =>
-      ownsTask() && isCurrent() && (!hadList || isCurrentList()),
+    isCurrentTask: () => ownsTask() && isCurrent(),
     async refreshList() {
       if (isCurrent() && canRefreshList()) {
         // The list prefix also contains independently authorized details.

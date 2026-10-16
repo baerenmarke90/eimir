@@ -203,11 +203,15 @@ export function PrivateCollectionCreatePage({
           privateCollectionCreate: { title },
         }),
       ),
-    onSuccess: async (collection) => {
+    onMutate: () => captureOwnership(),
+    onSuccess: async (collection, _values, isCurrent) => {
+      if (!isCurrent?.()) return;
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.collections(accountId, spaceId),
       });
+      if (!isCurrent()) return;
       closeTask(() => {
+        if (!isCurrent()) return;
         navigate(privateCollectionPath(collection.id), {
           replace: true,
           state: navigationState,
@@ -221,6 +225,7 @@ export function PrivateCollectionCreatePage({
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,

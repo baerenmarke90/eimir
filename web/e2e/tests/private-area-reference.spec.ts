@@ -1431,6 +1431,227 @@ for (const view of [
   }
 }
 
+const privateCreateCases = [
+  { kind: 'notes', copy: privateArea.notes },
+  { kind: 'gift-ideas', copy: privateArea.gifts },
+  { kind: 'collections', copy: privateArea.collections },
+] as const;
+
+async function installHeldPrivateCreate(page: Page, kind: string) {
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
+  const id = '77777777-7777-4777-8777-777777777777';
+  let current: Record<string, unknown> | null = null;
+  const writes: Record<string, unknown>[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'POST' && path === endpoint) {
+      const submitted = request.postDataJSON() as Record<string, unknown>;
+      writes.push(submitted);
+      await gate;
+      current = {
+        id,
+        ownerId: ACCOUNT_ID,
+        spaceId: SPACE_ID,
+        capabilities: { canComment: false, canDelete: true, canEdit: true },
+        createdAt: TEST_NOW,
+        updatedAt: TEST_NOW,
+        version: 1,
+        body: '',
+        pinned: false,
+        items: [],
+        description: null,
+        recipient: null,
+        occasion: null,
+        targetOn: null,
+        priceText: null,
+        url: null,
+        status: 'IDEA',
+        ...submitted,
+      };
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(current),
+      });
+      return;
+    }
+    if (request.method() === 'GET' && path === endpoint) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasMore: false,
+          items: current ? [current] : [],
+          nextCursor: null,
+        }),
+      });
+      return;
+    }
+    if (request.method() === 'GET' && path === `${endpoint}/${id}` && current) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(current),
+      });
+      return;
+    }
+    await route.fallback();
+  });
+  return { endpoint, id, writes, release };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const definition of privateCreateCases) {
+    test(`private ${definition.kind} create preserves result and return at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateCreate(page, definition.kind);
+      await page
+        .getByRole('link', { name: definition.copy.title, exact: false })
+        .click();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
+      const title = `Personal ${definition.kind} plan`;
+      await page
+        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .fill(title);
+      await page
+        .getByRole('button', { name: privateArea.save, exact: true })
+        .click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      await expect(
+        page.getByRole('button', { name: privateArea.saving, exact: true }),
+      ).toBeDisabled();
+      fixture.release();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/${fixture.id}$`),
+      );
+      await expect(
+        page.getByRole('heading', { name: title, exact: true }),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `private-create-${definition.kind}-saved-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page
+        .getByRole('link', { name: definition.copy.detailBack, exact: true })
+        .click();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}$`),
+      );
+      await expect(
+        page.getByRole('link', { name: new RegExp(title) }),
+      ).toBeVisible();
+      expect(fixture.writes).toHaveLength(1);
+      expect(fixture.writes[0].title).toBe(title);
+      expect(unexpected).toEqual([]);
+    });
+
+    test(`private ${definition.kind} create cannot redirect a signed-out session at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const unexpected = await signInAndOpenPrivateArea(page);
+      const fixture = await installHeldPrivateCreate(page, definition.kind);
+      await page
+        .getByRole('link', { name: definition.copy.title, exact: false })
+        .click();
+      await page
+        .getByRole('link', { name: definition.copy.add, exact: true })
+        .click();
+      await page
+        .getByLabel(definition.copy.titleLabel, { exact: true })
+        .fill('Previous session private title');
+      await page
+        .getByRole('button', { name: privateArea.save, exact: true })
+        .click();
+      await expect.poll(() => fixture.writes.length).toBe(1);
+      await page
+        .getByRole('button', { name: navigation.profileMenu, exact: true })
+        .click();
+      await page
+        .getByRole('button', { name: de.header.logout, exact: true })
+        .click();
+      await expect(page.getByLabel(de.login.email)).toBeVisible();
+      const signedOutUrl = page.url();
+      const response = page.waitForResponse(
+        (entry) =>
+          entry.request().method() === 'POST' &&
+          new URL(entry.url()).pathname === fixture.endpoint,
+      );
+      fixture.release();
+      await (await response).finished();
+      await page.evaluate(
+        () =>
+          new Promise<void>((resolve) =>
+            requestAnimationFrame(() => resolve()),
+          ),
+      );
+      await expect(page.getByLabel(de.login.email)).toBeVisible();
+      await expect(page).toHaveURL(signedOutUrl);
+      await page.getByLabel(de.login.email).fill('anna@example.org');
+      await page
+        .getByLabel(de.login.password)
+        .fill('a-long-enough-test-password');
+      await page.getByRole('button', { name: de.login.submit }).click();
+      await expect(page).toHaveURL(
+        new RegExp(`/more/private/${definition.kind}/new$`),
+      );
+      await expect(
+        page.getByRole('heading', {
+          name: definition.copy.createTitle,
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByLabel(definition.copy.titleLabel, { exact: true }),
+      ).toHaveValue('');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      if (definition.kind === 'notes' || definition.kind === 'gift-ideas')
+        await page.screenshot({
+          path: testInfo.outputPath(
+            `private-create-${definition.kind}-session-ended-${view.name}.png`,
+          ),
+          fullPage: true,
+          animations: 'disabled',
+        });
+      expect(fixture.writes).toHaveLength(1);
+      expect(unexpected).toEqual([]);
+    });
+  }
+}
+
 async function installHeldPrivateNoteEdit(page: Page) {
   const endpoint = `/api/v1/spaces/${SPACE_ID}/private/notes/${PRIVATE_NOTE_ID}`;
   let current = {

@@ -216,11 +216,15 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
       privateApiCall(() =>
         api.createPrivateNote({ spaceId, privateNoteCreate: values }),
       ),
-    onSuccess: async (note) => {
+    onMutate: () => captureOwnership(),
+    onSuccess: async (note, _values, isCurrent) => {
+      if (!isCurrent?.()) return;
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.notes(accountId, spaceId),
       });
+      if (!isCurrent()) return;
       closeTask(() => {
+        if (!isCurrent()) return;
         navigate(privateNotePath(note.id), {
           replace: true,
           state: navigationState,
@@ -234,6 +238,7 @@ export function PrivateNoteCreatePage({ api, accountId, spaceId }: Props) {
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,

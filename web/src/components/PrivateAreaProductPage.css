@@ -417,7 +417,8 @@ body.theme-vault .private-area-danger {
   color: var(--color-text);
 }
 
-body.theme-vault .private-area-excerpt {
+body.theme-vault .private-area-excerpt,
+.private-area-editor .field-help {
   color: var(--color-text-secondary);
 }
 

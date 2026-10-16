@@ -313,11 +313,15 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
       privateApiCall(() =>
         api.createGiftIdea({ spaceId, giftIdeaCreate: values }),
       ),
-    onSuccess: async (gift) => {
+    onMutate: () => captureOwnership(),
+    onSuccess: async (gift, _values, isCurrent) => {
+      if (!isCurrent?.()) return;
       await queryClient.invalidateQueries({
         queryKey: privateAreaQueryKeys.giftIdeas(accountId, spaceId),
       });
+      if (!isCurrent()) return;
       closeTask(() => {
+        if (!isCurrent()) return;
         navigate(privateGiftIdeaPath(gift.id), {
           replace: true,
           state: navigationState,
@@ -331,6 +335,7 @@ export function GiftIdeaCreatePage({ api, accountId, spaceId }: Props) {
     mutation.reset,
   );
   const {
+    captureOwnership,
     navigationState,
     showDiscardConfirm,
     keepEditing,

@@ -1612,9 +1612,10 @@ for (const view of [
       );
       const unexpected = await signInAndOpenPrivateArea(page);
       const fixture = await installHeldPrivateCreate(page, definition.kind);
-      const destination = privateCreateCases.find(
-        (entry) => entry.kind !== definition.kind,
-      )!;
+      const destination =
+        definition.kind === 'notes'
+          ? privateCreateCases[1]
+          : privateCreateCases[0];
       await installHeldPrivateCreate(page, destination.kind);
       await page
         .getByRole('link', { name: definition.copy.title, exact: false })
@@ -1676,6 +1677,9 @@ for (const view of [
         })
         .getByRole('link', { name: definition.copy.title, exact: true })
         .click();
+      await expect(
+        page.getByRole('link', { name: /Previous task private title/ }),
+      ).toBeVisible();
       await page
         .getByRole('link', { name: definition.copy.add, exact: true })
         .click();

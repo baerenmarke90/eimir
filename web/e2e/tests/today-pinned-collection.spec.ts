@@ -474,6 +474,18 @@ async function signIn(page: Page): Promise<void> {
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
+  await expectToday(page);
+}
+
+async function expectToday(page: Page): Promise<void> {
+  await expect(
+    page.getByRole('heading', { name: m5s5.today.headerTitle, exact: true }),
+  ).toBeVisible();
+}
+
+async function openToday(page: Page): Promise<void> {
+  await page.goto('/today');
+  await expectToday(page);
 }
 
 async function expectNoHorizontalOverflow(page: Page): Promise<void> {
@@ -733,7 +745,7 @@ test('pins a shared Collection personally and keeps the compact Wir projection d
     page.getByRole('button', { name: m5s3.collection.unpinFromToday }),
   ).toBeVisible();
 
-  await page.goto('/today');
+  await openToday(page);
   const pinnedSection = page.locator('.today-section-pinned-collection');
   await expect(pinnedSection).toBeVisible();
   await expect(
@@ -1295,7 +1307,7 @@ for (const view of [
     await held.confirm();
     await expect(button).toBeEnabled();
     await expect(action.getByRole('status')).toHaveCount(0);
-    await page.goto('/today');
+    await openToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
     ).toBeVisible();
@@ -1308,7 +1320,7 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await page.goto('/today');
+    await openToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
     );
@@ -1367,7 +1379,7 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(1);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await page.goto('/today');
+    await openToday(page);
     await expect(
       page.locator('.today-section-pinned-collection'),
     ).toBeVisible();
@@ -1391,7 +1403,7 @@ for (const view of [
     await expect.poll(() => held.writes.length).toBe(2);
     await held.confirm();
     await expect(button).toBeEnabled();
-    await page.goto('/today');
+    await openToday(page);
     await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
       0,
     );
@@ -1559,7 +1571,7 @@ for (const view of [
         fullPage: true,
         animations: 'disabled',
       });
-      await page.goto('/today');
+      await openToday(page);
       await page.goto(`/plan/collections/${COLLECTION_ID}`);
       await expect(row).toBeVisible();
       expect(writes).toHaveLength(1);

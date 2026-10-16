@@ -1,8 +1,8 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import { Configuration } from '../api/generated/runtime';
-import { clientProblemKind, normalizeClientError } from './problemDetails';
-import { captureQueryIdentity } from './queryIdentity';
+import { normalizeClientError } from './problemDetails';
+import { captureAuthorizedQuery, captureQueryIdentity } from './queryIdentity';
 
 export const PRIVATE_AREA_ROOT_PATH = '/more/private';
 export const PRIVATE_NOTES_PATH = '/more/private/notes';
@@ -51,17 +51,7 @@ export function capturePrivateEdit<T extends { version: number }>(
   key: QueryKey,
   listKey: QueryKey,
 ) {
-  const isCurrentQuery = captureQueryIdentity(client, key);
-  const isCurrent = () => {
-    if (!isCurrentQuery()) return false;
-    const state = client.getQueryState(key);
-    return (
-      state?.data !== undefined &&
-      !['unauthorized', 'permission', 'notFound'].includes(
-        clientProblemKind(state?.error),
-      )
-    );
-  };
+  const isCurrent = captureAuthorizedQuery(client, key);
   return {
     key,
     listKey,

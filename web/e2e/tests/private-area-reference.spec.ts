@@ -960,6 +960,8 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
   const list = await installHeldPrivateList(page, count);
   let version = 1;
   let failReads = false;
+  let deniedReads = false;
+  let detailReads = 0;
   let nextDetailRead: {
     started: () => void;
     response: Promise<void>;
@@ -983,6 +985,7 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
     const request = route.request();
     const path = new URL(request.url()).pathname;
     if (request.method() === 'GET') {
+      if (path === `${root}/${PRIVATE_COLLECTION_ID}`) detailReads += 1;
       if (path === `${root}/${PRIVATE_COLLECTION_ID}` && nextDetailRead) {
         const read = nextDetailRead;
         nextDetailRead = null;
@@ -990,12 +993,12 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
         await read.response;
       }
       await route.fulfill({
-        status: failReads ? 503 : 200,
+        status: failReads ? (deniedReads ? 403 : 503) : 200,
         contentType: 'application/json',
         body: JSON.stringify(
           failReads
             ? {
-                status: 503,
+                status: deniedReads ? 403 : 503,
                 title: 'Read unavailable',
                 code: 'E2E_READ_UNAVAILABLE',
                 type: 'about:blank',
@@ -1023,6 +1026,11 @@ async function installHeldPrivateReorder(page: Page, count = 3) {
   return {
     items: list.items,
     writes,
+    detailReads: () => detailReads,
+    denyReads: () => {
+      failReads = true;
+      deniedReads = true;
+    },
     holdNextDetailRead: () => {
       let started!: () => void;
       let release!: () => void;
@@ -1178,6 +1186,68 @@ for (const view of feedbackViews) {
       .click();
     await expect(page).toHaveURL(/\/more\/private\/collections$/);
     expect(unexpectedRequests).toEqual([]);
+  });
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`private reorder respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 844,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.clock.install();
+    const unexpected = await signInAndOpenPrivateArea(page);
+    const fixture = await installHeldPrivateReorder(page);
+    await page.goto(`/more/private/collections/${PRIVATE_COLLECTION_ID}`);
+    await page
+      .getByRole('button', { name: de.common.edit, exact: true })
+      .click();
+    await page
+      .getByRole('button', { name: privateArea.collections.reorderItem })
+      .nth(1)
+      .focus();
+    await page.keyboard.press('ArrowUp');
+    await expect.poll(() => fixture.writes.length).toBe(1);
+    fixture.denyReads();
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(
+      0,
+    );
+    const before = fixture.detailReads();
+    const recovery = fixture.holdNextDetailRead();
+    await fixture.respond(outcome === 'success' ? 200 : 503);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(page.getByLabel(privateArea.collections.rename)).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(fixture.detailReads()).toBe(before);
+    expect(fixture.writes).toHaveLength(1);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`private-order-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    recovery.release();
+    expect(unexpected).toEqual([]);
   });
 }
 

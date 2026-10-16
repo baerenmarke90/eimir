@@ -11,6 +11,7 @@ import type { DashboardApi } from '../api/generated/apis/DashboardApi';
 import type { CollectionDetail } from '../api/generated/models/CollectionDetail';
 import type { CollectionItemDetail } from '../api/generated/models/CollectionItemDetail';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
+import { captureCollectionOrder } from '../client/collectionOrder';
 import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import { dashboardPreferencesQueryKey } from '../client/dashboardPreferences';
 import {
@@ -460,56 +461,57 @@ export function CollectionProductPage({
       assertOnlineWrite();
       return apiCall(() =>
         apis.collections.reorderCollectionItems({
-          spaceId,
+          spaceId: collection.spaceId,
           collectionId: collection.id,
           ifMatch: planningIfMatch(collection),
           collectionOrder: { itemIds },
         }),
       );
     },
-    onMutate: async ({ itemIds }) => {
-      await queryClient.cancelQueries({ queryKey: key, exact: true });
-      const current = queryClient.getQueryData<CollectionDetail>(key);
-      if (!current) return;
-      const previousPositions = new Map(
-        current.items.map((item) => [item.id, item.position]),
+    onMutate: async ({ collection, itemIds }) => {
+      const key = authorSummaryQueryKeys.collectionDetail(
+        collection.spaceId,
+        collection.id,
       );
-      const nextPositions = new Map(
-        itemIds.map((itemId, position) => [itemId, position]),
+      const listKey = authorSummaryQueryKeys.collections(collection.spaceId);
+      const isCurrentList = captureQueryIdentity(queryClient, listKey);
+      const order = await captureCollectionOrder<CollectionDetail>(
+        queryClient,
+        key,
+        collection.version,
+        itemIds,
       );
-      queryClient.setQueryData<CollectionDetail>(key, {
-        ...current,
-        items: current.items.map((item) => ({
-          ...item,
-          position: nextPositions.get(item.id) ?? item.position,
-        })),
-      });
-      return { previousPositions };
+      return { ...order, listKey, isCurrentList };
     },
     onError: async (error, _variables, context) => {
-      if (context?.previousPositions) {
-        queryClient.setQueryData<CollectionDetail>(key, (current) =>
-          current
-            ? {
-                ...current,
-                items: current.items.map((item) => ({
-                  ...item,
-                  position:
-                    context.previousPositions.get(item.id) ?? item.position,
-                })),
-              }
-            : current,
-        );
-      }
+      if (!context?.isCurrentQuery()) return;
+      context.rollback();
       if (clientProblemKind(error) === 'conflict') {
         await queryClient.invalidateQueries({
-          queryKey: key,
+          queryKey: context.key,
           exact: true,
           refetchType: isClientOnline() ? 'active' : 'none',
         });
       }
     },
-    onSuccess: commitCollection,
+    onSuccess: async (updated, _variables, context) => {
+      if (!context?.isCurrentQuery()) return;
+      context.confirm(updated);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: context.key,
+          exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
+        }),
+        context.isCurrentList()
+          ? queryClient.invalidateQueries({
+              queryKey: context.listKey,
+              exact: true,
+              refetchType: isClientOnline() ? 'active' : 'none',
+            })
+          : Promise.resolve(),
+      ]);
+    },
     onSettled: () => {
       reorderInFlightRef.current = false;
     },
@@ -523,7 +525,13 @@ export function CollectionProductPage({
 
   const retryReorder = () => {
     const failed = reorderItems.variables;
-    if (!failed || clientProblemKind(reorderItems.error) === 'conflict') {
+    if (
+      !failed ||
+      !reorderItems.context?.isCurrentQuery() ||
+      failed.collection.spaceId !== spaceId ||
+      failed.collection.id !== collectionId ||
+      clientProblemKind(reorderItems.error) === 'conflict'
+    ) {
       reorderItems.reset();
       void collectionQuery.refetch();
       return;
@@ -678,11 +686,14 @@ export function CollectionProductPage({
     updateItem.context?.isCurrentQuery()
       ? updateItem.error
       : null;
+  const reorderError =
+    reorderItems.variables?.collection.spaceId === spaceId &&
+    reorderItems.variables?.collection.id === collectionId &&
+    reorderItems.context?.isCurrentQuery()
+      ? reorderItems.error
+      : null;
   const itemMutationError =
-    createItem.error ||
-    itemUpdateError ||
-    deleteItem.error ||
-    reorderItems.error;
+    createItem.error || itemUpdateError || deleteItem.error || reorderError;
 
   return (
     <div className="page planning-page">
@@ -912,7 +923,7 @@ export function CollectionProductPage({
             error={itemMutationError}
             onRetry={() => {
               if (itemUpdateError) retryItemUpdate();
-              else if (reorderItems.error) retryReorder();
+              else if (reorderError) retryReorder();
               else void collectionQuery.refetch();
             }}
           />

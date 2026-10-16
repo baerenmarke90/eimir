@@ -458,11 +458,16 @@ async function installMocks(
     pin: (selectedCollectionId: string | null) => {
       pinnedCollectionId = selectedCollectionId;
     },
-    reviseItem(id: string, changes: Partial<MutableCollectionItem>) {
+    snapshot: () => structuredClone(collection()),
+    reviseItem(
+      id: string,
+      changes: Partial<MutableCollectionItem>,
+      advanceRoot = true,
+    ) {
       const item = items.find((entry) => entry.id === id);
       if (!item) throw new Error('Missing fixture item');
       Object.assign(item, changes);
-      collectionVersion += 1;
+      if (advanceRoot) collectionVersion += 1;
     },
     reorder(itemIds: string[]) {
       items.forEach((item) => {
@@ -776,6 +781,278 @@ for (const outcome of ['failure', 'success'] as const) {
       }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(writes).toEqual(['1', '3']);
+  });
+}
+
+for (const view of [
+  { name: '390-light', width: 390, height: 844, theme: 'light' as const },
+  { name: '1280-dark', width: 1280, height: 800, theme: 'dark' as const },
+]) {
+  for (const scenario of [
+    'newer order failure',
+    'newer order success',
+    'newer item success',
+  ] as const) {
+    test(`shared reorder preserves ${scenario} after reconnect (${view.name})`, async ({
+      page,
+      context,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.emulateMedia({
+        colorScheme: view.theme,
+        reducedMotion: 'reduce',
+      });
+      await page.clock.install();
+      const network = await installMocks(page);
+      await signIn(page);
+      const milk = '00000000-0000-0000-0000-000000000031';
+      const bread = '00000000-0000-0000-0000-000000000032';
+      const apples = '00000000-0000-0000-0000-000000000033';
+      const success = scenario !== 'newer order failure';
+      const newerOrder = scenario !== 'newer item success';
+      let releaseWrite!: () => void;
+      let releaseRecovery: (() => void) | undefined;
+      let holdRecovery = false;
+      const writes: string[] = [];
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+        async (route) => {
+          if (holdRecovery && route.request().method() === 'GET') {
+            await new Promise<void>((resolve) => {
+              releaseRecovery = resolve;
+            });
+          }
+          await route.fallback();
+        },
+      );
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+        async (route) => {
+          writes.push(route.request().headers()['if-match']);
+          const { itemIds } = route.request().postDataJSON() as {
+            itemIds: string[];
+          };
+          const response =
+            success || writes.length > 1
+              ? structuredClone(network.reorder(itemIds))
+              : undefined;
+          if (writes.length === 1)
+            await new Promise<void>((resolve) => {
+              releaseWrite = resolve;
+            });
+          await route.fulfill({
+            status: success || writes.length > 1 ? 200 : 503,
+            contentType: 'application/json',
+            body: JSON.stringify(
+              success || writes.length > 1
+                ? response
+                : {
+                    code: 'SERVER_ERROR',
+                    status: 503,
+                    title: 'Write unavailable',
+                    type: 'about:blank',
+                  },
+            ),
+          });
+        },
+      );
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      const names = () =>
+        page
+          .locator('[data-sortable-item-id] input[name="title"]')
+          .evaluateAll((inputs) =>
+            inputs.map((input) => (input as HTMLInputElement).value),
+          );
+      const handle = page.getByRole('button', {
+        name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+      });
+      await handle.focus();
+      await page.keyboard.press('ArrowUp');
+      await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+      await expect(page.getByRole('status')).toHaveText(
+        m5s3.collection.reordering,
+      );
+      await expect.poll(names).toEqual(['Milch', 'Äpfel', 'Brot']);
+      network.reviseItem(
+        milk,
+        { title: 'Hafermilch', completed: true, version: 3 },
+        false,
+      );
+      if (newerOrder) network.reorder([apples, milk, bread]);
+      const expectedNames = newerOrder
+        ? ['Äpfel', 'Hafermilch', 'Brot']
+        : ['Hafermilch', 'Äpfel', 'Brot'];
+      const reads = network.collectionGetCount();
+      // Reconnection refreshes a stale authorized read without replaying the held write.
+      await context.setOffline(true);
+      await page.clock.fastForward(16_000);
+      await context.setOffline(false);
+      await expect.poll(network.collectionGetCount).toBeGreaterThan(reads);
+      await expect.poll(names).toEqual(expectedNames);
+      await expect(page.getByRole('status')).toHaveText(
+        m5s3.collection.reordering,
+      );
+      expect(writes).toEqual(['1']);
+      holdRecovery = true;
+      releaseWrite();
+      if (success) await expect.poll(() => Boolean(releaseRecovery)).toBe(true);
+      else
+        await expect(
+          page.getByRole('button', { name: de.common.retry }),
+        ).toBeVisible();
+      await expect.poll(names).toEqual(expectedNames);
+      const milkRow = page.locator(`[data-sortable-item-id="${milk}"]`);
+      await expect(
+        milkRow.getByRole('button', {
+          name: m5s3.collection.markOpen.replace('{{title}}', 'Hafermilch'),
+        }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shared-order-${scenario.replaceAll(' ', '-')}-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      holdRecovery = false;
+      releaseRecovery?.();
+      if (!success)
+        await page.getByRole('button', { name: de.common.retry }).click();
+      else {
+        await expect(handle).toBeEnabled();
+        await handle.focus();
+        await page.keyboard.press(newerOrder ? 'ArrowDown' : 'ArrowUp');
+      }
+      await expect.poll(() => writes.length).toBe(2);
+      expect(writes[1]).toBe(newerOrder && success ? '3' : '2');
+      await expect(page.getByRole('status')).toHaveCount(0);
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toHaveCount(0);
+      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      await page
+        .getByRole('link', { name: m5s3.common.backToCollections })
+        .click();
+      await page.goBack();
+      await expect(milkRow.getByRole('textbox')).toHaveValue('Hafermilch');
+      expect(writes).toHaveLength(2);
+    });
+  }
+}
+
+for (const outcome of ['success', 'failure'] as const) {
+  test(`shared reorder respects a newer denied read after late ${outcome}`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    await page.setViewportSize({
+      width: outcome === 'success' ? 390 : 1280,
+      height: 844,
+    });
+    await page.emulateMedia({
+      colorScheme: outcome === 'success' ? 'light' : 'dark',
+      reducedMotion: 'reduce',
+    });
+    await page.clock.install();
+    const network = await installMocks(page);
+    await signIn(page);
+    let denied = false;
+    let reads = 0;
+    let releaseWrite!: () => void;
+    let releaseRecovery: (() => void) | undefined;
+    let holdRecovery = false;
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}`,
+      async (route) => {
+        reads += 1;
+        if (holdRecovery)
+          await new Promise<void>((resolve) => {
+            releaseRecovery = resolve;
+          });
+        if (!denied) {
+          await route.fallback();
+          return;
+        }
+        await route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            status: 403,
+            code: 'PERMISSION_DENIED',
+            title: 'Permission denied',
+            type: 'about:blank',
+          }),
+        });
+      },
+    );
+    await page.route(
+      `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+      async (route) => {
+        const { itemIds } = route.request().postDataJSON() as {
+          itemIds: string[];
+        };
+        const response = structuredClone(network.reorder(itemIds));
+        await new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        });
+        await route.fulfill({
+          status: outcome === 'success' ? 200 : 503,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            outcome === 'success'
+              ? response
+              : {
+                  status: 503,
+                  code: 'SERVER_ERROR',
+                  title: 'Write unavailable',
+                  type: 'about:blank',
+                },
+          ),
+        });
+      },
+    );
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await page
+      .getByRole('button', {
+        name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+      })
+      .focus();
+    await page.keyboard.press('ArrowUp');
+    await expect.poll(() => Boolean(releaseWrite)).toBe(true);
+    denied = true;
+    await context.setOffline(true);
+    await page.clock.fastForward(16_000);
+    await context.setOffline(false);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toHaveCount(0);
+    const readsBefore = reads;
+    holdRecovery = true;
+    const response = page.waitForResponse((entry) =>
+      entry.url().endsWith(`/collections/${COLLECTION_ID}/order`),
+    );
+    releaseWrite();
+    await (await response).finished();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+    );
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toHaveCount(0);
+    await expect(
+      page.getByText(de.states.permission.title, { exact: true }),
+    ).toBeVisible();
+    expect(reads).toBe(readsBefore);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`shared-order-denied-${outcome}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+    holdRecovery = false;
+    releaseRecovery?.();
   });
 }
 

@@ -389,9 +389,219 @@ describe('CollectionProductPage', () => {
     expect(reorderCollectionItems).toHaveBeenCalledTimes(1);
   });
 
+  it.each(['failure', 'success'] as const)(
+    'keeps a newer shared list order after an older reorder %s',
+    async (outcome) => {
+      let resolve!: (value: unknown) => void;
+      let reject!: (error: Error) => void;
+      const write = vi.fn(
+        () =>
+          new Promise((success, failure) => {
+            resolve = success;
+            reject = failure;
+          }),
+      );
+      const fixture = renderReorderCollection(write);
+      fixture.moveApplesUp();
+      await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+      const newer = {
+        ...fixture.initial,
+        title: 'Newer partner list',
+        version: 4,
+        items: fixture.initial.items.map((item) => ({
+          ...item,
+          position: item.id === 'item-3' ? 0 : item.id === 'item-1' ? 1 : 2,
+        })),
+      };
+      act(() => fixture.client.setQueryData(fixture.key, newer));
+      vi.spyOn(fixture.client, 'invalidateQueries').mockResolvedValue();
+      await act(async () => {
+        if (outcome === 'failure') reject(new Error('Connection lost'));
+        else resolve({ ...fixture.initial, version: 2 });
+      });
+      expect(fixture.client.getQueryData(fixture.key)).toEqual(newer);
+      await waitFor(() =>
+        expect(fixture.order()).toEqual(['item-3', 'item-1', 'item-2']),
+      );
+      expect(
+        screen.getByRole('heading', { name: 'Newer partner list' }),
+      ).toBeDefined();
+    },
+  );
+
+  it.each(['failure', 'success'] as const)(
+    'leaves a replacement Query and its feedback untouched after shared reorder %s',
+    async (outcome) => {
+      let resolve!: (value: unknown) => void;
+      let reject!: (error: Error) => void;
+      const write = vi.fn(
+        () =>
+          new Promise((success, failure) => {
+            resolve = success;
+            reject = failure;
+          }),
+      );
+      const fixture = renderReorderCollection(write);
+      fixture.moveApplesUp();
+      await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+      fixture.getCollection.mockImplementation(() => new Promise(() => {}));
+      fixture.client.removeQueries({ queryKey: fixture.key, exact: true });
+      const replacement = {
+        ...fixture.initial,
+        title: 'Fresh authorized list',
+        version: 8,
+      };
+      act(() => fixture.client.setQueryData(fixture.key, replacement));
+      const invalidate = vi
+        .spyOn(fixture.client, 'invalidateQueries')
+        .mockResolvedValue();
+      await act(async () => {
+        if (outcome === 'failure') reject(new Error('Connection lost'));
+        else resolve({ ...fixture.initial, version: 2 });
+      });
+      await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+      expect(fixture.client.getQueryData(fixture.key)).toEqual(replacement);
+      expect(invalidate).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', { name: i18n.t('common.retry') }),
+      ).toBeNull();
+    },
+  );
+
+  for (const [kind, status] of [
+    ['unauthorized', 401],
+    ['permission', 403],
+    ['notFound', 404],
+  ] as const) {
+    it.each(['success', 'failure'] as const)(
+      `keeps a newer shared ${status} read authoritative after reorder %s`,
+      async (outcome) => {
+        let resolve!: (value: unknown) => void;
+        let reject!: (error: Error) => void;
+        const write = vi.fn(
+          () =>
+            new Promise((yes, no) => {
+              resolve = yes;
+              reject = no;
+            }),
+        );
+        const fixture = renderReorderCollection(write);
+        fixture.moveApplesUp();
+        await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+        const denied = new ClientProblemError(kind, status);
+        fixture.getCollection.mockRejectedValue(denied);
+        await act(async () =>
+          fixture.client.refetchQueries({ queryKey: fixture.key, exact: true }),
+        );
+        await waitFor(() =>
+          expect(screen.queryAllByRole('textbox')).toHaveLength(0),
+        );
+        const invalidate = vi
+          .spyOn(fixture.client, 'invalidateQueries')
+          .mockResolvedValue();
+        await act(async () =>
+          outcome === 'success'
+            ? resolve({ ...fixture.initial, version: 2 })
+            : reject(new Error('Connection lost')),
+        );
+        await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+        expect(fixture.client.getQueryState(fixture.key)?.error).toBe(denied);
+        expect(invalidate).not.toHaveBeenCalled();
+        expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+      },
+    );
+  }
+
+  it('does not apply shared optimism to a Query replaced while cancellation waits', async () => {
+    let release!: () => void;
+    let confirm!: (value: unknown) => void;
+    const write = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          confirm = resolve;
+        }),
+    );
+    const fixture = renderReorderCollection(write);
+    vi.spyOn(fixture.client, 'cancelQueries').mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+    fixture.moveApplesUp();
+    await waitFor(() =>
+      expect(fixture.client.cancelQueries).toHaveBeenCalled(),
+    );
+    fixture.getCollection.mockImplementation(() => new Promise(() => {}));
+    fixture.client.removeQueries({ queryKey: fixture.key, exact: true });
+    const replacement = { ...fixture.initial, title: 'Fresh authorized list' };
+    act(() => fixture.client.setQueryData(fixture.key, replacement));
+    await act(async () => release());
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    expect(fixture.client.getQueryData(fixture.key)).toEqual(replacement);
+    const invalidate = vi
+      .spyOn(fixture.client, 'invalidateQueries')
+      .mockResolvedValue();
+    await act(async () => confirm({ ...fixture.initial, version: 2 }));
+    await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
+    expect(fixture.client.getQueryData(fixture.key)).toEqual(replacement);
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it('confirms shared order without replacing a newer item edit', async () => {
+    let resolve!: (value: unknown) => void;
+    const write = vi.fn(
+      () =>
+        new Promise((success) => {
+          resolve = success;
+        }),
+    );
+    const fixture = renderReorderCollection(write);
+    fixture.moveApplesUp();
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    const current = {
+      ...fixture.initial,
+      items: fixture.initial.items.map((item) =>
+        item.id === 'item-1'
+          ? {
+              ...item,
+              title: 'Updated passport details',
+              completed: true,
+              version: 3,
+            }
+          : item,
+      ),
+    };
+    act(() => fixture.client.setQueryData(fixture.key, current));
+    vi.spyOn(fixture.client, 'invalidateQueries').mockResolvedValue();
+    const confirmed = {
+      ...fixture.initial,
+      version: 2,
+      items: fixture.initial.items.map((item) => ({
+        ...item,
+        position: item.id === 'item-3' ? 1 : item.id === 'item-2' ? 2 : 0,
+      })),
+    };
+    await act(async () => {
+      resolve(confirmed);
+    });
+    expect(
+      fixture.client.getQueryData<typeof current>(fixture.key)?.items[0],
+    ).toMatchObject({
+      title: 'Updated passport details',
+      completed: true,
+      version: 3,
+    });
+    expect(
+      fixture.client.getQueryData<typeof current>(fixture.key)?.version,
+    ).toBe(2);
+    expect(fixture.order()).toEqual(['item-1', 'item-3', 'item-2']);
+  });
+
   function renderToggleCollection(
     updateCollectionItem: ReturnType<typeof vi.fn>,
     includeNavigation = false,
+    reorderCollectionItems?: ReturnType<typeof vi.fn>,
   ) {
     const firstItem = {
       capabilities: { canComment: false, canDelete: true, canEdit: true },
@@ -430,7 +640,11 @@ describe('CollectionProductPage', () => {
     queryClient.setQueryData(key, initial);
     const getCollection = vi.fn(async () => authoritative);
     const apis = {
-      collections: { getCollection, updateCollectionItem },
+      collections: {
+        getCollection,
+        updateCollectionItem,
+        reorderCollectionItems,
+      },
     } as unknown as SharedPlanningApis;
 
     render(
@@ -724,6 +938,60 @@ describe('CollectionProductPage', () => {
       screen.queryByRole('button', { name: i18n.t('common.retry') }),
     ).toBeNull();
   });
+
+  it.each(['success', 'failure'] as const)(
+    'keeps reorder settlement and feedback in the submitted collection after route change (%s)',
+    async (outcome) => {
+      let resolve!: (value: unknown) => void;
+      let reject!: (error: Error) => void;
+      const reorder = vi.fn(
+        () =>
+          new Promise((yes, no) => {
+            resolve = yes;
+            reject = no;
+          }),
+      );
+      const fixture = renderToggleCollection(vi.fn(), true, reorder);
+      fireEvent.keyDown(
+        screen.getByRole('button', {
+          name: i18n.t('m5s3.collection.reorderItem', { title: 'Tickets' }),
+        }),
+        { key: 'ArrowUp' },
+      );
+      await waitFor(() => expect(reorder).toHaveBeenCalledTimes(1));
+      fixture.getCollection.mockResolvedValue({ ...nextCollection, items: [] });
+      await userEvent
+        .setup()
+        .click(screen.getByRole('link', { name: 'Switch collection' }));
+      await screen.findByRole('heading', { name: nextCollection.title });
+      const destinationKey = authorSummaryQueryKeys.collectionDetail(
+        'space-1',
+        'collection-2',
+      );
+      const destination = fixture.queryClient.getQueryData(destinationKey);
+      vi.spyOn(fixture.queryClient, 'invalidateQueries').mockResolvedValue();
+      await act(async () =>
+        outcome === 'success'
+          ? resolve({
+              ...sampleCollection,
+              version: 2,
+              items: [
+                { ...fixture.firstItem, position: 1 },
+                { ...fixture.secondItem, position: 0 },
+              ],
+            })
+          : reject(new Error('Connection lost')),
+      );
+      await waitFor(() => expect(fixture.queryClient.isMutating()).toBe(0));
+      expect(fixture.queryClient.getQueryData(destinationKey)).toBe(
+        destination,
+      );
+      expect(
+        screen.queryByRole('button', { name: i18n.t('common.retry') }),
+      ).toBeNull();
+      expect(reorder).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('keeps late checkbox failure feedback in the initiating collection after route change', async () => {
     let reject!: (error: Error) => void;

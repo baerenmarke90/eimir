@@ -94,7 +94,7 @@
     },
     "planning-completion-story-continuation.spec.ts": {
       "disposition": "FULL_REGRESSION",
-      "baselineTests": 12
+      "baselineTests": 19
     },
     "planning-focused-create.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -238,7 +238,7 @@
     },
     "today-daily-vibe.spec.ts": {
       "disposition": "PR_CRITICAL",
-      "baselineTests": 6
+      "baselineTests": 17
     },
     "today-freshness.spec.ts": {
       "disposition": "PR_CRITICAL",
@@ -275,6 +275,10 @@
     "shared-photos.spec.ts": {
       "disposition": "PR_CRITICAL",
       "baselineTests": 3
+    },
+    "app-icon-selection.spec.ts": {
+      "disposition": "PR_CRITICAL",
+      "baselineTests": 6
     }
   }
 }

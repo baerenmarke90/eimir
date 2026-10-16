@@ -33,7 +33,7 @@ function installThemeDocument(backgroundByTheme: Record<string, string>) {
     style: {} as Record<string, string>,
   };
   const themeColor = { content: 'fallback' };
-  const favicon = { tagName: 'LINK', href: '/favicon.svg' };
+  const favicon = { tagName: 'LINK', href: '/identity/app-icon-light.png' };
 
   Object.defineProperty(globalThis, 'document', {
     configurable: true,
@@ -100,13 +100,13 @@ describe('theme preference', () => {
     });
     expect(root.style.colorScheme).toBe('light');
     expect(themeColor.content).toBe('#light-token');
-    expect(favicon.href).toBe('/favicon.svg');
+    expect(favicon.href).toBe('/identity/app-icon-light.png');
 
     applyResolvedTheme('dark', 'system');
     expect(root.dataset.theme).toBe('dark');
     expect(root.style.colorScheme).toBe('dark');
     expect(themeColor.content).toBe('#dark-token');
-    expect(favicon.href).toBe('/favicon-dark.svg');
+    expect(favicon.href).toBe('/identity/app-icon-dark.png');
   });
 
   it('keeps the bootstrap fallback when the semantic CSS token is unavailable', () => {

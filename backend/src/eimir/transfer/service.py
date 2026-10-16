@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import MetaData, Table, and_, or_, select
 from sqlalchemy.orm import Session
 
+from eimir.appearance import service as appearance_service
 from eimir.attachments.models import AttachmentStatus
 from eimir.authorization import AuthorizationContext, PrivacyClass
 from eimir.core.clock import now
@@ -487,7 +488,15 @@ def build_export_archive(
     checksums: dict[str, str] = {}
     store = get_media_store()
     with ZipFile(output, mode="w", compression=ZIP_DEFLATED, allowZip64=True) as archive:
-        add_bytes(archive, "accounts.json", json_bytes({"members": accounts}), checksums)
+        account_document: dict[str, Any] = {"members": accounts}
+        if scope is TransferScope.PERSONAL:
+            preference = appearance_service.read_preference(session, authorization)
+            account_document["personalAppearance"] = {
+                "appIconId": preference.icon_id if preference else "original",
+            }
+        # Personal appearance is export-only metadata. Import never activates
+        # paid choices or changes an installation based on untrusted bundles.
+        add_bytes(archive, "accounts.json", json_bytes(account_document), checksums)
         for file_name, table_names in FILE_TABLES.items():
             if scope is TransferScope.SHARED and file_name in PRIVATE_FILES:
                 continue

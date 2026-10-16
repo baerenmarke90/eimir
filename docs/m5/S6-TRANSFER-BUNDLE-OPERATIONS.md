@@ -43,6 +43,12 @@ matching database rows commit.
 email as a mapping aid. A verified email is not required: OIDC accounts without
 an email claim and local accounts without a verified address remain portable.
 
+PERSONAL exports additionally include the caller's `personalAppearance.appIconId`
+in `accounts.json` (#1307). SHARED exports omit this owner-only selection. This
+is export-only settings metadata: additive import ignores it and never activates
+a paid icon or changes installed-app metadata from an untrusted bundle. Existing
+member mapping and source-member authorization remain unchanged.
+
 New v1 exports also record `exportedBySourceId` in `manifest.json`. During
 import that source member must map to the currently authenticated target member.
 For a normal eimir. couple Space, which is limited to at most two active

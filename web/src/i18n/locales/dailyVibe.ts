@@ -26,6 +26,7 @@ const dailyVibe = {
   partnerNoteClose: 'Vibe-Kontext schließen',
   close: 'Vibe-Auswahl schließen',
   saving: 'Wird gespeichert …',
+  otherSaving: 'Dein Akku wird gerade gespeichert.',
   remove: 'Vibe entfernen',
   disabledTitle: 'Vibe ist gerade ausgeschaltet',
   disabledBody:

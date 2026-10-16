@@ -111,6 +111,12 @@ message.
 - Segmented Control: two to four equivalent views or modes, not long-term
   navigation.
 
+`ShortTaskSheet` may accept an optional `footer` for a bounded choice with a
+long scrollable body. The shared footer stays outside body scrolling, protects
+the bottom safe area and remains separately scrollable for large text or error
+content. It does not introduce another modal, focus or dismissal lifecycle.
+App-icon selection uses this contract for its explicit Save and recovery state.
+
 ### 4.3 Date, Time, and Duration
 
 - Platform-native selection is allowed if result format and validation remain

@@ -954,7 +954,10 @@ export function PrivateCollectionDetailPage({
           collection.spaceId,
           collection.id,
         ),
-        privateAreaQueryKeys.collections(collection.ownerId, collection.spaceId),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
       ),
     onSuccess: (updated, _variables, context) => {
       if (!context?.reconcile(updated)) return;
@@ -1051,7 +1054,10 @@ export function PrivateCollectionDetailPage({
       collectionOperationBlocked
     )
       return;
-    updateCollectionMutation.mutate({ collection, newTitle: titleDraft.trim() });
+    updateCollectionMutation.mutate({
+      collection,
+      newTitle: titleDraft.trim(),
+    });
   }
 
   return (
@@ -1291,7 +1297,10 @@ export function PrivateCollectionEditPage({ api, accountId, spaceId }: Props) {
           collection.spaceId,
           collection.id,
         ),
-        privateAreaQueryKeys.collections(collection.ownerId, collection.spaceId),
+        privateAreaQueryKeys.collections(
+          collection.ownerId,
+          collection.spaceId,
+        ),
       ),
     onSuccess: async (collection, _variables, context) => {
       if (!context?.reconcile(collection)) return;

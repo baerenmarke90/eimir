@@ -132,7 +132,11 @@ for (const definition of definitions) {
   describe(`${definition.name} private settlement ownership`, () => {
     function setup() {
       const write = deferred<Resource>();
-      const update = vi.fn((_request: unknown) => write.promise);
+      let currentResource: Resource = definition.resource;
+      const update = vi.fn(async (_request: unknown) => {
+        currentResource = await write.promise;
+        return currentResource;
+      });
       const queryClient = new QueryClient({
         defaultOptions: {
           queries: { retry: false, staleTime: Infinity },
@@ -140,7 +144,7 @@ for (const definition of definitions) {
         },
       });
       queryClient.setQueryData(definition.key, definition.resource);
-      const get = vi.fn(async () => definition.resource);
+      const get = vi.fn(async () => currentResource);
       const api = {
         getPrivateNote: get,
         getGiftIdea: get,
@@ -155,19 +159,33 @@ for (const definition of definitions) {
         const [visible, setVisible] = useState(true);
         hideEditor = () => setVisible(false);
         return (
-        <QueryClientProvider client={queryClient}>
-          <MemoryRouter initialEntries={[definition.path]}>
-            <Location />
-            <Routes>
-              <Route path={definition.route} element={
-                visible ? <Editor api={api} accountId={accountId} spaceId={spaceId} /> : <p>Session ended</p>
-              } />
-              {!definition.inline ? (
-                <Route path={definition.result} element={<p>Authorized saved result</p>} />
-              ) : null}
-            </Routes>
-          </MemoryRouter>
-        </QueryClientProvider>
+          <QueryClientProvider client={queryClient}>
+            <MemoryRouter initialEntries={[definition.path]}>
+              <Location />
+              <Routes>
+                <Route
+                  path={definition.route}
+                  element={
+                    visible ? (
+                      <Editor
+                        api={api}
+                        accountId={accountId}
+                        spaceId={spaceId}
+                      />
+                    ) : (
+                      <p>Session ended</p>
+                    )
+                  }
+                />
+                {!definition.inline ? (
+                  <Route
+                    path={definition.result}
+                    element={<p>Authorized saved result</p>}
+                  />
+                ) : null}
+              </Routes>
+            </MemoryRouter>
+          </QueryClientProvider>
         );
       }
       render(<Harness />);
@@ -178,12 +196,20 @@ for (const definition of definitions) {
         fireEvent.change(screen.getByLabelText(definition.label), {
           target: { value: 'Submitted private title' },
         });
-        fireEvent.click(screen.getByRole('button', {
-          name: definition.inline ? m5s3.common.saveChanges : privateArea.save,
-        }));
+        fireEvent.click(
+          screen.getByRole('button', {
+            name: definition.inline
+              ? m5s3.common.saveChanges
+              : privateArea.save,
+          }),
+        );
         await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
       }
-      const saved = { ...definition.resource, title: 'Submitted private title', version: 2 };
+      const saved = {
+        ...definition.resource,
+        title: 'Submitted private title',
+        version: 2,
+      };
       return { queryClient, write, update, submit, saved, hideEditor };
     }
 
@@ -194,15 +220,21 @@ for (const definition of definitions) {
         await h.submit();
         act(() => h.hideEditor());
         h.queryClient.clear();
-        const replacement = { ...definition.resource, title: 'Fresh authorized session' };
-        if (state === 'replaced') h.queryClient.setQueryData(definition.key, replacement);
+        const replacement = {
+          ...definition.resource,
+          title: 'Fresh authorized session',
+        };
+        if (state === 'replaced')
+          h.queryClient.setQueryData(definition.key, replacement);
         const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
         await act(async () => h.write.resolve(h.saved));
         expect(h.queryClient.getQueryData(definition.key)).toEqual(
           state === 'replaced' ? replacement : undefined,
         );
         expect(invalidate).not.toHaveBeenCalled();
-        expect(screen.getByTestId('location').textContent).toBe(definition.path);
+        expect(screen.getByTestId('location').textContent).toBe(
+          definition.path,
+        );
       },
     );
 
@@ -210,32 +242,51 @@ for (const definition of definitions) {
       ['unauthorized', 401],
       ['permission', 403],
       ['notFound', 404],
-    ] as const)('preserves a current %s read instead of reviving private content', async (kind, status) => {
-      const h = setup();
-      await h.submit();
-      const denied = new ClientProblemError(kind, status);
-      await act(async () => {
-        await h.queryClient.fetchQuery({
-          queryKey: definition.key,
-          queryFn: () => Promise.reject(denied),
-          staleTime: 0,
-          retry: false,
-        }).catch(() => undefined);
-      });
-      expect(h.queryClient.getQueryState(definition.key)?.error).toBe(denied);
-      const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
-      await act(async () => h.write.resolve(h.saved));
-      expect(h.queryClient.getQueryState(definition.key)?.error).toBe(denied);
-      expect(h.queryClient.getQueryState(definition.key)?.status).toBe('error');
-      expect(invalidate).not.toHaveBeenCalled();
-      expect(screen.getByTestId('location').textContent).toBe(definition.path);
-      expect(screen.queryByDisplayValue('Submitted private title')).toBeNull();
-    });
+    ] as const)(
+      'preserves a current %s read instead of reviving private content',
+      async (kind, status) => {
+        const h = setup();
+        await h.submit();
+        const denied = new ClientProblemError(kind, status);
+        await act(async () => {
+          await h.queryClient
+            .fetchQuery({
+              queryKey: definition.key,
+              queryFn: () => Promise.reject(denied),
+              staleTime: 0,
+              retry: false,
+            })
+            .catch(() => undefined);
+        });
+        expect(h.queryClient.getQueryState(definition.key)?.error).toBe(denied);
+        await waitFor(() =>
+          expect(screen.queryByLabelText(definition.label)).toBeNull(),
+        );
+        const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
+        await act(async () => h.write.resolve(h.saved));
+        await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+        expect(h.queryClient.getQueryState(definition.key)?.error).toBe(denied);
+        expect(h.queryClient.getQueryState(definition.key)?.status).toBe(
+          'error',
+        );
+        expect(invalidate).not.toHaveBeenCalled();
+        expect(screen.getByTestId('location').textContent).toBe(
+          definition.path,
+        );
+        expect(
+          screen.queryByDisplayValue('Submitted private title'),
+        ).toBeNull();
+      },
+    );
 
     it('does not overwrite a newer authorized resource version', async () => {
       const h = setup();
       await h.submit();
-      const newer = { ...definition.resource, title: 'Newer authorized content', version: 5 };
+      const newer = {
+        ...definition.resource,
+        title: 'Newer authorized content',
+        version: 5,
+      };
       act(() => h.queryClient.setQueryData(definition.key, newer));
       const invalidate = vi.spyOn(h.queryClient, 'invalidateQueries');
       await act(async () => h.write.resolve(h.saved));
@@ -246,33 +297,53 @@ for (const definition of definitions) {
     it('reconciles a current authorized save and keeps the existing result continuation', async () => {
       const h = setup();
       await h.submit();
-      expect(h.update).toHaveBeenCalledWith(expect.objectContaining({
-        spaceId, ifMatch: '1', [definition.idField]: resourceId,
-      }));
+      expect(h.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spaceId,
+          ifMatch: '1',
+          [definition.idField]: resourceId,
+        }),
+      );
       await act(async () => h.write.resolve(h.saved));
       await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
       expect(h.queryClient.getQueryData(definition.key)).toEqual(h.saved);
-      await waitFor(() => expect(screen.getByTestId('location').textContent).toBe(definition.result));
+      await waitFor(() =>
+        expect(screen.getByTestId('location').textContent).toBe(
+          definition.result,
+        ),
+      );
       if (definition.inline) {
-        expect(screen.getByRole('heading', { name: /Submitted private title/ })).toBeDefined();
+        expect(
+          await screen.findByRole('heading', {
+            name: /Submitted private title/,
+          }),
+        ).toBeDefined();
       } else {
         expect(screen.getByText('Authorized saved result')).toBeDefined();
       }
     });
 
-    if (!definition.inline) it('does not continue into a cleared session after awaited list recovery', async () => {
-      const h = setup();
-      await h.submit();
-      const recovery = deferred<void>();
-      vi.spyOn(h.queryClient, 'invalidateQueries').mockReturnValue(recovery.promise);
-      await act(async () => h.write.resolve(h.saved));
-      expect(h.queryClient.getQueryData(definition.key)).toEqual(h.saved);
-      act(() => { h.hideEditor(); h.queryClient.clear(); });
-      await act(async () => recovery.resolve());
-      expect(h.queryClient.getQueryData(definition.key)).toBeUndefined();
-      if (!definition.inline) {
-        expect(screen.getByTestId('location').textContent).toBe(definition.path);
-      }
-    });
+    if (!definition.inline)
+      it('does not continue into a cleared session after awaited list recovery', async () => {
+        const h = setup();
+        await h.submit();
+        const recovery = deferred<void>();
+        vi.spyOn(h.queryClient, 'invalidateQueries').mockReturnValue(
+          recovery.promise,
+        );
+        await act(async () => h.write.resolve(h.saved));
+        expect(h.queryClient.getQueryData(definition.key)).toEqual(h.saved);
+        act(() => {
+          h.hideEditor();
+          h.queryClient.clear();
+        });
+        await act(async () => recovery.resolve());
+        expect(h.queryClient.getQueryData(definition.key)).toBeUndefined();
+        if (!definition.inline) {
+          expect(screen.getByTestId('location').textContent).toBe(
+            definition.path,
+          );
+        }
+      });
   });
 }

@@ -1,14 +1,19 @@
 # UnifiedPush cloud refresh: 2026-10-16
 
-PR #1271 remains **Draft**. This refresh merges baseline main
-`b9c7ce1c88823f3a35337a50e0e67cf63bd884c1` into the existing device slice.
+PR #1271 remains **Draft**. The initial refresh merged baseline main
+`b9c7ce1c88823f3a35337a50e0e67cf63bd884c1`; the final integration merges main
+`159f38a21e8fef03f36de7c1cef1874da60e5f14` after regular merges of #1319
+(semantic Today browser readiness) and #1303 (Gradle 8.14.6 security patch).
 The merge preserves the current routes, generated API, notification preferences,
 dependency repairs and Android artifact-verification policy. No native or Web
 Push behavior is intentionally changed.
 
 ## Cloud checks
 
-- Complete Web suite: **1496 passed, one existing skip**, with `npm test -- --maxWorkers=2`.
+- Complete Web suite at the initial refreshed source: **1496 passed, one existing
+  skip**, with `npm test -- --maxWorkers=2`. The final main integration changes
+  browser-test readiness and build verification, with no additional Web runtime
+  or unit-test changes.
 - `npm run typecheck`, `npm run lint`, `npm run format:check`,
   `npm run cap:check`, and `npm run build`: passed.
 - `npm audit --audit-level=high`: passed; three moderate transitive findings
@@ -20,8 +25,10 @@ Push behavior is intentionally changed.
 
 The regular Android package graph still uses the official UnifiedPush connector,
 strict Gradle artifact verification and the shared generated Notifications API.
-The independent Gradle security-toolchain repair is tracked in #1303; retain its
-release contracts when bringing this branch forward after that merge.
+The independent Gradle security-toolchain repair from #1303 is included:
+Gradle 8.14.6, AGP 8.13.0, Capacitor 8.5.2 and JDK 21. Both release-workflow
+JAR pins and the verified Kotlin metadata POM remain intact alongside this PR's
+UnifiedPush artifact pins. No verification policy is relaxed.
 
 These cloud checks do not execute Android distributor delivery, Android system
 permission/settings UI, physical fold transitions or system font scaling. They

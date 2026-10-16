@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 from eimir.administration import service as administration
 from eimir.administration.models import AdministrationAction
+from eimir.appearance.models import AppIconPreference
 from eimir.auth import sessions
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.core.clock import now
@@ -248,6 +249,7 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     view_service.purge_viewer(session, viewer_account_id=account_id)
     create_receipts.purge_account(session, account_id=account_id)
     shared_create_receipts.purge_account(session, account_id=account_id)
+    _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.

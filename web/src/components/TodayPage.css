@@ -55,11 +55,12 @@
 
 /*
  * The reveal transform makes each Today section its own stacking context.
- * Elevate the hero only while the Energy popover is open so the popover can
- * paint above later sections without competing with shell/header overlays.
+ * Elevate the hero only while the Energy popover is open so its slider stays
+ * operable above the fixed Compact navigation at large text sizes. Header
+ * overlays retain their higher stacking level.
  */
 .today-hero.couple-presence-card:has(.daily-energy-popover) {
-  z-index: 20;
+  z-index: 60;
 }
 
 /*

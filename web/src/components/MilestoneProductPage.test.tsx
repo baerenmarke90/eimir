@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { authorSummaryQueryKeys } from '../client/authorSummaryConsumers';
 import type { ReferenceApis } from '../client/referenceFlow';
 import type { MilestoneDetail } from '../api/generated/models/MilestoneDetail';
-import { TaskOriginProvider } from '../client/taskOrigin';
+import { TaskOriginProvider, useTaskOrigin } from '../client/taskOrigin';
+import navigation from '../i18n/locales/navigation';
 import storyProducts from '../i18n/locales/storyProducts';
 import { AppShell } from './AppShell';
 import { MilestoneProductPage } from './MilestoneProductPage';
+import { QuickCreateMenu } from './QuickCreateMenu';
 
 const backToStoryName = new RegExp(
   storyProducts.milestoneProduct.backToStory.replace(/^←\s*/, ''),
@@ -139,6 +141,7 @@ function renderCreate() {
             path="/story/milestones/:milestoneId"
             element={<p>Milestone result</p>}
           />
+          <Route path="/story" element={<p>Story fallback</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -169,6 +172,93 @@ describe('Milestone create request identity', () => {
         happenedOn: expect.any(Date),
       },
     });
+  });
+});
+
+function ReturnFromResult() {
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
+  return (
+    <button type="button" onClick={() => requestReturn(originKey)}>
+      {resolveOrigin(originKey) ? 'Return to origin' : 'Origin missing'}
+    </button>
+  );
+}
+
+describe('Quick Create Milestone continuity (#509)', () => {
+  it('returns from a confirmed result to its originating context', async () => {
+    const createMilestone = vi.fn().mockResolvedValue({ id: 'milestone-new' });
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/today']}>
+          <TaskOriginProvider accountId="account-1" spaceId="space-1">
+            <QuickCreateMenu variant="desktop" />
+            <Routes>
+              <Route path="/today" element={<p>Today origin</p>} />
+              <Route
+                path="/story/milestones/new"
+                element={
+                  <MilestoneProductPage
+                    mode="create"
+                    apis={
+                      {
+                        milestones: { createMilestone },
+                      } as unknown as ReferenceApis
+                    }
+                    spaceId="space-1"
+                    currentAccountId="account-1"
+                  />
+                }
+              />
+              <Route
+                path="/story/milestones/:milestoneId"
+                element={<ReturnFromResult />}
+              />
+              <Route path="/story" element={<p>Story fallback</p>} />
+            </Routes>
+          </TaskOriginProvider>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole('button', { name: navigation.newContent }),
+    );
+    await user.click(
+      screen.getByRole('menuitem', { name: navigation.quickCreateMilestone }),
+    );
+    expect(document.activeElement).not.toBe(
+      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+    );
+    await user.type(
+      screen.getByLabelText(storyProducts.milestoneProduct.titleLabel),
+      'Our first home',
+    );
+    await user.click(
+      screen.getByRole('button', { name: storyProducts.milestoneProduct.save }),
+    );
+    await waitFor(() => expect(createMilestone).toHaveBeenCalledTimes(1));
+    await user.click(
+      await screen.findByRole('button', { name: 'Return to origin' }),
+    );
+    expect(await screen.findByText('Today origin')).toBeTruthy();
+  });
+
+  it('falls back to Story for direct create entry', async () => {
+    renderCreate();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: backToStoryName }));
+    expect(await screen.findByText('Story fallback')).toBeTruthy();
   });
 });
 

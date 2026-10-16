@@ -2,6 +2,7 @@ import { ChapterRelationsApi } from '../api/generated/apis/ChapterRelationsApi';
 import { ChaptersApi } from '../api/generated/apis/ChaptersApi';
 import { CollectionsApi } from '../api/generated/apis/CollectionsApi';
 import { HeartMomentsApi } from '../api/generated/apis/HeartMomentsApi';
+import { i18n } from '../i18n';
 import { MemoriesApi } from '../api/generated/apis/MemoriesApi';
 import { MilestonesApi } from '../api/generated/apis/MilestonesApi';
 import { PlaceRelationsApi } from '../api/generated/apis/PlaceRelationsApi';
@@ -196,7 +197,7 @@ export function storyRelationTarget(item: StoryItem): PlanningRelationTarget {
       return {
         id: item.heartMoment.id,
         kind: 'HEART_MOMENT',
-        label: item.heartMoment.text,
+        label: item.heartMoment.text || i18n.t('heartMomentProduct.untitled'),
         effectiveDate: item.effectiveDate,
       };
     case 'MILESTONE':

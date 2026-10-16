@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
@@ -31,6 +32,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -928,13 +930,11 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(100);
-
     const cancelButton = page.getByRole('button', { name: de.common.cancel });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
     await expect(zoomShell).toHaveCount(0);
+    await cancelButton.scrollIntoViewIfNeeded();
 
     const cancelBox = await cancelButton.boundingBox();
     if (cancelBox) {

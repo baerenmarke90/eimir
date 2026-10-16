@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import demoDe from '../../src/i18n/locales/demo';
@@ -23,6 +24,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     page,
   }) => {
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -217,6 +219,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     page,
   }) => {
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;
@@ -330,6 +333,10 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     // 1. Initial sign-in
     await page.goto('/');
     await signIn(page);
+    await expect(page).toHaveURL(/\/today$/);
+    await expect(
+      page.getByRole('heading', { name: m5s5.today.headerTitle, level: 1 }),
+    ).toBeVisible();
 
     // 2. Open header profile menu and click logout
     const menuButton = page.getByRole('button', {
@@ -364,6 +371,7 @@ test.describe('Browser Session Reload and Deep Route Restoration', () => {
     const DEMO_ALEX_PARTNER_ID = '00000000-0000-0000-0000-000000000098';
 
     await page.route('**/api/v1/**', async (route) => {
+      if (await fulfillDefaultAppIcon(route)) return;
       const request = route.request();
       const method = request.method();
       const pathname = new URL(request.url()).pathname;

@@ -33,6 +33,12 @@ export interface MemoryCreate {
     happenedOn?: Date | null;
     /**
      * 
+     * @type {Array<string>}
+     * @memberof MemoryCreate
+     */
+    tags?: Array<string>;
+    /**
+     * 
      * @type {string}
      * @memberof MemoryCreate
      */
@@ -59,6 +65,7 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
         
         'body': json['body'] == null ? undefined : json['body'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
 }
@@ -76,6 +83,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         
         'body': value['body'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

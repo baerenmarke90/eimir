@@ -185,15 +185,18 @@ class EngineeringLanguageAuditTest(unittest.TestCase):
             findings.extend(check_documentation_file(path))
         self.assertEqual(findings, [])
 
-    def test_completion_quotes_do_not_exempt_surrounding_or_other_prose(self) -> None:
+    def test_generated_reference_quotes_do_not_exempt_surrounding_or_other_prose(self) -> None:
         from documentation_language_audit import ALLOWED_DOCUMENTATION_TEXTS_BY_PATH
 
-        for name in ("plan", "wish"):
-            logical_path = Path(
-                f"docs/product/design/references/508/{name}-completion-generation.md"
-            )
+        for logical_path in (
+            Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"),
+            Path("docs/product/design/references/508/plan-completion-generation.md"),
+            Path("docs/product/design/references/508/wish-completion-generation.md"),
+            Path("docs/product/design/references/508/partner-gesture/generation.md"),
+            Path("docs/product/design/references/508/daily-check-in-owner/generation.md"),
+        ):
             product_copy = ALLOWED_DOCUMENTATION_TEXTS_BY_PATH[logical_path][0]
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+            with self.subTest(path=str(logical_path)), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 path = root / logical_path
                 path.parent.mkdir(parents=True)

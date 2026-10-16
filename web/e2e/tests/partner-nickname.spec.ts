@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
@@ -29,6 +30,7 @@ async function installMocks(
   let version = 0;
   const writes: Array<string | null> = [];
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const pathname = new URL(request.url()).pathname;
     const respond = async (body: unknown, status = 200) =>

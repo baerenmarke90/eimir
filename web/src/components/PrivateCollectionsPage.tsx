@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { assertOnlineWrite, isClientOnline } from '../client/connectivity';
 import type { PrivateAreaApi } from '../api/generated/apis/PrivateAreaApi';
 import type { PrivateCollectionDetail } from '../api/generated/models/PrivateCollectionDetail';
 import type { PrivateCollectionItemDetail } from '../api/generated/models/PrivateCollectionItemDetail';
@@ -338,6 +339,8 @@ function CollectionItems({
     onSuccess: refresh,
   });
   const updateMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: ({
       item,
       update,
@@ -346,8 +349,9 @@ function CollectionItems({
       item: PrivateCollectionItemDetail;
       update: { title?: string; completed?: boolean };
       scope: { accountId: string; spaceId: string; collectionId: string };
-    }) =>
-      privateApiCall(() =>
+    }) => {
+      assertOnlineWrite();
+      return privateApiCall(() =>
         api.updatePrivateCollectionItem({
           spaceId: scope.spaceId,
           collectionId: scope.collectionId,
@@ -355,7 +359,8 @@ function CollectionItems({
           ifMatch: String(item.version),
           privateCollectionItemUpdate: update,
         }),
-      ),
+      );
+    },
     onMutate: async ({ item, update, scope }) => {
       const key = privateAreaQueryKeys.collection(
         scope.accountId,
@@ -441,6 +446,7 @@ function CollectionItems({
         await queryClient.invalidateQueries({
           queryKey: context.key,
           exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
         });
       }
       await queryClient.invalidateQueries({
@@ -449,6 +455,7 @@ function CollectionItems({
           scope.spaceId,
         ),
         exact: true,
+        refetchType: isClientOnline() ? 'active' : 'none',
       });
       itemUpdateInFlightRef.current = false;
     },
@@ -466,6 +473,8 @@ function CollectionItems({
     onSuccess: refresh,
   });
   const reorderMutation = useMutation({
+    networkMode: 'always',
+    retry: false,
     mutationFn: ({
       itemIds,
       version,
@@ -474,15 +483,17 @@ function CollectionItems({
       itemIds: string[];
       version: number;
       scope: { accountId: string; spaceId: string; collectionId: string };
-    }) =>
-      privateApiCall(() =>
+    }) => {
+      assertOnlineWrite();
+      return privateApiCall(() =>
         api.reorderPrivateCollectionItems({
           spaceId: scope.spaceId,
           collectionId: scope.collectionId,
           ifMatch: String(version),
           privateCollectionOrder: { itemIds },
         }),
-      ),
+      );
+    },
     onMutate: async ({ itemIds, scope }) => {
       const key = privateAreaQueryKeys.collection(
         scope.accountId,
@@ -569,6 +580,7 @@ function CollectionItems({
         await queryClient.invalidateQueries({
           queryKey: context.key,
           exact: true,
+          refetchType: isClientOnline() ? 'active' : 'none',
         });
       }
       await queryClient.invalidateQueries({
@@ -577,6 +589,7 @@ function CollectionItems({
           scope.spaceId,
         ),
         exact: true,
+        refetchType: isClientOnline() ? 'active' : 'none',
       });
       reorderInFlightRef.current = false;
     },

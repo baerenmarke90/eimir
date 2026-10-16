@@ -12,6 +12,7 @@ import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
+import { AppearanceApi } from './api/generated/apis/AppearanceApi';
 import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
 import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
 import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
@@ -29,6 +30,7 @@ import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
 import { normalizeClientError } from './client/problemDetails';
 import { PartnerNicknameProvider } from './client/partnerNickname';
+import { AppIconProvider } from './client/appIconContext';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -274,6 +276,16 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const appearanceApi = useMemo(
+    () =>
+      new AppearanceApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
   const spacesApi = useMemo(
     () =>
       new SpacesApi(
@@ -397,7 +409,7 @@ function AuthenticatedApp({
     spaceId,
   };
 
-  return (
+  const relationshipContent = (
     <PartnerNicknameProvider
       profilesApi={profilesApi}
       spaceId={spaceId}
@@ -810,6 +822,18 @@ function AuthenticatedApp({
         </AppErrorBoundary>
       </AppShell>
     </PartnerNicknameProvider>
+  );
+  return (
+    <AppIconProvider
+      key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+      api={appearanceApi}
+      entitlementsApi={entitlementApi}
+      instance={apiBaseUrl}
+      accountId={account.id}
+      spaceId={spaceId}
+    >
+      {relationshipContent}
+    </AppIconProvider>
   );
 }
 

@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, type Route, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
@@ -118,6 +119,7 @@ async function installMocks(
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -1202,6 +1204,89 @@ for (const view of [
   });
 }
 
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' as const },
+  { name: '1280-dark', width: 1280, scheme: 'dark' as const },
+]) {
+  test(`offline personal pin has no reconnect replay and requires explicit activation at ${view.name}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: view.width, height: 844 });
+    await page.emulateMedia({
+      colorScheme: view.scheme,
+      reducedMotion: 'reduce',
+    });
+    await page.addInitScript(() =>
+      localStorage.setItem('eimir.theme', 'system'),
+    );
+    const network = await installMocks(page);
+    await signIn(page);
+    const held = await holdPersonalPin(page, network);
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    const action = page.locator('.planning-collection-dashboard-action');
+    const button = action.getByRole('button').first();
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([]);
+    await expect(page.getByRole('heading', { name: 'Einkauf' })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await page.screenshot({
+      path: testInfo.outputPath(`collection-pin-offline-${view.name}.png`),
+      fullPage: true,
+      animations: 'disabled',
+    });
+
+    await page.context().setOffline(false);
+    const readsBeforeRetry = held.reads();
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect.poll(() => held.reads()).toBeGreaterThan(readsBeforeRetry);
+    await expect(button).toBeEnabled();
+    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(held.writes).toEqual([]);
+    await button.click();
+    await expect.poll(() => held.writes.length).toBe(1);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await page.goto('/today');
+    await expect(
+      page.locator('.today-section-pinned-collection'),
+    ).toBeVisible();
+    await page.goto(`/plan/collections/${COLLECTION_ID}`);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toBeEnabled();
+
+    await page.context().setOffline(true);
+    await button.click();
+    await expect(
+      action.getByText(de.states.offline.title, { exact: true }),
+    ).toBeVisible();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(action.locator('#collection-pin-pending')).toHaveCount(0);
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await page.context().setOffline(false);
+    await action.getByRole('button', { name: de.common.retry }).click();
+    await expect(button).toBeEnabled();
+    expect(held.writes).toEqual([COLLECTION_ID]);
+    await button.click();
+    await expect.poll(() => held.writes.length).toBe(2);
+    await held.confirm();
+    await expect(button).toBeEnabled();
+    await page.goto('/today');
+    await expect(page.locator('.today-section-pinned-collection')).toHaveCount(
+      0,
+    );
+    expect(held.writes).toEqual([COLLECTION_ID, null]);
+  });
+}
+
 test('personal pin recovers failed writes, conflicts and reads without replaying a selection', async ({
   page,
 }, testInfo) => {
@@ -1256,3 +1341,116 @@ test('personal pin recovers failed writes, conflicts and reads without replaying
   await expect(button).toBeEnabled();
   expect(held.writes).toEqual([COLLECTION_ID, COLLECTION_ID, null]);
 });
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const action of ['checkbox', 'reorder'] as const) {
+    test(`offline shared ${action} ends without reconnect replay at ${view.name}`, async ({
+      page,
+    }, testInfo) => {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.emulateMedia({
+        colorScheme: view.scheme,
+        reducedMotion: 'reduce',
+      });
+      await page.addInitScript(() =>
+        localStorage.setItem('eimir.theme', 'system'),
+      );
+      const network = await installMocks(page);
+      await signIn(page);
+      const writes: string[] = [];
+      page.on('request', (request) => {
+        if (
+          ['PATCH', 'PUT'].includes(request.method()) &&
+          request.url().includes(`/collections/${COLLECTION_ID}/`)
+        )
+          writes.push(request.method());
+      });
+      await page.route(
+        `**/api/v1/spaces/${SPACE_ID}/collections/${COLLECTION_ID}/order`,
+        async (route) => {
+          await route.fulfill({
+            contentType: 'application/json',
+            body: JSON.stringify(
+              network.reorder(route.request().postDataJSON().itemIds),
+            ),
+          });
+        },
+      );
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      const row = page.locator(
+        '[data-sortable-item-id="00000000-0000-0000-0000-000000000031"]',
+      );
+      const titles = () =>
+        page
+          .locator('[data-sortable-item-id] input[name="title"]')
+          .evaluateAll((inputs) =>
+            inputs.map((input) => (input as HTMLInputElement).value),
+          );
+      await expect(row).toBeVisible();
+      await page.context().setOffline(true);
+      if (action === 'checkbox')
+        await row
+          .getByRole('button', {
+            name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+          })
+          .click();
+      else {
+        await page
+          .getByRole('button', {
+            name: m5s3.collection.reorderItem.replace('{{title}}', 'Äpfel'),
+          })
+          .focus();
+        await page.keyboard.press('ArrowUp');
+      }
+      await expect(
+        page.getByText(de.states.offline.title, { exact: true }),
+      ).toBeVisible();
+      if (action === 'checkbox')
+        await expect(
+          row.getByRole('button', {
+            name: m5s3.collection.markDone.replace('{{title}}', 'Milch'),
+          }),
+        ).toHaveAttribute('aria-pressed', 'false');
+      else await expect.poll(titles).toEqual(['Milch', 'Brot', 'Äpfel']);
+      expect(writes).toEqual([]);
+      await expectNoHorizontalOverflow(page);
+      await expectNoWcagViolations(page);
+      await page.screenshot({
+        path: testInfo.outputPath(`shared-${action}-offline-${view.name}.png`),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.context().setOffline(false);
+      await expect(
+        page.getByText(de.states.offline.banner, { exact: true }),
+      ).toHaveCount(0);
+      expect(writes).toEqual([]);
+      await page.getByRole('button', { name: de.common.retry }).click();
+      await expect(
+        page.getByRole('button', { name: de.common.retry }),
+      ).toHaveCount(0);
+      await expect.poll(() => writes.length).toBe(1);
+      if (action === 'checkbox')
+        await expect(
+          row.getByRole('button', {
+            name: m5s3.collection.markOpen.replace('{{title}}', 'Milch'),
+          }),
+        ).toHaveAttribute('aria-pressed', 'true');
+      else await expect.poll(titles).toEqual(['Milch', 'Äpfel', 'Brot']);
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `shared-${action}-confirmed-${view.name}.png`,
+        ),
+        fullPage: true,
+        animations: 'disabled',
+      });
+      await page.goto('/today');
+      await page.goto(`/plan/collections/${COLLECTION_ID}`);
+      await expect(row).toBeVisible();
+      expect(writes).toHaveLength(1);
+    });
+  }
+}

@@ -11,6 +11,7 @@ from importlib import import_module
 
 MODEL_MODULES = (
     "eimir.administration.models",
+    "eimir.appearance.models",
     "eimir.attachments.binding",
     "eimir.attachments.models",
     "eimir.auth.recent_auth_models",

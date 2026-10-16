@@ -21,6 +21,7 @@ from sqlalchemy import CheckConstraint, engine_from_config, pool
 from sqlalchemy.schema import SchemaItem
 
 from eimir.administration import models as _administration  # noqa: F401
+from eimir.appearance import models as _appearance  # noqa: F401
 from eimir.attachments import binding as _binding  # noqa: F401
 
 # Register models. These imports look unused, but they are not.

@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import {
   act,
   cleanup,
@@ -20,7 +24,11 @@ import de from '../i18n/locales/de';
 import m5s3 from '../i18n/locales/m5s3';
 import { CollectionProductPage } from './CollectionProductPage';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  onlineManager.setOnline(true);
+  vi.restoreAllMocks();
+});
 const accountId = 'account-1';
 const spaceId = 'space-1';
 const collectionId = 'list-1';
@@ -141,6 +149,93 @@ function cached(harness: ReturnType<typeof setup>, queryKey = key) {
     queryKey,
   );
 }
+
+it.each(['query manager', 'browser'])(
+  'rejects an offline pin reported by the %s without queuing it for reconnect',
+  async (source) => {
+    const h = setup();
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    if (source === 'query manager') onlineManager.setOnline(false);
+    else vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    fireEvent.click(pinButton());
+    await waitFor(() =>
+      expect(screen.getByText(de.states.offline.title)).toBeDefined(),
+    );
+    expect(pinButton().getAttribute('aria-pressed')).toBe('false');
+    expect(screen.queryByText(de.common.saving)).toBeNull();
+    expect(cached(h)).toEqual(initial());
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.queryClient.isMutating()).toBe(0);
+
+    vi.restoreAllMocks();
+    await act(async () => onlineManager.setOnline(true));
+    fireEvent.click(screen.getByRole('button', { name: de.common.retry }));
+    await waitFor(() => expect(h.get).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    expect(h.update).not.toHaveBeenCalled();
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    await h.confirm(preference(collectionId, true));
+    await waitFor(() =>
+      expect(unpinButton().hasAttribute('disabled')).toBe(false),
+    );
+  },
+);
+
+it('fails without replay when connectivity is lost during query cancellation', async () => {
+  const h = setup();
+  await waitFor(() => expect(pinButton().hasAttribute('disabled')).toBe(false));
+  const cancellation = deferred<void>();
+  vi.spyOn(h.queryClient, 'cancelQueries').mockReturnValue(
+    cancellation.promise,
+  );
+  fireEvent.click(pinButton());
+  await act(async () => {
+    onlineManager.setOnline(false);
+    cancellation.resolve();
+  });
+  await waitFor(() =>
+    expect(screen.getByText(de.states.offline.title)).toBeDefined(),
+  );
+  expect(cached(h)).toEqual(initial());
+  expect(h.queryClient.isMutating()).toBe(0);
+  expect(h.update).not.toHaveBeenCalled();
+  await act(async () => onlineManager.setOnline(true));
+  expect(h.update).not.toHaveBeenCalled();
+});
+
+it.each(['success', 'failure'])(
+  'settles an admitted pin with %s while offline without waiting for a recovery read',
+  async (outcome) => {
+    const h = setup();
+    await waitFor(() =>
+      expect(pinButton().hasAttribute('disabled')).toBe(false),
+    );
+    fireEvent.click(pinButton());
+    await waitFor(() => expect(h.update).toHaveBeenCalledTimes(1));
+    onlineManager.setOnline(false);
+    if (outcome === 'success') await h.confirm(preference(collectionId, true));
+    else
+      await act(async () =>
+        h.writes[0].reject(new ClientProblemError('server', 500)),
+      );
+    await waitFor(() => expect(h.queryClient.isMutating()).toBe(0));
+    expect(screen.queryByText(de.common.saving)).toBeNull();
+    expect(h.get).not.toHaveBeenCalled();
+    expect(cached(h)?.items[1]).toEqual(
+      outcome === 'success'
+        ? preference(collectionId, true)
+        : initial().items[1],
+    );
+    await act(async () => onlineManager.setOnline(true));
+    await waitFor(() => expect(h.get).toHaveBeenCalledTimes(1));
+    expect(h.update).toHaveBeenCalledTimes(1);
+  },
+);
 
 it('selects immediately, announces pending, blocks rapid duplicates, then removes with a fresh explicit toggle', async () => {
   const h = setup();

@@ -45,6 +45,31 @@ PLAN_COMPLETION_PRODUCT_COPY = (
 )
 
 ALLOWED_DOCUMENTATION_TEXTS_BY_PATH = {
+    # Exact existing localized copy in this Daily Check-in reference prompt.
+    Path("docs/product/design/references/508/daily-check-in-owner/generation.md"): (
+        "Wird gespeichert …",
+        "Gut & entspannt",
+        "Gemeinsamer Abend",
+        "Heute",
+        "Wir",
+    ),
+    # Exact localized UI strings in the recorded app-icon reference prompt.
+    Path("docs/design/eimir/1307-premium-app-icons/image-prompt.md"): (
+        "← Zurück zu Einstellungen",
+        "Ein kleines Detail, das zu dir passt.",
+        "Dein Browser kann eine weitere Bestätigung verlangen.",
+        "10 zusätzliche Icons mit eimir. Pro.",
+    ),
+    # Exact localized product copy in this generated-reference prompt only.
+    Path("docs/product/design/references/508/partner-gesture/generation.md"): (
+        "Dein Gruß wird gesendet …",
+        "Kleine Gesten direkt an deinen Partner.",
+        "Ich denke an dich",
+        "ist unterwegs",
+        "Kuss schicken",
+        "Wie geht’s dir?",
+        "Mit eimir. Pro verfügbar. eimir. Pro ansehen",
+    ),
     # Exact localized strings in the recorded Wish Imagegen prompt only.
     Path("docs/product/design/references/508/wish-completion-generation.md"): (
         "Wunsch wird als erfüllt gespeichert …",

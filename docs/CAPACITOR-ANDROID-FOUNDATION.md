@@ -115,6 +115,32 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 
 ## 6. Build, Test, and Verification Commands
 
+### Compatible security toolchain
+
+The wrapper uses Gradle **8.14.6**, AGP **8.13.0**, Capacitor **8.5.2** and
+JDK **21**. Gradle 8.14.6 is the maintained 8.x security patch for all three
+advisories also fixed in 9.8.1:
+[worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
+[client/daemon authentication](https://github.com/gradle/gradle/security/advisories/GHSA-xwqc-3h47-hg64),
+and [repository TLS failure handling](https://github.com/gradle/gradle/security/advisories/GHSA-j5m7-59rp-24f5).
+
+Do not upgrade this wrapper independently to Gradle 9.6 or later: AGP 8.x uses
+the removed `InternalProblems` API. The
+[Capacitor 8 migration](https://capacitorjs.com/docs/updating/8-0) specifies
+AGP 8.13.0; AGP 9 migration belongs to the
+[unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
+That larger migration must review the AGP DSL, built-in Kotlin, R8 defaults,
+removed Capacitor APIs, optional Cordova graph, native plugins and physical
+lifecycle acceptance together. The 8.14.6 patch avoids requiring that migration
+for the security repair in #1303.
+
+Distribution and generated wrapper-JAR checksums come from the
+[official Gradle checksum reference](https://gradle.org/release-checksums/).
+Generate the wrapper with the verified distribution; the bootstrap JAR in
+Gradle's source repository can still belong to the preceding release.
+Both release workflows pin the generated JAR, and strict dependency verification
+continues to use the existing artifact allowlist without exemptions.
+
 ### Web Layer
 ```bash
 cd web
@@ -260,7 +286,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
   - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a` (`v4.2.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
-  - Pinned Gradle Wrapper: distribution SHA-256 `ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c`; wrapper JAR SHA-256 `7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172`.
+  - Pinned Gradle Wrapper: distribution SHA-256 `24fc39aedd1b68c3de8e4d46a0277c9b42d9ccdb172231a634fad54a3693e50a`; wrapper JAR SHA-256 `ad16bca46cb71bb5887c546860d93992aeee35c1fdaf4a242b0a612375d937e0`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
   - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.

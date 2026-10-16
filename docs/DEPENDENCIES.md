@@ -152,23 +152,23 @@ in a background job under resource limits — never in the request path.
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @tanstack/react-query | 5.85.5 | npm | MIT |
+| @tanstack/react-query | 5.102.2 | npm | MIT |
 | i18next | 26.4.0 | npm | MIT |
 | react-i18next | 17.0.11 | npm | MIT |
-| react | 19.1.1 | npm | MIT |
-| react-dom | 19.1.1 | npm | MIT |
+| react | 19.2.8 | npm | MIT |
+| react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 
 ## Web — M2-S8 Development
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @types/react | 19.1.12 | npm | MIT |
-| @types/react-dom | 19.1.9 | npm | MIT |
+| @types/react | 19.2.18 | npm | MIT |
+| @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
-| vite | 7.3.6 | npm | MIT |
-| vitest | 4.1.11 | npm | MIT |
+| vite | 8.2.2 | npm | MIT |
+| vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
 
@@ -177,9 +177,10 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
 
-Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
-without the vulnerable Tinypool dependency. Its declared Vite 7 and Node 24
-support matches this repository. The [upstream migration guide](https://vitest.dev/guide/migration/)
+The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
+Its updated matcher augmentation preserves the custom focus assertion and
+uses the declared return/received type parameters. Compatibility is checked
+against the locked Vite and Node versions by the existing gates. The [upstream migration guide](https://vitest.dev/guide/migration/)
 was reviewed; object-URL and callback mocks now declare their actual callable
 signatures. Node 24 types are explicit because the removed transitive type
 dependency previously supplied the existing filesystem/layout tests. Existing

@@ -194,7 +194,7 @@ class ReleaseEvidenceContractTest(unittest.TestCase):
 
     def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
         self.assertIn('java-version: "21"', self.workflow)
-        self.assertIn("7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172", self.workflow)
+        self.assertIn("3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98", self.workflow)
         self.assertIn('node-version: "24.21.0"', self.workflow)
 
     def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:

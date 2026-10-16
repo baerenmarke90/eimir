@@ -29,7 +29,7 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-8.14.3 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
 8.13.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
@@ -257,7 +257,7 @@ stays inactive until a push-notification slice adds Firebase.
 | Package / tool | Version | Source | License |
 |---|---|---|---|
 | Android Gradle Plugin | 8.13.0 | Google Maven | Apache-2.0 |
-| Gradle | 8.14.3 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
 | Google Services Gradle Plugin (inactive without `google-services.json`) | 4.4.4 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |

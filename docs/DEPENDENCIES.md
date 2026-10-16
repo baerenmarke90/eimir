@@ -145,7 +145,7 @@ in a background job under resource limits — never in the request path.
 | pytest-asyncio | 1.4.0 | PyPI | Apache-2.0 |
 | httpx2 | 2.12.0 | PyPI | BSD-3-Clause |
 | cbor2 | 6.1.4 | PyPI | MIT |
-| ruff | 0.16.4 | PyPI | MIT |
+| ruff | 0.16.8 | PyPI | MIT |
 | mypy | 2.3.1 | PyPI | MIT |
 
 ## Web — M2-S8 Runtime

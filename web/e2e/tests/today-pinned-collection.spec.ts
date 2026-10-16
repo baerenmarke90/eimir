@@ -4,6 +4,7 @@ import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectToday } from '../support/today';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
 const PARTNER_ID = '00000000-0000-0000-0000-000000000002';
@@ -475,12 +476,6 @@ async function signIn(page: Page): Promise<void> {
   await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
   await expectToday(page);
-}
-
-async function expectToday(page: Page): Promise<void> {
-  await expect(
-    page.getByRole('heading', { name: m5s5.today.headerTitle, exact: true }),
-  ).toBeVisible();
 }
 
 async function openToday(page: Page): Promise<void> {

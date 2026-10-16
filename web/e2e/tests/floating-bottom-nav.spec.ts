@@ -1,4 +1,5 @@
 import { fulfillDefaultAppIcon } from '../support/appIcon';
+import { expectToday } from '../support/today';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
@@ -845,6 +846,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.goto('/login');
     await signIn(page);
     await page.waitForURL('**/today');
+    await expectToday(page);
 
     const todayAxe = await new AxeBuilder({ page })
       .disableRules(['color-contrast'])
@@ -861,6 +863,49 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       .disableRules(['color-contrast'])
       .analyze();
     expect(memoryAxe.violations).toEqual([]);
+  });
+
+  test('accessibility readiness waits for Today content while preferences are pending', async ({
+    page,
+  }) => {
+    await installApiMocks(page);
+    let releasePreferences!: () => void;
+    const preferencesGate = new Promise<void>((resolve) => {
+      releasePreferences = resolve;
+    });
+    await page.route('**/dashboard/preferences', async (route) => {
+      await preferencesGate;
+      await route.fallback();
+    });
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+    await expect(page.locator('.today-page').getByRole('status')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0);
+
+    const loadingAxe = await new AxeBuilder({ page })
+      .disableRules(['color-contrast'])
+      .analyze();
+    expect(loadingAxe.violations.map(({ id }) => id)).toContain(
+      'page-has-heading-one',
+    );
+
+    let contentReady = false;
+    const ready = expectToday(page).then(() => {
+      contentReady = true;
+    });
+    try {
+      await expect(page.getByRole('heading', { level: 1 })).toHaveCount(0);
+      expect(contentReady).toBe(false);
+    } finally {
+      releasePreferences();
+      await ready;
+    }
+
+    const todayAxe = await new AxeBuilder({ page })
+      .disableRules(['color-contrast'])
+      .analyze();
+    expect(todayAxe.violations).toEqual([]);
   });
 
   test('200 percent zoom / large-text: floating navigation remains usable and collision-free', async ({

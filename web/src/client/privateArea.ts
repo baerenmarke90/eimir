@@ -45,6 +45,34 @@ export function capturePrivateCreate(
   };
 }
 
+/** Confirmed deletion owns its original read; task exit owns navigation. */
+export function capturePrivateDelete(
+  client: QueryClient,
+  key: QueryKey,
+  listKey: QueryKey,
+  ownsTask: () => boolean,
+) {
+  const isCurrent = captureAuthorizedQuery(client, key);
+  const hadList = client.getQueryState(listKey) !== undefined;
+  const isCurrentList = captureQueryIdentity(client, listKey);
+  const canRefreshList = captureAuthorizedQuery(client, listKey);
+  return {
+    isCurrentTask: () =>
+      ownsTask() && isCurrent() && (!hadList || isCurrentList()),
+    async refreshList() {
+      if (isCurrent() && canRefreshList()) {
+        // The list prefix also contains independently authorized details.
+        await client.invalidateQueries({ queryKey: listKey, exact: true });
+      }
+    },
+    remove() {
+      if (!isCurrent()) return false;
+      client.removeQueries({ queryKey: key, exact: true });
+      return true;
+    },
+  };
+}
+
 /** Capture the authorized read that owns a private full-resource edit. */
 export function capturePrivateEdit<T extends { version: number }>(
   client: QueryClient,

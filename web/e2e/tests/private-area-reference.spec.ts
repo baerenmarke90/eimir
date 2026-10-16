@@ -2348,3 +2348,241 @@ for (const view of [
     expect(unexpected).toEqual([]);
   });
 }
+
+async function installHeldPrivateDelete(
+  page: Page,
+  kind: 'notes' | 'gift-ideas' | 'collections',
+) {
+  const id = kind === 'collections' ? PRIVATE_COLLECTION_ID : PRIVATE_NOTE_ID;
+  const endpoint = `/api/v1/spaces/${SPACE_ID}/private/${kind}`;
+  const title = `Private ${kind} to delete`;
+  const resource = {
+    id,
+    ownerId: ACCOUNT_ID,
+    spaceId: SPACE_ID,
+    title,
+    version: 1,
+    capabilities: { canComment: false, canDelete: true, canEdit: true },
+    createdAt: TEST_NOW,
+    updatedAt: TEST_NOW,
+    body: 'A personal cabin idea',
+    pinned: false,
+    description: 'A private surprise',
+    status: 'IDEA',
+    items: [],
+  };
+  const writes: string[] = [];
+  let release!: () => void;
+  let finish!: () => void;
+  let deleted = false;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const settled = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route(`**${endpoint}**`, async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (request.method() === 'DELETE' && path === `${endpoint}/${id}`) {
+      writes.push(request.headers()['if-match'] ?? 'missing');
+      await held;
+      deleted = true;
+      await route.fulfill({ status: 204 });
+      finish();
+    } else if (request.method() === 'GET' && path === endpoint) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasMore: false,
+          items: deleted ? [] : [resource],
+          nextCursor: null,
+        }),
+      });
+    } else if (request.method() === 'GET' && path === `${endpoint}/${id}`) {
+      await route.fulfill({
+        status: deleted ? 404 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          deleted
+            ? {
+                code: 'NOT_FOUND',
+                status: 404,
+                title: 'Not found',
+                detail: 'Private resource unavailable',
+                type: 'about:blank',
+              }
+            : resource,
+        ),
+      });
+    } else await route.fallback();
+  });
+  return { id, endpoint, title, writes, release, settled };
+}
+
+for (const view of [
+  { name: '390-light', width: 390, scheme: 'light' },
+  { name: '1280-dark', width: 1280, scheme: 'dark' },
+] as const) {
+  for (const definition of privateCreateCases) {
+    for (const leave of [false, true]) {
+      test(`private ${definition.kind} delete ${leave ? 'cannot redirect another task' : 'retains confirmed result and return'} at ${view.name}`, async ({
+        page,
+      }, testInfo) => {
+        await page.setViewportSize({ width: view.width, height: 900 });
+        await page.emulateMedia({
+          colorScheme: view.scheme,
+          reducedMotion: 'reduce',
+        });
+        await page.addInitScript(() =>
+          localStorage.setItem('eimir.theme', 'system'),
+        );
+        const unexpected = await signInAndOpenPrivateArea(page);
+        const fixture = await installHeldPrivateDelete(page, definition.kind);
+        await page
+          .getByRole('link', { name: definition.copy.title, exact: false })
+          .click();
+        await page
+          .getByRole('link', { name: new RegExp(fixture.title) })
+          .click();
+        if (definition.kind === 'collections')
+          await page
+            .getByRole('button', { name: de.common.edit, exact: true })
+            .click();
+        else
+          await page
+            .getByRole('link', { name: privateArea.edit, exact: true })
+            .click();
+        await page
+          .getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.delete
+                : privateArea.delete,
+            exact: true,
+          })
+          .click();
+        await page
+          .getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.confirmDelete
+                : privateArea.deleteConfirm,
+            exact: true,
+          })
+          .click();
+        await expect.poll(() => fixture.writes.length).toBe(1);
+        expect(fixture.writes).toEqual(['1']);
+        await expect(
+          page.getByRole('button', {
+            name:
+              definition.kind === 'collections'
+                ? m5s3.common.deleting
+                : privateArea.deleting,
+            exact: true,
+          }),
+        ).toBeDisabled();
+        if (definition.kind === 'notes' && !leave) {
+          await expectNoWcagViolations(page);
+          await page.screenshot({
+            path: testInfo.outputPath(
+              `private-delete-pending-${view.name}.png`,
+            ),
+            fullPage: true,
+            animations: 'disabled',
+          });
+        }
+        let destinationUrl = '';
+        const destination =
+          definition.kind === 'notes'
+            ? privateCreateCases[1]
+            : privateCreateCases[0];
+        if (leave) {
+          await installHeldPrivateDelete(page, destination.kind);
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .getByRole('link', { name: destination.copy.title, exact: true })
+            .click();
+          await expect(
+            page.getByRole('heading', {
+              name: destination.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          destinationUrl = page.url();
+        }
+        const response = page.waitForResponse(
+          (entry) =>
+            entry.request().method() === 'DELETE' &&
+            new URL(entry.url()).pathname ===
+              `${fixture.endpoint}/${fixture.id}`,
+        );
+        fixture.release();
+        expect((await response).status()).toBe(204);
+        await fixture.settled;
+        if (leave) {
+          await page.evaluate(
+            () =>
+              new Promise<void>((resolve) =>
+                requestAnimationFrame(() => resolve()),
+              ),
+          );
+          await expect(page).toHaveURL(destinationUrl);
+          await expect(
+            page.getByRole('heading', {
+              name: destination.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+        } else {
+          await expect(page).toHaveURL(
+            new RegExp(`/more/private/${definition.kind}$`),
+          );
+          await expect(
+            page.getByRole('heading', {
+              name: definition.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          await expect(
+            page.getByRole('link', { name: new RegExp(fixture.title) }),
+          ).toHaveCount(0);
+        }
+        await expectNoHorizontalOverflow(page);
+        await expectNoWcagViolations(page);
+        if (definition.kind === 'notes')
+          await page.screenshot({
+            path: testInfo.outputPath(
+              `private-delete-${leave ? 'other-task' : 'confirmed'}-${view.name}.png`,
+            ),
+            fullPage: true,
+            animations: 'disabled',
+          });
+        if (leave) {
+          await page
+            .getByRole('navigation', {
+              name: privateArea.navigation.aria,
+              exact: true,
+            })
+            .getByRole('link', { name: definition.copy.title, exact: true })
+            .click();
+          await expect(
+            page.getByRole('heading', {
+              name: definition.copy.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          await expect(
+            page.getByRole('link', { name: new RegExp(fixture.title) }),
+          ).toHaveCount(0);
+        }
+        expect(fixture.writes).toHaveLength(1);
+        expect(unexpected).toEqual([]);
+      });
+    }
+  }
+}

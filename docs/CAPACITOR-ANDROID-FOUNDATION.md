@@ -33,6 +33,11 @@ web/ (Vite + TypeScript)
   - Falling back to `window.location.origin` inside the native container would incorrectly target `https://localhost` (the internal WebView origin), resulting in broken network calls.
   - The build script `web/scripts/build-capacitor-web.mjs` enforces `VITE_EIMIR_API_BASE_URL` at build time.
   - Runtime resolution (`web/src/client/config.ts`) throws a fail-closed descriptive error if `VITE_EIMIR_API_BASE_URL` is missing or resolves to localhost/127.0.0.1 in native mode.
+  - For an Android build pointed at a `demo.` API subdomain, the build enables the existing Demo entry and banner unless `VITE_EIMIR_DEMO_MODE=false` is set explicitly. Other API hosts require `VITE_EIMIR_DEMO_MODE=true` to enable that presentation. The backend remains authoritative for Demo entry and destructive-action restrictions.
+  - The Demo reset timer is independent of Demo mode. Set `VITE_EIMIR_DEMO_RESET_TIMER` and `VITE_EIMIR_DEMO_RESET_INTERVAL` to match the backend deployment (`EIMIR_DEMO_MODE_RESET_TIMER`, `EIMIR_DEMO_MODE_RESET_INTERVAL`); the build does not infer an active reset timer from the API hostname. The build fails on non-boolean flags, on a reset timer without Demo mode, and on an interval the backend would reject (`30m`/`6h`/`1d` form, 5m to 7d).
+  - Canonical `VITE_EIMIR_*` values take precedence over legacy `VITE_SBS_*` values. The resolved values are passed to Vite explicitly, so they also take precedence over any local `web/.env*` file.
+  - The Web-demo launch link (`VITE_EIMIR_DEMO_URL`) is always cleared for the native bundle, because following it would leave the app for the system browser.
+  - Demo selection happens in the Web bundle, so `assembleDebug`, `assembleRelease`, and `bundleRelease` of one synchronized bundle behave identically. All variants share the `de.sidebyside.app` application ID (debug adds `.debug`); a Demo bundle should therefore be distributed as a debug build or through a separate channel rather than through the production release workflow.
 - **Native HTTP Transport (`CapacitorHttp`)**:
   - `CapacitorHttp.enabled: true` patches `window.fetch` and `window.XMLHttpRequest` in the native WebView container.
   - Requests are routed through the native Android network stack, preserving `Authorization: Bearer ...` headers and bypassing WebView CORS restrictions against the remote API origin.
@@ -89,6 +94,7 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 - `loadRecentAuthenticationCapabilities()` explicitly forces `passkey: false` in native container mode, so passkey re-authentication options are not presented in the native UI.
 - `authenticateRecentPasskey()` fails closed with an informative error if invoked in native mode.
 - Standard Web/PWA passkey authentication remains completely unchanged.
+- The bounded native passkey bridge (Credential Manager plus Digital Asset Links, handing its result to the existing Web auth orchestration) is tracked in #630. It is not implemented on `main`. OIDC needs no bridge and stays out of that scope.
 - Third-party OIDC/Pocket-ID authentication (which runs in the system browser/Custom Tab via `@capacitor/browser`) is decoupled from WebView WebAuthn and functions independently.
 
 ---
@@ -108,6 +114,32 @@ The mobile lifecycle integration is managed via `useCapacitorShell()` (`web/src/
 ---
 
 ## 6. Build, Test, and Verification Commands
+
+### Compatible security toolchain
+
+The wrapper uses Gradle **8.14.6**, AGP **8.13.0**, Capacitor **8.5.2** and
+JDK **21**. Gradle 8.14.6 is the maintained 8.x security patch for all three
+advisories also fixed in 9.8.1:
+[worker authentication](https://github.com/gradle/gradle/security/advisories/GHSA-mvvg-497x-hmj8),
+[client/daemon authentication](https://github.com/gradle/gradle/security/advisories/GHSA-xwqc-3h47-hg64),
+and [repository TLS failure handling](https://github.com/gradle/gradle/security/advisories/GHSA-j5m7-59rp-24f5).
+
+Do not upgrade this wrapper independently to Gradle 9.6 or later: AGP 8.x uses
+the removed `InternalProblems` API. The
+[Capacitor 8 migration](https://capacitorjs.com/docs/updating/8-0) specifies
+AGP 8.13.0; AGP 9 migration belongs to the
+[unreleased Capacitor 9 guide](https://capacitorjs.com/docs/next/updating/9-0).
+That larger migration must review the AGP DSL, built-in Kotlin, R8 defaults,
+removed Capacitor APIs, optional Cordova graph, native plugins and physical
+lifecycle acceptance together. The 8.14.6 patch avoids requiring that migration
+for the security repair in #1303.
+
+Distribution and generated wrapper-JAR checksums come from the
+[official Gradle checksum reference](https://gradle.org/release-checksums/).
+Generate the wrapper with the verified distribution; the bootstrap JAR in
+Gradle's source repository can still belong to the preceding release.
+Both release workflows pin the generated JAR, and strict dependency verification
+continues to use the existing artifact allowlist without exemptions.
 
 ### Web Layer
 ```bash
@@ -254,7 +286,7 @@ Issue `#1008` (Slice B) moved all release, signing, SBOM attestation, and public
   - `.github/workflows/release-publish.yml`: verifies release preflight, builds and cryptographically signs release APK/AAB from `android/`, re-attests signed bytes, and binds release publications.
 - **Tooling & Build Steps**:
   - Pinned Actions: Node.js `24.21.0` via `actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a` (`v4.2.0`); JDK `21` Temurin via `actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c`.
-  - Pinned Gradle Wrapper: distribution SHA-256 `ed1a8d686605fd7c23bdf62c7fc7add1c5b23b2bbc3721e661934ef4a4911d7c`; wrapper JAR SHA-256 `7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172`.
+  - Pinned Gradle Wrapper: distribution SHA-256 `24fc39aedd1b68c3de8e4d46a0277c9b42d9ccdb172231a634fad54a3693e50a`; wrapper JAR SHA-256 `ad16bca46cb71bb5887c546860d93992aeee35c1fdaf4a242b0a612375d937e0`.
   - Web Bundle & Native Plugin Graph: built via `VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web` followed by `npm run cap:sync`.
   - Native Wrapper Drift Guard: `git diff --exit-code -- android/capacitor.settings.gradle android/app/capacitor.build.gradle` confirms no uncommitted native file drift occurs during CI.
   - Strict Dependency Verification: `android/gradle/verification-metadata.xml` holds sha256 checksums and is enforced via `--dependency-verification strict`. It is the only Android dependency verification metadata in the repository.

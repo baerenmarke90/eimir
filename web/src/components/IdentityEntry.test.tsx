@@ -12,8 +12,8 @@ interface CustomMatchers<R = unknown> {
 }
 
 declare module 'vitest' {
-  // biome-ignore lint/suspicious/noExplicitAny: vitest matcher declaration
-  interface Assertion<T = any> extends CustomMatchers<T> {}
+  interface Assertion<R extends void | Promise<void> = void, T = unknown>
+    extends CustomMatchers<R> {}
   interface AsymmetricMatchersContaining extends CustomMatchers {}
 }
 

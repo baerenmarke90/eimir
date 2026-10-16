@@ -9,7 +9,7 @@ As of: 2026-09-25
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.15`, Python `3.13.7`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.14.6`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -29,7 +29,7 @@ are development-only and are never shipped with the production Web bundle.
 
 The Android application is the Capacitor wrapper in `android/` around the
 canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
-9.8.1 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+8.14.6 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
 8.13.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
 artifact under `--dependency-verification strict` against
 `android/gradle/verification-metadata.xml`. The toolchain and direct dependency
@@ -145,30 +145,30 @@ in a background job under resource limits — never in the request path.
 | pytest-asyncio | 1.4.0 | PyPI | Apache-2.0 |
 | httpx2 | 2.12.0 | PyPI | BSD-3-Clause |
 | cbor2 | 6.1.4 | PyPI | MIT |
-| ruff | 0.16.4 | PyPI | MIT |
+| ruff | 0.16.8 | PyPI | MIT |
 | mypy | 2.3.1 | PyPI | MIT |
 
 ## Web — M2-S8 Runtime
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @tanstack/react-query | 5.85.5 | npm | MIT |
+| @tanstack/react-query | 5.102.2 | npm | MIT |
 | i18next | 26.4.0 | npm | MIT |
 | react-i18next | 17.0.11 | npm | MIT |
-| react | 19.1.1 | npm | MIT |
-| react-dom | 19.1.1 | npm | MIT |
+| react | 19.2.8 | npm | MIT |
+| react-dom | 19.2.8 | npm | MIT |
 | react-router-dom | 7.18.2 | npm | MIT |
 
 ## Web — M2-S8 Development
 
 | Package | Version | Source | License |
 |---|---|---|---|
-| @types/react | 19.1.12 | npm | MIT |
-| @types/react-dom | 19.1.9 | npm | MIT |
+| @types/react | 19.2.18 | npm | MIT |
+| @types/react-dom | 19.2.5 | npm | MIT |
 | @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
-| vite | 7.3.6 | npm | MIT |
-| vitest | 4.1.11 | npm | MIT |
+| vite | 8.2.2 | npm | MIT |
+| vitest | 5.0.4 | npm | MIT |
 
 ### October 2026 audit maintenance
 
@@ -177,9 +177,10 @@ The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
 verification dependency during a future resolution. Both remain existing MIT
 dependencies; no authentication provider, algorithm policy or migration is added.
 
-Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
-without the vulnerable Tinypool dependency. Its declared Vite 7 and Node 24
-support matches this repository. The [upstream migration guide](https://vitest.dev/guide/migration/)
+The Vitest 5.0.4 upgrade follows the prior 4.1.11 security refresh.
+Its updated matcher augmentation preserves the custom focus assertion and
+uses the declared return/received type parameters. Compatibility is checked
+against the locked Vite and Node versions by the existing gates. The [upstream migration guide](https://vitest.dev/guide/migration/)
 was reviewed; object-URL and callback mocks now declare their actual callable
 signatures. Node 24 types are explicit because the removed transitive type
 dependency previously supplied the existing filesystem/layout tests. Existing
@@ -217,8 +218,8 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 
 | Component | Version | Source | License |
 |---|---|---|---|
-| Node.js build image | 24.21.0-bookworm-slim, `sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
-| nginx-unprivileged | 1.31.4, `sha256:197f252f060ed357f2ab98d4256762d7d107c76f18ad8f0b9d5178854611566d` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
+| Node.js build image | 26.6.0-bookworm-slim, `sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
+| nginx-unprivileged | 1.31.6, `sha256:e44b470e571b20d935336bfb9f8277c1468d15e1e4d105a12ab5609d0b4682cb` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
 No eimir. user data is sent to Node.js, NGINX, or their registries;
@@ -257,8 +258,8 @@ stays inactive until a push-notification slice adds Firebase.
 | Package / tool | Version | Source | License |
 |---|---|---|---|
 | Android Gradle Plugin | 8.13.0 | Google Maven | Apache-2.0 |
-| Gradle | 9.8.1 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.4.4 | Google Maven | Apache-2.0 |
+| Gradle | 8.14.6 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.5.0 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
 | androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
 | androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
@@ -272,9 +273,9 @@ pinned to commit SHAs.
 
 | Image | Version | Source | License |
 |---|---|---|---|
-| python | 3.13.7-slim@sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
+| python | 3.14.6-slim@sha256:7bec7ddcddeff7975d6ba9b4be7dd6f6b2f55e7491539145e2978f7f97ce9144 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
-| node | 24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
+| node | 26.6.0-bookworm-slim@sha256:81502e860176e63695d769d3d1a2d3a403abc1c27c6a02169b765f3e43b60ede | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 
 ## Build-time tools
 

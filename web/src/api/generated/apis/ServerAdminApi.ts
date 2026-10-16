@@ -19,6 +19,16 @@ import {
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
 import {
+    type ServerAdminAccountDeletionRequest,
+    ServerAdminAccountDeletionRequestFromJSON,
+    ServerAdminAccountDeletionRequestToJSON,
+} from '../models/ServerAdminAccountDeletionRequest';
+import {
+    type ServerAdminAccountDeletionResult,
+    ServerAdminAccountDeletionResultFromJSON,
+    ServerAdminAccountDeletionResultToJSON,
+} from '../models/ServerAdminAccountDeletionResult';
+import {
     type ServerAdminAccountDetail,
     ServerAdminAccountDetailFromJSON,
     ServerAdminAccountDetailToJSON,
@@ -74,6 +84,11 @@ import {
     ServerAdminOverviewToJSON,
 } from '../models/ServerAdminOverview';
 import {
+    type ServerAdminPrivilegedAuditPage,
+    ServerAdminPrivilegedAuditPageFromJSON,
+    ServerAdminPrivilegedAuditPageToJSON,
+} from '../models/ServerAdminPrivilegedAuditPage';
+import {
     type ServerAdminRecoveryEmailResult,
     ServerAdminRecoveryEmailResultFromJSON,
     ServerAdminRecoveryEmailResultToJSON,
@@ -99,6 +114,16 @@ import {
     ServerAdminSettingsToJSON,
 } from '../models/ServerAdminSettings';
 import {
+    type ServerAdminSpaceConfigurationManagerReconcileRequest,
+    ServerAdminSpaceConfigurationManagerReconcileRequestFromJSON,
+    ServerAdminSpaceConfigurationManagerReconcileRequestToJSON,
+} from '../models/ServerAdminSpaceConfigurationManagerReconcileRequest';
+import {
+    type ServerAdminSpaceConfigurationManagerView,
+    ServerAdminSpaceConfigurationManagerViewFromJSON,
+    ServerAdminSpaceConfigurationManagerViewToJSON,
+} from '../models/ServerAdminSpaceConfigurationManagerView';
+import {
     type ServerAdminSpaceDetail,
     ServerAdminSpaceDetailFromJSON,
     ServerAdminSpaceDetailToJSON,
@@ -119,8 +144,24 @@ import {
     ServerAdminStorageOverviewToJSON,
 } from '../models/ServerAdminStorageOverview';
 
+export interface DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest {
+    accountId: string;
+    serverAdminAccountDeletionRequest: ServerAdminAccountDeletionRequest;
+}
+
 export interface GetServerAdminAccountApiV1ServerAdminAccountsAccountIdGetRequest {
     accountId: string;
+}
+
+export interface GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest {
+    category?: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum;
+    action?: string | null;
+    actorId?: string | null;
+    targetId?: string | null;
+    createdFrom?: Date | null;
+    createdTo?: Date | null;
+    limit?: number;
+    offset?: number;
 }
 
 export interface GetServerAdminSpaceApiV1ServerAdminSpacesSpaceIdGetRequest {
@@ -164,6 +205,15 @@ export interface ListServerAdminSpacesApiV1ServerAdminSpacesGetRequest {
     offset?: number;
 }
 
+export interface ReconcileServerAdminSpaceConfigurationManagerRequest {
+    spaceId: string;
+    serverAdminSpaceConfigurationManagerReconcileRequest: ServerAdminSpaceConfigurationManagerReconcileRequest;
+}
+
+export interface RequestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequest {
+    accountId: string;
+}
+
 export interface RequestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPostRequest {
     accountId: string;
 }
@@ -201,6 +251,61 @@ export interface VerifyServerAdminAccountEmailApiV1ServerAdminAccountsAccountIdE
  * 
  */
 export class ServerAdminApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost without sending the request
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequestOpts(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['accountId'] == null) {
+            throw new runtime.RequiredError(
+                'accountId',
+                'Required parameter "accountId" was null or undefined when calling deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost().'
+            );
+        }
+
+        if (requestParameters['serverAdminAccountDeletionRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminAccountDeletionRequest',
+                'Required parameter "serverAdminAccountDeletionRequest" was null or undefined when calling deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/accounts/{accountId}/deletion`;
+        urlPath = urlPath.replace('{accountId}', encodeURIComponent(String(requestParameters['accountId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminAccountDeletionRequestToJSON(requestParameters['serverAdminAccountDeletionRequest']),
+        };
+    }
+
+    /**
+     * Delete Server Admin Account
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRaw(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminAccountDeletionResult>> {
+        const requestOptions = await this.deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminAccountDeletionResultFromJSON(jsonValue));
+    }
+
+    /**
+     * Delete Server Admin Account
+     */
+    async deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPost(requestParameters: DeleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminAccountDeletionResult> {
+        const response = await this.deleteServerAdminAccountApiV1ServerAdminAccountsAccountIdDeletionPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for getServerAdminAccountApiV1ServerAdminAccountsAccountIdGet without sending the request
@@ -357,6 +462,75 @@ export class ServerAdminApi extends runtime.BaseAPI {
      */
     async getServerAdminOverviewApiV1ServerAdminOverviewGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminOverview> {
         const response = await this.getServerAdminOverviewApiV1ServerAdminOverviewGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet without sending the request
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['category'] != null) {
+            queryParameters['category'] = requestParameters['category'];
+        }
+
+        if (requestParameters['action'] != null) {
+            queryParameters['action'] = requestParameters['action'];
+        }
+
+        if (requestParameters['actorId'] != null) {
+            queryParameters['actorId'] = requestParameters['actorId'];
+        }
+
+        if (requestParameters['targetId'] != null) {
+            queryParameters['targetId'] = requestParameters['targetId'];
+        }
+
+        if (requestParameters['createdFrom'] != null) {
+            queryParameters['createdFrom'] = (requestParameters['createdFrom'] as any).toISOString();
+        }
+
+        if (requestParameters['createdTo'] != null) {
+            queryParameters['createdTo'] = (requestParameters['createdTo'] as any).toISOString();
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/activity/privileged`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminPrivilegedAuditPage>> {
+        const requestOptions = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminPrivilegedAuditPageFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Server Admin Privileged Activity
+     */
+    async getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGet(requestParameters: GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminPrivilegedAuditPage> {
+        const response = await this.getServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -568,7 +742,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.
+     * Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
      * Grant Server Admin Space Entitlement
      */
     async grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRaw(requestParameters: GrantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceEntitlementView>> {
@@ -579,7 +753,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.
+     * Record a manual Premium grant for a Space (V1 launch entitlement source).  This is the only entitlement source implemented for the first launch; Google Play/Stripe/Self-Hosted-license adapters are deliberately out of scope until a real launch channel requires them (docs/m6/ ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized `record_grant` source-update interface unchanged rather than adding a second grant-mutation path.  Granting unlimited Premium is as consequential as the other high-risk ServerAdmin actions in this router (account deletion, email verification, recovery issuance), so it requires the same step-up re-authentication.
      * Grant Server Admin Space Entitlement
      */
     async grantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPost(requestParameters: GrantServerAdminSpaceEntitlementApiV1ServerAdminSpacesSpaceIdEntitlementGrantsPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
@@ -810,6 +984,107 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for reconcileServerAdminSpaceConfigurationManager without sending the request
+     */
+    async reconcileServerAdminSpaceConfigurationManagerRequestOpts(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['spaceId'] == null) {
+            throw new runtime.RequiredError(
+                'spaceId',
+                'Required parameter "spaceId" was null or undefined when calling reconcileServerAdminSpaceConfigurationManager().'
+            );
+        }
+
+        if (requestParameters['serverAdminSpaceConfigurationManagerReconcileRequest'] == null) {
+            throw new runtime.RequiredError(
+                'serverAdminSpaceConfigurationManagerReconcileRequest',
+                'Required parameter "serverAdminSpaceConfigurationManagerReconcileRequest" was null or undefined when calling reconcileServerAdminSpaceConfigurationManager().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile`;
+        urlPath = urlPath.replace('{space_id}', encodeURIComponent(String(requestParameters['spaceId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ServerAdminSpaceConfigurationManagerReconcileRequestToJSON(requestParameters['serverAdminSpaceConfigurationManagerReconcileRequest']),
+        };
+    }
+
+    /**
+     * Assign missing legacy Space configuration authority exactly once.
+     * Reconcile Server Admin Space Configuration Manager
+     */
+    async reconcileServerAdminSpaceConfigurationManagerRaw(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceConfigurationManagerView>> {
+        const requestOptions = await this.reconcileServerAdminSpaceConfigurationManagerRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ServerAdminSpaceConfigurationManagerViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Assign missing legacy Space configuration authority exactly once.
+     * Reconcile Server Admin Space Configuration Manager
+     */
+    async reconcileServerAdminSpaceConfigurationManager(requestParameters: ReconcileServerAdminSpaceConfigurationManagerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceConfigurationManagerView> {
+        const response = await this.reconcileServerAdminSpaceConfigurationManagerRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost without sending the request
+     */
+    async requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequestOpts(requestParameters: RequestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['accountId'] == null) {
+            throw new runtime.RequiredError(
+                'accountId',
+                'Required parameter "accountId" was null or undefined when calling requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/server-admin/accounts/{accountId}/email-verification/request`;
+        urlPath = urlPath.replace('{accountId}', encodeURIComponent(String(requestParameters['accountId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Request Server Admin Account Email Verification
+     */
+    async requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRaw(requestParameters: RequestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Request Server Admin Account Email Verification
+     */
+    async requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPost(requestParameters: RequestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.requestServerAdminAccountEmailVerificationApiV1ServerAdminAccountsAccountIdEmailVerificationRequestPostRaw(requestParameters, initOverrides);
+    }
+
+    /**
      * Creates request options for requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPost without sending the request
      */
     async requestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPostRequestOpts(requestParameters: RequestServerAdminAccountRecoveryEmailApiV1ServerAdminAccountsAccountIdRecoveryEmailPostRequest): Promise<runtime.RequestOpts> {
@@ -945,7 +1220,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\'s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
      * Revoke Server Admin Space Entitlement Grant
      */
     async revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRaw(requestParameters: RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ServerAdminSpaceEntitlementView>> {
@@ -956,7 +1231,7 @@ export class ServerAdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+     * Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).  Revoking a paying customer\'s entitlement is as consequential as the other high-risk ServerAdmin actions in this router, so it requires the same step-up re-authentication.
      * Revoke Server Admin Space Entitlement Grant
      */
     async revokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePost(requestParameters: RevokeServerAdminSpaceEntitlementGrantApiV1ServerAdminSpacesSpaceIdEntitlementGrantsGrantIdRevokePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ServerAdminSpaceEntitlementView> {
@@ -1178,6 +1453,17 @@ export class ServerAdminApi extends runtime.BaseAPI {
 
 }
 
+/**
+ * @export
+ */
+export const GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum = {
+    all: 'all',
+    settings: 'settings',
+    accounts: 'accounts',
+    spaces: 'spaces',
+    destructive: 'destructive'
+} as const;
+export type GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum = typeof GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum[keyof typeof GetServerAdminPrivilegedActivityApiV1ServerAdminActivityPrivilegedGetCategoryEnum];
 /**
  * @export
  */

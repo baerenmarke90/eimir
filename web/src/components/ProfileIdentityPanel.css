@@ -1,7 +1,6 @@
 .profile-identity-hero-card {
   padding: var(--space-6) 0 var(--space-8);
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -67,6 +66,22 @@
   line-height: 1.35;
 }
 
+.profile-identity-edit-entry {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+
+.profile-identity-edit-entry .compact-action {
+  min-height: 44px;
+}
+
+@media (min-width: 36rem) {
+  .profile-identity-edit-entry {
+    justify-content: flex-start;
+  }
+}
+
 .profile-identity-actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -79,16 +94,22 @@
   min-height: 44px;
 }
 
+.profile-identity-birthday {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+}
+
 .profile-identity-status {
   margin: 0;
   color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
 
-.profile-name-inline-form {
+.profile-name-inline-form,
+.profile-birthday-inline-form {
   margin-top: var(--space-6);
   padding-top: var(--space-5);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .profile-name-input-group {

@@ -16,7 +16,7 @@ describe('CouplePresence', () => {
         spaceTitle="Philipp & Lea"
         primaryPerson={{ displayName: 'Philipp' }}
         secondaryPerson={{ displayName: 'Lea' }}
-        status="connected"
+        status="active"
         relationshipDuration="3y"
       />,
     );
@@ -24,10 +24,25 @@ describe('CouplePresence', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: 'Philipp & Lea' }),
     ).toBeDefined();
+    const activeStatus =
+      relationshipComponents.couplePresencePartnerActive.replace(
+        '{{name}}',
+        'Lea',
+      );
     expect(
-      screen.getByText(relationshipComponents.couplePresenceConnected),
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${activeStatus}`,
+      ),
     ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-active'),
+    ).not.toBeNull();
     expect(screen.getByText('3y')).toBeDefined();
+    expect(document.querySelector('.couple-presence-meta')?.textContent).toBe(
+      '3y',
+    );
   });
 
   it('shows only first names throughout a connected couple hero', () => {
@@ -36,7 +51,7 @@ describe('CouplePresence', () => {
         spaceTitle="Lea Winters & Alex Winter"
         primaryPerson={{ displayName: 'Lea Winters' }}
         secondaryPerson={{ displayName: 'Alex Winter' }}
-        status="connected"
+        status="active"
       />,
     );
 
@@ -45,6 +60,46 @@ describe('CouplePresence', () => {
     ).toBeDefined();
     expect(document.body.innerHTML).not.toContain('Winters');
     expect(document.body.innerHTML).not.toContain('Winter');
+  });
+
+  it('renders recent presence without an online dot and unknown without a claim', () => {
+    const { rerender } = render(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="recent"
+      />,
+    );
+
+    const recentStatus =
+      relationshipComponents.couplePresencePartnerRecent.replace(
+        '{{name}}',
+        'Lea',
+      );
+    expect(
+      screen.getByLabelText(
+        relationshipComponents.partnerAvatarConnected
+          .replace('{{user}}', 'Philipp')
+          .replace('{{partner}}', 'Lea') + `. ${recentStatus}`,
+      ),
+    ).toBeDefined();
+    expect(
+      document.querySelector('.partner-presence-avatar-state.status-recent'),
+    ).not.toBeNull();
+    expect(document.querySelector('.couple-presence-dot')).toBeNull();
+
+    rerender(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        status="unknown"
+      />,
+    );
+    expect(document.querySelector('.partner-presence-avatar-state')).toBeNull();
+    expect(document.querySelector('.partner-presence-badge')).toBeNull();
+    expect(document.querySelector('.couple-presence-indicator')).toBeNull();
   });
 
   it('calls onDurationClick when relationship duration button is pressed', () => {
@@ -88,6 +143,25 @@ describe('CouplePresence', () => {
     expect(handleInvite).toHaveBeenCalledTimes(1);
   });
 
+  it('renders an avatar-adjacent control without changing the identity primitive', () => {
+    render(
+      <CouplePresence
+        spaceTitle="Philipp & Lea"
+        primaryPerson={{ displayName: 'Philipp' }}
+        secondaryPerson={{ displayName: 'Lea' }}
+        avatarAdornment={<button type="button">Energy</button>}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Energy' })).toBeDefined();
+    expect(
+      document.querySelector('.couple-presence-avatar-adornment'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('.couple-presence-avatar-anchor.has-adornment'),
+    ).not.toBeNull();
+  });
+
   it('renders custom actions slot if provided', () => {
     render(
       <CouplePresence
@@ -98,6 +172,8 @@ describe('CouplePresence', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Action' })).toBeDefined();
+    const action = screen.getByRole('button', { name: 'Action' });
+    expect(action).toBeDefined();
+    expect(action.closest('.couple-presence-details')).not.toBeNull();
   });
 });

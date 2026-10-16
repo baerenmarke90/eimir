@@ -10,7 +10,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from scripts import self_hosted_release
 from scripts.self_hosted_release import (
+    DEPLOY_SEQUENCE,
     ReleaseOperationError,
     load_release_identity,
     read_dotenv,
@@ -156,6 +158,75 @@ class ReleaseIdentityTest(unittest.TestCase):
             ReleaseOperationError, "not the selected digest-qualified release"
         ):
             load_release_identity(self.identity_file, self.values)
+
+
+class DeploySequenceTest(unittest.TestCase):
+    """``deploy`` must migrate before it replaces any running service (#827)."""
+
+    ENV_FILE = Path("release.env")
+    IDENTITY = Path("identity.json")
+    BACKEND = "ghcr.io/baerenmarke90/eimir-backend:v0.1.0@sha256:" + "a" * 64
+    WEB = "ghcr.io/baerenmarke90/eimir-web:v0.1.0@sha256:" + "b" * 64
+
+    def _deploy(self, *, fail_on: str | None = None) -> list[list[str]]:
+        commands: list[list[str]] = []
+
+        def fake_run(command: list[str], *, action: str, environment: dict[str, str]) -> None:
+            commands.append(command)
+            if action == fail_on:
+                raise ReleaseOperationError(f"{action} failed")
+
+        with (
+            mock.patch.object(self_hosted_release, "validate_release"),
+            mock.patch.object(self_hosted_release, "run_checked", side_effect=fake_run),
+        ):
+            self_hosted_release.deploy_release(
+                self.ENV_FILE, self.IDENTITY, backend=self.BACKEND, web=self.WEB
+            )
+        return commands
+
+    @staticmethod
+    def _compose_arguments(command: list[str]) -> tuple[str, ...]:
+        return tuple(command[command.index("--file") + 2 :])
+
+    def test_pull_then_database_then_migration_then_runtime(self) -> None:
+        arguments = [self._compose_arguments(c) for c in self._deploy()]
+        verbs = [a[0] for a in arguments]
+        self.assertEqual(verbs, ["pull", "up", "run", "up"])
+        self.assertEqual(arguments[1][-1], "postgres")
+        self.assertEqual(arguments[2], ("run", "--rm", "--no-deps", "migrate"))
+        self.assertIn("--force-recreate", arguments[3])
+        self.assertNotIn("postgres", arguments[3])
+
+    def test_a_failed_migration_never_reaches_runtime_replacement(self) -> None:
+        commands: list[list[str]] = []
+
+        def fake_run(command: list[str], *, action: str, environment: dict[str, str]) -> None:
+            commands.append(command)
+            if action == "Self-Hosted release migration":
+                raise ReleaseOperationError("migration refused")
+
+        with (
+            mock.patch.object(self_hosted_release, "validate_release"),
+            mock.patch.object(self_hosted_release, "run_checked", side_effect=fake_run),
+            self.assertRaises(ReleaseOperationError),
+        ):
+            self_hosted_release.deploy_release(
+                self.ENV_FILE, self.IDENTITY, backend=self.BACKEND, web=self.WEB
+            )
+        verbs = [self._compose_arguments(c)[0] for c in commands]
+        self.assertEqual(verbs, ["pull", "up", "run"])
+        self.assertFalse(
+            any("--force-recreate" in self._compose_arguments(c) for c in commands)
+        )
+
+    def test_sequence_never_builds_and_always_uses_the_self_hosted_profile(self) -> None:
+        for command in self._deploy():
+            self.assertNotIn("build", command)
+            self.assertEqual(command[command.index("--profile") + 1], "self-hosted")
+        for _, arguments in DEPLOY_SEQUENCE:
+            self.assertNotIn("build", arguments)
+            self.assertNotIn("demo-init", arguments)
 
 
 if __name__ == "__main__":

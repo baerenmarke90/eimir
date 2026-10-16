@@ -238,12 +238,24 @@ def create_reminder(
     return ReminderView(reminder=reminder, offsets=normalized_offsets, muted=False)
 
 
+def _generated_source_is_current(session: Session, reminder: Reminder) -> bool:
+    if reminder.source != ReminderSource.GENERATED.value:
+        return True
+    return reminder_runtime.source_is_eligible(session, reminder)
+
+
+def _require_current_generated_source(session: Session, reminder: Reminder) -> None:
+    if not _generated_source_is_current(session, reminder):
+        raise Reminder.privacy_absence.error()
+
+
 def get_reminder(
     session: Session,
     context: AuthorizationContext,
     reminder_id: UUID | str,
 ) -> ReminderView:
     reminder = require_readable(session, Reminder, context, reminder_id)
+    _require_current_generated_source(session, reminder)
     return ReminderView(
         reminder=reminder,
         offsets=_offsets(session, reminder.id),
@@ -252,11 +264,13 @@ def get_reminder(
 
 
 def list_reminders(session: Session, context: AuthorizationContext) -> list[ReminderView]:
-    reminders = list(
-        session.execute(
+    reminders = [
+        reminder
+        for reminder in session.execute(
             readable(Reminder, context).order_by(Reminder.created_at.desc(), Reminder.id.desc())
         ).scalars()
-    )
+        if _generated_source_is_current(session, reminder)
+    ]
     preference_rows: dict[UUID, bool] = {}
     if reminders:
         preference_rows = {
@@ -341,6 +355,7 @@ def set_preference(
     muted: bool,
 ) -> ReminderView:
     reminder = require_readable(session, Reminder, context, reminder_id)
+    _require_current_generated_source(session, reminder)
     statement = (
         postgresql.insert(ReminderPreference)
         .values(

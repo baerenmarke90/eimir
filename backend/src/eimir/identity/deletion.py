@@ -19,6 +19,9 @@ from sqlalchemy.orm import Session
 if TYPE_CHECKING:
     from sqlalchemy import CursorResult
 
+from eimir.administration import service as administration
+from eimir.administration.models import AdministrationAction
+from eimir.appearance.models import AppIconPreference
 from eimir.auth import sessions
 from eimir.authorization.retention import hard_delete_owner_only
 from eimir.core.clock import now
@@ -239,9 +242,14 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
 
     # Account rows are pseudonymized rather than necessarily hard-deleted, so
     # their ON DELETE cascade is not the lifecycle authority for behavior data.
+    from eimir.create_receipts import service as shared_create_receipts
+    from eimir.memories import create_receipts
     from eimir.story import view_service
 
     view_service.purge_viewer(session, viewer_account_id=account_id)
+    create_receipts.purge_account(session, account_id=account_id)
+    shared_create_receipts.purge_account(session, account_id=account_id)
+    _delete_account_rows(session, AppIconPreference, account_id, AppIconPreference.account_id)
 
     # Recipient-scoped notification state and provider endpoints are not
     # historical shared content. PushDelivery rows cascade from either side.
@@ -296,6 +304,8 @@ def apply_core_cleanup(session: Session, account_id: UUID) -> AccountDeletion | 
     account.birthday = None
     account.locale = DELETED_ACCOUNT_LOCALE
     account.timezone = DELETED_ACCOUNT_TIMEZONE
+    account.quiet_hours_start = None
+    account.quiet_hours_end = None
     if account.disabled_at is None:
         account.disabled_at = deletion.accepted_at
 
@@ -341,5 +351,10 @@ def mark_deletion_failed(
     deletion.completed_at = None
     deletion.failed_at = now()
     deletion.last_failure_code = normalized
+    administration.record_account_deletion_outcome(
+        session,
+        target_account_id=account_id,
+        action=AdministrationAction.ACCOUNT_DELETION_FAILED,
+    )
     session.flush()
     return deletion

@@ -7,11 +7,17 @@ import {
   useState,
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { PlanDetail } from '../api/generated/models/PlanDetail';
 import type { PlanSchedule } from '../api/generated/models/PlanSchedule';
+import type { WishDetail } from '../api/generated/models/WishDetail';
 import {
   authorSummaryQueryKeys,
   invalidatePlaceConsumers,
 } from '../client/authorSummaryConsumers';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import {
   type ClientProblemError,
@@ -24,7 +30,7 @@ import {
   type SharedPlanningApis,
 } from '../client/sharedPlanning';
 import { useTaskOrigin } from '../client/taskOrigin';
-import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
@@ -34,6 +40,19 @@ import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
 import './PlanningCreatePage.css';
 
 type PlanningCreateKind = 'plan' | 'wish';
+
+interface PlanningCreateValues {
+  readonly title: string;
+  readonly description?: string;
+  readonly placeId?: string;
+  readonly schedule?: PlanSchedule;
+}
+
+interface PlanningCreateSnapshot {
+  readonly kind: PlanningCreateKind;
+  readonly spaceId: string;
+  readonly values: PlanningCreateValues;
+}
 
 async function apiCall<T>(request: () => Promise<T>): Promise<T> {
   try {
@@ -68,10 +87,11 @@ export function PlanningCreatePage({
   const [newPlaceName, setNewPlaceName] = useState('');
   const [newPlaceAddress, setNewPlaceAddress] = useState('');
   const [enrichmentDirty, setEnrichmentDirty] = useState(false);
-  const [showDiscard, setShowDiscard] = useState(false);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [pending, setPending] = useState(false);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<PlanningCreateSnapshot> | null>(null);
 
   const placesQuery = useQuery({
     queryKey: authorSummaryQueryKeys.placeOptions(spaceId),
@@ -86,44 +106,51 @@ export function PlanningCreatePage({
     () => requestReturn(originKey, '/plan'),
     [originKey, requestReturn],
   );
-  const closeTask = useEditorHistoryEntry({
+  const {
+    showDiscardConfirm: showDiscard,
+    keepEditing,
+    closeConfirmed: closeTask,
+    requestClose,
+  } = useTaskEditorLifecycle({
     isDirty: dirty,
     isCloseBlocked: pending,
-    onDiscardRequested: () => setShowDiscard(true),
     onClose,
   });
 
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
-  useEffect(() => {
-    if (!dirty && !pending) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty, pending]);
 
   const createMutation = useMutation({
-    mutationFn: async (values: {
-      title: string;
-      description?: string;
-      placeId?: string;
-      schedule?: PlanSchedule;
-    }) => {
-      if (kind === 'wish') {
-        return apiCall(() =>
-          apis.wishes.createWish({
-            spaceId,
-            wishCreate: { title: values.title },
-          }),
-        );
-      }
-      return apiCall(() =>
-        apis.plans.createPlan({ spaceId, planCreate: values }),
-      );
+    mutationFn: async (values: PlanningCreateValues) => {
+      const requestValues = kind === 'wish' ? { title: values.title } : values;
+      const snapshot: PlanningCreateSnapshot = {
+        kind,
+        spaceId,
+        values: requestValues,
+      };
+      return submitCreateRequest<
+        PlanningCreateSnapshot,
+        PlanDetail | WishDetail
+      >({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          kind === 'wish'
+            ? apis.wishes.createWish({
+                spaceId,
+                wishCreate: { title: values.title },
+                idempotencyKey,
+              })
+            : apis.plans.createPlan({
+                spaceId,
+                planCreate: values,
+                idempotencyKey,
+              }),
+      });
     },
     onSuccess: async (created) => {
       const queryKey =
@@ -179,12 +206,6 @@ export function PlanningCreatePage({
     if (!name || createPlaceMutation.isPending) return;
     const address = newPlaceAddress.trim();
     createPlaceMutation.mutate({ name, address: address || undefined });
-  }
-
-  function requestClose() {
-    if (pending) return;
-    if (dirty) setShowDiscard(true);
-    else closeTask();
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -277,7 +298,7 @@ export function PlanningCreatePage({
           {isPlan ? (
             <details className="planning-optional-details">
               <summary>{t('m5s3.plan.addDetails')}</summary>
-              <div className="planning-optional-fields">
+              <div className="planning-optional-fields eimir-motion-disclosure">
                 <label htmlFor="planning-create-description">
                   {t('m5s3.common.description')}
                 </label>
@@ -429,15 +450,11 @@ export function PlanningCreatePage({
         open={showDiscard}
         role="alertdialog"
         title={t('taskBoundary.discardTitle')}
-        onClose={() => setShowDiscard(false)}
+        onClose={keepEditing}
       >
         <p>{t('taskBoundary.discardBody')}</p>
         <div className="form-actions">
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setShowDiscard(false)}
-          >
+          <button type="button" className="secondary" onClick={keepEditing}>
             {t('taskBoundary.keepEditing')}
           </button>
           <button

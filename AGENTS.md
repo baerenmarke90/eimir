@@ -15,7 +15,7 @@ Before relevant work, read at least these documents:
 7. `docs/EXTERNAL-PROVIDER-CANDIDATES.md` when providers, infrastructure, or platform components are affected
 8. `docs/ROADMAP.md` and the relevant milestone/project-control documentation
 
-For every user-facing Web or Android change, the following are additional mandatory sources before implementation starts:
+For every user-facing Web change (Android ships the same UI through the Capacitor wrapper), the following are additional mandatory sources before implementation starts:
 
 9. `docs/product/design/README.md`, `docs/product/design/product-reference-v1.md`, and the relevant reference experience/system direction
 10. `docs/DESIGN-PRINCIPLES.md`
@@ -108,7 +108,7 @@ eimir. is a private partner app. Couple-facing screens must follow `docs/PARTNER
 
 ### Required before implementation starts
 
-For every new or materially changed user-facing Web or Android feature, identify in the issue or PR:
+For every new or materially changed user-facing Web feature or native capability, identify in the issue or PR:
 
 - the relevant Product Reference v1 rules/reference experience, followed by the owning Screen Template or the reason a new pattern is required;
 - the existing design-system components and tokens to reuse;
@@ -120,6 +120,26 @@ For every new or materially changed user-facing Web or Android feature, identify
 - privacy and relationship-state presentation where applicable.
 
 A new feature must use the shared product language in its first mergeable implementation. `Functionality first, design later` is not an acceptable UI delivery strategy.
+
+### Generated visual product reference is mandatory before implementation
+
+For every new or materially changed user-facing feature, the owning issue MUST contain at least one generated visual reference image before UI implementation starts.
+
+The visual-reference preflight is repository-aware, not a free-form concept exercise:
+
+- inspect current `main` and the actual destination screen/route before generating the image;
+- account for the existing functions, content hierarchy, shell/navigation, interaction primitives, design-system components, tokens, and relevant states already present there;
+- preserve existing visible capabilities that remain in scope and represent them as they currently exist instead of silently replacing or omitting them;
+- integrate the new feature into the whole composition so placement, hierarchy, density, interaction entry points, and coexistence with neighboring features can be reviewed;
+- use Compact/smartphone as the primary generated composition; add an Expanded/Web visual only when its adaptation is materially different;
+- do not satisfy this gate with an isolated feature card, a blank replacement screen, generic SaaS/admin artwork, or a mockup detached from the current eimir. product;
+- attach/link the generated reference in the issue and record the baseline `main` SHA plus the existing screen/functions that were reviewed;
+- if the affected screen changes materially before implementation starts, regenerate or update the image against the new baseline;
+- for an existing feature issue that lacks this artifact, perform this visual preflight before writing or continuing UI implementation.
+
+The requirement to generate the image is binding. The generated image guides composition and Product Acceptance but is not automatically a pixel-perfect lock; normative Product Reference rules, accessibility, privacy, security, business/domain contracts, and later explicit Product Owner decisions still govern. If an issue needs particular visual decisions to be exact, it must say so explicitly.
+
+[#1151](https://github.com/baerenmarke90/eimir/issues/1151) may be consulted as a **non-binding example of the workflow only**. It does not establish a reusable layout, style template, or precedence for unrelated features.
 
 ### Couple-facing anti-patterns
 
@@ -224,7 +244,7 @@ A relevant pull request without a traceable reuse review is not merge-ready. Pur
 
 Every development pull request must contain a traceable Business/Freemium Model Consistency result. `No business/freemium impact` is acceptable only with a short rationale. A recognizable conflict with `docs/BUSINESS-MODEL.md`, `docs/FREEMIUM-FEATURE-MATRIX.md`, or the current working decisions for unclassified future features must be resolved before merge or routed through an explicit owning product decision.
 
-Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web or Android changes must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
+Every pull request must also record whether it has user-facing UI/UX impact. A PR with user-facing Web changes, or wrapper/native-capability changes that alter what couples see, must complete the Product Design / UX review from the pull-request template and satisfy the partner-app experience standard.
 
 Larger runtime slices, client features, and production user flows must document their relevant cross-cutting consequences in the pull request. The pull-request template is the minimum review surface; deeper decisions belong in the owning issue, decision document, or ADR.
 

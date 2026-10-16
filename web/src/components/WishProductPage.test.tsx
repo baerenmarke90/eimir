@@ -99,11 +99,16 @@ function renderWish(
     places,
   );
 
+  let serverWish = wish;
   const apis = {
     plans: { convertWishToPlan },
     wishes: {
-      completeWish,
-      getWish: vi.fn().mockResolvedValue(wish),
+      completeWish: async (input: unknown) => {
+        const result = await completeWish(input);
+        serverWish = result;
+        return result;
+      },
+      getWish: vi.fn(async () => serverWish),
     },
   } as unknown as SharedPlanningApis;
 

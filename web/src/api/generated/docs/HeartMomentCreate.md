@@ -9,6 +9,7 @@ Name | Type
 `attachmentId` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`tags` | Array&lt;string&gt;
 `text` | string
 `visibility` | [ContentVisibility](ContentVisibility.md)
 
@@ -22,6 +23,7 @@ const example = {
   "attachmentId": null,
   "emotion": null,
   "happenedOn": null,
+  "tags": null,
   "text": null,
   "visibility": null,
 } satisfies HeartMomentCreate

@@ -21,6 +21,9 @@ import {
   MORE_PEOPLE_ROUTE,
   MORE_PRIVATE_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
+  MORE_SETTINGS_ROUTE,
+  SETTINGS_CATEGORY_ROUTES,
   PLAN_DETAIL_ROUTE_PATTERN,
   PLAN_CREATE_ROUTE,
   PLACE_DETAIL_ROUTE_PATTERN,
@@ -40,6 +43,8 @@ import {
   planDetailPath,
   placeDetailPath,
   rewriteLegacyPath,
+  settingsCategoryIdFromHash,
+  settingsCategoryPath,
   wishDetailPath,
 } from './routes';
 
@@ -105,6 +110,42 @@ describe('primary navigation', () => {
     ]) {
       expect(path.startsWith('/more/')).toBe(true);
     }
+  });
+});
+
+describe('settings category routes', () => {
+  it('keeps focused settings tasks below the named Settings destination', () => {
+    expect(MORE_SETTINGS_ROUTE).toBe('/more/settings');
+    expect(MORE_SETTINGS_CATEGORY_ROUTE_PATTERN).toBe(
+      '/more/settings/:settingsCategory',
+    );
+    expect(SETTINGS_CATEGORY_ROUTES).toEqual({
+      relationship: '/more/settings/relationship',
+      notifications: '/more/settings/notifications',
+      today: '/more/settings/today',
+      appearance: '/more/settings/appearance',
+      data: '/more/settings/data',
+      account: '/more/settings/account',
+    });
+    expect(settingsCategoryPath('appearance')).toBe(
+      '/more/settings/appearance',
+    );
+  });
+
+  it('maps shipped settings hashes onto focused category routes', () => {
+    expect(settingsCategoryIdFromHash('#settings-connection')).toBe(
+      'relationship',
+    );
+    expect(settingsCategoryIdFromHash('#settings-notifications')).toBe(
+      'notifications',
+    );
+    expect(settingsCategoryIdFromHash('#settings-dashboard')).toBe('today');
+    expect(settingsCategoryIdFromHash('#settings-appearance')).toBe(
+      'appearance',
+    );
+    expect(settingsCategoryIdFromHash('#settings-data')).toBe('data');
+    expect(settingsCategoryIdFromHash('#settings-account')).toBe('account');
+    expect(settingsCategoryIdFromHash('#unknown')).toBeNull();
   });
 });
 

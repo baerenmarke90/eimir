@@ -1,8 +1,8 @@
 # eimir. UX Patterns
 
 **Status:** Binding product foundation  
-**Version:** 1.4<br/>
-**As of:** September 15, 2026
+**Version:** 1.5<br/>
+**As of:** October 12, 2026
 
 This document defines recurring interaction patterns for the WebApp and
 smartphone app. Both surfaces share the same information architecture,
@@ -45,6 +45,9 @@ The patterns below are platform-appropriate defaults, not a mandatory formula: t
     redundant `Open`, `Details`, or `Edit` controls when selecting the content
     naturally performs the expected action; secondary actions remain explicit and
     accessible.
+12. **Asymmetric participation, symmetric belonging.** Different levels of
+    contribution do not reduce either partner's place in the Space. Apply the
+    participation contract in section 3.5; preserve domain privacy and consent.
 
 ## 2. App Shell and navigation
 
@@ -52,9 +55,9 @@ The patterns below are platform-appropriate defaults, not a mandatory formula: t
 |---|---|---|---|
 | Compact, up to 599 px | Bottom Navigation with at most 5 destinations | contextual tabs, filters, or task-appropriate navigation | new page |
 | Medium, 600–839 px | Bottom Navigation | task-appropriate local navigation | new page or optional supporting pane |
-| Expanded, from 840 px | Web horizontal header; Android Bottom Navigation | local navigation in content area | full page or justified supporting pane |
+| Expanded, from 840 px | Web horizontal header (also inside the Android wrapper) | local navigation in content area | full page or justified supporting pane |
 
-The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); Android follows [ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
+The Web header follows the accepted [A1 shell decision](./design/eimir/SHELL-RESCUE-A1.md); the Android wrapper renders the same Web shell ([ADR 0004](./decisions/0004-android-uses-bottom-navigation-at-every-size.md) is historical). Product Reference v1 governs content hierarchy and interaction outcomes; it does not reintroduce a sidebar or require a pane at a particular width.
 
 - Primary destinations are the intentional de-DE product labels **Wir, Momente,
   Planen, Mehr**. Discovery experiences remain product behavior inside `Momente`
@@ -148,6 +151,40 @@ pattern already solves the task.
 - Result count and empty-search state explain the outcome.
 - Sorting changes no data and remains clearly distinct from filtering.
 - Search terms, filters, and sorting remain available throughout a session.
+
+### 3.5 Participation without equal contribution
+
+Owning issue: [#502](https://github.com/baerenmarke90/eimir/issues/502).
+The [current-flow audit](./product/design/502-participation-audit.md) records
+existing behavior, intentional exceptions and remaining product work.
+
+- Ordinary shared capture and planning remain useful when one person initiates
+  and the other reads, joins briefly, or returns later. Do not require matching
+  numbers of posts, uploads, answers or completed tasks.
+- Where relevant, distinguish initiating, joining and reacting. Reuse existing
+  actions and deliberate partner gestures before adding a reaction domain.
+  A content-specific reaction needs its own target, privacy and lifecycle
+  contract; a general partner ping does not establish one.
+- Optional enrichment and acknowledgement must not prevent the initiator from
+  saving or completing an otherwise valid task. Skipping optional participation
+  carries no penalty, streak loss or guilt message.
+- Bilateral consent and protected reveal remain domain requirements. A skip,
+  fabricated check-in or low-effort reaction must never substitute for required
+  authorization. Daily Check-in Mutual Reveal is dimension-specific; it does
+  not gate unrelated planning or history.
+- An intentional two-person game may require turns and eligible source content.
+  Record the reason and sparse fallback explicitly. Keep round scores within
+  that game; never convert them or content authorship into contribution rankings
+  or a relationship score.
+- Do not infer permanent active/passive partner roles from usage or introduce
+  personal contribution targets, comparative engagement counts, inactivity
+  reminders or a backlog of social obligations.
+
+Before a new or materially changed relationship flow is implemented, its
+existing Product Design Preflight must state what one person can finish alone,
+the smallest meaningful optional participation, and why any bilateral action
+is required. Changing an existing consent, reveal or game rule still belongs
+to its owning product decision.
 
 ## 4. States for every data-driven view
 
@@ -301,6 +338,8 @@ A new flow is ready for implementation only when:
 - important actions and states can be recognized without relying on hidden gestures or memorized UI knowledge,
 - one primary action and a clear way back exist,
 - destructive actions are reversible or consciously confirmed,
+- individual participation is sufficient where permitted, and any bilateral
+  requirement has an explicit domain or product reason,
 - analytics events contain no sensitive content data.
 
 ## Related documents

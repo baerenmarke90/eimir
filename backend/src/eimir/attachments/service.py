@@ -54,6 +54,7 @@ from eimir.media import (
     get_media_store,
     supports_signed_upload,
 )
+from eimir.security.errors import PlaintextRejectedError
 
 log = logging.getLogger(__name__)
 
@@ -533,8 +534,16 @@ def validate(session: Session, attachment_id: UUID) -> None:
         _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
         return
 
-    with store.open(storage_key) as source:
-        raw = source.read()
+    try:
+        with store.open(storage_key) as source:
+            raw = source.read()
+    except PlaintextRejectedError:
+        # A client that received a presigned upload URL before encryption became
+        # mandatory can still complete it, leaving plaintext at the provider.
+        # That object is never accepted: remove it and fail the attachment.
+        store.delete(storage_key)
+        _fail(attachment, ErrorCode.ATTACHMENT_VALIDATION_FAILED)
+        return
 
     if len(raw) > rule.max_size:
         _fail(attachment, ErrorCode.ATTACHMENT_TOO_LARGE)

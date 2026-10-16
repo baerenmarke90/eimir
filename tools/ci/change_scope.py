@@ -264,9 +264,10 @@ def classify_paths(paths: Iterable[str]) -> dict[str, bool]:
             result["recovery"] = True
             known = True
 
-        # Canonical Web source and the Capacitor packaging tree are known but do
-        # not activate backend/container gates. Web has its own product gates;
-        # Android/iOS wrapper integration is handled by mobile packaging work.
+        # Canonical Web source and the Capacitor packaging trees (android/ is the
+        # canonical Android wrapper) are known but do not activate backend/
+        # container gates. Web has its own product gates; wrapper integration is
+        # handled by mobile packaging work.
         if path.startswith(("web/", "android/", "ios/")):
             known = True
 

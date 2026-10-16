@@ -28,6 +28,8 @@ describe('PrivateAreaProductPage', () => {
     const html = renderPrivateArea('/more/private');
 
     expect(html).toContain('private-area-reference-overview');
+    expect(html).toContain(`href="/more"`);
+    expect(html).toContain(privateArea.backToMore);
     expect(html).toContain('private-area-privacy-banner');
     expect(html).toContain(privateArea.entry.privacy);
     expect(html).toContain('href="/more/private/notes"');
@@ -36,6 +38,9 @@ describe('PrivateAreaProductPage', () => {
     expect(html).toContain(privateArea.notes.intro);
     expect(html).toContain(privateArea.gifts.intro);
     expect(html).toContain(privateArea.collections.intro);
+    for (const name of ['nurfuer', 'notes', 'geschenk', 'listen']) {
+      expect(html).toContain(`eimir-icon-${name}`);
+    }
     expect(html).not.toContain('class="private-area-nav"');
   });
 });

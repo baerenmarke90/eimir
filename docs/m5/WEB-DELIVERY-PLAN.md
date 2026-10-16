@@ -1,7 +1,7 @@
 # M5 Web Delivery Plan
 
 - **Parent issue:** #295
-- **Scope:** Web only; Android remains separate
+- **Scope:** Web only (Android is packaged from the Web product via Capacitor since ADR 0011)
 - **Gate:** M5/G4 remains dependent on completed M4 and the full cross-platform
   evidence set
 
@@ -134,8 +134,8 @@ The binding decisions include:
 
 #345 owns the production FastAPI/PostgreSQL/Job/MediaStore implementation, the
 v1 bundle manifest, Export/Import authorization, archive abuse protection,
-cleanup, ProblemDetails, OpenAPI snapshot, and regenerated TypeScript/Kotlin
-clients.
+cleanup, ProblemDetails, OpenAPI snapshot, and regenerated TypeScript
+client (Kotlin generation was retired in #1009).
 
 Web must not create a competing archive or transport contract while #345 is
 unmerged.

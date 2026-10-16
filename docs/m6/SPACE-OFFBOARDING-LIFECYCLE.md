@@ -1,5 +1,7 @@
 # Space and relationship offboarding lifecycle
 
+> **Note (#1009):** references to an Android/native cache or client in this document describe the retired Kotlin client. Android is now the Capacitor wrapper around the Web client; see [Reading older documents](../CAPACITOR-ANDROID-FOUNDATION.md#reading-older-documents).
+
 **Version:** 1.1  
 **Owner:** #518 / Product Owner #669  
 **Baseline:** `main` at `63b847fafe20864e34160d3d7591cf80025455bb`  

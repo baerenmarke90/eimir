@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test, type Page } from '@playwright/test';
@@ -48,6 +49,7 @@ interface MemoryCreateRequestBody {
 async function installApiMocks(page: Page): Promise<void> {
   let savedMemory: Record<string, unknown> | null = null;
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -239,6 +241,14 @@ async function installApiMocks(page: Page): Promise<void> {
       });
       return;
     }
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -266,18 +276,21 @@ async function openMemoryCreate(page: Page): Promise<void> {
 
 test.describe('R1 Memory Create evidence', () => {
   for (const colorScheme of ['light', 'dark'] as const) {
-    for (const width of [320, 360, 390, 430, 1280]) {
-      test(`initial empty composition at ${width}px (${colorScheme})`, async ({
-        page,
-      }) => {
-        await page.emulateMedia({ colorScheme });
-        await page.setViewportSize({ width, height: 900 });
-        await openMemoryCreate(page);
-        await page.screenshot({
+    test(`initial empty composition matrix (${colorScheme})`, async ({
+      page,
+    }) => {
+      const context = page.context();
+      for (const width of [320, 360, 390, 430, 1280]) {
+        const matrixPage = await context.newPage();
+        await matrixPage.emulateMedia({ colorScheme });
+        await matrixPage.setViewportSize({ width, height: 900 });
+        await openMemoryCreate(matrixPage);
+        await matrixPage.screenshot({
           path: path.join(EVIDENCE_DIR, `r1-empty-${width}-${colorScheme}.png`),
         });
-      });
-    }
+        await matrixPage.close();
+      }
+    });
   }
 
   test('text-only capture: narrative visible immediately, no photo placeholder', async ({

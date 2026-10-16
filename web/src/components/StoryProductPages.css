@@ -148,8 +148,8 @@
   background: var(--color-surface-raised);
   box-shadow: var(--shadow-soft);
   transition:
-    transform var(--motion-duration-medium) var(--motion-easing-lift),
-    box-shadow var(--motion-duration-medium) var(--motion-easing-lift);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -358,8 +358,8 @@
   font-family: inherit;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-group select:focus-visible {
@@ -380,7 +380,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   border-radius: var(--radius-medium);
-  transition: color 0.15s ease;
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .story-filter-reset-header-action:hover {
@@ -398,7 +398,6 @@
   align-items: center;
   gap: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .active-chip {
@@ -414,8 +413,8 @@
   font-weight: 600;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .active-chip:hover {
@@ -551,7 +550,7 @@
 .momente-tabs-container {
   display: flex;
   justify-content: center;
-  margin: var(--space-2) 0 var(--space-3);
+  margin: 0 0 var(--space-3);
 }
 
 .momente-tabs {
@@ -577,7 +576,10 @@
   font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;
-  transition: all var(--motion-duration-short) ease;
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-tab-btn:hover {
@@ -614,7 +616,7 @@
   );
   border: 1px solid var(--color-brand-glow);
   box-shadow: var(--shadow-card);
-  transition: transform var(--motion-duration-medium) ease;
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-hero-highlight:hover {
@@ -661,7 +663,7 @@
 }
 
 .momente-hero-kicker {
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -751,7 +753,7 @@
 }
 
 .momente-stream-all-link {
-  color: var(--color-brand);
+  color: var(--color-link-text);
   font-weight: 700;
   font-size: 0.92rem;
   text-decoration: none;
@@ -827,8 +829,8 @@
   text-decoration: none;
   overflow: hidden;
   transition:
-    transform var(--motion-duration-medium) ease,
-    box-shadow var(--motion-duration-medium) ease;
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-tapestry-item:focus-visible {
@@ -917,7 +919,7 @@
   gap: 0.35rem;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-brand-strong);
+  color: var(--color-text-secondary);
 }
 
 .momente-tapestry-title {
@@ -1019,7 +1021,7 @@
 
 .momente-browse-links {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
   gap: var(--space-1);
   padding: 4px;
   border: 1px solid var(--color-border-subtle);
@@ -1045,13 +1047,18 @@
   text-align: center;
   text-decoration: none;
   transition:
-    background-color var(--motion-duration-short) ease,
-    color var(--motion-duration-short) ease;
+    background-color var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard);
 }
 
 .momente-browse-link:hover {
   background: var(--color-surface-raised);
   color: var(--color-text);
+}
+
+.momente-browse-link span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .momente-browse-link:focus-visible {
@@ -1061,40 +1068,6 @@
 
 .momente-browse-icon {
   flex: 0 0 auto;
-}
-
-@media (max-width: 359px) {
-  .momente-browse-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .momente-browse-link:last-child {
-    grid-column: 1 / -1;
-  }
-}
-
-/* =====================================================================
- * Momente > Zeitleiste: Header & Filter Chips (#860)
- * ===================================================================== */
-.momente-timeline-header {
-  margin-bottom: 0;
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.momente-timeline-header h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 6vw, 2.5rem);
-  letter-spacing: -0.015em;
-  margin: 0 0 var(--space-2);
-}
-
-.momente-timeline-header p {
-  color: var(--color-text-secondary);
-  font-size: 1.05rem;
-  line-height: 1.45;
-  margin: 0 0 var(--space-4);
-  max-width: 44ch;
 }
 
 /* =====================================================================

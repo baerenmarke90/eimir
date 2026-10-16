@@ -25,7 +25,7 @@ from eimir.core import cursor as cursor_codec
 from eimir.core.errors import ErrorCode, NotFoundError
 from eimir.core.ids import parse_id
 from eimir.domain.events import EventType
-from eimir.engagement import push, thinking
+from eimir.engagement import email_delivery, notification_preferences, push, thinking
 from eimir.engagement.models import (
     Activity,
     ActivityKind,
@@ -81,6 +81,10 @@ _ACTIVITY_EVENTS: dict[EventType, tuple[ActivityKind, EngagementTarget]] = {
         ActivityKind.HEART_MOMENT_CREATED,
         EngagementTarget.HEART_MOMENT,
     ),
+    EventType.HEART_MOMENT_VISIBILITY_CHANGED: (
+        ActivityKind.HEART_MOMENT_CREATED,
+        EngagementTarget.HEART_MOMENT,
+    ),
     EventType.WISH_CREATED: (ActivityKind.WISH_CREATED, EngagementTarget.WISH),
     EventType.PLAN_CREATED: (ActivityKind.PLAN_CREATED, EngagementTarget.PLAN),
     EventType.PLAN_COMPLETED: (ActivityKind.PLAN_COMPLETED, EngagementTarget.PLAN),
@@ -126,11 +130,23 @@ def project_pending(session: Session, *, limit: int = 50) -> int:
             # persisted verbatim (#680, extended to Outbox per its own
             # follow-up comment; #695 tracks whether Outbox needs anything
             # beyond this).
-            outbox_service.mark_failed(event, safe_exception_summary(exc))
+            became_terminal = outbox_service.mark_failed(event, safe_exception_summary(exc))
             log.exception(
                 "outbox event projection failed",
                 extra={"event_id": str(event.id), "event_type": event.event_type},
             )
+            if became_terminal:
+                # Distinct from the retry-scheduled case above: this event
+                # will never be reclaimed again and needs operator attention,
+                # the same way jobs/worker.py's "unknown job kind" does.
+                log.error(
+                    "outbox event permanently failed after exhausting retries",
+                    extra={
+                        "event_id": str(event.id),
+                        "event_type": event.event_type,
+                        "attempts": event.attempts,
+                    },
+                )
         else:
             outbox_service.mark_processed(event)
     return len(events)
@@ -172,11 +188,19 @@ def project_event(session: Session, event: OutboxEvent) -> None:
     if event_type is EventType.PARTNER_THINKING_OF_YOU:
         thinking.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
+        return
+
+    if event_type in {EventType.PARTNER_KISS, EventType.PARTNER_CHECK_IN}:
+        thinking.project_support_gesture_notification(session, event)
+        push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     if event_type is EventType.REMINDER_DUE:
         reminder_delivery.project_notification(session, event)
         push.ensure_deliveries_for_source_event(session, event.id)
+        email_delivery.ensure_deliveries_for_source_event(session, event.id)
         return
 
     activity_target = _activity_target(event, event_type)
@@ -193,6 +217,7 @@ def project_event(session: Session, event: OutboxEvent) -> None:
         _project_comment_notification(session, event, target_type, target_id)
 
     push.ensure_deliveries_for_source_event(session, event.id)
+    email_delivery.ensure_deliveries_for_source_event(session, event.id)
 
 
 def _activity_target(
@@ -200,7 +225,7 @@ def _activity_target(
     event_type: EventType,
 ) -> tuple[ActivityKind, EngagementTarget, UUID] | None:
     if (
-        event_type is EventType.HEART_MOMENT_CREATED
+        event_type in {EventType.HEART_MOMENT_CREATED, EventType.HEART_MOMENT_VISIBILITY_CHANGED}
         and event.payload.visibility is not ContentVisibility.SHARED
     ):
         return None
@@ -253,19 +278,22 @@ def _insert_activity(
     target_type: EngagementTarget,
     target_id: UUID,
 ) -> None:
-    statement = (
-        postgresql.insert(Activity)
-        .values(
-            space_id=event.space_id,
-            source_event_id=event.id,
-            kind=kind.value,
-            actor_id=event.actor_id,
-            target_type=target_type.value,
-            target_id=target_id,
-            occurred_at=event.created_at,
-        )
-        .on_conflict_do_nothing(index_elements=["source_event_id", "kind"])
+    insert = postgresql.insert(Activity).values(
+        space_id=event.space_id,
+        source_event_id=event.id,
+        kind=kind.value,
+        actor_id=event.actor_id,
+        target_type=target_type.value,
+        target_id=target_id,
+        occurred_at=event.created_at,
     )
+    # A HeartMoment can reach shared visibility at creation or through a
+    # later transition. The partial unique index keeps those event paths and
+    # repeated private/share transitions from adding a second feed entry.
+    if kind is ActivityKind.HEART_MOMENT_CREATED:
+        statement = insert.on_conflict_do_nothing()
+    else:
+        statement = insert.on_conflict_do_nothing(index_elements=["source_event_id", "kind"])
     session.execute(statement)
 
 
@@ -304,6 +332,9 @@ def _project_comment_notification(
             target_type=target_type.value,
             target_id=target_id,
             created_at=event.created_at,
+            in_app_visible=notification_preferences.in_app_enabled(
+                session, account_id=recipient_id, kind=NotificationKind.COMMENT_CREATED.value
+            ),
         )
         .on_conflict_do_nothing(index_elements=["recipient_account_id", "source_event_id", "kind"])
     )
@@ -342,6 +373,23 @@ def _projectable_predicate(
         )
         clauses.append(and_(target_type_column == target_type.value, exists))
     return or_(*clauses)
+
+
+def notification_target_available(
+    session: Session, notification: Notification, context: AuthorizationContext
+) -> bool:
+    """Recheck the Center target authorization before external delivery."""
+    return (
+        session.execute(
+            select(Notification.id).where(
+                Notification.id == notification.id,
+                Notification.space_id == context.space_id,
+                Notification.recipient_account_id == context.account_id,
+                _projectable_predicate(Notification.target_type, Notification.target_id, context),
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
 
 
 def _activity_binding(context: AuthorizationContext) -> dict[str, str]:
@@ -439,6 +487,7 @@ def read_notifications(
     statement = select(Notification).where(
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     if cursor is not None:
@@ -470,6 +519,7 @@ def unread_count(session: Session, context: AuthorizationContext) -> int:
         Notification.space_id == context.space_id,
         Notification.recipient_account_id == context.account_id,
         Notification.read_at.is_(None),
+        Notification.in_app_visible.is_(True),
         _projectable_predicate(Notification.target_type, Notification.target_id, context),
     )
     return int(session.execute(statement).scalar_one())
@@ -492,6 +542,7 @@ def mark_notification_read(
             Notification.id == identifier,
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
+            Notification.in_app_visible.is_(True),
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )
         .with_for_update()
@@ -516,6 +567,7 @@ def mark_all_notifications_read(
             Notification.space_id == context.space_id,
             Notification.recipient_account_id == context.account_id,
             Notification.read_at.is_(None),
+            Notification.in_app_visible.is_(True),
             Notification.created_at <= cutoff,
             _projectable_predicate(Notification.target_type, Notification.target_id, context),
         )

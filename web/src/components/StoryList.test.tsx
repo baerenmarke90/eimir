@@ -92,7 +92,7 @@ describe('StoryList', () => {
     expect(html).not.toContain('Meilenstein öffnen');
   });
 
-  it('renders date and author together in the shared card footer', () => {
+  it('renders date and an accessible author avatar in the shared card footer (#1064)', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -123,13 +123,13 @@ describe('StoryList', () => {
     expect(html).toContain('class="story-card-footer"');
     expect(html).toContain('<time');
     expect(html).toContain('story-card-footer-author');
-    // #1019 makes the viewer-relative attribution explicit in both visible
-    // and accessible metadata.
-    expect(html).toContain('>von Alex</span>');
-    expect(html).toContain('class="sr-only">von Alex</span>');
+    // #1064 removes redundant author prose while retaining avatar semantics.
+    expect(html).not.toContain('story-card-author');
+    expect(html).not.toContain('class="sr-only"');
+    expect(html).toContain('role="img" aria-label="Alex"');
   });
 
-  it('shows only the first name in Timeline attribution, never the full display name (#791 second follow-up)', () => {
+  it('keeps the full author identity accessible without visible Timeline attribution (#1064)', () => {
     const item = StoryItemFromJSON({
       kind: 'MEMORY',
       effectiveDate: '2026-08-26',
@@ -157,10 +157,9 @@ describe('StoryList', () => {
       </MemoryRouter>,
     );
 
-    // #1019 adds viewer-relative prose while #791 still guarantees that
-    // partner attribution uses only the first name.
-    expect(html).toContain('>von Alex</span>');
+    expect(html).not.toContain('story-card-author');
     expect(html).not.toContain('>Alex Winter</span>');
+    expect(html).toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders large image-led card when attachment exists and text-first card when absent (#860)', () => {

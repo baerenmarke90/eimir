@@ -1,24 +1,14 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import sharedPhotos from '../../src/i18n/locales/sharedPhotos';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
-const BROWSE_EVIDENCE_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'docs',
-  'product',
-  'design',
-  'evidence',
-  '972-momente-browse-layer',
-);
 
 async function expectNoWcagViolations(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page })
@@ -30,8 +20,6 @@ async function expectNoWcagViolations(page: Page): Promise<void> {
       'wcag22a',
       'wcag22aa',
     ])
-    .exclude('.momente-tapestry-kind')
-    .exclude('.momente-stream-all-link')
     .analyze();
   const summary = result.violations
     .map(
@@ -148,14 +136,17 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
     await route.fulfill({
       status: 200,
       contentType: 'image/jpeg',
-      body: Buffer.from(
-        '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
-        'base64',
+      body: fs.readFileSync(
+        new URL(
+          '../../../backend/demo_assets/images/lake-sunrise.jpg',
+          import.meta.url,
+        ),
       ),
     });
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -317,6 +308,28 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -329,6 +342,7 @@ async function installDiscoverApiMocks(page: Page): Promise<string[]> {
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, ALEX.id);
   return unexpectedRequests;
 }
 
@@ -355,7 +369,7 @@ const canonicalItemLabels = [
 
 test('Momente Discover preserves canonical backend order in its desktop CSS grid and stays axe-clean', async ({
   page,
-}) => {
+}, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.setViewportSize({ width: 1440, height: 1200 });
   await page.goto('/story?tab=discover');
@@ -363,7 +377,7 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
   await expect(page.locator('.momente-hero-highlight')).toContainText(
     'Danke, dass du heute für mich da warst.',
@@ -398,16 +412,15 @@ test('Momente Discover preserves canonical backend order in its desktop CSS grid
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
-  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
-    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-1440-light.png'),
+    path: testInfo.outputPath('972-browse-1440-light.png'),
     fullPage: false,
   });
 });
 
 test('Momente Discover tapestry is axe-clean in dark mode', async ({
   page,
-}) => {
+}, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 1440, height: 1200 });
@@ -416,10 +429,14 @@ test('Momente Discover tapestry is axe-clean in dark mode', async ({
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
+  await page.screenshot({
+    path: testInfo.outputPath('1300-discover-1440-dark.png'),
+    fullPage: false,
+  });
 });
 
 test('Momente Discover uses one canonical CSS-grid column on mobile with no horizontal overflow', async ({
@@ -432,7 +449,7 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
   await page.goto('/story?tab=discover');
 
   await expect(
-    page.getByRole('heading', { name: 'Unsere Momente', level: 1 }),
+    page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
   ).toBeVisible();
 
   const tapestryLinkTitles = await page
@@ -460,9 +477,9 @@ test('Momente Discover uses one canonical CSS-grid column on mobile with no hori
   expect(unexpectedRequests).toEqual([]);
 });
 
-test('Momente browse layer keeps three structural destinations compact and secondary at 390px', async ({
+test('Momente browse layer keeps four structural destinations compact and secondary at 390px', async ({
   page,
-}) => {
+}, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'light' });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -472,6 +489,10 @@ test('Momente browse layer keeps three structural destinations compact and secon
 
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
+  await expect(browse.getByRole('link')).toHaveCount(4);
+  await expect(
+    browse.getByRole('link', { name: sharedPhotos.browse, exact: true }),
+  ).toHaveAttribute('href', '/story/photos');
   await expect(
     browse.getByRole('link', { name: de.story.browseMilestones }),
   ).toHaveAttribute('href', '/story?tab=timeline&type=MILESTONE');
@@ -522,16 +543,15 @@ test('Momente browse layer keeps three structural destinations compact and secon
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
 
-  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
-    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-390-light.png'),
+    path: testInfo.outputPath('972-browse-390-light.png'),
     fullPage: false,
   });
 });
 
 test('Momente browse layer reflows at 320px with enlarged text in dark mode', async ({
   page,
-}) => {
+}, testInfo) => {
   const unexpectedRequests = await installDiscoverApiMocks(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.setViewportSize({ width: 320, height: 720 });
@@ -542,7 +562,10 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
 
   const browse = page.getByRole('navigation', { name: de.story.browseTitle });
   await expect(browse).toBeVisible();
-  await expect(browse.getByRole('link')).toHaveCount(3);
+  await expect(browse.getByRole('link')).toHaveCount(4);
+  await expect(
+    browse.getByRole('link', { name: sharedPhotos.browse, exact: true }),
+  ).toHaveAttribute('href', '/story/photos');
 
   const dimensions = await page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -563,9 +586,8 @@ test('Momente browse layer reflows at 320px with enlarged text in dark mode', as
 
   await expectNoWcagViolations(page);
   expect(unexpectedRequests).toEqual([]);
-  fs.mkdirSync(BROWSE_EVIDENCE_DIR, { recursive: true });
   await page.screenshot({
-    path: path.join(BROWSE_EVIDENCE_DIR, '972-browse-320-dark-large-text.png'),
+    path: testInfo.outputPath('972-browse-320-dark-large-text.png'),
     fullPage: false,
   });
 });

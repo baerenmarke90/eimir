@@ -7,6 +7,8 @@ import { isDemoModeConfigured } from './client/demoMode';
 import { identityBuildVariable } from './client/identityEnvironment';
 import { DemoBanner } from './components/DemoBanner';
 import { i18n } from './i18n';
+import { registerProductionServiceWorker } from './pwa';
+import { useCapacitorShell } from './capacitorShell';
 import { initializeTheme } from './theme';
 import './styles.css';
 import './story-media.css';
@@ -32,11 +34,13 @@ import './components/StoryProductPages.css';
 import './components/StoryDetailContentFirst.css';
 import './components/StoryMomentMetadata.css';
 import './components/SharedPlanningSanctuary.css';
-import './components/SharedPlanningMotion.css';
 import './product-reflow.css';
 import './memory-create-polish.css';
+import './design/identity-roles.css';
+import './design/identity-components.css';
 
 initializeTheme();
+registerProductionServiceWorker();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +65,7 @@ const demoUrl = String(identityBuildVariable('DEMO_URL'))
   .replace(/\/+$/, '');
 
 function RootApp() {
+  useCapacitorShell();
   return (
     <>
       {demoMode ? (

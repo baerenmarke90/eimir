@@ -36,6 +36,24 @@ DIGEST_REF_RE = re.compile(
 )
 
 
+# Compose arguments (after the shared prefix) that ``deploy`` runs after
+# validation, in this order. Migration runs against the selected backend image
+# *before* any runtime container is replaced: a failed or refused migration (for
+# example a rollback to a release older than the database schema) aborts here and
+# leaves the currently running API/worker/Web untouched instead of tearing them
+# down. ``scripts/self_hosted_upgrade_rehearsal.py`` executes the same sequence.
+DEPLOY_WAIT = ("--wait", "--wait-timeout", "300")
+DEPLOY_SEQUENCE: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Self-Hosted release image pull", ("pull",)),
+    ("Self-Hosted database start", ("up", "-d", *DEPLOY_WAIT, "postgres")),
+    ("Self-Hosted release migration", ("run", "--rm", "--no-deps", "migrate")),
+    (
+        "Self-Hosted release deployment",
+        ("up", "-d", "--force-recreate", *DEPLOY_WAIT),
+    ),
+)
+
+
 class ReleaseOperationError(RuntimeError):
     """The requested released Self-Hosted operation is unsafe or invalid."""
 
@@ -220,11 +238,20 @@ def reject_conflicting_image_overrides(
         )
 
 
-def compose_environment(*, backend: str, web: str) -> dict[str, str]:
-    """Force canonical published image identity for every Compose invocation."""
+def compose_environment(
+    *, backend: str, web: str, identity_file: Path | None = None
+) -> dict[str, str]:
+    """Force canonical published image identity for every Compose invocation.
+
+    ``identity_file`` is the published identity this launcher validated. Compose
+    mounts exactly that file into the in-manifest ``release-guard``, so the guard and
+    the launcher judge one set of bytes.
+    """
 
     environment = dict(os.environ)
     environment.pop("COMPOSE_FILE", None)
+    if identity_file is not None:
+        environment["EIMIR_RELEASE_IDENTITY_FILE"] = str(identity_file.resolve())
     environment["COMPOSE_PROFILES"] = "self-hosted"
     environment["EIMIR_ENVIRONMENT"] = "production"
     environment["EIMIR_SELF_HOSTED_BACKEND_IMAGE"] = backend
@@ -280,7 +307,7 @@ def validate_release(
     run_checked(
         command,
         action="Self-Hosted release validation",
-        environment=compose_environment(backend=backend, web=web),
+        environment=compose_environment(backend=backend, web=web, identity_file=identity_file),
     )
 
 
@@ -297,7 +324,7 @@ def pull_release(
     run_checked(
         [*compose_prefix(env_file), "pull"],
         action="Self-Hosted release image pull",
-        environment=compose_environment(backend=backend, web=web),
+        environment=compose_environment(backend=backend, web=web, identity_file=identity_file),
     )
 
 
@@ -311,7 +338,7 @@ def bootstrap_deletion_authority(
         web=web,
         image_identity_only=True,
     )
-    environment = compose_environment(backend=backend, web=web)
+    environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
     run_checked(
         [*compose_prefix(env_file), "pull", "api"],
         action="Self-Hosted bootstrap image pull",
@@ -344,25 +371,13 @@ def deploy_release(
         web=web,
         image_identity_only=False,
     )
-    environment = compose_environment(backend=backend, web=web)
-    run_checked(
-        [*compose_prefix(env_file), "pull"],
-        action="Self-Hosted release image pull",
-        environment=environment,
-    )
-    run_checked(
-        [
-            *compose_prefix(env_file),
-            "up",
-            "-d",
-            "--force-recreate",
-            "--wait",
-            "--wait-timeout",
-            "300",
-        ],
-        action="Self-Hosted release deployment",
-        environment=environment,
-    )
+    environment = compose_environment(backend=backend, web=web, identity_file=identity_file)
+    for action, arguments in DEPLOY_SEQUENCE:
+        run_checked(
+            [*compose_prefix(env_file), *arguments],
+            action=action,
+            environment=environment,
+        )
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

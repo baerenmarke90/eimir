@@ -5,7 +5,7 @@
 **As of:** August 24, 2026
 
 This document defines the shared language between the REST API, React WebApp,
-and Android app. OpenAPI under `/api/v1` remains the executable contract; this
+and the Capacitor Android app that packages that WebApp. OpenAPI under `/api/v1` remains the executable contract; this
 file defines how domain and technical states are interpreted and represented in
 both clients.
 
@@ -42,8 +42,7 @@ A client must not introduce a domain rule that exists only locally.
 | Version conflict | 409 |
 | Rate limit | 429 |
 
-- Android authenticates API calls with a short-lived Bearer token and a securely
-  stored rotating session.
+- The Web client (including inside the Android wrapper) authenticates API calls with a short-lived Bearer token and a rotating session persisted by the client.
 - Credentials, tokens, and invitation values never appear in URLs after flow
   completion, analytics, crash data, or logs.
 - Clients use only OpenAPI fields; unknown additional fields are ignored
@@ -154,7 +153,7 @@ The `fieldErrors[].message` value above is intentional de-DE product copy.
 | 413/415 | media not allowed | explain/remove affected file |
 | 429 | rate limit | show wait time and bound automatic retries |
 | 5xx | temporary service failure | preserve existing data and offer retry |
-| network error | offline/interrupted | no success; Android may show authorized read cache |
+| network error | offline/interrupted | no success; the client may show its authorized read cache |
 
 ## 7. Optimistic concurrency
 
@@ -172,7 +171,7 @@ interface UpdateCommand<T> {
 - On 409, nothing is marked locally as saved.
 - Conflict responses contain only content that the current account remains
   authorized to access.
-- Web invalidates the affected TanStack Query; Android updates read cache only
+- The Web client invalidates the affected TanStack Query and updates its read cache only
   after a successful authorized response.
 - Delete, privacy changes, and Membership states are never merged
   automatically.
@@ -242,9 +241,9 @@ type DataFreshness = "LIVE" | "STALE_CACHE";
 type WriteAvailability = "AVAILABLE" | "OFFLINE_BLOCKED" | "SESSION_BLOCKED";
 ```
 
-### Android MVP
+### Offline and cache MVP (Android wrapper included)
 
-- Room acts as an authorized read cache.
+- The Web client's IndexedDB read cache acts as the authorized read cache, in the browser and inside the Android WebView; the retired native Room cache no longer exists.
 - `STALE_CACHE` shows the last successful state and its age/time reference.
 - Offline writes, a local Outbox, and automatic later synchronization are
   **not** part of the MVP.
@@ -282,7 +281,7 @@ filename is never the storage key and is not used for authorization.
 ## 13. Authentication and invitation contract
 
 - Authentication methods are adapters around the same Account/Session core.
-- Android sessions can be revoked individually and rotate refresh tokens.
+- Sessions of the Android app can be revoked individually and rotate refresh tokens.
 - An Invitation has status, expiry, revocation, and single-use redemption.
 - Invitation errors distinguish stable internal codes for `EXPIRED`, `REVOKED`,
   `USED`, `SPACE_FULL`, and `INVALID`; the UI reveals no additional Space data.
@@ -326,7 +325,7 @@ location.
 ## 16. Contract delivery
 
 - Backend publishes OpenAPI from the actual API code.
-- Web and Android generate or wrap models from the same OpenAPI version.
+- The Web client (which the Android wrapper packages) generates its models from the OpenAPI version.
 - Contract tests verify example responses, error codes, privacy classes, and
   tolerance of unknown fields.
 - Every domain receives cross-tenant and owner-only tests before client release.

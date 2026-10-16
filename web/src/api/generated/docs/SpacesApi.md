@@ -5,9 +5,13 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**createSpaceApiV1SpacesPost**](SpacesApi.md#createspaceapiv1spacespost) | **POST** /api/v1/spaces | Create the authenticated Account\&#39;s own private Space |
+| [**getPartnerPresence**](SpacesApi.md#getpartnerpresence) | **GET** /api/v1/spaces/{spaceId}/presence | Get Partner Presence |
 | [**getSpaceApiV1SpacesSpaceIdGet**](SpacesApi.md#getspaceapiv1spacesspaceidget) | **GET** /api/v1/spaces/{spaceId} | Get Space |
+| [**getSpaceConfiguration**](SpacesApi.md#getspaceconfiguration) | **GET** /api/v1/spaces/{spaceId}/configuration | Get Space Configuration |
 | [**getSpaceProfileApiV1SpacesSpaceIdProfileGet**](SpacesApi.md#getspaceprofileapiv1spacesspaceidprofileget) | **GET** /api/v1/spaces/{spaceId}/profile | Get Space Profile |
 | [**leaveSpaceApiV1SpacesSpaceIdMembershipLeavePost**](SpacesApi.md#leavespaceapiv1spacesspaceidmembershipleavepost) | **POST** /api/v1/spaces/{spaceId}/membership/leave | Leave the authenticated Account\&#39;s Membership in this Space |
+| [**touchPresence**](SpacesApi.md#touchpresence) | **POST** /api/v1/spaces/{spaceId}/presence | Touch Presence |
+| [**updateSpaceConfiguration**](SpacesApi.md#updatespaceconfiguration) | **PATCH** /api/v1/spaces/{spaceId}/configuration | Update Space Configuration |
 | [**updateSpaceProfileApiV1SpacesSpaceIdProfilePut**](SpacesApi.md#updatespaceprofileapiv1spacesspaceidprofileput) | **PUT** /api/v1/spaces/{spaceId}/profile | Update Space Profile |
 
 
@@ -73,6 +77,75 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## getPartnerPresence
+
+> PartnerPresenceView getPartnerPresence(spaceId)
+
+Get Partner Presence
+
+Return only the bounded semantic state of the other active partner.  No timestamp is exposed. Missing, stale, or absent partner presence is represented as null so this cannot become a last-seen surface.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { GetPartnerPresenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetPartnerPresenceRequest;
+
+  try {
+    const data = await api.getPartnerPresence(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PartnerPresenceView**](PartnerPresenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## getSpaceApiV1SpacesSpaceIdGet
 
 > SpaceView getSpaceApiV1SpacesSpaceIdGet(spaceId)
@@ -134,6 +207,75 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getSpaceConfiguration
+
+> SpaceConfigurationView getSpaceConfiguration(spaceId)
+
+Get Space Configuration
+
+Return authoritative shared module configuration and caller capability.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { GetSpaceConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetSpaceConfigurationRequest;
+
+  try {
+    const data = await api.getSpaceConfiguration(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**SpaceConfigurationView**](SpaceConfigurationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 
@@ -273,6 +415,153 @@ No authorization required
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **403** | The caller is authenticated but is not authorized for this operation. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## touchPresence
+
+> PartnerPresenceView touchPresence(spaceId)
+
+Touch Presence
+
+Renew caller presence and return the partner\&#39;s bounded state.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { TouchPresenceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies TouchPresenceRequest;
+
+  try {
+    const data = await api.touchPresence(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PartnerPresenceView**](PartnerPresenceView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## updateSpaceConfiguration
+
+> SpaceConfigurationView updateSpaceConfiguration(spaceId, ifMatch, spaceConfigurationUpdate)
+
+Update Space Configuration
+
+Apply a typed partial update under the existing If-Match contract.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  SpacesApi,
+} from '';
+import type { UpdateSpaceConfigurationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new SpacesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // SpaceConfigurationUpdate
+    spaceConfigurationUpdate: ...,
+  } satisfies UpdateSpaceConfigurationRequest;
+
+  try {
+    const data = await api.updateSpaceConfiguration(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **spaceConfigurationUpdate** | [SpaceConfigurationUpdate](SpaceConfigurationUpdate.md) |  | |
+
+### Return type
+
+[**SpaceConfigurationView**](SpaceConfigurationView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version. Send it unchanged in the next write request\&#39;s &#x60;If-Match&#x60; header. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | &#x60;SPACE_CONFIGURATION_MANAGEMENT_REQUIRED&#x60;: the caller may read this Space configuration but is not its persisted configuration manager. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The supplied version is no longer current. Nothing was changed; reload the latest configuration before retrying. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

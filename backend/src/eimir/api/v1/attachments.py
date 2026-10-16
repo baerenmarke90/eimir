@@ -385,10 +385,21 @@ def get_attachment_content(
         else (attachment.mime_type or "application/octet-stream")
     )
 
+    # Read the first block before the response starts. Decryption authenticates
+    # per block, so a wrong key or a tampered object is reported as an error
+    # here instead of after a 200 has already been sent.
+    try:
+        first = source.read(STREAM_CHUNK)
+    except BaseException:
+        source.close()
+        raise
+
     def chunks() -> object:
         try:
-            while chunk := source.read(STREAM_CHUNK):
+            chunk = first
+            while chunk:
                 yield chunk
+                chunk = source.read(STREAM_CHUNK)
         finally:
             source.close()
 

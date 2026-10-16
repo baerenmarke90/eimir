@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import fs from 'node:fs';
 import path from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
@@ -183,6 +184,7 @@ async function installMocks(
   const currentUserName = options.asPartner ? 'Alex' : 'Lea Sommer';
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -592,12 +594,12 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     );
 
     const compactAuthor = imageMemoryCard.locator('.momente-author-meta');
-    await expect(compactAuthor.locator('.sr-only')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
-    await expect(imageMemoryCard.locator('.story-card-author')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(compactAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(imageMemoryCard.locator('.story-card-author')).toHaveCount(0);
+    await expect(
+      compactAuthor.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    await expect(imageMemoryCard).not.toContainText(SELF_ATTRIBUTION);
 
     const browseShell = page.locator('.momente-browse-links');
     const browseLink = page.locator('.momente-browse-link').first();
@@ -753,9 +755,25 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     expect(hasHorizontalOverflow).toBe(false);
 
     const browseLinks = page.locator('.momente-browse-link');
-    await expect(browseLinks).toHaveCount(3);
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-start', '1');
-    await expect(browseLinks.nth(2)).toHaveCSS('grid-column-end', '-1');
+    await expect(browseLinks).toHaveCount(4);
+    expect(
+      await browseLinks.evaluateAll((links) =>
+        links.map((link) => link.getAttribute('href')),
+      ),
+    ).toEqual([
+      '/story/photos',
+      '/story?tab=timeline&type=MILESTONE',
+      '/story/chapters',
+      '/story/years',
+    ]);
+    for (const link of await browseLinks.all()) {
+      const box = await link.boundingBox();
+      if (!box) throw new Error('Expected a visible Momente browse link');
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(320);
+    }
 
     const compactEmotion = page
       .locator('.story-card-heart-moment .heart-emotion-badge--compact')
@@ -765,9 +783,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await expect(compactEmotion.locator('.heart-emotion-label')).toHaveText(
       'Geliebt',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
 
     await captureScreenshot(
       page,
@@ -811,9 +827,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       'background-color',
       'rgba(0, 0, 0, 0)',
     );
-    await expect(page.locator('.story-card-author').first()).toHaveText(
-      SELF_ATTRIBUTION,
-    );
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
     const browseWidth = await page
       .locator('.momente-browse-links')
       .evaluate((element) => element.getBoundingClientRect().width);
@@ -1001,7 +1015,7 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     }
   });
 
-  test('partner attribution keeps the partner first name in Timeline and detail (#1019)', async ({
+  test('Timeline uses avatar-only partner attribution while detail keeps first-name provenance (#1064)', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -1011,10 +1025,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.waitForSelector('.story-timeline');
 
     const authorMeta = page.locator('.momente-author-meta').first();
-    await expect(authorMeta.locator('.sr-only')).toHaveText(ME_ATTRIBUTION);
-    await expect(page.locator('.story-card-author').first()).toHaveText(
-      ME_ATTRIBUTION,
-    );
+    await expect(authorMeta.locator('.sr-only')).toHaveCount(0);
+    await expect(page.locator('.story-card-author')).toHaveCount(0);
+    await expect(
+      authorMeta.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    const timelineText = await page
+      .locator('.story-timeline')
+      .allTextContents();
+    expect(timelineText.join(' ')).not.toContain(ME_ATTRIBUTION);
 
     await page.goto('/story/memories/mem-canal');
     await expect(page.locator('.memory-provenance-footer')).toContainText(
@@ -1051,6 +1070,15 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
       await page.goto(detail.path);
       await expect(page.getByText(detail.marker).first()).toBeVisible();
       await expectCompactCommentHandoff(page);
+      const commentAuthors = page.locator('.comment-author');
+      await expect(commentAuthors).toHaveCount(2);
+      await expect(commentAuthors.nth(0)).toHaveText(
+        `Lea · ${storyProducts.comments.authorSelf}`,
+      );
+      await expect(commentAuthors.nth(1)).toHaveText('Alex');
+      await expect(page.locator('.comment-list')).not.toContainText(
+        ME.displayName,
+      );
       await captureScreenshot(page, testInfo, detail.shot, { fullPage: true });
     }
 
@@ -1106,8 +1134,10 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     await page.goto('/story?tab=discover');
     await page.waitForSelector('.momente-discover-page');
 
-    await expect(page.getByText(de.story.title)).toBeVisible();
-    await expect(page.getByText(de.story.intro)).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: de.story.timelineTitle, level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText(de.story.timelineIntro)).toBeVisible();
     await expect(page.locator('.story-timeline-toolbar')).toHaveCount(0);
     await expect(page.locator('.momente-hero-highlight')).toContainText(
       'Breakfast by the canal',
@@ -1115,10 +1145,11 @@ test.describe('Momente > Zeitleiste Product Reference (#860)', () => {
     const discoverAuthor = page
       .locator('.momente-hero-meta .momente-author-meta')
       .first();
-    await expect(discoverAuthor.locator('.sr-only')).toHaveText(
-      SELF_ATTRIBUTION,
-    );
-    await expect(discoverAuthor).toContainText(SELF_ATTRIBUTION);
+    await expect(discoverAuthor.locator('.sr-only')).toHaveCount(0);
+    await expect(
+      discoverAuthor.getByRole('img', { name: ME.displayName }),
+    ).toHaveCount(1);
+    await expect(discoverAuthor).not.toContainText(SELF_ATTRIBUTION);
 
     await captureScreenshot(
       page,

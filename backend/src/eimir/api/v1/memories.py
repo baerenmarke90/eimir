@@ -13,12 +13,14 @@ from eimir.api.authors import resolve_author_summaries, resolve_author_summary
 from eimir.api.concurrency import IfMatchVersion, etag_for
 from eimir.api.deps import Authorization, DbSession
 from eimir.api.errors import problem_responses
+from eimir.api.idempotency import IdempotencyKey
 from eimir.api.schema import ApiModel, AuthorSummary, ResourceCapabilities
 from eimir.api.v1.attachments import AttachmentSummary
 from eimir.attachments import binding
 from eimir.attachments.models import MediaType
 from eimir.memories import service
 from eimir.memories.models import Memory
+from eimir.memories.tags import MemoryTags, unique_tags
 
 router = APIRouter(tags=["memories"])
 
@@ -36,6 +38,9 @@ class MemoryCreate(ApiModel):
     title: str
     body: str = ""
     happened_on: date | None = None
+    tags: MemoryTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @field_validator("title")
     @classmethod
@@ -52,6 +57,9 @@ class MemoryUpdate(ApiModel):
     title: str | None = None
     body: str | None = None
     happened_on: date | None = None
+    tags: MemoryTags | None = None
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
     @model_validator(mode="after")
     def _validate_patch(self) -> Self:
@@ -63,6 +71,8 @@ class MemoryUpdate(ApiModel):
             self.title = self.title.strip()
         if "body" in self.model_fields_set and self.body is None:
             raise ValueError("body must not be null")
+        if "tags" in self.model_fields_set and self.tags is None:
+            raise ValueError("tags must not be null")
         return self
 
 
@@ -91,6 +101,7 @@ class MemoryDetail(ApiModel):
     author_id: UUID
     title: str
     body: str
+    tags: MemoryTags
     happened_on: date | None
     version: int
     created_at: datetime
@@ -122,6 +133,7 @@ def _memory_detail(
         author_id=memory.owner_id,
         title=memory.payload.title,
         body=memory.payload.body,
+        tags=memory.payload.tags,
         happened_on=memory.happened_on,
         version=memory.version,
         created_at=memory.created_at,
@@ -154,23 +166,48 @@ def _memory_detail(
     response_model=MemoryDetail,
     status_code=status.HTTP_201_CREATED,
     operation_id="createMemory",
-    responses={201: {"headers": ETAG_HEADERS}, **problem_responses(401, 404, 422)},
+    responses={
+        200: {
+            "description": (
+                "The request identity (`Idempotency-Key`) was already used for an equivalent "
+                "request. The response returns the original Memory in its current state; no "
+                "second Memory is created."
+            ),
+            "headers": ETAG_HEADERS,
+            "model": MemoryDetail,
+        },
+        201: {"headers": ETAG_HEADERS},
+        **problem_responses(401, 404, 409, 422),
+    },
 )
 def create_memory(
     authorization: Authorization,
     session: DbSession,
     response: Response,
     body: MemoryCreate,
+    idempotency_key: IdempotencyKey,
 ) -> MemoryDetail:
-    memory = service.create_memory(
+    """Create a Memory.
+
+    Send an `Idempotency-Key` to make the save reconcilable after a lost
+    response: the identical request repeated with the same key returns the
+    original Memory (`200`); the same key with a different payload is a `409`
+    (`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the
+    answer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.
+    """
+    result = service.create_memory_once(
         session,
         authorization,
+        idempotency_key=idempotency_key,
         title=body.title,
         body=body.body,
+        tags=body.tags,
         happened_on=body.happened_on,
     )
-    response.headers["ETag"] = etag_for(memory.version)
-    return _memory_detail(session, authorization, memory)
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    response.headers["ETag"] = etag_for(result.memory.version)
+    return _memory_detail(session, authorization, result.memory)
 
 
 @router.get(
@@ -246,6 +283,7 @@ def update_memory(
         changed_fields=frozenset(body.model_fields_set),
         title=body.title,
         body=body.body,
+        tags=body.tags,
         happened_on=body.happened_on,
     )
     response.headers["ETag"] = etag_for(memory.version)

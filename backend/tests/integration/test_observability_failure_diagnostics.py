@@ -190,6 +190,67 @@ def test_successful_projection_retry_clears_failure_diagnostic(
     assert row.next_attempt_at is None
 
 
+def test_a_poison_projection_becomes_terminal_and_logs_distinctly(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A permanently-broken projector must not retry this event forever; the
+    worker would otherwise reclaim it every poll indefinitely (mirrors
+    jobs/worker.py's "unknown job kind" terminal path).
+
+    Asserts the distinct terminal log call directly (monkeypatching
+    ``engagement_service.log.error``) rather than through ``caplog``: this
+    app's ``configure_logging()`` reconfigures the root logger once at
+    ``eimir.main`` import time, and nothing elsewhere in this suite relies on
+    ``caplog`` positively capturing an ``eimir.*`` record (existing uses only
+    assert content is *absent*, which passes whether or not capture works) --
+    a positive assertion on ``caplog.records`` was observed to pass in
+    isolation but fail once this test ran inside the full suite.
+    """
+    marker = "DIAGNOSTIC-CANARY-POISON-PROJECTION-4F10"
+
+    def always_failing_projection(_session: Session, _event: OutboxEvent) -> None:
+        raise RuntimeError(marker)
+
+    monkeypatch.setattr(engagement_service, "project_event", always_failing_projection)
+
+    # `log.exception(...)` is implemented in terms of `log.error(...,
+    # exc_info=True)`, so patching `.error` also observes the ordinary
+    # per-attempt failure log from the same `except` block -- which is
+    # exactly the "ordinary retry" call the terminal log must be distinct
+    # from, not a call this test should suppress.
+    error_calls: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(
+        engagement_service.log,
+        "error",
+        lambda message, *args, **kwargs: error_calls.append((message, kwargs.get("extra", {}))),
+    )
+
+    row = outbox_service.record(session, _projection_event())
+    session.flush()
+    row.attempts = outbox_service.MAX_ATTEMPTS - 1
+    session.flush()
+
+    assert engagement_service.project_pending(session) == 1
+
+    assert row.attempts == outbox_service.MAX_ATTEMPTS
+    assert row.failed_at is not None
+    assert row.processed_at is None
+    assert marker not in (row.last_error or "")
+
+    ordinary_calls = [call for call in error_calls if "projection failed" in call[0]]
+    terminal_calls = [call for call in error_calls if "permanently failed" in call[0]]
+    assert len(ordinary_calls) == 1, "the ordinary per-attempt failure log must still fire"
+    assert len(terminal_calls) == 1, (
+        "a terminally failed event must additionally log distinctly from an ordinary retry"
+    )
+    _message, extra = terminal_calls[0]
+    assert extra["event_id"] == str(row.id)
+    assert extra["attempts"] == outbox_service.MAX_ATTEMPTS
+
+    # Never reclaimed again, even though nothing else changed about eligibility.
+    assert engagement_service.project_pending(session) == 0
+
+
 def test_unexpected_projection_failure_never_persists_private_content(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -51,8 +51,24 @@ class DurationDisplayMode(StrEnum):
     DAYS = "DAYS"
 
 
+class DailyCheckInVisibilityMode(StrEnum):
+    """How one DailyCheckIn dimension becomes visible to the partner."""
+
+    IMMEDIATE = "IMMEDIATE"
+    MUTUAL_REVEAL = "MUTUAL_REVEAL"
+
+
 class Space(IdMixin, TimestampMixin, Base):
     __tablename__ = "spaces"
+
+    # M7-S0 configuration authority is explicit Space state. New Spaces persist
+    # the founder here; legacy Spaces that cannot be backfilled without guessing
+    # remain unassigned and therefore fail closed for configuration writes.
+    configuration_manager_account_id: Mapped[UUID | None] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     # This is a frozen product/privacy promise, not a derived deployment setting.
     # It is written once when the last active Membership ends so future policy
@@ -67,6 +83,9 @@ class Space(IdMixin, TimestampMixin, Base):
         back_populates="space", cascade="all, delete-orphan"
     )
     profile: Mapped[SpaceProfile | None] = relationship(
+        back_populates="space", cascade="all, delete-orphan", uselist=False
+    )
+    configuration: Mapped[SpaceConfiguration | None] = relationship(
         back_populates="space", cascade="all, delete-orphan", uselist=False
     )
 
@@ -119,6 +138,28 @@ class Membership(IdMixin, TimestampMixin, Base):
         return self.status == MembershipStatus.ACTIVE.value
 
 
+class SpacePresence(Base):
+    """Ephemeral current-presence identity for one Account in one Space.
+
+    This table deliberately stores exactly one current timestamp per Account+Space.
+    It is not an activity log and has no created/updated history columns.
+    """
+
+    __tablename__ = "space_presence"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    account_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SpaceProfile(IdMixin, TimestampMixin, VersionMixin, Base):
     """Relationship-related attributes of a Space."""
 
@@ -145,6 +186,53 @@ class SpaceProfile(IdMixin, TimestampMixin, VersionMixin, Base):
         CheckConstraint(
             "duration_display_mode IN ('YEARS_MONTHS', 'DAYS')",
             name="duration_display_mode_is_known",
+        ),
+    )
+
+
+class SpaceConfiguration(IdMixin, TimestampMixin, VersionMixin, Base):
+    """Typed, shared product configuration for one relationship Space."""
+
+    __tablename__ = "space_configurations"
+
+    space_id: Mapped[UUID] = mapped_column(
+        postgresql.UUID(as_uuid=True),
+        ForeignKey("spaces.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    vibe_check_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    energy_check_in_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    love_notes_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    support_gestures_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    shared_achievements_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    daily_questions_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    daily_context_timezone: Mapped[str | None] = mapped_column(String(64))
+    vibe_visibility_mode: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        default=DailyCheckInVisibilityMode.IMMEDIATE.value,
+    )
+    energy_visibility_mode: Mapped[str] = mapped_column(
+        String(24),
+        nullable=False,
+        default=DailyCheckInVisibilityMode.IMMEDIATE.value,
+    )
+
+    space: Mapped[Space] = relationship(back_populates="configuration")
+
+    __table_args__ = (
+        UniqueConstraint("space_id", name="uq_space_configurations_space_id"),
+        CheckConstraint(
+            "vibe_visibility_mode IN ('IMMEDIATE', 'MUTUAL_REVEAL')",
+            name="vibe_visibility_mode_is_known",
+        ),
+        CheckConstraint(
+            "energy_visibility_mode IN ('IMMEDIATE', 'MUTUAL_REVEAL')",
+            name="energy_visibility_mode_is_known",
         ),
     )
 

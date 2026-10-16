@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from eimir.collections.models import CollectionItem
 from eimir.outbox.models import OutboxEvent
+from eimir.relationship import configuration as relationship_configuration
 from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
@@ -17,6 +18,7 @@ pytestmark = [pytest.mark.integration, requires_database]
 
 SECRET_COLLECTION_TITLE = "A title that must never enter an event"
 SECRET_ITEM_TITLE = "An item title that must never enter an event"
+COLLECTION_COMPLETION_TRANSITION_HEADER = "X-Eimir-Collection-Completion-Transition"
 
 
 def path(space_id: object) -> str:
@@ -213,6 +215,7 @@ class TestCollectionItems:
         assert completed.status_code == 200
         assert completed.json()["completed"] is True
         assert completed.json()["version"] == 2
+        assert completed.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "false"
 
         after_completion = client.get(
             f"{path(couple['space'].id)}/{collection['id']}",
@@ -249,6 +252,77 @@ class TestCollectionItems:
         )
         assert stale_order.status_code == 409
         assert stale_order.json()["code"] == "COLLECTION_ORDER_CONFLICT"
+
+    def test_completion_transition_header_is_authoritative_and_not_replayed(
+        self, client, couple
+    ) -> None:  # type: ignore[no-untyped-def]
+        collection = create_collection(client, couple).json()
+        first = create_item(client, couple, collection["id"], "Milk").json()
+        second = create_item(client, couple, collection["id"], "Bread").json()
+
+        partial = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{first['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_b"], first["version"]),
+        )
+        assert partial.status_code == 200
+        assert partial.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "false"
+
+        final = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{second['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_a"], second["version"]),
+        )
+        assert final.status_code == 200
+        assert final.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+        assert "X-Eimir-Shared-Achievement" not in final.headers
+
+        stale_retry = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{second['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_a"], second["version"]),
+        )
+        assert stale_retry.status_code == 409
+        assert COLLECTION_COMPLETION_TRANSITION_HEADER not in stale_retry.headers
+
+        reopened = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{second['id']}",
+            json={"completed": False},
+            headers=if_match(couple["token_b"], final.json()["version"]),
+        )
+        assert reopened.status_code == 200
+        assert reopened.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "false"
+
+        completed_again = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{second['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_b"], reopened.json()["version"]),
+        )
+        assert completed_again.status_code == 200
+        assert completed_again.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+
+    def test_completion_celebration_is_server_gated(
+        self,
+        client,
+        couple,
+        session: Session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        configuration = relationship_configuration.load(session, couple["space"].id)
+        assert configuration is not None
+        configuration.shared_achievements_enabled = True
+        session.flush()
+
+        collection = create_collection(client, couple).json()
+        item = create_item(client, couple, collection["id"], "Milk").json()
+        completed = client.patch(
+            f"{path(couple['space'].id)}/{collection['id']}/items/{item['id']}",
+            json={"completed": True},
+            headers=if_match(couple["token_b"], item["version"]),
+        )
+
+        assert completed.status_code == 200
+        assert completed.headers[COLLECTION_COMPLETION_TRANSITION_HEADER] == "true"
+        assert completed.headers["X-Eimir-Shared-Achievement"] == "collection-completed"
 
     def test_delete_compacts_positions_without_changing_remaining_item_versions(
         self, client, couple
@@ -322,6 +396,7 @@ class TestCollectionItems:
         )
         assert response.status_code == 404
         assert response.json()["code"] == "COLLECTION_ITEM_NOT_FOUND"
+        assert COLLECTION_COMPLETION_TRANSITION_HEADER not in response.headers
 
     def test_item_created_by_is_server_derived(self, client, couple) -> None:  # type: ignore[no-untyped-def]
         collection = create_collection(client, couple).json()

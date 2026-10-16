@@ -91,7 +91,14 @@ function createMockPeopleApi(dates: ImportantDateView[] = [date]): PeopleApi {
   } as unknown as PeopleApi;
 }
 
-function renderPanel(peopleApi = createMockPeopleApi()) {
+function renderPanel(
+  peopleApi = createMockPeopleApi(),
+  partnerBirthday: {
+    accountId: string;
+    birthday: Date;
+    displayName: string;
+  } | null = null,
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -101,12 +108,31 @@ function renderPanel(peopleApi = createMockPeopleApi()) {
         peopleApi={peopleApi}
         spaceId="space-1"
         people={[person]}
+        partnerBirthday={partnerBirthday}
       />
     </QueryClientProvider>,
   );
 }
 
 describe('ImportantDatesPanel mobile-first surface', () => {
+  it('projects the active partner birthday without creating an editable ImportantDate', async () => {
+    const { container } = renderPanel(createMockPeopleApi([]), {
+      accountId: 'partner-1',
+      birthday: new Date('1992-05-14T00:00:00Z'),
+      displayName: 'Alex',
+    });
+
+    await screen.findByText('Geburtstag von Alex');
+    const derived = container.querySelector('.important-date-card-derived');
+    expect(derived).not.toBeNull();
+    expect(derived?.textContent).toContain(importantDates.type.BIRTHDAY);
+    expect(derived?.textContent).toContain(importantDates.repeats.ANNUALLY);
+    expect(
+      screen.queryByRole('button', { name: /Geburtstag von Alex/i }),
+    ).toBeNull();
+    expect(screen.queryByText(importantDates.emptyTitle)).toBeNull();
+  });
+
   it('renders W50 as a date-led timeline with relationship and explicit privacy context', async () => {
     const { container } = renderPanel();
 

@@ -38,6 +38,12 @@ export interface PartnerProfileView {
      * @type {Date}
      * @memberof PartnerProfileView
      */
+    birthday: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof PartnerProfileView
+     */
     createdAt: Date;
     /**
      * 
@@ -82,6 +88,7 @@ export interface PartnerProfileView {
  */
 export function instanceOfPartnerProfileView(value: object): value is PartnerProfileView {
     if (!('accountId' in value) || value['accountId'] === undefined) return false;
+    if (!('birthday' in value) || value['birthday'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
     if (!('id' in value) || value['id'] === undefined) return false;
@@ -103,6 +110,7 @@ export function PartnerProfileViewFromJSONTyped(json: any, ignoreDiscriminator: 
     return {
         
         'accountId': json['accountId'],
+        'birthday': (json['birthday'] == null ? null : new Date(json['birthday'])),
         'createdAt': (new Date(json['createdAt'])),
         'displayName': json['displayName'],
         'id': json['id'],
@@ -125,6 +133,7 @@ export function PartnerProfileViewToJSONTyped(value?: PartnerProfileView | null,
     return {
         
         'accountId': value['accountId'],
+        'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'createdAt': value['createdAt'].toISOString(),
         'displayName': value['displayName'],
         'id': value['id'],

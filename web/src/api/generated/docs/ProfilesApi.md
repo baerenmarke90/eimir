@@ -6,10 +6,12 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**createProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPost**](ProfilesApi.md#createprofilepreferenceapiv1spacesspaceidprofilepreferencespost) | **POST** /api/v1/spaces/{spaceId}/profile-preferences | Create Profile Preference |
 | [**deleteProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdDelete**](ProfilesApi.md#deleteprofilepreferenceapiv1spacesspaceidprofilepreferencespreferenceiddelete) | **DELETE** /api/v1/spaces/{spaceId}/profile-preferences/{preferenceId} | Delete Profile Preference |
+| [**getPartnerNickname**](ProfilesApi.md#getpartnernickname) | **GET** /api/v1/spaces/{spaceId}/partner-nickname | Get Partner Nickname |
 | [**getPartnerProfileApiV1SpacesSpaceIdProfilesAccountIdGet**](ProfilesApi.md#getpartnerprofileapiv1spacesspaceidprofilesaccountidget) | **GET** /api/v1/spaces/{spaceId}/profiles/{accountId} | Get Partner Profile |
 | [**getProfileAvatarContent**](ProfilesApi.md#getprofileavatarcontent) | **GET** /api/v1/spaces/{spaceId}/profiles/{accountId}/avatar/content | Get Profile Avatar Content |
 | [**getProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdGet**](ProfilesApi.md#getprofilepreferenceapiv1spacesspaceidprofilepreferencespreferenceidget) | **GET** /api/v1/spaces/{spaceId}/profile-preferences/{preferenceId} | Get Profile Preference |
 | [**listProfilePreferencesApiV1SpacesSpaceIdProfilePreferencesGet**](ProfilesApi.md#listprofilepreferencesapiv1spacesspaceidprofilepreferencesget) | **GET** /api/v1/spaces/{spaceId}/profile-preferences | List Profile Preferences |
+| [**setPartnerNickname**](ProfilesApi.md#setpartnernickname) | **PUT** /api/v1/spaces/{spaceId}/partner-nickname | Set Partner Nickname |
 | [**updateProfileIdentity**](ProfilesApi.md#updateprofileidentity) | **PATCH** /api/v1/spaces/{spaceId}/profiles/{accountId} | Update Profile Identity |
 | [**updateProfilePreferenceApiV1SpacesSpaceIdProfilePreferencesPreferenceIdPut**](ProfilesApi.md#updateprofilepreferenceapiv1spacesspaceidprofilepreferencespreferenceidput) | **PUT** /api/v1/spaces/{spaceId}/profile-preferences/{preferenceId} | Update Profile Preference |
 
@@ -159,6 +161,73 @@ No authorization required
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
 | **409** | The request conflicts with the current state of the resource. |  -  |
 | **422** | Request parameters or domain inputs are invalid. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## getPartnerNickname
+
+> PartnerNicknameView getPartnerNickname(spaceId)
+
+Get Partner Nickname
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ProfilesApi,
+} from '';
+import type { GetPartnerNicknameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ProfilesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+  } satisfies GetPartnerNicknameRequest;
+
+  try {
+    const data = await api.getPartnerNickname(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PartnerNicknameView**](PartnerNicknameView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -438,6 +507,81 @@ No authorization required
 | **200** | Successful Response |  -  |
 | **401** | Authentication is missing, invalid, or the session has expired. |  -  |
 | **404** | The resource does not exist or is not visible to the caller. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## setPartnerNickname
+
+> PartnerNicknameView setPartnerNickname(spaceId, ifMatch, partnerNicknameUpdate)
+
+Set Partner Nickname
+
+### Example
+
+```ts
+import {
+  Configuration,
+  ProfilesApi,
+} from '';
+import type { SetPartnerNicknameRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new ProfilesApi();
+
+  const body = {
+    // string
+    spaceId: spaceId_example,
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
+    ifMatch: ifMatch_example,
+    // PartnerNicknameUpdate
+    partnerNicknameUpdate: ...,
+  } satisfies SetPartnerNicknameRequest;
+
+  try {
+    const data = await api.setPartnerNickname(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **spaceId** | `string` |  | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
+| **partnerNicknameUpdate** | [PartnerNicknameUpdate](PartnerNicknameUpdate.md) |  | |
+
+### Return type
+
+[**PartnerNicknameView**](PartnerNicknameView.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

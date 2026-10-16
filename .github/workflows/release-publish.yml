@@ -9,6 +9,7 @@ on:
       - "deploy/self-hosted-release.env.example"
       - "scripts/self_hosted_release.py"
       - "scripts/check_runtime_environment.py"
+      - "scripts/_identity_environment.py"
       - "scripts/release_manifest.py"
       - "scripts/verify_release_asset_set.py"
       - "tools/ci/test_release_manifest.py"
@@ -19,13 +20,22 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: SemVer product version without the v prefix; must equal Android versionName.
+        description: SemVer product version without the v prefix.
         required: true
         type: string
-      android_version_code:
-        description: Monotonically increasing Google Play versionCode.
+      include_android:
+        description: Include and sign Android APK/AAB in this release channel.
         required: true
+        default: true
+        type: boolean
+      android_version_code:
+        description: Monotonically increasing Google Play versionCode; required only when Android is included.
+        required: false
         type: number
+      android_api_base_url:
+        description: Backend API base URL baked into Android assets; required only when Android is included.
+        required: false
+        type: string
       initial_release:
         description: Select only for the first product release with no previous known-good release.
         required: true
@@ -36,13 +46,15 @@ on:
         required: false
         type: string
       confirm_publish:
-        description: Confirm creation of the immutable Git tag and GitHub Release after protected signing.
+        description: Confirm creation of the immutable Git tag and GitHub Release after protected publication checks.
         required: true
         default: false
         type: boolean
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
 
 concurrency:
   group: publish-release-${{ github.event_name == 'workflow_dispatch' && 'protected' || github.ref }}
@@ -51,6 +63,7 @@ concurrency:
 env:
   SYFT_VERSION: "1.42.3"
   SYFT_LINUX_AMD64_SHA256: "0d6be741479eddd2c8644a288990c04f3df0d609bbc1599a005532a9dff63509"
+  ANDROID_PROJECT_DIR: "android"
 
 jobs:
   contract:
@@ -71,13 +84,14 @@ jobs:
     name: Build and attest one source revision
     if: github.event_name == 'workflow_dispatch'
     needs: contract
-    permissions:
-      contents: read
-      id-token: write
-      attestations: write
     uses: ./.github/workflows/release-evidence.yml
     with:
-      android_version_code: ${{ inputs.android_version_code }}
+      include_android: ${{ inputs.include_android }}
+      # A number-typed call input rejects an empty value, which a dispatch without an
+      # Android channel passes; 0 is treated as unset by the evidence workflow.
+      android_version_code: ${{ inputs.include_android && inputs.android_version_code || 0 }}
+      android_api_base_url: ${{ inputs.android_api_base_url }}
+      release_version: ${{ inputs.release_version }}
 
   preflight:
     name: Verify immutable release inputs
@@ -101,6 +115,51 @@ jobs:
 
       - name: Verify #193 transport checksums
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
+
+      - name: Validate candidate inputs
+        env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
+          API_BASE_URL: ${{ inputs.include_android && inputs.android_api_base_url || '' }}
+          ANDROID_VERSION_CODE: ${{ inputs.include_android && inputs.android_version_code || '' }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          import urllib.parse
+
+          include_android = os.environ.get("INCLUDE_ANDROID", "").lower() == "true"
+          url = os.environ.get("API_BASE_URL", "").strip()
+          version_code = os.environ.get("ANDROID_VERSION_CODE", "").strip()
+          version = os.environ.get("RELEASE_VERSION", "").strip()
+
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?", version):
+              raise SystemExit(f"Invalid release_version format: {version}")
+
+          if include_android:
+              try:
+                  parsed_version_code = int(version_code)
+              except ValueError as exc:
+                  raise SystemExit("Android-inclusive publication requires android_version_code") from exc
+              if parsed_version_code <= 0:
+                  raise SystemExit("android_version_code must be a positive integer")
+              if not url or url.endswith(".invalid") or ".invalid" in url:
+                  raise SystemExit("Android-inclusive publication requires an explicit, non-test android_api_base_url.")
+              if re.search(r"\s", url):
+                  raise SystemExit("android_api_base_url must not contain whitespace")
+              parsed = urllib.parse.urlsplit(url)
+              if parsed.scheme != "https":
+                  raise SystemExit("android_api_base_url must use https scheme")
+              if not parsed.netloc:
+                  raise SystemExit("android_api_base_url must include host")
+              if parsed.username or parsed.password:
+                  raise SystemExit("android_api_base_url must not contain userinfo")
+              if parsed.query or parsed.fragment:
+                  raise SystemExit("android_api_base_url must not contain query or fragment")
+          elif url or version_code:
+              raise SystemExit("Android-excluded publication must not provide Android URL/version inputs")
+          PY
 
       - name: Require explicit publish confirmation
         env:
@@ -218,7 +277,9 @@ jobs:
       - name: Validate release identity before protected signing
         shell: bash
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           RELEASE_VERSION: ${{ inputs.release_version }}
+          EXPECTED_API_BASE_URL: ${{ inputs.android_api_base_url }}
           PREVIOUS_ARGUMENT: ${{ steps.previous.outputs.argument }}
         run: |
           set -euo pipefail
@@ -230,6 +291,26 @@ jobs:
             $PREVIOUS_ARGUMENT \
             --output release-preflight/preflight-manifest.json
           test "$(python3 -c 'import json; print(json.load(open("release-preflight/preflight-manifest.json"))["sourceRevision"])')" = "$GITHUB_SHA"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = json.loads(Path("release-preflight/preflight-manifest.json").read_text(encoding="utf-8"))
+          expected_included = os.environ["INCLUDE_ANDROID"].lower() == "true"
+          android = manifest.get("android", {})
+          if android.get("included", True) is not expected_included:
+              raise SystemExit("preflight-manifest Android channel mismatch")
+          if not expected_included:
+              if android != {"included": False, "signing": "not-applicable"}:
+                  raise SystemExit("Android-excluded preflight must carry only explicit not-applicable metadata")
+          else:
+              expected_api = os.environ["EXPECTED_API_BASE_URL"].strip().rstrip("/")
+              if android.get("apiBaseUrl") != expected_api:
+                  raise SystemExit(f"preflight-manifest apiBaseUrl mismatch: {android.get('apiBaseUrl')!r} != {expected_api!r}")
+              if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+                  raise SystemExit("preflight-manifest launchableActivity mismatch")
+          PY
 
       - name: Upload verified preflight state
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -279,31 +360,61 @@ jobs:
       - name: Re-verify transported #193 evidence
         run: (cd release-evidence && sha256sum --check --strict SHA256SUMS)
 
-      - name: Set up JDK 17
+      - name: Set up Node.js 24.21.0
+        if: inputs.include_android
+        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        with:
+          node-version: "24.21.0"
+
+      - name: Set up JDK 21
+        if: inputs.include_android
         uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - name: Set up Gradle cache and validate wrapper
+        if: inputs.include_android
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Verify pinned Gradle wrapper JAR
-        working-directory: android
+        if: inputs.include_android
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         run: |
           printf '%s  %s\n' \
-            '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7' \
+            '7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172' \
             'gradle/wrapper/gradle-wrapper.jar' \
             | sha256sum --check --strict -
 
-      - name: Install Android SDK 37.1
+      - name: Install Android SDK 36
+        if: inputs.include_android
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-37.1" "build-tools;36.0.0"
+            "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build and sync Capacitor web bundle
+        if: inputs.include_android
+        working-directory: web
+        env:
+          ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web
+          npm run cap:sync
+
+      - name: Verify generated native wrapper files have not drifted
+        if: inputs.include_android
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- \
+            android/capacitor.settings.gradle \
+            android/app/capacitor.build.gradle
 
       - name: Build and verify final signed Android artifacts
-        working-directory: android
+        if: inputs.include_android
+        working-directory: ${{ env.ANDROID_PROJECT_DIR }}
         shell: bash
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
@@ -330,6 +441,7 @@ jobs:
 
           ./gradlew --no-daemon --stacktrace --dependency-verification strict \
             -PeimirVersionCode="$ANDROID_VERSION_CODE" \
+            -PeimirVersionName="$RELEASE_VERSION" \
             :app:assembleRelease :app:bundleRelease
 
           apk=$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)
@@ -338,15 +450,57 @@ jobs:
           test -n "$aab"
           test -s "$apk"
           test -s "$aab"
+          export apk aab
 
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify "$apk"
           jarsigner -verify "$aab" >/dev/null
+
+          aapt="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          test -x "$aapt"
+          badging=$("$aapt" dump badging "$apk")
+          echo "$badging" | grep -q "package: name='de.sidebyside.app'"
+          echo "$badging" | grep -q "versionCode='${ANDROID_VERSION_CODE}'"
+          echo "$badging" | grep -q "versionName='${RELEASE_VERSION}'"
+          echo "$badging" | grep -q "launchable-activity: name='de.eimir.app.MainActivity'"
 
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           test -x "$analyzer"
           test "$("$analyzer" manifest application-id "$apk")" = "de.sidebyside.app"
           test "$("$analyzer" manifest version-name "$apk")" = "$RELEASE_VERSION"
           test "$("$analyzer" manifest version-code "$apk")" = "$ANDROID_VERSION_CODE"
+
+          python3 - <<'PY'
+          import json
+          import os
+          import zipfile
+          from pathlib import Path
+
+          apk_path = Path(os.environ["apk"])
+          aab_path = Path(os.environ["aab"])
+
+          def inspect_archive(archive_path: Path, prefix: str) -> None:
+              with zipfile.ZipFile(archive_path, "r") as z:
+                  names = set(z.namelist())
+                  index_html_path = f"{prefix}public/index.html"
+                  config_path = f"{prefix}capacitor.config.json"
+                  if index_html_path not in names:
+                      raise SystemExit(f"Missing {index_html_path} in {archive_path.name}")
+                  if config_path not in names:
+                      raise SystemExit(f"Missing {config_path} in {archive_path.name}")
+                  config_data = json.loads(z.read(config_path).decode("utf-8"))
+                  server = config_data.get("server", {})
+                  if "url" in server:
+                      raise SystemExit(f"Forbidden remote server.url in {config_path} of {archive_path.name}")
+                  if "allowNavigation" in server:
+                      raise SystemExit(f"Forbidden allowNavigation in {config_path} of {archive_path.name}")
+                  cap_http = config_data.get("plugins", {}).get("CapacitorHttp", {})
+                  if cap_http.get("enabled") is not True:
+                      raise SystemExit(f"CapacitorHttp plugin must be enabled in {config_path} of {archive_path.name}")
+
+          inspect_archive(apk_path, "assets/")
+          inspect_archive(aab_path, "base/assets/")
+          print("Verified signed APK and AAB bundle contents.")
+          PY
 
           mkdir -p ../release-evidence/android
           cp -- "$apk" ../release-evidence/android/eimir-release.apk
@@ -356,6 +510,7 @@ jobs:
             ../release-evidence/android/eimir-release-unsigned.aab
 
       - name: Install verified Syft release
+        if: inputs.include_android
         shell: bash
         run: |
           set -euo pipefail
@@ -372,6 +527,7 @@ jobs:
           echo "$install_dir" >> "$GITHUB_PATH"
 
       - name: Regenerate Android SPDX SBOMs for signed bytes
+        if: inputs.include_android
         env:
           SYFT_CHECK_FOR_APP_UPDATE: "false"
         run: |
@@ -382,9 +538,11 @@ jobs:
             -o "spdx-json=release-evidence/sbom/android-aab.spdx.json"
 
       - name: Rebind evidence index to final signed Android bytes
+        if: inputs.include_android
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
+          ANDROID_API_BASE_URL: ${{ inputs.android_api_base_url }}
           SOURCE_REVISION: ${{ github.sha }}
         run: |
           python3 - <<'PY'
@@ -406,6 +564,11 @@ jobs:
               raise SystemExit("Android versionName does not match release version")
           if android.get("versionCode") != int(os.environ["ANDROID_VERSION_CODE"]):
               raise SystemExit("Android versionCode does not match publication input")
+          expected_api = os.environ["ANDROID_API_BASE_URL"].strip().rstrip("/")
+          if android.get("apiBaseUrl") != expected_api:
+              raise SystemExit("Android apiBaseUrl does not match publication input")
+          if android.get("launchableActivity") != "de.eimir.app.MainActivity":
+              raise SystemExit("Unexpected Android launchableActivity in #193 evidence")
 
           def sha256(path: Path) -> str:
               digest = hashlib.sha256()
@@ -452,6 +615,7 @@ jobs:
           PY
 
       - name: Remove unsigned Android attestation bundles
+        if: inputs.include_android
         run: |
           rm -f \
             release-evidence/attestations/android-apk-provenance.json \
@@ -460,6 +624,7 @@ jobs:
             release-evidence/attestations/android-aab-sbom.json
 
       - name: Attest final signed Android APK
+        if: inputs.include_android
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release.apk
@@ -468,6 +633,7 @@ jobs:
           bundle-prefix: android-apk-signed
 
       - name: Attest final signed Android AAB
+        if: inputs.include_android
         uses: ./.github/actions/attest-release-artifact
         with:
           subject-path: release-evidence/android/eimir-release.aab
@@ -479,6 +645,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
         run: |
           set -euo pipefail
           gh attestation trusted-root > release-evidence/attestations/trusted_root.jsonl
@@ -504,10 +671,12 @@ jobs:
 
           verify_subject release-evidence/backend-runtime.image.tar backend-runtime "$evidence_signer"
           verify_subject release-evidence/web-runtime.image.tar web-runtime "$evidence_signer"
-          verify_subject release-evidence/android/eimir-release.apk android-apk-signed "$publish_signer"
-          verify_subject release-evidence/android/eimir-release.aab android-aab-signed "$publish_signer"
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            verify_subject release-evidence/android/eimir-release.apk android-apk-signed "$publish_signer"
+            verify_subject release-evidence/android/eimir-release.aab android-aab-signed "$publish_signer"
+          fi
 
-      - name: Build final signed release manifest
+      - name: Build final release manifest
         shell: bash
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
@@ -712,6 +881,19 @@ jobs:
             fi
           }
 
+          require_image_label() {
+            local image="$1"
+            local key="$2"
+            local expected="$3"
+            local actual
+
+            actual=$(docker image inspect "$image" --format "{{ index .Config.Labels \"${key}\" }}")
+            if [ "$actual" != "$expected" ]; then
+              echo "Release image ${image} label ${key} does not match the release identity; refusing publication." >&2
+              exit 1
+            fi
+          }
+
           publish_archive() {
             local archive="$1"
             local source_image="$2"
@@ -728,6 +910,11 @@ jobs:
             local digest
             local_id=$(docker image inspect "$source_image" --format '{{.Id}}')
             test -n "$local_id"
+
+            # The image must describe its own identity: the labels were baked in
+            # by the #193 evidence build and are part of the attested digest.
+            require_image_label "$source_image" org.opencontainers.image.revision "$SOURCE_REVISION"
+            require_image_label "$source_image" org.opencontainers.image.version "$RELEASE_VERSION"
 
             transport_ref="${repository}:${transport_tag}"
             docker tag "$source_image" "$transport_ref"
@@ -897,6 +1084,14 @@ jobs:
             "$bundle_root/scripts/self_hosted_release.py"
           cp -- scripts/check_runtime_environment.py \
             "$bundle_root/scripts/check_runtime_environment.py"
+          # Both scripts above import this module as a sibling; without it the shipped
+          # launcher and runtime checker fail at import time on the target host.
+          cp -- scripts/_identity_environment.py \
+            "$bundle_root/scripts/_identity_environment.py"
+          # The published identity is the trust root of the in-manifest release guard
+          # and of the launcher; it replaces the source-checkout placeholder.
+          cp -- release-evidence/self-hosted-image-identity.json \
+            "$bundle_root/self-hosted-image-identity.json"
 
           cat > "$RUNNER_TEMP/expected-self-hosted-bundle.txt" <<EOF
           ${bundle_name}/
@@ -904,8 +1099,10 @@ jobs:
           ${bundle_name}/deploy/
           ${bundle_name}/deploy/self-hosted-release.env.example
           ${bundle_name}/scripts/
+          ${bundle_name}/scripts/_identity_environment.py
           ${bundle_name}/scripts/check_runtime_environment.py
           ${bundle_name}/scripts/self_hosted_release.py
+          ${bundle_name}/self-hosted-image-identity.json
           EOF
 
           tar --sort=name \
@@ -925,6 +1122,7 @@ jobs:
       - name: Write human-readable release notes
         shell: bash
         env:
+          INCLUDE_ANDROID: ${{ inputs.include_android }}
           RELEASE_VERSION: ${{ inputs.release_version }}
           SOURCE_REVISION: ${{ github.sha }}
           INITIAL_RELEASE: ${{ inputs.initial_release }}
@@ -936,6 +1134,11 @@ jobs:
           else
             previous="v${PREVIOUS_VERSION}"
           fi
+          if [ "$INCLUDE_ANDROID" = "true" ]; then
+            android_note="Android is included in this release channel. Final APK/AAB bytes are signed, carry fresh SPDX SBOMs and attestations, and are bound to the same source revision."
+          else
+            android_note="Android is explicitly not part of this release channel. No APK/AAB, Android signing material, fixed Android API origin, or Android attestations are published."
+          fi
           cat > release-evidence/RELEASE-NOTES.md <<EOF
           # eimir. v${RELEASE_VERSION}
 
@@ -943,8 +1146,10 @@ jobs:
           Previous known-good application release: \`${previous}\`
 
           This is one immutable build-once release set. Backend API, worker and migrate
-          share one runtime artifact; Web and final signed Android artifacts are bound
-          to the same source revision by \`eimir-release-manifest.json\`.
+          share one runtime artifact and Web is bound to the same source revision by
+          \`eimir-release-manifest.json\`.
+
+          ${android_note}
 
           The exact backend and Web archives were loaded without rebuild and published
           as versioned GHCR images. GHCR version/source tags are discovery aliases only;
@@ -953,12 +1158,10 @@ jobs:
 
           \`eimir-self-hosted-v${RELEASE_VERSION}.tar.gz\` is the deterministic
           source-free operator bundle for released Self-Hosted installation. It contains
-          canonical Compose, the release env template, mandatory Production launcher and
-          runtime identity checker; application source is not included or built on target.
-
-          Android publication uses Google Play App Signing with a distinct upload key.
-          The upload key is supplied only by the protected \`production-release\`
-          environment. Final signed Android bytes have fresh SPDX SBOMs and attestations.
+          canonical Compose, the release env template, mandatory Production launcher,
+          runtime identity checker and the published image identity that the in-manifest
+          release guard and the launcher both trust; application source is not included
+          or built on target.
 
           Application rollback selects the previous immutable release only. It does not
           imply database rollback; schema compatibility, forward-fix and restore remain

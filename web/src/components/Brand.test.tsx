@@ -15,20 +15,13 @@ describe('Brand', () => {
     expect(html).toContain('href="/story"');
     expect(html).toContain('aria-label="Open eimir. Story"');
     expect(html).toContain('aria-hidden="true"');
-    expect(html).toContain('<svg');
+    expect(html).toContain('src="/identity/app-icon-light.png"');
+    expect(html).toContain('src="/identity/app-icon-dark.png"');
+    expect(html).toContain('alt=""');
     expect(html).toContain('eimir');
     expect(html).toContain('brand-dot');
     expect(html).not.toContain('SidebySide');
     expect(html).not.toContain('Eimir');
-  });
-
-  it('does not render the retired product suffix on entry surfaces', () => {
-    const html = renderToStaticMarkup(<Brand suffix={<span>Next</span>} />);
-
-    expect(html).not.toContain('<a');
-    expect(html).toContain('eimir');
-    expect(html).not.toContain('Next');
-    expect(html).not.toContain('brand-inverse');
   });
 
   it('renders standard high-contrast brand styling by default', () => {

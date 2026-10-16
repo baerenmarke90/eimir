@@ -166,7 +166,7 @@ function WishDetectiveSessionView({
   if (snapshot.phase === 'finished') {
     return (
       <section
-        className="wish-detective-finish eimir-motion-reveal"
+        className="wish-detective-finish eimir-motion-success"
         aria-labelledby="wish-detective-finish-title"
       >
         <p className="eyebrow">{t('games.wishDetective.finishEyebrow')}</p>
@@ -218,7 +218,7 @@ function WishDetectiveSessionView({
 
       {snapshot.phase === 'clue' && snapshot.currentWish ? (
         <section
-          className="wish-detective-card wish-detective-clue eimir-motion-reveal"
+          className="wish-detective-card wish-detective-clue eimir-motion-disclosure"
           aria-labelledby="wish-detective-clue-title"
         >
           <p className="eyebrow">
@@ -294,7 +294,7 @@ function WishDetectiveSessionView({
 
       {snapshot.phase === 'handoff' ? (
         <section
-          className="wish-detective-card wish-detective-handoff eimir-motion-reveal"
+          className="wish-detective-card wish-detective-handoff eimir-motion-disclosure"
           aria-labelledby="wish-detective-handoff-title"
         >
           <p className="eyebrow">{t('games.wishDetective.handoffEyebrow')}</p>
@@ -321,7 +321,7 @@ function WishDetectiveSessionView({
 
       {snapshot.phase === 'guess' ? (
         <section
-          className="wish-detective-card wish-detective-guess eimir-motion-reveal"
+          className="wish-detective-card wish-detective-guess eimir-motion-disclosure"
           aria-labelledby="wish-detective-guess-title"
         >
           <p className="eyebrow">
@@ -372,7 +372,7 @@ function WishDetectiveSessionView({
       snapshot.currentWish &&
       snapshot.reveal ? (
         <section
-          className={`wish-detective-card wish-detective-reveal wish-detective-reveal-${snapshot.reveal.result} eimir-motion-reveal`}
+          className={`wish-detective-card wish-detective-reveal wish-detective-reveal-${snapshot.reveal.result} eimir-motion-disclosure`}
           aria-live="polite"
           aria-labelledby="wish-detective-reveal-title"
         >

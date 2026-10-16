@@ -1,4 +1,12 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilesApi } from '../api/generated/apis/ProfilesApi';
 import { SpacesApi } from '../api/generated/apis/SpacesApi';
@@ -11,7 +19,9 @@ import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
 import type { SpaceProfileView } from '../api/generated/models/SpaceProfileView';
 import { Configuration } from '../api/generated/runtime';
 import { invalidateDashboard } from '../client/dashboardQueries';
+import { settingsCategoryPath } from '../client/routes';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   CATEGORIES,
   type ProfilePreferenceDraft,
@@ -30,6 +40,8 @@ import { AddIcon, DestinationIcon } from './DestinationIcon';
 import { PartnerIdentityPanel } from './PartnerIdentityPanel';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
+import { useOverlayPresence } from './useOverlayPresence';
 
 type PreferenceVisibility =
   | typeof ProfileVisibility.SELF_PROFILE
@@ -65,6 +77,7 @@ export function RelationshipSummarySection({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
 
   const spaceQuery = useQuery({
     queryKey: ['space', spaceId],
@@ -95,8 +108,16 @@ export function RelationshipSummarySection({
   const partnerNames = useMemo(() => {
     const partners = spaceQuery.data?.partners;
     if (!partners || partners.length === 0) return null;
-    return partners.map((p) => p.displayName).join(' & ');
-  }, [spaceQuery.data?.partners]);
+    return partners
+      .map((person) =>
+        relationshipLabel(
+          person.id,
+          person.displayName,
+          t('couplePresencePartnerFallback'),
+        ),
+      )
+      .join(' & ');
+  }, [relationshipLabel, spaceQuery.data?.partners, t]);
 
   if (!profileQuery.data?.relationshipStartedOn) {
     return null;
@@ -386,12 +407,12 @@ export function RelationshipSettingsSection({
           </div>
 
           <div className="relationship-notification-hint-row">
-            <a
-              href="#settings-notifications"
+            <Link
+              to={settingsCategoryPath('notifications')}
               className="relationship-notification-hint-link"
             >
               {t('profiles.relationshipNotificationHint')}
-            </a>
+            </Link>
           </div>
         </form>
       ) : null}
@@ -400,9 +421,6 @@ export function RelationshipSettingsSection({
     </section>
   );
 }
-
-/** Backward-compatibility alias for previous imports. */
-export const RelationshipProfileSection = RelationshipSettingsSection;
 
 /** Viewport-safe and accessible modal dialog for creating and editing preferences or private notes. */
 export function PreferenceDialog({
@@ -416,6 +434,7 @@ export function PreferenceDialog({
   onDelete,
   error,
   deleteError,
+  restoreFocusRef,
 }: {
   isOpen: boolean;
   preference: ProfilePreferenceView | null;
@@ -427,87 +446,56 @@ export function PreferenceDialog({
   onDelete?: () => void;
   error?: unknown;
   deleteError?: unknown;
+  restoreFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLSelectElement>(null);
+  const renderedPreferenceRef = useRef(preference);
+  if (isOpen) renderedPreferenceRef.current = preference;
+  const renderedPreference = renderedPreferenceRef.current;
+  const { present, presenceState, completeExit } = useOverlayPresence(isOpen);
 
-  // Preserve and restore body scroll position and overflow.
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
+  useModalLifecycle({
+    active: present,
+    initialFocusRef: firstInputRef,
+    restoreFocusRef,
+    restoreFocus: Boolean(restoreFocusRef),
+    deferRestoreFocus: true,
+  });
 
-  // Initial focus on the first real focusable form control.
+  // Keyboard navigation: Escape closes only the active intent, while focus
+  // containment remains in force until presentation presence actually ends.
   useEffect(() => {
-    if (isOpen) {
-      // Small timeout ensures element is mounted and accessible in DOM.
-      const timer = setTimeout(() => {
-        firstInputRef.current?.focus();
-      }, 20);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-
-  // Keyboard navigation: Escape key closes, Tab/Shift+Tab trap inside dialog.
-  useEffect(() => {
-    if (!isOpen) return;
+    if (!present) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isOpen) {
         onCancel();
         return;
       }
-      if (e.key === 'Tab' && dialogRef.current) {
-        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey) {
-          if (
-            document.activeElement === first ||
-            !dialogRef.current.contains(document.activeElement)
-          ) {
-            e.preventDefault();
-            last.focus();
-          }
-        } else {
-          if (
-            document.activeElement === last ||
-            !dialogRef.current.contains(document.activeElement)
-          ) {
-            e.preventDefault();
-            first.focus();
-          }
-        }
-      }
+      containModalTabFocus(e, dialogRef.current, {
+        wrapFromOutside: true,
+      });
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onCancel]);
+  }, [isOpen, onCancel, present]);
 
-  // Dismiss on backdrop click outside dialog content.
+  // Backdrop dismissal remains pointer-owned; Escape is the keyboard
+  // equivalent, so the presentation container itself is not a fake button.
   useEffect(() => {
-    if (!isOpen) return;
-    const backdropEl = backdropRef.current;
-    if (!backdropEl) return;
-    function handleBackdropClick(e: MouseEvent) {
-      if (e.target === backdropEl) {
-        onCancel();
-      }
+    if (!present) return;
+    const backdrop = backdropRef.current;
+    if (!backdrop) return;
+    function handleBackdropClick(event: MouseEvent) {
+      if (isOpen && event.target === backdrop) onCancel();
     }
-    backdropEl.addEventListener('click', handleBackdropClick);
-    return () => backdropEl.removeEventListener('click', handleBackdropClick);
-  }, [isOpen, onCancel]);
+    backdrop.addEventListener('click', handleBackdropClick);
+    return () => backdrop.removeEventListener('click', handleBackdropClick);
+  }, [isOpen, onCancel, present]);
 
-  if (!isOpen) return null;
+  if (!present) return null;
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -528,18 +516,27 @@ export function PreferenceDialog({
     <div
       ref={backdropRef}
       className="preference-modal-backdrop"
+      data-presence={presenceState}
       role="presentation"
     >
       <div
         ref={dialogRef}
-        className="preference-modal-dialog eimir-motion-reveal"
+        className="preference-modal-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pref-dialog-heading"
+        onAnimationEnd={(event) => {
+          if (
+            event.target !== event.currentTarget ||
+            presenceState !== 'exiting'
+          )
+            return;
+          completeExit();
+        }}
       >
         <div className="preference-modal-header">
           <h3 id="pref-dialog-heading" tabIndex={-1}>
-            {preference
+            {renderedPreference
               ? privateNote
                 ? t('profiles.noteEditTitle')
                 : t('profiles.preferenceEditTitle')
@@ -558,7 +555,7 @@ export function PreferenceDialog({
         </div>
 
         <form
-          key={preference?.id ?? 'new'}
+          key={renderedPreference?.id ?? 'new'}
           className="form-grid"
           onSubmit={submit}
         >
@@ -572,7 +569,9 @@ export function PreferenceDialog({
               ref={firstInputRef}
               id={`preference-category-${privateNote ? 'private' : 'self'}`}
               name="category"
-              defaultValue={preference?.category ?? PreferenceCategory.OTHER}
+              defaultValue={
+                renderedPreference?.category ?? PreferenceCategory.OTHER
+              }
             >
               {CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -591,7 +590,9 @@ export function PreferenceDialog({
             <select
               id={`preference-sentiment-${privateNote ? 'private' : 'self'}`}
               name="sentiment"
-              defaultValue={preference?.sentiment ?? PreferenceSentiment.LIKE}
+              defaultValue={
+                renderedPreference?.sentiment ?? PreferenceSentiment.LIKE
+              }
             >
               {SENTIMENTS.map((sentiment) => (
                 <option key={sentiment} value={sentiment}>
@@ -612,7 +613,7 @@ export function PreferenceDialog({
               name="topic"
               required
               maxLength={120}
-              defaultValue={preference?.topic ?? ''}
+              defaultValue={renderedPreference?.topic ?? ''}
               placeholder={
                 privateNote
                   ? t('profiles.noteTopicPlaceholder')
@@ -633,7 +634,7 @@ export function PreferenceDialog({
               required
               rows={3}
               maxLength={500}
-              defaultValue={preference?.value ?? ''}
+              defaultValue={renderedPreference?.value ?? ''}
               placeholder={
                 privateNote
                   ? t('profiles.noteValuePlaceholder')
@@ -646,7 +647,7 @@ export function PreferenceDialog({
           {deleteError ? <ProblemState error={deleteError} /> : null}
 
           <div className="preference-modal-actions">
-            {preference && onDelete ? (
+            {renderedPreference && onDelete ? (
               <button
                 type="button"
                 className="tertiary compact-action preference-delete-btn"
@@ -669,7 +670,7 @@ export function PreferenceDialog({
               <button type="submit" disabled={pending || deletePending}>
                 {pending
                   ? t('profiles.saving')
-                  : preference
+                  : renderedPreference
                     ? t('profiles.saveChanges')
                     : t('profiles.create')}
               </button>
@@ -719,10 +720,6 @@ export function PreferenceManager({
     setEditing(null);
     saveMutation.reset();
     deleteMutation.reset();
-    // Dynamically restore focus to the exact button or chip that triggered opening.
-    setTimeout(() => {
-      triggerElementRef.current?.focus();
-    }, 0);
   }
 
   const saveMutation = useMutation({
@@ -905,6 +902,7 @@ export function PreferenceManager({
         }
         error={saveMutation.error}
         deleteError={deleteMutation.error}
+        restoreFocusRef={triggerElementRef}
       />
     </section>
   );
@@ -1063,6 +1061,7 @@ export function ProfilePreferencesSection({
   spaceId: string;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const configuration = useMemo(
     () =>
       new Configuration({
@@ -1110,6 +1109,13 @@ export function ProfilePreferencesSection({
     spaceQuery.data?.partners.find(
       (candidate) => candidate.id !== account.id,
     ) ?? null;
+  const partnerName = partner
+    ? relationshipLabel(
+        partner.id,
+        partner.displayName,
+        t('couplePresencePartnerFallback'),
+      )
+    : '';
 
   const selfPreferences = preferencesQuery.data
     ? preferencesQuery.data.filter(
@@ -1149,29 +1155,32 @@ export function ProfilePreferencesSection({
       ) : null}
 
       {partner ? (
-        <div className="profile-partner-block">
-          <PartnerIdentityPanel
-            apiBaseUrl={apiBaseUrl}
-            accessToken={accessToken}
-            account={account}
-            spaceId={spaceId}
-          />
-          <PartnerProfileSection
-            profilesApi={profilesApi}
-            spaceId={spaceId}
-            partnerId={partner.id}
-            partnerName={partner.displayName}
-          />
+        <>
+          <div className="profile-partner-block">
+            <PartnerIdentityPanel
+              key={`${account.id}:${spaceId}:${partner.id}`}
+              apiBaseUrl={apiBaseUrl}
+              accessToken={accessToken}
+              account={account}
+              spaceId={spaceId}
+            />
+            <PartnerProfileSection
+              profilesApi={profilesApi}
+              spaceId={spaceId}
+              partnerId={partner.id}
+              partnerName={partnerName}
+            />
+          </div>
           {preferencesQuery.data ? (
             <PrivatePartnerNotesSection
               profilesApi={profilesApi}
               spaceId={spaceId}
               partnerId={partner.id}
-              partnerName={partner.displayName}
+              partnerName={partnerName}
               items={privatePartnerNotes}
             />
           ) : null}
-        </div>
+        </>
       ) : null}
     </div>
   );

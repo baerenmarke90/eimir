@@ -4,12 +4,12 @@ Every dependency is recorded with its name, version, source, and license. Every
 asset is recorded with its origin, license, and creator. Anything not listed
 here does not belong in the project.
 
-As of: 2026-09-01
+As of: 2026-09-25
 
 ## Reproducibility and verification
 
 `backend/uv.lock` is the binding, cross-platform resolution of all direct and
-transitive Python dependencies. The uv version `0.12.5`, Python `3.13.7`, the
+transitive Python dependencies. The uv version `0.12.15`, Python `3.13.7`, the
 build backend, and the Python container image are pinned exactly. CI and
 container installations run exclusively in frozen/locked mode;
 `uv lock --check` prevents a stale lock file.
@@ -27,11 +27,13 @@ exactly in `web/e2e/package.json`; CI also installs this package exclusively
 with `npm ci` and runs the same high-severity npm audit gate. These dependencies
 are development-only and are never shipped with the production Web bundle.
 
-The thin M2-S8 Android reference flow uses only exactly versioned Gradle/Maven
-coordinates and the fixed Compose BOM `2026.08.00`. Its own CI evidence pins
-JDK 17, Gradle 9.5.0, Android Gradle Plugin 9.3.0, compileSdk 37, and Build
-Tools 36.0.0. The toolchain and direct dependency selection therefore do not
-depend on local Android Studio defaults.
+The Android application is the Capacitor wrapper in `android/` around the
+canonical Web bundle (ADR 0011). Its release CI evidence pins JDK 21, Gradle
+8.14.3 (wrapper distribution and wrapper-JAR SHA-256), Android Gradle Plugin
+8.13.0, compileSdk 36, and Build Tools 36.0.0, and resolves every Gradle
+artifact under `--dependency-verification strict` against
+`android/gradle/verification-metadata.xml`. The toolchain and direct dependency
+selection therefore do not depend on local Android Studio defaults.
 
 Backend CI runs `uv audit --preview --frozen` against OSV. Policy permits no
 known security finding and no adverse package status. An exception could only
@@ -42,9 +44,9 @@ After the locked installation, the documented Backend state is automatically
 compared with the actually installed versions and the packages'
 `License-Expression` or `License` metadata. Direct Web dependencies are listed
 below; the complete transitive npm graphs including integrity hashes are in
-`web/package-lock.json` and `web/e2e/package-lock.json`. Direct Android runtime,
-test, and build dependencies are listed below; CI resolves them exclusively
-from Google Maven and Maven Central at the versions specified there.
+`web/package-lock.json` and `web/e2e/package-lock.json`. Direct Android
+wrapper, test, and build dependencies are listed below; CI resolves them
+exclusively from Google Maven and Maven Central, verified by checksum.
 
 `.github/dependabot.yml` schedules weekly updates for uv, npm, Gradle, Docker,
 and GitHub Actions dependencies. On a new fork or repository, **Dependabot
@@ -70,16 +72,27 @@ tokens use `secrets` and `hashlib` from the standard library; for a value with
 full entropy, an intentionally slow algorithm would only impose unnecessary
 cost on every request.
 
-OIDC adds `pyjwt[crypto]` and therefore `cryptography`: the signature of an
-external ID Token cannot be verified with `hashlib`, and a custom RSA/ECDSA
-verifier would be exactly the wrong kind of in-house implementation in the
-Auth path. `httpx` moves from a development dependency to a runtime dependency
-because Discovery, JWKS retrieval, and the Token endpoint require outbound
-HTTP.
+`cryptography` is a direct runtime dependency for the application-controlled
+encryption-at-rest boundary. eimir. uses its established AES-256-GCM primitive
+for authenticated encryption and does not implement a cryptographic primitive
+itself. The package was already present transitively through `pyjwt[crypto]`,
+but is declared directly now that application code imports it.
+
+OIDC uses `pyjwt[crypto]`: the signature of an external ID Token cannot be
+verified with `hashlib`, and a custom RSA/ECDSA verifier would be exactly the
+wrong kind of in-house implementation in the Auth path. `httpx` is a runtime
+dependency because Discovery, JWKS retrieval, and the Token endpoint require
+outbound HTTP.
 
 `webauthn` (py_webauthn) is added for the same reason: Passkey registration
 involves CBOR, COSE keys, and Attestation, and reading these formats by hand
 would be custom implementation at the most sensitive boundary.
+
+`pywebpush` encrypts Web Push payloads and signs VAPID requests for the
+UnifiedPush backend transport. Using its established protocol implementation
+avoids custom RFC 8291 cryptography. The application supplies a restricted
+HTTPS transport for destination validation and connection pinning; it does not
+modify the upstream package.
 
 `cbor2` is development-only: the virtual Authenticator in tests constructs
 `attestationObject` and COSE keys itself so the suite verifies real signatures
@@ -117,7 +130,9 @@ in a background job under resource limits — never in the request path.
 | uuid6 | 2025.0.1 | PyPI | MIT |
 | argon2-cffi | 25.1.0 | PyPI | MIT |
 | httpx | 0.28.1 | PyPI | BSD-3-Clause |
-| pyjwt[crypto] | 2.13.0 | PyPI | MIT |
+| pyjwt[crypto] | 2.15.1 | PyPI | MIT |
+| cryptography | 50.0.0 | PyPI | Apache-2.0 OR BSD-3-Clause |
+| pywebpush | 2.5.0 | PyPI | MPL-2.0 |
 | webauthn | 3.0.0 | PyPI | BSD-3-Clause |
 | pillow | 12.3.0 | PyPI | MIT-CMU |
 | pillow-heif | 1.5.0 | PyPI | BSD-3-Clause |
@@ -150,9 +165,33 @@ in a background job under resource limits — never in the request path.
 |---|---|---|---|
 | @types/react | 19.1.12 | npm | MIT |
 | @types/react-dom | 19.1.9 | npm | MIT |
+| @types/node | 24.19.1 | npm | MIT |
 | typescript | 5.9.2 | npm | Apache-2.0 |
 | vite | 7.3.6 | npm | MIT |
-| vitest | 3.2.7 | npm | MIT |
+| vitest | 4.1.11 | npm | MIT |
+
+### October 2026 audit maintenance
+
+The lock refresh updates PyJWT to 2.15.1 and Alembic's transitive Mako to
+1.4.3. PyJWT's declared minimum also prevents restoring the vulnerable
+verification dependency during a future resolution. Both remain existing MIT
+dependencies; no authentication provider, algorithm policy or migration is added.
+
+Vitest 4.1.11 is the smallest supported major line with the fixed mocker and
+without the vulnerable Tinypool dependency. Its declared Vite 7 and Node 24
+support matches this repository. The [upstream migration guide](https://vitest.dev/guide/migration/)
+was reviewed; object-URL and callback mocks now declare their actual callable
+signatures. Node 24 types are explicit because the removed transitive type
+dependency previously supplied the existing filesystem/layout tests. Existing
+test assertions and timeouts remain unchanged. The
+lockfile also advances Vite/PostCSS's transitive `source-map-js` to 1.2.2.
+These are test/build dependencies and do not add a production feature or
+runtime provider. Core behavior and Cloud/Self-Hosted tiers are unchanged.
+
+`npm audit --audit-level=high` retains its existing policy. The remaining
+moderate `uuid` finding is in the already-adopted Capacitor CLI's `xcode`
+dependency; this maintenance does not force an unsupported transitive major
+override or downgrade the wrapper CLI. Backend audit still permits no findings.
 
 These Web dependencies serve only the thin S8 reference flow. They do not
 pull M5 functionality such as persistent Offline Caches, complete navigation,
@@ -178,7 +217,7 @@ in `docs/m5/WEB-BROWSER-QA.md`.
 
 | Component | Version | Source | License |
 |---|---|---|---|
-| Node.js build image | 22.19.0-bookworm-slim, `sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
+| Node.js build image | 24.21.0-bookworm-slim, `sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553` | Docker Hub / nodejs/docker-node | MIT (Node.js and image definition) |
 | nginx-unprivileged | 1.31.4, `sha256:197f252f060ed357f2ab98d4256762d7d107c76f18ad8f0b9d5178854611566d` | GHCR / nginx/docker-nginx-unprivileged | BSD-2-Clause (NGINX), Apache-2.0 (image definition) |
 
 Both images are used only during the build or as a local static Web server.
@@ -188,47 +227,46 @@ Provider costs, Accounts, or Rate Limits. If a registry is unavailable, an
 already built local image can continue running; a new build waits for the
 registry or uses a hoster-controlled mirror.
 
-## Android — M2-S8 Runtime
+## Android — Capacitor wrapper runtime
+
+The Android Gradle project in `android/` contains no product UI code. Product
+screens are the React application from `web/`, packaged as a local asset
+bundle. Capacitor plugin versions are pinned exactly in `web/package.json` and
+locked in `web/package-lock.json`; the Gradle modules below are resolved from
+`web/node_modules` by `npx cap sync android`.
 
 | Package / platform component | Version | Source | License |
 |---|---|---|---|
-| Jetpack Compose BOM | 2026.08.00 | Google Maven | Apache-2.0 |
-| Compose UI / Material 3 | via BOM (Compose 1.12 / Material 3 1.4) | Google Maven | Apache-2.0 |
-| androidx.activity:activity-compose | 1.13.0 | Google Maven | Apache-2.0 |
-| androidx.lifecycle:lifecycle-viewmodel-compose | 2.11.0 | Google Maven | Apache-2.0 |
-| com.squareup.okhttp3:okhttp | 5.4.0 | Maven Central | Apache-2.0 |
-| org.jetbrains.kotlinx:kotlinx-coroutines-android | 1.11.0 | Maven Central | Apache-2.0 |
-| org.jetbrains.kotlinx:kotlinx-serialization-json | 1.11.0 | Maven Central | Apache-2.0 |
-| Android Photo Picker | platform / Activity Result Contract | Android | platform API; no additional package |
+| @capacitor/android (native bridge) | 8.5.2 | npm | MIT |
+| @capacitor/app | 8.1.1 | npm | MIT |
+| @capacitor/browser | 8.0.4 | npm | MIT |
+| androidx.appcompat:appcompat | 1.7.1 | Google Maven | Apache-2.0 |
+| androidx.coordinatorlayout:coordinatorlayout | 1.3.0 | Google Maven | Apache-2.0 |
+| androidx.core:core-splashscreen | 1.2.0 | Google Maven | Apache-2.0 |
+| Apache Cordova Android framework (Capacitor plugin compatibility layer) | 14.0.1 | Maven Central | Apache-2.0 |
 
-`android/api/generated` remains generator-owned. Its `@Serializable` models
-are included directly as a Source Root; in particular, there is no second
-DTO/Union layer. OkHttp is only the small transport layer for published
-endpoints and server-issued upload/read descriptors. `STREAM` receives Bearer
-Auth; Signed URLs deliberately do not.
+The wrapper adds **no** Room, WorkManager, Kotlin, or Compose dependency. It
+holds no product state: session, cache, and read models live in the Web client.
+The former native read cache and its Keystore key belonged to the retired,
+non-authoritative Kotlin client and are not part of server data continuity.
+`google-services.json` is intentionally absent, so the Google Services plugin
+stays inactive until a push-notification slice adds Firebase.
 
-The S8 client deliberately introduces **no** Room, Paging, WorkManager,
-DataStore, or image-cache framework. Tokens, result, and image live only in
-volatile process/ViewModel state. This does not preempt the open M2-D18 Cache
-decision.
-
-## Android — M2-S8 Test and Build
+## Android — Wrapper test and build
 
 | Package / tool | Version | Source | License |
 |---|---|---|---|
-| Android Gradle Plugin | 9.3.0 | Google Maven | Apache-2.0 |
-| Gradle | 9.5.0 | gradle.org / CI setup-gradle | Apache-2.0 |
-| Compose Compiler Gradle Plugin | 2.3.21 | Gradle Plugin Portal / Maven Central | Apache-2.0 |
-| Kotlin Serialization Gradle Plugin | 2.3.21 | Gradle Plugin Portal / Maven Central | Apache-2.0 |
+| Android Gradle Plugin | 8.13.0 | Google Maven | Apache-2.0 |
+| Gradle | 8.14.3 | gradle.org / CI setup-gradle | Apache-2.0 |
+| Google Services Gradle Plugin (inactive without `google-services.json`) | 4.4.4 | Google Maven | Apache-2.0 |
 | JUnit 4 | 4.13.2 | Maven Central | EPL-1.0 |
-| androidx.test:core | 1.7.0 | Google Maven | Apache-2.0 |
-| Compose UI Test JUnit4 | via BOM | Google Maven | Apache-2.0 |
-| kotlinx-coroutines-test | 1.11.0 | Maven Central | Apache-2.0 |
-| Robolectric | 4.16.1 | Maven Central | MIT |
+| androidx.test.ext:junit | 1.3.0 | Google Maven | Apache-2.0 |
+| androidx.test.espresso:espresso-core | 3.7.0 | Google Maven | Apache-2.0 |
 
-The Android S8 CI job uses JDK 17, installs SDK Platform 37 and Build Tools
-36.0.0, and runs JVM/Robolectric/Compose Semantics tests, Android Lint, and
-`assembleDebug`. The GitHub Actions themselves are pinned to commit SHAs.
+The Android release evidence job uses JDK 21, installs SDK Platform 36 and Build
+Tools 36.0.0, builds the unsigned release APK/AAB, and verifies package
+identity, the local Web bundle, and the SBOM. The GitHub Actions themselves are
+pinned to commit SHAs.
 
 ## Container base images
 
@@ -236,7 +274,7 @@ The Android S8 CI job uses JDK 17, installs SDK Platform 37 and Build Tools
 |---|---|---|---|
 | python | 3.13.7-slim@sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689 | Docker Hub | PSF-2.0 (Python), Debian packages under their respective licenses |
 | postgres | 17-alpine | Docker Hub | PostgreSQL License |
-| node | 22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
+| node | 24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 | Docker Hub | MIT (Node.js), Debian packages under their respective licenses |
 
 ## Build-time tools
 
@@ -309,9 +347,10 @@ A new direct dependency is added here together with its entry. CI checks the
 Backend documentation against the locked, installed environment. Transitive
 Python versions are fully recorded in `backend/uv.lock`; transitive Web
 versions and integrity hashes are fully recorded in `web/package-lock.json`
-and `web/e2e/package-lock.json`. Android keeps all direct coordinates and the
-Compose BOM pinned exactly in the Gradle build; Dependabot monitors the
-`/android` build separately.
+and `web/e2e/package-lock.json`. Android keeps all direct coordinates pinned
+exactly in the Gradle build and checksummed in
+`android/gradle/verification-metadata.xml`; Dependabot monitors the `/android`
+build separately.
 
 New assets are documented here in the same change. If origin, license, or
 creator is unclear, the asset is not admitted until Provenance is resolved.

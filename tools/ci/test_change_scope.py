@@ -66,7 +66,10 @@ class ChangeScopeTest(unittest.TestCase):
         self.assert_scope(["web/src/App.tsx"], enabled=set())
 
     def test_capacitor_wrapper_change_does_not_enable_backend_gates(self) -> None:
-        self.assert_scope(["android/app/src/main/AndroidManifest.xml"], enabled=set())
+        self.assert_scope(
+            ["android/app/build.gradle", "android/app/src/main/AndroidManifest.xml"],
+            enabled=set(),
+        )
         self.assert_scope(["ios/App/App/Info.plist"], enabled=set())
 
     def test_backend_unit_test_only_enables_fast_backend_gate(self) -> None:

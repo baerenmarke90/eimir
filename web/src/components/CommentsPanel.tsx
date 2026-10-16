@@ -1,6 +1,6 @@
-import { authorDisplayName } from '../client/authorPresentation';
+import { authorFirstName } from '../client/authorPresentation';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   useInfiniteQuery,
   useMutation,
@@ -14,37 +14,49 @@ import {
   type CommentParentKind,
   listCommentsPage,
 } from '../client/commentQueries';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
 import { normalizeClientError } from '../client/problemDetails';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
 import { UiState } from './UiState';
 
+interface CommentCreateSnapshot {
+  readonly spaceId: string;
+  readonly parentKind: CommentParentKind;
+  readonly parentId: string;
+  readonly commentCreate: { readonly body: string };
+}
+
 function createComment(
   commentsApi: CommentsApi,
-  parentKind: CommentParentKind,
-  spaceId: string,
-  parentId: string,
-  body: string,
+  snapshot: CommentCreateSnapshot,
+  idempotencyKey: string,
 ) {
-  const commentCreate = { body };
-  switch (parentKind) {
+  const { spaceId, parentId, commentCreate } = snapshot;
+  switch (snapshot.parentKind) {
     case 'memory':
       return commentsApi.createMemoryComment({
         spaceId,
         memoryId: parentId,
         commentCreate,
+        idempotencyKey,
       });
     case 'heartMoment':
       return commentsApi.createHeartMomentComment({
         spaceId,
         heartMomentId: parentId,
         commentCreate,
+        idempotencyKey,
       });
     case 'milestone':
       return commentsApi.createMilestoneComment({
         spaceId,
         milestoneId: parentId,
         commentCreate,
+        idempotencyKey,
       });
   }
 }
@@ -77,6 +89,11 @@ export function CommentsPanel({
   const queryClient = useQueryClient();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
+  const commentDraftRef = useRef('');
+  const commentDraftRevisionRef = useRef(0);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<CommentCreateSnapshot> | null>(null);
   const queryKey = commentsQueryKey(spaceId, parentKind, parentId);
   const presenceKey = commentPresenceQueryKey(spaceId, parentKind, parentId);
   const commentsQuery = useInfiniteQuery({
@@ -102,24 +119,42 @@ export function CommentsPanel({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (body: string) => {
-      try {
-        return await createComment(
-          commentsApi,
-          parentKind,
-          spaceId,
-          parentId,
-          body,
-        );
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+    mutationFn: async ({
+      body,
+    }: {
+      body: string;
+      draftSnapshot: string;
+      draftRevision: number;
+    }) => {
+      const snapshot: CommentCreateSnapshot = {
+        spaceId,
+        parentKind,
+        parentId,
+        commentCreate: { body },
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          createComment(commentsApi, snapshot, idempotencyKey),
+      });
     },
-    onSuccess: async () => {
+    onSuccess: async (_comment, submission) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
         queryClient.invalidateQueries({ queryKey: presenceKey }),
       ]);
+      if (
+        commentDraftRevisionRef.current === submission.draftRevision &&
+        commentDraftRef.current === submission.draftSnapshot
+      ) {
+        commentDraftRef.current = '';
+        setCommentDraft('');
+        setComposerOpen(false);
+      }
     },
   });
 
@@ -181,16 +216,11 @@ export function CommentsPanel({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const body = String(data.get('comment') || '').trim();
+    const draftSnapshot = commentDraftRef.current;
+    const draftRevision = commentDraftRevisionRef.current;
+    const body = draftSnapshot.trim();
     if (!body) return;
-    createMutation.mutate(body, {
-      onSuccess: () => {
-        form.reset();
-        setComposerOpen(false);
-      },
-    });
+    createMutation.mutate({ body, draftSnapshot, draftRevision });
   }
 
   const comments =
@@ -234,7 +264,15 @@ export function CommentsPanel({
             return (
               <li key={comment.id} className="comment-card">
                 <div className="comment-head">
-                  <strong>{authorDisplayName(comment.author)}</strong>
+                  <span className="comment-author">
+                    <strong>{authorFirstName(comment.author)}</strong>
+                    {own ? (
+                      <span className="comment-author-self">
+                        {' · '}
+                        {t('comments.authorSelf')}
+                      </span>
+                    ) : null}
+                  </span>
                   <span>
                     <time dateTime={comment.createdAt.toISOString()}>
                       {commentTimestamp(comment.createdAt)}
@@ -393,6 +431,12 @@ export function CommentsPanel({
             maxLength={2000}
             required
             placeholder={t('comments.placeholder')}
+            value={commentDraft}
+            onChange={(event) => {
+              commentDraftRevisionRef.current += 1;
+              commentDraftRef.current = event.currentTarget.value;
+              setCommentDraft(event.currentTarget.value);
+            }}
           />
           <div className="comment-compose-actions">
             <button type="submit" disabled={createMutation.isPending}>
@@ -405,6 +449,8 @@ export function CommentsPanel({
               className="tertiary"
               onClick={() => {
                 createMutation.reset();
+                commentDraftRef.current = '';
+                setCommentDraft('');
                 setComposerOpen(false);
               }}
               disabled={createMutation.isPending}

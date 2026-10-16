@@ -1,11 +1,17 @@
+import { App } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { AuthApi } from '../api/generated/apis/AuthApi';
 import type { CapabilitiesView } from '../api/generated/models/CapabilitiesView';
+import { RecentAuthenticationClient } from '../api/generated/models/RecentAuthenticationClient';
 import type { RecentAuthenticationView } from '../api/generated/models/RecentAuthenticationView';
 import { Configuration } from '../api/generated/runtime';
-import { normalizeClientError } from './problemDetails';
+import { isCapacitorNative } from '../pwa';
+import { ClientProblemError, normalizeClientError } from './problemDetails';
 
 const OIDC_POPUP_POLL_MS = 200;
 const OIDC_POPUP_TIMEOUT_MS = 2 * 60 * 1000;
+
+export type RecentAuthenticationTarget = 'account-deletion' | 'server-admin';
 
 function api(apiBaseUrl: string, accessToken: string): AuthApi {
   return new AuthApi(
@@ -105,34 +111,71 @@ async function normalize<T>(operation: () => Promise<T>): Promise<T> {
 export async function loadRecentAuthenticationCapabilities(
   apiBaseUrl: string,
   accessToken: string,
+  client?: RecentAuthenticationClient,
+  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<CapabilitiesView> {
-  return normalize(() =>
-    api(
-      apiBaseUrl,
-      accessToken,
-    ).capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet(),
+  const isNative = isCapacitorNative();
+  const effectiveClient =
+    client ?? (isNative ? RecentAuthenticationClient.android : undefined);
+
+  const authApi = api(apiBaseUrl, accessToken);
+  const capabilities = await normalize(() =>
+    target === 'server-admin'
+      ? authApi.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(
+          {
+            client: effectiveClient,
+          },
+        )
+      : authApi.capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet({
+          client: effectiveClient,
+        }),
   );
+
+  if (isNative) {
+    // Direct eimir.-WebAuthn via navigator.credentials in Android WebView is not
+    // proven/supported in this foundational slice (no Credential Manager/DAL integration).
+    // Native container must not offer direct passkey re-authentication.
+    return {
+      ...capabilities,
+      passkey: false,
+    };
+  }
+
+  return capabilities;
 }
 
 export async function authenticateRecentPassword(
   apiBaseUrl: string,
   accessToken: string,
   password: string,
+  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
-  return normalize(() =>
-    api(
-      apiBaseUrl,
-      accessToken,
-    ).passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost({
-      passwordRequest: { password },
-    }),
-  );
+  return normalize(() => {
+    const authApi = api(apiBaseUrl, accessToken);
+    return target === 'server-admin'
+      ? authApi.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(
+          {
+            passwordRequest: { password },
+          },
+        )
+      : authApi.passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost(
+          {
+            passwordRequest: { password },
+          },
+        );
+  });
 }
 
 export async function authenticateRecentPasskey(
   apiBaseUrl: string,
   accessToken: string,
+  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
+  if (isCapacitorNative()) {
+    throw new Error(
+      'Direct passkey authentication is not supported in the native Android container.',
+    );
+  }
   if (!window.PublicKeyCredential || !navigator.credentials) {
     throw new Error('WebAuthn is not available in this browser.');
   }
@@ -140,18 +183,23 @@ export async function authenticateRecentPasskey(
   return normalize(async () => {
     const authApi = api(apiBaseUrl, accessToken);
     const options =
-      await authApi.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost();
+      target === 'server-admin'
+        ? await authApi.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost()
+        : await authApi.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost();
     const result = await navigator.credentials.get({
       publicKey: requestOptionsFromJson(options),
     });
     if (!(result instanceof PublicKeyCredential)) {
       throw new Error('Passkey authentication was cancelled or unavailable.');
     }
-    return authApi.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost(
-      {
-        passkeyFinishRequest: { credential: assertionToJson(result) },
-      },
-    );
+    const passkeyFinishRequest = { credential: assertionToJson(result) };
+    return target === 'server-admin'
+      ? authApi.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(
+          { passkeyFinishRequest },
+        )
+      : authApi.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost(
+          { passkeyFinishRequest },
+        );
   });
 }
 
@@ -201,17 +249,143 @@ function waitForOidcCallback(
   });
 }
 
+export function parseOidcCallbackUrl(
+  rawUrl: string,
+  expectedState: string,
+): { code: string; state: string } | null {
+  try {
+    const callback = new URL(rawUrl);
+    if (
+      callback.protocol === 'de.sidebyside.app:' &&
+      callback.host === 'recent-authentication' &&
+      callback.pathname === '/oidc'
+    ) {
+      const state = callback.searchParams.get('state');
+      if (state !== expectedState) return null;
+
+      const providerError = callback.searchParams.get('error');
+      if (providerError) {
+        throw new Error('The identity provider rejected reauthentication.');
+      }
+
+      const code = callback.searchParams.get('code');
+      if (!code) return null;
+      return { code, state };
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('identity provider rejected')
+    ) {
+      throw error;
+    }
+  }
+  return null;
+}
+
+export function waitForCapacitorOidcCallback(
+  expectedState: string,
+): Promise<{ code: string; state: string }> {
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    const startedAt = Date.now();
+
+    const cleanup = () => {
+      resolved = true;
+      clearInterval(timer);
+      void listenerPromise.then((handle) => handle.remove());
+    };
+
+    const handleUrl = (rawUrl: string) => {
+      if (resolved) return;
+      try {
+        const result = parseOidcCallbackUrl(rawUrl, expectedState);
+        if (result) {
+          cleanup();
+          resolve(result);
+        }
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    };
+
+    // 1. Listen for intent URL open while running in background
+    const listenerPromise = App.addListener('appUrlOpen', (event) => {
+      handleUrl(event.url);
+    });
+
+    // 2. Check cold start launch URL
+    void App.getLaunchUrl().then((launchUrl) => {
+      if (launchUrl?.url) {
+        handleUrl(launchUrl.url);
+      }
+    });
+
+    // 3. Timeout polling
+    const timer = setInterval(() => {
+      if (Date.now() - startedAt > OIDC_POPUP_TIMEOUT_MS) {
+        cleanup();
+        reject(new Error('OIDC reauthentication timed out.'));
+      }
+    }, OIDC_POPUP_POLL_MS);
+  });
+}
+
 export async function authenticateRecentOidc(
   apiBaseUrl: string,
   accessToken: string,
   connectionId: string,
+  target: RecentAuthenticationTarget = 'account-deletion',
 ): Promise<RecentAuthenticationView> {
   return normalize(async () => {
     const authApi = api(apiBaseUrl, accessToken);
+
+    if (isCapacitorNative()) {
+      const started =
+        target === 'server-admin'
+          ? await authApi.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(
+              {
+                connectionId,
+                client: RecentAuthenticationClient.android,
+              },
+            )
+          : await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
+              {
+                connectionId,
+                client: RecentAuthenticationClient.android,
+              },
+            );
+
+      const callbackPromise = waitForCapacitorOidcCallback(started.state);
+      await Browser.open({ url: started.authorizationUrl });
+
+      try {
+        const callback = await callbackPromise;
+        const request = {
+          connectionId,
+          eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
+        };
+        return target === 'server-admin'
+          ? await authApi.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(
+              request,
+            )
+          : await authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
+              request,
+            );
+      } finally {
+        await Browser.close().catch(() => {});
+      }
+    }
+
     const started =
-      await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
-        { connectionId },
-      );
+      target === 'server-admin'
+        ? await authApi.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(
+            { connectionId },
+          )
+        : await authApi.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(
+            { connectionId },
+          );
     const popup = window.open(
       started.authorizationUrl,
       'eimir-recent-authentication',
@@ -221,11 +395,70 @@ export async function authenticateRecentOidc(
       throw new Error('The browser blocked the reauthentication window.');
     }
     const callback = await waitForOidcCallback(popup, started.state);
-    return authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
-      {
-        connectionId,
-        eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
-      },
-    );
+    const request = {
+      connectionId,
+      eimirApiV1RecentAuthenticationOidcCallbackRequest: callback,
+    };
+    return target === 'server-admin'
+      ? authApi.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(
+          request,
+        )
+      : authApi.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(
+          request,
+        );
   });
+}
+
+export function loadServerAdminRecentAuthenticationCapabilities(
+  apiBaseUrl: string,
+  accessToken: string,
+  client?: RecentAuthenticationClient,
+): Promise<CapabilitiesView> {
+  return loadRecentAuthenticationCapabilities(
+    apiBaseUrl,
+    accessToken,
+    client,
+    'server-admin',
+  );
+}
+
+export function authenticateServerAdminRecentPassword(
+  apiBaseUrl: string,
+  accessToken: string,
+  password: string,
+): Promise<RecentAuthenticationView> {
+  return authenticateRecentPassword(
+    apiBaseUrl,
+    accessToken,
+    password,
+    'server-admin',
+  );
+}
+
+export function authenticateServerAdminRecentPasskey(
+  apiBaseUrl: string,
+  accessToken: string,
+): Promise<RecentAuthenticationView> {
+  return authenticateRecentPasskey(apiBaseUrl, accessToken, 'server-admin');
+}
+
+export function authenticateServerAdminRecentOidc(
+  apiBaseUrl: string,
+  accessToken: string,
+  connectionId: string,
+): Promise<RecentAuthenticationView> {
+  return authenticateRecentOidc(
+    apiBaseUrl,
+    accessToken,
+    connectionId,
+    'server-admin',
+  );
+}
+
+export function isRecentAuthRequired(error: unknown): boolean {
+  return (
+    error instanceof ClientProblemError &&
+    error.status === 403 &&
+    error.code === 'RECENT_AUTHENTICATION_REQUIRED'
+  );
 }

@@ -26,11 +26,26 @@ class ProjectIdentityScanTest(unittest.TestCase):
 
     def test_android_application_id_is_temporary_compatibility(self) -> None:
         classification, _ = classify(
-            Path("android/app/build.gradle.kts"),
-            'applicationId = "de.sidebyside.app"',
+            Path("android/app/build.gradle"),
+            'applicationId "de.sidebyside.app"',
             "sidebyside",
         )
         self.assertEqual(classification, Classification.TEMP_COMPAT)
+
+    def test_retired_native_cache_identifiers_are_no_longer_exempt(self) -> None:
+        # The Room database and Keystore alias belonged to the retired Kotlin
+        # client (#1009); nothing keeps them alive, so they get no exception.
+        for line in (
+            'DATABASE_NAME = "sidebyside-read-cache.db"',
+            'DEFAULT_KEY_ALIAS = "sidebyside_owner_only_read_cache"',
+        ):
+            with self.subTest(line=line):
+                classification, _ = classify(
+                    Path("android/app/src/main/java/de/eimir/app/Example.java"),
+                    line,
+                    "sidebyside",
+                )
+                self.assertEqual(classification, Classification.MUST_RENAME)
 
     def test_frozen_spec_is_historical(self) -> None:
         classification, _ = classify(

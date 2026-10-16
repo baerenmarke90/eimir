@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import ClassVar
 from uuid import UUID
 
+from pydantic import Field, field_validator
 from sqlalchemy import (
     CheckConstraint,
     Date,
@@ -28,6 +29,7 @@ from eimir.db.base import Base
 from eimir.db.mixins import IdMixin, TimestampMixin, VersionMixin
 from eimir.db.protected_payload import ProtectedPayloadJSON
 from eimir.domain.payload import CRYPTO_VERSION_PLAINTEXT, ProtectedPayload
+from eimir.heart_moments.tags import HeartMomentTags, unique_tags
 
 
 class HeartEmotion(StrEnum):
@@ -58,6 +60,9 @@ class HeartMomentPayload(ProtectedPayload):
 
     text: str
     emotion: HeartEmotion
+    tags: HeartMomentTags = Field(default_factory=list)
+
+    _unique_tags = field_validator("tags")(unique_tags)
 
 
 class HeartMoment(
@@ -127,9 +132,4 @@ class HeartMoment(
             "privacy_class",
         ),
         Index("ix_heart_moments_space_id_happened_on", "space_id", "happened_on"),
-        Index(
-            "ix_heart_moments_search_fts",
-            text("setweight(to_tsvector('simple', coalesce(payload->>'text', '')), 'A')"),
-            postgresql_using="gin",
-        ),
     )

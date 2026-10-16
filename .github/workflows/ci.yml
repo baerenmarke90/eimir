@@ -14,7 +14,7 @@ concurrency:
 
 env:
   PYTHON_VERSION: "3.13.7"
-  UV_VERSION: "0.12.5"
+  UV_VERSION: "0.12.15"
 
 jobs:
   changes:
@@ -398,6 +398,7 @@ jobs:
           for unsafe_setting in "EIMIR_MAIL_TRANSPORT=log" "EIMIR_PUBLIC_BASE_URL=http://insecure.invalid" "EIMIR_CURSOR_SIGNING_KEY="; do
             output=$(docker compose run --rm --no-deps \
               -e EIMIR_ENVIRONMENT=production \
+              -e EIMIR_ENCRYPTION_AT_REST=disabled \
               -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
               -e EIMIR_MAIL_TRANSPORT=smtp \
               -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
@@ -417,6 +418,7 @@ jobs:
         run: |
           docker compose run --rm --no-deps \
             -e EIMIR_ENVIRONMENT=production \
+            -e EIMIR_ENCRYPTION_AT_REST=disabled \
             -e EIMIR_CURSOR_SIGNING_KEY=ci-test-value-with-at-least-32-characters \
             -e EIMIR_MAIL_TRANSPORT=none \
             -e EIMIR_PUBLIC_BASE_URL=https://ci.invalid \
@@ -435,9 +437,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.api_clients == 'true'
     runs-on: ubuntu-latest
-    # The contract is the single source of truth for the canonical Web client.
-    # Legacy Kotlin model generation remains repository cleanup work under #1009
-    # and is no longer part of the product-quality pipeline.
+    # The contract is the single source of truth for the canonical Web client,
+    # which the Capacitor Android wrapper packages unchanged (ADR 0011).
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

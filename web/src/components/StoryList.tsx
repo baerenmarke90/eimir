@@ -14,6 +14,7 @@ import type { AuthorSummary } from '../api/generated/models/AuthorSummary';
 import type { StoryItem } from '../api/generated/models/StoryItem';
 import { Configuration } from '../api/generated/runtime';
 import { useApiRuntime } from '../client/apiRuntimeContext';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   commentPresenceQueryKey,
   type CommentParentKind,
@@ -30,7 +31,6 @@ import { MemoryPreview } from './MemoryPreview';
 import { AuthorAvatar } from './PersonIdentity';
 import {
   formatTimelineDate,
-  storyAuthorLabel,
   storyItemKey,
   storyItemPresentation,
 } from './storyPresentation';
@@ -215,15 +215,19 @@ export function StoryList({
   loadHeartMomentImage,
   profilesApi,
   spaceId,
-  currentAccountId,
   onOpenItem,
   progressiveReveal = false,
 }: {
   items: StoryItem[];
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
   loadHeartMomentImage: (
     heartMomentId: string,
     attachmentId: string,
+    signal?: AbortSignal,
   ) => Promise<string>;
   profilesApi?: ProfilesApi;
   spaceId?: string;
@@ -236,6 +240,7 @@ export function StoryList({
   progressiveReveal?: boolean;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const listId = useId();
   const apiRuntime = useApiRuntime();
   const commentsApi = useMemo(
@@ -270,12 +275,8 @@ export function StoryList({
       <ol className="story-list">
         {items.map((item, index) => {
           const itemKey = storyItemKey(item);
-          const presentation = storyItemPresentation(item, t);
+          const presentation = storyItemPresentation(item, t, nicknameFor);
           const author = storyItemAuthor(item);
-          const authorLabel = storyAuthorLabel(author, currentAccountId);
-          const authorAttribution = t('story.byAuthor', {
-            author: authorLabel,
-          });
           const firstMemoryAttachment =
             item.kind === 'MEMORY' ? item.memory.attachments[0] : undefined;
           const heartAttachment =
@@ -361,28 +362,13 @@ export function StoryList({
                       {formatTimelineDate(item.effectiveDate, locale)}
                     </time>
                     <span className="story-card-footer-author">
-                      {author ? (
-                        <span className="momente-author-meta">
-                          <span className="sr-only">{authorAttribution}</span>
-                          <span aria-hidden="true">
-                            <AuthorAvatar
-                              author={author}
-                              profilesApi={profilesApi}
-                              spaceId={spaceId}
-                            />
-                          </span>
-                          <span
-                            className="story-card-author"
-                            aria-hidden="true"
-                          >
-                            {authorAttribution}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="story-card-author">
-                          {presentation.author}
-                        </span>
-                      )}
+                      <span className="momente-author-meta">
+                        <AuthorAvatar
+                          author={author}
+                          profilesApi={profilesApi}
+                          spaceId={spaceId}
+                        />
+                      </span>
                       {presentation.visibility ? (
                         <span
                           className={`story-card-meta-item story-card-visibility story-card-visibility-${presentation.visibility.toLowerCase()}`}

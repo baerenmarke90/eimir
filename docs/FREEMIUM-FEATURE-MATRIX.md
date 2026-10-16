@@ -1,10 +1,13 @@
 # eimir. - Freemium Feature Matrix
 
 **Status:** authoritative product-tier and roadmap baseline  
-**Version:** 1.2  
-**Audit date:** 2026-09-10  
-**Audited `main` baseline:** `67f5f0d`  
-**Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing)  
+**Version:** 1.4
+
+**Audit date:** 2026-09-21  
+**Revision:** 2026-10-12 — clarified alternative app-icon selection; no entitlement implementation
+
+**Audited `main` baseline:** `dfc87cd`  
+**Strategic decisions:** #262 (Finalized), #876 (consumer packaging/pricing), #1151 (Today Pro Foundation)  
 **Entitlement architecture:** [ADR 0006](m6/ADR-0006-ENTITLEMENT-ARCHITECTURE.md)  
 **Billing strategy:** [PREMIUM-BILLING-STRATEGY.md](./PREMIUM-BILLING-STRATEGY.md)
 
@@ -76,9 +79,11 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **RelatedPerson & ImportantDate management** | M1, M5 | **Mixed** | **Free:** Basic CRUD & standard date tracking.<br>**Premium:** Multi-condition occasion automation & recurring reminders. | Identical | Storing friends/family is basic utility; automated complex workflows are Premium. |
 | **Memory CRUD & Timeline history** | M2, M5 | **Free/Core** | Whole feature Free (no count limit) | Identical | Memories are the emotional heart of eimir. |
 | **Image attachment upload & storage** | M2, M5 | **Free/Core** | Functional feature Free | **Self-Hosted:** Unmetered (operator storage).<br>**Cloud:** Subject to Space storage quota. | Image uploading is core to memories; Cloud storage has operational byte costs. |
+| **Shared photo gallery (#601)** | M2, M5 | **Free/Core** | Browse existing shared images, fullscreen viewing and canonical moment links | Identical | Another read view of shared relationship history; no new entitlement or upload quota. |
 | **Cloud storage quota** | M2, M6 | **Mixed** | **Current planning hypothesis, not final launch commitment:** Free 5 GB per Space; Premium 50 GB per Space, potentially expandable via add-ons. | Cloud only (Self-Hosted is unmetered) | Managed storage and bandwidth create real recurring infrastructure cost; final quotas/add-ons require cost validation. |
 | **Media privacy & attachment validation** | M2 | **Non-paywallable** | Non-paywallable | Identical | Security checks and media validation must execute identically for all users. |
 | **HeartMoments & Shared emotional reactions** | M2, M5 | **Free/Core** | Whole feature Free | Identical | Everyday emotional connection must remain frictionless. |
+| **Authored Memory / HeartMoment tags (#1290)** | M2, M5 | **Free/Core** | Create, remove and edit custom context labels on existing moments | Identical | Labels are part of the protected parent content; eight labels of forty Unicode codepoints are validation bounds, not history quotas. Existing tags and export remain available without entitlement changes. |
 | **HeartMoment `PRIVATE` / `OWNER_ONLY` enforcement** | M2 | **Non-paywallable** | Non-paywallable | Identical | Partner privacy can never depend on commercial tier. |
 | **Milestone tracking** | M2, M5 | **Free/Core** | Whole feature Free | Identical | Shared couple milestones belong to the core baseline history. |
 | **Comments on shared entries** | M2, M5 | **Free/Core** | Whole feature Free | Identical | In-app communication around shared memories is basic functionality. |
@@ -90,16 +95,20 @@ Capabilities essential for Security, Privacy, Accessibility, Tenant Isolation, a
 | **Private Area owner-only isolation** | M3 | **Non-paywallable** | Non-paywallable | Identical | Strict cryptographic/authorization boundary for individual entries. |
 | **Search & Multi-criteria filtering** | M4 | **Free/Core** | Whole current feature Free | Identical | Users must always be able to search and locate their own history. Future materially different semantic/AI discovery requires an explicit new classification rather than silently changing this row. |
 | **Zero-Decision Dashboard & Activity** | M4, M7 | **Free/Core** | Whole feature Free | Identical | The primary daily landing experience is part of the core product. |
-| **Lightweight engagement ("Thinking of you")** | M4 | **Free/Core** | Whole feature Free | Identical | Spontaneous emotional pings belong to everyday core interactions. |
+| **Partner Quick Actions / support gestures (#1206)** | M4, M7 | **Mixed** | **Free/Core:** “Thinking of you” remains fully available with its existing server-authoritative pacing.<br>**Premium (`partner.quick_actions.extended`):** bounded extended gestures “Send a kiss” and “How are you?”; the latter is only a content-free check-in prompt and never reveals Vibe, Presence, Last Seen, or partner check-in state. The shared `supportGesturesEnabled` Space module switch remains Free/Core and cannot grant the Premium capability. | Identical | A basic spontaneous emotional ping remains relationship core. A small optional set of additional relationship-native gestures is additive Pro value; Premium never expands Privacy visibility or creates a second notification pipeline. |
 | **Notification Policy, Digest & Quiet Hours** | M4, M5 | **Free/Core** | Whole feature Free | Identical | Respecting partner attention and preventing notification fatigue is core quality. |
 | **Automation Rules & Custom Triggers** | M4, M7 | **Mixed** | **Free:** Standard date alerts & digests.<br>**Premium:** Multi-step rules, custom triggers, automated recaps. | Identical | Advanced automation consumes background compute resources and provides higher-value workflow depth. |
 | **Essential data portability / Transfer Bundle & account export** | M5, M6 | **Non-paywallable** | Essential machine-readable export of the user's authorized account/Space data and own media remains available independent of Premium. Value-added narrative/print/rendered artifacts are classified separately. | Identical | Data ownership and the right to leave with one's authorized data cannot depend on a paid tier. |
 | **Official Web & Android client access** | M5 | **Free/Core** | Whole client access Free | Identical | Accessing the application via official native clients is never paywalled. |
-| **Standard Light/Dark/System appearance** | M5 | **Free/Core** | Whole feature Free | Identical | Standard platform accessibility and dark mode are basic expectations. |
-| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Premium only | Identical | Artistic color palettes, custom card styles, and bespoke widgets. |
+| **Standard Light/Dark/System appearance and baseline app icon** | M5 | **Free/Core** | Whole feature Free | Identical | Standard platform accessibility, dark mode and the default app identity are basic expectations. |
+| **Bespoke Themes, Covers & UI Personalization** | M5, M7 | **Premium** | Premium only; includes user-selectable alternative app icons (#1307, `theme.bespoke_packs`) | Identical | Artistic color palettes, custom card styles, bespoke widgets and optional app-icon choices. The default icon and automatic Light/Dark adaptation remain Free/Core. New alternative selections require Pro; an already saved personal icon remains readable and effective after expiry. |
 | **Accessibility essentials & i18n localization** | M1–M5 | **Non-paywallable** | Non-paywallable | Identical | Inclusive accessibility and locale support are baseline engineering standards. |
 | **Short Audio / Voice Notes** | M7 | **Free/Core** | Whole feature Free (storage applies in Cloud) | Identical | Voice snippets add emotional intimacy to memories (#512). |
 | **Daily Questions & Shared Answers** | M7 | **Mixed** | **Free:** Daily questions & basic answer history.<br>**Premium:** 5-Year Reflection Mirror (#516), deep category packs, cross-year comparison. | Identical | Daily bonding is free; long-term analytical mirroring is Premium. |
+| **Shared Achievements / Celebrations (#430)** | M7 | **Free/Core** | Basic recognition of qualifying authoritative shared completions and the standard in-context celebration are Free. Future cosmetic celebration packs or presentation variants require a separate explicit Premium classification and may not gate completion or existing data. | Identical | Acknowledging something a couple accomplished together is relationship-core feedback, not a reward loop or monetization boundary. |
+| **Vibe Check (#429, #1151)** | M7 | **Mixed** | **Free:** Set/update own today's vibe; view own today's vibe; view partner today's vibe under existing Mutual Reveal / Privacy rules; empty/no-check-in states; accessibility and error semantics.<br>**Premium (`daily.insights`):** Longitudinal weekly/monthly/yearly recaps, comparative timeframes, recurring vibe patterns, combined vibe & energy insights, cautious trend presentation. Space module toggling under #432 remains Free/Core. | Identical | Everyday partner emotional connection remains a frictionless, genuine couple ritual; relationship depth, patterns, and long-term reflection form the Pro value. |
+| **Daily Energy Check-in (#431, #1151)** | M7 | **Mixed** | **Free:** Set/update own today's energy level (10–100); view own today's energy; view partner today's energy under existing Mutual Reveal / Privacy rules; battery indicators on avatars; empty/no-check-in states.<br>**Premium (`daily.insights`):** Longitudinal trends, weekly/monthly energy patterns, combined vibe & energy correlation insights, comparative period analysis. Space module toggling under #432 remains Free/Core. | Identical | Everyday battery/energy check-in is core everyday bonding; longitudinal pattern recognition and combined energy/vibe narratives form the Pro differentiation. |
+| **Daily Quote (#1151)** | M7 | **Premium** | Premium only (`daily.quote`). Shared Space-level Pro entitlement, with personal Account-scoped source and category preferences. Curated, legally traceable Public Domain / licensed quote catalog. Stable deterministic daily resolution; graceful fallbacks; no functional Free baseline; quiet Pro discovery for Free spaces. | Identical | High-value daily inspiration moment tailored to individual personal interests; purely additive Pro feature without gating existing relationship history. |
 | **Gemeinsam spielen / relationship-native couple games** | M7 | **Premium** | One relationship-scoped Premium capability for the Games area and its catalog under #866. Free may show transparent discovery/preview UX; starting Premium gameplay requires the capability. No per-game purchase, credits, or round limits. | Identical | Games provide a distinct optional relationship experience over existing authorized data. Underlying Memories/Wishes/etc. retain their normal Core/privacy classification; Premium never expands content authorization. |
 | **Printable PDF Chronicle / Yearbook** | M7 | **Premium** | Premium only (#517) | Identical | Computationally intensive high-resolution book rendering artifact. Essential machine-readable export remains non-paywallable. |
 | **Annual Video Montage & Relive** | M7 | **Premium** | Premium only | Identical | Heavy video transcoding and licensed music catalog delivery. |
@@ -200,6 +209,15 @@ The most critical commercial guarantee of eimir. is **Zero Data Loss on Downgrad
    * *Create:* New items requiring Premium capabilities cannot be created while expired.
    * *Edit:* Basic text/date fields of existing items can still be updated; re-rendering complex Premium artifacts (e.g. re-generating high-res yearbook PDFs) requires active Premium.
    * *Uploads:* If Cloud storage exceeds the applicable Free quota upon downgrade, existing media is **never deleted**, but new uploads may be paused until storage is reduced or Premium is restored.
+3. **Daily Check-In & Today Pro Downgrade Semantics (#1151):**
+   * *Daily Check-In Raw Data:* Existing `DailyCheckIn` raw records (vibe, energy_level, checked_on) are **never deleted or hidden** upon downgrade or license expiry.
+   * *Free Daily Ritual:* Today's own check-in and partner check-in view (under active Mutual Reveal rules) continue to function 100% unimpaired for Free spaces.
+   * *Privacy & Reveal:* Mutual Reveal and tenant boundaries remain strictly enforced regardless of commercial tier.
+   * *Portability:* Historical authorized check-in raw data remains exportable through machine-readable portability tools.
+   * *Longitudinal Insights Regeneration:* Without the active `daily.insights` capability, new longitudinal insight calculations, pattern discovery queries, and dynamic recap generation are paused.
+   * *Historical Recap Artifacts:* Pre-rendered static recap documents or snapshot artifacts created while Pro was active remain readable and downloadable under the standard non-destructive downgrade guarantee (frozen at time of downgrade; no re-computation).
+   * *Daily Quote Preferences:* Account-scoped quote preferences are **never deleted** on downgrade; if Pro is restored, preferences immediately become effective again. Without `daily.quote`, quote resolution is paused and the feature displays quiet Pro discovery.
+   * *App Icon Preferences (#1307):* A saved personal icon stays readable, exportable and effective on the supported browser surface after expiry. Saving a different alternative requires `theme.bespoke_packs`; returning to Original is always Free. This does not promise automatic updates or reversion of installed launcher icons.
 
 ---
 

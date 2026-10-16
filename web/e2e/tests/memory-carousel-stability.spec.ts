@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import storyProducts from '../../src/i18n/locales/storyProducts';
@@ -108,47 +109,198 @@ async function pointerClickWithoutScroll(
 async function swipeCarousel(
   page: Page,
   direction: 'previous' | 'next',
-): Promise<void> {
-  await page
-    .locator('.media-gallery-carousel-viewport')
-    .evaluate((element, swipeDirection) => {
-      const rect = element.getBoundingClientRect();
-      const startX =
-        swipeDirection === 'next' ? rect.right - 24 : rect.left + 24;
-      const endX = swipeDirection === 'next' ? rect.left + 24 : rect.right - 24;
-      const clientY = rect.top + rect.height / 2;
-      const start = new Touch({
-        identifier: 1,
-        target: element,
-        clientX: startX,
-        clientY,
-      });
-      const end = new Touch({
-        identifier: 1,
-        target: element,
-        clientX: endX,
-        clientY,
-      });
+): Promise<{
+  startScrollLeft: number;
+  midScrollLeft: number;
+  viewportWidth: number;
+  visibleSlides: number;
+}> {
+  const track = page.locator('.media-gallery-carousel-track');
+  const box = await track.boundingBox();
+  if (!box) throw new Error('Carousel track did not render.');
 
-      element.dispatchEvent(
-        new TouchEvent('touchstart', {
-          bubbles: true,
-          cancelable: true,
-          touches: [start],
-          targetTouches: [start],
-          changedTouches: [start],
-        }),
-      );
-      element.dispatchEvent(
-        new TouchEvent('touchend', {
-          bubbles: true,
-          cancelable: true,
-          touches: [],
-          targetTouches: [],
-          changedTouches: [end],
-        }),
-      );
-    }, direction);
+  const startX =
+    direction === 'next' ? box.x + box.width * 0.82 : box.x + box.width * 0.18;
+  const endX =
+    direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
+  const midX = startX + (endX - startX) * 0.58;
+  const clientY = box.y + box.height / 2;
+  const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: midX, y: clientY }],
+    });
+    await nextFrame(page);
+
+    const midState = await track.evaluate((element) => {
+      const viewport = element.getBoundingClientRect();
+      const visibleSlides = Array.from(
+        element.querySelectorAll<HTMLElement>('.media-gallery-carousel-slide'),
+      ).filter((slide) => {
+        const rect = slide.getBoundingClientRect();
+        return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
+      }).length;
+      return {
+        scrollLeft: element.scrollLeft,
+        viewportWidth: element.clientWidth,
+        visibleSlides,
+      };
+    });
+
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: endX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+
+    return {
+      startScrollLeft,
+      midScrollLeft: midState.scrollLeft,
+      viewportWidth: midState.viewportWidth,
+      visibleSlides: midState.visibleSlides,
+    };
+  } finally {
+    await client.detach();
+  }
+}
+
+async function swipeLightbox(
+  page: Page,
+  direction: 'previous' | 'next',
+): Promise<{
+  startScrollLeft: number;
+  midScrollLeft: number;
+  viewportWidth: number;
+  visibleSlides: number;
+}> {
+  const track = page.locator('.media-lightbox-track');
+  const box = await track.boundingBox();
+  if (!box) throw new Error('Lightbox track did not render.');
+
+  const startX =
+    direction === 'next' ? box.x + box.width * 0.82 : box.x + box.width * 0.18;
+  const endX =
+    direction === 'next' ? box.x + box.width * 0.12 : box.x + box.width * 0.88;
+  const midX = startX + (endX - startX) * 0.58;
+  const clientY = box.y + box.height / 2;
+  const startScrollLeft = await track.evaluate((element) => element.scrollLeft);
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: startX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: midX, y: clientY }],
+    });
+    await nextFrame(page);
+
+    const midState = await track.evaluate((element) => {
+      const viewport = element.getBoundingClientRect();
+      const visibleSlides = Array.from(
+        element.querySelectorAll<HTMLElement>('.media-lightbox-slide'),
+      ).filter((slide) => {
+        const rect = slide.getBoundingClientRect();
+        return rect.right > viewport.left + 1 && rect.left < viewport.right - 1;
+      }).length;
+      return {
+        scrollLeft: element.scrollLeft,
+        viewportWidth: element.clientWidth,
+        visibleSlides,
+      };
+    });
+
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: endX, y: clientY }],
+    });
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+
+    return {
+      startScrollLeft,
+      midScrollLeft: midState.scrollLeft,
+      viewportWidth: midState.viewportWidth,
+      visibleSlides: midState.visibleSlides,
+    };
+  } finally {
+    await client.detach();
+  }
+}
+
+async function expectCarouselSettled(page: Page, index: number): Promise<void> {
+  await expect
+    .poll(() =>
+      page
+        .locator('.media-gallery-carousel-track')
+        .evaluate((track, expectedIndex) => {
+          const slide = track.querySelector<HTMLElement>(
+            `.media-gallery-carousel-slide:not(.is-clone)[data-carousel-index="${expectedIndex}"]`,
+          );
+          if (!slide) return Number.POSITIVE_INFINITY;
+          return Math.abs(track.scrollLeft - slide.offsetLeft);
+        }, index),
+    )
+    .toBeLessThanOrEqual(1);
+}
+
+async function carouselInteractionContract(page: Page) {
+  return page.locator('.media-gallery-carousel-track').evaluate((track) => {
+    const style = getComputedStyle(track);
+    return {
+      usesSharedTrack: track.classList.contains('eimir-media-snap-track'),
+      sharedItemCount: track.querySelectorAll('.eimir-media-snap-item').length,
+      scrollSnapType: style.scrollSnapType,
+      overscrollBehaviorX: style.overscrollBehaviorX,
+      touchAction: style.touchAction,
+      cloneCount: track.querySelectorAll(
+        '.media-gallery-carousel-slide.is-clone',
+      ).length,
+    };
+  });
+}
+
+async function expectLightboxSettled(page: Page, index: number): Promise<void> {
+  await expect
+    .poll(() =>
+      page.locator('.media-lightbox-track').evaluate((track, expectedIndex) => {
+        const slide = track.querySelector<HTMLElement>(
+          `.media-lightbox-slide:not(.is-clone)[data-lightbox-index="${expectedIndex}"]`,
+        );
+        if (!slide) return Number.POSITIVE_INFINITY;
+        return Math.abs(track.scrollLeft - slide.offsetLeft);
+      }, index),
+    )
+    .toBeLessThanOrEqual(1);
+}
+
+async function lightboxInteractionContract(page: Page) {
+  return page.locator('.media-lightbox-track').evaluate((track) => {
+    const style = getComputedStyle(track);
+    return {
+      usesSharedTrack: track.classList.contains('eimir-media-snap-track'),
+      sharedItemCount: track.querySelectorAll('.eimir-media-snap-item').length,
+      scrollSnapType: style.scrollSnapType,
+      overscrollBehaviorX: style.overscrollBehaviorX,
+      touchAction: style.touchAction,
+      cloneCount: track.querySelectorAll('.media-lightbox-slide.is-clone')
+        .length,
+    };
+  });
 }
 
 async function installApiMocks(page: Page) {
@@ -156,6 +308,7 @@ async function installApiMocks(page: Page) {
   const readAccessBodies: unknown[] = [];
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -165,6 +318,11 @@ async function installApiMocks(page: Page) {
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -353,6 +511,28 @@ async function installApiMocks(page: Page) {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -382,12 +562,15 @@ async function openMemory(
 ): Promise<void> {
   await page.goto(`/story/memories/${memoryId}`);
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  await expect(page.locator('.media-gallery-carousel-content')).toHaveCount(
-    memoryId === MEMORY_ID ? 3 : 1,
-  );
+  await expect(
+    page.locator(
+      '.media-gallery-carousel-slide:not(.is-clone) .media-gallery-carousel-content',
+    ),
+  ).toHaveCount(memoryId === MEMORY_ID ? 3 : 1);
 }
 
 async function positionGalleryForReading(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
   const galleryTop = await page
     .locator('.media-gallery-carousel-viewport')
     .evaluate(
@@ -472,6 +655,16 @@ test('Memory carousel keeps document and layout position stable across pointer a
     ),
   ).toContain('blur');
 
+  const interaction = await carouselInteractionContract(page);
+  expect(interaction.usesSharedTrack).toBe(true);
+  expect(interaction.sharedItemCount).toBe(5);
+  expect(interaction.scrollSnapType).toContain('x');
+  expect(interaction.scrollSnapType).toContain('mandatory');
+  expect(interaction.overscrollBehaviorX).toBe('contain');
+  expect(interaction.touchAction).toBe('manipulation');
+  expect(interaction.cloneCount).toBe(2);
+  await expectCarouselSettled(page, 0);
+
   const pointerSteps = [
     { control: next, expected: 2 },
     { control: next, expected: 3 },
@@ -484,29 +677,23 @@ test('Memory carousel keeps document and layout position stable across pointer a
     const before = await geometry(page);
     await pointerClickWithoutScroll(page, step.control);
     await expect(counter).toHaveText(counterLabel(step.expected, 3));
-    await nextFrame(page);
-    const after = await geometry(page);
-    expectStableGeometry(before, after);
+    await expectCarouselSettled(page, step.expected - 1);
+    await expect(
+      page.locator('.media-gallery-carousel-slide.is-active'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('.media-gallery-carousel-slide.is-outgoing'),
+    ).toHaveCount(0);
+    expectStableGeometry(before, await geometry(page));
   }
-
-  const activeSlide = page.locator('.media-gallery-carousel-slide.is-active');
-  const motion = await activeSlide.evaluate((element) => {
-    const style = getComputedStyle(element);
-    return {
-      animationName: style.animationName,
-      animationDuration: style.animationDuration,
-    };
-  });
-  expect(motion.animationName).not.toBe('none');
-  expect(Number.parseFloat(motion.animationDuration)).toBeGreaterThan(0);
 
   await next.focus();
   await expect(next).toBeFocused();
   const beforeKeyboard = await geometry(page);
   await page.keyboard.press('Enter');
   await expect(counter).toHaveText(counterLabel(3, 3));
+  await expectCarouselSettled(page, 2);
   await expect(next).toBeFocused();
-  await nextFrame(page);
   expectStableGeometry(beforeKeyboard, await geometry(page));
 
   const activeItem = page.getByRole('button', {
@@ -517,6 +704,15 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const lightbox = page.locator('.media-lightbox');
   const close = lightbox.getByRole('button', { name: GALLERY.close });
   await expect(close).toBeFocused();
+  const lightboxInteraction = await lightboxInteractionContract(page);
+  expect(lightboxInteraction.usesSharedTrack).toBe(true);
+  expect(lightboxInteraction.sharedItemCount).toBe(5);
+  expect(lightboxInteraction.scrollSnapType).toContain('x');
+  expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
+  expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');
+  expect(lightboxInteraction.touchAction).toBe('manipulation');
+  expect(lightboxInteraction.cloneCount).toBe(2);
+  await expectLightboxSettled(page, 2);
   await nextFrame(page);
   expectStableGeometry(beforeOpen, await geometry(page));
   expect(
@@ -537,12 +733,18 @@ test('Memory carousel keeps document and layout position stable across pointer a
   const beforeLightboxNext = await geometry(page);
   await page.keyboard.press('Enter');
   await expect(lightboxNext).toBeFocused();
-  await nextFrame(page);
+  await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+    counterLabel(1, 3),
+  );
+  await expectLightboxSettled(page, 0);
   expectStableGeometry(beforeLightboxNext, await geometry(page));
 
   await page.keyboard.press('ArrowLeft');
   await expect(lightboxNext).toBeFocused();
-  await nextFrame(page);
+  await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+    counterLabel(3, 3),
+  );
+  await expectLightboxSettled(page, 2);
   expectStableGeometry(beforeLightboxNext, await geometry(page));
   await page.keyboard.press('Escape');
 
@@ -580,6 +782,9 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
     });
     const page = await context.newPage();
     try {
+      await page.emulateMedia({
+        colorScheme: width === 390 ? 'dark' : 'light',
+      });
       const { unexpectedRequests } = await installApiMocks(page);
       await page.goto('/today');
       await signIn(page);
@@ -589,13 +794,76 @@ test('Memory carousel touch controls stay stable at 320px and 390px', async ({
       const next = page.locator('.media-gallery-carousel-next');
       await expect(next).toBeHidden();
 
-      const before = await geometry(page);
-      await swipeCarousel(page, 'next');
-      await expect(page.locator('.media-gallery-carousel-counter')).toHaveText(
-        counterLabel(2, 3),
-      );
-      await nextFrame(page);
-      expectStableGeometry(before, await geometry(page));
+      const interaction = await carouselInteractionContract(page);
+      expect(interaction.usesSharedTrack).toBe(true);
+      expect(interaction.sharedItemCount).toBe(5);
+      expect(interaction.scrollSnapType).toContain('x');
+      expect(interaction.scrollSnapType).toContain('mandatory');
+      expect(interaction.overscrollBehaviorX).toBe('contain');
+      expect(interaction.touchAction).toBe('manipulation');
+      expect(interaction.cloneCount).toBe(2);
+      await expectCarouselSettled(page, 0);
+
+      const touchSteps = [
+        { direction: 'next', expected: 2 },
+        { direction: 'previous', expected: 1 },
+        { direction: 'previous', expected: 3 },
+        { direction: 'next', expected: 1 },
+      ] as const;
+
+      for (const step of touchSteps) {
+        const before = await geometry(page);
+        const drag = await swipeCarousel(page, step.direction);
+        expect(
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
+        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
+        await expect(
+          page.locator('.media-gallery-carousel-counter'),
+        ).toHaveText(counterLabel(step.expected, 3));
+        await expectCarouselSettled(page, step.expected - 1);
+        await expect(
+          page.locator('.media-gallery-carousel-slide.is-outgoing'),
+        ).toHaveCount(0);
+        expectStableGeometry(before, await geometry(page));
+      }
+
+      const beforeLightbox = await geometry(page);
+      await page.getByRole('button', { name: openItemLabel(1, 3) }).click();
+      const lightbox = page.locator('.media-lightbox');
+      await expect(lightbox).toBeVisible();
+      const lightboxInteraction = await lightboxInteractionContract(page);
+      expect(lightboxInteraction.usesSharedTrack).toBe(true);
+      expect(lightboxInteraction.sharedItemCount).toBe(5);
+      expect(lightboxInteraction.scrollSnapType).toContain('x');
+      expect(lightboxInteraction.scrollSnapType).toContain('mandatory');
+      expect(lightboxInteraction.overscrollBehaviorX).toBe('contain');
+      expect(lightboxInteraction.touchAction).toBe('manipulation');
+      expect(lightboxInteraction.cloneCount).toBe(2);
+      await expectLightboxSettled(page, 0);
+
+      const lightboxTouchSteps = [
+        { direction: 'next', expected: 2 },
+        { direction: 'previous', expected: 1 },
+        { direction: 'previous', expected: 3 },
+        { direction: 'next', expected: 1 },
+      ] as const;
+
+      for (const step of lightboxTouchSteps) {
+        const drag = await swipeLightbox(page, step.direction);
+        expect(
+          Math.abs(drag.midScrollLeft - drag.startScrollLeft),
+        ).toBeGreaterThan(drag.viewportWidth * 0.2);
+        expect(drag.visibleSlides).toBeGreaterThanOrEqual(2);
+        await expect(lightbox.locator('.media-lightbox-counter')).toHaveText(
+          counterLabel(step.expected, 3),
+        );
+        await expectLightboxSettled(page, step.expected - 1);
+        expectStableGeometry(beforeLightbox, await geometry(page));
+      }
+
+      await lightbox.getByRole('button', { name: GALLERY.close }).click();
+      await expect(lightbox).toHaveCount(0);
       expect(unexpectedRequests).toEqual([]);
 
       await page.screenshot({
@@ -630,17 +898,14 @@ test('Memory carousel is effectively static with reduced motion and reflows at 2
   await nextFrame(page);
   expectStableGeometry(before, await geometry(page));
 
+  await expectCarouselSettled(page, 1);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(0);
   const reducedMotion = await page
     .locator('.media-gallery-carousel-slide.is-active')
-    .evaluate((element) => {
-      const style = getComputedStyle(element);
-      return {
-        animationName: style.animationName,
-        animationDuration: style.animationDuration,
-      };
-    });
-  expect(reducedMotion.animationName).toBe('none');
-  expect(Number.parseFloat(reducedMotion.animationDuration)).toBe(0);
+    .evaluate((element) => getComputedStyle(element).animationName);
+  expect(reducedMotion).toBe('none');
 
   await page.locator('html').evaluate((element) => {
     element.style.zoom = '2';
@@ -679,6 +944,15 @@ test('Single-image Memory keeps the stable frame without carousel navigation', a
   await expect(
     page.getByRole('button', { name: openItemLabel(1, 1) }),
   ).toBeVisible();
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-active'),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-outgoing'),
+  ).toHaveCount(0);
+  await expect(
+    page.locator('.media-gallery-carousel-slide.is-clone'),
+  ).toHaveCount(0);
 
   const frameHeight = await page
     .locator('.media-gallery-carousel-viewport')

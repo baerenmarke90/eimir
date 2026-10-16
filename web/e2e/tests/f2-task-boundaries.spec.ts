@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { readFile } from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
@@ -63,6 +64,9 @@ const firstPage = Array.from({ length: 14 }, (_, index) =>
 async function installProductApi(page: Page, scenario: Scenario = {}) {
   const state = {
     createRequests: 0,
+    createdMemories: 0,
+    createKeys: [] as string[],
+    savedKey: null as string | null,
     bindRequests: 0,
     uploadRequests: 0,
     timelineRequests: [] as string[],
@@ -92,6 +96,7 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
     position: 0,
   };
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
@@ -112,6 +117,8 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
         },
         status,
       );
+    if (method === 'GET' && path.endsWith('/partner-nickname'))
+      return json({ partnerId: null, nickname: null, version: 0 });
     if (path === '/api/v1/instance/status')
       return json({
         maintenanceMode: false,
@@ -171,9 +178,17 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       });
     if (path === `/api/v1/spaces/${SPACE}/memories` && method === 'POST') {
       state.createRequests += 1;
+      const requestKey = request.headers()['idempotency-key'] ?? '';
+      state.createKeys.push(requestKey);
       if (scenario.create === 'hold') await createGate;
       if (scenario.create === 'validation')
         return problem(422, 'VALIDATION_ERROR');
+      // The server honours the request identity: an equivalent repeat returns
+      // the original Memory instead of creating another one.
+      if (requestKey && state.saved && state.savedKey === requestKey)
+        return json(state.saved, 200);
+      state.createdMemories += 1;
+      state.savedKey = requestKey;
       const payload = request.postDataJSON();
       state.saved = {
         ...memory(MEMORY, payload.title, payload.happenedOn),
@@ -270,6 +285,9 @@ async function installProductApi(page: Page, scenario: Scenario = {}) {
       ].some((suffix) => path.endsWith(suffix))
     ) {
       return json({ items: [], hasMore: false, nextCursor: null });
+    }
+    if (method === 'POST' && path === `/api/v1/spaces/${SPACE}/presence`) {
+      return json({ state: null });
     }
     state.unexpected.push(`${method} ${path}`);
     return problem(500, 'E2E_UNEXPECTED_REQUEST');
@@ -494,6 +512,61 @@ test('content and photo save opens the confirmed canonical Memory and returns to
   expect(api.unexpected).toEqual([]);
 });
 
+test('photo-only Quick Create saves a Memory without text and returns to its scope (#509)', async ({
+  page,
+}) => {
+  const api = await installProductApi(page);
+  await signIn(page);
+  await openMemory(page);
+  await expect(
+    page.getByLabel(de.memory.bodyLabel, { exact: true }),
+  ).toHaveValue('');
+  await expect(
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
+  ).toHaveValue('');
+  await page.locator('#memory-create-images').setInputFiles({
+    name: 'river.jpg',
+    mimeType: 'image/jpeg',
+    buffer: await readFile(PHOTO),
+  });
+  await expect(
+    page.getByText(de.memory.photoReady, { exact: true }),
+  ).toBeVisible();
+
+  const createRequest = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === `/api/v1/spaces/${SPACE}/memories`,
+  );
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  expect((await createRequest).postDataJSON()).toEqual(
+    expect.objectContaining({
+      title: expect.stringContaining(
+        memoryProduct.createFallbackTitle.split('{{date}}')[0],
+      ),
+      body: '',
+    }),
+  );
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  const savedPhoto = page.locator('.media-gallery-thumb-content');
+  await expect(savedPhoto).toBeVisible();
+  await expect
+    .poll(() =>
+      savedPhoto.evaluate(
+        (element) => (element as HTMLImageElement).naturalWidth,
+      ),
+    )
+    .toBeGreaterThan(0);
+  expect(api.createRequests).toBe(1);
+  expect(api.bindRequests).toBe(1);
+  await page
+    .getByRole('button', { name: taskBoundary.back, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/story\?.*year=2025/);
+  expect(new URL(page.url()).searchParams.get('type')).toBe('MEMORY');
+  expect(api.unexpected).toEqual([]);
+});
+
 test('a pending submission retains its draft and cannot create twice or exit', async ({
   page,
 }) => {
@@ -532,7 +605,8 @@ test('a pending submission retains its draft and cannot create twice or exit', a
 
 test('dirty Browser Back asks before discarding and nested Escape keeps the task', async ({
   page,
-}) => {
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await installProductApi(page);
   await signIn(page);
   await openMemory(page);
@@ -544,6 +618,25 @@ test('dirty Browser Back asks before discarding and nested Escape keeps the task
   await expect(
     confirmation.getByRole('heading', { name: taskBoundary.discardTitle }),
   ).toBeVisible();
+
+  const expandedClose = confirmation.locator('.short-task-sheet-close');
+  await expect(expandedClose).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-close-icon'),
+  ).toBeVisible();
+  await expect(
+    expandedClose.locator('.short-task-sheet-drag-handle'),
+  ).toBeHidden();
+  const expandedCloseBox = await expandedClose.boundingBox();
+  expect(expandedCloseBox).not.toBeNull();
+  if (!expandedCloseBox) throw new Error('Missing expanded close bounds');
+  expect(expandedCloseBox.width).toBeGreaterThanOrEqual(44);
+  expect(expandedCloseBox.height).toBeGreaterThanOrEqual(44);
+  await page.screenshot({
+    path: testInfo.outputPath('f2-short-task-sheet-expanded-close.png'),
+    fullPage: false,
+  });
+
   await page.keyboard.press('Escape');
   await expect(confirmation).toHaveCount(0);
   await expect(
@@ -704,6 +797,111 @@ test('unknown create outcome retains content and blocks blind resubmission', asy
     .click();
   await expect(page).toHaveURL(/\/story\?tab=timeline$/);
   expect(api.createRequests).toBe(1);
+});
+
+test('an unknown create outcome is verified with the same identity and opens the one saved Memory', async ({
+  page,
+}, testInfo) => {
+  const api = await installProductApi(page, { create: 'unknown' });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await signIn(page);
+  await openMemory(page);
+  await fillMemory(page);
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  // Nothing is replayed on its own, and the input stays visible.
+  expect(api.createRequests).toBe(1);
+  expect(api.createdMemories).toBe(1);
+  await expect(
+    page.getByLabel(de.memory.titleLabelOptional, { exact: true }),
+  ).toHaveValue(TITLE);
+  const verify = page.getByRole('button', {
+    name: taskBoundary.verify,
+    exact: true,
+  });
+  // Optional context adds height to the capture form; the explanation and
+  // recovery action must both remain in the Compact viewport after focus.
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeInViewport();
+  await expect(verify).toBeInViewport();
+  expect((await verify.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  for (const colorScheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+    // Measure the settled theme, not a colour transition in flight: let the
+    // style change start its transitions, then wait until none are running.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await page.waitForFunction(() => document.getAnimations().length === 0);
+    const accessibility = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+    expect(accessibility.violations).toEqual([]);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({
+      path: testInfo.outputPath(`f2-verify-unknown-outcome-${colorScheme}.png`),
+      fullPage: true,
+    });
+  }
+
+  // Reflow: the notice and its actions stay usable at 320 px and adapt, not
+  // replace, the composition at Expanded width.
+  for (const width of [320, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    await expectNoOverflow(page);
+    await expect(verify).toBeVisible();
+    await verify.scrollIntoViewIfNeeded();
+    await expect(verify).toBeInViewport();
+    if (width === 1280) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({
+        path: testInfo.outputPath('f2-verify-unknown-outcome-expanded.png'),
+        fullPage: true,
+      });
+    }
+  }
+
+  await verify.click();
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  await expect(
+    page.getByRole('heading', { name: TITLE, exact: true }),
+  ).toBeVisible();
+  expect(api.createRequests).toBe(2);
+  expect(api.createdMemories).toBe(1);
+  expect(api.createKeys[0]).toMatch(/^[0-9a-f-]{36}$/);
+  expect(api.createKeys[1]).toBe(api.createKeys[0]);
+  expect(api.unexpected).toEqual([]);
+});
+
+test('a verified unknown create continues photo association against the same Memory once', async ({
+  page,
+}) => {
+  const api = await installProductApi(page, { create: 'unknown' });
+  await signIn(page);
+  await openMemory(page);
+  await fillMemory(page, true);
+  await page.getByRole('button', { name: de.memory.save, exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: taskBoundary.uncertainTitle }),
+  ).toBeVisible();
+  expect(api.bindRequests).toBe(0);
+
+  await page
+    .getByRole('button', { name: taskBoundary.verify, exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/story/memories/${MEMORY}$`));
+  expect(api.createdMemories).toBe(1);
+  expect(api.createRequests).toBe(2);
+  expect(api.bindRequests).toBe(1);
+  expect(api.unexpected).toEqual([]);
 });
 
 test('confirmed create is still a success when a subsequent Timeline refresh fails', async ({
@@ -1064,6 +1262,12 @@ test('large text and a short Compact viewport keep task actions reachable', asyn
   await page.addStyleTag({ content: ':root { font-size: 200%; }' });
   await page.evaluate(() => document.fonts.ready);
   await expectNoOverflow(page);
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.locator('.momente-browse-layer').screenshot({
+    path: testInfo.outputPath('f2-story-browse-large-text-320.png'),
+    animations: 'disabled',
+  });
+  await page.setViewportSize({ width: 320, height: 480 });
   await page
     .getByRole('button', { name: navigation.newContent, exact: true })
     .click();

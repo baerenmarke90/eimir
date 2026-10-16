@@ -30,7 +30,6 @@ body.theme-vault
   width: 1.75rem;
   height: 1.75rem;
   flex: 0 0 auto;
-  fill: currentColor;
   color: var(--color-brand-text);
 }
 
@@ -68,7 +67,6 @@ body.theme-vault
 .private-area-privacy-banner-icon svg {
   width: 1.25rem;
   height: 1.25rem;
-  fill: currentColor;
 }
 
 .private-area-privacy-banner strong {
@@ -104,9 +102,9 @@ body.theme-vault
   color: inherit;
   text-decoration: none;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .private-area-destination-card:hover {
@@ -131,11 +129,6 @@ body.theme-vault
 .private-area-destination-icon svg {
   width: 1.45rem;
   height: 1.45rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .private-area-destination-copy {
@@ -197,5 +190,60 @@ body.theme-vault
 
   .private-area-destination-card:hover {
     transform: none;
+  }
+}
+
+.private-collection-item-title {
+  min-width: 0;
+  flex: 1 1 16rem;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+  line-height: 1.45;
+}
+
+.private-collection-page .page-heading h1 {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.private-collection-page .page-heading h1 > span {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.private-collection-item-title.is-completed {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.private-collection-items {
+  container-type: inline-size;
+}
+
+.private-collection-page > .planning-subsection,
+.private-collection-page > .planning-danger-zone {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@container product-content (max-width: 20rem) {
+  .private-collection-page .planning-collection-title-row {
+    flex-wrap: wrap;
+  }
+
+  .private-collection-page .planning-collection-title-row input {
+    flex-basis: 100%;
+  }
+}
+
+@container (max-width: 14rem) {
+  .private-collection-items > li {
+    flex-wrap: wrap;
+  }
+
+  .private-collection-items .planning-item-title-form {
+    flex-basis: 100%;
+    width: 100%;
   }
 }

@@ -12,12 +12,13 @@ from typing import Any
 
 from eimir.core.errors import ValidationError
 
-CATALOG_VERSION = 1
+CATALOG_VERSION = 2
 RULE_NOT_FOUND = "RULE_NOT_FOUND"
 RULE_PARAMETERS_INVALID = "RULE_PARAMETERS_INVALID"
 
 IMPORTANT_DATE_RULE = "important_date_reminder"
 RELATED_PERSON_BIRTHDAY_RULE = "related_person_birthday_reminder"
+PARTNER_BIRTHDAY_RULE = "partner_birthday_reminder"
 RELATIONSHIP_ANNIVERSARY_RULE = "relationship_anniversary_reminder"
 PLAN_START_RULE = "plan_start_reminder"
 
@@ -43,6 +44,12 @@ CATALOG: dict[str, RuleDefinition] = {
     RELATED_PERSON_BIRTHDAY_RULE: RuleDefinition(
         key=RELATED_PERSON_BIRTHDAY_RULE,
         source_type="RELATED_PERSON",
+        default_days_before=(14, 7, 1),
+        default_local_time=time(9, 0),
+    ),
+    PARTNER_BIRTHDAY_RULE: RuleDefinition(
+        key=PARTNER_BIRTHDAY_RULE,
+        source_type="ACCOUNT",
         default_days_before=(14, 7, 1),
         default_local_time=time(9, 0),
     ),

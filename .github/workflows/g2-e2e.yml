@@ -104,7 +104,7 @@ jobs:
             -e VITE_G2_E2E_SPACE_ID="$G2_E2E_SPACE_ID" \
             -v "$PWD/web:/work" -w /work \
             -v "$PWD/design/tokens.json:/design/tokens.json:ro" \
-            node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90 \
+            node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 \
             sh -c 'npm ci --ignore-scripts --no-audit --no-fund && npm test -- src/client/referenceFlow.e2e.test.ts --reporter=default' \
             | tee web/g2-web-e2e.log
 

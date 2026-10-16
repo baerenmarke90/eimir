@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
@@ -31,6 +32,7 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -232,6 +234,14 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -338,7 +348,7 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
 
   test('Quick Create mobile floating panel opens with fully rounded corners, clear nav separation and accessibility', async ({
     page,
-  }) => {
+  }, testInfo) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installApiMocks(page);
     await page.goto('/login');
@@ -351,8 +361,32 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     const dialog = page.getByRole('dialog', {
       name: navigation.quickCreateTitle,
     });
+    const settleDialogMotion = async () => {
+      await dialog.evaluate(async (element) => {
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => resolve(null)),
+        );
+        const finite = element.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getTiming();
+          return timing?.iterations !== Number.POSITIVE_INFINITY;
+        });
+        await Promise.all(
+          finite.map((animation) => animation.finished.catch(() => undefined)),
+        );
+      });
+    };
+    const sheetTranslateY = async () =>
+      dialog.evaluate((element) => {
+        const transform = getComputedStyle(element).transform;
+        if (transform === 'none') return 0;
+        return new DOMMatrixReadOnly(transform).m42;
+      });
+
     await expect(dialog).toBeVisible();
-    await page.waitForTimeout(250);
+    await settleDialogMotion();
 
     // F2 uses the native top layer; stacking is independent of CSS z-index.
     expect(await dialog.evaluate((element) => element.matches(':modal'))).toBe(
@@ -404,6 +438,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390.png'),
     });
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-390-light.png'),
+    });
 
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'dark');
@@ -418,6 +455,9 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.screenshot({
       path: path.join(EVIDENCE_DIR, '00-quick-create-sheet-open-390-dark.png'),
     });
+    await page.screenshot({
+      path: testInfo.outputPath('shell-quick-create-sheet-390-dark.png'),
+    });
 
     await page.evaluate(() => {
       document.documentElement.setAttribute('data-theme', 'light');
@@ -428,6 +468,30 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
       name: navigation.closeMenu,
     });
     await expect(closeButton).toBeFocused();
+    await expect(closeButton).toHaveAttribute('title', navigation.closeMenu);
+    await expect(closeButton).toHaveText('');
+
+    const closeBox = await closeButton.boundingBox();
+    expect(closeBox).not.toBeNull();
+    if (!closeBox) throw new Error('Missing close button bounds');
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
+
+    const dragZone = dialog.locator('.short-task-sheet-drag-zone');
+    await expect(dragZone).toBeVisible();
+    await expect(
+      closeButton.locator('.short-task-sheet-drag-handle'),
+    ).toBeVisible();
+    await expect(
+      closeButton.locator('.short-task-sheet-close-icon'),
+    ).toBeHidden();
+
+    const headerBox = await dialog
+      .locator('.short-task-sheet-header')
+      .boundingBox();
+    expect(headerBox).not.toBeNull();
+    if (!headerBox) throw new Error('Missing sheet header bounds');
+    expect(headerBox.height).toBeLessThan(44);
 
     await page.keyboard.press('Shift+Tab');
     const lastItem = dialog.locator('a[href="/more/private/gift-ideas/new"]');
@@ -453,6 +517,103 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await expect(dialog).toBeVisible();
+    await settleDialogMotion();
+    const dragBox = await dragZone.boundingBox();
+    expect(dragBox).not.toBeNull();
+    if (!dragBox) throw new Error('Missing drag handle bounds');
+
+    const dragCenterX = dragBox.x + dragBox.width / 2;
+    const dragCenterY = dragBox.y + dragBox.height / 2;
+    await page.mouse.move(dragCenterX, dragCenterY);
+    await page.mouse.down();
+
+    // The global button active state must not replace the grip's centering.
+    const pressedDragBox = await dragZone.boundingBox();
+    expect(pressedDragBox).not.toBeNull();
+    if (!pressedDragBox) throw new Error('Missing pressed drag handle bounds');
+    expect(
+      Math.abs(
+        pressedDragBox.x +
+          pressedDragBox.width / 2 -
+          (dragBox.x + dragBox.width / 2),
+      ),
+    ).toBeLessThan(1);
+
+    // The old 72px threshold closed on this short pull. It now settles back.
+    await page.mouse.move(dragCenterX, dragCenterY + 96, { steps: 4 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    expect(
+      await dialog.evaluate((element) =>
+        element.style.getPropertyValue('--short-task-sheet-drag-offset'),
+      ),
+    ).toBe('0px');
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
+    // A deliberate upward reversal means "keep this open", even when the
+    // release point is still well below the old fixed dismissal threshold.
+    await page.mouse.move(dragCenterX, dragCenterY);
+    await page.mouse.down();
+    await page.mouse.move(dragCenterX, dragCenterY + 200, { steps: 5 });
+    await page.mouse.move(dragCenterX, dragCenterY + 140, { steps: 3 });
+    await page.mouse.up();
+    await expect(dialog).toBeVisible();
+    await settleDialogMotion();
+    expect(Math.abs(await sheetTranslateY())).toBeLessThan(0.01);
+
+    // Surface-wide direct manipulation is not limited to the visible handle.
+    // A fresh downward pull that starts on plain sheet content dismisses too.
+    const surface = dialog.locator('.short-task-sheet-title');
+    const surfaceBox = await surface.boundingBox();
+    expect(surfaceBox).not.toBeNull();
+    if (!surfaceBox) throw new Error('Missing sheet surface bounds');
+    const surfaceCenterX = surfaceBox.x + surfaceBox.width / 2;
+    const surfaceCenterY = surfaceBox.y + surfaceBox.height / 2;
+    await page.mouse.move(surfaceCenterX, surfaceCenterY);
+    await page.mouse.down();
+    await page.mouse.move(surfaceCenterX, surfaceCenterY + 220, { steps: 6 });
+    await page.mouse.up();
+
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+
+  test('Quick Create sheet stays bounded at 360px and 430px Compact widths', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await installApiMocks(page);
+    await page.goto('/login');
+    await signIn(page);
+    await page.waitForURL('**/today');
+
+    for (const width of [360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      const trigger = page.locator(
+        '.mobile-bottom-shell .quick-create-trigger',
+      );
+      await trigger.click();
+
+      const dialog = page.getByRole('dialog', {
+        name: navigation.quickCreateTitle,
+      });
+      await expect(dialog).toBeVisible();
+
+      const box = await dialog.boundingBox();
+      expect(box).not.toBeNull();
+      if (!box) throw new Error(`Missing Quick Create bounds at ${width}px`);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      await expectNoHorizontalOverflow(page);
+
+      await dialog.getByRole('button', { name: navigation.closeMenu }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    }
   });
 
   test('Quick Create floating panel in constrained height and 320px reflow maintains reachability and separation', async ({
@@ -769,13 +930,11 @@ test.describe('Floating Bottom Navigation (#882/#905)', () => {
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(100);
-
     const cancelButton = page.getByRole('button', { name: de.common.cancel });
     const zoomShell = page.locator('.mobile-bottom-shell');
     await expect(cancelButton).toBeVisible();
     await expect(zoomShell).toHaveCount(0);
+    await cancelButton.scrollIntoViewIfNeeded();
 
     const cancelBox = await cancelButton.boundingBox();
     if (cancelBox) {

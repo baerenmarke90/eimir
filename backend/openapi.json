@@ -321,6 +321,52 @@
         "title": "AnnualSchedule",
         "type": "object"
       },
+      "AppIconId": {
+        "enum": [
+          "original",
+          "sunset",
+          "sage",
+          "daylight",
+          "lavender",
+          "sand",
+          "midnight",
+          "pearl",
+          "dark",
+          "monochrome",
+          "minimal"
+        ],
+        "title": "AppIconId",
+        "type": "string"
+      },
+      "AppIconPreferencePatch": {
+        "properties": {
+          "iconId": {
+            "$ref": "#/components/schemas/AppIconId"
+          }
+        },
+        "required": [
+          "iconId"
+        ],
+        "title": "AppIconPreferencePatch",
+        "type": "object"
+      },
+      "AppIconPreferenceView": {
+        "properties": {
+          "iconId": {
+            "$ref": "#/components/schemas/AppIconId"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "iconId",
+          "version"
+        ],
+        "title": "AppIconPreferenceView",
+        "type": "object"
+      },
       "AttachmentDetail": {
         "properties": {
           "createdAt": {
@@ -1335,6 +1381,570 @@
         "title": "ContentVisibility",
         "type": "string"
       },
+      "DailyCheckInEnergyView": {
+        "properties": {
+          "partner": {
+            "$ref": "#/components/schemas/PartnerEnergyProjection"
+          },
+          "visibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "visibilityMode",
+          "partner"
+        ],
+        "title": "DailyCheckInEnergyView",
+        "type": "object"
+      },
+      "DailyCheckInInsightDayView": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "ownEnergy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ownenergy"
+          },
+          "ownVibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partnerEnergy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartnerEnergyProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "partnerVibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartnerVibeProjection"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checkedOn"
+        ],
+        "title": "DailyCheckInInsightDayView",
+        "type": "object"
+      },
+      "DailyCheckInInsightSummaryView": {
+        "properties": {
+          "daysWithMutualCheckIn": {
+            "title": "Dayswithmutualcheckin",
+            "type": "integer"
+          },
+          "daysWithOwnCheckIn": {
+            "title": "Dayswithowncheckin",
+            "type": "integer"
+          },
+          "daysWithPartnerCheckIn": {
+            "title": "Dayswithpartnercheckin",
+            "type": "integer"
+          },
+          "totalDays": {
+            "title": "Totaldays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "totalDays",
+          "daysWithOwnCheckIn",
+          "daysWithPartnerCheckIn",
+          "daysWithMutualCheckIn"
+        ],
+        "title": "DailyCheckInInsightSummaryView",
+        "type": "object"
+      },
+      "DailyCheckInInsightsView": {
+        "properties": {
+          "dailyContextTimezone": {
+            "title": "Dailycontexttimezone",
+            "type": "string"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DailyCheckInInsightDayView"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "endDate": {
+            "format": "date",
+            "title": "Enddate",
+            "type": "string"
+          },
+          "energyEnabled": {
+            "title": "Energyenabled",
+            "type": "boolean"
+          },
+          "startDate": {
+            "format": "date",
+            "title": "Startdate",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DailyCheckInInsightSummaryView"
+          },
+          "vibeEnabled": {
+            "title": "Vibeenabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "startDate",
+          "endDate",
+          "dailyContextTimezone",
+          "vibeEnabled",
+          "energyEnabled",
+          "days",
+          "summary"
+        ],
+        "title": "DailyCheckInInsightsView",
+        "type": "object"
+      },
+      "DailyCheckInOwnView": {
+        "description": "Only the caller's current-day state; partner row metadata is never exposed.",
+        "properties": {
+          "energyLevel": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energylevel"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibenote"
+          }
+        },
+        "required": [
+          "version",
+          "vibe",
+          "vibeNote",
+          "energyLevel"
+        ],
+        "title": "DailyCheckInOwnView",
+        "type": "object"
+      },
+      "DailyCheckInTodayView": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "dailyContextTimezone": {
+            "title": "Dailycontexttimezone",
+            "type": "string"
+          },
+          "energy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyCheckInEnergyView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "own": {
+            "$ref": "#/components/schemas/DailyCheckInOwnView"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyCheckInVibeView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checkedOn",
+          "dailyContextTimezone",
+          "own",
+          "energy",
+          "vibe"
+        ],
+        "title": "DailyCheckInTodayView",
+        "type": "object"
+      },
+      "DailyCheckInUpdate": {
+        "additionalProperties": false,
+        "description": "Partial owner mutation for the shared current-day dimensions.",
+        "properties": {
+          "energyLevel": {
+            "anyOf": [
+              {
+                "enum": [
+                  10,
+                  20,
+                  30,
+                  40,
+                  50,
+                  60,
+                  70,
+                  80,
+                  90,
+                  100
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energylevel"
+          },
+          "vibe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyVibe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "vibeNote": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vibenote"
+          }
+        },
+        "title": "DailyCheckInUpdate",
+        "type": "object"
+      },
+      "DailyCheckInVibeView": {
+        "properties": {
+          "partner": {
+            "$ref": "#/components/schemas/PartnerVibeProjection"
+          },
+          "partnerNote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnernote"
+          },
+          "visibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "visibilityMode",
+          "partner"
+        ],
+        "title": "DailyCheckInVibeView",
+        "type": "object"
+      },
+      "DailyCheckInVisibilityMode": {
+        "description": "How one DailyCheckIn dimension becomes visible to the partner.",
+        "enum": [
+          "IMMEDIATE",
+          "MUTUAL_REVEAL"
+        ],
+        "title": "DailyCheckInVisibilityMode",
+        "type": "string"
+      },
+      "DailyQuoteCatalogView": {
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteCategoryView"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteSourceView"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources",
+          "categories"
+        ],
+        "title": "DailyQuoteCatalogView",
+        "type": "object"
+      },
+      "DailyQuotePreferencePatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "maxLength": 16,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "selectedCategoryIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcategoryids"
+          },
+          "selectedSourceIds": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedsourceids"
+          }
+        },
+        "title": "DailyQuotePreferencePatch",
+        "type": "object"
+      },
+      "DailyQuotePreferenceView": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale"
+          },
+          "selectedCategoryIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectedcategoryids",
+            "type": "array"
+          },
+          "selectedSourceIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectedsourceids",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accountId",
+          "enabled",
+          "selectedSourceIds",
+          "selectedCategoryIds",
+          "version"
+        ],
+        "title": "DailyQuotePreferenceView",
+        "type": "object"
+      },
+      "DailyQuoteResponse": {
+        "properties": {
+          "checkedOn": {
+            "format": "date",
+            "title": "Checkedon",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DailyQuoteView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "checkedOn",
+          "enabled"
+        ],
+        "title": "DailyQuoteResponse",
+        "type": "object"
+      },
+      "DailyQuoteView": {
+        "properties": {
+          "attributionRequired": {
+            "title": "Attributionrequired",
+            "type": "boolean"
+          },
+          "authorDisplay": {
+            "title": "Authordisplay",
+            "type": "string"
+          },
+          "categoryIds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categoryids",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "locale": {
+            "title": "Locale",
+            "type": "string"
+          },
+          "rightsClassification": {
+            "$ref": "#/components/schemas/RightsClassification"
+          },
+          "sourceDisplay": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcedisplay"
+          },
+          "sourceId": {
+            "title": "Sourceid",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "authorDisplay",
+          "sourceId",
+          "categoryIds",
+          "locale",
+          "rightsClassification",
+          "attributionRequired"
+        ],
+        "title": "DailyQuoteView",
+        "type": "object"
+      },
+      "DailyVibe": {
+        "description": "Stable V1 daily-state values owned by #429.\n\nThese values describe today's relationship-facing state. They are not\ndiagnoses, scores, or HeartMoment emotions; localized UI copy remains a\npresentation concern.",
+        "enum": [
+          "GOOD",
+          "OKAY",
+          "STRESSED",
+          "SAD",
+          "NEEDS_CONNECTION",
+          "NEEDS_SPACE"
+        ],
+        "title": "DailyVibe",
+        "type": "string"
+      },
       "DashboardItem": {
         "properties": {
           "createdAt": {
@@ -1445,6 +2055,23 @@
         "title": "DashboardItemType",
         "type": "string"
       },
+      "DashboardModuleOrderUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "moduleKeys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Modulekeys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "moduleKeys"
+        ],
+        "title": "DashboardModuleOrderUpdate",
+        "type": "object"
+      },
       "DashboardModulePreferenceList": {
         "properties": {
           "items": {
@@ -1473,6 +2100,18 @@
             "title": "Itemlimit",
             "type": "integer"
           },
+          "selectedCollectionId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedcollectionid"
+          },
           "visible": {
             "title": "Visible",
             "type": "boolean"
@@ -1494,6 +2133,11 @@
           },
           "moduleKey": {
             "title": "Modulekey",
+            "type": "string"
+          },
+          "selectedCollectionId": {
+            "format": "uuid",
+            "title": "Selectedcollectionid",
             "type": "string"
           },
           "visible": {
@@ -1683,6 +2327,15 @@
           "ANNUALLY"
         ],
         "title": "DateRepeat",
+        "type": "string"
+      },
+      "DeliveryClass": {
+        "enum": [
+          "IMMEDIATE",
+          "DIGESTIBLE",
+          "IN_APP_ONLY"
+        ],
+        "title": "DeliveryClass",
         "type": "string"
       },
       "DiscoverLeadContext": {
@@ -2319,6 +2972,16 @@
             "title": "Happenedon",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -2382,6 +3045,16 @@
             "title": "Spaceid",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "text": {
             "title": "Text",
             "type": "string"
@@ -2404,6 +3077,7 @@
           "spaceId",
           "authorId",
           "text",
+          "tags",
           "emotion",
           "visibility",
           "happenedOn",
@@ -2487,6 +3161,23 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "text": {
             "anyOf": [
@@ -2966,6 +3657,16 @@
             ],
             "title": "Happenedon"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3028,6 +3729,16 @@
             "title": "Spaceid",
             "type": "string"
           },
+          "tags": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Tags",
+            "type": "array"
+          },
           "title": {
             "title": "Title",
             "type": "string"
@@ -3048,6 +3759,7 @@
           "authorId",
           "title",
           "body",
+          "tags",
           "happenedOn",
           "version",
           "createdAt",
@@ -3172,6 +3884,23 @@
               }
             ],
             "title": "Happenedon"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
           },
           "title": {
             "anyOf": [
@@ -3385,6 +4114,77 @@
         "title": "MilestoneUpdate",
         "type": "object"
       },
+      "NotificationChannel": {
+        "enum": [
+          "IN_APP",
+          "PUSH",
+          "EMAIL"
+        ],
+        "title": "NotificationChannel",
+        "type": "string"
+      },
+      "NotificationChannelCapability": {
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "destination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "channel",
+          "available",
+          "reason"
+        ],
+        "title": "NotificationChannelCapability",
+        "type": "object"
+      },
+      "NotificationChannelPreference": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "configurable": {
+            "title": "Configurable",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel",
+          "enabled",
+          "configurable"
+        ],
+        "title": "NotificationChannelPreference",
+        "type": "object"
+      },
       "NotificationItem": {
         "properties": {
           "actor": {
@@ -3489,6 +4289,8 @@
         "enum": [
           "COMMENT_CREATED",
           "THINKING_OF_YOU",
+          "PARTNER_KISS",
+          "PARTNER_CHECK_IN",
           "REMINDER_DUE"
         ],
         "title": "NotificationKind",
@@ -3525,6 +4327,98 @@
           "hasMore"
         ],
         "title": "NotificationPage",
+        "type": "object"
+      },
+      "NotificationPreferenceEntry": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelPreference"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "deliveryClass": {
+            "$ref": "#/components/schemas/DeliveryClass"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "deliveryClass",
+          "channels"
+        ],
+        "title": "NotificationPreferenceEntry",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdate",
+        "type": "object"
+      },
+      "NotificationPreferenceUpdated": {
+        "properties": {
+          "channel": {
+            "$ref": "#/components/schemas/NotificationChannel"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NotificationKind"
+          }
+        },
+        "required": [
+          "kind",
+          "channel",
+          "enabled"
+        ],
+        "title": "NotificationPreferenceUpdated",
+        "type": "object"
+      },
+      "NotificationPreferencesView": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationChannelCapability"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "catalogVersion": {
+            "title": "Catalogversion",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/NotificationPreferenceEntry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "quietHours": {
+            "$ref": "#/components/schemas/QuietHoursView"
+          }
+        },
+        "required": [
+          "catalogVersion",
+          "items",
+          "capabilities",
+          "quietHours"
+        ],
+        "title": "NotificationPreferencesView",
         "type": "object"
       },
       "NotificationUnreadCount": {
@@ -3614,12 +4508,180 @@
         "title": "OnceSchedule",
         "type": "object"
       },
+      "PartnerEnergyHidden": {
+        "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
+        "properties": {
+          "state": {
+            "const": "HIDDEN_UNTIL_SELF_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerEnergyHidden",
+        "type": "object"
+      },
+      "PartnerEnergyNoCheckIn": {
+        "properties": {
+          "state": {
+            "const": "NO_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerEnergyNoCheckIn",
+        "type": "object"
+      },
+      "PartnerEnergyProjection": {
+        "description": "Named discriminated partner Energy state without hidden optional fields.",
+        "discriminator": {
+          "mapping": {
+            "HIDDEN_UNTIL_SELF_CHECK_IN": "#/components/schemas/PartnerEnergyHidden",
+            "NO_CHECK_IN": "#/components/schemas/PartnerEnergyNoCheckIn",
+            "VISIBLE": "#/components/schemas/PartnerEnergyVisible"
+          },
+          "propertyName": "state"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PartnerEnergyHidden"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerEnergyNoCheckIn"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerEnergyVisible"
+          }
+        ],
+        "title": "PartnerEnergyProjection"
+      },
+      "PartnerEnergyVisible": {
+        "properties": {
+          "state": {
+            "const": "VISIBLE",
+            "title": "State",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ],
+        "title": "PartnerEnergyVisible",
+        "type": "object"
+      },
+      "PartnerNicknameUpdate": {
+        "properties": {
+          "nickname": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          }
+        },
+        "required": [
+          "nickname"
+        ],
+        "title": "PartnerNicknameUpdate",
+        "type": "object"
+      },
+      "PartnerNicknameView": {
+        "description": "The viewer's private label for the currently active partner.",
+        "properties": {
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          },
+          "partnerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partnerid"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "partnerId",
+          "nickname",
+          "version"
+        ],
+        "title": "PartnerNicknameView",
+        "type": "object"
+      },
+      "PartnerPresenceView": {
+        "description": "Privacy-bounded state of the other active partner in this Space.",
+        "properties": {
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACTIVE",
+                  "RECENT"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerPresenceView",
+        "type": "object"
+      },
       "PartnerProfileView": {
         "properties": {
           "accountId": {
             "format": "uuid",
             "title": "Accountid",
             "type": "string"
+          },
+          "birthday": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
           },
           "createdAt": {
             "format": "date-time",
@@ -3668,6 +4730,7 @@
           "id",
           "accountId",
           "displayName",
+          "birthday",
           "profileAttachmentId",
           "version",
           "createdAt",
@@ -3675,6 +4738,119 @@
           "preferences"
         ],
         "title": "PartnerProfileView",
+        "type": "object"
+      },
+      "PartnerQuickActionAccepted": {
+        "properties": {
+          "availableAt": {
+            "format": "date-time",
+            "title": "Availableat",
+            "type": "string"
+          },
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId",
+          "availableAt"
+        ],
+        "title": "PartnerQuickActionAccepted",
+        "type": "object"
+      },
+      "PartnerQuickActionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "clientRequestId": {
+            "format": "uuid",
+            "title": "Clientrequestid",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SupportGestureKind"
+          }
+        },
+        "required": [
+          "kind",
+          "clientRequestId"
+        ],
+        "title": "PartnerQuickActionCreate",
+        "type": "object"
+      },
+      "PartnerVibeHidden": {
+        "description": "Mutual Reveal is closed and intentionally carries no partner side channel.",
+        "properties": {
+          "state": {
+            "const": "HIDDEN_UNTIL_SELF_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerVibeHidden",
+        "type": "object"
+      },
+      "PartnerVibeNoCheckIn": {
+        "properties": {
+          "state": {
+            "const": "NO_CHECK_IN",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "PartnerVibeNoCheckIn",
+        "type": "object"
+      },
+      "PartnerVibeProjection": {
+        "description": "Named discriminated partner Vibe state without hidden optional fields.",
+        "discriminator": {
+          "mapping": {
+            "HIDDEN_UNTIL_SELF_CHECK_IN": "#/components/schemas/PartnerVibeHidden",
+            "NO_CHECK_IN": "#/components/schemas/PartnerVibeNoCheckIn",
+            "VISIBLE": "#/components/schemas/PartnerVibeVisible"
+          },
+          "propertyName": "state"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PartnerVibeHidden"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerVibeNoCheckIn"
+          },
+          {
+            "$ref": "#/components/schemas/PartnerVibeVisible"
+          }
+        ],
+        "title": "PartnerVibeProjection"
+      },
+      "PartnerVibeVisible": {
+        "properties": {
+          "state": {
+            "const": "VISIBLE",
+            "title": "State",
+            "type": "string"
+          },
+          "value": {
+            "$ref": "#/components/schemas/DailyVibe"
+          }
+        },
+        "required": [
+          "state",
+          "value"
+        ],
+        "title": "PartnerVibeVisible",
         "type": "object"
       },
       "PartnerView": {
@@ -3801,6 +4977,14 @@
           "OTHER"
         ],
         "title": "PersonRelationship",
+        "type": "string"
+      },
+      "PhotoParentType": {
+        "enum": [
+          "MEMORY",
+          "HEART_MOMENT"
+        ],
+        "title": "PhotoParentType",
         "type": "string"
       },
       "PlaceCreate": {
@@ -4770,8 +5954,20 @@
         "type": "object"
       },
       "ProfileIdentityUpdate": {
-        "description": "Partial update of the authenticated account's presentation identity.\n\nOmission means unchanged. An explicit null ``profileAttachmentId`` removes\nthe current avatar. ``displayName`` deliberately has no competing request-\nlayer normalization; the identity domain remains the single authority.",
+        "description": "Partial update of the authenticated account's presentation identity.\n\nOmission means unchanged. An explicit null ``profileAttachmentId`` removes\nthe current avatar; an explicit null ``birthday`` clears the optional birthday.\n``displayName`` deliberately has no competing request-layer normalization;\nthe identity domain remains the single authority.",
         "properties": {
+          "birthday": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthday"
+          },
           "displayName": {
             "anyOf": [
               {
@@ -4935,6 +6131,176 @@
         ],
         "title": "ProfileVisibility",
         "type": "string"
+      },
+      "PushEndpointRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "endpointValue": {
+            "description": "Opaque provider-specific registration value. A Web Push transport can use a compact JSON subscription containing endpoint, keys.p256dh and keys.auth; the configured provider validates its own format. Treat this value as a secret.",
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Endpointvalue",
+            "type": "string"
+          },
+          "providerKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Providerkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "endpointValue"
+        ],
+        "title": "PushEndpointRegistration",
+        "type": "object"
+      },
+      "PushEndpointRegistrationResult": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "PushEndpointRegistrationResult",
+        "type": "object"
+      },
+      "QuietHoursUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "QuietHoursUpdate",
+        "type": "object"
+      },
+      "QuietHoursView": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "timeZone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "start",
+          "end",
+          "timeZone"
+        ],
+        "title": "QuietHoursView",
+        "type": "object"
+      },
+      "QuoteCategoryView": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "title": "QuoteCategoryView",
+        "type": "object"
+      },
+      "QuoteSourceView": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "rightsClassification": {
+            "$ref": "#/components/schemas/RightsClassification"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "rightsClassification"
+        ],
+        "title": "QuoteSourceView",
+        "type": "object"
       },
       "ReadDescriptor": {
         "properties": {
@@ -5589,6 +6955,15 @@
         "title": "ResourceCapabilities",
         "type": "object"
       },
+      "RightsClassification": {
+        "enum": [
+          "PUBLIC_DOMAIN",
+          "EDITORIAL_CURATED",
+          "PROPRIETARY_LICENSED"
+        ],
+        "title": "RightsClassification",
+        "type": "string"
+      },
       "RuleList": {
         "properties": {
           "items": {
@@ -5870,6 +7245,43 @@
         "title": "SearchScope",
         "type": "string"
       },
+      "ServerAdminAccountDeletionRequest": {
+        "properties": {
+          "confirmation": {
+            "title": "Confirmation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmation"
+        ],
+        "title": "ServerAdminAccountDeletionRequest",
+        "type": "object"
+      },
+      "ServerAdminAccountDeletionResult": {
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "title": "Acceptedat",
+            "type": "string"
+          },
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountDeletionStatus"
+          }
+        },
+        "required": [
+          "accountId",
+          "acceptedAt",
+          "status"
+        ],
+        "title": "ServerAdminAccountDeletionResult",
+        "type": "object"
+      },
       "ServerAdminAccountDetail": {
         "properties": {
           "activeMembershipCount": {
@@ -5891,6 +7303,28 @@
             "format": "date-time",
             "title": "Createdat",
             "type": "string"
+          },
+          "deletionAcceptedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deletionacceptedat"
+          },
+          "deletionStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountDeletionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "disabledAt": {
             "anyOf": [
@@ -6073,6 +7507,16 @@
             "format": "date-time",
             "title": "Createdat",
             "type": "string"
+          },
+          "deletionStatus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountDeletionStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "disabledAt": {
             "anyOf": [
@@ -6789,6 +8233,142 @@
         "title": "ServerAdminOverview",
         "type": "object"
       },
+      "ServerAdminPrivilegedAuditItem": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actorId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actorid"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "effectCount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effectcount"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "newValue": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Newvalue"
+          },
+          "previousValue": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousvalue"
+          },
+          "targetAccountId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetaccountid"
+          },
+          "targetSpaceId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetspaceid"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "action",
+          "actorId",
+          "targetAccountId",
+          "targetSpaceId",
+          "previousValue",
+          "newValue",
+          "effectCount",
+          "createdAt"
+        ],
+        "title": "ServerAdminPrivilegedAuditItem",
+        "type": "object"
+      },
+      "ServerAdminPrivilegedAuditPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ServerAdminPrivilegedAuditItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ServerAdminPrivilegedAuditPage",
+        "type": "object"
+      },
       "ServerAdminRecoveryEmailResult": {
         "properties": {
           "requested": {
@@ -6873,6 +8453,40 @@
           "version"
         ],
         "title": "ServerAdminSettings",
+        "type": "object"
+      },
+      "ServerAdminSpaceConfigurationManagerReconcileRequest": {
+        "properties": {
+          "accountId": {
+            "format": "uuid",
+            "title": "Accountid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId"
+        ],
+        "title": "ServerAdminSpaceConfigurationManagerReconcileRequest",
+        "type": "object"
+      },
+      "ServerAdminSpaceConfigurationManagerView": {
+        "properties": {
+          "configurationManagerAccountId": {
+            "format": "uuid",
+            "title": "Configurationmanageraccountid",
+            "type": "string"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "spaceId",
+          "configurationManagerAccountId"
+        ],
+        "title": "ServerAdminSpaceConfigurationManagerView",
         "type": "object"
       },
       "ServerAdminSpaceDetail": {
@@ -7375,6 +8989,73 @@
         "title": "SharedHeartMomentSummary",
         "type": "object"
       },
+      "SharedPhoto": {
+        "properties": {
+          "attachment": {
+            "$ref": "#/components/schemas/AttachmentSummary"
+          },
+          "effectiveDate": {
+            "format": "date",
+            "title": "Effectivedate",
+            "type": "string"
+          },
+          "parentId": {
+            "format": "uuid",
+            "title": "Parentid",
+            "type": "string"
+          },
+          "parentType": {
+            "$ref": "#/components/schemas/PhotoParentType"
+          }
+        },
+        "required": [
+          "parentType",
+          "parentId",
+          "effectiveDate",
+          "attachment"
+        ],
+        "title": "SharedPhoto",
+        "type": "object"
+      },
+      "SharedPhotoPage": {
+        "properties": {
+          "hasMore": {
+            "title": "Hasmore",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SharedPhoto"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nextcursor"
+          },
+          "totalCount": {
+            "minimum": 0.0,
+            "title": "Totalcount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "totalCount",
+          "nextCursor",
+          "hasMore"
+        ],
+        "title": "SharedPhotoPage",
+        "type": "object"
+      },
       "SignInRequest": {
         "properties": {
           "deviceName": {
@@ -7456,6 +9137,132 @@
           "accountCreated"
         ],
         "title": "SignupSessionView",
+        "type": "object"
+      },
+      "SpaceConfigurationUpdate": {
+        "additionalProperties": false,
+        "description": "Partial typed update for Space-wide module configuration.",
+        "properties": {
+          "dailyContextTimezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dailycontexttimezone"
+          },
+          "dailyQuestionsEnabled": {
+            "title": "Dailyquestionsenabled",
+            "type": "boolean"
+          },
+          "energyCheckInEnabled": {
+            "title": "Energycheckinenabled",
+            "type": "boolean"
+          },
+          "energyVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode",
+            "title": "Energyvisibilitymode"
+          },
+          "loveNotesEnabled": {
+            "title": "Lovenotesenabled",
+            "type": "boolean"
+          },
+          "sharedAchievementsEnabled": {
+            "title": "Sharedachievementsenabled",
+            "type": "boolean"
+          },
+          "supportGesturesEnabled": {
+            "title": "Supportgesturesenabled",
+            "type": "boolean"
+          },
+          "vibeCheckEnabled": {
+            "title": "Vibecheckenabled",
+            "type": "boolean"
+          },
+          "vibeVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode",
+            "title": "Vibevisibilitymode"
+          }
+        },
+        "title": "SpaceConfigurationUpdate",
+        "type": "object"
+      },
+      "SpaceConfigurationView": {
+        "description": "Shared typed module configuration visible to both active partners.",
+        "properties": {
+          "canManageSpaceConfiguration": {
+            "title": "Canmanagespaceconfiguration",
+            "type": "boolean"
+          },
+          "dailyContextTimezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dailycontexttimezone"
+          },
+          "dailyQuestionsEnabled": {
+            "title": "Dailyquestionsenabled",
+            "type": "boolean"
+          },
+          "energyCheckInEnabled": {
+            "title": "Energycheckinenabled",
+            "type": "boolean"
+          },
+          "energyVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          },
+          "loveNotesEnabled": {
+            "title": "Lovenotesenabled",
+            "type": "boolean"
+          },
+          "sharedAchievementsEnabled": {
+            "title": "Sharedachievementsenabled",
+            "type": "boolean"
+          },
+          "spaceId": {
+            "format": "uuid",
+            "title": "Spaceid",
+            "type": "string"
+          },
+          "supportGesturesEnabled": {
+            "title": "Supportgesturesenabled",
+            "type": "boolean"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "vibeCheckEnabled": {
+            "title": "Vibecheckenabled",
+            "type": "boolean"
+          },
+          "vibeVisibilityMode": {
+            "$ref": "#/components/schemas/DailyCheckInVisibilityMode"
+          }
+        },
+        "required": [
+          "spaceId",
+          "version",
+          "canManageSpaceConfiguration",
+          "vibeCheckEnabled",
+          "energyCheckInEnabled",
+          "loveNotesEnabled",
+          "supportGesturesEnabled",
+          "sharedAchievementsEnabled",
+          "dailyQuestionsEnabled",
+          "dailyContextTimezone",
+          "vibeVisibilityMode",
+          "energyVisibilityMode"
+        ],
+        "title": "SpaceConfigurationView",
         "type": "object"
       },
       "SpaceEntitlementView": {
@@ -7895,6 +9702,14 @@
         "title": "StoryViewReceipt",
         "type": "object"
       },
+      "SupportGestureKind": {
+        "enum": [
+          "KISS",
+          "CHECK_IN"
+        ],
+        "title": "SupportGestureKind",
+        "type": "string"
+      },
       "ThinkingOfYouAccepted": {
         "properties": {
           "clientRequestId": {
@@ -8201,6 +10016,24 @@
         ],
         "title": "TransferScope",
         "type": "string"
+      },
+      "UnifiedPushConfiguration": {
+        "properties": {
+          "providerKey": {
+            "title": "Providerkey",
+            "type": "string"
+          },
+          "vapidPublicKey": {
+            "title": "Vapidpublickey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "providerKey",
+          "vapidPublicKey"
+        ],
+        "title": "UnifiedPushConfiguration",
+        "type": "object"
       },
       "UploadDescriptor": {
         "properties": {
@@ -9653,6 +11486,448 @@
         ]
       }
     },
+    "/api/v1/auth/recent-authentication/server-admin": {
+      "get": {
+        "operationId": "server_admin_capabilities_api_v1_auth_recent_authentication_server_admin_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "client",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RecentAuthenticationClient",
+              "default": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          }
+        },
+        "summary": "Server Admin Capabilities",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/capabilities": {
+      "get": {
+        "operationId": "server_admin_capabilities_api_v1_auth_recent_authentication_server_admin_capabilities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "client",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RecentAuthenticationClient",
+              "default": "web"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          }
+        },
+        "summary": "Server Admin Capabilities",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback": {
+      "post": {
+        "operationId": "server_admin_complete_oidc_api_v1_auth_recent_authentication_server_admin_oidc__connectionId__callback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "title": "Connectionid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/eimir__api__v1__recent_authentication__OidcCallbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAuthenticationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Server Admin Complete Oidc",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start": {
+      "post": {
+        "operationId": "server_admin_start_oidc_api_v1_auth_recent_authentication_server_admin_oidc__connectionId__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "title": "Connectionid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "client",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/RecentAuthenticationClient",
+              "default": "web"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OidcStartView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Server Admin Start Oidc",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/passkeys/finish": {
+      "post": {
+        "operationId": "server_admin_finish_passkey_api_v1_auth_recent_authentication_server_admin_passkeys_finish_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasskeyFinishRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAuthenticationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Server Admin Finish Passkey",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/passkeys/start": {
+      "post": {
+        "operationId": "server_admin_start_passkey_api_v1_auth_recent_authentication_server_admin_passkeys_start_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Server Admin Start Passkey Api V1 Auth Recent Authentication Server Admin Passkeys Start Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Server Admin Start Passkey",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/recent-authentication/server-admin/password": {
+      "post": {
+        "operationId": "server_admin_password_api_v1_auth_recent_authentication_server_admin_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentAuthenticationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Server Admin Password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/recovery/consume": {
       "post": {
         "description": "Set a new password and terminate all previous sessions.",
@@ -10272,6 +12547,390 @@
         ]
       }
     },
+    "/api/v1/notification-preferences": {
+      "get": {
+        "description": "Keep persisted choice, policy eligibility and transport readiness distinct.",
+        "operationId": "getOwnNotificationPreferences",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Own Notification Preferences",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/quiet-hours": {
+      "patch": {
+        "description": "Set or clear only the authenticated recipient's daily delivery window.",
+        "operationId": "updateOwnQuietHours",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuietHoursUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuietHoursView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Quiet Hours",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notification-preferences/{kind}/{channel}": {
+      "patch": {
+        "description": "Change only the authenticated recipient's implemented channel choice.",
+        "operationId": "updateOwnNotificationPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationKind"
+            }
+          },
+          {
+            "in": "path",
+            "name": "channel",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/NotificationChannel"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationPreferenceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferenceUpdated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Update Own Notification Preference",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints": {
+      "post": {
+        "description": "Accept only configured transports and return no endpoint secret.",
+        "operationId": "registerOwnPushEndpoint",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushEndpointRegistration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushEndpointRegistrationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Register Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/unifiedpush-configuration": {
+      "get": {
+        "description": "Expose the public VAPID key to an authenticated device connector.",
+        "operationId": "getUnifiedPushConfiguration",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnifiedPushConfiguration"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Get Unified Push Configuration",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/push-endpoints/{endpointId}": {
+      "delete": {
+        "description": "Keep foreign and unknown IDs indistinguishable to the caller.",
+        "operationId": "revokeOwnPushEndpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "endpointId",
+            "required": true,
+            "schema": {
+              "title": "Endpointid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Revoke Own Push Endpoint",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/v1/server-admin/accounts": {
       "get": {
         "description": "Return Account identity/security metadata without relationship content.",
@@ -10453,6 +13112,183 @@
           }
         },
         "summary": "Get Server Admin Account",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/accounts/{accountId}/deletion": {
+      "post": {
+        "operationId": "delete_server_admin_account_api_v1_server_admin_accounts__accountId__deletion_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "title": "Accountid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminAccountDeletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminAccountDeletionResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Delete Server Admin Account",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/accounts/{accountId}/email-verification/request": {
+      "post": {
+        "operationId": "request_server_admin_account_email_verification_api_v1_server_admin_accounts__accountId__email_verification_request_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "title": "Accountid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "A capability required for this operation is not configured on this instance."
+          }
+        },
+        "summary": "Request Server Admin Account Email Verification",
         "tags": [
           "server-admin"
         ]
@@ -10932,6 +13768,174 @@
           }
         },
         "summary": "Get Server Admin Action Activity",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
+    "/api/v1/server-admin/activity/privileged": {
+      "get": {
+        "operationId": "get_server_admin_privileged_activity_api_v1_server_admin_activity_privileged_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "settings",
+                "accounts",
+                "spaces",
+                "destructive"
+              ],
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actorId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actorid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "targetId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Targetid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "createdFrom",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Createdfrom"
+            }
+          },
+          {
+            "in": "query",
+            "name": "createdTo",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Createdto"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminPrivilegedAuditPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          }
+        },
+        "summary": "Get Server Admin Privileged Activity",
         "tags": [
           "server-admin"
         ]
@@ -11471,6 +14475,100 @@
         ]
       }
     },
+    "/api/v1/server-admin/spaces/{space_id}/configuration-manager/reconcile": {
+      "post": {
+        "description": "Assign missing legacy Space configuration authority exactly once.",
+        "operationId": "reconcileServerAdminSpaceConfigurationManager",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAdminSpaceConfigurationManagerReconcileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerAdminSpaceConfigurationManagerView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Reconcile Server Admin Space Configuration Manager",
+        "tags": [
+          "server-admin"
+        ]
+      }
+    },
     "/api/v1/server-admin/spaces/{space_id}/entitlement": {
       "get": {
         "description": "Return the effective entitlement state and full grant history for a Space.",
@@ -11537,7 +14635,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants": {
       "post": {
-        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.",
+        "description": "Record a manual Premium grant for a Space (V1 launch entitlement source).\n\nThis is the only entitlement source implemented for the first launch;\nGoogle Play/Stripe/Self-Hosted-license adapters are deliberately out of\nscope until a real launch channel requires them (docs/m6/\nENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized\n`record_grant` source-update interface unchanged rather than adding a\nsecond grant-mutation path.\n\nGranting unlimited Premium is as consequential as the other high-risk\nServerAdmin actions in this router (account deletion, email verification,\nrecovery issuance), so it requires the same step-up re-authentication.",
         "operationId": "grant_server_admin_space_entitlement_api_v1_server_admin_spaces__space_id__entitlement_grants_post",
         "parameters": [
           {
@@ -11621,7 +14719,7 @@
     },
     "/api/v1/server-admin/spaces/{space_id}/entitlement/grants/{grant_id}/revoke": {
       "post": {
-        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).",
+        "description": "Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).\n\nRevoking a paying customer's entitlement is as consequential as the other\nhigh-risk ServerAdmin actions in this router, so it requires the same\nstep-up re-authentication.",
         "operationId": "revoke_server_admin_space_entitlement_grant_api_v1_server_admin_spaces__space_id__entitlement_grants__grant_id__revoke_post",
         "parameters": [
           {
@@ -11946,6 +15044,177 @@
         "summary": "Get Activity",
         "tags": [
           "activity"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/appearance/app-icon": {
+      "get": {
+        "description": "Read/export only the caller's selection, including after Pro expiry.",
+        "operationId": "getAppIconPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppIconPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get App Icon Preference",
+        "tags": [
+          "appearance"
+        ]
+      },
+      "patch": {
+        "description": "Save a known preset. Original is Free; each alternative requires Pro.\n\nMembership precedes the capability check. Reads never delete or revert a\npreviously saved cosmetic when a grant expires. No partner ID is accepted.",
+        "operationId": "updateAppIconPreference",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppIconPreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppIconPreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque personal preference token; send unchanged as If-Match on writes.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update App Icon Preference",
+        "tags": [
+          "appearance"
         ]
       }
     },
@@ -14328,6 +17597,22 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Eimir-Collection-Completion-Transition": {
+                "description": "True only when this successful Item update caused the shared Collection to transition from incomplete to complete; false otherwise.",
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ],
+                  "type": "string"
+                }
               }
             }
           },
@@ -14701,6 +17986,780 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/configuration": {
+      "get": {
+        "description": "Return authoritative shared module configuration and caller capability.",
+        "operationId": "getSpaceConfiguration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceConfigurationView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version. Send it unchanged in the next write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Space Configuration",
+        "tags": [
+          "spaces"
+        ]
+      },
+      "patch": {
+        "description": "Apply a typed partial update under the existing If-Match contract.",
+        "operationId": "updateSpaceConfiguration",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceConfigurationUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceConfigurationView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version. Send it unchanged in the next write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`SPACE_CONFIGURATION_MANAGEMENT_REQUIRED`: the caller may read this Space configuration but is not its persisted configuration manager."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The supplied version is no longer current. Nothing was changed; reload the latest configuration before retrying."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Space Configuration",
+        "tags": [
+          "spaces"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/insights": {
+      "get": {
+        "description": "Return longitudinal Daily Check-in insights for the authorized Space.\n\nProtected by the Pro capability `daily.insights`. Free Spaces receive\n403 Forbidden with `PREMIUM_ENTITLEMENT_REQUIRED`.",
+        "operationId": "getDailyCheckInInsights",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInInsightsView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Pro capability `daily.insights` required."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Daily Check In Insights",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-check-in/today": {
+      "get": {
+        "operationId": "getDailyCheckInToday",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInTodayView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque owner-state concurrency token. Send it unchanged in the next Daily Check-in write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the Space has no valid authoritative Daily Check-in time zone."
+          }
+        },
+        "summary": "Get Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      },
+      "patch": {
+        "operationId": "updateDailyCheckInToday",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyCheckInUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyCheckInTodayView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque owner-state concurrency token. Send it unchanged in the next Daily Check-in write request's `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`SPACE_MODULE_DISABLED`: new Vibe/Energy participation is disabled."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`RESOURCE_VERSION_CONFLICT`: the owner state changed, or `DAILY_CHECK_IN_CONTEXT_UNAVAILABLE`: the shared day cannot be resolved."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`DAILY_CHECK_IN_VIBE_NOTE_REQUIRES_VIBE`: Vibe context requires a current-day Vibe."
+          }
+        },
+        "summary": "Update Daily Check In Today",
+        "tags": [
+          "daily-check-ins"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote": {
+      "get": {
+        "description": "Return the deterministic quote of the day for the authorized caller.\n\nRequires that the Space holds the `daily.quote` Pro entitlement.",
+        "operationId": "getDailyQuote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote",
+        "tags": [
+          "daily-quote"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote/catalog": {
+      "get": {
+        "description": "Return available curated sources and categories for the preference editor.",
+        "operationId": "getDailyQuoteCatalog",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuoteCatalogView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote Catalog",
+        "tags": [
+          "daily-quote"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/daily-quote/preferences": {
+      "get": {
+        "description": "Return caller's personal Daily Quote preferences.\n\nProtected by `daily.quote`. Returns only the caller's own preferences.",
+        "operationId": "getDailyQuotePreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuotePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque preference concurrency token. Send it unchanged in subsequent PATCH requests in the `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Daily Quote Preferences",
+        "tags": [
+          "daily-quote"
+        ]
+      },
+      "patch": {
+        "description": "Update caller's personal Daily Quote preferences.\n\nRequires `If-Match` optimistic concurrency header.\nProtected by `daily.quote`. Cannot modify partner preferences.",
+        "operationId": "updateDailyQuotePreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read opaque resource state, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DailyQuotePreferencePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyQuotePreferenceView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Opaque preference concurrency token. Send it unchanged in subsequent PATCH requests in the `If-Match` header.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`PREMIUM_ENTITLEMENT_REQUIRED`: Space lacks the Pro capability `daily.quote`."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "`RESOURCE_VERSION_CONFLICT`: preferences changed since they were read."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Daily Quote Preferences",
+        "tags": [
+          "daily-quote"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/dashboard": {
       "get": {
         "description": "Return the shared-only relationship overview for one Space.",
@@ -14817,9 +18876,82 @@
         ]
       }
     },
+    "/api/v1/spaces/{spaceId}/dashboard/preferences/order": {
+      "put": {
+        "description": "Persist a complete private Dashboard module order in one transaction.",
+        "operationId": "updateDashboardModuleOrder",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardModuleOrderUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardModulePreferenceList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Update Dashboard Module Order",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/spaces/{spaceId}/dashboard/preferences/{moduleKey}": {
       "patch": {
-        "description": "Set one private per-account Dashboard preference (#817 visibility, #848 item limit).",
+        "description": "Set one private per-account Dashboard presentation preference.",
         "operationId": "updateDashboardModulePreference",
         "parameters": [
           {
@@ -15257,6 +19389,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -15270,6 +19420,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartMomentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original HeartMoment in its current state; no second HeartMoment is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -15307,6 +19475,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -15733,6 +19911,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -15746,6 +19942,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -15783,6 +19997,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -16703,6 +20927,7 @@
         ]
       },
       "post": {
+        "description": "Create a Memory.\n\nSend an `Idempotency-Key` to make the save reconcilable after a lost\nresponse: the identical request repeated with the same key returns the\noriginal Memory (`200`); the same key with a different payload is a `409`\n(`IDEMPOTENCY_KEY_REUSED`); if the original Memory was deleted meanwhile the\nanswer is `404` (`MEMORY_CREATE_RESULT_DELETED`) and nothing is recreated.",
         "operationId": "createMemory",
         "parameters": [
           {
@@ -16712,6 +20937,24 @@
             "schema": {
               "title": "Spaceid",
               "type": "string"
+            }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
             }
           }
         ],
@@ -16726,6 +20969,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -16763,6 +21024,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -17310,6 +21581,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -17323,6 +21612,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -17360,6 +21667,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -17506,6 +21823,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -17519,6 +21854,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MilestoneDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Milestone in its current state; no second Milestone is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -17556,6 +21909,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -17982,6 +22345,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -17995,6 +22376,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Comment in its current state; no second Comment is created and the partner is not notified again.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -18032,6 +22431,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -18342,6 +22751,358 @@
         "summary": "Mark Notification Read",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-nickname": {
+      "get": {
+        "operationId": "getPartnerNickname",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerNicknameView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Partner Nickname",
+        "tags": [
+          "profiles"
+        ]
+      },
+      "put": {
+        "operationId": "setPartnerNickname",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "description": "The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.",
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerNicknameUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerNicknameView"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Set Partner Nickname",
+        "tags": [
+          "profiles"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/partner-quick-actions": {
+      "post": {
+        "operationId": "sendPartnerQuickAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerQuickActionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerQuickActionAccepted"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The caller is authenticated but is not authorized for this operation."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Too many attempts occurred within the allowed time window."
+          }
+        },
+        "summary": "Send Partner Quick Action",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/photos": {
+      "get": {
+        "description": "Browse READY images from currently shared Memory and HeartMoment parents.\n\nOwner-private media is excluded even for its owner. Media bytes still use\nthe existing parent-bound attachment read authorization.",
+        "operationId": "getSharedPhotos",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedPhotoPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request is syntactically valid but cannot be processed in this form."
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Request parameters or domain inputs are invalid."
+          }
+        },
+        "summary": "Get Shared Photos",
+        "tags": [
+          "story"
         ]
       }
     },
@@ -19464,6 +24225,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -19477,6 +24256,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Plan in its current state; no second Plan is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -19514,6 +24311,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {
@@ -19850,6 +24657,16 @@
               "ETag": {
                 "description": "Resource version to use for the next If-Match write request.",
                 "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Eimir-Shared-Achievement": {
+                "description": "Present only when the server confirms an enabled Shared Achievement for the successful domain completion.",
+                "schema": {
+                  "enum": [
+                    "plan-completed",
+                    "collection-completed"
+                  ],
                   "type": "string"
                 }
               }
@@ -20209,6 +25026,110 @@
         "summary": "Unschedule Plan",
         "tags": [
           "plans"
+        ]
+      }
+    },
+    "/api/v1/spaces/{spaceId}/presence": {
+      "get": {
+        "description": "Return only the bounded semantic state of the other active partner.\n\nNo timestamp is exposed. Missing, stale, or absent partner presence is\nrepresented as null so this cannot become a last-seen surface.",
+        "operationId": "getPartnerPresence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPresenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Get Partner Presence",
+        "tags": [
+          "spaces"
+        ]
+      },
+      "post": {
+        "description": "Renew caller presence and return the partner's bounded state.",
+        "operationId": "touchPresence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "spaceId",
+            "required": true,
+            "schema": {
+              "title": "Spaceid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerPresenceView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Authentication is missing, invalid, or the session has expired."
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The resource does not exist or is not visible to the caller."
+          }
+        },
+        "summary": "Touch Presence",
+        "tags": [
+          "spaces"
         ]
       }
     },
@@ -24926,6 +29847,24 @@
               "title": "Spaceid",
               "type": "string"
             }
+          },
+          {
+            "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time.",
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
@@ -24939,6 +29878,24 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WishDetail"
+                }
+              }
+            },
+            "description": "The request identity (`Idempotency-Key`) was already used for an equivalent request. The response returns the original Wish in its current state; no second Wish is created.",
+            "headers": {
+              "ETag": {
+                "description": "Resource version to use for the next If-Match write request.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -24976,6 +29933,16 @@
               }
             },
             "description": "The resource does not exist or is not visible to the caller."
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request conflicts with the current state of the resource."
           },
           "422": {
             "content": {

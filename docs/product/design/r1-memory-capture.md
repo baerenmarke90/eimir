@@ -93,7 +93,7 @@ Web reuses native `<input type="date">`, `showPicker()`, the existing file picke
 
 ## Known limitations / follow-ups
 
-- #961 remains open for server-side Memory-create reconciliation/idempotency. R1 deliberately keeps the accepted explicit-uncertainty behavior from F2.
+- Server-side Memory-create reconciliation/idempotency was delivered by #961 ([ADR 0012](../../decisions/0012-memory-create-request-identity.md)). The unknown-outcome state now offers an explicit verify action; R1 keeps every other F2 uncertainty rule.
 - The Web evidence spec mocks the attachment/create transport, consistent with the existing F2 browser-evidence convention; it is not a live-backend persistence test. Repository integration/browser gates remain mandatory before merge.
 - TalkBack service activation and UI/accessibility state are evidenced on emulator, but a complete spoken linear-navigation transcript was not captured by headless automation. No accessibility behavior is inferred beyond the recorded evidence.
 

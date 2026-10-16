@@ -113,6 +113,56 @@ export const MORE_NOTIFICATIONS_ROUTE = '/more/notifications';
 /** Existing surface; the Web shell exposes it through the avatar/account tree. */
 export const MORE_PROFILE_ROUTE = '/more/profile';
 export const MORE_SETTINGS_ROUTE = '/more/settings';
+
+export const SETTINGS_CATEGORY_IDS = [
+  'relationship',
+  'notifications',
+  'today',
+  'appearance',
+  'data',
+  'account',
+] as const;
+
+export type SettingsCategoryId = (typeof SETTINGS_CATEGORY_IDS)[number];
+
+export const MORE_SETTINGS_CATEGORY_ROUTE_PATTERN = `${MORE_SETTINGS_ROUTE}/:settingsCategory`;
+
+export const SETTINGS_CATEGORY_ROUTES = {
+  relationship: `${MORE_SETTINGS_ROUTE}/relationship`,
+  notifications: `${MORE_SETTINGS_ROUTE}/notifications`,
+  today: `${MORE_SETTINGS_ROUTE}/today`,
+  appearance: `${MORE_SETTINGS_ROUTE}/appearance`,
+  data: `${MORE_SETTINGS_ROUTE}/data`,
+  account: `${MORE_SETTINGS_ROUTE}/account`,
+} as const satisfies Record<SettingsCategoryId, string>;
+
+export function isSettingsCategoryId(
+  value: string | undefined,
+): value is SettingsCategoryId {
+  return SETTINGS_CATEGORY_IDS.includes(value as SettingsCategoryId);
+}
+
+export function settingsCategoryPath(category: SettingsCategoryId): string {
+  return SETTINGS_CATEGORY_ROUTES[category];
+}
+
+const SETTINGS_CATEGORY_HASHES: Readonly<Record<string, SettingsCategoryId>> = {
+  'settings-connection': 'relationship',
+  'settings-notifications': 'notifications',
+  'settings-dashboard': 'today',
+  'settings-appearance': 'appearance',
+  'settings-appearance-panel': 'appearance',
+  'settings-data': 'data',
+  'settings-account': 'account',
+};
+
+export function settingsCategoryIdFromHash(
+  hash: string,
+): SettingsCategoryId | null {
+  const normalized = hash.replace(/^#/, '');
+  return SETTINGS_CATEGORY_HASHES[normalized] ?? null;
+}
+
 export const MORE_PRIVATE_ROUTE = '/more/private';
 
 /**
@@ -130,6 +180,7 @@ export const GAMES_WISH_DETECTIVE_ROUTE = '/games/wish-detective';
 
 export const STORY_CHAPTERS_ROUTE = '/story/chapters';
 export const STORY_YEARS_ROUTE = '/story/years';
+export const STORY_PHOTOS_ROUTE = '/story/photos';
 export const STORY_YEAR_ROUTE_PATTERN = '/story/years/:year';
 export const MEMORY_CREATE_ROUTE = '/story/memories/new';
 export const MEMORY_DETAIL_ROUTE_PATTERN = '/story/memories/:memoryId';
@@ -275,3 +326,12 @@ export function chapterDetailPath(chapterId: string): string {
 export function collectionDetailPath(collectionId: string): string {
   return `/plan/collections/${encodeURIComponent(collectionId)}`;
 }
+
+/**
+ * Pro Vibe/Energy insights (#1151, placement updated by #1196). Discovery and
+ * all three views live under More so the Mehr destination stays active while
+ * people move between week, patterns and recap.
+ */
+export const MORE_INSIGHTS_ROUTE = '/more/insights';
+export const MORE_INSIGHTS_PATTERNS_ROUTE = `${MORE_INSIGHTS_ROUTE}/patterns`;
+export const MORE_INSIGHTS_RECAP_ROUTE = `${MORE_INSIGHTS_ROUTE}/recap`;

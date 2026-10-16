@@ -66,7 +66,6 @@
   display: grid;
   gap: var(--space-5);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .important-dates-intro-block {
@@ -93,7 +92,7 @@
 
 .important-dates-create-action {
   flex: 0 0 auto;
-  scroll-margin-top: calc(var(--topbar-height, 72px) + var(--space-4));
+  scroll-margin-top: var(--space-4);
 }
 
 .important-dates-list {
@@ -144,13 +143,23 @@
   border: 0;
   border-radius: var(--radius-large);
   transition:
-    background var(--motion-fast),
-    transform var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
 }
 
 .important-date-card:hover {
   background: var(--color-surface-subtle);
   transform: translateX(2px);
+}
+
+.important-date-card-derived {
+  grid-template-columns: 4.1rem minmax(0, 1fr);
+  cursor: default;
+}
+
+.important-date-card-derived:hover {
+  background: transparent;
+  transform: none;
 }
 
 .important-date-card:focus-visible {
@@ -306,8 +315,9 @@
 }
 
 button.danger {
-  background: var(--color-error);
-  color: white;
+  background: var(--color-error-surface);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 button.danger:hover:not(:disabled) {
@@ -342,8 +352,8 @@ button.danger:hover:not(:disabled) {
   box-shadow: var(--shadow-card);
   cursor: pointer;
   transition:
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
   text-align: left;
   width: 100%;
   min-width: 0;
@@ -717,7 +727,7 @@ button.danger:hover:not(:disabled) {
   color: var(--color-text-secondary);
   font-size: 1.1rem;
   transform: rotate(0deg);
-  transition: transform var(--motion-fast);
+  transition: transform var(--duration-feedback) var(--easing-standard);
 }
 
 .focused-editor-disclosure[open] > summary::after {

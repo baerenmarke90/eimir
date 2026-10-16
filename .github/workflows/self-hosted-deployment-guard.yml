@@ -66,6 +66,35 @@ jobs:
           cat /tmp/changed-files.txt
           python3 tools/ci/change_scope.py /tmp/changed-files.txt >> "$GITHUB_OUTPUT"
 
+  upgrade-rehearsal:
+    name: Install, upgrade, rollback and Demo rehearsal
+    needs: changes
+    if: needs.changes.outputs.deployment_guard == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build local source images
+        run: |
+          set -euo pipefail
+          cp .env.example .env-rehearsal
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=ci-only-for-the-test-run/' .env-rehearsal
+          python3 scripts/build_self_hosted_source.py --env-file .env-rehearsal
+
+      - name: Rehearse install, upgrade, refused rollback and Demo lifecycle (#827)
+        run: python3 scripts/self_hosted_upgrade_rehearsal.py
+
+      - name: Remove leftover rehearsal resources
+        if: always()
+        run: |
+          docker ps -aq --filter name=eimir-rehearsal | xargs -r docker rm -f
+          docker volume ls -q --filter name=eimir-rehearsal | xargs -r docker volume rm -f
+          docker network ls -q --filter name=eimir-rehearsal | xargs -r docker network rm
+
   deployment-guard:
     name: Network and Port Guard
     needs: changes
@@ -175,6 +204,12 @@ jobs:
 
       - name: Cloud/Managed deployment profile contract (#521)
         run: python3 tools/ci/test_cloud_managed_topology.py -v
+
+      - name: Self-Hosted runtime topology contract (#827)
+        run: |
+          set -euo pipefail
+          python3 tools/ci/test_self_hosted_topology.py -v
+          python3 -m unittest scripts.test_self_hosted_release scripts.test_self_hosted_upgrade_rehearsal
 
       - name: Verified checkout revision contract
         run: |

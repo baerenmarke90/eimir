@@ -1,6 +1,8 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
+import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
 
 const ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
@@ -24,6 +26,7 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   let isRescheduled = false;
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -34,6 +37,11 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -89,6 +97,32 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
 
     if (
       method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: '"7"' },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
       (pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${ACCOUNT_ID}` ||
         pathname === `/api/v1/spaces/${SPACE_ID}/profiles/${PARTNER_ID}`)
     ) {
@@ -114,6 +148,28 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
         hasMore: false,
         items: [],
         nextCursor: null,
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-check-in/today`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: {
+          ETag: '"2026-09-01:empty"',
+          'Cache-Control': 'private, no-store',
+        },
+        body: JSON.stringify({
+          checkedOn: '2026-09-01',
+          dailyContextTimezone: 'UTC',
+          own: { energyLevel: null, vibe: null, version: 1 },
+          energy: null,
+          vibe: null,
+        }),
       });
       return;
     }
@@ -256,6 +312,28 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
       return;
     }
 
+    if (
+      (method === 'GET' || method === 'POST') &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -284,8 +362,14 @@ test('Today supports app-wide pull refresh and still revalidates after plan resc
   await expect(page).toHaveURL(/\/today$/);
   await expect(
     page.getByRole('heading', {
-      name: 'Anna & Ben',
+      name: m5s5.today.headerTitle,
       level: 1,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: 'Anna & Ben',
+      level: 2,
     }),
   ).toBeVisible();
   await expect(page.getByText('Later October trip')).toBeVisible();

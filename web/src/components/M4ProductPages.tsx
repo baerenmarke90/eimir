@@ -30,6 +30,7 @@ import {
 } from '../client/notificationQueries';
 import { getNotificationItemTitle } from '../client/notificationTitle';
 import { normalizeClientError } from '../client/problemDetails';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { taskOriginPath, useTaskOrigin } from '../client/taskOrigin';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { DestinationIcon } from './DestinationIcon';
@@ -79,6 +80,16 @@ function formatDateTime(value: Date): string {
   }).format(value);
 }
 
+function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>): boolean {
+  return (
+    event.button === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
+}
+
 function SearchResultCard({
   item,
   onOpen,
@@ -87,7 +98,7 @@ function SearchResultCard({
   onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
-  const path = searchResultPath(item.type, item.id);
+  const path = searchResultPath(item.type, item.id, item.parentId);
   const date = formatDate(item.occurredOn);
 
   const inner = (
@@ -111,7 +122,7 @@ function SearchResultCard({
   );
 
   return (
-    <li className="search-result-wrapper eimir-motion-reveal">
+    <li className="search-result-wrapper">
       {path ? (
         <Link
           className="search-result-link"
@@ -285,14 +296,7 @@ export function SearchProductPage({
                 key={`${item.type}:${item.id}`}
                 item={item}
                 onOpen={(event, path) => {
-                  if (
-                    event.button !== 0 ||
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
+                  if (!isPlainPrimaryClick(event)) return;
                   const taskOriginKey = captureOrigin();
                   if (!taskOriginKey) return;
                   event.preventDefault();
@@ -324,13 +328,16 @@ function ActivityCard({
   profilesApi,
   spaceId,
   currentAccountId,
+  onOpen,
 }: {
   item: ActivityItem;
   profilesApi?: ProfilesApi | null;
   spaceId: string;
   currentAccountId?: string;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
+  const { relationshipLabel } = usePartnerNickname();
   const path = engagementTargetPath(item.targetType, item.targetId);
 
   const isOwn = Boolean(
@@ -339,7 +346,13 @@ function ActivityCard({
   const actorName = isOwn
     ? t('m5s5.activity.you')
     : item.actor
-      ? authorDisplayName(item.actor)
+      ? item.actor.isFormerMember
+        ? authorDisplayName(item.actor)
+        : relationshipLabel(
+            item.actor.id,
+            item.actor.displayName,
+            t('couplePresencePartnerFallback'),
+          )
       : undefined;
 
   const actionText = isOwn
@@ -399,9 +412,13 @@ function ActivityCard({
   );
 
   return (
-    <li className="activity-result-wrapper eimir-motion-reveal">
+    <li className="activity-result-wrapper">
       {path ? (
-        <Link className="activity-result-link" to={path}>
+        <Link
+          className="activity-result-link"
+          to={path}
+          onClick={(event) => onOpen?.(event, path)}
+        >
           {inner}
         </Link>
       ) : (
@@ -423,6 +440,8 @@ export function ActivityProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const activityQuery = useInfiniteQuery({
     queryKey: ['m5-s5', 'activity', spaceId],
     queryFn: ({ pageParam }) =>
@@ -484,6 +503,13 @@ export function ActivityProductPage({
                 profilesApi={profilesApi}
                 spaceId={spaceId}
                 currentAccountId={currentAccountId}
+                onOpen={(event, path) => {
+                  if (!isPlainPrimaryClick(event)) return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
               />
             ))}
           </ul>
@@ -512,6 +538,7 @@ function NotificationCard({
   currentAccountId,
   onMarkRead,
   isMarkingRead,
+  onOpen,
 }: {
   item: NotificationItem;
   spaceId: string;
@@ -519,6 +546,7 @@ function NotificationCard({
   currentAccountId?: string;
   onMarkRead: (id: string) => void;
   isMarkingRead: boolean;
+  onOpen?: (event: MouseEvent<HTMLAnchorElement>, path: string) => void;
 }) {
   const { t } = useTranslation();
   const path = engagementTargetPath(item.targetType, item.targetId);
@@ -586,15 +614,16 @@ function NotificationCard({
   );
 
   return (
-    <li className="m4-notification-wrapper eimir-motion-reveal">
+    <li className="m4-notification-wrapper">
       {path ? (
         <Link
           className="m4-notification-link"
           to={path}
-          onClick={() => {
+          onClick={(event) => {
             if (!item.readAt) {
               onMarkRead(item.id);
             }
+            onOpen?.(event, path);
           }}
         >
           {inner}
@@ -618,6 +647,8 @@ export function NotificationsProductPage({
   currentAccountId?: string;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { captureOrigin } = useTaskOrigin();
   const queryClient = useQueryClient();
   const listKey = notificationsListQueryKey(spaceId);
   const unreadKey = notificationUnreadCountQueryKey(spaceId);
@@ -727,7 +758,7 @@ export function NotificationsProductPage({
 
   const items =
     notificationsQuery.data?.pages.flatMap((page) => page.items) ?? [];
-  const unreadCount = unreadQuery.data?.unreadCount ?? 0;
+  const unreadCount = unreadQuery.data?.unreadCount;
 
   return (
     <div className="page m4-product-page">
@@ -752,32 +783,43 @@ export function NotificationsProductPage({
         }
       />
 
-      <section
-        className="layout-panel layout-panel-quiet m4-notification-summary-panel"
-        aria-labelledby="m4-notification-summary"
-      >
-        <div className="m4-notification-summary">
-          <h2
-            id="m4-notification-summary"
-            className="m4-unread-badge"
-            aria-live="polite"
-          >
-            {t('m5s5.notifications.unreadCount', { count: unreadCount })}
-          </h2>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => markAll.mutate()}
-            disabled={markAll.isPending || unreadCount === 0}
-          >
-            {markAll.isPending
-              ? t('m5s5.notifications.markingAllRead')
-              : t('m5s5.notifications.markAllRead')}
-          </button>
-        </div>
-      </section>
+      {unreadQuery.isLoading ? (
+        <section
+          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
+          aria-live="polite"
+        >
+          <p className="planning-meta">
+            {t('m5s5.notifications.unreadLoading')}
+          </p>
+        </section>
+      ) : unreadQuery.isSuccess && unreadCount !== undefined ? (
+        <section
+          className="layout-panel layout-panel-quiet m4-notification-summary-panel"
+          aria-labelledby="m4-notification-summary"
+        >
+          <div className="m4-notification-summary">
+            <h2
+              id="m4-notification-summary"
+              className="m4-unread-badge"
+              aria-live="polite"
+            >
+              {t('m5s5.notifications.unreadCount', { count: unreadCount })}
+            </h2>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => markAll.mutate()}
+              disabled={markAll.isPending || unreadCount === 0}
+            >
+              {markAll.isPending
+                ? t('m5s5.notifications.markingAllRead')
+                : t('m5s5.notifications.markAllRead')}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-      {notificationsQuery.isLoading || unreadQuery.isLoading ? (
+      {notificationsQuery.isLoading ? (
         <UiState kind="loading" title={t('states.loading.title')} />
       ) : null}
       {notificationsQuery.error ? (
@@ -817,6 +859,13 @@ export function NotificationsProductPage({
                 isMarkingRead={
                   markOne.isPending && markOne.variables === item.id
                 }
+                onOpen={(event, path) => {
+                  if (!isPlainPrimaryClick(event)) return;
+                  const taskOriginKey = captureOrigin();
+                  if (!taskOriginKey) return;
+                  event.preventDefault();
+                  void navigate(path, { state: { taskOriginKey } });
+                }}
               />
             ))}
           </ul>

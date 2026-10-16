@@ -79,14 +79,6 @@ class Chapter(IdMixin, TimestampMixin, VersionMixin, PrivateResourceMixin, Base)
         Index("ix_chapters_place_id", "place_id"),
         Index("ix_chapters_space_id_created_at_id", "space_id", "created_at", "id"),
         Index("ix_chapters_space_id_start_on", "space_id", "start_on"),
-        Index(
-            "ix_chapters_search_fts",
-            text(
-                "(setweight(to_tsvector('simple', coalesce(payload->>'title', '')), 'A') || "
-                "setweight(to_tsvector('simple', coalesce(payload->>'description', '')), 'B'))"
-            ),
-            postgresql_using="gin",
-        ),
     )
 
 

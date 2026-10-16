@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "schemaVersion": 1,
-  "updated": "2026-09-16",
+  "schemaVersion": 2,
+  "updated": "2026-09-19",
   "statusValues": [
     "planned",
     "in_progress",
@@ -10,170 +10,146 @@
     "deprecated"
   ],
   "platforms": [
-    "web",
-    "android"
+    "web"
   ],
   "components": [
     {
       "id": "button",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#31-button",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "icon-button",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#32-icon-button",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "text-field",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#41-text-field-und-text-area",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "selection-control",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#42-auswahlfelder",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "navigation-item",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#51-navigation-item",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "tabs",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#52-tabs",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "list-item",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#61-list-item",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "content-card",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#62-content-card",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "visibility-control",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#71-visibility-control",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "status-badge",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#72-status-badge",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "sync-indicator",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#73-sync-indicator",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "dialog",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#81-dialog",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "bottom-sheet",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#82-bottom-sheet",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "side-pane",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#83-side-pane",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "inline-message",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#91-inline-message",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "snackbar",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#92-snackbar",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "system-states",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#93-skeleton-empty-state-und-error-state",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "media-tile",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#101-media-tile",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "couple-presence",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#couple-presence",
-      "web": "implemented",
-      "android": "planned"
+      "web": "implemented"
     },
     {
       "id": "partner-avatar-pair",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#partner-avatar-pair",
-      "web": "implemented",
-      "android": "planned"
+      "web": "implemented"
     },
     {
       "id": "thinking-of-you-button",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#thinking-of-you-button",
-      "web": "implemented",
-      "android": "planned"
+      "web": "implemented"
     },
     {
       "id": "product-reference-visual-roles",
       "tier": "P0",
       "contract": "docs/COMPONENT-CONTRACTS.md#65-product-reference-v1-visual-roles",
-      "web": "implemented",
-      "android": "implemented"
+      "web": "implemented"
     },
     {
       "id": "focused-task-and-return",
       "tier": "P1",
       "contract": "docs/COMPONENT-CONTRACTS.md#84-focused-task-short-sheet-and-return",
-      "web": "in_progress",
-      "android": "in_progress"
+      "web": "in_progress"
     }
   ],
   "patterns": [
@@ -181,43 +157,37 @@
       "id": "app-shell",
       "tier": "P1",
       "contract": "docs/UX-PATTERNS.md#2-app-shell-und-navigation",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "list-detail",
       "tier": "P1",
       "contract": "docs/UX-PATTERNS.md#31-listedetail",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "form-page",
       "tier": "P1",
       "contract": "docs/UX-PATTERNS.md#32-erstellen-und-bearbeiten",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "story-timeline",
       "tier": "P1",
       "contract": "docs/SCREEN-TEMPLATES.md#4-template-story-timeline",
-      "web": "in_progress",
-      "android": "planned"
+      "web": "in_progress"
     },
     {
       "id": "privacy-selection",
       "tier": "P1",
       "contract": "docs/USER-FLOWS.md#6-flow-d--herzmoment-privat-oder-geteilt-erfassen",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     },
     {
       "id": "version-conflict",
       "tier": "P1",
       "contract": "docs/USER-FLOWS.md#10-flow-h--versionskonflikt-lösen",
-      "web": "planned",
-      "android": "planned"
+      "web": "planned"
     }
   ]
 }

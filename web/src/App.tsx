@@ -12,7 +12,12 @@ import type { AccountView } from './api/generated/models/AccountView';
 import { AttachmentReadRequestParentTypeEnum } from './api/generated/models/AttachmentReadRequest';
 import type { SpaceView } from './api/generated/models/SpaceView';
 import type { TokenView } from './api/generated/models/TokenView';
+import { AppearanceApi } from './api/generated/apis/AppearanceApi';
+import { DailyCheckInsApi } from './api/generated/apis/DailyCheckInsApi';
+import { DailyQuoteApi } from './api/generated/apis/DailyQuoteApi';
+import { EntitlementsApi } from './api/generated/apis/EntitlementsApi';
 import { ProfilesApi } from './api/generated/apis/ProfilesApi';
+import { SpacesApi } from './api/generated/apis/SpacesApi';
 import { Configuration } from './api/generated/runtime';
 import { loadReferenceClientConfig } from './client/config';
 import {
@@ -24,6 +29,8 @@ import { createPeopleApi } from './client/peopleApi';
 import { createPrivateAreaApi } from './client/privateArea';
 import { invalidateDashboard } from './client/dashboardQueries';
 import { normalizeClientError } from './client/problemDetails';
+import { PartnerNicknameProvider } from './client/partnerNickname';
+import { AppIconProvider } from './client/appIconContext';
 import { clearProductReadCacheInBackground } from './client/productReadCache';
 import { invalidateStoryProjections } from './client/authorSummaryConsumers';
 import {
@@ -63,11 +70,15 @@ import {
   MILESTONE_CREATE_ROUTE,
   MILESTONE_DETAIL_ROUTE_PATTERN,
   MILESTONE_EDIT_ROUTE_PATTERN,
+  MORE_INSIGHTS_PATTERNS_ROUTE,
+  MORE_INSIGHTS_RECAP_ROUTE,
+  MORE_INSIGHTS_ROUTE,
   MORE_NOTIFICATIONS_ROUTE,
   MORE_PEOPLE_ROUTE,
   MORE_PLACES_ROUTE,
   MORE_COLLECTIONS_ROUTE,
   MORE_PROFILE_ROUTE,
+  MORE_SETTINGS_CATEGORY_ROUTE_PATTERN,
   MORE_SETTINGS_ROUTE,
   PLAN_CREATE_ROUTE,
   PLAN_DETAIL_ROUTE_PATTERN,
@@ -77,6 +88,7 @@ import {
   STORY_CHAPTERS_ROUTE,
   STORY_YEAR_ROUTE_PATTERN,
   STORY_YEARS_ROUTE,
+  STORY_PHOTOS_ROUTE,
   WISH_DETAIL_ROUTE_PATTERN,
   WISH_CREATE_ROUTE,
 } from './client/routes';
@@ -89,12 +101,14 @@ import {
 } from './client/spaceContext';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AppShell } from './components/AppShell';
+import { SharedPhotosPage } from './components/SharedPhotosPage';
 import { Brand } from './components/Brand';
 import { ChapterCreatePage } from './components/ChapterCreatePage';
 import { ChapterProductPage } from './components/ChapterProductPage';
 import { ChaptersOverviewPage } from './components/ChaptersOverviewPage';
 import { CollectionProductPage } from './components/CollectionProductPage';
 import { CollectionsOverviewPage } from './components/CollectionsOverviewPage';
+import { DailyInsightsPage } from './components/DailyInsightsPage';
 import { DemoEntry } from './components/DemoEntry';
 import { FirstSpaceGate } from './components/FirstSpaceGate';
 import { HeartMomentProductPage } from './components/HeartMomentProductPage';
@@ -151,9 +165,7 @@ function SpaceContextGate({
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
       <div className="entry-aura entry-aura-end" aria-hidden="true" />
       <section className="setup-card" aria-labelledby="space-context-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="setup-content">
           <p className="eyebrow">{t('spaceContext.eyebrow')}</p>
           {loading ? (
@@ -185,9 +197,7 @@ function SpacePicker({
       <div className="entry-aura entry-aura-start" aria-hidden="true" />
       <div className="entry-aura entry-aura-end" aria-hidden="true" />
       <section className="setup-card" aria-labelledby="space-picker-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="setup-content">
           <p className="eyebrow">{t('spaceContext.eyebrow')}</p>
           <h1 id="space-picker-heading">{t('spaceContext.pickerTitle')}</h1>
@@ -266,6 +276,58 @@ function AuthenticatedApp({
       ),
     [apiBaseUrl, tokens.accessToken],
   );
+  const appearanceApi = useMemo(
+    () =>
+      new AppearanceApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+  const spacesApi = useMemo(
+    () =>
+      new SpacesApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+  const dailyCheckInsApi = useMemo(
+    () =>
+      new DailyCheckInsApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+
+  const dailyQuoteApi = useMemo(
+    () =>
+      new DailyQuoteApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
+
+  const entitlementApi = useMemo(
+    () =>
+      new EntitlementsApi(
+        new Configuration({
+          basePath: apiBaseUrl,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        }),
+      ),
+    [apiBaseUrl, tokens.accessToken],
+  );
 
   useEffect(() => {
     if (previousSpaceId.current === spaceId) return;
@@ -284,7 +346,7 @@ function AuthenticatedApp({
   }, [location.pathname]);
 
   const loadMemoryImage = useCallback(
-    (memoryId: string, attachmentId: string) =>
+    (memoryId: string, attachmentId: string, signal?: AbortSignal) =>
       loadAuthorizedImage(
         apis,
         apiBaseUrl,
@@ -292,12 +354,14 @@ function AuthenticatedApp({
         spaceId,
         memoryId,
         attachmentId,
+        fetch,
+        signal,
       ),
     [apiBaseUrl, apis, spaceId, tokens.accessToken],
   );
 
   const loadHeartMomentAttachment = useCallback(
-    (heartMomentId: string, attachmentId: string) =>
+    (heartMomentId: string, attachmentId: string, signal?: AbortSignal) =>
       loadAuthorizedMedia(
         apis,
         apiBaseUrl,
@@ -306,6 +370,8 @@ function AuthenticatedApp({
         AttachmentReadRequestParentTypeEnum.HEART_MOMENT,
         heartMomentId,
         attachmentId,
+        fetch,
+        signal,
       ),
     [apiBaseUrl, apis, spaceId, tokens.accessToken],
   );
@@ -343,337 +409,431 @@ function AuthenticatedApp({
     spaceId,
   };
 
-  return (
-    <AppShell
-      onLogout={logout}
-      apiBaseUrl={apiBaseUrl}
-      accessToken={tokens.accessToken}
-      account={account}
+  const relationshipContent = (
+    <PartnerNicknameProvider
+      profilesApi={profilesApi}
       spaceId={spaceId}
-      serverAdmin={serverAdmin}
+      accountId={account.id}
     >
-      <AppErrorBoundary
-        resetKey={location.pathname}
-        fallback={
-          <UiState
-            kind="error"
-            title={t('states.unexpected.title')}
-            body={t('states.unexpected.body')}
-            action={
-              <Link
-                className="button-link secondary-link"
-                to={DEFAULT_APP_ROUTE}
-              >
-                {t('navigation.today')}
-              </Link>
-            }
-          />
-        }
+      <AppShell
+        onLogout={logout}
+        apiBaseUrl={apiBaseUrl}
+        accessToken={tokens.accessToken}
+        account={account}
+        spaceId={spaceId}
+        serverAdmin={serverAdmin}
       >
-        <Routes>
-          <Route
-            path="/"
-            element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
-          />
-          <Route
-            path={appRoutePath('story')}
-            element={
-              <StoryProductPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
+        <AppErrorBoundary
+          resetKey={location.pathname}
+          fallback={
+            <UiState
+              kind="error"
+              title={t('states.unexpected.title')}
+              body={t('states.unexpected.body')}
+              action={
+                <Link
+                  className="button-link secondary-link"
+                  to={DEFAULT_APP_ROUTE}
+                >
+                  {t('navigation.today')}
+                </Link>
+              }
+            />
+          }
+        >
+          <Routes>
+            <Route
+              path="/"
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
+            />
+            <Route
+              path={appRoutePath('story')}
+              element={
+                <StoryProductPage
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={STORY_YEARS_ROUTE}
+              element={
+                <StoryYearsIndexPage
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={STORY_PHOTOS_ROUTE}
+              element={
+                <SharedPhotosPage
+                  key={`${account.id}:${spaceId}`}
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={STORY_YEAR_ROUTE_PATTERN}
+              element={
+                <StoryYearDetailPage
+                  apis={apis}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('plan')}
+              element={<SharedPlanningOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path={PLAN_CREATE_ROUTE}
+              element={
+                <PlanningCreatePage kind="plan" {...planningProductProps} />
+              }
+            />
+            <Route
+              path={WISH_CREATE_ROUTE}
+              element={
+                <PlanningCreatePage kind="wish" {...planningProductProps} />
+              }
+            />
+            <Route
+              path={WISH_DETAIL_ROUTE_PATTERN}
+              element={<WishProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={PLAN_DETAIL_ROUTE_PATTERN}
+              element={<PlanProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={STORY_CHAPTERS_ROUTE}
+              element={<ChaptersOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/chapters"
+              element={<Navigate replace to={STORY_CHAPTERS_ROUTE} />}
+            />
+            <Route
+              path={CHAPTER_CREATE_ROUTE}
+              element={<ChapterCreatePage {...planningProductProps} />}
+            />
+            <Route
+              path={CHAPTER_DETAIL_ROUTE_PATTERN}
+              element={<ChapterProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={MORE_PLACES_ROUTE}
+              element={<PlacesOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/places"
+              element={<Navigate replace to={MORE_PLACES_ROUTE} />}
+            />
+            <Route
+              path={PLACE_DETAIL_ROUTE_PATTERN}
+              element={<PlaceProductPage {...planningProductProps} />}
+            />
+            <Route
+              path={MORE_COLLECTIONS_ROUTE}
+              element={<CollectionsOverviewPage {...planningProductProps} />}
+            />
+            <Route
+              path="/plan/collections"
+              element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
+            />
+            <Route
+              path={COLLECTION_DETAIL_ROUTE_PATTERN}
+              element={
+                <CollectionProductPage
+                  {...planningProductProps}
+                  dashboardApi={m4Apis.dashboard}
+                  accountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('today')}
+              element={
+                <TodayPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  spacesApi={spacesApi}
+                  dailyCheckInsApi={dailyCheckInsApi}
+                  dailyQuoteApi={dailyQuoteApi}
+                  entitlementApi={entitlementApi}
+                  collectionsApi={planningApis.collections}
+                  loadMemoryImage={loadMemoryImage}
+                  profilesApi={profilesApi}
+                  account={account}
+                />
+              }
+            />
+            <Route
+              path={ACTIVITY_ROUTE}
+              element={
+                <ActivityProductPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={SEARCH_ROUTE}
+              element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
+            />
+            <Route
+              path={GAMES_MOMENTS_ROUTE}
+              element={
+                <OurMomentsGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={GAMES_WISH_DETECTIVE_ROUTE}
+              element={
+                <WishDetectiveGamePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  spaceId={spaceId}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={appRoutePath('more')}
+              element={
+                <MoreOverviewPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            {(
+              [
+                [MORE_INSIGHTS_ROUTE, 'week'],
+                [MORE_INSIGHTS_PATTERNS_ROUTE, 'patterns'],
+                [MORE_INSIGHTS_RECAP_ROUTE, 'recap'],
+              ] as const
+            ).map(([path, insightView]) => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <DailyInsightsPage
+                    key={`${account.id}:${spaceId}`}
+                    view={insightView}
+                    spaceId={spaceId}
+                    account={account}
+                    dailyCheckInsApi={dailyCheckInsApi}
+                    entitlementApi={entitlementApi}
+                    dashboardApi={m4Apis.dashboard}
+                    profilesApi={profilesApi}
+                  />
+                }
               />
-            }
-          />
-          <Route
-            path={STORY_YEARS_ROUTE}
-            element={
-              <StoryYearsIndexPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-              />
-            }
-          />
-          <Route
-            path={STORY_YEAR_ROUTE_PATTERN}
-            element={
-              <StoryYearDetailPage
-                apis={apis}
-                accountId={account.id}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-              />
-            }
-          />
-          <Route
-            path={appRoutePath('plan')}
-            element={<SharedPlanningOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path={PLAN_CREATE_ROUTE}
-            element={
-              <PlanningCreatePage kind="plan" {...planningProductProps} />
-            }
-          />
-          <Route
-            path={WISH_CREATE_ROUTE}
-            element={
-              <PlanningCreatePage kind="wish" {...planningProductProps} />
-            }
-          />
-          <Route
-            path={WISH_DETAIL_ROUTE_PATTERN}
-            element={<WishProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={PLAN_DETAIL_ROUTE_PATTERN}
-            element={<PlanProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={STORY_CHAPTERS_ROUTE}
-            element={<ChaptersOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/chapters"
-            element={<Navigate replace to={STORY_CHAPTERS_ROUTE} />}
-          />
-          <Route
-            path={CHAPTER_CREATE_ROUTE}
-            element={<ChapterCreatePage {...planningProductProps} />}
-          />
-          <Route
-            path={CHAPTER_DETAIL_ROUTE_PATTERN}
-            element={<ChapterProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={MORE_PLACES_ROUTE}
-            element={<PlacesOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/places"
-            element={<Navigate replace to={MORE_PLACES_ROUTE} />}
-          />
-          <Route
-            path={PLACE_DETAIL_ROUTE_PATTERN}
-            element={<PlaceProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={MORE_COLLECTIONS_ROUTE}
-            element={<CollectionsOverviewPage {...planningProductProps} />}
-          />
-          <Route
-            path="/plan/collections"
-            element={<Navigate replace to={MORE_COLLECTIONS_ROUTE} />}
-          />
-          <Route
-            path={COLLECTION_DETAIL_ROUTE_PATTERN}
-            element={<CollectionProductPage {...planningProductProps} />}
-          />
-          <Route
-            path={appRoutePath('today')}
-            element={
-              <TodayPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                loadMemoryImage={loadMemoryImage}
-                profilesApi={profilesApi}
-                account={account}
-              />
-            }
-          />
-          <Route
-            path={ACTIVITY_ROUTE}
-            element={
-              <ActivityProductPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                profilesApi={profilesApi}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={SEARCH_ROUTE}
-            element={<SearchProductPage apis={m4Apis} spaceId={spaceId} />}
-          />
-          <Route
-            path={GAMES_MOMENTS_ROUTE}
-            element={
-              <OurMomentsGamePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                spaceId={spaceId}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={GAMES_WISH_DETECTIVE_ROUTE}
-            element={
-              <WishDetectiveGamePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                spaceId={spaceId}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route path={appRoutePath('more')} element={<MoreOverviewPage />} />
-          <Route
-            path={MORE_NOTIFICATIONS_ROUTE}
-            element={
-              <NotificationsProductPage
-                apis={m4Apis}
-                spaceId={spaceId}
-                profilesApi={profilesApi}
-                currentAccountId={account.id}
-              />
-            }
-          />
-          <Route
-            path={MORE_PEOPLE_ROUTE}
-            element={
-              <RelatedPeoplePage
-                peopleApi={peopleApi}
-                spaceId={spaceId}
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                attachmentsApi={apis.attachments}
-              />
-            }
-          />
-          <Route
-            path={MORE_PROFILE_ROUTE}
-            element={
-              <ProfilePage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path={MORE_SETTINGS_ROUTE}
-            element={
-              <SettingsPage
-                apiBaseUrl={apiBaseUrl}
-                accessToken={tokens.accessToken}
-                account={account}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path="/more/private/*"
-            element={
-              <PrivateAreaProductPage
-                api={privateAreaApi}
-                accountId={account.id}
-                spaceId={spaceId}
-              />
-            }
-          />
-          <Route
-            path={MEMORY_CREATE_ROUTE}
-            element={
-              <MemoryCreatePage
-                key={`${account.id}:${spaceId}:${location.key}`}
-                accessToken={tokens.accessToken}
-                apiBaseUrl={apiBaseUrl}
-                spaceId={spaceId}
-                accountId={account.id}
-                onSaved={refreshStory}
-              />
-            }
-          />
-          <Route
-            path={MEMORY_EDIT_ROUTE_PATTERN}
-            element={<MemoryProductPage mode="edit" {...memoryProductProps} />}
-          />
-          <Route
-            path={MEMORY_DETAIL_ROUTE_PATTERN}
-            element={
-              <MemoryProductPage mode="detail" {...memoryProductProps} />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_CREATE_ROUTE}
-            element={
-              <HeartMomentProductPage
-                mode="create"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
-            element={
-              <HeartMomentProductPage
-                mode="edit"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={HEART_MOMENT_DETAIL_ROUTE_PATTERN}
-            element={
-              <HeartMomentProductPage
-                mode="detail"
-                {...heartMomentProductProps}
-              />
-            }
-          />
-          <Route
-            path={MILESTONE_CREATE_ROUTE}
-            element={
-              <MilestoneProductPage mode="create" {...milestoneProductProps} />
-            }
-          />
-          <Route
-            path={MILESTONE_EDIT_ROUTE_PATTERN}
-            element={
-              <MilestoneProductPage mode="edit" {...milestoneProductProps} />
-            }
-          />
-          <Route
-            path={MILESTONE_DETAIL_ROUTE_PATTERN}
-            element={
-              <MilestoneProductPage mode="detail" {...milestoneProductProps} />
-            }
-          />
-          {/*
+            ))}
+            <Route
+              path={MORE_NOTIFICATIONS_ROUTE}
+              element={
+                <NotificationsProductPage
+                  apis={m4Apis}
+                  spaceId={spaceId}
+                  profilesApi={profilesApi}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={MORE_PEOPLE_ROUTE}
+              element={
+                <RelatedPeoplePage
+                  peopleApi={peopleApi}
+                  spaceId={spaceId}
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  attachmentsApi={apis.attachments}
+                  currentAccountId={account.id}
+                />
+              }
+            />
+            <Route
+              path={MORE_PROFILE_ROUTE}
+              element={
+                <ProfilePage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MORE_SETTINGS_ROUTE}
+              element={
+                <SettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MORE_SETTINGS_CATEGORY_ROUTE_PATTERN}
+              element={
+                <SettingsPage
+                  apiBaseUrl={apiBaseUrl}
+                  accessToken={tokens.accessToken}
+                  account={account}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path="/more/private/*"
+              element={
+                <PrivateAreaProductPage
+                  api={privateAreaApi}
+                  accountId={account.id}
+                  spaceId={spaceId}
+                />
+              }
+            />
+            <Route
+              path={MEMORY_CREATE_ROUTE}
+              element={
+                <MemoryCreatePage
+                  key={`${account.id}:${spaceId}:${location.key}`}
+                  accessToken={tokens.accessToken}
+                  apiBaseUrl={apiBaseUrl}
+                  spaceId={spaceId}
+                  accountId={account.id}
+                  onSaved={refreshStory}
+                />
+              }
+            />
+            <Route
+              path={MEMORY_EDIT_ROUTE_PATTERN}
+              element={
+                <MemoryProductPage mode="edit" {...memoryProductProps} />
+              }
+            />
+            <Route
+              path={MEMORY_DETAIL_ROUTE_PATTERN}
+              element={
+                <MemoryProductPage mode="detail" {...memoryProductProps} />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_CREATE_ROUTE}
+              element={
+                <HeartMomentProductPage
+                  mode="create"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_EDIT_ROUTE_PATTERN}
+              element={
+                <HeartMomentProductPage
+                  mode="edit"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={HEART_MOMENT_DETAIL_ROUTE_PATTERN}
+              element={
+                <HeartMomentProductPage
+                  mode="detail"
+                  {...heartMomentProductProps}
+                />
+              }
+            />
+            <Route
+              path={MILESTONE_CREATE_ROUTE}
+              element={
+                <MilestoneProductPage
+                  mode="create"
+                  {...milestoneProductProps}
+                />
+              }
+            />
+            <Route
+              path={MILESTONE_EDIT_ROUTE_PATTERN}
+              element={
+                <MilestoneProductPage mode="edit" {...milestoneProductProps} />
+              }
+            />
+            <Route
+              path={MILESTONE_DETAIL_ROUTE_PATTERN}
+              element={
+                <MilestoneProductPage
+                  mode="detail"
+                  {...milestoneProductProps}
+                />
+              }
+            />
+            {/*
             Paths the client shipped before the route model was decided. Deep
             Links to them are already shared, so they redirect permanently
             instead of falling through to the catch-all.
           */}
-          {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+            {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+              <Route
+                key={from}
+                path={`${from}/*`}
+                element={<LegacyPathRedirect />}
+              />
+            ))}
+            {LEGACY_ROUTE_REWRITES.map(({ from }) => (
+              <Route
+                key={`${from}-exact`}
+                path={from}
+                element={<LegacyPathRedirect />}
+              />
+            ))}
             <Route
-              key={from}
-              path={`${from}/*`}
-              element={<LegacyPathRedirect />}
+              path="*"
+              element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
             />
-          ))}
-          {LEGACY_ROUTE_REWRITES.map(({ from }) => (
-            <Route
-              key={`${from}-exact`}
-              path={from}
-              element={<LegacyPathRedirect />}
-            />
-          ))}
-          <Route
-            path="*"
-            element={<Navigate replace to={DEFAULT_APP_ROUTE} />}
-          />
-        </Routes>
-      </AppErrorBoundary>
-    </AppShell>
+          </Routes>
+        </AppErrorBoundary>
+      </AppShell>
+    </PartnerNicknameProvider>
+  );
+  return (
+    <AppIconProvider
+      key={`${apiBaseUrl}:${account.id}:${spaceId}`}
+      api={appearanceApi}
+      entitlementsApi={entitlementApi}
+      instance={apiBaseUrl}
+      accountId={account.id}
+      spaceId={spaceId}
+    >
+      {relationshipContent}
+    </AppIconProvider>
   );
 }
 
@@ -774,16 +934,19 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
 
   useEffect(() => {
     if (!tokens) return;
+    let cancelled = false;
+    const refreshToken = tokens.refreshToken;
     const expiresAtMs = new Date(tokens.accessExpiresAt).getTime();
     const timeUntilExpiry = expiresAtMs - Date.now();
     const refreshDelayMs = Math.max(0, timeUntilExpiry - 60_000);
 
     const timer = setTimeout(() => {
-      void refreshSessionTokens(config.apiBaseUrl, tokens.refreshToken)
+      void refreshSessionTokens(config.apiBaseUrl, refreshToken)
         .then((newTokens) => {
-          setTokens(newTokens);
+          if (!cancelled) setTokens(newTokens);
         })
         .catch((error: unknown) => {
+          if (cancelled) return;
           const status = (error as { status?: number })?.status;
           if (status === 401) {
             terminateSession();
@@ -791,7 +954,10 @@ export function App({ demoMode = false }: { demoMode?: boolean }) {
         });
     }, refreshDelayMs);
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [config.apiBaseUrl, terminateSession, tokens]);
 
   const serverAdminApis = useMemo(

@@ -128,6 +128,7 @@ describe('PlanProductPage', () => {
 
     expect(html).toContain(i18n.t('m5s3.plan.completedTitle'));
     expect(html).toContain(i18n.t('m5s3.plan.completedBody'));
+    expect(html).not.toContain(i18n.t('m5s3.plan.sharedAchievementTitle'));
     expect(html).not.toContain(i18n.t('m5s3.planStory.memoryAction'));
     expect(html).not.toContain(i18n.t('m5s3.planStory.milestoneAction'));
     expect(html).not.toContain('planen-complete-cta');

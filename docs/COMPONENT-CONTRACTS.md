@@ -111,6 +111,12 @@ message.
 - Segmented Control: two to four equivalent views or modes, not long-term
   navigation.
 
+`ShortTaskSheet` may accept an optional `footer` for a bounded choice with a
+long scrollable body. The shared footer stays outside body scrolling, protects
+the bottom safe area and remains separately scrollable for large text or error
+content. It does not introduce another modal, focus or dismissal lifecycle.
+App-icon selection uses this contract for its explicit Save and recovery state.
+
 ### 4.3 Date, Time, and Duration
 
 - Platform-native selection is allowed if result format and validation remain
@@ -203,7 +209,7 @@ the concrete APIs, usage, existing consumers and validation scope.
 - Fast feedback, ordinary transitions and contextual reveals use existing
   duration/easing roles. Reduced motion retains status, meaning and actions.
 
-The internal Web fixture and Android debug Activity exercise photo, text,
+The internal Web fixture (the former Android debug Activity was removed in #1009) exercises photo, text,
 utility, loading/error/retry and overlay roles with synthetic data. Their
 detail/return and fixture-completion actions demonstrate the bounded proof;
 they do not implement production capture, persistence or F2 task lifecycle.
@@ -344,8 +350,8 @@ These signature building blocks represent the core relationship-first identity o
 
 **Purpose:** Renders the two partners of a shared space as an interconnected unit with overlapping circles and connection state.
 
-- **Anatomy:** Primary user circle, overlapping secondary circle (partner or waiting invitation placeholder), connection status pip.
-- **Variants:** `connected`, `waiting` (partner pending/invitation slot), `offline`.
+- **Anatomy:** Primary user circle, overlapping secondary circle (partner or waiting invitation placeholder), optional active-presence pip.
+- **Variants:** `active`, `recent`, `unknown`, `waiting` (partner pending/invitation slot). The pip is rendered only for `active`; `recent` is text-only and `unknown` makes no Presence claim.
 - **States:** Default, hover/press on invitation slot, disabled.
 - **Accessibility:** Group container provides a composite accessible description combining user and partner names or announcing pending invitation status. Interactive invitation triggers use `role="button"` and clear accessible labels.
 - **Tokens:** Overlap offset derived from size (`-28%`), border uses `--color-surface` / `eimir.Theme.colors.surface` for crisp visual separation.
@@ -354,9 +360,9 @@ These signature building blocks represent the core relationship-first identity o
 
 **Purpose:** Anchors the top of the relationship home view (`/today`), presenting shared space identity, partner presence, and milestone duration.
 
-- **Anatomy:** `PartnerAvatarPair`, space name heading, live status pip with descriptive text, relationship duration link, and optional contextual action slot.
-- **Variants:** `connected` (shared status), `waiting` (brand invitation prompt), `offline` (subtle muted indicator).
-- **Behavior:** Clicking the relationship duration navigates to the relationship milestone details.
+- **Anatomy:** `PartnerAvatarPair`, space name heading, optional bounded Presence text, relationship duration link, and optional contextual action slot.
+- **Variants:** `active` (localized active-presence text with pip), `recent` (localized recent-presence text, text-only), `unknown` (no Presence assertion), `waiting` (localized waiting/invitation text). Membership alone never selects a Presence state.
+- **Behavior:** Presence is server-authoritative and ephemeral; the client never receives an exact last-active timestamp. Clicking the relationship duration navigates to the relationship milestone details.
 - **Accessibility:** Headings use appropriate levels (`titleLarge`), interactive duration triggers announce their action explicitly.
 - **Tokens:** Use existing semantic typography, spacing, and identity tokens. The relationship masthead does not require a bounded elevated card; a radius, border, or elevation is used only when its selected v1 surface role needs that boundary.
 
@@ -368,7 +374,7 @@ These signature building blocks represent the core relationship-first identity o
 - **Variants:** Standard (text and icon), compact (icon-only for condensed toolbars).
 - **States:** `idle`, `sending` (pulsing animation, disabled interaction), `sent` (optimistic confirmation, transitions back to idle after 2.5s).
 - **Accessibility:** Explicit button role and localized action description. Reduced-motion queries disable heartbeat and spring animations.
-- **Haptics:** Android implementation performs tactile haptic feedback (`LongPress`) on trigger.
+- **Haptics:** Web has no haptic feedback today; tactile feedback on Android is a future native-capability slice (#500, #578), not part of the retired Compose implementation.
 
 ### 11.4 VisibilityBadge
 

@@ -10,6 +10,7 @@ Name | Type
 `activeSessionCount` | number
 `authMethods` | Array&lt;string&gt;
 `createdAt` | Date
+`deletionStatus` | [AccountDeletionStatus](AccountDeletionStatus.md)
 `disabledAt` | Date
 `displayName` | string
 `emailVerified` | boolean
@@ -27,6 +28,7 @@ const example = {
   "activeSessionCount": null,
   "authMethods": null,
   "createdAt": null,
+  "deletionStatus": null,
   "disabledAt": null,
   "displayName": null,
   "emailVerified": null,

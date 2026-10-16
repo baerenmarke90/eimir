@@ -14,7 +14,8 @@ by a day.
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 log = logging.getLogger(__name__)
@@ -60,6 +61,45 @@ def resolve_zone(name: str) -> ZoneInfo:
     except (ZoneInfoNotFoundError, ValueError):
         log.warning("unknown timezone, falling back to UTC", extra={"timezone": name})
         return ZoneInfo("UTC")
+
+
+def resolve_local(
+    day: date,
+    wall_time: time,
+    zone: ZoneInfo,
+    *,
+    ambiguous: Literal["earlier", "later"] = "earlier",
+) -> datetime:
+    """Resolve a wall time to UTC, including daylight-saving transitions.
+
+    Repeated times choose the earlier instant by default (the Reminder rule);
+    a window's closing boundary can choose the later instant. Missing times
+    shift forward by the daylight-saving gap, preserving the chosen minute.
+    """
+    naive = datetime.combine(day, wall_time.replace(tzinfo=None))
+    first = naive.replace(tzinfo=zone, fold=0)
+    second = naive.replace(tzinfo=zone, fold=1)
+    valid_first = _roundtrips(first, naive, zone)
+    valid_second = _roundtrips(second, naive, zone)
+
+    if valid_first and valid_second:
+        candidates = (first.astimezone(UTC), second.astimezone(UTC))
+        return min(candidates) if ambiguous == "earlier" else max(candidates)
+    if valid_first:
+        return first.astimezone(UTC)
+    if valid_second:
+        return second.astimezone(UTC)
+
+    before = (naive - timedelta(hours=3)).replace(tzinfo=zone).utcoffset()
+    after = (naive + timedelta(hours=3)).replace(tzinfo=zone).utcoffset()
+    if before is None or after is None or after <= before:
+        raise ValueError("Unable to resolve nonexistent local time.")
+    shifted = naive + (after - before)
+    return shifted.replace(tzinfo=zone, fold=0).astimezone(UTC)
+
+
+def _roundtrips(candidate: datetime, naive: datetime, zone: ZoneInfo) -> bool:
+    return candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == naive
 
 
 def today_in(zone: str, *, at: datetime | None = None) -> date:

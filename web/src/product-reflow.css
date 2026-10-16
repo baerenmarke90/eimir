@@ -72,6 +72,15 @@
 
 /* Existing <= 760px compact contracts, keyed to available product width. */
 @container product-content (max-width: 47.5rem) {
+  /*
+   * Sparse-state display copy may contain long localized words. At large text
+   * sizes their min-content width must not widen the product canvas.
+   */
+  .new-space-title {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   /* Shared section headers must be able to place their action on a new line
      instead of making a grid item's min-content width wider than the page. */
   .section-head {
@@ -261,8 +270,6 @@
   .settings-sensitive-grid > .account-settings-panel,
   .transfer-columns > section + section {
     padding-top: var(--space-6);
-    border-top: 1px solid var(--color-border-subtle);
-    border-left: 0;
   }
 
   /* Private area: mirror the established <=760px stacked form/card layout. */
@@ -390,4 +397,22 @@
   .immersive-create-details {
     min-width: 0;
   }
+}
+
+/*
+ * Settings (#1162). The page is a stack of grid tracks (`.settings-page`,
+ * `.settings-category-content`, `.form-grid`) that each default to one `auto`
+ * column, so the widest unbreakable descendant sets the track for everything
+ * above it. At 320 px with 200% text one long German compound or one select's
+ * intrinsic width widened the whole content column past the viewport.
+ * `overflow-wrap: anywhere` lowers min-content for all Settings copy, and the
+ * form grids get a shrinkable track so controls fit the column instead of
+ * sizing it.
+ */
+.settings-page {
+  overflow-wrap: anywhere;
+}
+
+.settings-page .form-grid {
+  grid-template-columns: minmax(0, 1fr);
 }

@@ -1,10 +1,10 @@
 # eimir. Partner-App Experience Standard
 
 **Status:** Mandatory product UI standard  
-**Version:** 2.2<br/>
-**Effective from:** September 15, 2026
+**Version:** 2.3<br/>
+**Effective from:** September 21, 2026
 
-This document is binding for every user-facing Web and Android change. It complements `DESIGN-PRINCIPLES.md`, `UX-PATTERNS.md`, `SCREEN-TEMPLATES.md`, `COMPONENT-CONTRACTS.md`, and `DESIGN-SYSTEM-DELIVERY.md`. Where any of those documents can be read as permitting a desktop-first, table-first, or "design desktop then shrink" interpretation, section 0 of this document governs and the conflicting wording must be corrected or explicitly documented as a conflict rather than followed literally.
+This document is binding for every user-facing Web change (which reaches Android through the Capacitor wrapper) and for any wrapper or native-capability change that affects what couples see. It complements `DESIGN-PRINCIPLES.md`, `UX-PATTERNS.md`, `SCREEN-TEMPLATES.md`, `COMPONENT-CONTRACTS.md`, and `DESIGN-SYSTEM-DELIVERY.md`. Where any of those documents can be read as permitting a desktop-first, table-first, or "design desktop then shrink" interpretation, section 0 of this document governs and the conflicting wording must be corrected or explicitly documented as a conflict rather than followed literally.
 
 eimir. is not a generic productivity tool, admin console, CRM, spreadsheet, or CRUD frontend. It is a private digital place for two people. Functional correctness is necessary but not sufficient: a client feature is incomplete when it feels like database administration with nicer colors.
 
@@ -153,7 +153,7 @@ from **existing** eimir. domains. A feature does NOT receive a permanent Today c
 - **Context decides visibility:** Relevance to the couple right now determines what surfaces.
 - **Privacy and consent override relevance:** Protected or unrevealed data is never exposed for visual decoration.
 - **No equal-weight widget grid:** Avoid SaaS-style dashboard layouts.
-- **No draggable dashboard builder or widget catalogue:** The screen is intentionally curated, not customized like an admin workspace.
+- **No draggable dashboard builder or widget catalogue on Today:** The reading surface is intentionally curated, not an admin workspace. The personal visibility and order controls in Settings (#1194) arrange supported modules without introducing on-page editing or arbitrary widgets.
 - **No speculative placeholder modules:** Never show empty widgets just to hold a grid coordinate.
 - **Deterministic product rules:** Orchestration relies on simple, predictable rules rather than black-box AI engagement ranking.
 - **Above the fold restraint:** At most roughly three dominant elements/interactions above the fold.
@@ -292,9 +292,40 @@ Appropriate examples include a subtle heart pulse, tiny particles, soft glow, sh
 
 Haptics may supplement visible feedback on supported mobile devices but never replace it.
 
+## 9A. Generated visual product reference before implementation
+
+Before implementation starts, every new or materially changed user-facing feature MUST have at least one generated visual product reference attached or linked in the owning issue.
+
+This is a product-composition preflight. The image MUST be generated only after reviewing the current repository state and the real destination surface. At minimum:
+
+1. inspect current `main` and record the baseline SHA;
+2. inspect the destination screen/route and the existing functions already visible or reachable there;
+3. identify the current shell/navigation, content hierarchy, interaction primitives, components, tokens, and relevant states that constrain the composition;
+4. generate the Compact/smartphone reference first;
+5. show existing functionality that remains in scope as part of the same composition, represented consistently with the current product;
+6. integrate the new feature into that composition rather than depicting it in isolation;
+7. add an Expanded/Web visual only when the adaptation materially changes the composition;
+8. record assumptions and any intentional departure from the current screen.
+
+The following do **not** satisfy the requirement:
+
+- an isolated new card/component with no surrounding product context;
+- a blank replacement screen that omits existing functions without an explicit product decision;
+- generic SaaS, dashboard, admin, or moodboard imagery detached from current eimir.;
+- an image generated from stale issue text while ignoring newer repository behavior;
+- a textual description without an actual visual artifact.
+
+If the destination screen changes materially after the image was created but before implementation starts, the visual reference MUST be regenerated or updated against the new baseline.
+
+The requirement to generate and attach the image is binding. The image is a composition reference, not automatically an immutable pixel specification. Product Reference v1, this standard, accessibility, privacy, security, business/domain constraints, real data behavior, and later explicit Product Owner decisions remain authoritative. An issue may make specific visual choices binding, but it must identify them explicitly.
+
+For older feature issues that do not yet contain such an image, the Product Design Preflight in section 15 MUST add one before UI implementation begins or continues.
+
+[#1151](https://github.com/baerenmarke90/eimir/issues/1151) is a **non-binding example only**. It may illustrate the desired preflight discipline, but its images, layouts, content, and Pro-specific treatment do not create design precedence for other features.
+
 ## 10. Mandatory Mobile Interaction Contract
 
-Before implementation starts, every new or materially changed user-facing Web/Android feature MUST document a Mobile Interaction Contract in the owning issue (or, for an existing issue that lacks one, in a Product Design Preflight performed before UI code is written; see section 15).
+Before implementation starts, every new or materially changed user-facing Web feature (or native capability) MUST document a Mobile Interaction Contract in the owning issue (or, for an existing issue that lacks one, in a Product Design Preflight performed before UI code is written; see section 15).
 
 The Contract MUST cover at least:
 
@@ -317,7 +348,8 @@ The Contract MUST cover at least:
 17. why a conventional table/list/master-detail is appropriate, if one is used (section 2, section 16);
 18. which established platform/mobile interaction patterns are reused and why any deviation is necessary (section 2A);
 19. how unnecessary typing, early keyboard activation, and recall-dependent interaction are avoided on Compact (section 2A);
-20. visual acceptance plan (section 12).
+20. generated visual product reference, including baseline SHA and the existing screen/functions represented (section 9A);
+21. visual acceptance plan (section 12).
 
 The Contract also implicitly identifies, and the issue/PR MUST still record:
 
@@ -349,7 +381,9 @@ Responsive behavior is composition, not shrinking.
 
 ## 12. Visual evidence is required
 
-A PR that changes couple-facing Web or Android UI MUST include visual evidence for review.
+The pre-implementation generated visual product reference from section 9A does not replace implementation evidence. It defines the composition to review before code exists; this section verifies the real implemented result.
+
+A PR that changes couple-facing Web UI MUST include visual evidence for review; a PR that changes the Android wrapper or a native capability adds device evidence for the affected behavior.
 
 Minimum evidence:
 
@@ -358,7 +392,7 @@ Minimum evidence:
 - Light and Dark when theme-sensitive styling changed;
 - any important interaction state that cannot be understood from a static default screenshot;
 - the complete **Open → interact → save/complete → observe result → return** journey, including draft/interruption safety and restored scope/filter/scroll context where relevant;
-- relevant empty, sparse, dense, loading, error/retry, success, reduced-motion, and ~360/~390/~430 px states. Existing 320 CSS px reflow and native device/emulator checks remain cumulative.
+- relevant empty, sparse, dense, loading, error/retry, success, reduced-motion, and ~360/~390/~430 px states. Existing 320 CSS px reflow checks remain cumulative; device checks apply where the Capacitor wrapper or a native capability is affected.
 
 A screenshot alone cannot establish Product Reference v1 acceptance. Record behavioral continuity as well as visual evidence; the references define hierarchy and interaction, not immutable pixel locks.
 

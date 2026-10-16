@@ -14,6 +14,7 @@ type ThemeDocument = {
     style: Record<string, string>;
   };
   querySelector(selector: string): { content: string } | null;
+  getElementById(id: string): { href: string } | null;
 };
 
 type ThemeWindow = {
@@ -47,7 +48,8 @@ function runBootstrap(
 ) {
   const dataset: Record<string, string> = {};
   const style: Record<string, string> = {};
-  const themeColor = { content: '#f6efea' };
+  const themeColor = { content: '#e6ebfa' };
+  const favicon = { href: '/identity/app-icon-light.png' };
   const storage = new Map<string, string>();
   if (storedPreference !== null) storage.set('eimir.theme', storedPreference);
   if (legacyStoredPreference !== null)
@@ -74,6 +76,7 @@ function runBootstrap(
   };
   const documentMock: ThemeDocument = {
     documentElement: { dataset, style },
+    getElementById: (id) => (id === 'app-favicon' ? favicon : null),
     querySelector: (selector) => {
       expect(selector).toBe('meta[name="theme-color"]');
       return themeColor;
@@ -83,7 +86,7 @@ function runBootstrap(
   const execute = new Function('window', 'document', readBootstrap());
   execute(windowMock, documentMock);
 
-  return { dataset, style, themeColor, storage };
+  return { dataset, style, themeColor, favicon, storage };
 }
 
 describe('theme bootstrap', () => {
@@ -91,7 +94,8 @@ describe('theme bootstrap', () => {
     const result = runBootstrap('dark', false);
     expect(result.dataset).toEqual({ theme: 'dark', themePreference: 'dark' });
     expect(result.style.colorScheme).toBe('dark');
-    expect(result.themeColor.content).toBe('#18131d');
+    expect(result.themeColor.content).toBe('#171b2f');
+    expect(result.favicon.href).toBe('/identity/app-icon-dark.png');
   });
 
   it('keeps an explicit light preference before app startup even on a dark system', () => {
@@ -101,7 +105,8 @@ describe('theme bootstrap', () => {
       themePreference: 'light',
     });
     expect(result.style.colorScheme).toBe('light');
-    expect(result.themeColor.content).toBe('#f6efea');
+    expect(result.themeColor.content).toBe('#e6ebfa');
+    expect(result.favicon.href).toBe('/identity/app-icon-light.png');
   });
 
   it('follows the operating-system preference in system mode', () => {
@@ -110,7 +115,7 @@ describe('theme bootstrap', () => {
       theme: 'dark',
       themePreference: 'system',
     });
-    expect(result.themeColor.content).toBe('#18131d');
+    expect(result.themeColor.content).toBe('#171b2f');
   });
 
   it('falls back to system for missing or invalid stored values', () => {

@@ -80,11 +80,13 @@ def test_rule_catalog_defaults_validation_and_account_isolation(
     assert set(items) == {
         rules.IMPORTANT_DATE_RULE,
         rules.RELATED_PERSON_BIRTHDAY_RULE,
+        rules.PARTNER_BIRTHDAY_RULE,
         rules.RELATIONSHIP_ANNIVERSARY_RULE,
         rules.PLAN_START_RULE,
     }
     assert items[rules.IMPORTANT_DATE_RULE]["parameters"]["daysBefore"] == [7, 1]
     assert items[rules.RELATED_PERSON_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [14, 7, 1]
+    assert items[rules.PARTNER_BIRTHDAY_RULE]["parameters"]["daysBefore"] == [14, 7, 1]
     assert items[rules.RELATIONSHIP_ANNIVERSARY_RULE]["parameters"]["daysBefore"] == [30, 7, 1]
     assert items[rules.PLAN_START_RULE]["parameters"]["daysBefore"] == [1, 0]
 
@@ -272,6 +274,180 @@ def test_source_hooks_reconcile_idempotently_and_private_dates_never_generate(
             .where(
                 Reminder.space_id == couple["space"].id,
                 Reminder.rule_key == rules.IMPORTANT_DATE_RULE,
+            )
+        ).scalar_one()
+        == 0
+    )
+
+
+def test_partner_birthday_reconciles_without_self_delivery(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(runtime.clock, "now", lambda: NOW)
+    profile_url = f"/api/v1/spaces/{couple['space'].id}/profiles/{couple['anna'].id}"
+    initial = client.get(profile_url, headers=auth(couple["anna_token"]))
+    assert initial.status_code == 200
+
+    birthday_set = client.patch(
+        profile_url,
+        json={"birthday": "1992-09-30"},
+        headers={**auth(couple["anna_token"]), "If-Match": initial.headers["etag"]},
+    )
+    assert birthday_set.status_code == 200, birthday_set.text
+
+    reminder = session.execute(
+        select(Reminder).where(
+            Reminder.space_id == couple["space"].id,
+            Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+        )
+    ).scalar_one()
+    assert reminder.source_type == "ACCOUNT"
+    assert reminder.source_id == couple["anna"].id
+    assert reminder.annual_month == 9
+    assert reminder.annual_day == 30
+    assert _occurrences(session, reminder.id, couple["anna"].id) == []
+    assert (
+        len(
+            [
+                row
+                for row in _occurrences(session, reminder.id, couple["ben"].id)
+                if row.state == OccurrenceState.PENDING.value
+            ]
+        )
+        == 3
+    )
+
+    disabled = client.put(
+        f"{_rule_base(couple)}/{rules.PARTNER_BIRTHDAY_RULE}/preference",
+        json={"enabled": False, "parameters": {"daysBefore": [14, 7, 1]}},
+        headers=auth(couple["ben_token"]),
+    )
+    assert disabled.status_code == 200
+    assert not any(
+        row.state == OccurrenceState.PENDING.value
+        for row in _occurrences(session, reminder.id, couple["ben"].id)
+    )
+
+    changed = client.patch(
+        profile_url,
+        json={"birthday": "1992-10-01"},
+        headers={**auth(couple["anna_token"]), "If-Match": birthday_set.headers["etag"]},
+    )
+    assert changed.status_code == 200, changed.text
+    session.refresh(reminder)
+    assert reminder.annual_month == 10
+    assert reminder.annual_day == 1
+    assert (
+        session.execute(
+            select(func.count())
+            .select_from(Reminder)
+            .where(
+                Reminder.space_id == couple["space"].id,
+                Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+            )
+        ).scalar_one()
+        == 1
+    )
+
+    cleared = client.patch(
+        profile_url,
+        json={"birthday": None},
+        headers={**auth(couple["anna_token"]), "If-Match": changed.headers["etag"]},
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert (
+        session.execute(
+            select(func.count())
+            .select_from(Reminder)
+            .where(
+                Reminder.space_id == couple["space"].id,
+                Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+            )
+        ).scalar_one()
+        == 0
+    )
+    assert (
+        session.execute(
+            select(func.count())
+            .select_from(Reminder)
+            .where(
+                Reminder.space_id == couple["foreign_space"].id,
+                Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+            )
+        ).scalar_one()
+        == 0
+    )
+
+
+def test_partner_birthday_delivery_fails_closed_after_source_offboarding(
+    client, session: Session, couple, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(runtime.clock, "now", lambda: NOW)
+    profile_url = f"/api/v1/spaces/{couple['space'].id}/profiles/{couple['anna'].id}"
+    initial = client.get(profile_url, headers=auth(couple["anna_token"]))
+    birthday_set = client.patch(
+        profile_url,
+        json={"birthday": "1992-09-30"},
+        headers={**auth(couple["anna_token"]), "If-Match": initial.headers["etag"]},
+    )
+    assert birthday_set.status_code == 200, birthday_set.text
+
+    reminder = session.execute(
+        select(Reminder).where(
+            Reminder.space_id == couple["space"].id,
+            Reminder.rule_key == rules.PARTNER_BIRTHDAY_RULE,
+        )
+    ).scalar_one()
+    occurrence = next(
+        row
+        for row in _occurrences(session, reminder.id, couple["ben"].id)
+        if row.state == OccurrenceState.PENDING.value
+    )
+    assert runtime.source_is_eligible(session, reminder)
+
+    membership = relationship_service.require_membership(
+        session, couple["anna"], couple["space"].id
+    )
+    relationship_service.end_membership(session, membership)
+    session.flush()
+    assert not runtime.source_is_eligible(session, reminder)
+
+    listed = client.get(
+        _reminder_base(couple),
+        headers=auth(couple["ben_token"]),
+    )
+    assert listed.status_code == 200
+    assert all(item["id"] != str(reminder.id) for item in listed.json()["items"])
+
+    direct = client.get(
+        f"{_reminder_base(couple)}/{reminder.id}",
+        headers=auth(couple["ben_token"]),
+    )
+    assert direct.status_code == 404
+    assert direct.json()["code"] == "REMINDER_NOT_FOUND"
+
+    preference = client.put(
+        f"{_reminder_base(couple)}/{reminder.id}/preference",
+        json={"muted": True},
+        headers=auth(couple["ben_token"]),
+    )
+    assert preference.status_code == 404
+    assert preference.json()["code"] == "REMINDER_NOT_FOUND"
+
+    monkeypatch.setattr(runtime.clock, "now", lambda: occurrence.due_at)
+    runtime.handle_occurrence(
+        session,
+        {"occurrenceId": str(occurrence.id), "generation": occurrence.generation},
+    )
+    session.flush()
+    assert occurrence.state == OccurrenceState.CANCELLED.value
+    assert (
+        session.execute(
+            select(func.count())
+            .select_from(OutboxEvent)
+            .where(
+                OutboxEvent.event_type == EventType.REMINDER_DUE.value,
+                OutboxEvent.subject_id == reminder.id,
             )
         ).scalar_one()
         == 0

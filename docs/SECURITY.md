@@ -722,6 +722,16 @@ Recovery tokens; OIDC tokens; WebAuthn challenges; contents of Memories, HeartMo
 answers, private notes, and gift ideas; sensitive preference values; precise
 locations. Error tracking is sanitized in the same way.
 
+## Encryption at rest (application-controlled)
+
+Protected payloads and all stored media are encrypted at rest by the application
+under operator-held keys (authenticated encryption, a data key per record or object
+wrapped by a versioned key-encryption key). Cloud Production requires it; Self-Hosted
+must choose a mode explicitly; nothing falls back to plaintext silently. The
+architecture, threat model, key rotation, backup/recovery, and failure modes are in
+[ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md). This is **not** end-to-end
+encryption: the running application holds the keys and can read the content.
+
 ## End-to-end encryption
 
 **Not yet implemented.** The architecture is prepared for it; see
@@ -731,11 +741,13 @@ The claim that even the operator cannot read content may be used **only** after
 actual implementation and an external audit. Stage 1 is not E2EE and must not
 be called E2EE.
 
-Stage 1 enforces technical separation only: sensitive domain content is bound
-as a concrete `ProtectedPayload` class to a designated JSONB column; raw
-dictionaries are rejected. With `crypto_version = 0`, this content still
-exists as server-readable plaintext. There are no keys, no client-side
-sealing, and no protection from the server operator yet.
+Sensitive domain content is bound as a concrete `ProtectedPayload` class to a
+designated JSONB column; raw dictionaries are rejected. With `crypto_version = 2`
+the column holds application-encrypted ciphertext; `crypto_version = 0` is legacy
+plaintext that `required` mode rejects. In both cases the server can read the
+content: there is no client-side sealing and no protection from the server operator.
+Application-controlled encryption at rest protects a stolen database dump, replica,
+or bucket, not a compromised or malicious operator.
 
 Outbox payloads are separately restricted to explicitly allowed,
 non-sensitive metadata. Free-text fields and `ProtectedPayload` objects are

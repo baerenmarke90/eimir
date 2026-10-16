@@ -1,9 +1,12 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
 import m5s5 from '../../src/i18n/locales/m5s5';
 import navigation from '../../src/i18n/locales/navigation';
+import notificationSettings from '../../src/i18n/locales/notificationSettings';
+import profileIdentity from '../../src/i18n/locales/profileIdentity';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -37,13 +40,84 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
     clientWidth: document.documentElement.clientWidth,
     scrollWidth: document.documentElement.scrollWidth,
   }));
-  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
+  if (dimensions.scrollWidth > dimensions.clientWidth) {
+    const offenders = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('body *'))
+        .filter((element) => {
+          const box = element.getBoundingClientRect();
+          return (
+            box.width > 0 &&
+            box.right > document.documentElement.clientWidth + 1
+          );
+        })
+        .slice(0, 15)
+        .map((element) => ({
+          element: `${element.tagName.toLowerCase()}.${element.className}`,
+          right: Math.round(element.getBoundingClientRect().right),
+        })),
+    );
+    expect(
+      dimensions.scrollWidth,
+      JSON.stringify(offenders),
+    ).toBeLessThanOrEqual(dimensions.clientWidth);
+  }
 }
 
-async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
+type SpaceConfigurationPatch = {
+  supportGesturesEnabled?: boolean;
+  vibeCheckEnabled?: boolean;
+  energyCheckInEnabled?: boolean;
+  dailyContextTimezone?: string | null;
+  vibeVisibilityMode?: 'IMMEDIATE' | 'MUTUAL_REVEAL';
+  energyVisibilityMode?: 'IMMEDIATE' | 'MUTUAL_REVEAL';
+};
+
+async function installAuthorizedApiMocks(
+  page: Page,
+): Promise<
+  string[] & { spaceConfigurationPatches: SpaceConfigurationPatch[] }
+> {
+  const spaceConfigurationPatches: SpaceConfigurationPatch[] = [];
   const unexpectedRequests: string[] = [];
+  // Non-enumerable so the many `expect(unexpectedRequests).toEqual([])`
+  // assertions keep comparing only the recorded unexpected requests.
+  Object.defineProperty(unexpectedRequests, 'spaceConfigurationPatches', {
+    value: spaceConfigurationPatches,
+  });
+  let supportGesturesEnabled = true;
+  let vibeCheckEnabled = false;
+  let energyCheckInEnabled = false;
+  let dailyContextTimezone: string | null = null;
+  let vibeVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
+  let energyVisibilityMode: 'IMMEDIATE' | 'MUTUAL_REVEAL' = 'IMMEDIATE';
+  let spaceConfigurationVersion = 7;
+  let reminderEmailEnabled = false;
+  let commentPushEnabled = false;
+  let commentEmailEnabled = false;
+  let quietHours: {
+    enabled: boolean;
+    start: string | null;
+    end: string | null;
+    timeZone: string;
+  } = { enabled: false, start: null, end: null, timeZone: 'Europe/Berlin' };
+  const spaceConfigurationBody = () =>
+    JSON.stringify({
+      canManageSpaceConfiguration: true,
+      dailyContextTimezone,
+      dailyQuestionsEnabled: false,
+      energyCheckInEnabled,
+      energyVisibilityMode,
+      loveNotesEnabled: false,
+      sharedAchievementsEnabled: false,
+      spaceId: SPACE_ID,
+      supportGesturesEnabled,
+      version: spaceConfigurationVersion,
+      vibeCheckEnabled,
+      vibeVisibilityMode,
+    });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -54,6 +128,11 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
         contentType: 'application/json',
         body: JSON.stringify(body),
       });
+
+    if (method === 'GET' && pathname.endsWith('/partner-nickname')) {
+      await fulfillJson({ partnerId: null, nickname: null, version: 0 });
+      return;
+    }
 
     if (method === 'GET' && pathname === '/api/v1/instance/status') {
       await fulfillJson({
@@ -109,6 +188,232 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: `"${spaceConfigurationVersion}"` },
+        body: spaceConfigurationBody(),
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      const ifMatch = request.headers()['if-match'];
+      const expectedEtag = `"${spaceConfigurationVersion}"`;
+      if (ifMatch !== expectedEtag) {
+        unexpectedRequests.push(
+          `PATCH ${pathname} used If-Match ${ifMatch ?? '<missing>'}; expected ${expectedEtag}`,
+        );
+        await fulfillJson(
+          {
+            code: 'RESOURCE_VERSION_CONFLICT',
+            detail: 'The browser fixture received a stale configuration write.',
+            status: 409,
+            title: 'Conflict',
+          },
+          409,
+        );
+        return;
+      }
+      const body = request.postDataJSON() as SpaceConfigurationPatch;
+      spaceConfigurationPatches.push(body);
+      const nextTimezone =
+        body.dailyContextTimezone !== undefined
+          ? body.dailyContextTimezone
+          : dailyContextTimezone;
+      const nextVibe = body.vibeCheckEnabled ?? vibeCheckEnabled;
+      const nextEnergy = body.energyCheckInEnabled ?? energyCheckInEnabled;
+      // Mirror the server's atomic validation of the complete resulting state.
+      if ((nextVibe || nextEnergy) && nextTimezone === null) {
+        await fulfillJson(
+          {
+            code: 'SPACE_DAILY_CONTEXT_TIMEZONE_REQUIRED',
+            detail: 'Daily Check-in modules require a shared time zone.',
+            status: 422,
+            title: 'Unprocessable',
+          },
+          422,
+        );
+        return;
+      }
+      if (body.supportGesturesEnabled !== undefined) {
+        supportGesturesEnabled = body.supportGesturesEnabled;
+      }
+      vibeCheckEnabled = nextVibe;
+      energyCheckInEnabled = nextEnergy;
+      dailyContextTimezone = nextTimezone;
+      vibeVisibilityMode = body.vibeVisibilityMode ?? vibeVisibilityMode;
+      energyVisibilityMode = body.energyVisibilityMode ?? energyVisibilityMode;
+      spaceConfigurationVersion += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: `"${spaceConfigurationVersion}"` },
+        body: spaceConfigurationBody(),
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      /\/rules\/(relationship_anniversary_reminder|partner_birthday_reminder)\/preference$/.test(
+        pathname,
+      )
+    ) {
+      await fulfillJson({
+        ruleKey: pathname.split('/').at(-2),
+        enabled: true,
+        parameters: { daysBefore: [30, 7, 1], localTime: '09:00:00' },
+      });
+      return;
+    }
+
+    if (method === 'GET' && pathname === '/api/v1/notification-preferences') {
+      await fulfillJson({
+        catalogVersion: 2,
+        quietHours,
+        capabilities: [
+          {
+            channel: 'IN_APP',
+            available: true,
+            reason: null,
+            destination: null,
+          },
+          {
+            channel: 'PUSH',
+            available: false,
+            reason: 'PUSH_ENDPOINT_MISSING',
+            destination: null,
+          },
+          {
+            channel: 'EMAIL',
+            available: true,
+            reason: null,
+            destination: 'anna@example.org',
+          },
+        ],
+        items: [
+          'COMMENT_CREATED',
+          'REMINDER_DUE',
+          'THINKING_OF_YOU',
+          'PARTNER_KISS',
+          'PARTNER_CHECK_IN',
+        ].map((kind) => ({
+          kind,
+          deliveryClass:
+            kind === 'COMMENT_CREATED' ? 'DIGESTIBLE' : 'IMMEDIATE',
+          channels: [
+            { channel: 'IN_APP', enabled: true, configurable: true },
+            {
+              channel: 'PUSH',
+              enabled: kind === 'COMMENT_CREATED' && commentPushEnabled,
+              configurable: true,
+            },
+            {
+              channel: 'EMAIL',
+              enabled:
+                (kind === 'COMMENT_CREATED' && commentEmailEnabled) ||
+                (kind === 'REMINDER_DUE' && reminderEmailEnabled),
+              configurable: true,
+            },
+          ],
+        })),
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/quiet-hours'
+    ) {
+      const body = request.postDataJSON() as {
+        enabled: boolean;
+        start?: string | null;
+        end?: string | null;
+      };
+      if (
+        Object.keys(body).some(
+          (key) => !['enabled', 'start', 'end'].includes(key),
+        )
+      ) {
+        unexpectedRequests.push(
+          'Quiet Hours PATCH contained an unapproved field',
+        );
+      }
+      quietHours = {
+        enabled: body.enabled,
+        start: body.enabled ? `${body.start}:00` : null,
+        end: body.enabled ? `${body.end}:00` : null,
+        timeZone: quietHours.timeZone,
+      };
+      await fulfillJson(quietHours);
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/PUSH'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Push PATCH contained an unapproved field',
+        );
+      }
+      commentPushEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'PUSH',
+        enabled: commentPushEnabled,
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/COMMENT_CREATED/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Comment Email PATCH contained an unapproved field',
+        );
+      }
+      commentEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'COMMENT_CREATED',
+        channel: 'EMAIL',
+        enabled: commentEmailEnabled,
+      });
+      return;
+    }
+
+    if (
+      method === 'PATCH' &&
+      pathname === '/api/v1/notification-preferences/REMINDER_DUE/EMAIL'
+    ) {
+      const body = request.postDataJSON() as { enabled: boolean };
+      if (Object.keys(body).join(',') !== 'enabled') {
+        unexpectedRequests.push(
+          'Notification PATCH contained an unapproved recipient',
+        );
+      }
+      reminderEmailEnabled = body.enabled;
+      await fulfillJson({
+        kind: 'REMINDER_DUE',
+        channel: 'EMAIL',
+        enabled: reminderEmailEnabled,
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,
@@ -124,6 +429,14 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       pathname === `/api/v1/spaces/${SPACE_ID}/profile-preferences`
     ) {
       await fulfillJson({ items: [] });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/invitations`
+    ) {
+      await fulfillJson([]);
       return;
     }
 
@@ -308,6 +621,28 @@ async function installAuthorizedApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -380,11 +715,17 @@ test('compact authenticated shell keeps global quick create reachable and access
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Couple Presence stays the permanent H1 entry point, even for a sparse space.
+  // Today owns the page H1; Couple Presence remains the relationship hero.
+  await expect(
+    page.getByRole('heading', {
+      name: m5s5.today.headerTitle,
+      level: 1,
+    }),
+  ).toBeVisible();
   await expect(
     page.getByRole('heading', {
       name: m5s5.dashboard.durationTitle,
-      level: 1,
+      level: 2,
     }),
   ).toBeVisible();
   await expect(
@@ -473,11 +814,17 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
   await signIn(page);
 
   await expect(page).toHaveURL(/\/today$/);
-  // Couple Presence stays the permanent H1 entry point, even for a sparse space.
+  // Today owns the page H1; Couple Presence remains the relationship hero.
+  await expect(
+    page.getByRole('heading', {
+      name: m5s5.today.headerTitle,
+      level: 1,
+    }),
+  ).toBeVisible();
   await expect(
     page.getByRole('heading', {
       name: m5s5.dashboard.durationTitle,
-      level: 1,
+      level: 2,
     }),
   ).toBeVisible();
   await expect(
@@ -512,6 +859,518 @@ test('expanded authenticated shell keeps deep links, back, focus, and accessibil
 
   await expectNoHorizontalOverflow(page);
   await expectNoWcagViolations(page);
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test('Space configuration is touch operable, reload-safe, responsive, and axe-clean', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await installAuthorizedApiMocks(page);
+
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/more/settings/relationship');
+
+  await expect(
+    page.getByRole('heading', {
+      name: profileIdentity.spaceConfigurationTitle,
+      level: 2,
+    }),
+  ).toBeVisible();
+
+  const supportGestureSwitch = page.getByRole('switch', {
+    name: profileIdentity.supportGesturesToggle,
+  });
+  await expect(supportGestureSwitch).toHaveAttribute('aria-checked', 'true');
+  const compactBounds = await supportGestureSwitch.boundingBox();
+  expect(compactBounds?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(compactBounds?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shell-space-configuration-compact.png'),
+    fullPage: true,
+  });
+
+  await supportGestureSwitch.click();
+  await expect(supportGestureSwitch).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: profileIdentity.spaceConfigurationSaved,
+    }),
+  ).toBeVisible();
+
+  await page.reload();
+  const reloadedSwitch = page.getByRole('switch', {
+    name: profileIdentity.supportGesturesToggle,
+  });
+  await expect(reloadedSwitch).toHaveAttribute('aria-checked', 'false');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: testInfo.outputPath('shell-space-configuration-expanded.png'),
+    fullPage: true,
+  });
+
+  await reloadedSwitch.click();
+  await expect(reloadedSwitch).toHaveAttribute('aria-checked', 'true');
+  expect(unexpectedRequests).toEqual([]);
+});
+
+test.describe('Space configuration Daily Check-in modules', () => {
+  test.use({ timezoneId: 'Europe/Berlin' });
+
+  test('manager enables Vibe and Energy with a confirmed shared day zone and keeps compact widths and large text usable', async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/more/settings/relationship');
+
+    const energySwitch = page.getByRole('switch', {
+      name: profileIdentity.energyCheckInToggle,
+    });
+    const vibeSwitch = page.getByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    const zoneSelect = page.getByRole('combobox', {
+      name: profileIdentity.dailyContextTimezoneLabel,
+    });
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'false');
+    await expect(zoneSelect).toHaveCount(0);
+
+    // First enable must carry the shared day zone; without it the server
+    // rejects the write and the manager would be stuck.
+    await energySwitch.click();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'true');
+    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+
+    // The zone is now Space state and is not sent again.
+    await vibeSwitch.click();
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+
+    // Visibility is chosen per module and only offered while it is switched on.
+    const vibeVisibility = page.getByRole('group', {
+      name: profileIdentity.visibilityLegend.replace(
+        '{{module}}',
+        profileIdentity.vibeCheckTitle,
+      ),
+    });
+    await vibeVisibility
+      .locator('.space-visibility-option', {
+        hasText: profileIdentity.visibilityMutualReveal,
+      })
+      .click();
+    await expect(
+      vibeVisibility.getByRole('radio', {
+        name: new RegExp(profileIdentity.visibilityMutualReveal),
+      }),
+    ).toBeChecked();
+    expect(unexpectedRequests.spaceConfigurationPatches).toEqual([
+      { energyCheckInEnabled: true, dailyContextTimezone: 'Europe/Berlin' },
+      { vibeCheckEnabled: true },
+      { vibeVisibilityMode: 'MUTUAL_REVEAL' },
+    ]);
+
+    await page.reload();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'true');
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+    await page.locator('.space-configuration-panel').screenshot({
+      path: testInfo.outputPath('space-configuration-daily-modules-390.png'),
+    });
+
+    for (const width of [320, 360, 390, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expectNoHorizontalOverflow(page);
+      for (const control of [
+        energySwitch,
+        vibeSwitch,
+        zoneSelect,
+        ...(await page.locator('.space-visibility-option').all()),
+      ]) {
+        const box = await control.boundingBox();
+        expect(
+          box?.width ?? 0,
+          `${width}px control width`,
+        ).toBeGreaterThanOrEqual(44);
+        expect(
+          box?.height ?? 0,
+          `${width}px control height`,
+        ).toBeGreaterThanOrEqual(44);
+      }
+      await expectNoWcagViolations(page);
+    }
+
+    await page.setViewportSize({ width: 320, height: 844 });
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+    // The complete Settings page, not an isolated panel: the shared heading,
+    // the neighbouring relationship panels and the Space configuration must all
+    // reflow inside the 320 px column at 200 percent text (#1162).
+    await expectNoHorizontalOverflow(page);
+    const overflowing = await page
+      .locator('.settings-page')
+      .evaluate((settingsPage) =>
+        [settingsPage, ...settingsPage.querySelectorAll('*')]
+          .filter((element) => {
+            const box = element.getBoundingClientRect();
+            return box.width > 0 && box.right > 321;
+          })
+          .map((element) => `${element.tagName}.${element.className}`),
+      );
+    expect(overflowing).toEqual([]);
+    await expectNoWcagViolations(page);
+
+    // Disable is not delete: switching off is a plain module choice and the
+    // manager is told existing entries are kept.
+    await expect(
+      page.getByText(profileIdentity.spaceModulesKeepDataNote),
+    ).toBeVisible();
+    await energySwitch.click();
+    await expect(energySwitch).toHaveAttribute('aria-checked', 'false');
+    expect(unexpectedRequests.spaceConfigurationPatches.at(-1)).toEqual({
+      energyCheckInEnabled: false,
+    });
+    expect(unexpectedRequests).toEqual([]);
+  });
+});
+
+const SETTINGS_PAGES = [
+  { path: '/more/settings', heading: navigation.settings },
+  {
+    path: '/more/settings/relationship',
+    heading: profileIdentity.settingsRelationship,
+  },
+  {
+    path: '/more/settings/notifications',
+    heading: profileIdentity.settingsNotifications,
+  },
+  { path: '/more/settings/today', heading: profileIdentity.settingsToday },
+  { path: '/more/settings/appearance', heading: de.theme.label },
+  { path: '/more/settings/data', heading: profileIdentity.settingsData },
+  { path: '/more/settings/account', heading: profileIdentity.settingsAccount },
+] as const;
+
+async function expectSettingsControlsInsideViewport(page: Page): Promise<void> {
+  const outside = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '.settings-page a[href], .settings-page button, .settings-page input, .settings-page select, .settings-page textarea',
+      ),
+    )
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.width > 1 && box.height > 1;
+      })
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.left < -1 || box.right > viewportWidth + 1;
+      })
+      .map(
+        (element) =>
+          element.getAttribute('aria-label') ||
+          element.textContent?.trim().slice(0, 60) ||
+          element.tagName,
+      );
+  });
+  expect(outside, 'Settings controls outside the viewport').toEqual([]);
+}
+
+test.describe('Complete Settings pages reflow (#1162)', () => {
+  test.use({ timezoneId: 'Europe/Berlin' });
+
+  test('every Settings page fits the compact widths and 200 percent text without horizontal overflow', async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+
+    for (const { path, heading } of SETTINGS_PAGES) {
+      await page.goto(path);
+      await expect(
+        page.getByRole('heading', { name: heading, level: 1 }),
+      ).toBeVisible();
+
+      for (const width of [320, 360, 390, 430]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expectNoHorizontalOverflow(page);
+        await expectSettingsControlsInsideViewport(page);
+      }
+
+      await page.setViewportSize({ width: 320, height: 844 });
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%';
+      });
+      await expectNoHorizontalOverflow(page);
+      await expectSettingsControlsInsideViewport(page);
+      // The page column itself must stay inside the viewport: an overflowing
+      // child that only widens its own box would still be a defect.
+      const columnRight = await page
+        .locator('.settings-page')
+        .evaluate((column) => column.getBoundingClientRect().right);
+      expect(columnRight, `${path} column right edge`).toBeLessThanOrEqual(320);
+      await expectNoWcagViolations(page);
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '';
+      });
+    }
+
+    expect(unexpectedRequests).toEqual([]);
+  });
+
+  test('Settings selects and switches stay operable with a visible focus ring at 320 px and 200 percent text', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 844 });
+    const unexpectedRequests = await installAuthorizedApiMocks(page);
+    await page.goto('/today');
+    await signIn(page);
+    await page.goto('/more/settings/relationship');
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%';
+    });
+
+    const vibeSwitch = page.getByRole('switch', {
+      name: profileIdentity.vibeCheckToggle,
+    });
+    await vibeSwitch.scrollIntoViewIfNeeded();
+    await vibeSwitch.focus();
+    await expect(vibeSwitch).toBeFocused();
+    const focusRing = await vibeSwitch.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return {
+        outlineStyle: style.outlineStyle,
+        outlineWidth: Number.parseFloat(style.outlineWidth),
+        left: box.left,
+        right: box.right,
+      };
+    });
+    expect(focusRing.outlineStyle).not.toBe('none');
+    expect(focusRing.outlineWidth).toBeGreaterThanOrEqual(2);
+    expect(focusRing.left).toBeGreaterThanOrEqual(0);
+    expect(focusRing.right).toBeLessThanOrEqual(320);
+
+    await vibeSwitch.click();
+    await expect(vibeSwitch).toHaveAttribute('aria-checked', 'true');
+    const zoneSelect = page.getByRole('combobox', {
+      name: profileIdentity.dailyContextTimezoneLabel,
+    });
+    await expect(zoneSelect).toBeVisible();
+    const selectBox = await zoneSelect.boundingBox();
+    expect(selectBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(selectBox?.x ?? -1).toBeGreaterThanOrEqual(0);
+    expect((selectBox?.x ?? 0) + (selectBox?.width ?? 0)).toBeLessThanOrEqual(
+      320,
+    );
+    await zoneSelect.selectOption('Europe/Berlin');
+    await expect(zoneSelect).toHaveValue('Europe/Berlin');
+    await expectNoHorizontalOverflow(page);
+    expect(unexpectedRequests).toEqual([]);
+  });
+});
+
+test('notification choices survive return and stay legible across themes and widths (#638, #515)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const unexpectedRequests = await installAuthorizedApiMocks(page);
+  await page.goto('/today');
+  await signIn(page);
+  await page.goto('/more/settings/notifications');
+
+  const email = page.getByRole('switch', {
+    name: 'Fällige Erinnerungen: E-Mail',
+  });
+  await expect(email).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText('anna@example.org', { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator('.anniversary-reminder-form')).toHaveCount(2);
+  await expect(page.locator('.rule-reminder-form')).toHaveCount(2);
+  await expect(
+    page.getByRole('link', {
+      name: profileIdentity.settingsNotificationsAction,
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light.png'),
+    fullPage: true,
+  });
+
+  const commentEmail = page.getByRole('switch', { name: 'Kommentare: E-Mail' });
+  await expect(commentEmail).toBeEnabled();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentEmailDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentEmail.click();
+  await expect(commentEmail).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-email-opted-in.png'),
+    fullPage: true,
+  });
+
+  const commentPush = page.getByRole('switch', { name: 'Kommentare: Push' });
+  await expect(commentPush).toBeEnabled();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'false');
+  await expect(
+    page.getByText(notificationSettings.commentPushDescription, {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await commentPush.click();
+  await expect(commentPush).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.comment)
+        .replace('{{channel}}', notificationSettings.push),
+    }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: test
+      .info()
+      .outputPath('notification-settings-390-comment-opted-in.png'),
+    fullPage: true,
+  });
+
+  const quietSwitch = page.getByRole('switch', {
+    name: notificationSettings.quietHoursEnable,
+  });
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'false');
+  await quietSwitch.click();
+  const quietEnd = page.getByLabel(notificationSettings.quietHoursEnd);
+  await quietEnd.fill('22:00');
+  await expect(
+    page.getByText(notificationSettings.quietHoursInvalid),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: notificationSettings.quietHoursSave }),
+  ).toBeDisabled();
+  await quietEnd.fill('07:00');
+  await page
+    .getByRole('button', { name: notificationSettings.quietHoursSave })
+    .click();
+  await expect(quietSwitch).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByText(notificationSettings.quietHoursSaved),
+  ).toBeVisible();
+  await expect(page.getByText('Täglich 22:00–07:00 Uhr.')).toBeVisible();
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-light-saved.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%';
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectSettingsControlsInsideViewport(page);
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '';
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await email.click();
+  await expect(email).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('status').filter({
+      hasText: notificationSettings.saved
+        .replace('{{event}}', notificationSettings.reminder)
+        .replace('{{channel}}', notificationSettings.email),
+    }),
+  ).toBeVisible();
+  await page
+    .getByRole('link', { name: profileIdentity.settingsBackToIndex })
+    .click();
+  await page
+    .getByRole('link', {
+      name: profileIdentity.settingsNotifications,
+    })
+    .click();
+  await expect(
+    page.getByRole('switch', { name: 'Fällige Erinnerungen: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: notificationSettings.quietHoursEnable }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'true');
+
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectNoHorizontalOverflow(page);
+    await page.screenshot({
+      path: test.info().outputPath(`notification-settings-${width}-light.png`),
+      fullPage: true,
+    });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expectNoWcagViolations(page);
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-390-dark.png'),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-dark.png'),
+    fullPage: true,
+  });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.screenshot({
+    path: test.info().outputPath('notification-settings-1280-light.png'),
+    fullPage: true,
+  });
+  await expectNoHorizontalOverflow(page);
+  await expectNoWcagViolations(page);
+  await page.getByRole('switch', { name: 'Kommentare: Push' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: Push' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.getByRole('switch', { name: 'Kommentare: E-Mail' }).click();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'false');
+  await page.reload();
+  await expect(
+    page.getByRole('switch', { name: 'Kommentare: E-Mail' }),
+  ).toHaveAttribute('aria-checked', 'false');
   expect(unexpectedRequests).toEqual([]);
 });
 

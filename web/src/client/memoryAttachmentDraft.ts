@@ -177,15 +177,30 @@ export async function createMemoryWithReadyAttachments(
   apis: ReferenceApis,
   spaceId: string,
   memoryCreate: MemoryCreate,
-  attachmentIds: string[],
+  attachmentIds: readonly string[],
+  options: {
+    /** Names this save on the server so a lost response can be reconciled. */
+    idempotencyKey?: string;
+    /**
+     * The request is a replay after an unknown outcome. The Memory that comes
+     * back may already carry an association, so binding first re-reads it and
+     * never overwrites another edit.
+     */
+    reconcile?: boolean;
+  } = {},
 ): Promise<{ memory: MemoryDetail }> {
-  const memory = await apis.memories.createMemory({ spaceId, memoryCreate });
+  const memory = await apis.memories.createMemory({
+    spaceId,
+    memoryCreate,
+    idempotencyKey: options.idempotencyKey,
+  });
   const savedMemory = attachmentIds.length
     ? await completeMemoryAttachmentBinding(
         apis,
         spaceId,
         memory,
         attachmentIds,
+        options.reconcile ?? false,
       )
     : memory;
   // Projection refresh is a separate read; it cannot undo this confirmation.

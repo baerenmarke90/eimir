@@ -363,9 +363,7 @@ export function IdentityEntry({
   return (
     <main className="login-shell">
       <section className="login-intro" aria-labelledby="welcome-heading">
-        <Brand
-          suffix={<span className="brand-suffix">{t('brand.suffix')}</span>}
-        />
+        <Brand />
         <div className="login-intro-content">
           <h1 id="welcome-heading">{t('login.introHeading')}</h1>
           <p>{t('login.introBody')}</p>

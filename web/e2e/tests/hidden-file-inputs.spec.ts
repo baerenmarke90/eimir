@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import profileIdentity from '../../src/i18n/locales/profileIdentity';
@@ -93,6 +94,7 @@ async function expectKeyboardFilePicker(page: Page, id: string): Promise<void> {
 
 async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -233,6 +235,14 @@ async function installApiMocks(page: Page): Promise<void> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
     await fulfillJson(
       {
         code: 'E2E_UNEXPECTED_REQUEST',
@@ -262,6 +272,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
     await signIn(page);
 
     await page.goto('/more/profile');
+    await page
+      .getByRole('button', { name: profileIdentity.editProfile })
+      .click();
     const changeAvatar = page
       .locator('.profile-identity-actions-row button')
       .filter({ hasText: profileIdentity.changeAvatar });

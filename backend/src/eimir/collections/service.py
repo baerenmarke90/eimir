@@ -48,6 +48,12 @@ class CollectionPageResult:
     has_more: bool
 
 
+@dataclass(frozen=True)
+class CollectionItemUpdateResult:
+    item: CollectionItem
+    collection_became_complete: bool
+
+
 def _normalize_title(value: str, *, item: bool = False) -> str:
     cleaned = value.strip()
     if not cleaned:
@@ -368,6 +374,49 @@ def create_item(
     return item
 
 
+def update_item_with_completion_transition(
+    session: Session,
+    context: AuthorizationContext,
+    collection_id: UUID | str,
+    item_id: UUID | str,
+    *,
+    expected_version: int,
+    changed_fields: frozenset[str],
+    title: str | None,
+    completed: bool | None,
+) -> CollectionItemUpdateResult:
+    collection = require_writable_locked(session, Collection, context, collection_id)
+    item = _require_item_locked(session, collection, item_id)
+    _ensure_expected_version(item, expected_version)
+
+    was_completed = item.completed
+    if "title" in changed_fields:
+        assert title is not None
+        item.payload = CollectionItemPayload(title=_normalize_title(title, item=True))
+    if "completed" in changed_fields:
+        assert completed is not None
+        item.completed = completed
+
+    _flush(session)
+
+    collection_became_complete = False
+    if "completed" in changed_fields and completed is True and not was_completed:
+        incomplete_items = session.execute(
+            select(func.count(CollectionItem.id)).where(
+                CollectionItem.collection_id == collection.id,
+                CollectionItem.completed.is_(False),
+            )
+        ).scalar_one()
+        collection_became_complete = incomplete_items == 0
+
+    _record_item(session, collection, item, context.account_id, EventType.COLLECTION_ITEM_UPDATED)
+    _flush(session)
+    return CollectionItemUpdateResult(
+        item=item,
+        collection_became_complete=collection_became_complete,
+    )
+
+
 def update_item(
     session: Session,
     context: AuthorizationContext,
@@ -379,21 +428,16 @@ def update_item(
     title: str | None,
     completed: bool | None,
 ) -> CollectionItem:
-    collection = require_writable_locked(session, Collection, context, collection_id)
-    item = _require_item_locked(session, collection, item_id)
-    _ensure_expected_version(item, expected_version)
-
-    if "title" in changed_fields:
-        assert title is not None
-        item.payload = CollectionItemPayload(title=_normalize_title(title, item=True))
-    if "completed" in changed_fields:
-        assert completed is not None
-        item.completed = completed
-
-    _flush(session)
-    _record_item(session, collection, item, context.account_id, EventType.COLLECTION_ITEM_UPDATED)
-    _flush(session)
-    return item
+    return update_item_with_completion_transition(
+        session,
+        context,
+        collection_id,
+        item_id,
+        expected_version=expected_version,
+        changed_fields=changed_fields,
+        title=title,
+        completed=completed,
+    ).item
 
 
 def _compact_after_delete(session: Session, collection_id: UUID, deleted_position: int) -> None:
@@ -499,6 +543,7 @@ __all__ = [
     "COLLECTION_ORDER_CONFLICT",
     "COLLECTION_ORDER_INVALID",
     "COLLECTION_TITLE_REQUIRED",
+    "CollectionItemUpdateResult",
     "CollectionPageResult",
     "create_collection",
     "create_item",
@@ -510,4 +555,5 @@ __all__ = [
     "reorder_items",
     "update_collection",
     "update_item",
+    "update_item_with_completion_transition",
 ]

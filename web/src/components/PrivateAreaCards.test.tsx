@@ -53,6 +53,7 @@ describe('issue #619: private area cards unified navigation', () => {
       </QueryClientProvider>,
     );
 
+    expect(html).toContain('href="/more/private"');
     // Entire card is the link
     expect(html).toContain('private-area-card-clickable');
     expect(html).toContain('href="/more/private/notes/note-1"');
@@ -112,6 +113,7 @@ describe('issue #619: private area cards unified navigation', () => {
       </QueryClientProvider>,
     );
 
+    expect(html).toContain('href="/more/private"');
     // Entire card is the link
     expect(html).toContain('private-area-card-clickable');
     expect(html).toContain('href="/more/private/gift-ideas/gift-1"');

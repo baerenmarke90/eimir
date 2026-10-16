@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { PreferenceCategory } from '../api/generated/models/PreferenceCategory';
 import { PreferenceSentiment } from '../api/generated/models/PreferenceSentiment';
 import { ProfileVisibility } from '../api/generated/models/ProfileVisibility';
+import profileIdentity from '../i18n/locales/profileIdentity';
 import profiles from '../i18n/locales/profiles';
 import { ProfilePage } from './ProfilePage';
 
@@ -80,8 +81,9 @@ describe('Profile page reorganization', () => {
     expect(html).toContain('profile-identity-hero-card');
     expect(html).toContain('Alex');
     expect(html).toContain('Dies ist das Profil, das dein Partner sieht.');
-    expect(html).toContain('Name ändern');
-    expect(html).toContain('Bild ändern');
+    expect(html).toContain(profileIdentity.editProfile);
+    expect(html).not.toContain(profileIdentity.editName);
+    expect(html).not.toContain(profileIdentity.changeAvatar);
   });
 
   it('places the eimir.Pro explanation in the account profile instead of the Games surface', () => {
@@ -93,6 +95,26 @@ describe('Profile page reorganization', () => {
     expect(html).toContain(profiles.premium.gamesBody);
     expect(html).toContain(profiles.premium.action);
     expect(html).toContain(profiles.premium.detailsTitle);
+  });
+
+  it('keeps authored personal preferences ahead of eimir.Pro information', () => {
+    const html = renderProfilePageFixture([
+      {
+        id: 'pref-order',
+        accountId: ACCOUNT_ID,
+        category: PreferenceCategory.FOOD,
+        sentiment: PreferenceSentiment.LOVE,
+        topic: 'Pasta',
+        value: 'Al dente',
+        visibility: ProfileVisibility.SELF_PROFILE,
+        version: 1,
+      },
+    ]);
+
+    expect(html.indexOf('Pasta')).toBeGreaterThanOrEqual(0);
+    expect(html.indexOf(profiles.premium.title)).toBeGreaterThan(
+      html.indexOf('Pasta'),
+    );
   });
 
   it('renders categorized preference chips and [Vorliebe] without a permanent empty form', () => {

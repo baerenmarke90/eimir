@@ -6,6 +6,48 @@
   margin: 0 auto;
 }
 
+.partner-nickname {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.partner-nickname-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.partner-nickname-summary h3,
+.partner-nickname-summary p,
+.partner-nickname > .field-help {
+  margin: 0;
+}
+
+.partner-nickname-summary p {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.partner-nickname-form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 28rem;
+}
+
+.partner-nickname-form input {
+  width: 100%;
+}
+
+.partner-nickname-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .profile-section > h2,
 .profile-section > .layout-section-head h2,
 .profile-section > .section-head h2,
@@ -238,8 +280,8 @@
   cursor: pointer;
   text-align: left;
   transition:
-    border-color var(--motion-fast),
-    background var(--motion-fast);
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .profile-preference-chip:hover {
@@ -276,8 +318,10 @@
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  background: rgba(0, 0, 0, 0.45);
+  background-color: var(--color-scrim);
   backdrop-filter: blur(4px);
+  animation: preference-modal-backdrop-enter var(--duration-transition)
+    var(--easing-enter);
 }
 
 .preference-modal-dialog {
@@ -290,12 +334,79 @@
   border-radius: var(--radius-large);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+  opacity: 1;
+  transform: scale(1);
+  animation: preference-modal-enter var(--duration-transition)
+    var(--easing-enter);
+}
+
+.preference-modal-backdrop[data-presence="exiting"] {
+  pointer-events: none;
+  animation: preference-modal-backdrop-exit var(--duration-transition)
+    var(--easing-exit) forwards;
+}
+
+.preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
+  animation: preference-modal-exit var(--duration-transition) var(--easing-exit)
+    forwards;
+}
+
+@keyframes preference-modal-backdrop-enter {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--color-scrim);
+  }
+}
+
+@keyframes preference-modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes preference-modal-backdrop-exit {
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes preference-modal-exit {
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@keyframes preference-modal-sheet-exit {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes preference-modal-sheet-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-3));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 599px) {
   .preference-modal-backdrop {
     align-items: flex-end;
     padding: 0;
+    animation-duration: var(--duration-context);
   }
 
   .preference-modal-dialog {
@@ -305,6 +416,21 @@
     border-bottom: none;
     border-bottom-right-radius: 0;
     border-bottom-left-radius: 0;
+    animation-name: preference-modal-sheet-enter;
+    animation-duration: var(--duration-context);
+  }
+
+  .preference-modal-backdrop[data-presence="exiting"] .preference-modal-dialog {
+    animation-name: preference-modal-sheet-exit;
+    animation-duration: var(--duration-transition);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preference-modal-backdrop,
+  .preference-modal-dialog {
+    animation: none;
+    transition: none;
   }
 }
 
@@ -418,13 +544,11 @@
   display: grid;
   gap: var(--space-6);
   padding-top: var(--space-8);
-  border-top: 1px solid var(--color-border-subtle);
 }
 
 .profile-partner-block > .profile-identity-panel {
   padding: 0 0 var(--space-5);
   border: 0;
-  border-bottom: 1px solid var(--color-border-subtle);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -479,8 +603,6 @@
   gap: var(--space-3);
   padding: var(--space-4) 0;
   border: 0;
-  border-top: 1px solid var(--color-border-subtle);
-  border-bottom: 1px solid var(--color-border-subtle);
   border-radius: 0;
   background: transparent;
 }
@@ -545,7 +667,7 @@
   font-size: 0.85rem;
   text-decoration: underline;
   text-underline-offset: 3px;
-  transition: color var(--motion-fast);
+  transition: color var(--duration-feedback) var(--easing-standard);
 }
 
 .relationship-notification-hint-link:hover,

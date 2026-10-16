@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import { expect, test, type Page } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s3 from '../../src/i18n/locales/m5s3';
@@ -22,6 +23,7 @@ async function installChapterApiMocks(
   let createdChapterId: string | null = null;
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -225,6 +227,14 @@ async function installChapterApiMocks(
       pathname === `/api/v1/spaces/${SPACE_ID}/timeline`
     ) {
       await fulfillJson({ hasMore: false, items: [], nextCursor: null });
+      return;
+    }
+
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
       return;
     }
 

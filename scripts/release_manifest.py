@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import re
+import urllib.parse
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -20,7 +21,9 @@ SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 OCI_SHA256_REFERENCE = re.compile(r"^(?P<name>[^@\s]+)@sha256:(?P<digest>[0-9a-f]{64})$")
-REQUIRED_ARTIFACTS = {"backend-runtime", "web-runtime", "android-apk", "android-aab"}
+CORE_ARTIFACTS = {"backend-runtime", "web-runtime"}
+ANDROID_ARTIFACTS = {"android-apk", "android-aab"}
+REQUIRED_ARTIFACTS = CORE_ARTIFACTS | ANDROID_ARTIFACTS
 BACKEND_ROLES = {"api", "worker", "migrate"}
 CLOUD_BACKEND_SERVICES = ("cloud-api", "cloud-worker", "cloud-migrate")
 CLOUD_WEB_SERVICE = "cloud-web"
@@ -138,6 +141,74 @@ def cloud_images_from_compose(config: dict[str, Any]) -> tuple[str, str]:
     return backend_reference, web_reference
 
 
+def android_included(android: dict[str, Any]) -> bool:
+    included = android.get("included", True)
+    if not isinstance(included, bool):
+        raise ManifestError("Android included flag must be boolean")
+    return included
+
+
+def validate_android_record(android: dict[str, Any], *, version: str | None = None) -> None:
+    if not isinstance(android, dict):
+        raise ManifestError("Evidence lacks Android release identity")
+
+    if not android_included(android):
+        if android.get("signing") != "not-applicable":
+            raise ManifestError("Excluded Android channel must use signing=not-applicable")
+        forbidden = {
+            "applicationId",
+            "versionName",
+            "versionCode",
+            "apiBaseUrl",
+            "launchableActivity",
+            "finalSignedArtifactRequiresFreshAttestation",
+        }
+        present = sorted(forbidden.intersection(android))
+        if present:
+            raise ManifestError(
+                "Excluded Android channel must not carry Android artifact identity: "
+                + ", ".join(present)
+            )
+        return
+
+    if android.get("applicationId") != "de.sidebyside.app":
+        raise ManifestError("Android release applicationId must remain de.sidebyside.app")
+    if version is not None and android.get("versionName") != version:
+        raise ManifestError(
+            f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"
+        )
+    version_code = android.get("versionCode")
+    if not isinstance(version_code, int) or isinstance(version_code, bool) or version_code <= 0:
+        raise ManifestError("Android versionCode must be a positive integer")
+
+    if "apiBaseUrl" in android:
+        url = android.get("apiBaseUrl")
+        if not isinstance(url, str):
+            raise ManifestError("Android apiBaseUrl must be a string")
+        url = url.strip()
+        if not url:
+            raise ManifestError("Android apiBaseUrl must not be empty")
+        if re.search(r"\s", url):
+            raise ManifestError("Android apiBaseUrl must not contain whitespace")
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme != "https":
+            raise ManifestError("Android apiBaseUrl must use https scheme")
+        if not parsed.netloc:
+            raise ManifestError("Android apiBaseUrl must have non-empty host")
+        if parsed.username or parsed.password:
+            raise ManifestError("Android apiBaseUrl must not contain user credentials")
+        if parsed.query or parsed.fragment:
+            raise ManifestError("Android apiBaseUrl must not contain query or fragment")
+        android["apiBaseUrl"] = url.rstrip("/")
+
+    if "launchableActivity" in android:
+        activity = android.get("launchableActivity")
+        if activity != "de.eimir.app.MainActivity":
+            raise ManifestError(
+                f"Android launchableActivity must be de.eimir.app.MainActivity, got: {activity!r}"
+            )
+
+
 def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     require_semver(version)
     if evidence.get("schemaVersion") != 1:
@@ -147,6 +218,12 @@ def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list
         raise ManifestError("Evidence sourceRevision must be one immutable 40-hex commit SHA")
     if evidence.get("sbomFormat") != "SPDX-2.3 JSON":
         raise ManifestError("Release evidence must use SPDX-2.3 JSON")
+
+    android = evidence.get("android")
+    if not isinstance(android, dict):
+        raise ManifestError("Evidence lacks Android release identity")
+    validate_android_record(android, version=version)
+    include_android = android_included(android)
 
     artifacts = evidence.get("artifacts")
     if not isinstance(artifacts, list):
@@ -166,27 +243,24 @@ def validate_evidence(evidence: dict[str, Any], version: str) -> tuple[str, list
             raise ManifestError(f"Invalid SBOM SHA-256 for {artifact_id}")
         by_id[artifact_id] = artifact
 
-    if set(by_id) != REQUIRED_ARTIFACTS:
+    expected_artifacts = CORE_ARTIFACTS | (ANDROID_ARTIFACTS if include_android else set())
+    if set(by_id) != expected_artifacts:
+        if include_android:
+            raise ManifestError(
+                "Android-inclusive release evidence must contain exactly backend, Web, APK and AAB artifacts"
+            )
         raise ManifestError(
-            "Release evidence must contain exactly backend, Web, APK and AAB artifacts"
+            "Android-excluded release evidence must contain exactly backend and Web artifacts"
         )
     if set(by_id["backend-runtime"].get("roles", [])) != BACKEND_ROLES:
         raise ManifestError("Backend artifact must cover API, worker and migrate together")
     if set(by_id["web-runtime"].get("roles", [])) != {"web"}:
         raise ManifestError("Web artifact role is inconsistent")
-
-    android = evidence.get("android")
-    if not isinstance(android, dict):
-        raise ManifestError("Evidence lacks Android release identity")
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Android release applicationId must remain de.sidebyside.app")
-    if android.get("versionName") != version:
-        raise ManifestError(
-            f"Android versionName {android.get('versionName')!r} does not match product version {version!r}"
-        )
-    version_code = android.get("versionCode")
-    if not isinstance(version_code, int) or isinstance(version_code, bool) or version_code <= 0:
-        raise ManifestError("Android versionCode must be a positive integer")
+    if include_android:
+        if set(by_id["android-apk"].get("roles", [])) != {"android-apk"}:
+            raise ManifestError("Android APK artifact role is inconsistent")
+        if set(by_id["android-aab"].get("roles", [])) != {"android-aab"}:
+            raise ManifestError("Android AAB artifact role is inconsistent")
 
     return source, [by_id[key] for key in sorted(by_id)], android
 
@@ -239,6 +313,12 @@ def validate_manifest_shape(
     if not isinstance(source, str) or not SHA40.fullmatch(source):
         raise ManifestError("Release sourceRevision is not an immutable commit SHA")
 
+    android = manifest.get("android")
+    if not isinstance(android, dict):
+        raise ManifestError("Release manifest lacks Android channel identity")
+    validate_android_record(android, version=version)
+    include_android = android_included(android)
+
     artifacts = manifest.get("artifacts")
     if not isinstance(artifacts, list):
         raise ManifestError("Release artifacts must be a list")
@@ -254,18 +334,13 @@ def validate_manifest_shape(
             raise ManifestError(f"Invalid release artifact SHA-256: {artifact_id}")
         if not SHA256.fullmatch(str(artifact.get("sbomSha256", ""))):
             raise ManifestError(f"Invalid release SBOM SHA-256: {artifact_id}")
-    if ids != REQUIRED_ARTIFACTS:
-        raise ManifestError("Release artifact set is incomplete or mixed")
 
-    android = manifest.get("android")
-    if not isinstance(android, dict):
-        raise ManifestError("Release manifest lacks Android identity")
-    if android.get("applicationId") != "de.sidebyside.app":
-        raise ManifestError("Release manifest has the wrong Android applicationId")
-    if android.get("versionName") != version:
-        raise ManifestError("Release Android versionName differs from product version")
-    if require_signed_android and android.get("signing") != "signed-release":
-        raise ManifestError("Final publication requires a signed-release Android artifact set")
+    expected_artifacts = CORE_ARTIFACTS | (ANDROID_ARTIFACTS if include_android else set())
+    if ids != expected_artifacts:
+        raise ManifestError("Release artifact set does not match the declared Android channel")
+
+    if require_signed_android and include_android and android.get("signing") != "signed-release":
+        raise ManifestError("Final publication requires signed-release Android artifacts when Android is included")
 
     rollback = manifest.get("rollback")
     if not isinstance(rollback, dict) or rollback.get("databaseRollbackImplied") is not False:

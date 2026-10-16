@@ -1,3 +1,4 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -5,11 +6,13 @@ import { fileURLToPath } from 'node:url';
 import { expect, type Page, type TestInfo, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import m5s5 from '../../src/i18n/locales/m5s5';
+import relationshipComponents from '../../src/i18n/locales/relationshipComponents';
 
 /*
  * Product Reference v1 R4 calibrates `/today` as the living home of a
- * relationship: compact couple presence, restrained current context, one
- * focal item, and only relevant supporting relationship content.
+ * relationship. The later accepted #1189 product decision deliberately moves
+ * the personal focal moment ahead of the practical planning horizon so shared
+ * relationship content appears earlier without adding decorative chrome.
  *
  * These tests assert that composition against real rendered pixels with real
  * photographs (the repository's own demo assets), across the Compact,
@@ -50,11 +53,11 @@ const thisMonth = (day: number) =>
 const inDays = (days: number) =>
   new Date(NOW.getTime() + days * 86_400_000).toISOString();
 
-/** The R4 section order when every eligible role is present, top to bottom. */
-const NORMATIVE_ORDER = [
+/** The accepted Today section order after the #1189 product follow-up. */
+const ACCEPTED_ORDER = [
   '.today-hero',
-  '.today-section-upcoming',
   '.today-section-moment',
+  '.today-section-upcoming',
   '.today-section-living',
   '.today-section-monthly',
   '.today-section-recent',
@@ -239,20 +242,20 @@ async function expectNormativeOrder(page: Page): Promise<void> {
       }
       return present;
     },
-    NORMATIVE_ORDER as unknown as string[],
+    ACCEPTED_ORDER as unknown as string[],
   );
 
-  const expected = NORMATIVE_ORDER.filter((selector) =>
+  const expected = ACCEPTED_ORDER.filter((selector) =>
     order.includes(selector),
   );
   expect(
     order,
-    `Sections must appear in the R4 document order: ${expected.join(' -> ')}`,
+    `Sections must appear in the accepted Today document order: ${expected.join(' -> ')}`,
   ).toEqual(expected);
 }
 
 /**
- * On Compact the page is one column, so the normative order must also be the
+ * On Compact the page is one column, so the accepted order must also be the
  * order the eye reads. Motion is settled first, because the staggered 8 px
  * reveal would otherwise make two adjacent sections compare out of order.
  */
@@ -267,12 +270,12 @@ async function expectSingleColumnVisualOrder(page: Page): Promise<void> {
       }
       return values;
     },
-    NORMATIVE_ORDER as unknown as string[],
+    ACCEPTED_ORDER as unknown as string[],
   );
 
   expect(
     [...tops].sort((a, b) => a - b),
-    'Compact sections must read top to bottom in the R4 order',
+    'Compact sections must read top to bottom in the accepted Today order',
   ).toEqual(tops);
 }
 
@@ -288,7 +291,12 @@ async function installMocks(
   page: Page,
   scenario: Scenario,
   itemLimit: 1 | 2 | 3 = 1,
+  presenceState: 'ACTIVE' | 'RECENT' | null | 'ERROR' = null,
+  withPartner = true,
 ): Promise<void> {
+  const viewer = { id: ACCOUNT_ID, displayName: 'Lea Sommer' };
+  const partner = { id: PARTNER_ID, displayName: 'Alex Berger' };
+
   await page.route('**/media/**', async (route) => {
     const id = new URL(route.request().url()).pathname
       .split('/')
@@ -307,6 +315,7 @@ async function installMocks(
   });
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const { pathname } = new URL(request.url());
@@ -333,7 +342,7 @@ async function installMocks(
     }
     if (method === 'POST' && pathname === '/api/v1/auth/sign-in') {
       await fulfillJson({
-        account: { displayName: 'Lea Sommer', id: ACCOUNT_ID },
+        account: viewer,
         tokens: {
           accessExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
           accessToken: 'today-850-access-token',
@@ -344,7 +353,7 @@ async function installMocks(
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/me') {
-      await fulfillJson({ displayName: 'Lea Sommer', id: ACCOUNT_ID });
+      await fulfillJson(viewer);
       return;
     }
     if (method === 'GET' && pathname === '/api/v1/auth/capabilities') {
@@ -361,13 +370,75 @@ async function installMocks(
       await fulfillJson({
         id: SPACE_ID,
         createdAt: '2023-07-01T00:00:00Z',
-        partners: [
-          { id: ACCOUNT_ID, displayName: 'Lea Sommer' },
-          { id: PARTNER_ID, displayName: 'Alex Berger' },
-        ],
+        partners: withPartner ? [viewer, partner] : [viewer],
       });
       return;
     }
+
+    // This fixture exercises the R4 relationship composition with the
+    // account's optional Daily Quote switched off. Mock its real entitlement
+    // and preference response explicitly: an unmatched 500 would otherwise
+    // insert a quote error card before the focal memory and obscure the
+    // viewport contract this suite is meant to verify. The quote's enabled,
+    // Free and error states have their own browser coverage.
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'ACTIVE',
+        tier: 'PREMIUM',
+        capabilities: ['daily.quote'],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote`
+    ) {
+      await fulfillJson({
+        checkedOn: '2026-09-22',
+        enabled: false,
+        quote: null,
+      });
+      return;
+    }
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/daily-quote/catalog`
+    ) {
+      await fulfillJson({ categories: [], sources: [] });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: '"7"' },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
+      });
+      return;
+    }
+
     if (method === 'GET' && pathname === `/api/v1/spaces/${SPACE_ID}/profile`) {
       await fulfillJson({
         spaceId: SPACE_ID,
@@ -382,17 +453,36 @@ async function installMocks(
       method === 'GET' &&
       /^\/api\/v1\/spaces\/[^/]+\/profiles\/[^/]+$/.test(pathname)
     ) {
-      const isPartner = pathname.endsWith(PARTNER_ID);
+      const isPartner = pathname.endsWith(partner.id);
       await fulfillJson({
-        accountId: isPartner ? PARTNER_ID : ACCOUNT_ID,
+        accountId: isPartner ? partner.id : viewer.id,
         createdAt: '2023-07-01T00:00:00Z',
-        displayName: isPartner ? 'Alex Berger' : 'Lea Sommer',
+        displayName: isPartner ? partner.displayName : viewer.displayName,
         id: isPartner ? PARTNER_PROFILE_ID : PROFILE_ID,
         preferences: [],
         profileAttachmentId: null,
         updatedAt: '2023-07-01T00:00:00Z',
         version: 1,
       });
+      return;
+    }
+    if (
+      (method === 'GET' || method === 'POST') &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      if (presenceState === 'ERROR') {
+        await fulfillJson(
+          {
+            code: 'PRESENCE_UNAVAILABLE',
+            detail: 'Presence is temporarily unavailable.',
+            status: 503,
+            title: 'Presence unavailable',
+          },
+          503,
+        );
+      } else {
+        await fulfillJson({ state: presenceState });
+      }
       return;
     }
     if (
@@ -427,7 +517,7 @@ async function installMocks(
       await fulfillJson({
         space: {
           spaceId: SPACE_ID,
-          partner: { id: PARTNER_ID, displayName: 'Alex Berger' },
+          partner: withPartner ? partner : null,
         },
         relationshipDuration: {
           daysTogether: 1164,
@@ -471,9 +561,16 @@ async function signInAndOpenToday(page: Page): Promise<void> {
   await page.goto('/today');
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
+  const quoteResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname ===
+        `/api/v1/spaces/${SPACE_ID}/daily-quote` && response.status() === 200,
+  );
   await page.getByRole('button', { name: de.login.submit }).click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.locator('.today-hero')).toBeVisible();
+  await quoteResponse;
+  await expect(page.locator('.daily-quote-card')).toHaveCount(0);
 }
 
 async function capture(
@@ -494,6 +591,75 @@ async function capture(
 }
 
 test.describe('Today R4: the living home of a relationship', () => {
+  test('keeps partner Presence hidden and dormant across Today viewports', async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(120_000);
+    const presenceRequests: string[] = [];
+    page.on('request', (request) => {
+      const pathname = new URL(request.url()).pathname;
+      if (pathname === `/api/v1/spaces/${SPACE_ID}/presence`) {
+        presenceRequests.push(`${request.method()} ${pathname}`);
+      }
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await installMocks(page, RICH_SPACE, 1, 'ACTIVE');
+    await signInAndOpenToday(page);
+    await page.waitForLoadState('networkidle');
+
+    const hero = page.locator('.today-hero');
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceActive),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceRecent),
+    ).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-disabled-390-light');
+
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await settleMotion(page);
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-disabled-390-dark');
+
+    for (const width of [320, 360, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      await settleMotion(page);
+      await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(
+        0,
+      );
+      await expect(hero.locator('.couple-presence-indicator')).toHaveCount(0);
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.emulateMedia({ colorScheme: 'light' });
+    await settleMotion(page);
+    await expect(hero.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+    await expectNoWcagViolations(page);
+    await capture(page, testInfo, 'presence-disabled-1440-light');
+
+    expect(presenceRequests).toEqual([]);
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    await installMocks(page, RICH_SPACE, 1, null, false);
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.today-hero')).toBeVisible();
+    await expect(
+      page.getByText(relationshipComponents.couplePresenceWaiting),
+    ).toBeVisible();
+    await expect(page.locator('.partner-presence-avatar-state')).toHaveCount(0);
+    expect(presenceRequests).toEqual([]);
+  });
+
   test('composes the full eligible hierarchy on a 390-class phone, in Light and Dark', async ({
     page,
   }, testInfo) => {
@@ -503,8 +669,8 @@ test.describe('Today R4: the living home of a relationship', () => {
     await page.emulateMedia({ colorScheme: 'light' });
     await signInAndOpenToday(page);
 
-    // Every module of the composition is present, in the normative order.
-    for (const selector of NORMATIVE_ORDER) {
+    // Every module of the composition is present, in the accepted Today order.
+    for (const selector of ACCEPTED_ORDER) {
       await expect(page.locator(selector)).toBeVisible();
     }
     await expectNormativeOrder(page);
@@ -548,16 +714,29 @@ test.describe('Today R4: the living home of a relationship', () => {
         return node ? Math.round(node.getBoundingClientRect().top) : null;
       };
       return {
-        title: top('.couple-presence-title'),
+        dateTitle: top('.today-date-title'),
+        avatar: top('.partner-avatar-pair-action'),
+        relationshipTitle: top('.couple-presence-title'),
         moment: top('.today-section-moment'),
         momentImage: top('.today-moment-media'),
       };
     });
 
-    // The relationship identity starts close under the shell chrome instead
-    // of behind a stacked band of page/hero padding.
-    expect(metrics.title).not.toBeNull();
-    expect(metrics.title as number).toBeLessThan(120);
+    // #1155 put the date first; #1206 made the avatar pair the relationship
+    // action before the names. Keep both near the top, with the full identity
+    // visible in the first part of the phone viewport.
+    expect(metrics.dateTitle).not.toBeNull();
+    expect(metrics.dateTitle as number).toBeLessThan(120);
+    expect(metrics.avatar).not.toBeNull();
+    expect(metrics.avatar as number).toBeLessThan(260);
+    expect(metrics.avatar as number).toBeGreaterThan(
+      metrics.dateTitle as number,
+    );
+    expect(metrics.relationshipTitle).not.toBeNull();
+    expect(metrics.relationshipTitle as number).toBeLessThan(320);
+    expect(metrics.relationshipTitle as number).toBeGreaterThan(
+      metrics.avatar as number,
+    );
 
     // The page's emotional anchor, and its actual photograph, are both inside
     // the first 844 px viewport rather than a scroll away.
@@ -716,10 +895,35 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     // The overflow that makes swiping possible is contained in the strip
     // itself, never leaking out to the page.
-    const stripOverflow = await page
+    const monthlyInteraction = await page
       .locator('.today-monthly-strip')
-      .evaluate((node) => node.scrollWidth > node.clientWidth + 1);
-    expect(stripOverflow).toBe(true);
+      .evaluate((node) => {
+        const style = getComputedStyle(node);
+        const items = Array.from(
+          node.querySelectorAll<HTMLElement>('.today-monthly-item'),
+        );
+        return {
+          usesSharedTrack: node.classList.contains('eimir-media-snap-track'),
+          allItemsUseSharedSnap: items.every(
+            (item) =>
+              item.classList.contains('eimir-media-snap-item') &&
+              item.classList.contains('eimir-media-snap-item-start'),
+          ),
+          scrollSnapType: style.scrollSnapType,
+          overscrollBehaviorX: style.overscrollBehaviorX,
+          touchAction: style.touchAction,
+          overflow: node.scrollWidth > node.clientWidth + 1,
+          snapStops: items.map((item) => getComputedStyle(item).scrollSnapStop),
+        };
+      });
+    expect(monthlyInteraction.usesSharedTrack).toBe(true);
+    expect(monthlyInteraction.allItemsUseSharedSnap).toBe(true);
+    expect(monthlyInteraction.scrollSnapType).toContain('x');
+    expect(monthlyInteraction.scrollSnapType).toContain('mandatory');
+    expect(monthlyInteraction.overscrollBehaviorX).toBe('contain');
+    expect(monthlyInteraction.touchAction).toBe('manipulation');
+    expect(monthlyInteraction.overflow).toBe(true);
+    expect(monthlyInteraction.snapStops).toEqual(['always', 'always']);
 
     await expectNoHorizontalOverflow(page);
     await expectNoWcagViolations(page);
@@ -1091,7 +1295,7 @@ test.describe('Today R4: the living home of a relationship', () => {
 
     const reachable = new Set<string>();
     const wanted = [
-      'today-hero-action',
+      'partner-avatar-pair-action',
       'today-agenda-row',
       'today-moment',
       'today-living-action',
@@ -1113,12 +1317,20 @@ test.describe('Today R4: the living home of a relationship', () => {
       });
       if (!focused) continue;
       for (const name of wanted) {
-        if (focused.classes.includes(name)) reachable.add(name);
+        if (focused.classes.includes(name)) {
+          reachable.add(name);
+          if (name === 'partner-avatar-pair-action') {
+            expect(focused.outlineWidth).toBe('3px');
+          }
+        }
       }
       if (reachable.size === wanted.length) break;
     }
 
     expect([...reachable].sort()).toEqual([...wanted].sort());
+    await expect(
+      page.locator('.today-hero .partner-avatar-pair-action'),
+    ).toHaveAttribute('aria-label', /.+/);
 
     // No focus trap: focus keeps advancing out of the page content.
     await expect(page.locator('.today-section-recent')).toBeVisible();
@@ -1132,7 +1344,7 @@ test.describe('Today R4: the living home of a relationship', () => {
     await installMocks(page, RICH_SPACE);
     await signInAndOpenToday(page);
 
-    for (const selector of NORMATIVE_ORDER) {
+    for (const selector of ACCEPTED_ORDER) {
       await expect(page.locator(selector)).toBeVisible();
     }
     await expectNormativeOrder(page);

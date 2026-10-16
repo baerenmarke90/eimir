@@ -25,6 +25,39 @@ function storyApis({
 }
 
 describe('loadAuthorizedStoryImage', () => {
+  it('requests the thumbnail variant through both descriptor and authorized stream with cancellation', async () => {
+    const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
+      storyApis({ descriptor: { method: 'STREAM', url: '/content' } });
+    const controller = new AbortController();
+    await loadAuthorizedStoryImage(
+      apis,
+      'space-1',
+      'MEMORY',
+      'memory-1',
+      'image-1',
+      {
+        variant: 'thumbnail',
+        signal: controller.signal,
+        createObjectUrl: () => 'blob:thumbnail',
+      },
+    );
+    expect(createAttachmentReadAccess).toHaveBeenCalledWith(
+      {
+        spaceId: 'space-1',
+        attachmentId: 'image-1',
+        attachmentReadRequest: {
+          parentType: 'MEMORY',
+          parentId: 'memory-1',
+          variant: 'thumbnail',
+        },
+      },
+      { signal: controller.signal },
+    );
+    expect(getAttachmentContentRaw).toHaveBeenCalledWith(
+      { spaceId: 'space-1', attachmentId: 'image-1', variant: 'thumbnail' },
+      { signal: controller.signal },
+    );
+  });
   it('binds Heart Moment timeline media to HEART_MOMENT before streaming', async () => {
     const { apis, createAttachmentReadAccess, getAttachmentContentRaw } =
       storyApis({
@@ -58,6 +91,39 @@ describe('loadAuthorizedStoryImage', () => {
     });
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(result).toBe('blob:heart-moment');
+  });
+
+  it('forwards cancellation to signed media transport', async () => {
+    const { apis } = storyApis({
+      descriptor: {
+        method: ReadDescriptorMethodEnum.SIGNED_URL,
+        url: 'https://media.example.test/cancellable-image',
+      },
+    });
+    const controller = new AbortController();
+    const fetchApi = vi.fn().mockResolvedValue(
+      new Response(new Blob(['signed-image'], { type: 'image/jpeg' }), {
+        status: 200,
+      }),
+    ) as unknown as typeof fetch;
+
+    await loadAuthorizedStoryImage(
+      apis,
+      'space-1',
+      AttachmentReadRequestParentTypeEnum.MEMORY,
+      'memory-1',
+      'att-memory',
+      {
+        fetchApi,
+        createObjectUrl: vi.fn().mockReturnValue('blob:cancellable-image'),
+        signal: controller.signal,
+      },
+    );
+
+    expect(fetchApi).toHaveBeenCalledWith(
+      'https://media.example.test/cancellable-image',
+      { signal: controller.signal },
+    );
   });
 
   it('uses the issued URL directly for signed media reads', async () => {

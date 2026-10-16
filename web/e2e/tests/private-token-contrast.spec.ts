@@ -1,6 +1,8 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const SPACE_ID = '22222222-2222-4222-8222-222222222222';
@@ -12,6 +14,7 @@ async function installMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -131,6 +134,28 @@ async function installMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      method === 'POST' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -143,6 +168,7 @@ async function installMocks(page: Page): Promise<string[]> {
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, null);
   return unexpectedRequests;
 }
 
@@ -150,6 +176,7 @@ async function signIn(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('anna@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
 }
 
 test('private visibility text remains WCAG AA on its semantic tinted surface', async ({

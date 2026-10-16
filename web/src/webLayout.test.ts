@@ -37,6 +37,10 @@ const timelineProgressiveCss = readSource(
   './components/StoryTimelineProgressive.css',
 );
 const discoverRevealCss = readSource('./components/StoryDiscoverReveal.css');
+const productRolesCss = readSource('./design/product-roles.css');
+const sharedPlanningSanctuaryCss = readSource(
+  './components/SharedPlanningSanctuary.css',
+);
 
 describe('web layout primitives', () => {
   it('lets a page fill the bounded main region instead of a reading column', () => {
@@ -101,11 +105,125 @@ describe('web layout primitives', () => {
     );
   });
 
+  it('gives primary navigation pages one tokenized title scale and content rhythm', () => {
+    const rootHeader = ruleBlock(layoutCss, '.page-heading-root');
+    expect(rootHeader).toContain('margin-bottom: var(--space-section)');
+    expect(rootHeader).toContain('padding-bottom: 0');
+
+    const rootTitle = ruleBlock(layoutCss, '.page-heading-root h1');
+    expect(rootTitle).toContain('min-inline-size: 0');
+    expect(rootTitle).toContain('max-width: 100%');
+    expect(rootTitle).toContain('font: var(--font-page-heading)');
+    expect(rootTitle).toContain('letter-spacing: var(--tracking-page-heading)');
+    expect(rootTitle).toContain('overflow-wrap: anywhere');
+
+    expect(sharedPlanningSanctuaryCss).toContain(
+      '& .page-heading:not(.page-heading-root) {',
+    );
+
+    expect(productRolesCss).toContain(
+      '--font-page-heading: 700 2.25rem / 1.15 "Literata", "Georgia", serif',
+    );
+    expect(productRolesCss).toContain('--tracking-page-heading: -0.015em');
+  });
+
   it('stacks the page header and its action on compact viewports', () => {
     const compact = layoutCss.slice(
       layoutCss.indexOf('@media (max-width: 599px)'),
     );
     expect(compact).toMatch(/\.page-heading\s*\{[^}]*flex-direction: column/s);
+  });
+});
+
+describe('module boundary rhythm', () => {
+  it('uses spacing and surfaces instead of standalone module divider hairlines', () => {
+    const cases: Array<[string, string, string]> = [
+      ['./styles.css', '.app-header', 'border-bottom'],
+      ['./theme.css', '.app-header', 'border-bottom'],
+      ['./layout.css', '.page-heading', 'border-bottom'],
+      [
+        './components/SharedStorySummary.css',
+        '.shared-story-summary',
+        'border-top',
+      ],
+      ['./components/CommentsPanel.css', '.comments-panel', 'border-top'],
+      [
+        './components/ProfileIdentityPanel.css',
+        '.profile-identity-hero-card',
+        'border-bottom',
+      ],
+      [
+        './components/ProfileIdentityPanel.css',
+        '.profile-name-inline-form,\n.profile-birthday-inline-form',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-top',
+      ],
+      [
+        './components/PlanningCreatePage.css',
+        '.planning-optional-details',
+        'border-bottom',
+      ],
+      [
+        './components/HeartMomentCreateReference.css',
+        '.heart-moment-create-actions.form-actions',
+        'border-top',
+      ],
+      [
+        './components/StoryProductPages.css',
+        '.story-active-chips',
+        'border-top',
+      ],
+      [
+        './components/RelatedPeoplePage.css',
+        '.important-dates-section',
+        'border-top',
+      ],
+      [
+        './components/SettingsPage.css',
+        '.settings-sensitive-grid',
+        'border-top',
+      ],
+      ['./components/TransferPanel.css', '.transfer-columns', 'border-top'],
+      [
+        './components/PlanningReference.css',
+        '.planen-operations',
+        'border-top',
+      ],
+      ['./components/PlanningReference.css', '.planen-history', 'border-top'],
+      [
+        './components/PrivateAreaProductPage.css',
+        '.private-checklist-completed-section',
+        'border-top',
+      ],
+      [
+        './components/OurMomentsGamePage.css',
+        '.our-moments-turn',
+        'border-bottom',
+      ],
+      [
+        './components/WishDetectiveGamePage.css',
+        '.wish-detective-meta',
+        'border-bottom',
+      ],
+    ];
+
+    for (const [relativePath, selector, property] of cases) {
+      expect(ruleBlock(readSource(relativePath), selector)).not.toContain(
+        `${property}:`,
+      );
+    }
+
+    const compactOverrides = readSource('./product-reflow.css');
+    expect(compactOverrides).not.toMatch(
+      /settings-sensitive-grid\s*>\s*\.account-settings-panel[\s\S]*?border-top:/,
+    );
+    expect(compactOverrides).not.toMatch(
+      /transfer-columns\s*>\s*section\s*\+\s*section[\s\S]*?border-top:/,
+    );
   });
 });
 
@@ -122,7 +240,7 @@ describe('web layout tokens', () => {
       shellCss,
       layoutCss,
       readSource('./theme.css'),
-      readSource('./design/product-roles.css'),
+      productRolesCss,
       readSource('./story-media.css'),
       readSource('./attachment-drafts.css'),
       readSource('./demo.css'),
@@ -140,7 +258,6 @@ describe('web layout tokens', () => {
       readSource('./components/RelatedPeopleAccessibility.css'),
       readSource('./components/RelatedPeoplePage.css'),
       readSource('./components/PlanningReference.css'),
-      readSource('./components/SharedPlanningMotion.css'),
       readSource('./components/SharedPlanningPages.css'),
       readSource('./components/SharedPlanningSanctuary.css'),
       readSource('./components/StoryMomentMetadata.css'),

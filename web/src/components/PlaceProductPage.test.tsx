@@ -115,6 +115,21 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
 });
 
+describe('PlaceProductPage read presentation', () => {
+  it('leads with the authored description and keeps technical location metadata secondary', () => {
+    renderPlace();
+
+    expect(screen.getByText(PLACE.description as string)).toBeTruthy();
+    expect(screen.getByText(PLACE.address as string)).toBeTruthy();
+
+    const summary = screen.getByText(i18n.t('m5s3.place.technicalDetails'));
+    const details = summary.closest('details');
+    expect(details).not.toBeNull();
+    expect(details?.open).toBe(false);
+    expect(screen.getByText(i18n.t('m5s3.place.noMap'))).toBeTruthy();
+  });
+});
+
 describe('PlaceProductPage editor lifecycle', () => {
   it('uses the shared contrast modifier for create and edit coordinate guidance', async () => {
     const user = userEvent.setup();

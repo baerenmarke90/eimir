@@ -27,8 +27,7 @@
   text-align: center;
   max-width: 36rem;
   margin-bottom: var(--space-6);
-  animation: login-content-in var(--motion-duration-medium)
-    var(--motion-easing-reveal) both;
+  animation: login-content-in var(--duration-context) var(--easing-enter) both;
 }
 
 .login-intro .brand {
@@ -81,8 +80,7 @@
     0 12px 36px var(--color-shadow-soft),
     0 2px 10px var(--color-shadow-brand);
   text-align: center;
-  animation: login-card-in var(--motion-duration-medium)
-    var(--motion-easing-reveal) both;
+  animation: login-card-in var(--duration-context) var(--easing-enter) both;
 }
 
 .login-card .eyebrow {
@@ -124,10 +122,10 @@
   font-weight: 750;
   cursor: pointer;
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast),
-    background var(--motion-fast),
-    border-color var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .login-card button:not(.secondary) {
@@ -198,9 +196,9 @@
   box-shadow: none;
   transform: none;
   transition:
-    background var(--motion-fast),
-    color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
   white-space: nowrap;
   padding: 0 var(--space-3);
 }

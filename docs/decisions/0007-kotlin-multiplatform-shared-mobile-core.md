@@ -1,10 +1,19 @@
 # ADR 0007: Kotlin Multiplatform for a shared non-visual mobile core
 
-- **Status:** Accepted for staged implementation
+- **Status:** Superseded by [ADR 0011](0011-web-first-pwa-capacitor-mobile-delivery.md)
 - **Date:** 2026-09-03
 - **Parent:** #621, IOS-0
 - **Scope:** Android/iOS architecture only; no iOS product UI is implemented by this ADR
 - **Decision type:** Mobile architecture / OpenAPI / privacy boundary
+
+> **Superseded — not an active roadmap.** ADR 0011 (#1005) replaced this
+> decision: the React/Vite Web application is the single product UI, and Android
+> (and later iOS) ship it through Capacitor. The Kotlin/Jetpack Compose client,
+> the Kotlin Multiplatform shared core and the SwiftUI plan described below were
+> never delivered as a product; the Compose client was removed in #1009 and
+> `android/` now holds only the Capacitor wrapper. The KMP issues #626-#630 are
+> closed as superseded. The text below is kept unchanged as historical context
+> for why that direction was considered; do not implement from it.
 
 ## Context
 

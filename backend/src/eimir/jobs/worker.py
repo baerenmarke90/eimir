@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from eimir.db.session import unit_of_work
 from eimir.jobs import queue
-from eimir.jobs.errors import RetryableJobError
+from eimir.jobs.errors import DeferredJobError, RetryableJobError
 from eimir.jobs.models import Job
 from eimir.observability import safe_exception_summary, set_correlation_id
 
@@ -77,6 +77,8 @@ def _run_job(job_id: Any, kind: str, payload: dict[str, Any]) -> None:
 
             try:
                 handler(session, payload)
+            except DeferredJobError as exc:
+                queue.defer(job, until=exc.until)
             except RetryableJobError as exc:
                 # Controlled retry errors contain a stable technical code only.
                 # The handler transaction remains valid so safe attempt metadata

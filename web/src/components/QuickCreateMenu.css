@@ -13,9 +13,9 @@
   box-shadow: var(--shadow-soft);
   font-weight: 800;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .quick-create-polished .quick-create-trigger:hover {
@@ -107,9 +107,9 @@
   box-shadow: 0 2px 6px var(--color-shadow-soft);
   text-decoration: none;
   transition:
-    transform var(--motion-fast),
-    border-color var(--motion-fast),
-    background var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
 }
 
 .quick-create-tile-content {
@@ -221,8 +221,8 @@
   justify-content: center;
   transform: translateY(-4px);
   transition:
-    transform var(--motion-fast),
-    box-shadow var(--motion-fast);
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
 }
 
 .mobile-quick-create .quick-create-trigger:hover,
@@ -293,8 +293,8 @@
   color: var(--color-text);
   text-decoration: none;
   transition:
-    background var(--motion-fast),
-    border-color var(--motion-fast);
+    background var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
 }
 
 .quick-create-mobile-item:hover,

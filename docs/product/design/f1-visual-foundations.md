@@ -15,7 +15,7 @@ The live open-PR inventory has 18 entries: #763, #762, #339, #317, #234, #233, #
 **User-facing UI / UX impact reviewed.** The full bounded Mobile Interaction Contract is recorded in #957. This implementation binds it to concrete consumers before UI code:
 
 - Web: `web/e2e/fixtures/product-reference-foundations.html`, `.tsx` and `.css`, exercised by `web/e2e/tests/product-reference-foundations.spec.ts`. Vite serves the internal fixture in development; the production entry/router does not import it. Check the production build excludes it.
-- Android: `android/app/src/debug/java/de/eimir/app/design/VisualRolesProofActivity.kt`, debug-only manifest/resources and `android/app/src/testDebug/java/de/eimir/app/design/VisualRolesProofTest.kt`. Explicit developer launch only; no production navigation or release Activity. Copy the approved photo into generated debug assets, never release assets.
+- Android (historical, removed in #1009): `android/app/src/debug/java/de/eimir/app/design/VisualRolesProofActivity.kt`, debug-only manifest/resources and `android/app/src/testDebug/java/de/eimir/app/design/VisualRolesProofTest.kt`. Explicit developer launch only; no production navigation or release Activity. Copy the approved photo into generated debug assets, never release assets.
 - Production consumers: Web `shell.css` and `product-reflow.css` consume the responsive gutter; existing Android `EimirTheme.spacing.pageMargin` consumers inherit the responsive adapter. The approximately 28 native consumers include some all-direction padding, so review their vertical spacing consequence as well.
 - Templates: Story Timeline/Detail View for photo and text, Settings and Privacy for compact utility selection. This fixture creates no new Screen Template.
 - Composition: a large photo and meaningful short title; a separate authored text memory with no photo hole; a small utility group. Photo/words → supporting audience/context → utility. One selected sample opens its own reading detail; Close/Back returns to the sample. Utility has real fixture selection/status behavior, not dead controls.
@@ -97,19 +97,7 @@ npm test -- tests/product-reference-foundations.spec.ts tests/product-gutters.sp
 
 The fixture is typechecked separately with `web/node_modules/.bin/tsc -p web/e2e/fixtures/tsconfig.json`. The browser CI runs this check and the proof tests, and uploads `f1-*.png` / `f1-*.json` with the existing visual-evidence artifact. Local alternate-port runs must start Vite with this checkout as an explicit root; never reuse a server from another checkout.
 
-For Android, build `:app:assembleDebug`, then use a **dedicated disposable emulator**:
-
-```sh
-python3 tools/qa/capture_f1_android.py \
-  --serial emulator-5562 \
-  --apk android/app/build/outputs/apk/debug/app-debug.apk \
-  --output /tmp/eimir-f1-android-evidence
-python3 tools/qa/measure_f1_android_contrast.py \
-  --captures /tmp/eimir-f1-android-evidence \
-  --output /tmp/eimir-f1-android-evidence/f1-android-contrast.json
-```
-
-Pass `--adb` when platform-tools is not on PATH. The capture helper installs only the debug APK, exercises controls through UIAutomator, captures screenshot/semantics pairs, and restores display/font/motion/system-night overrides. Its report includes source commit, APK hash, screenshot hashes, observed bounds, interaction results and limitations; unsuccessful runs explicitly report `completed: false`. The contrast sampler uses Pillow, already declared in the backend project, in the QA environment, reads images without modifying them, and fails when expected rendered role colors are missing. No production runtime dependency is added.
+> **Historical (#1009):** F1 also captured the Compose proof Activity on an emulator with `tools/qa/capture_f1_android.py` and `tools/qa/measure_f1_android_contrast.py`. The Compose client and these scripts were removed in #1009; the proof Activity no longer exists and Android has no separate F1 evidence step. The Web fixture and proof tests above remain the F1 evidence surface.
 
 ### Evidence and validation
 

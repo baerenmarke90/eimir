@@ -65,8 +65,12 @@ export function ProfilePage(props: ProfilePageProps) {
         }}
       />
 
-      {/* 2. Account-level Premium information */}
+      {/* 2. Personal and partner profile content remains ahead of product/account messaging. */}
+      <ProfilePreferencesSection {...currentProps} />
+
+      {/* 3. Account-level Premium information stays factual and secondary. */}
       <section
+        id="profile-premium"
         className="profile-premium-section"
         aria-labelledby="profile-premium-title"
       >
@@ -91,9 +95,6 @@ export function ProfilePage(props: ProfilePageProps) {
           </div>
         </details>
       </section>
-
-      {/* 3. Preferences & partner block */}
-      <ProfilePreferencesSection {...currentProps} />
     </div>
   );
 }

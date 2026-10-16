@@ -18,9 +18,9 @@ Screen Templates are a starting hypothesis, not a mandate that overrides the pro
 | Medium | 600–839 px | Bottom Navigation | one primary pane; optional supporting context |
 | Expanded | from 840 px | Web: horizontal header · App: Bottom Navigation | primary content with optional supporting context |
 
-The App keeps Bottom Navigation at every size; see
+The Android app renders the same Web shell (Capacitor wrapper); the retired Compose client's at-every-size Bottom Navigation is recorded in the historical
 `decisions/0004-android-uses-bottom-navigation-at-every-size.md`. The class
-still selects the content composition on both platforms.
+selects the content composition.
 
 - Switching is based on available window width, not device category.
 - Content is preserved across resize; selection and input are not lost.

@@ -7,6 +7,8 @@ from uuid import UUID
 
 from sqlalchemy import select
 
+from eimir.administration import service as administration
+from eimir.administration.models import AdministrationAction
 from eimir.core.clock import now
 from eimir.db.session import unit_of_work
 from eimir.identity.deletion import (
@@ -68,6 +70,11 @@ def _mark_completed(account_id: UUID, *, accepted_at: datetime) -> None:
         deletion.completed_at = now()
         deletion.failed_at = None
         deletion.last_failure_code = None
+        administration.record_account_deletion_outcome(
+            session,
+            target_account_id=account_id,
+            action=AdministrationAction.ACCOUNT_DELETION_COMPLETED,
+        )
         session.flush()
 
 

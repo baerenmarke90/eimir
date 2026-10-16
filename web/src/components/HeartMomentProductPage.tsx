@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useCallback, useLayoutEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  type FormEvent,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ContentVisibility } from '../api/generated/models/ContentVisibility';
 import { HeartEmotion } from '../api/generated/models/HeartEmotion';
 import type { HeartMomentDetail } from '../api/generated/models/HeartMomentDetail';
@@ -14,9 +20,15 @@ import {
   invalidateStoryProjections,
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
-import { localDateInputValue, openNativeDatePicker } from '../client/dateInput';
+import {
+  type CreateRequestAttempt,
+  submitCreateRequest,
+} from '../client/createRequestIdentity';
+import { localDateInputValue } from '../client/dateInput';
+import { usePartnerNickname } from '../client/partnerNickname';
 import { normalizeClientError } from '../client/problemDetails';
 import { useStoryViewReceipt } from '../client/storyViewReceipt';
+import { useTaskOrigin } from '../client/taskOrigin';
 import {
   deleteProductReadCacheEntry,
   loadProductWithReadCache,
@@ -36,10 +48,21 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { PRODUCT_NAME } from './Brand';
 import { CommentsPanel } from './CommentsPanel';
 import { HeartEmotionBadge, HeartEmotionPicker } from './HeartEmotionVisual';
+import {
+  HeartMomentTagChoices,
+  HEART_MOMENT_TAGS,
+  type HeartMomentTag,
+} from './HeartMomentTagChoices';
 import { MediaGallery } from './MediaGallery';
+import { NativeDateField } from './NativeDateField';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
+import {
+  StoryCreatePageShell,
+  StoryEditorPageShell,
+} from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { VisibilityBadge, VisibilityGlyph } from './VisibilityBadge';
 import { UiState } from './UiState';
@@ -49,6 +72,20 @@ export type HeartMomentProductMode = 'create' | 'detail' | 'edit';
 type HeartEmotionValue = (typeof HeartEmotion)[keyof typeof HeartEmotion];
 type ContentVisibilityValue =
   (typeof ContentVisibility)[keyof typeof ContentVisibility];
+
+interface HeartMomentCreateValues {
+  readonly text: string;
+  readonly emotion: HeartEmotionValue;
+  readonly happenedOn: Date;
+  readonly visibility: ContentVisibilityValue;
+  readonly attachmentId?: string;
+  readonly tags: string[];
+}
+
+interface HeartMomentCreateSnapshot {
+  readonly spaceId: string;
+  readonly heartMomentCreate: HeartMomentCreateValues;
+}
 
 function formatDateOnly(value: Date): string {
   return new Intl.DateTimeFormat(resolvedLocale(), {
@@ -85,18 +122,28 @@ export function HeartMomentProductPage({
   loadAttachment: (
     heartMomentId: string,
     attachmentId: string,
+    signal?: AbortSignal,
   ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { requestReturn, resolveOrigin } = useTaskOrigin();
+  const originKey = (location.state as { taskOriginKey?: unknown } | null)
+    ?.taskOriginKey;
   const params = useParams();
   const queryClient = useQueryClient();
   const heartMomentId = params.heartMomentId;
   const queryKey = authorSummaryQueryKeys.heartMoment(spaceId, heartMomentId);
   const contextKey = formatAttachmentDraftContextKey(currentAccountId, spaceId);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [createContentError, setCreateContentError] = useState(false);
+  const [editContentError, setEditContentError] = useState(false);
   const [createVisibility, setCreateVisibility] =
     useState<ContentVisibilityValue>(ContentVisibility.SHARED);
+  const createAttemptRef =
+    useRef<CreateRequestAttempt<HeartMomentCreateSnapshot> | null>(null);
   const [removeExistingPhotoState, setRemoveExistingPhotoState] = useState<{
     contextKey: string;
     remove: boolean;
@@ -170,21 +217,23 @@ export function HeartMomentProductPage({
   });
 
   const createMutation = useMutation({
-    mutationFn: async (values: {
-      text: string;
-      emotion: HeartEmotionValue;
-      happenedOn: Date;
-      visibility: ContentVisibilityValue;
-      attachmentId?: string;
-    }) => {
-      try {
-        return await apis.heartMoments.createHeartMoment({
-          spaceId,
-          heartMomentCreate: values,
-        });
-      } catch (error) {
-        throw await normalizeClientError(error);
-      }
+    mutationFn: async (values: HeartMomentCreateValues) => {
+      const snapshot: HeartMomentCreateSnapshot = {
+        spaceId,
+        heartMomentCreate: values,
+      };
+      return submitCreateRequest({
+        previousAttempt: createAttemptRef.current,
+        snapshot,
+        rememberAttempt: (attempt) => {
+          createAttemptRef.current = attempt;
+        },
+        request: (idempotencyKey) =>
+          apis.heartMoments.createHeartMoment({
+            ...snapshot,
+            idempotencyKey,
+          }),
+      });
     },
     onSuccess: async (heartMoment) => {
       attachments.clear();
@@ -194,7 +243,7 @@ export function HeartMomentProductPage({
       ]);
       navigate(heartMomentDetailPath(heartMoment.id), {
         replace: true,
-        state: { saved: true },
+        state: { saved: true, taskOriginKey: originKey },
       });
     },
   });
@@ -225,6 +274,7 @@ export function HeartMomentProductPage({
         value: {
           ...current,
           text: update.text ?? current.text,
+          tags: update.tags ?? current.tags,
           emotion: update.emotion ?? current.emotion,
           happenedOn: update.happenedOn ?? current.happenedOn,
           attachment: update.attachmentId === null ? null : current.attachment,
@@ -250,7 +300,10 @@ export function HeartMomentProductPage({
         queryClient.invalidateQueries({ queryKey }),
         invalidateDashboard(queryClient, spaceId),
       ]);
-      navigate(heartMomentDetailPath(heartMoment.id), { replace: true });
+      navigate(heartMomentDetailPath(heartMoment.id), {
+        replace: true,
+        state: { taskOriginKey: originKey },
+      });
     },
   });
 
@@ -342,8 +395,16 @@ export function HeartMomentProductPage({
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       if (!happenedOn) return;
+      const text = String(data.get('text') || '').trim();
+      const tags = data.getAll('tags') as HeartMomentTag[];
+      if (!text && !tags.length && !attachments.readyIds.length) {
+        setCreateContentError(true);
+        return;
+      }
+      setCreateContentError(false);
       createMutation.mutate({
-        text: String(data.get('text') || '').trim(),
+        text,
+        tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
         visibility: String(data.get('visibility')) as ContentVisibilityValue,
@@ -352,48 +413,55 @@ export function HeartMomentProductPage({
     }
 
     return (
-      <div className="page page-reading create-page heart-moment-create-page">
-        <header className="heart-moment-create-header">
-          <div className="heart-moment-create-topline">
-            <Link
-              className="back-link heart-moment-create-back"
-              to={appRoutePath('story')}
-            >
-              {t('heartMomentProduct.backToStory')}
-            </Link>
-            <span className="heart-moment-create-identity" aria-hidden="true">
-              {PRODUCT_NAME}
-            </span>
-            <span
-              className="heart-moment-create-topline-spacer"
-              aria-hidden="true"
-            />
-          </div>
-          <div className="heart-moment-create-title-lockup">
-            <span className="heart-moment-create-heart" aria-hidden="true">
-              <svg viewBox="0 0 24 24" focusable="false">
-                <title>{t('heartMomentProduct.createHeading')}</title>
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
-            </span>
-            <h1 id="heart-moment-create-heading">
-              {t('heartMomentProduct.createHeading')}
-            </h1>
-            <p
-              className="heart-moment-create-privacy-summary"
-              aria-live="polite"
-            >
-              {createVisibility === ContentVisibility.PRIVATE
-                ? t('heartMomentProduct.privateHelp')
-                : t('heartMomentProduct.sharedHelp')}
-            </p>
-          </div>
-        </header>
-
-        <section
-          className="immersive-create-card heart-moment-create-card eimir-motion-reveal"
-          aria-labelledby="heart-moment-create-heading"
-        >
+      <StoryCreatePageShell
+        header={
+          <header className="heart-moment-create-header">
+            <div className="heart-moment-create-topline">
+              <button
+                type="button"
+                className="back-link tertiary heart-moment-create-back"
+                onClick={() => requestReturn(originKey)}
+              >
+                {t(
+                  resolveOrigin(originKey)
+                    ? 'taskBoundary.back'
+                    : 'heartMomentProduct.backToStory',
+                )}
+              </button>
+              <span className="heart-moment-create-identity" aria-hidden="true">
+                {PRODUCT_NAME}
+              </span>
+              <span
+                className="heart-moment-create-topline-spacer"
+                aria-hidden="true"
+              />
+            </div>
+            <div className="heart-moment-create-title-lockup">
+              <span className="heart-moment-create-heart" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <title>{t('heartMomentProduct.createHeading')}</title>
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              </span>
+              <h1 id="heart-moment-create-heading">
+                {t('heartMomentProduct.createHeading')}
+              </h1>
+              <p
+                className="heart-moment-create-privacy-summary"
+                aria-live="polite"
+              >
+                {createVisibility === ContentVisibility.PRIVATE
+                  ? t('heartMomentProduct.privateHelp')
+                  : t('heartMomentProduct.sharedHelp')}
+              </p>
+            </div>
+          </header>
+        }
+        pageClassName="heart-moment-create-page"
+        cardClassName="heart-moment-create-card"
+        labelledBy="heart-moment-create-heading"
+      >
+        <>
           <form
             onSubmit={submitCreate}
             className="immersive-create-form heart-moment-create-form"
@@ -413,13 +481,14 @@ export function HeartMomentProductPage({
               <textarea
                 id="heart-moment-text"
                 name="text"
-                required
                 rows={4}
                 maxLength={4000}
                 placeholder={t('heartMomentProduct.textPlaceholder')}
                 className="immersive-create-title-multiline"
               />
             </div>
+
+            <HeartMomentTagChoices />
 
             <div className="heart-moment-create-field-grid">
               <HeartEmotionPicker
@@ -428,19 +497,15 @@ export function HeartMomentProductPage({
                 className="heart-moment-create-field heart-moment-create-emotion-picker"
               />
 
-              <div className="field-group heart-moment-create-field heart-moment-create-date">
-                <label htmlFor="heart-moment-date">
-                  {t('heartMomentProduct.happenedOnLabel')}
-                </label>
-                <input
-                  id="heart-moment-date"
-                  name="happenedOn"
-                  type="date"
-                  required
-                  defaultValue={localDateInputValue()}
-                  onClick={openNativeDatePicker}
-                />
-              </div>
+              <NativeDateField
+                id="heart-moment-date"
+                name="happenedOn"
+                label={t('heartMomentProduct.happenedOnLabel')}
+                required
+                defaultValue={localDateInputValue()}
+                openPickerOnClick
+                fieldClassName="heart-moment-create-field heart-moment-create-date"
+              />
             </div>
 
             <fieldset className="heart-moment-create-visibility">
@@ -496,19 +561,23 @@ export function HeartMomentProductPage({
                   ? t('heartMomentProduct.saving')
                   : t('heartMomentProduct.save')}
               </button>
-              <Link
+              <button
+                type="button"
                 className="button-link secondary-link"
-                to={appRoutePath('story')}
+                onClick={() => requestReturn(originKey)}
               >
                 {t('common.cancel')}
-              </Link>
+              </button>
             </div>
+            {createContentError ? (
+              <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
+            ) : null}
           </form>
           {createMutation.error ? (
             <ProblemState error={createMutation.error} />
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryCreatePageShell>
     );
   }
 
@@ -546,6 +615,7 @@ export function HeartMomentProductPage({
               <Link
                 className="back-link"
                 to={heartMomentDetailPath(heartMoment.id)}
+                state={{ taskOriginKey: originKey }}
               >
                 {t('heartMomentProduct.backToHeartMoment')}
               </Link>
@@ -577,8 +647,19 @@ export function HeartMomentProductPage({
       const data = new FormData(event.currentTarget);
       const happenedOn = String(data.get('happenedOn') || '');
       const replacementAttachmentId = attachments.readyIds[0];
+      const text = String(data.get('text') || '').trim();
+      const tags = data.getAll('tags') as HeartMomentTag[];
+      const hasPhoto =
+        Boolean(replacementAttachmentId) ||
+        (Boolean(heartMoment.attachment) && !removeExistingPhoto);
+      if (!text && !tags.length && !hasPhoto) {
+        setEditContentError(true);
+        return;
+      }
+      setEditContentError(false);
       const update: HeartMomentUpdate = {
-        text: String(data.get('text') || '').trim(),
+        text,
+        tags,
         emotion: String(data.get('emotion')) as HeartEmotionValue,
         happenedOn: new Date(`${happenedOn}T00:00:00Z`),
       };
@@ -590,27 +671,23 @@ export function HeartMomentProductPage({
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link
-              className="back-link"
-              to={heartMomentDetailPath(heartMoment.id)}
-            >
-              {t('heartMomentProduct.backToHeartMoment')}
-            </Link>
-          }
-          eyebrow={t('heartMomentProduct.editEyebrow')}
-          title={t('heartMomentProduct.editHeading')}
-          description={t('heartMomentProduct.editIntro')}
-        />
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="heart-moment-edit-heading"
-        >
-          <h2 id="heart-moment-edit-heading" className="sr-only">
-            {t('heartMomentProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={heartMomentDetailPath(heartMoment.id)}
+            state={{ taskOriginKey: originKey }}
+          >
+            {t('heartMomentProduct.backToHeartMoment')}
+          </Link>
+        }
+        eyebrow={t('heartMomentProduct.editEyebrow')}
+        title={t('heartMomentProduct.editHeading')}
+        description={t('heartMomentProduct.editIntro')}
+        sectionLabelledBy="heart-moment-edit-heading"
+        sectionHeading={t('heartMomentProduct.formAria')}
+      >
+        <>
           <form className="form-grid" onSubmit={submitEdit}>
             <HeartMomentFields heartMoment={heartMoment} />
             {heartMoment.attachment && !removeExistingPhoto ? (
@@ -623,9 +700,10 @@ export function HeartMomentProductPage({
                       mediaType: heartMoment.attachment.mediaType,
                     },
                   ]}
-                  loadMedia={(attachmentId) =>
-                    loadAttachment(heartMoment.id, attachmentId)
+                  loadMedia={(attachmentId, signal) =>
+                    loadAttachment(heartMoment.id, attachmentId, signal)
                   }
+                  resourceScopeKey={`heart-moment:${heartMoment.id}`}
                 />
                 <button
                   type="button"
@@ -645,6 +723,7 @@ export function HeartMomentProductPage({
               <Link
                 className="button-link secondary-link"
                 to={heartMomentDetailPath(heartMoment.id)}
+                state={{ taskOriginKey: originKey }}
                 onClick={() => setConfirmDelete(false)}
               >
                 {t('common.cancel')}
@@ -661,6 +740,9 @@ export function HeartMomentProductPage({
           </form>
           {updateMutation.error ? (
             <ProblemState error={updateMutation.error} />
+          ) : null}
+          {editContentError ? (
+            <p role="alert">{t('heartMomentProduct.contentRequired')}</p>
           ) : null}
 
           {heartMoment.capabilities.canDelete && !offline ? (
@@ -710,8 +792,8 @@ export function HeartMomentProductPage({
               ) : null}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 
@@ -723,120 +805,130 @@ export function HeartMomentProductPage({
     : t('heartMomentProduct.detailEyebrow').toUpperCase();
 
   return (
-    <div className="page product-detail-page">
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        eyebrow={heartMomentEyebrow}
-        title={heartMoment.text}
-        titleAction={
-          heartMoment.capabilities.canEdit && !offline ? (
-            <StoryDetailEditLink
-              to={heartMomentEditPath(heartMoment.id)}
-              label={t('heartMomentProduct.edit')}
-            />
-          ) : undefined
-        }
-      />
-
-      <div
-        className="heart-moment-detail-container"
-        data-heart-emotion={heartMoment.emotion}
-      >
-        <article className="story-surface product-detail-card coffee-table-layout">
-          <div className="heart-moment-detail-emotion">
-            <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
-          </div>
-
-          {heartMoment.attachment ? (
-            <section aria-label={t('heartMomentProduct.photoLabel')}>
-              <MediaGallery
-                items={[
-                  {
-                    id: heartMoment.attachment.id,
-                    mediaType: heartMoment.attachment.mediaType,
-                  },
-                ]}
-                loadMedia={(attachmentId) =>
-                  loadAttachment(heartMoment.id, attachmentId)
-                }
-              />
-            </section>
-          ) : null}
-
-          {visibilityMutation.error ? (
-            <ProblemState error={visibilityMutation.error} />
-          ) : null}
-
-          {changingVisibility ? (
-            <p className="muted" role="status">
-              {t('heartMomentProduct.visibilityChanging')}
-            </p>
-          ) : shared ? (
-            <CommentsPanel
-              commentsApi={apis.comments}
-              spaceId={spaceId}
-              parentKind="heartMoment"
-              parentId={heartMoment.id}
-              currentAccountId={currentAccountId}
-              canComment={heartMoment.capabilities.canComment}
-              offline={offline}
-            />
-          ) : (
-            <p className="muted">{t('heartMomentProduct.commentsPrivate')}</p>
-          )}
-
-          <footer className="heart-moment-provenance-footer">
-            <p>
-              {t('heartMomentProduct.provenanceCompact', {
-                author: storyAuthorLabel(heartMoment.author, currentAccountId),
-                createdAt: formatCreatedAt(heartMoment.createdAt),
-              })}
-            </p>
-            <VisibilityBadge
-              visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
-              size="small"
-              variant="subtle"
-              compactLabel={
-                shared ? t('heartMomentProduct.sharedCompact') : undefined
-              }
-            />
-            {heartMoment.capabilities.canEdit && !offline ? (
-              <button
-                type="button"
-                className="list-entry-icon-button tertiary heart-moment-visibility-action"
-                aria-label={
-                  shared
-                    ? t('heartMomentProduct.makePrivate')
-                    : t('heartMomentProduct.makeShared')
-                }
-                title={
-                  shared
-                    ? t('heartMomentProduct.makePrivate')
-                    : t('heartMomentProduct.makeShared')
-                }
-                onClick={() =>
-                  visibilityMutation.mutate({
-                    current: heartMoment,
-                    visibility: shared
-                      ? ContentVisibility.PRIVATE
-                      : ContentVisibility.SHARED,
-                  })
-                }
-                disabled={changingVisibility}
-              >
-                <VisibilityGlyph
-                  visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}
-                />
-              </button>
-            ) : null}
-          </footer>
-        </article>
+    <StoryDetailPageShell
+      eyebrow={heartMomentEyebrow}
+      title={heartMoment.text || t('heartMomentProduct.untitled')}
+      titleAction={
+        heartMoment.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={heartMomentEditPath(heartMoment.id)}
+            label={t('heartMomentProduct.edit')}
+            state={{ taskOriginKey: originKey }}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      containerClassName="heart-moment-detail-container"
+      containerDataAttributes={{ 'data-heart-emotion': heartMoment.emotion }}
+    >
+      <div className="heart-moment-detail-emotion">
+        <HeartEmotionBadge emotion={heartMoment.emotion} variant="detail" />
       </div>
-    </div>
+
+      {heartMoment.tags?.length ? (
+        <ul
+          className="memory-tag-summary"
+          aria-label={t('heartMomentProduct.tagsLabel')}
+        >
+          {heartMoment.tags.map((tag) => (
+            <li key={tag}>
+              {(HEART_MOMENT_TAGS as readonly string[]).includes(tag)
+                ? t(`heartMomentProduct.tagLabels.${tag}`)
+                : tag}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {heartMoment.attachment ? (
+        <section aria-label={t('heartMomentProduct.photoLabel')}>
+          <MediaGallery
+            items={[
+              {
+                id: heartMoment.attachment.id,
+                mediaType: heartMoment.attachment.mediaType,
+              },
+            ]}
+            loadMedia={(attachmentId, signal) =>
+              loadAttachment(heartMoment.id, attachmentId, signal)
+            }
+            resourceScopeKey={`heart-moment:${heartMoment.id}`}
+          />
+        </section>
+      ) : null}
+
+      {visibilityMutation.error ? (
+        <ProblemState error={visibilityMutation.error} />
+      ) : null}
+
+      {changingVisibility ? (
+        <p className="muted" role="status">
+          {t('heartMomentProduct.visibilityChanging')}
+        </p>
+      ) : shared ? (
+        <CommentsPanel
+          commentsApi={apis.comments}
+          spaceId={spaceId}
+          parentKind="heartMoment"
+          parentId={heartMoment.id}
+          currentAccountId={currentAccountId}
+          canComment={heartMoment.capabilities.canComment}
+          offline={offline}
+        />
+      ) : (
+        <p className="muted">{t('heartMomentProduct.commentsPrivate')}</p>
+      )}
+
+      <footer className="heart-moment-provenance-footer">
+        <p>
+          {t('heartMomentProduct.provenanceCompact', {
+            author: storyAuthorLabel(
+              heartMoment.author,
+              currentAccountId,
+              nicknameFor,
+            ),
+            createdAt: formatCreatedAt(heartMoment.createdAt),
+          })}
+        </p>
+        <VisibilityBadge
+          visibility={shared ? 'SPACE_SHARED' : 'OWNER_ONLY'}
+          size="small"
+          variant="subtle"
+          compactLabel={
+            shared ? t('heartMomentProduct.sharedCompact') : undefined
+          }
+        />
+        {heartMoment.capabilities.canEdit && !offline ? (
+          <button
+            type="button"
+            className="list-entry-icon-button tertiary heart-moment-visibility-action"
+            aria-label={
+              shared
+                ? t('heartMomentProduct.makePrivate')
+                : t('heartMomentProduct.makeShared')
+            }
+            title={
+              shared
+                ? t('heartMomentProduct.makePrivate')
+                : t('heartMomentProduct.makeShared')
+            }
+            onClick={() =>
+              visibilityMutation.mutate({
+                current: heartMoment,
+                visibility: shared
+                  ? ContentVisibility.PRIVATE
+                  : ContentVisibility.SHARED,
+              })
+            }
+            disabled={changingVisibility}
+          >
+            <VisibilityGlyph
+              visibility={shared ? 'OWNER_ONLY' : 'SPACE_SHARED'}
+            />
+          </button>
+        ) : null}
+      </footer>
+    </StoryDetailPageShell>
   );
 }
 
@@ -856,31 +948,26 @@ function HeartMomentFields({
           id="heart-moment-text"
           name="text"
           rows={5}
-          required
           maxLength={4000}
           defaultValue={heartMoment?.text ?? ''}
           placeholder={t('heartMomentProduct.textPlaceholder')}
         />
       </div>
+      <HeartMomentTagChoices selected={heartMoment?.tags} />
       <HeartEmotionPicker
         legend={t('heartMomentProduct.emotionLabel')}
         defaultValue={heartMoment?.emotion ?? HeartEmotion.LOVED}
         idPrefix="heart-moment-edit-emotion"
       />
-      <div className="field-group">
-        <label htmlFor="heart-moment-date">
-          {t('heartMomentProduct.happenedOnLabel')}
-        </label>
-        <input
-          id="heart-moment-date"
-          name="happenedOn"
-          type="date"
-          required
-          defaultValue={
-            heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
-          }
-        />
-      </div>
+      <NativeDateField
+        id="heart-moment-date"
+        name="happenedOn"
+        label={t('heartMomentProduct.happenedOnLabel')}
+        required
+        defaultValue={
+          heartMoment ? dateInputValue(heartMoment.happenedOn) : undefined
+        }
+      />
     </>
   );
 }

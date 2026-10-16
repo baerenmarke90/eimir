@@ -14,7 +14,7 @@ D1 retains the existing palette and self-hosted Literata / Instrument Sans direc
 - Existing spacing, radius, font, motion and color values should be reused. Add a semantic role only when a repeated purpose is missing; do not make one token for every margin or one component for every named surface below.
 - A role described here can be an implementation gap. It is not evidence that the token, adapter or component already implements the contract. F1 must reconcile the source, adapters, examples and documentation together.
 - Existing [Component Contracts](../../COMPONENT-CONTRACTS.md) continue to govern semantics, keyboard/focus, state ownership and accessibility. Apply their anatomy through v1's content hierarchy, not as a universal metadata-first arrangement.
-- Web and Android share meaning and outcomes. Platform conventions determine mechanics; pixel identity is not required.
+- Web is the single product UI; Android packages it through Capacitor and adapts only platform mechanics (system bars, insets, Back).
 
 ## 2. Surface language
 
@@ -105,7 +105,7 @@ Reuse the existing radius vocabulary by purpose: `none` for flush content; `smal
 
 ## 7. Layout rhythm and mobile ergonomics
 
-Use a repeatable rhythm: **focal content → compact support → natural content → contextual continuation → breathing space**. This is a compositional grammar. A real upcoming item may precede a focal memory; chronology must not be reordered merely to alternate visual shapes.
+Use a repeatable rhythm: **focal content → compact support → natural content → contextual continuation → breathing space**. This is a compositional grammar. Today places its focal memory before the practical upcoming item by default (#1189); a saved personal module order may reverse them (#1194). Chronology must not be reordered merely to alternate visual shapes.
 
 - Related text uses the close spacing scale; image/caption and content groups use roughly 12–16 px; separate sections roughly 24–32 px. A major break up to 48 px needs useful content on both sides. Express repeated purpose through semantic aliases to existing spacing values.
 - **D7:** use approximately 16 px page gutters below approximately 390 px, and 20 px at/above approximately 390 px through Compact, unless a deliberate edge-to-edge composition is justified. At 360/390/430 px this yields about 328/350/390 px usable width. F1 reconciles the current single gutter token with this approved rule.
@@ -114,9 +114,11 @@ Use a repeatable rhythm: **focal content → compact support → natural content
 - Optional horizontal media strips need a visible continuation cue, keyboard access and an explicit all-items destination. Core text, settings and primary navigation never require sideways discovery.
 - Keep the root header compact and the four labeled destinations stable. Reserve the measured navigation height, safe area and content clearance; fixed spacers must not fail when labels scale.
 - Primary completion stays within thumb reach and above keyboard/system insets without covering the focused field. If a sticky footer cannot fit safely, use normal flow.
-- Expanded preserves the same task and sequence. Add larger media or useful context, not permanent management controls or obligatory three-pane layouts. Retain the current Web shell and Android's established bottom navigation at every size.
+- Expanded preserves the same task and sequence. Add larger media or useful context, not permanent management controls or obligatory three-pane layouts. Retain the current Web shell, which the Android wrapper also renders.
 
 ## 8. Motion language
+
+The detailed Web engineering contract is the [Web Motion Guideline](motion-guideline.md). It operationalizes this section without creating a second product-design authority.
 
 Motion explains causality and preserves orientation. Reuse the existing 120 / 180 / 280 ms duration roles and easing, with 320 ms as the normal upper limit. Semantic state, focus and result ownership must work independently of animation.
 

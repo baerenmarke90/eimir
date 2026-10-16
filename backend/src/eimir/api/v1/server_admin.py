@@ -23,12 +23,12 @@ from eimir.administration.models import (
     AdministrationSetting,
     InstanceAdministrationSettings,
 )
-from eimir.api.deps import CurrentServerAdmin, DbSession
+from eimir.api.deps import CurrentServerAdmin, CurrentSession, DbSession
 from eimir.api.errors import problem_responses
 from eimir.api.schema import ApiModel
 from eimir.api.v1.health import build_revision
 from eimir.attachments.models import Attachment, AttachmentStatus
-from eimir.auth import cloud
+from eimir.auth import cloud, recent_auth
 from eimir.config import MailTransport
 from eimir.config import get_settings as get_runtime_settings
 from eimir.core.clock import now
@@ -42,6 +42,7 @@ from eimir.entitlements.models import (
     EntitlementTier,
 )
 from eimir.identity import service as accounts
+from eimir.identity.deletion_models import AccountDeletion, AccountDeletionStatus
 from eimir.identity.models import (
     Account,
     AccountEmail,
@@ -52,6 +53,7 @@ from eimir.identity.models import (
 )
 from eimir.jobs.models import Job, JobStatus
 from eimir.mail import sender as mail_sender
+from eimir.relationship import service as relationship_service
 from eimir.relationship.models import (
     MAX_ACTIVE_PARTNERS,
     Membership,
@@ -66,6 +68,7 @@ AccountStatusFilter = Literal["all", "active", "suspended"]
 VerificationFilter = Literal["all", "verified", "unverified"]
 SpaceStatusFilter = Literal["all", "active", "inactive", "empty", "anomaly"]
 SpaceLifecycleStatus = Literal["active", "inactive", "empty"]
+AuditCategoryFilter = Literal["all", "settings", "accounts", "spaces", "destructive"]
 
 
 class ServerAdminFailedJob(ApiModel):
@@ -151,6 +154,26 @@ class ServerAdminActionActivityItem(ApiModel):
     created_at: datetime
 
 
+class ServerAdminPrivilegedAuditItem(ApiModel):
+    id: UUID
+    category: str
+    action: str
+    actor_id: UUID | None
+    target_account_id: UUID | None
+    target_space_id: UUID | None
+    previous_value: bool | None
+    new_value: bool | None
+    effect_count: int | None
+    created_at: datetime
+
+
+class ServerAdminPrivilegedAuditPage(ApiModel):
+    items: list[ServerAdminPrivilegedAuditItem]
+    total: int
+    limit: int
+    offset: int
+
+
 class ServerAdminAccountEmail(ApiModel):
     id: UUID
     email: str
@@ -165,6 +188,7 @@ class ServerAdminAccountSummary(ApiModel):
     email_verified: bool
     created_at: datetime
     disabled_at: datetime | None
+    deletion_status: AccountDeletionStatus | None = None
     auth_methods: list[str]
     active_session_count: int
     active_membership_count: int
@@ -177,6 +201,7 @@ class ServerAdminAccountDetail(ServerAdminAccountSummary):
     last_session_activity_at: datetime | None
     mail_recovery_available: bool
     local_password_available: bool
+    deletion_accepted_at: datetime | None = None
 
 
 class ServerAdminAccountList(ApiModel):
@@ -209,6 +234,15 @@ class ServerAdminSpaceList(ApiModel):
     total: int
     limit: int
     offset: int
+
+
+class ServerAdminSpaceConfigurationManagerReconcileRequest(ApiModel):
+    account_id: UUID
+
+
+class ServerAdminSpaceConfigurationManagerView(ApiModel):
+    space_id: UUID
+    configuration_manager_account_id: UUID
 
 
 class ServerAdminEntitlementGrantView(ApiModel):
@@ -267,6 +301,16 @@ class ServerAdminRecoveryEmailResult(ApiModel):
     requested: bool
 
 
+class ServerAdminAccountDeletionRequest(ApiModel):
+    confirmation: str
+
+
+class ServerAdminAccountDeletionResult(ApiModel):
+    account_id: UUID
+    accepted_at: datetime
+    status: AccountDeletionStatus
+
+
 def _settings_view(settings: InstanceAdministrationSettings) -> ServerAdminSettings:
     registration_enabled = bool(settings.registration_enabled)
     maintenance_mode = bool(settings.maintenance_mode)
@@ -313,6 +357,9 @@ def _account_summary(
     current_time: datetime,
 ) -> ServerAdminAccountSummary:
     primary = account_operations.primary_email(session, account.id)
+    deletion_status_val = session.execute(
+        select(AccountDeletion.status).where(AccountDeletion.account_id == account.id)
+    ).scalar_one_or_none()
     active_sessions = session.execute(
         select(func.count())
         .select_from(DeviceSession)
@@ -333,6 +380,9 @@ def _account_summary(
         email_verified=bool(primary is not None and primary.verified_at is not None),
         created_at=account.created_at,
         disabled_at=account.disabled_at,
+        deletion_status=AccountDeletionStatus(deletion_status_val)
+        if deletion_status_val is not None
+        else None,
         auth_methods=_auth_methods(session, account.id),
         active_session_count=active_sessions,
         active_membership_count=active_memberships,
@@ -346,6 +396,9 @@ def _account_detail(
     current_time: datetime,
 ) -> ServerAdminAccountDetail:
     summary = _account_summary(session, account, current_time=current_time)
+    deletion_accepted_at = session.execute(
+        select(AccountDeletion.accepted_at).where(AccountDeletion.account_id == account.id)
+    ).scalar_one_or_none()
     email_rows = list(
         session.execute(
             select(AccountEmail)
@@ -377,6 +430,7 @@ def _account_detail(
     local_password_available = AuthProvider.LOCAL_PASSWORD.value in summary.auth_methods
     return ServerAdminAccountDetail(
         **summary.model_dump(),
+        deletion_accepted_at=deletion_accepted_at,
         emails=[
             ServerAdminAccountEmail(
                 id=email.id,
@@ -845,6 +899,45 @@ def _space_entitlement_view(session: Session, space_id: UUID) -> ServerAdminSpac
     )
 
 
+@router.post(
+    "/spaces/{space_id}/configuration-manager/reconcile",
+    response_model=ServerAdminSpaceConfigurationManagerView,
+    operation_id="reconcileServerAdminSpaceConfigurationManager",
+    responses=problem_responses(401, 403, 404, 409, 422),
+)
+def reconcile_server_admin_space_configuration_manager(
+    body: ServerAdminSpaceConfigurationManagerReconcileRequest,
+    admin: CurrentServerAdmin,
+    device_session: CurrentSession,
+    session: DbSession,
+    space_id: Annotated[str, Path(max_length=64)],
+) -> ServerAdminSpaceConfigurationManagerView:
+    """Assign missing legacy Space configuration authority exactly once."""
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
+    parsed_space = _require_space(session, space_id)
+    space = relationship_service.reconcile_configuration_manager(
+        session,
+        parsed_space,
+        body.account_id,
+    )
+    administration.record_action(
+        session,
+        actor_id=admin.id,
+        action=AdministrationAction.SPACE_CONFIGURATION_MANAGER_RECONCILED,
+        target_account_id=body.account_id,
+        target_space_id=parsed_space,
+    )
+    return ServerAdminSpaceConfigurationManagerView(
+        space_id=space.id,
+        configuration_manager_account_id=body.account_id,
+    )
+
+
 @router.get(
     "/spaces/{space_id}/entitlement",
     response_model=ServerAdminSpaceEntitlementView,
@@ -868,6 +961,7 @@ def get_server_admin_space_entitlement(
 def grant_server_admin_space_entitlement(
     body: ServerAdminEntitlementGrantRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
@@ -879,7 +973,17 @@ def grant_server_admin_space_entitlement(
     ENTITLEMENT-BOUNDARY.md §7). It reuses the existing normalized
     `record_grant` source-update interface unchanged rather than adding a
     second grant-mutation path.
+
+    Granting unlimited Premium is as consequential as the other high-risk
+    ServerAdmin actions in this router (account deletion, email verification,
+    recovery issuance), so it requires the same step-up re-authentication.
     """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed = _require_space(session, space_id)
     entitlements.record_grant(
         session,
@@ -910,11 +1014,23 @@ def grant_server_admin_space_entitlement(
 def revoke_server_admin_space_entitlement_grant(
     body: ServerAdminEntitlementRevokeRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     space_id: Annotated[str, Path(max_length=64)],
     grant_id: Annotated[str, Path(max_length=64)],
 ) -> ServerAdminSpaceEntitlementView:
-    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback)."""
+    """Revoke one grant (e.g. an admin mistake, abuse, or a refund/chargeback).
+
+    Revoking a paying customer's entitlement is as consequential as the other
+    high-risk ServerAdmin actions in this router, so it requires the same
+    step-up re-authentication.
+    """
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed_space = _require_space(session, space_id)
     parsed_grant = parse_id(grant_id)
     if parsed_grant is None:
@@ -1059,6 +1175,36 @@ def revoke_server_admin_account_sessions(
 
 
 @router.post(
+    "/accounts/{accountId}/email-verification/request",
+    status_code=202,
+    response_class=Response,
+    responses=problem_responses(401, 403, 404, 422, 429, 503),
+)
+def request_server_admin_account_email_verification(
+    _: CurrentServerAdmin,
+    session: DbSession,
+    account_id: Annotated[str, Path(alias="accountId")],
+) -> Response:
+    target = account_operations.require_account(session, _parse_account_id(account_id))
+    if not target.is_active:
+        raise ValidationError(
+            "A suspended Account must be unsuspended before email verification.",
+            account_operations.ServerAdminAccountErrorCode.ACCOUNT_DISABLED,
+        )
+    primary = account_operations.primary_email(session, target.id)
+    if primary is None:
+        raise ValidationError(
+            "This Account has no primary email address.",
+            account_operations.ServerAdminAccountErrorCode.EMAIL_NOT_FOUND,
+        )
+    if primary.verified_at is not None:
+        return Response(status_code=202)
+
+    cloud.request_email_verification(session, target, mail=mail_sender())
+    return Response(status_code=202)
+
+
+@router.post(
     "/accounts/{accountId}/emails/{accountEmailId}/verify",
     response_model=ServerAdminAccountEmail,
     responses=problem_responses(401, 403, 404, 422),
@@ -1066,10 +1212,17 @@ def revoke_server_admin_account_sessions(
 def verify_server_admin_account_email(
     body: ServerAdminEmailVerificationRequest,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
     account_email_id: Annotated[str, Path(alias="accountEmailId")],
 ) -> ServerAdminAccountEmail:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     parsed_email_id = parse_id(account_email_id)
     if parsed_email_id is None:
         raise NotFoundError(
@@ -1136,9 +1289,16 @@ def request_server_admin_account_recovery_email(
 def issue_server_admin_operator_recovery(
     response: Response,
     admin: CurrentServerAdmin,
+    device_session: CurrentSession,
     session: DbSession,
     account_id: Annotated[str, Path(alias="accountId")],
 ) -> ServerAdminRecoveryProof:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
     proof = account_operations.issue_operator_recovery(
         session,
         actor=admin,
@@ -1149,6 +1309,38 @@ def issue_server_admin_operator_recovery(
     return ServerAdminRecoveryProof(
         recovery_url=proof.recovery_url,
         expires_at=proof.expires_at,
+    )
+
+
+@router.post(
+    "/accounts/{accountId}/deletion",
+    response_model=ServerAdminAccountDeletionResult,
+    responses=problem_responses(401, 403, 404, 422, 503),
+)
+def delete_server_admin_account(
+    admin: CurrentServerAdmin,
+    device_session: CurrentSession,
+    session: DbSession,
+    account_id: Annotated[str, Path(alias="accountId")],
+    body: ServerAdminAccountDeletionRequest,
+) -> ServerAdminAccountDeletionResult:
+    recent_auth.require_grant(
+        session,
+        admin,
+        device_session,
+        purpose=recent_auth.RecentAuthenticationPurpose.SERVER_ADMIN_ACTION,
+    )
+    parsed_id = _parse_account_id(account_id)
+    deletion = account_operations.delete_account(
+        session,
+        actor=admin,
+        target_account_id=parsed_id,
+        confirmation=body.confirmation,
+    )
+    return ServerAdminAccountDeletionResult(
+        account_id=parsed_id,
+        accepted_at=deletion.accepted_at,
+        status=AccountDeletionStatus(deletion.status),
     )
 
 
@@ -1245,3 +1437,53 @@ def get_server_admin_action_activity(
         )
         for event in administration.recent_action_events(session)
     ]
+
+
+@router.get(
+    "/activity/privileged",
+    response_model=ServerAdminPrivilegedAuditPage,
+    responses=problem_responses(401, 403),
+)
+def get_server_admin_privileged_activity(
+    _: CurrentServerAdmin,
+    session: DbSession,
+    category: Annotated[AuditCategoryFilter, Query()] = "all",
+    action: Annotated[str | None, Query(max_length=64)] = None,
+    actor_id: Annotated[UUID | None, Query(alias="actorId")] = None,
+    target_id: Annotated[UUID | None, Query(alias="targetId")] = None,
+    created_from: Annotated[datetime | None, Query(alias="createdFrom")] = None,
+    created_to: Annotated[datetime | None, Query(alias="createdTo")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> ServerAdminPrivilegedAuditPage:
+    result = administration.privileged_audit_events(
+        session,
+        category=category,
+        action=action,
+        actor_id=actor_id,
+        target_id=target_id,
+        created_from=created_from,
+        created_to=created_to,
+        limit=limit,
+        offset=offset,
+    )
+    return ServerAdminPrivilegedAuditPage(
+        items=[
+            ServerAdminPrivilegedAuditItem(
+                id=item.id,
+                category=item.category,
+                action=item.action,
+                actor_id=item.actor_id,
+                target_account_id=item.target_account_id,
+                target_space_id=item.target_space_id,
+                previous_value=item.previous_value,
+                new_value=item.new_value,
+                effect_count=item.effect_count,
+                created_at=item.created_at,
+            )
+            for item in result.items
+        ],
+        total=result.total,
+        limit=limit,
+        offset=offset,
+    )

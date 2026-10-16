@@ -24,6 +24,12 @@ import {
   MemoryAttachmentBindingError,
 } from '../client/memoryAttachmentDraft';
 import {
+  canStillReconcile,
+  MEMORY_CREATE_RESULT_DELETED,
+  type MemoryCreateAttempt,
+  startMemoryCreateAttempt,
+} from '../client/memoryCreateIdentity';
+import {
   type ClientProblemError,
   normalizeClientError,
 } from '../client/problemDetails';
@@ -31,13 +37,15 @@ import { createReferenceApis } from '../client/referenceFlow';
 import { memoryDetailPath } from '../client/routes';
 import { useTaskOrigin } from '../client/taskOrigin';
 import { useAttachmentDrafts } from '../client/useAttachmentDrafts';
-import { useEditorHistoryEntry } from '../client/useEditorHistoryEntry';
+import { useTaskEditorLifecycle } from '../client/useTaskEditorLifecycle';
 import { resolvedLocale, useTranslation } from '../i18n';
 import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { DestinationIcon } from './DestinationIcon';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { ShortTaskSheet, type ShortTaskSheetHandle } from './ShortTaskSheet';
+import { StoryCreatePageShell } from './StoryFormPageShell';
+import { MemoryTagChoices, type MemoryTag } from './MemoryTagChoices';
 import './MemoryCreatePage.css';
 
 /** One in-memory task. Account/Space/entry keys are supplied by the route owner. */
@@ -65,6 +73,8 @@ export function MemoryCreatePage({
   const [initialDate] = useState(localDateInputValue);
   const [title, setTitle] = useState(() => searchParams.get('title') ?? '');
   const [body, setBody] = useState('');
+  const [tags, setTags] = useState<MemoryTag[]>([]);
+  const [tagDraftDirty, setTagDraftDirty] = useState(false);
   const [happenedOn, setHappenedOn] = useState(initialDate);
   const [invalidDate, setInvalidDate] = useState(false);
   const [dateEditorOpen, setDateEditorOpen] = useState(false);
@@ -72,11 +82,19 @@ export function MemoryCreatePage({
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<ClientProblemError | null>(null);
   const [offlineAttempt, setOfflineAttempt] = useState(false);
+  // Outcome unknown: the create may or may not have committed. The attempt
+  // (request identity + exact snapshot) is what makes verification safe.
   const [uncertain, setUncertain] = useState(false);
+  const [verifiable, setVerifiable] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyUnavailable, setVerifyUnavailable] = useState(false);
+  const [deletedAfterSave, setDeletedAfterSave] = useState(false);
+  const attemptRef = useRef<MemoryCreateAttempt | null>(null);
+  const outcomeHeadingRef = useRef<HTMLHeadingElement>(null);
+  const outcomeNoticeRef = useRef<HTMLElement>(null);
   const [partial, setPartial] = useState<MemoryAttachmentBindingError | null>(
     null,
   );
-  const [showDiscard, setShowDiscard] = useState(false);
   const discardDestinationRef = useRef<'timeline' | null>(null);
   const confirmRef = useRef<ShortTaskSheetHandle>(null);
   const headingRef = useRef<HTMLDivElement>(null);
@@ -91,6 +109,19 @@ export function MemoryCreatePage({
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, []);
+  // The submit control is locked once the outcome is unknown, so keyboard and
+  // screen-reader users are moved to the explanation and its next action; on
+  // Compact the message would otherwise sit below the fold.
+  const outcomeNoticeVisible = uncertain || deletedAfterSave;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refocus when the notice changes kind
+  useEffect(() => {
+    if (outcomeNoticeVisible) {
+      outcomeHeadingRef.current?.focus();
+      // The context chips make this form taller on Compact. Bring the notice
+      // actions into view after moving focus to its explanation.
+      outcomeNoticeRef.current?.scrollIntoView?.({ block: 'end' });
+    }
+  }, [outcomeNoticeVisible, verifiable, deletedAfterSave]);
   useEffect(() => {
     if (!dateEditorOpen) return;
     const field = dateInputRef.current;
@@ -115,7 +146,12 @@ export function MemoryCreatePage({
     maxAttachments: MAX_MEMORY_ATTACHMENTS,
   });
   const dirty = Boolean(
-    title || body || attachments.items.length || happenedOn !== initialDate,
+    title ||
+      body ||
+      tags.length ||
+      tagDraftDirty ||
+      attachments.items.length ||
+      happenedOn !== initialDate,
   );
   const hasUserContent = Boolean(
     title.trim() || body.trim() || attachments.items.length,
@@ -139,27 +175,21 @@ export function MemoryCreatePage({
     if (exitAction.current) exitAction.current();
     else requestReturn(originKey);
   }, [originKey, requestReturn]);
-  const closeTask = useEditorHistoryEntry({
+  const {
+    showDiscardConfirm: showDiscard,
+    keepEditing: keepDiscardEditing,
+    closeConfirmed: closeTask,
+    requestClose: requestTaskClose,
+  } = useTaskEditorLifecycle({
     isDirty: dirty || uncertain || Boolean(partial),
     isCloseBlocked: pending,
-    onDiscardRequested: () => setShowDiscard(true),
     onClose,
   });
   function requestClose() {
     if (owner.current.pending) return;
     discardDestinationRef.current = null;
-    if (dirty || uncertain || partial) setShowDiscard(true);
-    else closeTask();
+    requestTaskClose();
   }
-  useEffect(() => {
-    if (!dirty && !pending && !uncertain && !partial) return;
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = '';
-    };
-    window.addEventListener('beforeunload', beforeUnload);
-    return () => window.removeEventListener('beforeunload', beforeUnload);
-  }, [dirty, pending, uncertain, partial]);
 
   function openResult(memory: MemoryDetail, photosUnconfirmed = false) {
     if (!owner.current.active || exitAction.current) return;
@@ -186,6 +216,72 @@ export function MemoryCreatePage({
     closeTask();
   }
 
+  async function run(
+    work: () => Promise<MemoryDetail>,
+    { verification }: { verification: boolean },
+  ) {
+    const session = owner.current;
+    session.pending = true;
+    setPending(true);
+    setVerifying(verification);
+    setProblem(null);
+    setOfflineAttempt(false);
+    setVerifyUnavailable(false);
+    try {
+      const memory = await work();
+      if (!session.active) return;
+      attemptRef.current = null;
+      openResult(memory);
+    } catch (error) {
+      if (!session.active) return;
+      if (error instanceof MemoryAttachmentBindingError) {
+        // The Memory is confirmed (created or reconciled); only photos remain.
+        attemptRef.current = null;
+        setUncertain(false);
+        setPartial(error);
+        setProblem(await normalizeClientError(error.cause));
+        return;
+      }
+      const normalized = await normalizeClientError(error);
+      if (!session.active) return;
+      const outcomeUnknown = ['offline', 'server', 'unknown'].includes(
+        normalized.kind,
+      );
+      if (!verification) {
+        setProblem(normalized);
+        // A transport/server failure after POST does not establish non-creation.
+        if (outcomeUnknown) setUncertain(true);
+        else attemptRef.current = null;
+      } else if (outcomeUnknown) {
+        setVerifyUnavailable(true);
+      } else if (
+        normalized.kind === 'notFound' &&
+        normalized.code === MEMORY_CREATE_RESULT_DELETED
+      ) {
+        // Confirmed saved, then deleted: nothing to recover, nothing recreated.
+        attemptRef.current = null;
+        setUncertain(false);
+        setDeletedAfterSave(true);
+      } else if (
+        normalized.kind === 'validation' ||
+        normalized.kind === 'conflict'
+      ) {
+        // The identity can never confirm this request; do not pretend it can.
+        setVerifiable(false);
+      } else {
+        setProblem(normalized);
+      }
+    } finally {
+      if (!exitAction.current) {
+        session.pending = false;
+        if (session.active) {
+          setPending(false);
+          setVerifying(false);
+        }
+      }
+    }
+  }
+
   async function save() {
     if (
       !hasUserContent ||
@@ -197,6 +293,20 @@ export function MemoryCreatePage({
       return;
     if (!navigator.onLine) {
       setOfflineAttempt(true);
+      return;
+    }
+    if (partial) {
+      await run(
+        () =>
+          completeMemoryAttachmentBinding(
+            apis,
+            spaceId,
+            partial.memory,
+            partial.attachmentIds,
+            true,
+          ),
+        { verification: false },
+      );
       return;
     }
     const date = effectiveDateInputValue(happenedOn);
@@ -211,89 +321,77 @@ export function MemoryCreatePage({
       return;
     }
     setInvalidDate(false);
-    const snapshot = {
-      title: title.trim()
-        ? title
-        : t('memoryProduct.createFallbackTitle', {
-            date: formatDateInputValue(date, resolvedLocale()),
-          }),
-      body,
-      happenedOn: submittedDate,
-    };
-    const attachmentIds = [...attachments.readyIds];
-    const session = owner.current;
-    session.pending = true;
-    setPending(true);
-    setProblem(null);
-    setOfflineAttempt(false);
-    try {
-      const memory = partial
-        ? await completeMemoryAttachmentBinding(
-            apis,
-            spaceId,
-            partial.memory,
-            partial.attachmentIds,
-            true,
-          )
-        : (
-            await createMemoryWithReadyAttachments(
-              apis,
-              spaceId,
-              snapshot,
-              attachmentIds,
-            )
-          ).memory;
-      if (!session.active) return;
-      openResult(memory);
-    } catch (error) {
-      if (!session.active) return;
-      if (error instanceof MemoryAttachmentBindingError) {
-        setPartial(error);
-        setProblem(await normalizeClientError(error.cause));
-      } else {
-        const normalized = await normalizeClientError(error);
-        if (!session.active) return;
-        setProblem(normalized);
-        // A transport/server failure after POST does not establish non-creation.
-        if (['offline', 'server', 'unknown'].includes(normalized.kind))
-          setUncertain(true);
-      }
-    } finally {
-      if (!exitAction.current) {
-        session.pending = false;
-        if (session.active) setPending(false);
-      }
+    setDeletedAfterSave(false);
+    // One identity per user-initiated save; it is reused only to verify an
+    // unknown outcome of this exact snapshot.
+    const attempt = startMemoryCreateAttempt(
+      {
+        title: title.trim()
+          ? title
+          : t('memoryProduct.createFallbackTitle', {
+              date: formatDateInputValue(date, resolvedLocale()),
+            }),
+        body,
+        tags: [...tags],
+        happenedOn: submittedDate,
+      },
+      [...attachments.readyIds],
+    );
+    attemptRef.current = attempt;
+    await run(() => submitAttempt(attempt, false), { verification: false });
+  }
+  function submitAttempt(attempt: MemoryCreateAttempt, reconcile: boolean) {
+    return createMemoryWithReadyAttachments(
+      apis,
+      spaceId,
+      attempt.snapshot,
+      attempt.attachmentIds,
+      { idempotencyKey: attempt.idempotencyKey, reconcile },
+    ).then((result) => result.memory);
+  }
+  async function verify() {
+    const attempt = attemptRef.current;
+    if (!attempt || owner.current.pending || !uncertain) return;
+    if (!canStillReconcile(attempt)) {
+      setVerifiable(false);
+      return;
     }
+    if (!navigator.onLine) {
+      setVerifyUnavailable(true);
+      return;
+    }
+    await run(() => submitAttempt(attempt, true), { verification: true });
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void save();
   }
   return (
-    <div className="page page-reading create-page memory-task-page">
-      <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
-        <PageHeader
-          before={
-            <button
-              type="button"
-              className="back-link tertiary"
-              onClick={requestClose}
-              aria-disabled={pending}
-            >
-              {t('taskBoundary.close')}
-            </button>
-          }
-          eyebrow={t('memory.eyebrow')}
-          title={t('memory.heading')}
-          description={t('memory.intro')}
-          className="create-heading"
-        />
-      </div>
-
-      <section
-        className="immersive-create-card eimir-motion-reveal"
-        aria-labelledby="memory-form-heading"
-      >
+    <StoryCreatePageShell
+      header={
+        <div ref={headingRef} tabIndex={-1} className="memory-task-heading">
+          <PageHeader
+            before={
+              <button
+                type="button"
+                className="back-link tertiary"
+                onClick={requestClose}
+                aria-disabled={pending}
+              >
+                {t('taskBoundary.close')}
+              </button>
+            }
+            eyebrow={t('memory.eyebrow')}
+            title={t('memory.heading')}
+            description={t('memory.intro')}
+            className="create-heading"
+          />
+        </div>
+      }
+      pageClassName="memory-task-page"
+      labelledBy="memory-form-heading"
+    >
+      <>
         <h2 id="memory-form-heading" className="sr-only">
           {t('memory.formAria')}
         </h2>
@@ -328,6 +426,12 @@ export function MemoryCreatePage({
                 placeholder={t('memory.bodyPlaceholder')}
               />
             </div>
+
+            <MemoryTagChoices
+              selected={tags}
+              onChange={setTags}
+              onDraftChange={setTagDraftDirty}
+            />
 
             <div className="field-group immersive-create-title-field">
               <label htmlFor="title">{t('memory.titleLabelOptional')}</label>
@@ -429,7 +533,9 @@ export function MemoryCreatePage({
         </form>
         {pending ? (
           <p className="status" role="status" aria-live="polite">
-            {t('taskBoundary.pending')}
+            {verifying
+              ? t('taskBoundary.verifying')
+              : t('taskBoundary.pending')}
           </p>
         ) : null}
         {attachments.items.some((item) => item.status === 'failed') ? (
@@ -439,19 +545,53 @@ export function MemoryCreatePage({
           <p role="alert">{t('taskBoundary.offline')}</p>
         ) : null}
         {uncertain ? (
-          <section className="inline-message" role="alert">
-            <h2>{t('taskBoundary.uncertainTitle')}</h2>
-            <p>{t('taskBoundary.uncertainBody')}</p>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => {
-                requestClose();
-                discardDestinationRef.current = 'timeline';
-              }}
-            >
-              {t('taskBoundary.checkMoments')}
-            </button>
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
+            <h2 ref={outcomeHeadingRef} tabIndex={-1}>
+              {t(
+                verifiable
+                  ? 'taskBoundary.uncertainTitle'
+                  : 'taskBoundary.unverifiableTitle',
+              )}
+            </h2>
+            <p>
+              {t(
+                verifiable
+                  ? 'taskBoundary.uncertainBody'
+                  : 'taskBoundary.unverifiableBody',
+              )}
+            </p>
+            {verifyUnavailable ? (
+              <p role="status">{t('taskBoundary.verifyUnavailable')}</p>
+            ) : null}
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  requestClose();
+                  discardDestinationRef.current = 'timeline';
+                }}
+              >
+                {t('taskBoundary.checkMoments')}
+              </button>
+              {verifiable ? (
+                <button
+                  type="button"
+                  aria-disabled={pending}
+                  onClick={() => void verify()}
+                >
+                  {t('taskBoundary.verify')}
+                </button>
+              ) : null}
+            </div>
+            {problem &&
+            !['offline', 'server', 'unknown'].includes(problem.kind) ? (
+              <ProblemState error={problem} />
+            ) : null}
           </section>
         ) : partial ? (
           <section className="inline-message" role="alert">
@@ -469,6 +609,17 @@ export function MemoryCreatePage({
               {t('taskBoundary.openSaved')}
             </button>
           </section>
+        ) : deletedAfterSave ? (
+          <section
+            ref={outcomeNoticeRef}
+            className="inline-message"
+            role="alert"
+          >
+            <h2 ref={outcomeHeadingRef} tabIndex={-1}>
+              {t('taskBoundary.deletedTitle')}
+            </h2>
+            <p>{t('taskBoundary.deletedBody')}</p>
+          </section>
         ) : problem ? (
           <ProblemState error={problem} />
         ) : null}
@@ -484,7 +635,7 @@ export function MemoryCreatePage({
                 : 'taskBoundary.discardTitle',
           )}
           onClose={() => {
-            setShowDiscard(false);
+            keepDiscardEditing();
             discardDestinationRef.current = null;
           }}
         >
@@ -502,7 +653,7 @@ export function MemoryCreatePage({
               type="button"
               className="secondary"
               onClick={() => {
-                setShowDiscard(false);
+                keepDiscardEditing();
                 discardDestinationRef.current = null;
               }}
             >
@@ -515,7 +666,7 @@ export function MemoryCreatePage({
                 const checkTimeline =
                   discardDestinationRef.current === 'timeline';
                 confirmRef.current?.closeForNavigation(() => {
-                  setShowDiscard(false);
+                  keepDiscardEditing();
                   if (checkTimeline)
                     exitAction.current = () =>
                       navigate('/story?tab=timeline', { replace: true });
@@ -527,7 +678,7 @@ export function MemoryCreatePage({
             </button>
           </div>
         </ShortTaskSheet>
-      </section>
-    </div>
+      </>
+    </StoryCreatePageShell>
   );
 }

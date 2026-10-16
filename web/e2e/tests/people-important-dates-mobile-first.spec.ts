@@ -1,8 +1,10 @@
+import { fulfillDefaultAppIcon } from '../support/appIcon';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import de from '../../src/i18n/locales/de';
 import importantDates from '../../src/i18n/locales/importantDates';
 import people from '../../src/i18n/locales/people';
+import { mockEmptyPartnerNickname } from '../support/partnerNickname';
 
 const ACCOUNT_ID = '11111111-1111-4111-8111-111111111111';
 const PARTNER_ID = '44444444-4444-4444-8444-444444444444';
@@ -83,6 +85,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
   const unexpectedRequests: string[] = [];
 
   await page.route('**/api/v1/**', async (route) => {
+    if (await fulfillDefaultAppIcon(route)) return;
     const request = route.request();
     const method = request.method();
     const pathname = new URL(request.url()).pathname;
@@ -156,6 +159,32 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
           { id: ACCOUNT_ID, displayName: 'Lea Summer' },
           { id: PARTNER_ID, displayName: 'Alex Winter' },
         ],
+      });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/configuration`
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { ETag: '"7"' },
+        body: JSON.stringify({
+          canManageSpaceConfiguration: true,
+          dailyContextTimezone: null,
+          dailyQuestionsEnabled: false,
+          energyCheckInEnabled: false,
+          energyVisibilityMode: 'IMMEDIATE',
+          loveNotesEnabled: false,
+          sharedAchievementsEnabled: false,
+          spaceId: SPACE_ID,
+          supportGesturesEnabled: true,
+          version: 7,
+          vibeCheckEnabled: false,
+          vibeVisibilityMode: 'IMMEDIATE',
+        }),
       });
       return;
     }
@@ -354,6 +383,28 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
       return;
     }
 
+    if (
+      (method === 'GET' || method === 'POST') &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/presence`
+    ) {
+      await fulfillJson({ state: null });
+      return;
+    }
+
+    if (
+      method === 'GET' &&
+      pathname === `/api/v1/spaces/${SPACE_ID}/entitlements`
+    ) {
+      await fulfillJson({
+        spaceId: SPACE_ID,
+        status: 'FREE',
+        tier: 'FREE',
+        capabilities: [],
+        isInGracePeriod: false,
+      });
+      return;
+    }
+
     unexpectedRequests.push(`${method} ${pathname}`);
     await fulfillJson(
       {
@@ -366,6 +417,7 @@ async function installPeopleApiMocks(page: Page): Promise<string[]> {
     );
   });
 
+  await mockEmptyPartnerNickname(page, SPACE_ID, PARTNER_ID);
   return unexpectedRequests;
 }
 
@@ -374,6 +426,7 @@ async function signInAndOpenPeople(page: Page): Promise<void> {
   await page.getByLabel(de.login.email).fill('lea@example.org');
   await page.getByLabel(de.login.password).fill('a-long-enough-test-password');
   await page.getByRole('button', { name: de.login.submit }).click();
+  await expect(page.getByLabel(de.login.email)).toHaveCount(0);
   await expect(page).toHaveURL(/\/today$/);
   await page.goto('/more/people');
   await expect(page.getByRole('heading', { name: people.title })).toBeVisible();

@@ -9,6 +9,9 @@ Authoritative presentation/runtime source graph includes:
 - web/public/** (runtime brand, icons, favicons, entry scripts)
 - web/index.html (HTML entry point, meta tags, titles)
 - web/src/** EXCEPT contract-generated code in web/src/api/generated/**
+
+The Capacitor Android wrapper in android/ packages the Web product and is not a
+second product UI, so it is deliberately not a Product Design surface (ADR 0011).
 """
 
 from __future__ import annotations

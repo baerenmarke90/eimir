@@ -1,10 +1,4 @@
-import {
-  type FormEvent,
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SpacesApi } from '../api/generated/apis/SpacesApi';
 import { normalizeClientError } from '../client/problemDetails';
@@ -12,6 +6,7 @@ import { clearProductReadCache } from '../client/productReadCache';
 import { loadStoredSession, storeSession } from '../client/sessionPersistence';
 import { useTranslation } from '../i18n';
 import { ProblemState } from './ProblemState';
+import { containModalTabFocus, useModalLifecycle } from './useModalLifecycle';
 import './SpaceOffboardingPanel.css';
 
 type OffboardingStep = 'consequences' | 'confirm' | null;
@@ -22,6 +17,8 @@ export interface SpaceOffboardingPanelProps {
   demoMode: boolean;
   /** Test/host override. Production reuses the normal Space-context reset boundary. */
   onSpaceLeft?: () => void | Promise<void>;
+  /** Host navigation for the optional export detour. */
+  onOpenDataExport?: () => void;
 }
 
 export function SpaceOffboardingPanel({
@@ -29,6 +26,7 @@ export function SpaceOffboardingPanel({
   spaceId,
   demoMode,
   onSpaceLeft,
+  onOpenDataExport,
 }: SpaceOffboardingPanelProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -73,21 +71,10 @@ export function SpaceOffboardingPanel({
     },
   });
 
-  useEffect(() => {
-    if (!step) return;
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    cancelButtonRef.current?.focus();
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      previousFocus?.focus();
-    };
-  }, [step]);
+  useModalLifecycle({
+    active: Boolean(step),
+    initialFocusRef: cancelButtonRef,
+  });
 
   function closeDialog() {
     if (mutation.isPending) return;
@@ -99,6 +86,10 @@ export function SpaceOffboardingPanel({
   function goToDataExport() {
     if (mutation.isPending) return;
     closeDialog();
+    if (onOpenDataExport) {
+      onOpenDataExport();
+      return;
+    }
     window.location.hash = 'settings-data';
   }
 
@@ -108,24 +99,7 @@ export function SpaceOffboardingPanel({
       closeDialog();
       return;
     }
-    if (event.key !== 'Tab' || !dialogRef.current) return;
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last?.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    containModalTabFocus(event, dialogRef.current);
   }
 
   function submitExit(event: FormEvent<HTMLFormElement>) {

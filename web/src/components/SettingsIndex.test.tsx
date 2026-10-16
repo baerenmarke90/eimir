@@ -1,42 +1,38 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import de from '../i18n/locales/de';
 import profileIdentity from '../i18n/locales/profileIdentity';
 import { SettingsIndex } from './SettingsIndex';
 
 describe('SettingsIndex', () => {
-  it('exposes all consumer settings sections in human-first order and excludes privacy', () => {
-    const html = renderToStaticMarkup(<SettingsIndex />);
-
-    expect(html).toContain('href="#settings-connection"');
-    expect(html).toContain(`>${profileIdentity.settingsRelationship}<`);
-
-    expect(html).toContain('href="#settings-notifications"');
-    expect(html).toContain(`>${profileIdentity.settingsNotifications}<`);
-
-    expect(html).toContain('href="#settings-dashboard"');
-    expect(html).toContain(`>${profileIdentity.settingsDashboard}<`);
-
-    expect(html).toContain('href="#settings-appearance"');
-    expect(html).toContain(`>${de.theme.label}<`);
-
-    expect(html).toContain('href="#settings-data"');
-    expect(html).toContain(`>${profileIdentity.settingsData}<`);
-
-    expect(html).toContain('href="#settings-account"');
-    expect(html).toContain(`>${profileIdentity.settingsSensitiveTitle}<`);
-
-    expect(html.indexOf('href="#settings-connection"')).toBeLessThan(
-      html.indexOf('href="#settings-notifications"'),
+  it('exposes focused consumer settings categories in human-first order', () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <SettingsIndex />
+      </MemoryRouter>,
     );
-    expect(html.indexOf('href="#settings-notifications"')).toBeLessThan(
-      html.indexOf('href="#settings-dashboard"'),
-    );
-    expect(html.indexOf('href="#settings-dashboard"')).toBeLessThan(
-      html.indexOf('href="#settings-appearance"'),
-    );
-    expect(html.indexOf('href="#settings-data"')).toBeLessThan(
-      html.indexOf('href="#settings-account"'),
-    );
-    expect(html).not.toContain('href="#settings-privacy"');
+
+    const expected = [
+      ['/more/settings/relationship', profileIdentity.settingsRelationship],
+      ['/more/settings/notifications', profileIdentity.settingsNotifications],
+      ['/more/settings/today', profileIdentity.settingsToday],
+      ['/more/settings/appearance', de.theme.label],
+      ['/more/settings/data', profileIdentity.settingsData],
+      ['/more/settings/account', profileIdentity.settingsAccount],
+    ] as const;
+
+    for (const [href, label] of expected) {
+      expect(html).toContain(`href="${href}"`);
+      expect(html).toContain(label);
+    }
+
+    for (let index = 1; index < expected.length; index += 1) {
+      expect(html.indexOf(`href="${expected[index - 1][0]}"`)).toBeLessThan(
+        html.indexOf(`href="${expected[index][0]}"`),
+      );
+    }
+
+    expect(html).not.toContain('href="#settings-');
+    expect(html).not.toContain('settings-privacy');
   });
 });

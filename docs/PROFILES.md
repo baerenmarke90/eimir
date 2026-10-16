@@ -21,7 +21,7 @@ Person/author projections use the **current Account presentation identity** unle
 
 `partner_profiles` is the visible profile aggregate root of an Account in a Space. At most one row exists per `(space_id, owner_id)` and the database enforces `SPACE_SHARED`.
 
-`profile_preferences` stores structured preferences. Metadata such as category, topic, sentiment, ownership, and visibility remain separate from the protected `value`. The value is stored in a `ProtectedPayloadJSON` column with `crypto_version = 0`; this is plaintext and **not E2EE**. The separation keeps the later migration to client-side sealed payloads possible.
+`profile_preferences` stores structured preferences. Metadata such as category, topic, sentiment, ownership, and visibility remain separate from the protected `value`. The value is stored in a `ProtectedPayloadJSON` column: legacy rows have `crypto_version = 0` (plaintext), current writes are application-encrypted (`crypto_version = 2`, see [ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md)); this is encryption at rest and **not E2EE**. The `topic` column beside it is not part of the protected payload. The separation keeps the later migration to client-side sealed payloads possible.
 
 The database additionally enforces:
 
@@ -82,7 +82,7 @@ The visible endpoint:
 
 always filters to `SELF_PROFILE`. The owner's own private notes about this person therefore cannot accidentally appear in this profile view.
 
-`PATCH /api/v1/spaces/{spaceId}/profiles/{accountId}` is self-write only and requires the last-read Account presentation `ETag` in `If-Match`. Omitted identity fields remain unchanged. `displayName` is normalized and validated only by the authoritative identity-domain rule; changing it does not change authentication identity or sessions. An explicit `profileAttachmentId: null` removes the avatar, while a non-null ID must pass the existing READY/owner/current-Space/image validation. Display name and avatar share one Account-global `version`, because both follow the Account across Spaces; avatar-only changes advance that version too. A stale write returns `409 VERSION_CONFLICT` rather than silently overwriting a newer edit.
+`PATCH /api/v1/spaces/{spaceId}/profiles/{accountId}` is self-write only and requires the last-read Account presentation `ETag` in `If-Match`. Omitted identity fields remain unchanged. `displayName` is normalized and validated only by the authoritative identity-domain rule; changing it does not change authentication identity or sessions. `birthday` is an optional date-only Account identity field; explicit `null` clears it and active partners may read it only through the normal current-Space profile authorization. An explicit `profileAttachmentId: null` removes the avatar, while a non-null ID must pass the existing READY/owner/current-Space/image validation. Display name, birthday and avatar share one Account-global `version`, because they follow the Account across Spaces; birthday/avatar changes advance that version too. A stale write returns `409 VERSION_CONFLICT` rather than silently overwriting a newer edit.
 
 `GET /api/v1/spaces/{spaceId}/profiles/{accountId}/avatar/content` requires an authenticated caller with readable current-Space profile access and returns `404` for a missing/invisible/non-ready current avatar. It does not accept an Attachment ID and therefore cannot be used as a cross-tenant media guessing oracle.
 

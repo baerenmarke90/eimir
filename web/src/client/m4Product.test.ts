@@ -6,7 +6,7 @@ import {
 } from './m4Product';
 
 describe('M5 S5/S3 product navigation', () => {
-  it('links productized search targets and keeps private S4 targets closed', () => {
+  it('links shared and private search targets to canonical product routes', () => {
     expect(searchResultPath('MEMORY', 'memory/with space')).toBe(
       '/story/memories/memory%2Fwith%20space',
     );
@@ -27,9 +27,23 @@ describe('M5 S5/S3 product navigation', () => {
     );
     expect(searchResultPath('COLLECTION_ITEM', 'item-id')).toBe('/more');
 
-    expect(searchResultPath('PRIVATE_NOTE', 'private-id')).toBeNull();
-    expect(searchResultPath('GIFT_IDEA', 'gift-id')).toBeNull();
-    expect(searchResultPath('PRIVATE_COLLECTION', 'collection-id')).toBeNull();
+    expect(searchResultPath('PRIVATE_NOTE', 'private/id')).toBe(
+      '/more/private/notes/private%2Fid',
+    );
+    expect(searchResultPath('GIFT_IDEA', 'gift-id')).toBe(
+      '/more/private/gift-ideas/gift-id',
+    );
+    expect(
+      searchResultPath('PRIVATE_COLLECTION', 'private-collection-id'),
+    ).toBe('/more/private/collections/private-collection-id');
+    expect(
+      searchResultPath(
+        'PRIVATE_COLLECTION_ITEM',
+        'item-id',
+        'private-collection-id',
+      ),
+    ).toBe('/more/private/collections/private-collection-id');
+    expect(searchResultPath('PRIVATE_COLLECTION_ITEM', 'item-id')).toBeNull();
   });
 
   it('routes engagement targets to canonical detail routes and guards null targets', () => {

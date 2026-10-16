@@ -10,6 +10,8 @@ export type StoryMediaParentType = Extract<
 type StoryMediaLoaderOptions = {
   fetchApi?: typeof fetch;
   createObjectUrl?: (blob: Blob) => string;
+  signal?: AbortSignal;
+  variant?: 'original' | 'thumbnail';
 };
 
 /**
@@ -26,24 +28,45 @@ export async function loadAuthorizedStoryImage(
   attachmentId: string,
   options: StoryMediaLoaderOptions = {},
 ): Promise<string> {
-  const descriptor = await apis.attachments.createAttachmentReadAccess({
+  const descriptorRequest = {
     spaceId,
     attachmentId,
-    attachmentReadRequest: { parentType, parentId },
-  });
+    attachmentReadRequest: {
+      parentType,
+      parentId,
+      ...(options.variant ? { variant: options.variant } : {}),
+    },
+  };
+  const descriptor = options.signal
+    ? await apis.attachments.createAttachmentReadAccess(descriptorRequest, {
+        signal: options.signal,
+      })
+    : await apis.attachments.createAttachmentReadAccess(descriptorRequest);
 
   let blob: Blob;
   if (descriptor.method === ReadDescriptorMethodEnum.SIGNED_URL) {
-    const response = await (options.fetchApi ?? fetch)(descriptor.url);
+    const fetchApi = options.fetchApi ?? fetch;
+    const response = options.signal
+      ? await fetchApi(descriptor.url, { signal: options.signal })
+      : await fetchApi(descriptor.url);
     if (!response.ok) {
-      throw new Error(`Story media load failed: ${response.status}`);
+      throw Object.assign(
+        new Error(`Story media load failed: ${response.status}`),
+        { status: response.status },
+      );
     }
     blob = await response.blob();
   } else {
-    const response = await apis.attachments.getAttachmentContentRaw({
+    const request = {
       spaceId,
       attachmentId,
-    });
+      ...(options.variant ? { variant: options.variant } : {}),
+    };
+    const response = options.signal
+      ? await apis.attachments.getAttachmentContentRaw(request, {
+          signal: options.signal,
+        })
+      : await apis.attachments.getAttachmentContentRaw(request);
     blob = await response.raw.blob();
   }
 

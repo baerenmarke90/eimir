@@ -13,6 +13,7 @@ import {
 } from '../client/authorSummaryConsumers';
 import { invalidateDashboard } from '../client/dashboardQueries';
 import { splitFirstGrapheme } from '../client/graphemeSplit';
+import { usePartnerNickname } from '../client/partnerNickname';
 import {
   type MemoryEditValues,
   memoryDateInputValue,
@@ -45,9 +46,16 @@ import { AttachmentDraftPicker } from './AttachmentDraftPicker';
 import { CommentsPanel } from './CommentsPanel';
 import { MediaGallery } from './MediaGallery';
 import { MemoryPreview } from './MemoryPreview';
+import {
+  MEMORY_TAGS,
+  MemoryTagChoices,
+  type MemoryTag,
+} from './MemoryTagChoices';
 import { PageHeader } from './PageHeader';
 import { ProblemState } from './ProblemState';
 import { StoryDetailEditLink } from './StoryDetailEditLink';
+import { StoryDetailPageShell } from './StoryDetailPageShell';
+import { StoryEditorPageShell } from './StoryFormPageShell';
 import { storyAuthorLabel } from './storyPresentation';
 import { UiState } from './UiState';
 
@@ -83,9 +91,14 @@ export function MemoryProductPage({
   accessToken: string;
   spaceId: string;
   currentAccountId: string;
-  loadMemoryImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadMemoryImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
 }) {
   const { t } = useTranslation();
+  const { nicknameFor } = usePartnerNickname();
   const navigate = useNavigate();
   const location = useLocation();
   const { requestReturn, resolveOrigin } = useTaskOrigin();
@@ -164,6 +177,10 @@ export function MemoryProductPage({
     enabled: Boolean(memoryId),
     retry: false,
   });
+  const [tagDraft, setTagDraft] = useState<{
+    memoryId: string;
+    tags: MemoryTag[];
+  } | null>(null);
 
   useStoryViewReceipt({
     apis,
@@ -242,6 +259,7 @@ export function MemoryProductPage({
           ...memory,
           title: values.title,
           body: values.body,
+          tags: values.tags,
           happenedOn: values.happenedOn
             ? new Date(`${values.happenedOn}T00:00:00Z`)
             : null,
@@ -359,6 +377,8 @@ export function MemoryProductPage({
   const result = memoryQuery.data;
   if (!result) return null;
   const memory = result.value;
+  const selectedTags =
+    tagDraft?.memoryId === memory.id ? tagDraft.tags : (memory.tags ?? []);
   const offline = result.source === 'cache' || Boolean(memoryQuery.error);
   const readyAttachments = [...memory.attachments]
     .filter((attachment) => attachment.status === 'READY')
@@ -410,36 +430,31 @@ export function MemoryProductPage({
         values: {
           title: String(data.get('title') || ''),
           body: String(data.get('body') || ''),
+          tags: [...selectedTags],
           happenedOn: String(data.get('happenedOn') || ''),
         },
       });
     }
 
     return (
-      <div className="page page-reading create-page product-editor-page">
-        <PageHeader
-          before={
-            <Link
-              className="back-link"
-              to={memoryDetailPath(memory.id)}
-              state={{ taskOriginKey: originKey }}
-            >
-              {t('memoryProduct.backToMemory')}
-            </Link>
-          }
-          eyebrow={t('memoryProduct.editEyebrow')}
-          title={t('memoryProduct.editHeading')}
-          description={t('memoryProduct.editIntro')}
-          className="create-heading"
-        />
-
-        <section
-          className="form-card product-sheet"
-          aria-labelledby="memory-edit-heading"
-        >
-          <h2 id="memory-edit-heading" className="sr-only">
-            {t('memoryProduct.formAria')}
-          </h2>
+      <StoryEditorPageShell
+        before={
+          <Link
+            className="back-link"
+            to={memoryDetailPath(memory.id)}
+            state={{ taskOriginKey: originKey }}
+          >
+            {t('memoryProduct.backToMemory')}
+          </Link>
+        }
+        eyebrow={t('memoryProduct.editEyebrow')}
+        title={t('memoryProduct.editHeading')}
+        description={t('memoryProduct.editIntro')}
+        headerClassName="create-heading"
+        sectionLabelledBy="memory-edit-heading"
+        sectionHeading={t('memoryProduct.formAria')}
+      >
+        <>
           <form
             key={memory.version}
             onSubmit={submit}
@@ -475,6 +490,12 @@ export function MemoryProductPage({
                 defaultValue={memoryDateInputValue(memory.happenedOn)}
               />
             </div>
+
+            <MemoryTagChoices
+              selected={selectedTags}
+              onChange={(tags) => setTagDraft({ memoryId: memory.id, tags })}
+              disabled={updateMutation.isPending}
+            />
 
             {readyAttachments.length > 0 ? (
               <fieldset className="memory-existing-attachments">
@@ -612,8 +633,8 @@ export function MemoryProductPage({
               )}
             </div>
           ) : null}
-        </section>
-      </div>
+        </>
+      </StoryEditorPageShell>
     );
   }
 
@@ -623,87 +644,106 @@ export function MemoryProductPage({
 
   const bodyText = memory.body || t('memoryProduct.noBody');
   const { first: bodyDropCap, rest: bodyRest } = splitFirstGrapheme(bodyText);
-  const provenanceAuthor = storyAuthorLabel(memory.author, currentAccountId);
+  const provenanceAuthor = storyAuthorLabel(
+    memory.author,
+    currentAccountId,
+    nicknameFor,
+  );
 
   return (
-    <div className="page memory-product-page">
-      {taskState?.memorySaved ? (
-        <div className="inline-message inline-message-success" role="status">
-          {t(
-            taskState.photosUnconfirmed
-              ? 'taskBoundary.photosUnconfirmed'
-              : 'taskBoundary.saved',
-          )}
-        </div>
-      ) : null}
-      {memoryQuery.error ? (
-        <ProblemState
-          error={memoryQuery.error}
-          onRetry={() => void memoryQuery.refetch()}
-        />
-      ) : null}
-      {offline ? (
-        <div className="inline-message" role="status">
-          {t('offlineCache.banner')}
-        </div>
-      ) : null}
-      <PageHeader
-        eyebrow={memoryEyebrow}
-        title={memory.title}
-        titleAction={
-          memory.capabilities.canEdit && !offline ? (
-            <StoryDetailEditLink
-              to={memoryEditPath(memory.id)}
-              label={t('memoryProduct.edit')}
-              state={{ taskOriginKey: originKey }}
+    <StoryDetailPageShell
+      eyebrow={memoryEyebrow}
+      title={memory.title}
+      titleAction={
+        memory.capabilities.canEdit && !offline ? (
+          <StoryDetailEditLink
+            to={memoryEditPath(memory.id)}
+            label={t('memoryProduct.edit')}
+            state={{ taskOriginKey: originKey }}
+          />
+        ) : undefined
+      }
+      offline={offline}
+      beforeHeader={
+        <>
+          {taskState?.memorySaved ? (
+            <div
+              className="inline-message inline-message-success"
+              role="status"
+            >
+              {t(
+                taskState.photosUnconfirmed
+                  ? 'taskBoundary.photosUnconfirmed'
+                  : 'taskBoundary.saved',
+              )}
+            </div>
+          ) : null}
+          {memoryQuery.error ? (
+            <ProblemState
+              error={memoryQuery.error}
+              onRetry={() => void memoryQuery.refetch()}
             />
-          ) : undefined
-        }
+          ) : null}
+        </>
+      }
+      pageClassName="memory-product-page"
+      containerClassName="memory-detail-container"
+      articleClassName="memory-detail-card"
+    >
+      <p className="memory-detail-body">
+        {bodyDropCap ? (
+          <span className="drop-cap-letter">{bodyDropCap}</span>
+        ) : null}
+        {bodyRest}
+      </p>
+
+      {(memory.tags ?? []).length > 0 ? (
+        <section aria-label={t('memory.tagsLabel')}>
+          <ul className="memory-tag-summary">
+            {memory.tags.map((tag) => (
+              <li key={tag}>
+                {(MEMORY_TAGS as readonly string[]).includes(tag)
+                  ? t(`memory.tagLabels.${tag}`)
+                  : tag}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {readyAttachments.length > 0 ? (
+        <section aria-label={t('memory.photoLabel')}>
+          <MediaGallery
+            items={readyAttachments.map((attachment) => ({
+              id: attachment.id,
+              mediaType: attachment.mediaType,
+            }))}
+            loadMedia={(attachmentId, signal) =>
+              loadMemoryImage(memory.id, attachmentId, signal)
+            }
+            resourceScopeKey={`memory:${memory.id}`}
+          />
+        </section>
+      ) : null}
+
+      <CommentsPanel
+        commentsApi={apis.comments}
+        spaceId={spaceId}
+        parentKind="memory"
+        parentId={memory.id}
+        currentAccountId={currentAccountId}
+        canComment={memory.capabilities.canComment}
+        offline={offline}
       />
 
-      <div className="memory-detail-container">
-        <article className="story-surface memory-detail-card coffee-table-layout">
-          <p className="memory-detail-body">
-            {bodyDropCap ? (
-              <span className="drop-cap-letter">{bodyDropCap}</span>
-            ) : null}
-            {bodyRest}
-          </p>
-
-          {readyAttachments.length > 0 ? (
-            <section aria-label={t('memory.photoLabel')}>
-              <MediaGallery
-                items={readyAttachments.map((attachment) => ({
-                  id: attachment.id,
-                  mediaType: attachment.mediaType,
-                }))}
-                loadMedia={(attachmentId) =>
-                  loadMemoryImage(memory.id, attachmentId)
-                }
-              />
-            </section>
-          ) : null}
-
-          <CommentsPanel
-            commentsApi={apis.comments}
-            spaceId={spaceId}
-            parentKind="memory"
-            parentId={memory.id}
-            currentAccountId={currentAccountId}
-            canComment={memory.capabilities.canComment}
-            offline={offline}
-          />
-
-          <footer className="memory-provenance-footer">
-            <p>
-              {t('memoryProduct.provenance', {
-                author: provenanceAuthor,
-                createdAt: formatCreatedAt(memory.createdAt),
-              })}
-            </p>
-          </footer>
-        </article>
-      </div>
-    </div>
+      <footer className="memory-provenance-footer">
+        <p>
+          {t('memoryProduct.provenance', {
+            author: provenanceAuthor,
+            createdAt: formatCreatedAt(memory.createdAt),
+          })}
+        </p>
+      </footer>
+    </StoryDetailPageShell>
   );
 }

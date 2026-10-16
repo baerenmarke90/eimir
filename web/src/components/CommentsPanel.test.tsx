@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CommentsApi } from '../api/generated/apis/CommentsApi';
 import type { CommentDetail } from '../api/generated/models/CommentDetail';
+import storyProducts from '../i18n/locales/storyProducts';
 import { CommentsPanel } from './CommentsPanel';
 
 afterEach(cleanup);
@@ -119,6 +120,27 @@ describe('CommentsPanel', () => {
     expect(html).toContain('bearbeitet');
   });
 
+  it('uses first names and marks only the current viewer with the self marker (#1064)', () => {
+    const html = renderPanel([
+      comment({
+        id: 'own',
+        authorId: 'me',
+        author: { id: 'me', displayName: 'Philipp Reis' },
+      }),
+      comment({
+        id: 'partner',
+        authorId: 'them',
+        author: { id: 'them', displayName: 'Alex Winter' },
+      }),
+    ]);
+
+    expect(html).toContain('<strong>Philipp</strong>');
+    expect(html).toContain('<strong>Alex</strong>');
+    expect(html).not.toContain('Philipp Reis');
+    expect(html).not.toContain('Alex Winter');
+    expect(html.split(storyProducts.comments.authorSelf).length - 1).toBe(1);
+  });
+
   describe('"Kommentieren" sits at the end of the comment flow (#1015)', () => {
     it('shows the heading with the compose trigger directly below it for zero comments', () => {
       const html = renderPanel([]);
@@ -215,7 +237,152 @@ describe('CommentsPanel', () => {
         spaceId: 'space-1',
         memoryId: 'memory-1',
         commentCreate: { body: 'A brand new comment' },
+        idempotencyKey: expect.any(String),
       });
+    });
+
+    it('keeps newer text when an older submitted draft succeeds late', async () => {
+      const user = userEvent.setup();
+      let resolveCreate!: (value: CommentDetail) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      const listMemoryComments = vi.fn().mockResolvedValue({
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+      renderInteractivePanel([], { createMemoryComment, listMemoryComments });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Kommentar A');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      await user.clear(textarea);
+      await user.type(textarea, 'Kommentar B');
+      resolveCreate(comment({ id: 'new-a', body: 'Kommentar A' }));
+
+      await waitFor(() => expect(textarea.value).toBe('Kommentar B'));
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+      expect(createMemoryComment).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps a newer draft even when its text matches the submitted value', async () => {
+      const user = userEvent.setup();
+      let resolveCreate!: (value: CommentDetail) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      renderInteractivePanel([], { createMemoryComment });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Same words');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      await user.clear(textarea);
+      await user.type(textarea, 'Same words');
+      resolveCreate(comment({ id: 'new-a', body: 'Same words' }));
+
+      await waitFor(() => expect(textarea.value).toBe('Same words'));
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+      expect(createMemoryComment).toHaveBeenCalledTimes(1);
+    });
+
+    it('retains the current draft when comment creation fails', async () => {
+      const user = userEvent.setup();
+      let rejectCreate!: (reason?: unknown) => void;
+      const createMemoryComment = vi.fn(
+        () =>
+          new Promise<CommentDetail>((_resolve, reject) => {
+            rejectCreate = reject;
+          }),
+      );
+      renderInteractivePanel([], { createMemoryComment });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      const textarea = screen.getByPlaceholderText(
+        'Schreib etwas dazu …',
+      ) as HTMLTextAreaElement;
+      await user.type(textarea, 'Keep this draft');
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+
+      rejectCreate(new Error('network failure'));
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+      expect(textarea.value).toBe('Keep this draft');
+      expect(screen.getByPlaceholderText('Schreib etwas dazu …')).toBeTruthy();
+    });
+
+    it('reuses the request identity when an identical retry reconciles an unknown outcome', async () => {
+      const user = userEvent.setup();
+      const createMemoryComment = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('response lost'))
+        .mockResolvedValueOnce(comment({ id: 'reconciled' }));
+      const listMemoryComments = vi.fn().mockResolvedValue({
+        items: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+      renderInteractivePanel([], { createMemoryComment, listMemoryComments });
+
+      await user.click(
+        await screen.findByRole('button', { name: 'Kommentieren' }),
+      );
+      await user.type(
+        screen.getByPlaceholderText('Schreib etwas dazu …'),
+        'Maybe already saved',
+      );
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(
+          screen.getByRole<HTMLButtonElement>('button', {
+            name: 'Kommentieren',
+          }).disabled,
+        ).toBe(false),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Kommentieren' }));
+      await waitFor(() => expect(createMemoryComment).toHaveBeenCalledTimes(2));
+
+      expect(createMemoryComment.mock.calls[1]?.[0].idempotencyKey).toBe(
+        createMemoryComment.mock.calls[0]?.[0].idempotencyKey,
+      );
     });
   });
 

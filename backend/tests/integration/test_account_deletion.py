@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -152,6 +152,8 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
     account.birthday = date(1990, 5, 1)
     account.locale = "fr-FR"
     account.timezone = "Europe/Paris"
+    account.quiet_hours_start = time(22)
+    account.quiet_hours_end = time(7)
     space = make_space(session, account)
 
     partner = make_account(session, "Ben")
@@ -313,6 +315,8 @@ def test_core_cleanup_deletes_private_identity_state_but_retains_shared_history(
     assert account.birthday is None
     assert account.locale == DELETED_ACCOUNT_LOCALE
     assert account.timezone == DELETED_ACCOUNT_TIMEZONE
+    assert account.quiet_hours_start is None
+    assert account.quiet_hours_end is None
     assert account.disabled_at == accepted_at
     assert not account.is_active
 

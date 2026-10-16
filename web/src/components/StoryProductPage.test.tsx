@@ -15,11 +15,6 @@ import { StoryProductPage } from './StoryProductPage';
 
 const loadMemoryImage = async () => 'blob:test-image';
 
-const SELF_ATTRIBUTION = de.story.byAuthor.replace(
-  '{{author}}',
-  de.story.authorSelf,
-);
-
 function renderStoryPage(route: string, cachedData: unknown): string {
   const query = route.includes('?') ? route.slice(route.indexOf('?') + 1) : '';
   const filters = parseStoryFilters(new URLSearchParams(query));
@@ -280,16 +275,16 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    // Visible and accessible Discover attribution stay first-name-only.
-    expect(html).toContain('von Alex</span>');
-    expect(html).toContain('von Lea</span>');
-    expect(html).toContain('class="sr-only">von Alex</span>');
-    expect(html).toContain('class="sr-only">von Lea</span>');
-    expect(html).not.toContain('von Alex Winter');
-    expect(html).not.toContain('von Lea Sommer');
+    // Discover keeps author identity on the avatar without visible prose.
+    expect(html).not.toContain('>von Alex</span>');
+    expect(html).not.toContain('>von Lea</span>');
+    expect(html).not.toContain('class="sr-only">von Alex</span>');
+    expect(html).not.toContain('class="sr-only">von Lea</span>');
+    expect(html).toContain('role="img" aria-label="Alex Winter"');
+    expect(html).toContain('role="img" aria-label="Lea Sommer"');
   });
 
-  it('uses viewer-relative attribution for the current account in Discover (#1019)', () => {
+  it('uses avatar-only attribution for the current account in Discover (#1064)', () => {
     const html = renderStoryPage('/story', {
       items: [
         {
@@ -312,9 +307,11 @@ describe('StoryProductPage', () => {
       nextCursor: null,
     });
 
-    expect(html).toContain(`class="sr-only">${SELF_ATTRIBUTION}</span>`);
-    expect(html).toContain(`>${SELF_ATTRIBUTION}</span>`);
+    expect(html).not.toContain(
+      de.story.byAuthor.replace('{{author}}', de.story.authorSelf),
+    );
     expect(html).not.toContain('class="sr-only">von Alex</span>');
+    expect(html).toContain('role="img" aria-label="Alex Winter"');
   });
 
   it('renders timeline view when requested via query parameter', () => {

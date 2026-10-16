@@ -3,16 +3,23 @@
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
+import sys
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-publish.yml"
+CANDIDATE_WORKFLOW = ROOT / ".github/workflows/release-candidate.yml"
 WORKFLOW_DIR = ROOT / ".github/workflows"
 
 EXTERNAL_ACTION_PINS = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-node": "1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a",
     "actions/setup-java": "dd06d9cba3e5552c54d9f8ea23572deb30010f7c",
     "gradle/actions/setup-gradle": "9c971963bec38e04b3d30dcc455b5382be2fdbfb",
     "actions/upload-artifact": "ea165f8d65b6e75b540449e92b4886f43607fa02",
@@ -31,6 +38,7 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.candidate_workflow = CANDIDATE_WORKFLOW.read_text(encoding="utf-8")
 
     def test_no_privileged_pull_request_target_trigger(self) -> None:
         self.assertNotIn("pull_request_target", self.workflow)
@@ -64,6 +72,141 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn('if [ "$CONFIRM_PUBLISH" != "true" ]', self.workflow)
         self.assertIn('git merge-base --is-ancestor "$GITHUB_SHA" origin/main', self.workflow)
         self.assertIn("Require existing repository checks to be green", self.workflow)
+
+
+    def test_release_channel_selection_is_explicit_in_publish_and_candidate(self) -> None:
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(workflow="publish" if workflow is self.workflow else "candidate"):
+                self.assertIn("include_android:", workflow)
+                self.assertIn("required: true", workflow)
+                self.assertIn("default: true", workflow)
+                self.assertIn("include_android: ${{ inputs.include_android }}", workflow)
+        self.assertIn(
+            "Android-excluded publication must not provide Android URL/version inputs",
+            self.workflow,
+        )
+        self.assertIn(
+            "Android-excluded candidate must not provide Android URL/version inputs",
+            self.candidate_workflow,
+        )
+        self.assertIn(
+            "Android-excluded evidence must carry only explicit not-applicable metadata",
+            self.candidate_workflow,
+        )
+
+    def test_reusable_evidence_call_permissions_are_workflow_scoped(self) -> None:
+        required_permissions = (
+            "contents: read",
+            "id-token: write",
+            "attestations: write",
+        )
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                workflow_permissions = workflow.split("\njobs:\n", 1)[0]
+                for permission in required_permissions:
+                    self.assertIn(permission, workflow_permissions)
+
+                before_use = workflow.split(
+                    "uses: ./.github/workflows/release-evidence.yml", 1
+                )[0]
+                evidence_call = before_use.rsplit("\n  evidence:\n", 1)[1]
+                self.assertNotIn("\n    permissions:", evidence_call)
+
+    def test_reusable_evidence_call_never_passes_an_empty_number_input(self) -> None:
+        """A number-typed workflow_call input rejects an empty value at call setup.
+
+        An Android-excluded dispatch leaves ``android_version_code`` empty, so the
+        call must fall back to a number instead of forwarding the bare input.
+        """
+
+        for workflow in (self.workflow, self.candidate_workflow):
+            with self.subTest(
+                workflow="publish" if workflow is self.workflow else "candidate"
+            ):
+                evidence_call = workflow.split("\n  evidence:\n", 1)[1].split(
+                    "\n\n", 1
+                )[0]
+                self.assertIn(
+                    "android_version_code: ${{ inputs.include_android "
+                    "&& inputs.android_version_code || 0 }}",
+                    evidence_call,
+                )
+                self.assertNotIn(
+                    "android_version_code: ${{ inputs.android_version_code }}",
+                    workflow,
+                )
+
+    def test_release_notes_heredocs_render_their_backticked_values(self) -> None:
+        """An unquoted heredoc executes unescaped backticks as commands.
+
+        The published v0.1.0 notes lost the source revision, the previous release and
+        every file name that way. Render each workflow's notes script for real and
+        require the values and literal backticks to survive.
+        """
+
+        cases = (
+            ("publish", self.workflow, "self-hosted-image-identity.json"),
+            ("candidate", self.candidate_workflow, "SHA256SUMS"),
+        )
+        revision = "8bb0c1eadbeb4864788d277a25a3673c79f5e46f"
+        for name, workflow, expected_name in cases:
+            with self.subTest(workflow=name):
+                start = workflow.index("cat > release-evidence/RELEASE-NOTES.md <<EOF")
+                end = workflow.index("\n          EOF", start) + len("\n          EOF")
+                script = textwrap.dedent(" " * 10 + workflow[start:end].lstrip())
+                with tempfile.TemporaryDirectory() as directory:
+                    (Path(directory) / "release-evidence").mkdir()
+                    subprocess.run(
+                        ["bash", "-euo", "pipefail", "-c", script],
+                        cwd=directory,
+                        check=True,
+                        env={
+                            "PATH": "/usr/bin:/bin",
+                            "RELEASE_VERSION": "0.1.0",
+                            "SOURCE_REVISION": revision,
+                            "previous": "v0.0.9",
+                            "android_note": "android note",
+                            "channel_note": "channel note",
+                        },
+                    )
+                    notes = (Path(directory) / "release-evidence/RELEASE-NOTES.md").read_text(
+                        encoding="utf-8"
+                    )
+                self.assertIn(f"`{revision}`", notes)
+                self.assertIn("`eimir-release-manifest.json`", notes)
+                self.assertIn(f"`{expected_name}`", notes)
+
+    def test_android_publication_steps_are_conditional(self) -> None:
+        android_steps = (
+            "Set up Node.js 24.21.0",
+            "Set up JDK 21",
+            "Set up Gradle cache and validate wrapper",
+            "Verify pinned Gradle wrapper JAR",
+            "Install Android SDK 36",
+            "Build and sync Capacitor web bundle",
+            "Verify generated native wrapper files have not drifted",
+            "Build and verify final signed Android artifacts",
+            "Install verified Syft release",
+            "Regenerate Android SPDX SBOMs for signed bytes",
+            "Rebind evidence index to final signed Android bytes",
+            "Remove unsigned Android attestation bundles",
+            "Attest final signed Android APK",
+            "Attest final signed Android AAB",
+        )
+        for step_name in android_steps:
+            with self.subTest(step=step_name):
+                step = self.workflow.split(f"- name: {step_name}", 1)[1].split("- name:", 1)[0]
+                self.assertIn("if: inputs.include_android", step)
+
+    def test_android_exclusion_is_recorded_in_final_release_notes(self) -> None:
+        notes = self.workflow.split("Write human-readable release notes", 1)[1].split(
+            "Write and verify final release checksums", 1
+        )[0]
+        self.assertIn("INCLUDE_ANDROID:", notes)
+        self.assertIn("Android is explicitly not part of this release channel", notes)
+        self.assertIn("No APK/AAB", notes)
 
     def test_release_identity_is_immutable_and_not_overwritten(self) -> None:
         self.assertGreaterEqual(self.workflow.count("git ls-remote --exit-code --tags"), 2)
@@ -126,6 +269,29 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("releaseArtifactSha256", publish_step)
         self.assertNotIn("docker build", publish_step)
         self.assertNotIn(":latest", publish_step)
+
+    def test_image_labels_are_verified_against_release_identity_before_push(self) -> None:
+        publish_archive = self.workflow.split("publish_archive() {", 1)[1].split(
+            "publish_archive \\", 1
+        )[0]
+        revision_check = (
+            'require_image_label "$source_image" org.opencontainers.image.revision "$SOURCE_REVISION"'
+        )
+        version_check = (
+            'require_image_label "$source_image" org.opencontainers.image.version "$RELEASE_VERSION"'
+        )
+        push = 'push_single_digest "$transport_ref" "$repository"'
+        for check in (revision_check, version_check):
+            self.assertIn(check, publish_archive)
+            self.assertLess(publish_archive.index(check), publish_archive.index(push))
+        self.assertLess(
+            publish_archive.index("docker load --input"),
+            publish_archive.index(revision_check),
+        )
+        helper = self.workflow.split("require_image_label() {", 1)[1].split("publish_archive() {", 1)[0]
+        self.assertIn('if [ "$actual" != "$expected" ]; then', helper)
+        self.assertIn("refusing publication", helper)
+        self.assertIn("exit 1", helper)
 
     def test_registry_identity_lookup_fails_closed_on_uncertainty(self) -> None:
         publish_step = self.workflow.split(
@@ -220,6 +386,13 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertIn("deploy/self-hosted-release.env.example", bundle_step)
         self.assertIn("scripts/self_hosted_release.py", bundle_step)
         self.assertIn("scripts/check_runtime_environment.py", bundle_step)
+        self.assertIn("scripts/_identity_environment.py", bundle_step)
+        self.assertIn(
+            'cp -- release-evidence/self-hosted-image-identity.json \\\n'
+            '            "$bundle_root/self-hosted-image-identity.json"',
+            bundle_step,
+        )
+        self.assertIn("${bundle_name}/self-hosted-image-identity.json", bundle_step)
         self.assertIn("--sort=name", bundle_step)
         self.assertIn("--mtime='UTC 1970-01-01'", bundle_step)
         self.assertIn("--owner=0 --group=0 --numeric-owner", bundle_step)
@@ -230,12 +403,52 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("web/", bundle_step)
         self.assertIn("verify_release_asset_set.py", self.workflow)
 
+    def test_shipped_operator_scripts_start_from_the_bundle_alone(self) -> None:
+        """The target host has only the bundle, not the source checkout (#915).
+
+        #954 made the launcher and the runtime checker import a sibling helper; the
+        bundle step did not ship it, so the published v0.1.0 launcher failed at import
+        time on a host. Assemble the bundle exactly as the workflow copies it and start
+        every shipped script in isolation.
+        """
+        bundle_step = self.workflow.split(
+            "Build deterministic Self-Hosted operator bundle", 1
+        )[1].split("Write human-readable release notes", 1)[0]
+        copies = re.findall(r'cp -- (\S+) \\\n?\s*"\$bundle_root/([^"]+)"', bundle_step)
+        copies += re.findall(r'cp -- (\S+) "\$bundle_root/([^"]+)"', bundle_step)
+        # release-evidence/ only exists in the publish job, not in the checkout.
+        repository_copies = [
+            (source, target) for source, target in copies if not source.startswith("release-evidence/")
+        ]
+        shipped_scripts = [t for _, t in repository_copies if t.startswith("scripts/")]
+        self.assertIn("scripts/self_hosted_release.py", shipped_scripts)
+        self.assertIn("scripts/check_runtime_environment.py", shipped_scripts)
+
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory)
+            for source, target in repository_copies:
+                destination = bundle / target
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes((ROOT / source).read_bytes())
+            for target in shipped_scripts:
+                with self.subTest(script=target):
+                    result = subprocess.run(
+                        [sys.executable, target, "--help"],
+                        cwd=bundle,
+                        env={"PATH": os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"},
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_release_workflow_tracks_operator_bundle_inputs(self) -> None:
         for path in (
             '"compose.yaml"',
             '"deploy/self-hosted-release.env.example"',
             '"scripts/self_hosted_release.py"',
             '"scripts/check_runtime_environment.py"',
+            '"scripts/_identity_environment.py"',
             '"scripts/verify_release_asset_set.py"',
             '"tools/ci/test_verify_release_asset_set.py"',
             '"docs/SELF-HOSTING.md"',
@@ -311,6 +524,53 @@ class ReleasePublishWorkflowContractTest(unittest.TestCase):
             self.workflow,
         )
         self.assertIn("sha256sum --check --strict", self.workflow)
+
+    def test_jdk_version_and_wrapper_jar_are_pinned(self) -> None:
+        self.assertIn('java-version: "21"', self.workflow)
+        self.assertIn('node-version: "24.21.0"', self.workflow)
+        self.assertIn("7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172", self.workflow)
+
+    def test_capacitor_wrapper_and_web_bundle_integration(self) -> None:
+        self.assertIn('ANDROID_PROJECT_DIR: "android"', self.workflow)
+        self.assertIn("working-directory: ${{ env.ANDROID_PROJECT_DIR }}", self.workflow)
+        self.assertIn('"platforms;android-36"', self.workflow)
+        self.assertIn("npm ci --ignore-scripts --no-audit --no-fund", self.workflow)
+        self.assertIn("npm run cap:sync", self.workflow)
+        self.assertIn('VITE_EIMIR_API_BASE_URL="$ANDROID_API_BASE_URL" npm run cap:build:web', self.workflow)
+        self.assertIn("git diff --exit-code --", self.workflow)
+        self.assertIn("android/capacitor.settings.gradle", self.workflow)
+        self.assertIn("android/app/capacitor.build.gradle", self.workflow)
+
+    def test_signed_artifacts_packaging_and_badging_verified(self) -> None:
+        self.assertIn("dump badging", self.workflow)
+        self.assertIn("build-tools/36.0.0/aapt", self.workflow)
+        self.assertIn("package: name='de.sidebyside.app'", self.workflow)
+        self.assertIn("launchable-activity: name='de.eimir.app.MainActivity'", self.workflow)
+        self.assertIn("public/index.html", self.workflow)
+        self.assertIn("capacitor.config.json", self.workflow)
+        self.assertIn("CapacitorHttp", self.workflow)
+        self.assertIn("server.url", self.workflow)
+        self.assertIn("allowNavigation", self.workflow)
+
+    def test_android_api_base_url_input_and_preflight_validation(self) -> None:
+        self.assertIn("android_api_base_url:", self.workflow)
+        self.assertIn(
+            "Android-inclusive publication requires an explicit, non-test android_api_base_url.",
+            self.workflow,
+        )
+        self.assertIn("Android apiBaseUrl does not match publication input", self.workflow)
+        self.assertIn("preflight-manifest apiBaseUrl mismatch", self.workflow)
+        self.assertIn(
+            "Android-excluded publication must not provide Android URL/version inputs",
+            self.workflow,
+        )
+
+    def test_canonical_android_directory_is_the_only_project(self) -> None:
+        # android/ is the Capacitor wrapper (#1009); the former staging path and
+        # the retired Kotlin/Compose build must not be referenced anymore.
+        self.assertNotIn("capacitor-android", self.workflow)
+        self.assertNotIn("working-directory: android", self.workflow)
+        self.assertNotIn("android/app/build.gradle.kts", self.workflow)
 
 
 if __name__ == "__main__":

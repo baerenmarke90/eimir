@@ -80,9 +80,8 @@ server-side immutable tags. The authoritative image identity is the digest after
 `@sha256:` in `self-hosted-image-identity.json`; Production never relies on re-resolving a
 tag to decide which bytes to run.
 
-Download both assets from the same immutable release, extract the operator bundle, and
-place the identity file at the extracted bundle root before running any release
-operation:
+Download the operator bundle (and, optionally, the standalone identity asset for
+comparison) from the same immutable release and extract it:
 
 ```bash
 RELEASE_VERSION=0.1.0
@@ -91,18 +90,16 @@ gh release verify "v${RELEASE_VERSION}" --repo baerenmarke90/eimir
 
 gh release download "v${RELEASE_VERSION}" \
   --repo baerenmarke90/eimir \
-  --pattern "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz" \
-  --pattern "self-hosted-image-identity.json"
+  --pattern "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
 
 tar -xzf "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
-cp -- self-hosted-image-identity.json \
-  "eimir-self-hosted-v${RELEASE_VERSION}/self-hosted-image-identity.json"
 cd "eimir-self-hosted-v${RELEASE_VERSION}"
 test -s self-hosted-image-identity.json
 ```
 
-The same layout may be created with an equivalent authenticated/manual GitHub Release
-download, but mixing assets from different releases is invalid.
+Mixing files from different releases is invalid. The bundle already contains the
+matching `self-hosted-image-identity.json`; a source checkout only contains an unreleased
+placeholder of the same name that the launcher and the release guard refuse.
 
 The resulting installation directory contains:
 
@@ -110,7 +107,9 @@ The resulting installation directory contains:
 - `deploy/self-hosted-release.env.example`;
 - `scripts/self_hosted_release.py`;
 - `scripts/check_runtime_environment.py`;
-- `self-hosted-image-identity.json` from the matching immutable GitHub Release.
+- `scripts/_identity_environment.py`, the shared helper both scripts import;
+- `self-hosted-image-identity.json`, the digest-qualified identity of that immutable
+  release, read-only trust root of the launcher and of the in-manifest `release-guard`.
 
 The protected release workflow publishes these operator artifacts together. The target
 host does **not** need backend/Web source and never builds application images.
@@ -170,11 +169,28 @@ If that setting is missing, the workflow publishes through a draft, detects that
 final Release is not immutable, attempts cleanup of the just-created mutable Release/tag,
 reports any cleanup failure explicitly, and fails closed regardless.
 
+## Arcane-first Production
+
+Production can be operated from Arcane alone: **configure -> bootstrap once -> deploy /
+update**. The release checks are part of the canonical `compose.yaml` (`release-guard`),
+so Arcane's plain Deploy/Redeploy is supported and refuses a Production release whose
+backend/Web images are not exactly the references recorded in the release's
+`self-hosted-image-identity.json`, whose pull policy is not `always`, that has no
+Account-deletion instance ID, or whose `EIMIR_ENVIRONMENT` is unset or unknown. The new-installation
+authority is created once through the `bootstrap` profile. The full operator flow,
+including upgrades and failure behavior, is in [`ARCANE.md`](ARCANE.md).
+
+The guard and the launcher read the same published identity file and apply the same
+checks. The launcher fills in the references itself and is the only path that validates
+before pulling and runs `migrate` before it replaces the running release; a refused plain
+Compose/Arcane Redeploy may already have stopped the previous containers.
+
 ## Mandatory released launcher
 
-Do not start released Production with a raw `docker compose pull/up` sequence. The
-supported entry point explicitly binds the env file and the matching published image
-identity:
+Without Arcane, operate released Production with the launcher rather than a raw
+`docker compose pull/up` sequence (raw `up` is gated by `release-guard`, but validates only
+after Compose has pulled and replaced containers). The launcher explicitly binds the env file and the matching
+published image identity:
 
 ```bash
 python3 scripts/self_hosted_release.py \
@@ -269,25 +285,70 @@ python3 scripts/self_hosted_release.py \
   deploy
 ```
 
-`deploy` validates, pulls the selected release images, runs migrations through the
-canonical dependency graph, force-recreates runtime containers and waits for health.
+`deploy` validates, pulls the selected release images, applies the migrations once, and
+only then force-recreates the runtime containers and waits for health. See
+[Upgrade and rollback semantics](#upgrade-and-rollback-semantics) for the exact sequence
+and what it does and does not guarantee.
 
 ## Runtime topology
 
 Normal Self-Hosted ordering is:
 
 ```text
-postgres -> migrate -> api/worker -> web
+postgres -> release-guard -> migrate -> api/worker -> web
 ```
 
-- `postgres` remains the upstream PostgreSQL image.
-- `migrate` is an explicit one-shot service to avoid concurrent migration races.
-- `api` and `worker` share one backend image but remain separate runtime processes.
-- `web` remains a separate static/runtime boundary.
-- `demo-init` is profile `demo` only and is not part of normal Self-Hosted startup.
+`release-guard` is a one-shot that `migrate` waits for; it is described under
+[Arcane-first Production](#arcane-first-production).
+
+The topology was reviewed service by service (#827). The goal is not the smallest
+container count: a service is removed or integrated only when a safer and simpler
+mechanism exists. A shared image is not a shared process; `api`, `worker` and `migrate`
+use one backend image but stay separate processes with their own lifecycle.
+
+| Service | Decision | Reason |
+|---|---|---|
+| `postgres` | KEEP | Stateful upstream database with its own volume, health check and restart policy; it is not application code, and Cloud/Managed replaces it with an external database. |
+| `release-guard` | KEEP | Compose-resident Production release gate that `migrate` waits for, so plain Compose and Arcane Deploy/Redeploy cannot start a release that differs from the published identity or lacks a deletion authority; it needs no network or data volume, reads only the identity file, and refuses an unset environment. |
+| `migrate` | KEEP | One-shot schema owner: exactly one migration runs per deploy before any runtime is replaced, so several API instances cannot race, a failed or refused migration blocks startup, and it reuses the backend image. |
+| `demo-init` | DEMO-ONLY | Profile `demo` only and run explicitly as a one-shot; normal startup neither depends on it nor creates it, and outside an enabled Demo deployment it exits without creating data. |
+| `deletion-authority-bootstrap` | BOOTSTRAP-ONLY | Profile `bootstrap` only and run explicitly once per new installation to create the Account-deletion journal and print its stable instance ID; it refuses whenever an instance ID or journal already exists, so it can never replace an authority. |
+| `api` | KEEP | Request-serving HTTP process with its own health check, published port and restart behavior; it shares the backend image but is a separate process from the worker. |
+| `worker` | KEEP | Background job runner with an independent failure domain, restart and scaling behavior and no published port; merging it into the API would let a stuck job take down request serving. |
+| `web` | KEEP | Unprivileged static Nginx runtime that owns caching, CSP and security headers; it needs no Python, upgrades and fails independently, and folding it into the backend would weaken that isolation. |
+
+No service is removed or integrated into another one: none passed the "safer and
+simpler" test. `demo-init` is not part of the normal startup chain, and `release-guard`
+is the only addition to it: it moves the release checks into the manifest.
+
+- `migrate` is not folded into API startup. With several API instances (or an API
+  restart during a rollout) every instance would race to migrate, a failed migration
+  would crash-loop the API, and a refused rollback could not be stopped before the
+  running release is replaced.
+- `migrate` has `restart: "no"` and receives only the database connection; the
+  restart policy of the long-running services never re-runs migrations.
+- `api` and `worker` restart independently (`unless-stopped`). Only `api` and `web`
+  publish host ports; `worker` has none.
+- `web` waits for API readiness. The `/api/` route of the TLS reverse proxy goes
+  directly to the API, not through the Web Nginx (see below).
 
 All services use the project-specific bridge network. The application reaches PostgreSQL
 through Docker DNS at `postgres:5432`; do not depend on container IDs or fixed Docker IPs.
+
+### Demo initialization
+
+`demo-init` runs only for an intentional Demo deployment and only when requested; it is
+never part of `deploy`. After the normal deployment, run the idempotent one-shot
+explicitly (`self-hosted` provides its `migrate` dependency, `demo` provides the service):
+
+```bash
+docker compose --profile self-hosted --profile demo --env-file .env run --rm demo-init
+```
+
+Do not add `demo` to `COMPOSE_PROFILES` and use `up --wait`: Compose (observed with
+2.26) treats an exited standalone one-shot as a failed wait. API and worker do not wait for `demo-init`, so
+Demo entry answers `404 DEMO_IDENTITY_MISSING` until the command has completed. See
+[`DEMO-SPACE.md`](DEMO-SPACE.md).
 
 ## Production configuration requirements
 
@@ -298,7 +359,15 @@ Production rejects insecure runtime settings. At minimum:
 - `EIMIR_ALLOWED_HOSTS` names concrete hosts and never `*`;
 - `TRUSTED_PROXY_IPS` is the smallest real proxy IP/CIDR set;
 - `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` matches the protected forward journal;
+- `EIMIR_ENCRYPTION_AT_REST` is set explicitly (`required`, `migrating`, or `disabled`), and
+  with an encrypting mode `EIMIR_ENCRYPTION_KEYS`/`EIMIR_ENCRYPTION_ACTIVE_KEY_ID` are valid;
 - `EIMIR_MAIL_TRANSPORT` is `smtp` or `none`, never `log`.
+
+UnifiedPush delivery is optional. To enable the backend transport, configure a
+stable VAPID key, contact subject and explicit allowed HTTPS push-server
+origins for both API and worker. See
+[UnifiedPush backend transport](./m4/UNIFIEDPUSH-TRANSPORT.md) for the exact
+settings, egress restrictions and current client-integration boundary.
 
 SMTP is optional. With:
 
@@ -349,6 +418,27 @@ support bundles or persistent client caches.
 
 Development and Production must never share an S3 bucket or credential set.
 
+With application-controlled encryption enabled (below) the provider only ever stores
+ciphertext, and uploads and reads go through the application instead of presigned
+URLs.
+
+## Encryption at rest
+
+Set `EIMIR_ENCRYPTION_AT_REST` explicitly in Production; an unset value is refused by
+the release guard and by the application:
+
+- `required` for new installations, with `EIMIR_ENCRYPTION_KEYS` and
+  `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`;
+- `migrating` while upgrading an installation that already holds plaintext, until
+  `python -m eimir.security migrate-payloads` and `migrate-media` finished, then `required`;
+- `disabled` as an explicit opt-out for operators who rely on their own disk/volume
+  encryption (leave the key variables empty).
+
+This is encryption at rest under keys you hold, not end-to-end encryption. Keep the keys
+apart from database and media backups; losing every copy of a key makes the content it
+protects permanently unreadable. Key generation, rotation, recovery, and verification:
+[ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md).
+
 ## Backup, restore, upgrade and rollback
 
 The binding recovery procedure is
@@ -368,6 +458,51 @@ Before every Production upgrade:
 Application rollback selects a previous published release/image identity. It does not
 imply database rollback. For incompatible schema changes use the tested forward-fix,
 downgrade or coordinated restore path defined by #190/#375 and the recovery runbook.
+
+### Upgrade and rollback semantics
+
+Upgrade and rollback are the same operation: set `EIMIR_RELEASE_VERSION` and the matching
+`self-hosted-image-identity.json` to the wanted published release and run `deploy`. The
+launcher executes, and stops at the first failing step:
+
+1. validate the selected release identity and Production environment;
+2. pull the selected digest-qualified images (never a source build);
+3. start PostgreSQL if it is not running;
+4. run the one-shot `migrate` service once against the selected backend image, **before**
+   any runtime container is touched;
+5. force-recreate the runtime containers and wait for health (the canonical dependency
+   graph runs `migrate` once more; at the head revision it is a no-op).
+
+What this guarantees:
+
+- The exact selected release bytes run; the target host never builds application images.
+- If step 4 fails or refuses, the currently running API, worker and Web keep serving
+  the previous release. Migrations run in one PostgreSQL transaction, so a failing
+  migration rolls back unless that migration explicitly leaves the transaction; if in
+  doubt, restore the recovery point taken before the upgrade.
+- Rolling back to an earlier release **that knows the database's current schema
+  revision** (no migration was added in between) works and changes no data.
+- Rolling back to a release **older than the database schema** is refused: its
+  `migrate` cannot locate the database revision and exits non-zero. Nothing is
+  downgraded, no data is lost, and the newer release keeps running. Re-select the newer
+  release, or fix forward.
+
+What it does **not** guarantee:
+
+- Rollback across a schema migration. The application rollback never downgrades the
+  schema. To return to a release older than the schema, restore the coordinated recovery
+  point taken before the upgrade
+  ([`SELF-HOSTED-RECOVERY.md`](SELF-HOSTED-RECOVERY.md)); that also discards data written
+  after that point.
+- Zero downtime. Runtime containers are force-recreated, so API/worker/Web restart
+  during step 5.
+
+`scripts/self_hosted_upgrade_rehearsal.py` proves the above against the canonical
+`compose.yaml` with local images (fresh install, upgrade with and without schema change,
+compatible rollback, refused rollback, recovery, Demo lifecycle). It runs in the
+*Self-Hosted Deployment Guard* workflow. It cannot prove registry pulls or the digest
+identity of a real release; those are covered by the launcher checks and the protected
+publication workflow.
 
 ## Initial Account registration
 
@@ -412,6 +547,15 @@ allowed hosts.
 
 The `/api/` route must go directly to the API rather than through Web Nginx, otherwise
 the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
+
+The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
+JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
+uploads and Transfer imports retain their separate server-side streaming limits
+(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+application boundary is authoritative regardless of reverse-proxy configuration;
+the public TLS proxy should also enforce appropriate request-size limits to avoid
+buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
+8 MiB limit, which would break the bounded media and Transfer routes.
 
 ## Post-deploy verification
 

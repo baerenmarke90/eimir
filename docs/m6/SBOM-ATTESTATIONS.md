@@ -42,8 +42,8 @@ purposes and both remain required.
 |---|---|---|
 | `backend-runtime.image.tar` | one Docker-compatible backend image archive used by API, worker and migrate | `sbom/backend-runtime.spdx.json` |
 | `web-runtime.image.tar` | Docker-compatible Web image archive | `sbom/web-runtime.spdx.json` |
-| `android/eimir-release-unsigned.apk` | release-mode APK evidence candidate | `sbom/android-apk.spdx.json` |
-| `android/eimir-release-unsigned.aab` | release-mode AAB evidence candidate | `sbom/android-aab.spdx.json` |
+| `android/eimir-release-unsigned.apk` | optional release-mode APK evidence candidate when Android is selected | `sbom/android-apk.spdx.json` |
+| `android/eimir-release-unsigned.aab` | optional release-mode AAB evidence candidate when Android is selected | `sbom/android-aab.spdx.json` |
 
 API, worker and migrate are deliberately **not** represented as three invented
 container artifacts. `compose.yaml` already builds all three roles from the same
@@ -60,8 +60,15 @@ file export. Syft inventories these archives through its `docker-archive` source
 The evidence bundle additionally contains:
 
 - `evidence-index.json`, which records the source revision, subject paths, subject
-  SHA-256 values, SBOM SHA-256 values, backend roles and Android release identity;
-- `SHA256SUMS`, which protects transport of the subjects, SBOMs and evidence index.
+  SHA-256 values, SBOM SHA-256 values, backend roles and the explicit Android channel
+  state;
+- `SHA256SUMS`, which protects transport of exactly the selected subjects, SBOMs and
+  evidence index.
+
+Backend and Web are always evidence subjects. With `include_android=false`, the index
+records `android: {included: false, signing: not-applicable}` and no Android package,
+Android SBOM or Android attestation exists. With `include_android=true`, the existing
+APK/AAB identity, SBOM and attestation contract remains mandatory.
 
 The evidence index is not the #519 product release manifest. #519 remains responsible
 for the final mapping `product version -> commit -> published release artifacts` and
@@ -79,18 +86,19 @@ PR commits do not receive repository release attestations.
 
 ### Manual evidence run
 
-`workflow_dispatch` builds the current selected revision, generates all four SPDX
-SBOMs, publishes the evidence workflow artifact and creates GitHub artifact
-attestations. This is suitable for validating the complete #193 mechanism before a
-final launch workflow exists.
+`workflow_dispatch` builds the current selected revision, always generates backend/Web
+SPDX evidence and optionally generates Android APK/AAB evidence when
+`include_android=true`. It publishes the selected evidence set and creates GitHub
+artifact attestations for exactly those subjects.
 
 ### Reusable release integration
 
-`workflow_call` allows M6 release work to invoke the same build/evidence contract.
-If #519 chooses a publication path whose final bytes differ from these evidence
-subjects, the final artifacts must be re-evidenced after the last mutation. The
-attestation primitive under `.github/actions/attest-release-artifact` is reusable in
-the final publishing job for file subjects.
+`workflow_call` allows M6 release work to invoke the same build/evidence contract and
+passes the frozen Android channel selection through to #193 evidence. If publication
+mutates selected artifact bytes, those final artifacts must be re-evidenced after the
+last mutation. The attestation primitive under
+`.github/actions/attest-release-artifact` is reusable in the final publishing job for
+file subjects.
 
 If #519 chooses registry-published OCI images, it should use the same pinned GitHub
 attestation actions with `subject-name` plus immutable `subject-digest` instead of
@@ -99,15 +107,17 @@ verification rules remain unchanged.
 
 ## 4. Android signing boundary
 
-#194 already freezes `de.sidebyside.app`, the `versionName` contract, publisher
-supplied `versionCode` and external release signing.
+When Android is selected, #194 freezes `de.sidebyside.app`, the `versionName`
+contract, publisher-supplied `versionCode` and external release signing.
 
-#193 deliberately does **not** consume Android signing secrets. Its APK/AAB outputs
-are release-mode, unsigned evidence candidates. This prevents release credentials
-from being introduced merely to validate SBOM/provenance generation.
+#193 deliberately does **not** consume Android signing secrets. Its optional APK/AAB
+outputs are release-mode, unsigned evidence candidates. This prevents release
+credentials from being introduced merely to validate SBOM/provenance generation.
 
-For the first store release, #519 owns the protected signing/publishing environment.
-The invariant is strict:
+When Android is excluded, there are no APK/AAB evidence candidates and no Android
+signing boundary to satisfy for that release channel. For a later Android-inclusive
+store release, #519 owns the protected signing/publishing environment. The invariant is
+strict:
 
 > signing changes the artifact bytes, therefore the final signed APK/AAB is the
 > attestation subject and receives a freshly generated SBOM and fresh provenance
@@ -119,9 +129,17 @@ for a different signed store artifact.
 ## 5. Build identity and coherence
 
 Both container builds receive exactly `EIMIR_BUILD_REVISION=$GITHUB_SHA`.
-`evidence-index.json` records the same source revision. Android's existing product
-identity is extracted from `android/app/build.gradle.kts`; its monotonic
-`versionCode` is supplied as a workflow input.
+`evidence-index.json` records the same source revision. Android packaging is built
+from `android/` (#1008 Slice B); its product identity is verified dynamically
+via `aapt dump badging` from the built APK (`package: name='de.sidebyside.app'
+versionCode='...' versionName='...'`), and `evidence-index.json` records canonical
+`apiBaseUrl` and `launchableActivity` (`de.eimir.app.MainActivity`). Its monotonic
+`versionCode` is supplied as a workflow input (`-PeimirVersionCode`), and `versionName`
+is parameterized via `release_version` (`-PeimirVersionName`).
+The Gradle build uses verified Gradle wrapper checksums and strict dependency verification
+(`gradle/verification-metadata.xml`) under pinned JDK 21 and Node 24.21.0.
+The legacy client under `android/` is completely decoupled from evidence pipelines and
+will be retired in #1009.
 
 #519 will add the human product version/tag and final release manifest. #193 does not
 pre-empt that decision or introduce a second version source.

@@ -1,41 +1,64 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useObjectUrlResource } from '../client/useObjectUrlResources';
 import { useTranslation } from '../i18n';
 
 export function MemoryPreview({
   memoryId,
   attachmentId,
   loadImage,
+  loadingMode = 'immediate',
+  resourceScopeKey,
 }: {
   memoryId: string;
   attachmentId: string;
-  loadImage: (memoryId: string, attachmentId: string) => Promise<string>;
+  loadImage: (
+    memoryId: string,
+    attachmentId: string,
+    signal?: AbortSignal,
+  ) => Promise<string>;
+  loadingMode?: 'immediate' | 'near-viewport';
+  resourceScopeKey?: string;
 }) {
   const { t } = useTranslation();
-  const [url, setUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(loadingMode === 'immediate');
 
   useEffect(() => {
-    let active = true;
-    let objectUrl: string | null = null;
+    if (loadingMode === 'immediate' || shouldLoad) {
+      setShouldLoad(true);
+      return;
+    }
 
-    void loadImage(memoryId, attachmentId)
-      .then((loadedUrl) => {
-        if (!active) {
-          URL.revokeObjectURL(loadedUrl);
-          return;
-        }
-        objectUrl = loadedUrl;
-        setUrl(loadedUrl);
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      });
+    const node = sentinelRef.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldLoad(true);
+      return;
+    }
 
-    return () => {
-      active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [attachmentId, loadImage, memoryId]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        rootMargin: '75% 0px',
+        threshold: 0,
+      },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loadingMode, shouldLoad]);
+
+  const mediaResource = useObjectUrlResource(
+    resourceScopeKey ?? `story-preview:${memoryId}`,
+    shouldLoad ? attachmentId : null,
+    (_resourceId, signal) => loadImage(memoryId, attachmentId, signal),
+  );
+  const url = mediaResource.url;
+  const failed = mediaResource.error !== null;
 
   if (failed) {
     return (
@@ -43,15 +66,32 @@ export function MemoryPreview({
     );
   }
 
-  if (!url) {
+  if (!url && !shouldLoad) {
     return (
       <div
+        ref={sentinelRef}
         className="story-media-skeleton"
-        role="status"
-        aria-label={t('media.loading')}
+        aria-hidden="true"
+        data-media-deferred="true"
       />
     );
   }
 
-  return <img className="story-media-preview" src={url} alt={t('media.alt')} />;
+  if (!url) {
+    return (
+      <div className="story-media-skeleton" role="status">
+        <span className="sr-only">{t('media.loading')}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      className="story-media-preview"
+      src={url}
+      alt={t('media.alt')}
+      loading="lazy"
+      decoding="async"
+    />
+  );
 }

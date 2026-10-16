@@ -1,0 +1,17 @@
+{
+  "name": "eimir-web-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test-group.mjs full",
+    "test:full": "node scripts/test-group.mjs full",
+    "test:pr": "node scripts/test-group.mjs pr",
+    "test:inventory": "node scripts/test-group.mjs check",
+    "test:headed": "node scripts/test-group.mjs full --headed"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1"
+  }
+}

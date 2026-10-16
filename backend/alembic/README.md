@@ -1,46 +1,44 @@
-# Alembic-Code-Policy
+# Alembic Code Policy
 
-Alembic-Migrationen sind ausführbarer Teil der Datenbank-Historie. Neue
-Migrationen unterliegen deshalb derselben Ruff-Lint- und Format-Policy wie
-der übrige Python-Code, bereits angewandte historische Migrationen werden
-aber nicht nachträglich ausschließlich für Stiländerungen umgeschrieben.
+Alembic migrations are executable parts of the database history. New
+migrations therefore follow the same Ruff linting and formatting policy as
+the rest of the Python code, while already-applied historical migrations are
+not rewritten retrospectively for style-only changes.
 
-## Historischer Bestand
+## Historical migrations
 
-Die Migrationen `0001` bis einschließlich `0007` entstanden vor Einführung
-dieser Policy. Sie sind in `pyproject.toml` **einzeln und vollständig
-benannt** von Ruff ausgenommen. Diese Liste ist bewusst keine Wildcard:
-Eine neue Migration kann dadurch nicht versehentlich in die Ausnahme fallen.
+Migrations `0001` through `0007` were created before this policy was
+introduced. They are therefore **individually and explicitly listed** as Ruff
+exclusions in `pyproject.toml`. The list deliberately is not a wildcard, so a
+new migration cannot accidentally fall under the exception.
 
-Insbesondere bleibt `0005_auth_architecture.py` trotz abweichender
-Ruff-Formatierung unverändert. Das ist eine bewusste Grandfathering-Entscheidung
-für bereits angewandte Migrationen und keine allgemeine Ausnahme für Alembic.
+In particular, `0005_auth_architecture.py` remains unchanged despite its
+different Ruff formatting. This is a deliberate grandfathering decision for
+an already-applied migration, not a general Alembic exception.
 
-Historische Migrationen werden nur geändert, wenn eine konkrete funktionale
-Korrektur notwendig ist. Eine solche Änderung braucht ein eigenes Issue/PR
-und passende Upgrade-/Downgrade-/Regressionstests; reine Stiländerungen sind
-kein ausreichender Grund.
+Historical migrations are changed only when a concrete functional correction
+is necessary. Such a change requires its own issue/PR and appropriate
+upgrade/downgrade/regression tests; style-only changes are not sufficient
+reason.
 
-## Neue Migrationen
+## New migrations
 
-Alle neu angelegten Python-Migrationen sowie `alembic/env.py` müssen die
-aktuelle Ruff-Policy erfüllen. Die CI prüft deshalb ausdrücklich auch den
-Pfad `alembic`:
+All newly created Python migrations and `alembic/env.py` must satisfy the
+current Ruff policy. CI therefore checks the `alembic` path explicitly:
 
 ```bash
 uv run --frozen ruff check src tests scripts alembic
 uv run --frozen ruff format --check src tests scripts alembic
 ```
 
-Schlägt eine neue Migration dabei fehl, wird sie vor dem Merge korrigiert.
-Die explizite Ausschlussliste darf nicht erweitert werden, um einen neuen
-Lint-/Formatfehler zu umgehen; eine Erweiterung wäre eine neue bewusste
-Policy-Entscheidung und muss entsprechend begründet werden.
+If a new migration fails this check, it must be corrected before merge. The
+explicit exclusion list must not be extended merely to bypass a new lint or
+format error; extending it would be a new deliberate policy decision and must
+be justified accordingly.
 
-## Migrationssemantik
+## Migration semantics
 
-Ruff ist nur ein Codequalitäts-Gate und ersetzt keine Datenbankprüfung. Die
-bestehenden CI-Prüfungen für `alembic upgrade head` und Schema-Drift bleiben
-unverändert verbindlich. Funktionale Änderungen an Migrationen müssen
-zusätzlich die jeweils relevanten Upgrade-/Downgrade- und
-PostgreSQL-Regressionsprüfungen bestehen.
+Ruff is only a code-quality gate and does not replace database verification.
+The existing CI checks for `alembic upgrade head` and schema drift remain
+mandatory and unchanged. Functional migration changes must additionally pass
+the relevant upgrade/downgrade and PostgreSQL regression checks.

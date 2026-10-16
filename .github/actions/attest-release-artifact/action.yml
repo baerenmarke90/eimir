@@ -1,0 +1,58 @@
+name: Attest Release Artifact
+description: Attach build provenance and an SPDX SBOM to one exact release artifact.
+
+inputs:
+  subject-path:
+    description: Path to the exact artifact bytes that are being attested.
+    required: true
+  sbom-path:
+    description: Path to the SPDX 2.3 JSON SBOM for the subject.
+    required: true
+  bundle-directory:
+    description: Directory in which local Sigstore bundles are retained.
+    required: true
+  bundle-prefix:
+    description: Stable filename prefix for the retained bundles.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate evidence inputs
+      shell: bash
+      env:
+        SUBJECT_PATH: ${{ inputs.subject-path }}
+        SBOM_PATH: ${{ inputs.sbom-path }}
+        BUNDLE_DIRECTORY: ${{ inputs.bundle-directory }}
+      run: |
+        set -euo pipefail
+        test -f "$SUBJECT_PATH"
+        test -s "$SUBJECT_PATH"
+        test -f "$SBOM_PATH"
+        test -s "$SBOM_PATH"
+        mkdir -p "$BUNDLE_DIRECTORY"
+
+    - name: Attest build provenance
+      id: provenance
+      uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+      with:
+        subject-path: ${{ inputs.subject-path }}
+
+    - name: Attest SPDX SBOM
+      id: sbom
+      uses: actions/attest-sbom@4651f806c01d8637787e274ac3bdf724ef169f34 # v3.0.0
+      with:
+        subject-path: ${{ inputs.subject-path }}
+        sbom-path: ${{ inputs.sbom-path }}
+
+    - name: Retain local attestation bundles
+      shell: bash
+      env:
+        PROVENANCE_BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+        SBOM_BUNDLE: ${{ steps.sbom.outputs.bundle-path }}
+        BUNDLE_DIRECTORY: ${{ inputs.bundle-directory }}
+        BUNDLE_PREFIX: ${{ inputs.bundle-prefix }}
+      run: |
+        set -euo pipefail
+        cp -- "$PROVENANCE_BUNDLE" "$BUNDLE_DIRECTORY/$BUNDLE_PREFIX-provenance.json"
+        cp -- "$SBOM_BUNDLE" "$BUNDLE_DIRECTORY/$BUNDLE_PREFIX-sbom.json"

@@ -30,10 +30,10 @@ def _privacy_class() -> sa.Enum:
 
 
 def _wish_status() -> sa.Enum:
-    # Der volle Statusbereich aus M3-D02/D03/D04, obwohl M3-S1 nur `OPEN`
-    # erzeugt: `PLANNED` und `COMPLETED` entstehen erst aus dem Wish->Plan-
-    # Vertrag. Den Wertebereich jetzt zu setzen erspart M3-S2 eine
-    # Statusmigration ueber bereits bestehende Zeilen.
+    # Full M3-D02/D03/D04 status set even though M3-S1 only creates `OPEN`:
+    # `PLANNED` and `COMPLETED` arise later from the Wish-to-Plan contract.
+    # Defining the value range now avoids an M3-S2 status migration across
+    # rows that may already exist.
     return sa.Enum(
         "OPEN",
         "PLANNED",
@@ -49,9 +49,8 @@ def upgrade() -> None:
         "wishes",
         sa.Column("id", UUID, nullable=False),
         sa.Column("space_id", UUID, nullable=False),
-        # `owner_id` traegt hier `createdBy`: Attribution und Audit, keine
-        # ACL. Wer schreiben darf, entscheidet nach M3-D01 die aktive
-        # Mitgliedschaft im Space und nicht diese Spalte.
+        # `owner_id` carries `createdBy` here: attribution and audit, not ACL.
+        # Under M3-D01, active Space membership determines who may write.
         sa.Column("owner_id", UUID, nullable=False),
         sa.Column("privacy_class", _privacy_class(), nullable=False),
         sa.Column("status", _wish_status(), server_default=sa.text("'OPEN'"), nullable=False),

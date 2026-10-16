@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   reuse-review:
@@ -15,26 +16,37 @@ jobs:
       PR_BODY: ${{ github.event.pull_request.body }}
       PR_AUTHOR: ${{ github.event.pull_request.user.login }}
     steps:
-      # Automatisierte Versionsanhebungen treffen keine Reuse-Entscheidung. Die
-      # Komponente ist bereits gewaehlt; docs/REUSE-BEFORE-BUILD.md verlangt die
-      # Pruefung fuer neue umfangreiche Abhaengigkeiten, nicht fuer deren
-      # Pflege. Dependabot kann den Beschreibungstext ausserdem nicht setzen,
-      # der Gate wuerde dort dauerhaft und ohne fachlichen Gehalt rot bleiben.
-      - name: Automatisierte Dependency-Updates sind ausgenommen
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Test status drift logic
+        run: python3 tools/ci/test_status_drift.py
+
+      - name: Check living status against GitHub
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/ci/status_drift.py --online
+
+      # Automated version bumps do not make a new reuse decision. The component
+      # has already been selected; docs/REUSE-BEFORE-BUILD.md requires the
+      # review for newly introduced substantial dependencies, not routine
+      # maintenance. Dependabot also cannot provide the repository-specific PR
+      # body, so enforcing this gate for it would create a permanent false fail.
+      - name: Exempt automated dependency updates
         id: exemption
         shell: bash
         run: |
           set -euo pipefail
 
           if [ "${PR_AUTHOR:-}" = "dependabot[bot]" ]; then
-            echo "Automatisiertes Dependency-Update von ${PR_AUTHOR}."
-            echo "Reuse-before-build wird nicht erneut geprueft."
+            echo "Automated dependency update from ${PR_AUTHOR}."
+            echo "Reuse-before-build is not reviewed again."
             echo "exempt=true" >> "$GITHUB_OUTPUT"
           else
             echo "exempt=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Reuse-Entscheidung ist dokumentiert
+      - name: Verify documented reuse decision
         if: steps.exemption.outputs.exempt != 'true'
         shell: bash
         run: |
@@ -57,16 +69,16 @@ jobs:
           fi
 
           if [ $((relevant_count + not_relevant_count)) -ne 1 ]; then
-            echo "Der PR muss genau eine Reuse-before-build-Entscheidung markieren."
-            echo "Erwartet wird eine der beiden Zeilen:"
+            echo "The PR must select exactly one reuse-before-build decision."
+            echo "Expected one of these lines:"
             echo "  - [x] Reuse review relevant"
             echo "  - [x] Reuse review not relevant"
             exit 1
           fi
 
-          echo "Reuse-before-build-Entscheidung ist vorhanden."
+          echo "Reuse-before-build decision is present."
 
-      - name: Begruendungsabschnitte sind vorhanden
+      - name: Verify reuse documentation sections
         if: steps.exemption.outputs.exempt != 'true'
         shell: bash
         run: |
@@ -75,28 +87,28 @@ jobs:
           body=${PR_BODY:-}
 
           grep -Fq '## Reuse-before-build' <<< "$body" || {
-            echo "Abschnitt '## Reuse-before-build' fehlt."
+            echo "Section '## Reuse-before-build' is missing."
             exit 1
           }
 
           if grep -Fqi -- '- [x] Reuse review relevant' <<< "$body"; then
-            grep -Fq '**Gepruefte Alternativen**' <<< "$body" || {
-              echo "Bei relevanter Reuse-Pruefung fehlt 'Gepruefte Alternativen'."
+            grep -Fq '**Alternatives considered**' <<< "$body" || {
+              echo "Relevant reuse review is missing 'Alternatives considered'."
               exit 1
             }
-            grep -Fq '**Entscheidung und Begruendung**' <<< "$body" || {
-              echo "Bei relevanter Reuse-Pruefung fehlt 'Entscheidung und Begruendung'."
+            grep -Fq '**Decision and rationale**' <<< "$body" || {
+              echo "Relevant reuse review is missing 'Decision and rationale'."
               exit 1
             }
-            grep -Fq '**Drittkomponenten/Provider**' <<< "$body" || {
-              echo "Bei relevanter Reuse-Pruefung fehlt 'Drittkomponenten/Provider'."
+            grep -Fq '**Third-party components/providers**' <<< "$body" || {
+              echo "Relevant reuse review is missing 'Third-party components/providers'."
               exit 1
             }
           else
-            grep -Fq '**Begruendung**' <<< "$body" || {
-              echo "Bei 'nicht relevant' fehlt eine Begruendung."
+            grep -Fq '**Rationale**' <<< "$body" || {
+              echo "A 'not relevant' reuse decision requires a rationale."
               exit 1
             }
           fi
 
-          echo "Erforderliche Reuse-Dokumentationsabschnitte sind vorhanden."
+          echo "Required reuse documentation sections are present."

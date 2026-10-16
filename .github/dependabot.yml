@@ -44,10 +44,9 @@ updates:
       time: "04:25"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 5
-    # react und react-dom pruefen zur Laufzeit auf exakte Versionsgleichheit.
-    # Einzeln angehobene Pull Requests sind deshalb beide rot, solange der
-    # jeweils andere nicht gemergt ist. Die Typpakete gehoeren an denselben
-    # Stand.
+    # react and react-dom require exact version equality at runtime. Separate
+    # upgrade pull requests therefore both fail until the other is merged. Keep
+    # the corresponding type packages at the same version as well.
     groups:
       react:
         patterns:

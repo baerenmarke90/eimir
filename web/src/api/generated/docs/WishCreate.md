@@ -1,7 +1,7 @@
 
 # WishCreate
 
-Ein Wish entsteht aus genau einem Feld.  `extra=\"forbid\"` ist hier mehr als Hygiene: `status`, `createdBy`, `spaceId` und `version` sind nach M3-D01/D02 serverseitig. Ein Request, der sie mitschickt, wird abgewiesen und nicht stillschweigend um sie erleichtert - sonst glaubte der Client, er haette sie gesetzt.
+A wish is created from exactly one client field.  ``extra=\"forbid\"`` is more than hygiene here: M3-D01/D02 make ``status``, ``createdBy``, ``spaceId``, and ``version`` server-controlled. A request supplying those fields is rejected rather than silently stripped, so the client cannot believe it successfully set them.
 
 ## Properties
 

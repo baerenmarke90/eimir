@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -42,6 +42,7 @@ import {
 export interface CreateMilestoneRequest {
     spaceId: string;
     milestoneCreate: MilestoneCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeleteMilestoneRequest {
@@ -97,6 +98,10 @@ export class MilestonesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/milestones`;

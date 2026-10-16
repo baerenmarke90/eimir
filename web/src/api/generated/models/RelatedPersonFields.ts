@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -36,6 +36,12 @@ import {
 export interface RelatedPersonFields {
     /**
      * 
+     * @type {string}
+     * @memberof RelatedPersonFields
+     */
+    avatarAttachmentId?: string | null;
+    /**
+     * 
      * @type {Date}
      * @memberof RelatedPersonFields
      */
@@ -58,6 +64,12 @@ export interface RelatedPersonFields {
      * @memberof RelatedPersonFields
      */
     relationship: PersonRelationship;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof RelatedPersonFields
+     */
+    showBirthdayOnDashboard?: boolean;
     /**
      * 
      * @type {ContentVisibility}
@@ -88,10 +100,12 @@ export function RelatedPersonFieldsFromJSONTyped(json: any, ignoreDiscriminator:
     }
     return {
         
+        'avatarAttachmentId': json['avatarAttachmentId'] === undefined ? undefined : json['avatarAttachmentId'] === null ? null : json['avatarAttachmentId'],
         'birthday': json['birthday'] === undefined ? undefined : json['birthday'] === null ? null : (new Date(json['birthday'])),
         'birthdayYearKnown': json['birthdayYearKnown'] == null ? undefined : json['birthdayYearKnown'],
         'displayName': json['displayName'],
         'relationship': PersonRelationshipFromJSON(json['relationship']),
+        'showBirthdayOnDashboard': json['showBirthdayOnDashboard'] == null ? undefined : json['showBirthdayOnDashboard'],
         'visibility': ContentVisibilityFromJSON(json['visibility']),
     };
 }
@@ -107,10 +121,12 @@ export function RelatedPersonFieldsToJSONTyped(value?: RelatedPersonFields | nul
 
     return {
         
+        'avatarAttachmentId': value['avatarAttachmentId'],
         'birthday': value['birthday'] == null ? value['birthday'] : value['birthday'].toISOString().substring(0,10),
         'birthdayYearKnown': value['birthdayYearKnown'],
         'displayName': value['displayName'],
         'relationship': PersonRelationshipToJSON(value['relationship']),
+        'showBirthdayOnDashboard': value['showBirthdayOnDashboard'],
         'visibility': ContentVisibilityToJSON(value['visibility']),
     };
 }

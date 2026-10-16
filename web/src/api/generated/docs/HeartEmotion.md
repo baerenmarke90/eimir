@@ -1,7 +1,7 @@
 
 # HeartEmotion
 
-Die Emotionen aus dem M2-Domainvertrag.  Ein geschlossener Wertebereich, aber kein Metadatum: der Wert lebt in der ProtectedPayload und nicht als eigene Spalte. Siehe M2-D06.
+Emotions defined by the M2 domain contract.  This is a closed value set but not metadata: the value lives in the ProtectedPayload rather than a dedicated column. See M2-D06.
 
 ## Properties
 

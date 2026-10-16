@@ -1,8 +1,8 @@
-"""PostgreSQL-/HTTP-Abnahme fuer den M2-HeartMoment-Slice.
+"""PostgreSQL and HTTP acceptance for the M2 HeartMoment slice.
 
-Schwerpunkt ist die Sichtbarkeitsgrenze: ein privater HeartMoment darf fuer
-den Partner in keinem Zugriffspfad auftauchen - weder im Detail noch in der
-Liste, im Cursor, im Ereignis oder in einer abweichenden Antwortform.
+The focus is the visibility boundary: a private HeartMoment must never appear
+to the partner through any access path, including detail, list, cursor, event,
+or a distinguishable response shape.
 """
 
 from __future__ import annotations
@@ -14,13 +14,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.outbox.models import OutboxEvent
-from sidebyside.relationship import service as relationship_service
+from eimir.outbox.models import OutboxEvent
+from eimir.relationship import service as relationship_service
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
 
-GEHEIMER_TEXT = "Ein Satz, den nur ich lesen darf."
+SECRET_TEXT = "Ein Satz, den nur ich lesen darf."
 
 
 def path(space_id: object) -> str:
@@ -47,477 +47,652 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def couple(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
-    fremd = make_account(session, "Fremd")
+    outsider = make_account(session, "Fremd")
 
     space = make_space(session, anna)
     relationship_service.add_member(session, space.id, ben)
-    fremder_space = make_space(session, fremd)
+    outsider_space = make_space(session, outsider)
     session.flush()
 
     return {
         "anna": anna,
         "ben": ben,
         "space": space,
-        "fremder_space": fremder_space,
+        "outsider_space": outsider_space,
         "token_a": sign_in(session, anna),
         "token_b": sign_in(session, ben),
-        "token_fremd": sign_in(session, fremd),
+        "token_outsider": sign_in(session, outsider),
     }
 
 
-def erstelle(client, paar, *, token_key: str = "token_a", **overrides):  # type: ignore[no-untyped-def]
+def create_heart_moment(
+    client,
+    couple,
+    *,
+    token_key: str = "token_a",
+    **overrides,
+):  # type: ignore[no-untyped-def]
     return client.post(
-        path(paar["space"].id),
+        path(couple["space"].id),
         json=body(**overrides),
-        headers=auth(paar[token_key]),
+        headers=auth(couple[token_key]),
     )
 
 
-class TestCrudUndOwnership:
-    def test_autor_kann_anlegen_lesen_aendern_loeschen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        created = erstelle(client, paar)
+class TestCrudAndOwnership:
+    def test_author_can_create_read_update_delete(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        created = create_heart_moment(client, couple)
         assert created.status_code == 201
-        angelegt = created.json()
-        assert UUID(angelegt["id"]).version == 7
-        assert angelegt["authorId"] == str(paar["anna"].id)
-        assert angelegt["text"] == "Danke, dass du heute da warst."
-        assert angelegt["emotion"] == "LOVED"
-        assert angelegt["visibility"] == "SHARED"
-        assert angelegt["happenedOn"] == "2025-06-13"
-        assert angelegt["capabilities"] == {
+        heart_moment = created.json()
+        assert UUID(heart_moment["id"]).version == 7
+        assert heart_moment["authorId"] == str(couple["anna"].id)
+        assert heart_moment["text"] == "Danke, dass du heute da warst."
+        assert heart_moment["emotion"] == "LOVED"
+        assert heart_moment["visibility"] == "SHARED"
+        assert heart_moment["happenedOn"] == "2025-06-13"
+        assert heart_moment["capabilities"] == {
             "canEdit": True,
             "canDelete": True,
             "canComment": True,
         }
-        assert "privacyClass" not in angelegt
+        assert "privacyClass" not in heart_moment
         assert created.headers["ETag"] == '"1"'
 
-        geaendert = client.patch(
-            f"{path(paar['space'].id)}/{angelegt['id']}",
+        updated = client.patch(
+            f"{path(couple['space'].id)}/{heart_moment['id']}",
             json={"text": "  Danke fuer den ruhigen Abend.  ", "emotion": "GRATEFUL"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert geaendert.status_code == 200
-        assert geaendert.json()["text"] == "Danke fuer den ruhigen Abend."
-        assert geaendert.json()["emotion"] == "GRATEFUL"
-        assert geaendert.json()["version"] == 2
+        assert updated.status_code == 200
+        assert updated.json()["text"] == "Danke fuer den ruhigen Abend."
+        assert updated.json()["emotion"] == "GRATEFUL"
+        assert updated.json()["version"] == 2
 
-        geloescht = client.delete(
-            f"{path(paar['space'].id)}/{angelegt['id']}",
-            headers=if_match(paar["token_a"], 2),
+        deleted = client.delete(
+            f"{path(couple['space'].id)}/{heart_moment['id']}",
+            headers=if_match(couple["token_a"], 2),
         )
-        assert geloescht.status_code == 204
-        assert geloescht.content == b""
+        assert deleted.status_code == 204
+        assert deleted.content == b""
 
-    def test_partner_liest_gemeinsame_aber_schreibt_nicht(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        angelegt = erstelle(client, paar).json()
+    def test_textless_tagged_create_replay_edit_and_private_boundary(self, client, couple) -> None:  # type: ignore[no-untyped-def]
+        key = str(uuid4())
+        payload = {
+            **body(text=""),
+            "tags": ["everyday", "home", "Unser Urlaub"],
+            "visibility": "PRIVATE",
+        }
+        url = path(couple["space"].id)
+        headers = {**auth(couple["token_a"]), "Idempotency-Key": key}
+        created = client.post(url, json=payload, headers=headers)
+        assert created.status_code == 201
+        item = created.json()
+        assert item["text"] == ""
+        assert item["tags"] == ["everyday", "home", "Unser Urlaub"]
+        assert client.post(url, json=payload, headers=headers).status_code == 200
+        changed = client.post(url, json={**payload, "tags": ["home"]}, headers=headers)
+        assert changed.status_code == 409
+        assert changed.json()["code"] == "IDEMPOTENCY_KEY_REUSED"
 
-        gelesen = client.get(
-            f"{path(paar['space'].id)}/{angelegt['id']}",
-            headers=auth(paar["token_b"]),
+        detail_url = f"{url}/{item['id']}"
+        assert client.get(detail_url, headers=auth(couple["token_b"])).status_code == 404
+        assert client.get(url, headers=auth(couple["token_b"])).json()["items"] == []
+        updated = client.patch(
+            detail_url,
+            json={"emotion": "GRATEFUL"},
+            headers=if_match(couple["token_a"], 1),
         )
-        assert gelesen.status_code == 200
-        assert gelesen.json()["capabilities"] == {
+        assert updated.status_code == 200
+        assert updated.json()["tags"] == ["everyday", "home", "Unser Urlaub"]
+        empty = client.patch(
+            detail_url,
+            json={"tags": []},
+            headers=if_match(couple["token_a"], 2),
+        )
+        assert empty.status_code == 422
+        assert client.get(detail_url, headers=auth(couple["token_a"])).json()["tags"] == [
+            "everyday",
+            "home",
+            "Unser Urlaub",
+        ]
+
+    def test_partner_reads_shared_but_does_not_write(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        heart_moment = create_heart_moment(client, couple).json()
+
+        read = client.get(
+            f"{path(couple['space'].id)}/{heart_moment['id']}",
+            headers=auth(couple["token_b"]),
+        )
+        assert read.status_code == 200
+        assert read.json()["capabilities"] == {
             "canEdit": False,
             "canDelete": False,
             "canComment": True,
         }
 
-        for antwort in (
+        for response in (
             client.patch(
-                f"{path(paar['space'].id)}/{angelegt['id']}",
+                f"{path(couple['space'].id)}/{heart_moment['id']}",
                 json={"text": "Von Ben geaendert."},
-                headers=if_match(paar["token_b"], 1),
+                headers=if_match(couple["token_b"], 1),
             ),
             client.delete(
-                f"{path(paar['space'].id)}/{angelegt['id']}",
-                headers=if_match(paar["token_b"], 1),
+                f"{path(couple['space'].id)}/{heart_moment['id']}",
+                headers=if_match(couple["token_b"], 1),
             ),
             client.patch(
-                f"{path(paar['space'].id)}/{angelegt['id']}/visibility",
+                f"{path(couple['space'].id)}/{heart_moment['id']}/visibility",
                 json={"visibility": "PRIVATE"},
-                headers=if_match(paar["token_b"], 1),
+                headers=if_match(couple["token_b"], 1),
             ),
         ):
-            assert antwort.status_code == 403
+            assert response.status_code == 403
 
-    def test_anonym_und_fremder_space_erreichen_nichts(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        angelegt = erstelle(client, paar).json()
+    def test_anonymous_and_outsider_reach_nothing(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        heart_moment = create_heart_moment(client, couple).json()
 
-        assert client.get(f"{path(paar['space'].id)}/{angelegt['id']}").status_code == 401
+        assert client.get(f"{path(couple['space'].id)}/{heart_moment['id']}").status_code == 401
         assert (
             client.get(
-                f"{path(paar['fremder_space'].id)}/{angelegt['id']}",
-                headers=auth(paar["token_fremd"]),
+                f"{path(couple['outsider_space'].id)}/{heart_moment['id']}",
+                headers=auth(couple["token_outsider"]),
             ).status_code
             == 404
         )
         assert (
             client.get(
-                f"{path(paar['space'].id)}/{angelegt['id']}",
-                headers=auth(paar["token_fremd"]),
+                f"{path(couple['space'].id)}/{heart_moment['id']}",
+                headers=auth(couple["token_outsider"]),
             ).status_code
             == 404
         )
 
-    def test_unbekannte_und_missgeformte_id_antworten_gleich(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for kennung in (str(uuid4()), "keine-uuid"):
-            antwort = client.get(
-                f"{path(paar['space'].id)}/{kennung}",
-                headers=auth(paar["token_a"]),
+    def test_unknown_and_malformed_ids_answer_the_same(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for identifier in (str(uuid4()), "keine-uuid"):
+            response = client.get(
+                f"{path(couple['space'].id)}/{identifier}",
+                headers=auth(couple["token_a"]),
             )
-            assert antwort.status_code == 404
+            assert response.status_code == 404
 
 
-class TestPrivateBleibtOwnerOnly:
-    def test_partner_sieht_privaten_moment_in_keinem_pfad(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        privat = erstelle(client, paar, visibility="PRIVATE", text=GEHEIMER_TEXT).json()
+class TestPrivateRemainsOwnerOnly:
+    def test_partner_sees_private_moment_in_no_path(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        private = create_heart_moment(
+            client,
+            couple,
+            visibility="PRIVATE",
+            text=SECRET_TEXT,
+        ).json()
 
         detail = client.get(
-            f"{path(paar['space'].id)}/{privat['id']}",
-            headers=auth(paar["token_b"]),
+            f"{path(couple['space'].id)}/{private['id']}",
+            headers=auth(couple["token_b"]),
         )
         assert detail.status_code == 404
-        assert GEHEIMER_TEXT not in detail.text
+        assert SECRET_TEXT not in detail.text
 
         for query in ("", "?visibility=PRIVATE", "?visibility=SHARED", "?limit=100"):
-            liste = client.get(
-                f"{path(paar['space'].id)}{query}",
-                headers=auth(paar["token_b"]),
+            listing = client.get(
+                f"{path(couple['space'].id)}{query}",
+                headers=auth(couple["token_b"]),
             )
-            assert liste.status_code == 200
-            assert liste.json()["items"] == []
-            assert liste.json()["hasMore"] is False
-            assert GEHEIMER_TEXT not in liste.text
+            assert listing.status_code == 200
+            assert listing.json()["items"] == []
+            assert listing.json()["hasMore"] is False
+            assert SECRET_TEXT not in listing.text
 
-    def test_partner_antwort_ist_nicht_von_nichtexistenz_unterscheidbar(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """Kein Exists-Signal: 404 hier, 404 dort, gleicher Koerper."""
-        privat = erstelle(client, paar, visibility="PRIVATE").json()
+    def test_partner_response_is_indistinguishable_from_nonexistence(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """No existence signal: 404 in both cases with the same body."""
+        private = create_heart_moment(client, couple, visibility="PRIVATE").json()
 
-        vorhanden = client.get(
-            f"{path(paar['space'].id)}/{privat['id']}",
-            headers=auth(paar["token_b"]),
+        existing = client.get(
+            f"{path(couple['space'].id)}/{private['id']}",
+            headers=auth(couple["token_b"]),
         )
-        erfunden = client.get(
-            f"{path(paar['space'].id)}/{uuid4()}",
-            headers=auth(paar["token_b"]),
+        fabricated = client.get(
+            f"{path(couple['space'].id)}/{uuid4()}",
+            headers=auth(couple["token_b"]),
         )
-        assert vorhanden.status_code == erfunden.status_code == 404
-        assert vorhanden.json() == erfunden.json()
+        assert existing.status_code == fabricated.status_code == 404
+        assert existing.json() == fabricated.json()
 
-    def test_partner_kann_privaten_moment_nicht_aendern_oder_loeschen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        """404 statt 403: ein 403 wuerde die Existenz bestaetigen."""
-        privat = erstelle(client, paar, visibility="PRIVATE").json()
+    def test_partner_cannot_update_or_delete_private_moment(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        """Return 404 rather than 403 because 403 would confirm existence."""
+        private = create_heart_moment(client, couple, visibility="PRIVATE").json()
 
-        for antwort in (
+        for response in (
             client.patch(
-                f"{path(paar['space'].id)}/{privat['id']}",
+                f"{path(couple['space'].id)}/{private['id']}",
                 json={"text": "Fremdzugriff."},
-                headers=if_match(paar["token_b"], 1),
+                headers=if_match(couple["token_b"], 1),
             ),
             client.delete(
-                f"{path(paar['space'].id)}/{privat['id']}",
-                headers=if_match(paar["token_b"], 1),
+                f"{path(couple['space'].id)}/{private['id']}",
+                headers=if_match(couple["token_b"], 1),
             ),
             client.patch(
-                f"{path(paar['space'].id)}/{privat['id']}/visibility",
+                f"{path(couple['space'].id)}/{private['id']}/visibility",
                 json={"visibility": "SHARED"},
-                headers=if_match(paar["token_b"], 1),
+                headers=if_match(couple["token_b"], 1),
             ),
         ):
-            assert antwort.status_code == 404
+            assert response.status_code == 404
 
-    def test_owner_sieht_seinen_privaten_moment(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        privat = erstelle(client, paar, visibility="PRIVATE").json()
+    def test_owner_sees_own_private_moment(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        private = create_heart_moment(client, couple, visibility="PRIVATE").json()
 
         detail = client.get(
-            f"{path(paar['space'].id)}/{privat['id']}",
-            headers=auth(paar["token_a"]),
+            f"{path(couple['space'].id)}/{private['id']}",
+            headers=auth(couple["token_a"]),
         )
         assert detail.status_code == 200
         assert detail.json()["visibility"] == "PRIVATE"
         assert detail.json()["capabilities"]["canComment"] is False
 
-        liste = client.get(
-            f"{path(paar['space'].id)}?visibility=PRIVATE",
-            headers=auth(paar["token_a"]),
+        listing = client.get(
+            f"{path(couple['space'].id)}?visibility=PRIVATE",
+            headers=auth(couple["token_a"]),
         )
-        assert [eintrag["id"] for eintrag in liste.json()["items"]] == [privat["id"]]
+        assert [item["id"] for item in listing.json()["items"]] == [private["id"]]
 
-    def test_beide_partner_halten_getrennte_private_bestaende(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        von_anna = erstelle(client, paar, visibility="PRIVATE", text="Annas Satz.").json()
-        von_ben = erstelle(
-            client, paar, token_key="token_b", visibility="PRIVATE", text="Bens Satz."
+    def test_partners_keep_separate_private_collections(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        from_anna = create_heart_moment(
+            client,
+            couple,
+            visibility="PRIVATE",
+            text="Annas Satz.",
+        ).json()
+        from_ben = create_heart_moment(
+            client,
+            couple,
+            token_key="token_b",
+            visibility="PRIVATE",
+            text="Bens Satz.",
         ).json()
 
-        fuer_anna = client.get(
-            f"{path(paar['space'].id)}?visibility=PRIVATE",
-            headers=auth(paar["token_a"]),
+        for_anna = client.get(
+            f"{path(couple['space'].id)}?visibility=PRIVATE",
+            headers=auth(couple["token_a"]),
         )
-        assert [eintrag["id"] for eintrag in fuer_anna.json()["items"]] == [von_anna["id"]]
-        assert "Bens Satz." not in fuer_anna.text
+        assert [item["id"] for item in for_anna.json()["items"]] == [from_anna["id"]]
+        assert "Bens Satz." not in for_anna.text
 
-        fuer_ben = client.get(
-            f"{path(paar['space'].id)}?visibility=PRIVATE",
-            headers=auth(paar["token_b"]),
+        for_ben = client.get(
+            f"{path(couple['space'].id)}?visibility=PRIVATE",
+            headers=auth(couple["token_b"]),
         )
-        assert [eintrag["id"] for eintrag in fuer_ben.json()["items"]] == [von_ben["id"]]
-        assert "Annas Satz." not in fuer_ben.text
+        assert [item["id"] for item in for_ben.json()["items"]] == [from_ben["id"]]
+        assert "Annas Satz." not in for_ben.text
 
 
-class TestSichtbarkeitswechsel:
-    def test_shared_zu_private_entzieht_dem_partner_den_zugriff(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar, text=GEHEIMER_TEXT).json()
+class TestVisibilityTransitions:
+    def test_shared_to_private_revokes_partner_access(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple, text=SECRET_TEXT).json()
         assert (
             client.get(
-                f"{path(paar['space'].id)}/{geteilt['id']}",
-                headers=auth(paar["token_b"]),
+                f"{path(couple['space'].id)}/{shared['id']}",
+                headers=auth(couple["token_b"]),
             ).status_code
             == 200
         )
 
-        gewechselt = client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}/visibility",
+        changed = client.patch(
+            f"{path(couple['space'].id)}/{shared['id']}/visibility",
             json={"visibility": "PRIVATE"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert gewechselt.status_code == 200
-        assert gewechselt.json()["visibility"] == "PRIVATE"
-        assert gewechselt.json()["version"] == 2
-        assert gewechselt.headers["ETag"] == '"2"'
+        assert changed.status_code == 200
+        assert changed.json()["visibility"] == "PRIVATE"
+        assert changed.json()["version"] == 2
+        assert changed.headers["ETag"] == '"2"'
 
-        danach = client.get(
-            f"{path(paar['space'].id)}/{geteilt['id']}",
-            headers=auth(paar["token_b"]),
+        after = client.get(
+            f"{path(couple['space'].id)}/{shared['id']}",
+            headers=auth(couple["token_b"]),
         )
-        assert danach.status_code == 404
-        assert GEHEIMER_TEXT not in danach.text
+        assert after.status_code == 404
+        assert SECRET_TEXT not in after.text
 
-        liste = client.get(path(paar["space"].id), headers=auth(paar["token_b"]))
-        assert liste.json()["items"] == []
+        listing = client.get(
+            path(couple["space"].id),
+            headers=auth(couple["token_b"]),
+        )
+        assert listing.json()["items"] == []
 
-    def test_private_zu_shared_oeffnet_wieder(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        privat = erstelle(client, paar, visibility="PRIVATE").json()
+    def test_private_to_shared_reopens_access(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        private = create_heart_moment(client, couple, visibility="PRIVATE").json()
 
-        gewechselt = client.patch(
-            f"{path(paar['space'].id)}/{privat['id']}/visibility",
+        changed = client.patch(
+            f"{path(couple['space'].id)}/{private['id']}/visibility",
             json={"visibility": "SHARED"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert gewechselt.status_code == 200
-        assert gewechselt.json()["visibility"] == "SHARED"
+        assert changed.status_code == 200
+        assert changed.json()["visibility"] == "SHARED"
 
         assert (
             client.get(
-                f"{path(paar['space'].id)}/{privat['id']}",
-                headers=auth(paar["token_b"]),
+                f"{path(couple['space'].id)}/{private['id']}",
+                headers=auth(couple["token_b"]),
             ).status_code
             == 200
         )
 
-    def test_wechsel_auf_denselben_wert_aendert_nichts(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar).json()
+    def test_transition_to_same_value_changes_nothing(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple).json()
 
-        antwort = client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}/visibility",
+        response = client.patch(
+            f"{path(couple['space'].id)}/{shared['id']}/visibility",
             json={"visibility": "SHARED"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert antwort.status_code == 200
-        assert antwort.json()["version"] == 1
-        assert antwort.headers["ETag"] == '"1"'
+        assert response.status_code == 200
+        assert response.json()["version"] == 1
+        assert response.headers["ETag"] == '"1"'
 
-    def test_wechsel_verlangt_aktuelle_version(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar).json()
+    def test_transition_requires_current_version(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple).json()
         client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}",
+            f"{path(couple['space'].id)}/{shared['id']}",
             json={"text": "Zwischenstand."},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
 
-        veraltet = client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}/visibility",
+        stale = client.patch(
+            f"{path(couple['space'].id)}/{shared['id']}/visibility",
             json={"visibility": "PRIVATE"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert veraltet.status_code == 409
-        assert veraltet.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+        assert stale.status_code == 409
+        assert stale.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
-        unveraendert = client.get(
-            f"{path(paar['space'].id)}/{geteilt['id']}",
-            headers=auth(paar["token_a"]),
+        unchanged = client.get(
+            f"{path(couple['space'].id)}/{shared['id']}",
+            headers=auth(couple["token_a"]),
         )
-        assert unveraendert.json()["visibility"] == "SHARED"
+        assert unchanged.json()["visibility"] == "SHARED"
 
-    def test_wechsel_ohne_if_match_wird_abgelehnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar).json()
-        antwort = client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}/visibility",
+    def test_transition_without_if_match_is_rejected(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple).json()
+        response = client.patch(
+            f"{path(couple['space'].id)}/{shared['id']}/visibility",
             json={"visibility": "PRIVATE"},
-            headers=auth(paar["token_a"]),
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_update_kann_die_sichtbarkeit_nicht_mitaendern(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar).json()
-        antwort = client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}",
+    def test_update_cannot_change_visibility_at_the_same_time(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple).json()
+        response = client.patch(
+            f"{path(couple['space'].id)}/{shared['id']}",
             json={"text": "Neuer Text.", "visibility": "PRIVATE"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-        unveraendert = client.get(
-            f"{path(paar['space'].id)}/{geteilt['id']}",
-            headers=auth(paar["token_a"]),
+        unchanged = client.get(
+            f"{path(couple['space'].id)}/{shared['id']}",
+            headers=auth(couple["token_a"]),
         )
-        assert unveraendert.json()["visibility"] == "SHARED"
-        assert unveraendert.json()["version"] == 1
+        assert unchanged.json()["visibility"] == "SHARED"
+        assert unchanged.json()["version"] == 1
 
 
 class TestConcurrency:
-    def test_veraltetes_update_und_delete_ergeben_409(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        angelegt = erstelle(client, paar).json()
+    def test_stale_update_and_delete_return_409(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        heart_moment = create_heart_moment(client, couple).json()
         client.patch(
-            f"{path(paar['space'].id)}/{angelegt['id']}",
+            f"{path(couple['space'].id)}/{heart_moment['id']}",
             json={"text": "Erste Aenderung."},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
 
-        for antwort in (
+        for response in (
             client.patch(
-                f"{path(paar['space'].id)}/{angelegt['id']}",
+                f"{path(couple['space'].id)}/{heart_moment['id']}",
                 json={"text": "Zweite Aenderung."},
-                headers=if_match(paar["token_a"], 1),
+                headers=if_match(couple["token_a"], 1),
             ),
             client.delete(
-                f"{path(paar['space'].id)}/{angelegt['id']}",
-                headers=if_match(paar["token_a"], 1),
+                f"{path(couple['space'].id)}/{heart_moment['id']}",
+                headers=if_match(couple["token_a"], 1),
             ),
         ):
-            assert antwort.status_code == 409
-            assert antwort.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+            assert response.status_code == 409
+            assert response.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
 
 class TestPagination:
-    def test_cursor_blaettert_ohne_luecken_und_duplikate(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        erwartet = [erstelle(client, paar, text=f"Moment {i}").json()["id"] for i in range(5)]
+    def test_cursor_pages_without_gaps_or_duplicates(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        expected = [
+            create_heart_moment(client, couple, text=f"Moment {index}").json()["id"]
+            for index in range(5)
+        ]
 
-        gesehen: list[str] = []
+        seen: list[str] = []
         query = "?limit=2"
         while True:
-            seite = client.get(f"{path(paar['space'].id)}{query}", headers=auth(paar["token_a"]))
-            assert seite.status_code == 200
-            gesehen.extend(eintrag["id"] for eintrag in seite.json()["items"])
-            cursor = seite.json()["nextCursor"]
+            page = client.get(
+                f"{path(couple['space'].id)}{query}",
+                headers=auth(couple["token_a"]),
+            )
+            assert page.status_code == 200
+            seen.extend(item["id"] for item in page.json()["items"])
+            cursor = page.json()["nextCursor"]
             if cursor is None:
                 break
             query = f"?limit=2&cursor={cursor}"
 
-        assert gesehen == list(reversed(erwartet))
-        assert len(set(gesehen)) == len(gesehen)
+        assert seen == list(reversed(expected))
+        assert len(set(seen)) == len(seen)
 
-    def test_manipulierter_cursor_wird_neutral_abgewiesen(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for i in range(3):
-            erstelle(client, paar, text=f"Moment {i}")
-        seite = client.get(f"{path(paar['space'].id)}?limit=1", headers=auth(paar["token_a"]))
-        cursor = seite.json()["nextCursor"]
+    def test_tampered_cursor_is_neutrally_rejected(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(3):
+            create_heart_moment(client, couple, text=f"Moment {index}")
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_a"]),
+        )
+        cursor = page.json()["nextCursor"]
         assert cursor is not None
 
-        nutzlast, signatur = cursor.split(".", 1)
-        gefaelscht = f"{nutzlast[:-1]}{'A' if nutzlast[-1] != 'A' else 'B'}.{signatur}"
-        verfaelscht = client.get(
-            f"{path(paar['space'].id)}?limit=1&cursor={gefaelscht}",
-            headers=auth(paar["token_a"]),
+        payload, signature = cursor.split(".", 1)
+        tampered = f"{payload[:-1]}{'A' if payload[-1] != 'A' else 'B'}.{signature}"
+        response = client.get(
+            f"{path(couple['space'].id)}?limit=1&cursor={tampered}",
+            headers=auth(couple["token_a"]),
         )
-        assert verfaelscht.status_code == 400
-        assert verfaelscht.json()["code"] == "INVALID_CURSOR"
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
 
-    def test_cursor_ist_an_seinen_filter_gebunden(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        for i in range(3):
-            erstelle(client, paar, text=f"Moment {i}")
-        seite = client.get(f"{path(paar['space'].id)}?limit=1", headers=auth(paar["token_a"]))
-        cursor = seite.json()["nextCursor"]
-
-        gewechselt = client.get(
-            f"{path(paar['space'].id)}?limit=1&visibility=SHARED&cursor={cursor}",
-            headers=auth(paar["token_a"]),
+    def test_cursor_is_bound_to_filter(
+        self,
+        client,
+        couple,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(3):
+            create_heart_moment(client, couple, text=f"Moment {index}")
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_a"]),
         )
-        assert gewechselt.status_code == 400
-        assert gewechselt.json()["code"] == "INVALID_CURSOR"
+        cursor = page.json()["nextCursor"]
 
-    def test_cursor_eines_fremden_space_wird_abgewiesen(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        for i in range(3):
-            erstelle(client, paar, text=f"Moment {i}")
-        seite = client.get(f"{path(paar['space'].id)}?limit=1", headers=auth(paar["token_a"]))
-        cursor = seite.json()["nextCursor"]
+        changed_filter = client.get(
+            f"{path(couple['space'].id)}?limit=1&visibility=SHARED&cursor={cursor}",
+            headers=auth(couple["token_a"]),
+        )
+        assert changed_filter.status_code == 400
+        assert changed_filter.json()["code"] == "INVALID_CURSOR"
 
-        zweiter_space = make_space(session, paar["anna"])
+    def test_cursor_from_other_space_is_rejected(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        for index in range(3):
+            create_heart_moment(client, couple, text=f"Moment {index}")
+        page = client.get(
+            f"{path(couple['space'].id)}?limit=1",
+            headers=auth(couple["token_a"]),
+        )
+        cursor = page.json()["nextCursor"]
+
+        second_space = make_space(session, couple["anna"])
         session.flush()
 
-        antwort = client.get(
-            f"{path(zweiter_space.id)}?limit=1&cursor={cursor}",
-            headers=auth(paar["token_a"]),
+        response = client.get(
+            f"{path(second_space.id)}?limit=1&cursor={cursor}",
+            headers=auth(couple["token_a"]),
         )
-        assert antwort.status_code == 400
-        assert antwort.json()["code"] == "INVALID_CURSOR"
+        assert response.status_code == 400
+        assert response.json()["code"] == "INVALID_CURSOR"
 
 
-class TestEreignisseLeckenNichts:
-    def test_outbox_traegt_sichtbarkeit_aber_keinen_inhalt(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        privat = erstelle(client, paar, visibility="PRIVATE", text=GEHEIMER_TEXT).json()
+class TestEventsLeakNothing:
+    def test_outbox_carries_visibility_but_no_content(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        private = create_heart_moment(
+            client,
+            couple,
+            visibility="PRIVATE",
+            text=SECRET_TEXT,
+        ).json()
         client.patch(
-            f"{path(paar['space'].id)}/{privat['id']}",
-            json={"text": GEHEIMER_TEXT + " Nachtrag."},
-            headers=if_match(paar["token_a"], 1),
+            f"{path(couple['space'].id)}/{private['id']}",
+            json={"text": SECRET_TEXT + " Nachtrag."},
+            headers=if_match(couple["token_a"], 1),
         )
         client.patch(
-            f"{path(paar['space'].id)}/{privat['id']}/visibility",
+            f"{path(couple['space'].id)}/{private['id']}/visibility",
             json={"visibility": "SHARED"},
-            headers=if_match(paar["token_a"], 2),
+            headers=if_match(couple["token_a"], 2),
         )
         client.delete(
-            f"{path(paar['space'].id)}/{privat['id']}",
-            headers=if_match(paar["token_a"], 3),
+            f"{path(couple['space'].id)}/{private['id']}",
+            headers=if_match(couple["token_a"], 3),
         )
 
-        zeilen = list(
+        rows = list(
             session.execute(
                 select(OutboxEvent).where(OutboxEvent.subject_type == "heart_moment")
             ).scalars()
         )
-        typen = [zeile.event_type for zeile in zeilen]
-        assert typen == [
+        event_types = [row.event_type for row in rows]
+        assert event_types == [
             "HEART_MOMENT_CREATED",
             "HEART_MOMENT_UPDATED",
             "HEART_MOMENT_VISIBILITY_CHANGED",
             "HEART_MOMENT_DELETED",
         ]
 
-        sichtbarkeiten = [zeile.payload.visibility for zeile in zeilen]
-        assert sichtbarkeiten == ["PRIVATE", "PRIVATE", "SHARED", "SHARED"]
+        visibilities = [row.payload.visibility for row in rows]
+        assert visibilities == ["PRIVATE", "PRIVATE", "SHARED", "SHARED"]
 
-        for zeile in zeilen:
-            roh = repr(zeile.payload.model_dump())
-            assert GEHEIMER_TEXT not in roh
-            assert "LOVED" not in roh
-            assert zeile.resource_version is not None
+        for row in rows:
+            raw = repr(row.payload.model_dump())
+            assert SECRET_TEXT not in raw
+            assert "LOVED" not in raw
+            assert row.resource_version is not None
 
-    def test_wechsel_ohne_aenderung_erzeugt_kein_ereignis(self, client, paar, session) -> None:  # type: ignore[no-untyped-def]
-        geteilt = erstelle(client, paar).json()
+    def test_noop_visibility_transition_emits_no_event(
+        self,
+        client,
+        couple,
+        session,
+    ) -> None:  # type: ignore[no-untyped-def]
+        shared = create_heart_moment(client, couple).json()
         client.patch(
-            f"{path(paar['space'].id)}/{geteilt['id']}/visibility",
+            f"{path(couple['space'].id)}/{shared['id']}/visibility",
             json={"visibility": "SHARED"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(couple["token_a"], 1),
         )
 
-        typen = [
-            zeile.event_type
-            for zeile in session.execute(
+        event_types = [
+            row.event_type
+            for row in session.execute(
                 select(OutboxEvent).where(OutboxEvent.subject_type == "heart_moment")
             ).scalars()
         ]
-        assert typen == ["HEART_MOMENT_CREATED"]
+        assert event_types == ["HEART_MOMENT_CREATED"]

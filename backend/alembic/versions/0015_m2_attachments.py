@@ -90,14 +90,14 @@ def upgrade() -> None:
             name="status_is_known",
         ),
         sa.CheckConstraint("media_type IN ('IMAGE', 'VIDEO')", name="media_type_is_known"),
-        # Ein ungebundenes Attachment gehoert seinem Owner. Die Bindung an
-        # einen Parent kommt im Media-Integrationsslice.
+        # An unbound attachment belongs to its owner. Binding it to a parent
+        # is introduced in the media integration slice.
         sa.CheckConstraint("privacy_class = 'OWNER_ONLY'", name="privacy_is_owner_only"),
         sa.CheckConstraint("crypto_version >= 0", name="crypto_version_is_non_negative"),
         sa.CheckConstraint("declared_size >= 0", name="declared_size_is_non_negative"),
         sa.CheckConstraint("size IS NULL OR size >= 0", name="size_is_non_negative"),
-        # READY ohne readyAt haette kein Bindungsfenster und wuerde vom
-        # Cleanup nie erfasst.
+        # READY without ready_at would have no binding window and would never
+        # be collected by cleanup.
         sa.CheckConstraint("status <> 'READY' OR ready_at IS NOT NULL", name="ready_has_ready_at"),
     )
     op.create_index("ix_attachments_space_id", "attachments", ["space_id"])

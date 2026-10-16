@@ -1,4 +1,4 @@
-"""Gleicht direkte Abhaengigkeiten mit Lock-Installation und Dokumentation ab."""
+"""Compare direct dependencies with locked installation and documentation."""
 
 from __future__ import annotations
 
@@ -59,31 +59,28 @@ def check_inventory(pyproject_path: Path, documentation_path: Path) -> list[str]
     for package_name in sorted(required):
         entry = documented.get(package_name)
         if entry is None:
-            errors.append(f"{package_name}: fehlt in {documentation_path}")
+            errors.append(f"{package_name}: missing from {documentation_path}")
             continue
         documented_version, documented_license = entry
         try:
             installed_version = version(package_name)
             installed_license = _installed_license(package_name)
         except PackageNotFoundError:
-            errors.append(f"{package_name}: ist in der gesperrten Umgebung nicht installiert")
+            errors.append(f"{package_name}: not installed in the locked environment")
             continue
         if documented_version != installed_version:
             errors.append(
-                f"{package_name}: dokumentiert {documented_version}, "
-                f"installiert {installed_version}"
+                f"{package_name}: documented {documented_version}, installed {installed_version}"
             )
         if documented_license != installed_license:
             errors.append(
-                f"{package_name}: Lizenz dokumentiert {documented_license!r}, "
-                f"Paketmetadaten {installed_license!r}"
+                f"{package_name}: documented license {documented_license!r}, "
+                f"package metadata {installed_license!r}"
             )
 
     unexpected = sorted(set(documented) - required)
     for package_name in unexpected:
-        errors.append(
-            f"{package_name}: als PyPI-Abhaengigkeit dokumentiert, aber nicht direkt deklariert"
-        )
+        errors.append(f"{package_name}: documented as a PyPI dependency but not declared directly")
     return errors
 
 
@@ -94,11 +91,11 @@ def main() -> int:
     arguments = parser.parse_args()
     errors = check_inventory(arguments.pyproject, arguments.documentation)
     if errors:
-        print("Abhaengigkeitsinventar ist inkonsistent:")
+        print("Dependency inventory is inconsistent:")
         for error in errors:
             print(f"- {error}")
         return 1
-    print("Abhaengigkeitsinventar stimmt mit Installation und Paketmetadaten ueberein.")
+    print("Dependency inventory matches installation and package metadata.")
     return 0
 
 

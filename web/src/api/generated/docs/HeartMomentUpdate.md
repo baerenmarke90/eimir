@@ -1,7 +1,7 @@
 
 # HeartMomentUpdate
 
-Inhaltliche Aenderung.  `visibility` fehlt hier bewusst: der Wechsel ist eine eigene Operation mit destruktiver Folge und darf nicht als Nebenwirkung eines Textupdates passieren.
+Content update payload.  ``visibility`` is intentionally absent: changing visibility is a separate operation with destructive consequences and must not happen as a side effect of a text update.
 
 ## Properties
 
@@ -10,6 +10,7 @@ Name | Type
 `attachmentId` | string
 `emotion` | [HeartEmotion](HeartEmotion.md)
 `happenedOn` | Date
+`tags` | Array&lt;string&gt;
 `text` | string
 
 ## Example
@@ -22,6 +23,7 @@ const example = {
   "attachmentId": null,
   "emotion": null,
   "happenedOn": null,
+  "tags": null,
   "text": null,
 } satisfies HeartMomentUpdate
 

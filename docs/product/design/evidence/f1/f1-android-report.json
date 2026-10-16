@@ -1,0 +1,533 @@
+{
+  "completed": true,
+  "sourceCommit": "0dffed3e1e3beaaaf54adac3395fb221e1d46e12",
+  "apkSha256": "614d3d14f09253ac115828a9e39d4296006dfd019b2938f705f9183a24bba152",
+  "device": "emulator-5562",
+  "androidRelease": "15",
+  "captures": [
+    {
+      "name": "320-light",
+      "pixels": [
+        640,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        81,
+        640,
+        1592
+      ],
+      "photoBounds": [
+        32,
+        344,
+        608,
+        704
+      ],
+      "pngSha256": "8648011ceb7b357f0d5b3f837baf30294667fbffd6ecf0718c0f2760495c3f77"
+    },
+    {
+      "name": "320-dark",
+      "pixels": [
+        640,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        81,
+        640,
+        1592
+      ],
+      "photoBounds": [
+        32,
+        344,
+        608,
+        704
+      ],
+      "pngSha256": "8ca0274d20a332f31287bb9c86adbfb48b0c1aca70d10a260ef3fa41b50d09f7"
+    },
+    {
+      "name": "360-light",
+      "pixels": [
+        720,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        91,
+        720,
+        1592
+      ],
+      "photoBounds": [
+        32,
+        286,
+        688,
+        696
+      ],
+      "pngSha256": "d78287841394199d95bcf5b550ca8eb81cecb00ff2904d594472c0c0cb5ccd6d"
+    },
+    {
+      "name": "360-dark",
+      "pixels": [
+        720,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        91,
+        720,
+        1592
+      ],
+      "photoBounds": [
+        32,
+        286,
+        688,
+        696
+      ],
+      "pngSha256": "120ff6c98cd752d1e084ea6bacce9a1475707227932c2daea44e757756169720"
+    },
+    {
+      "name": "390-light",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        740,
+        731
+      ],
+      "pngSha256": "ae0cd4e3530fba8767d6fa95259eb48d98b221ea5e3946b928c65a2df1678376"
+    },
+    {
+      "name": "390-dark",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        740,
+        731
+      ],
+      "pngSha256": "5f5a160ceda077db64ea25fe0138055e827352e56e14107ee164f0ead648b62e"
+    },
+    {
+      "name": "430-light",
+      "pixels": [
+        860,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        860,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        820,
+        781
+      ],
+      "pngSha256": "72c32c1628a435063a6b88060990a9223f2e08ef55b6d8023e9eb5a828d14ca1"
+    },
+    {
+      "name": "430-dark",
+      "pixels": [
+        860,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        860,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        820,
+        781
+      ],
+      "pngSha256": "ce9b8faf11b61fb482def77d6e86adb0814571a179fa8ad6b7f2a4bc26e057ca"
+    },
+    {
+      "name": "1280-light",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "contentBounds": [
+        560,
+        105,
+        2000,
+        1688
+      ],
+      "photoBounds": [
+        600,
+        300,
+        1960,
+        1150
+      ],
+      "pngSha256": "4019f857e0ce91f300e66a0d6b64c45f314302645534b4498de7fc441843f043"
+    },
+    {
+      "name": "1280-dark",
+      "pixels": [
+        2560,
+        1800
+      ],
+      "contentBounds": [
+        560,
+        105,
+        2000,
+        1688
+      ],
+      "photoBounds": [
+        600,
+        300,
+        1960,
+        1150
+      ],
+      "pngSha256": "18992468fbd8d659cf17c149cde0653da56d53aac29c8a6777cc1cbee67b3bb9"
+    },
+    {
+      "name": "loading",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": null,
+      "pngSha256": "6a48b18732b09015cf7863e328dd8f9f63c6b5ef3a196415ad1df011b54d6800"
+    },
+    {
+      "name": "error",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": null,
+      "pngSha256": "21a15c874c2c9c439a38a60e8de69945f1763ff1d6b600045f5cc6c1317924c1"
+    },
+    {
+      "name": "empty",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1372
+      ],
+      "photoBounds": null,
+      "pngSha256": "7ffe4cc22fec00ea02dc2af9d1077c0f6c2b6646945a2be1cfedb5056d94efea"
+    },
+    {
+      "name": "offline",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        432,
+        740,
+        870
+      ],
+      "pngSha256": "98b8459c9cc420a83f0b60ab784fd0243fb572087fb9afb716cc4e52266301f6"
+    },
+    {
+      "name": "success",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        740,
+        731
+      ],
+      "pngSha256": "8ce42e7f0f1cbc731082472cc405321c1153ede8ab3245e1b70f1d2b024f1da6"
+    },
+    {
+      "name": "overlay",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": null,
+      "photoBounds": null,
+      "pngSha256": "d1cee6b34f4e03c9a35e8a0093c9aae930ef599aefa93b0ea4a13139e16931ad"
+    },
+    {
+      "name": "photo-detail",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1262
+      ],
+      "photoBounds": [
+        40,
+        306,
+        740,
+        771
+      ],
+      "pngSha256": "eb1dde2151cc627add459f211c6cdbb178d32c18c7299028f0eb5b8c477656df"
+    },
+    {
+      "name": "text-detail",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        733
+      ],
+      "photoBounds": null,
+      "pngSha256": "80e36a3fe4043556030bcadea956469c36ed18e2c64c6c0b07d186e027a80e13"
+    },
+    {
+      "name": "overlay-dark",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": null,
+      "photoBounds": null,
+      "pngSha256": "03db452a9308ff6a5cd4c02bd99fa34b975b0d9a0bc93be32f6d0355c2b73365"
+    },
+    {
+      "name": "utility-selected",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        211,
+        740,
+        649
+      ],
+      "pngSha256": "837f0bd44168497612723c7c5d00497a3ec7352cbf5a0144d1b99760bc9b3a65"
+    },
+    {
+      "name": "retry-success",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        293,
+        740,
+        731
+      ],
+      "pngSha256": "0da05f6e58f70b1bce564627e270d76dfd1c99509c9591bbb498add64aaa1e3b"
+    },
+    {
+      "name": "utility-selected-dark",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        211,
+        740,
+        649
+      ],
+      "pngSha256": "00c6aaddf4dfcf77aefbcc453f877b5569ade53ac7f8a1fe48f10375ba5147fb"
+    },
+    {
+      "name": "390-dark-large-text-reduced-motion",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": [
+        0,
+        98,
+        780,
+        1592
+      ],
+      "photoBounds": [
+        40,
+        411,
+        740,
+        849
+      ],
+      "pngSha256": "c01eb12e5acd863e9a6148f00658a9796a47d78eca6172195a60c2eccd4400db"
+    },
+    {
+      "name": "390-dark-large-text-sheet",
+      "pixels": [
+        780,
+        1688
+      ],
+      "contentBounds": null,
+      "photoBounds": null,
+      "pngSha256": "233fe9388a6740254ded99e4bdcb792413290372a4393c6fb5a54a7ccc75953d"
+    }
+  ],
+  "behavior": [
+    "Native sheet visible Close dismisses and restores underlying content",
+    "Photo opens full detail; System Back returns to its source",
+    "Text opens readable detail; visible Back returns to its source",
+    "Utility selection exposes an announced fixture completion",
+    "System Back dismisses the native sheet before the underlying task",
+    "Failed-media Retry reveals the local photo while retaining its content",
+    "A text-only memory remains without an image in detail",
+    "200% text and disabled system animations retain operable sheet actions"
+  ],
+  "touchTargets": [
+    {
+      "tag": "proof-close",
+      "bounds": [
+        40,
+        1432,
+        269,
+        1528
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-back",
+      "bounds": [
+        40,
+        146,
+        428,
+        242
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-select",
+      "bounds": [
+        40,
+        1368,
+        740,
+        1468
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-overlay-open",
+      "bounds": [
+        40,
+        1398,
+        740,
+        1494
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-retry",
+      "bounds": [
+        40,
+        755,
+        372,
+        851
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-select",
+      "bounds": [
+        40,
+        1368,
+        740,
+        1468
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-overlay-open",
+      "bounds": [
+        40,
+        1386,
+        740,
+        1544
+      ],
+      "minimumDp": 48
+    },
+    {
+      "tag": "proof-close",
+      "bounds": [
+        40,
+        1432,
+        378,
+        1528
+      ],
+      "minimumDp": 48
+    }
+  ],
+  "themeControl": "Activity theme argument plus matching Android system night mode",
+  "limitations": "UIAutomator semantics and real emulator operation; no human TalkBack session or full release device matrix."
+}

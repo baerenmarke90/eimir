@@ -1,69 +1,68 @@
 # Web
 
-Der Web-Client ist langfristig Teil von M5. Für **M2-S8 / G2** wurde zuerst
-ein dünner vertikaler Referenzflow geliefert, der den echten
-Memory-/Bild-/Story-Vertrag Ende-zu-Ende beweist. Auf diesem validierten Pfad
-liegt nun die erste **produktnahe M2-Story-Oberfläche**: Anmeldung, gemeinsame
-Story und das Erstellen einer Memory mit Bild verwenden bereits die
-verbindlichen Design-Tokens und Screen-Verträge.
+The Web client is intended to become a complete part of M5. For **M2-S8 / G2**,
+the project first delivered a thin vertical reference flow that proves the real
+Memory/Image/Story contract end to end. The first **product-oriented M2 Story
+surface** now builds on this validated path: sign-in, the shared Story, and
+creating a Memory with an image already use the mandatory design tokens and
+screen contracts.
 
-Das ist weiterhin **keine vollständige M5-Client-Parität**. Vollständige
-Navigation, Detailscreens, Deep Links, Offline-Read-Cache, Export/Import und
-M3+-Funktionen werden durch diesen Slice nicht vorgezogen.
+This is still **not complete M5 client parity**. This slice does not pull full
+navigation, detail screens, deep links, an offline read cache, export/import,
+or M3+ features forward.
 
-Der Client nutzt ausschließlich die versionierte REST-/OpenAPI-Schnittstelle
-des Backends; Fach-, Privacy- und Autorisierungsregeln bleiben im Application
-Core.
+The client uses only the backend's versioned REST/OpenAPI interface. Domain,
+privacy, and authorization rules remain in the Application Core.
 
-## Generierte API-Schicht
+## Generated API layer
 
-`src/api/generated/` entsteht aus `backend/openapi.json` und wird **nicht von
-Hand bearbeitet**. Erzeugen mit `tools/openapi/generate.sh`; CI prüft, dass der
-eingecheckte Stand zum Vertrag passt.
+`src/api/generated/` is generated from `backend/openapi.json` and is **not
+edited manually**. Regenerate it with `tools/openapi/generate.sh`; CI verifies
+that the committed output matches the contract.
 
-Der Ordner enthält ausschließlich DTOs und Endpunktaufrufe. UI, State und
-Flow-Orchestrierung liegen daneben.
+The directory contains only DTOs and endpoint calls. UI, state, and flow
+orchestration live outside it.
 
-## Aktueller M2-Web-Slice
+## Current M2 Web slice
 
-Der Web-Slice verwendet React, TypeScript, Vite, React Router und TanStack
-Query gemäß Master Spec und vorhandener Reuse-Regel. Es kommt keine neue
-UI-Library hinzu.
+The Web slice uses React, TypeScript, Vite, React Router, and TanStack Query as
+required by the Master Specification and the existing reuse decision. It adds
+no new UI library.
 
-Der kritische Flow bleibt unverändert:
+The critical flow remains unchanged:
 
-1. Anmeldung über den veröffentlichten Auth-Vertrag,
-2. Memory über `MemoriesApi`,
-3. Bild-Upload über `AttachmentsApi` und den gelieferten `UploadDescriptor`,
-4. Finalize + READY-Prüfung + Bindung an die Memory,
-5. `/timeline` über `StoryApi`,
-6. Verarbeitung der generierten `StoryItem`-Union über `kind`,
-7. autorisierter Bildabruf als Teil des E2E-Nachweises.
+1. sign in through the published authentication contract;
+2. create a Memory through `MemoriesApi`;
+3. upload an image through `AttachmentsApi` and the returned `UploadDescriptor`;
+4. finalize, wait for READY, and bind the attachment to the Memory;
+5. load `/timeline` through `StoryApi`;
+6. process the generated `StoryItem` union through `kind`;
+7. perform an authorized image read as part of the E2E proof.
 
-Die produktnahe Oberfläche ergänzt darauf:
+The product-oriented surface adds:
 
-- eine nutzerorientierte Anmeldung ohne M2-/G2-Techniksprache,
-- eine eigene Route `/story`,
-- die Erstellen-Route `/memory/new`,
-- monatsweise gruppierte Story-Karten für Memory, HeartMoment und Milestone,
-- sichtbare gemeinsame Sichtbarkeit beim Erstellen einer Memory,
-- Lade-, Leer-, Erfolgs- und Fehlerzustände,
-- responsive Darstellung auf Compact, Medium und Expanded,
-- Design-Tokens und 44-CSS-px-Zielgrößen aus dem Plattform-Handoff.
+- user-oriented sign-in without M2/G2 engineering terminology;
+- a dedicated `/story` route;
+- the `/memory/new` creation route;
+- monthly grouped Story cards for Memory, HeartMoment, and Milestone;
+- visible shared visibility when creating a Memory;
+- loading, empty, success, and error states;
+- responsive Compact, Medium, and Expanded layouts;
+- design tokens and 44 CSS-pixel target sizes from the platform handoff.
 
-### Konfiguration
+### Configuration
 
-Technische Werte sind Betreiberkonfiguration und werden normalen Nutzern nicht
-als Eingabefelder gezeigt:
+Technical values are operator configuration and are not exposed to normal
+users as input fields:
 
-- `VITE_SBS_API_BASE_URL` – API-Basis; ohne Wert wird Same-Origin verwendet.
-- `VITE_SBS_SPACE_ID` – der Referenz-Space für den aktuellen M2-Web-Slice.
+- `VITE_EIMIR_API_BASE_URL` — API base URL; an empty value uses same-origin.
 
-Access- und Refresh-Token bleiben ausschließlich im flüchtigen React-State.
-Logout leert State und TanStack-Query-Cache; M2 führt keine persistente
-Offline-/Read-Cache-Policy ein.
+The active Space is derived only after authentication from the account's server-authorized Memberships; it is not a build-time or operator value.
+Access and refresh tokens remain exclusively in ephemeral React state. Logout
+clears state and the TanStack Query cache; M2 introduces no persistent offline
+or read-cache policy.
 
-### Lokal am Quellcode
+### Local source workflow
 
 ```bash
 npm ci
@@ -75,41 +74,40 @@ npm test
 npm run build
 ```
 
-`typecheck`, `lint` und `format:check` sind getrennte Gates. Biome lintet und
-prüft die Formatierung des handgeschriebenen Web-Codes; der generierte
-OpenAPI-Client unter `src/api/generated/` bleibt dabei ausgeschlossen.
-`npm run format` schreibt die Biome-Formatierung lokal.
+`typecheck`, `lint`, and `format:check` are separate gates. Biome lints and
+checks formatting for handwritten Web code; the generated OpenAPI client under
+`src/api/generated/` remains excluded. `npm run format` applies Biome formatting
+locally.
+
+Git-ignored paths are excluded as well. `vcs.useIgnoreFile` in `biome.json`
+reads the repository `.gitignore`, so `vcs.root` points to the parent directory.
+Without this setting, Biome would inspect `dist/` after a local `npm run build`,
+and `lint` and `format:check` would fail on generated bundle code. CI did not
+expose this because it starts from a fresh checkout without `dist/` and runs the
+build only after those gates.
 
 ### Self-Hosted
 
-Der Produktionsbuild liegt in einem unprivilegierten Nginx-Container. Im
-lokalen Compose-Test liefert er die statischen Dateien auf
-`http://127.0.0.1:${WEB_PORT:-8080}` aus und leitet `/api/` intern an den
-API-Service weiter. Dadurch bleibt der Browser same-origin und es ist keine
-pauschale CORS-Freigabe nötig.
+The production build runs in an unprivileged Nginx container. In the local
+Compose test, it serves static files at
+`http://127.0.0.1:${WEB_PORT:-8080}` and proxies `/api/` internally to the API
+service. The browser therefore remains same-origin and needs no broad CORS
+allowance.
 
-Der aktuelle M2-Web-Slice benötigt noch eine bekannte Space-UUID:
+After sign-in, the Web client discovers the account's active Memberships through
+the authenticated API and uses only a server-authorized Space ID. No Space UUID
+is embedded in the Web image or configured by the operator.
 
-```dotenv
-SBS_WEB_SPACE_ID=00000000-0000-0000-0000-000000000000
-```
+In public operation, `/api/` must not be routed through the Web container. The
+TLS reverse proxy routes `/api/` directly to the API host port and all remaining
+paths to the Web host port. See `docs/SELF-HOSTING.md` for the complete guide.
 
-Da Vite diesen Betreiberwert beim Build einbettet, ist nach einer Änderung
-`docker compose up -d --build web` erforderlich. Die UUID ist kein Secret;
-Access- und Refresh-Token bleiben weiterhin ausschließlich im flüchtigen
-Browser-State.
+## Deliberate M2 boundary
 
-Im öffentlichen Betrieb darf `/api/` nicht durch den Web-Container
-geschleift werden. Der TLS-Reverse-Proxy routet `/api/` direkt zum
-API-Host-Port und alle übrigen Pfade zum Web-Host-Port. Die vollständige
-Anleitung steht in `docs/SELF-HOSTING.md`.
+The global product navigation `Heute · Story · Planen · Entdecken · Mehr`
+remains localized product copy and is not presented as a collection of dead
+links. This slice first productizes the implemented Story surface. Complete
+navigation and systematic feature parity remain in M5.
 
-## Bewusste M2-Grenze
-
-Die globale Produktnavigation `Heute · Story · Planen · Entdecken · Mehr` wird
-nicht als Sammlung toter Links vorgetäuscht. Dieser Slice produktisiert zuerst
-die tatsächlich implementierte Story-Fläche. Die vollständige Navigation und
-systematische Feature-Parität bleiben M5.
-
-Video, Offline Write Sync, Export/Import, globale Suche und M3+-Funktionen
-bleiben ebenfalls außerhalb dieses Slices.
+Video, offline write sync, export/import, global search, and M3+ features also
+remain outside this slice.

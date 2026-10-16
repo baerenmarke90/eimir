@@ -21,8 +21,8 @@ UUID = postgresql.UUID(as_uuid=True)
 
 def _token_columns() -> list[sa.Column]:
     return [
-        # Nur der Hash wird persistiert; der Klartext wird einmalig an den
-        # aufrufenden Versand-/UI-Adapter gegeben.
+        # Only the hash is persisted; plaintext is handed once to the calling
+        # delivery/UI adapter.
         sa.Column("token_hash", sa.String(length=64), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("consumed_at", sa.DateTime(timezone=True), nullable=True),
@@ -40,16 +40,16 @@ def upgrade() -> None:
     op.add_column("auth_identities", sa.Column("issuer", sa.String(length=512)))
     op.add_column("auth_identities", sa.Column("connection_id", sa.String(length=128)))
 
-    # Vor dieser Migration gab es noch keinen OIDC-Ablauf, die Enum liess
-    # aber manuell angelegte Zeilen zu. Solche Zeilen bleiben erhalten und
-    # werden bewusst unauflösbar markiert, bis sie mit einem echten Issuer
-    # neu verknuepft werden. So funktioniert das Upgrade auch auf einer
-    # bestehenden Datenbank, ohne eine Identitaet falsch zuzuordnen.
+    # Before this migration there was no OIDC flow, but the enum allowed rows
+    # to be created manually. Preserve those rows and deliberately mark them as
+    # unresolved until they are linked again with a real issuer. This keeps the
+    # upgrade safe for an existing database without assigning an identity to
+    # the wrong account.
     op.execute(
         sa.text(
             """
             UPDATE auth_identities
-               SET issuer = 'urn:sidebyside:legacy-unresolved:' || id::text,
+               SET issuer = 'urn:eimir:legacy-unresolved:' || id::text,
                    connection_id = 'legacy-unresolved'
              WHERE provider = 'OIDC'
             """

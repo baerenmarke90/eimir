@@ -1,9 +1,9 @@
-"""Der Wish->Plan-Lifecycle aus M3-D02, M3-D03 und M3-D05.
+"""The Wish-to-Plan lifecycle from M3-D02, M3-D03, and M3-D05.
 
-Alles hier beruehrt zwei Aggregate gleichzeitig. Der wiederkehrende
-Nachweis ist deshalb nicht "die Operation tut etwas", sondern "sie
-hinterlaesst keinen halben Lifecycle": kein zweiter Plan, kein `PLANNED`
-Wish ohne Plan, kein abgeschlossener Plan neben einem offenen Wish.
+Everything here touches two aggregates at the same time. The recurring proof is
+therefore not merely that an operation does something, but that it leaves no
+partial lifecycle: no second Plan, no `PLANNED` Wish without a Plan, and no
+completed Plan next to an open Wish.
 """
 
 from __future__ import annotations
@@ -16,11 +16,11 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.core.clock import today_in
-from sidebyside.outbox.models import OutboxEvent
-from sidebyside.plans.models import Plan, PlanStatus
-from sidebyside.relationship import service as relationship_service
-from sidebyside.wishes.models import Wish, WishStatus
+from eimir.core.clock import today_in
+from eimir.outbox.models import OutboxEvent
+from eimir.plans.models import Plan, PlanStatus
+from eimir.relationship import service as relationship_service
+from eimir.wishes.models import Wish, WishStatus
 from tests.conftest import auth, make_account, make_space, requires_database, sign_in
 
 pytestmark = [pytest.mark.integration, requires_database]
@@ -28,7 +28,7 @@ pytestmark = [pytest.mark.integration, requires_database]
 ZONE = "Europe/Berlin"
 
 
-def gestern() -> str:
+def yesterday() -> str:
     return (today_in(ZONE) - timedelta(days=1)).isoformat()
 
 
@@ -45,7 +45,7 @@ def if_match(token: str, version: int) -> dict[str, str]:
 
 
 @pytest.fixture
-def paar(session: Session):  # type: ignore[no-untyped-def]
+def pair(session: Session):  # type: ignore[no-untyped-def]
     anna = make_account(session, "Anna")
     ben = make_account(session, "Ben")
     space = make_space(session, anna)
@@ -60,32 +60,40 @@ def paar(session: Session):  # type: ignore[no-untyped-def]
     }
 
 
-def wunsch(  # type: ignore[no-untyped-def]
+def wish(  # type: ignore[no-untyped-def]
     client,
-    paar,
+    pair,
     *,
-    titel: str = "Nordlichter sehen",
+    title: str = "Nordlichter sehen",
 ) -> dict[str, Any]:
-    antwort = client.post(
-        wishes(paar["space"].id), json={"title": titel}, headers=auth(paar["token_a"])
+    response = client.post(
+        wishes(pair["space"].id),
+        json={"title": title},
+        headers=auth(pair["token_a"]),
     )
-    assert antwort.status_code == 201
-    return antwort.json()
+    assert response.status_code == 201
+    return response.json()
 
 
-def konvertiere(  # type: ignore[no-untyped-def]
-    client, paar, wish_id: str, *, version: int = 1, token_key: str = "token_a", **felder
+def convert(  # type: ignore[no-untyped-def]
+    client,
+    pair,
+    wish_id: str,
+    *,
+    version: int = 1,
+    token_key: str = "token_a",
+    **fields,
 ):
     return client.post(
-        f"{wishes(paar['space'].id)}/{wish_id}/plan",
-        json=dict(felder),
-        headers=if_match(paar[token_key], version),
+        f"{wishes(pair['space'].id)}/{wish_id}/plan",
+        json=dict(fields),
+        headers=if_match(pair[token_key], version),
     )
 
 
-def aktion(  # type: ignore[no-untyped-def]
+def action(  # type: ignore[no-untyped-def]
     client,
-    paar,
+    pair,
     plan_id: str,
     name: str,
     version: int,
@@ -93,461 +101,549 @@ def aktion(  # type: ignore[no-untyped-def]
     token_key: str = "token_a",
 ):
     return client.post(
-        f"{plans(paar['space'].id)}/{plan_id}/{name}",
+        f"{plans(pair['space'].id)}/{plan_id}/{name}",
         json=json if json is not None else {},
-        headers=if_match(paar[token_key], version),
+        headers=if_match(pair[token_key], version),
     )
 
 
-class TestPflichtnachweis:
-    def test_wunsch_wird_plan_wird_abgeschlossen(  # type: ignore[no-untyped-def]
+class TestRequiredFlow:
+    def test_wish_becomes_plan_and_is_completed(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        """Der Pflichtflow aus dem M3 Delivery Plan, Abschnitt 5.
+        """The required flow from section 5 of the M3 delivery plan.
 
         ```text
-        Wish Create -> Convert -> genau ein Plan -> Complete
-        -> Wish + Plan konsistent COMPLETED
+        Wish Create -> Convert -> exactly one Plan -> Complete
+        -> Wish + Plan consistently COMPLETED
         ```
         """
-        w = wunsch(client, paar)
-        assert w["status"] == "OPEN"
+        wish_data = wish(client, pair)
+        assert wish_data["status"] == "OPEN"
 
-        konvertiert = konvertiere(client, paar, w["id"])
-        assert konvertiert.status_code == 201
-        plan = konvertiert.json()["plan"]
-        assert konvertiert.json()["wish"]["status"] == "PLANNED"
+        converted = convert(client, pair, wish_data["id"])
+        assert converted.status_code == 201
+        plan = converted.json()["plan"]
+        assert converted.json()["wish"]["status"] == "PLANNED"
         assert plan["status"] == "IDEA"
-        assert plan["sourceWishId"] == w["id"]
+        assert plan["sourceWishId"] == wish_data["id"]
 
-        # Genau ein Plan - nicht "mindestens einer".
+        # Exactly one Plan, not merely at least one.
         assert len(list(session.execute(select(Plan)).scalars())) == 1
 
-        fertig = aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
-        assert fertig.status_code == 200
-        assert fertig.json()["status"] == "COMPLETED"
+        completed = action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
+        assert completed.status_code == 200
+        assert completed.json()["status"] == "COMPLETED"
 
         session.expire_all()
-        wish_zeile = session.get(Wish, UUID(w["id"]))
-        plan_zeile = session.get(Plan, UUID(plan["id"]))
-        assert wish_zeile.status == WishStatus.COMPLETED.value
-        assert plan_zeile.status == PlanStatus.COMPLETED.value
+        wish_row = session.get(Wish, UUID(wish_data["id"]))
+        plan_row = session.get(Plan, UUID(plan["id"]))
+        assert wish_row.status == WishStatus.COMPLETED.value
+        assert plan_row.status == PlanStatus.COMPLETED.value
 
 
-class TestKonvertierung:
-    def test_der_plan_uebernimmt_ohne_eigenen_titel_den_des_wunsches(  # type: ignore[no-untyped-def]
+class TestConversion:
+    def test_plan_inherits_wish_title_without_own_title(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar, titel="Polarlichter")
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair, title="Polarlichter")
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
         assert plan["title"] == "Polarlichter"
         assert plan["description"] is None
 
-    def test_ein_eigener_titel_gewinnt(self, client, paar) -> None:  # type: ignore[no-untyped-def]
-        w = wunsch(client, paar)
-        plan = konvertiere(
-            client, paar, w["id"], title="Tromsoe im Februar", description="Sechs Naechte."
+    def test_explicit_title_wins(self, client, pair) -> None:  # type: ignore[no-untyped-def]
+        wish_data = wish(client, pair)
+        plan = convert(
+            client,
+            pair,
+            wish_data["id"],
+            title="Tromsoe im Februar",
+            description="Sechs Naechte.",
         ).json()["plan"]
         assert plan["title"] == "Tromsoe im Februar"
         assert plan["description"] == "Sechs Naechte."
 
-    def test_wunsch_und_plan_laufen_danach_getrennt(  # type: ignore[no-untyped-def]
+    def test_wish_and_plan_evolve_independently_after_conversion(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        """M3-D01: eine Umbenennung synchronisiert nicht in die Gegenrichtung."""
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        """M3-D01: renaming one side does not synchronize the other direction."""
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
         client.patch(
-            f"{wishes(paar['space'].id)}/{w['id']}",
+            f"{wishes(pair['space'].id)}/{wish_data['id']}",
             json={"title": "Ganz anderer Wunsch"},
-            headers=if_match(paar["token_a"], 2),
+            headers=if_match(pair["token_a"], 2),
         )
-        gelesen = client.get(
-            f"{plans(paar['space'].id)}/{plan['id']}", headers=auth(paar["token_a"])
+        retrieved = client.get(
+            f"{plans(pair['space'].id)}/{plan['id']}",
+            headers=auth(pair["token_a"]),
         ).json()
-        assert gelesen["title"] == "Nordlichter sehen"
+        assert retrieved["title"] == "Nordlichter sehen"
 
-    def test_der_partner_darf_konvertieren(  # type: ignore[no-untyped-def]
+    def test_partner_may_convert(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        antwort = konvertiere(client, paar, w["id"], token_key="token_b")
-        assert antwort.status_code == 201
-        # Der Plan wird Ben zugeschrieben, der Wish bleibt bei Anna.
-        assert antwort.json()["plan"]["createdBy"] == str(paar["ben"].id)
-        assert antwort.json()["wish"]["createdBy"] == str(paar["anna"].id)
+        wish_data = wish(client, pair)
+        response = convert(client, pair, wish_data["id"], token_key="token_b")
+        assert response.status_code == 201
+        # The Plan is attributed to Ben while the Wish remains attributed to Anna.
+        assert response.json()["plan"]["createdBy"] == str(pair["ben"].id)
+        assert response.json()["wish"]["createdBy"] == str(pair["anna"].id)
 
-    @pytest.mark.parametrize("feld", ["sourceWishId", "status", "plannedStart", "experiencedOn"])
-    def test_kein_serverseitiges_feld_kommt_aus_dem_request(  # type: ignore[no-untyped-def]
+    @pytest.mark.parametrize("field", ["sourceWishId", "status", "plannedStart", "experiencedOn"])
+    def test_server_owned_fields_are_rejected_from_request(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
-        feld: str,
+        pair,
+        field: str,
     ) -> None:
-        w = wunsch(client, paar)
-        werte = {
+        wish_data = wish(client, pair)
+        values = {
             "sourceWishId": str(uuid4()),
             "status": "COMPLETED",
             "plannedStart": "2026-09-01T18:00:00Z",
-            "experiencedOn": gestern(),
+            "experiencedOn": yesterday(),
         }
-        antwort = konvertiere(client, paar, w["id"], **{feld: werte[feld]})
-        assert antwort.status_code == 422
+        response = convert(client, pair, wish_data["id"], **{field: values[field]})
+        assert response.status_code == 422
 
-    def test_ein_veralteter_wunsch_erzeugt_keinen_plan(  # type: ignore[no-untyped-def]
+    def test_stale_wish_creates_no_plan(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
+        wish_data = wish(client, pair)
         client.patch(
-            f"{wishes(paar['space'].id)}/{w['id']}",
+            f"{wishes(pair['space'].id)}/{wish_data['id']}",
             json={"title": "Inzwischen umbenannt"},
-            headers=if_match(paar["token_a"], 1),
+            headers=if_match(pair["token_a"], 1),
         )
 
-        antwort = konvertiere(client, paar, w["id"], version=1)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+        response = convert(client, pair, wish_data["id"], version=1)
+        assert response.status_code == 409
+        assert response.json()["code"] == "RESOURCE_VERSION_CONFLICT"
         assert list(session.execute(select(Plan)).scalars()) == []
 
-    def test_ein_abgeschlossener_wunsch_wird_nicht_erneut_konvertiert(  # type: ignore[no-untyped-def]
+    def test_completed_wish_is_not_converted_again(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
 
-        antwort = konvertiere(client, paar, w["id"], version=3)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "WISH_ALREADY_COMPLETED"
+        response = convert(client, pair, wish_data["id"], version=3)
+        assert response.status_code == 409
+        assert response.json()["code"] == "WISH_ALREADY_COMPLETED"
 
-    def test_ein_fremder_wunsch_bleibt_unsichtbar(  # type: ignore[no-untyped-def]
+    def test_foreign_wish_remains_invisible(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        antwort = konvertiere(client, paar, str(uuid4()))
-        assert antwort.status_code == 404
-        assert antwort.json()["code"] == "WISH_NOT_FOUND"
+        response = convert(client, pair, str(uuid4()))
+        assert response.status_code == 404
+        assert response.json()["code"] == "WISH_NOT_FOUND"
 
 
-class TestIdempotenz:
-    def test_ein_erneuter_aufruf_liefert_denselben_plan(  # type: ignore[no-untyped-def]
+class TestIdempotency:
+    def test_retry_returns_same_plan(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        """Der Client hat die erste Antwort verloren und fragt noch einmal."""
-        w = wunsch(client, paar)
-        erster = konvertiere(client, paar, w["id"])
-        assert erster.status_code == 201
+        """The client lost the first response and retries the request."""
+        wish_data = wish(client, pair)
+        first = convert(client, pair, wish_data["id"])
+        assert first.status_code == 201
 
-        # Bewusst mit der *alten* Wish-Version: genau die haelt ein Client
-        # in der Hand, dessen Antwort unterwegs verlorenging.
-        zweiter = konvertiere(client, paar, w["id"], version=1)
-        assert zweiter.status_code == 200
-        assert zweiter.json()["plan"]["id"] == erster.json()["plan"]["id"]
+        # Deliberately use the old Wish version: that is exactly what a client
+        # has when its response was lost in transit.
+        second = convert(client, pair, wish_data["id"], version=1)
+        assert second.status_code == 200
+        assert second.json()["plan"]["id"] == first.json()["plan"]["id"]
 
         assert len(list(session.execute(select(Plan)).scalars())) == 1
 
-    def test_ein_abweichender_retry_ueberschreibt_nichts(  # type: ignore[no-untyped-def]
+    def test_retry_with_different_payload_overwrites_nothing(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        erster = konvertiere(client, paar, w["id"], title="Erster Titel")
+        wish_data = wish(client, pair)
+        first = convert(client, pair, wish_data["id"], title="Erster Titel")
 
-        zweiter = konvertiere(client, paar, w["id"], version=1, title="Anderer Titel")
-        assert zweiter.status_code == 200
-        assert zweiter.json()["plan"]["title"] == "Erster Titel"
-        assert zweiter.json()["plan"]["version"] == erster.json()["plan"]["version"]
+        second = convert(
+            client,
+            pair,
+            wish_data["id"],
+            version=1,
+            title="Anderer Titel",
+        )
+        assert second.status_code == 200
+        assert second.json()["plan"]["title"] == "Erster Titel"
+        assert second.json()["plan"]["version"] == first.json()["plan"]["version"]
 
-    def test_der_retry_erzeugt_kein_zweites_ereignis(  # type: ignore[no-untyped-def]
+    def test_retry_creates_no_second_event(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        konvertiere(client, paar, w["id"])
-        konvertiere(client, paar, w["id"], version=1)
+        wish_data = wish(client, pair)
+        convert(client, pair, wish_data["id"])
+        convert(client, pair, wish_data["id"], version=1)
 
-        typen = [
-            z.event_type
-            for z in session.execute(
+        event_types = [
+            event.event_type
+            for event in session.execute(
                 select(OutboxEvent).where(
                     OutboxEvent.event_type.in_(["PLAN_CREATED", "WISH_PLANNED"])
                 )
             ).scalars()
         ]
-        assert typen == ["PLAN_CREATED", "WISH_PLANNED"]
+        assert event_types == ["PLAN_CREATED", "WISH_PLANNED"]
 
 
 class TestSourceCompletion:
-    def test_plan_und_wunsch_werden_zusammen_abgeschlossen(  # type: ignore[no-untyped-def]
+    def test_plan_and_wish_complete_together(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
-        aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
+        action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
 
         session.expire_all()
-        assert session.get(Wish, UUID(w["id"])).status == WishStatus.COMPLETED.value
+        assert session.get(Wish, UUID(wish_data["id"])).status == WishStatus.COMPLETED.value
 
-    def test_beide_mutationen_liegen_in_einem_commit(  # type: ignore[no-untyped-def]
+    def test_both_mutations_share_one_commit(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        """Die Ereignisse belegen die Reihenfolge und die gemeinsame Grenze."""
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
+        """The events prove ordering and the shared transaction boundary."""
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
 
-        typen = [
-            z.event_type
-            for z in session.execute(
+        event_types = [
+            event.event_type
+            for event in session.execute(
                 select(OutboxEvent).where(
                     OutboxEvent.event_type.in_(["PLAN_COMPLETED", "WISH_COMPLETED"])
                 )
             ).scalars()
         ]
-        assert typen == ["PLAN_COMPLETED", "WISH_COMPLETED"]
+        assert event_types == ["PLAN_COMPLETED", "WISH_COMPLETED"]
 
-    def test_ein_zukuenftiger_tag_laesst_auch_den_wunsch_unberuehrt(  # type: ignore[no-untyped-def]
+    def test_future_day_leaves_wish_unchanged(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
-        morgen = (today_in(ZONE) + timedelta(days=1)).isoformat()
-        antwort = aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": morgen})
-        assert antwort.status_code == 422
+        tomorrow = (today_in(ZONE) + timedelta(days=1)).isoformat()
+        response = action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": tomorrow},
+        )
+        assert response.status_code == 422
 
         session.expire_all()
-        assert session.get(Wish, UUID(w["id"])).status == WishStatus.PLANNED.value
+        assert session.get(Wish, UUID(wish_data["id"])).status == WishStatus.PLANNED.value
         assert session.get(Plan, UUID(plan["id"])).status == PlanStatus.IDEA.value
 
 
 class TestReturnToWish:
-    def test_der_wunsch_wird_wieder_geoeffnet_und_der_plan_verschwindet(  # type: ignore[no-untyped-def]
+    def test_wish_reopens_and_plan_disappears(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
-        antwort = aktion(client, paar, plan["id"], "return-to-wish", 1)
-        assert antwort.status_code == 200
-        zurueck = antwort.json()
-        assert zurueck["wish"]["status"] == "OPEN"
-        assert zurueck["removedPlanId"] == plan["id"]
+        response = action(client, pair, plan["id"], "return-to-wish", 1)
+        assert response.status_code == 200
+        returned = response.json()
+        assert returned["wish"]["status"] == "OPEN"
+        assert returned["removedPlanId"] == plan["id"]
 
         session.expire_all()
         assert session.get(Plan, UUID(plan["id"])) is None
-        gelesen = client.get(
-            f"{plans(paar['space'].id)}/{plan['id']}", headers=auth(paar["token_a"])
+        retrieved = client.get(
+            f"{plans(pair['space'].id)}/{plan['id']}",
+            headers=auth(pair["token_a"]),
         )
-        assert gelesen.status_code == 404
+        assert retrieved.status_code == 404
 
-    def test_auch_aus_dem_terminierten_zustand(  # type: ignore[no-untyped-def]
+    def test_also_works_from_scheduled_state(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "schedule", 1, {"plannedStart": "2026-09-01T18:00:00Z"})
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "schedule",
+            1,
+            {"plannedStart": "2026-09-01T18:00:00Z"},
+        )
 
-        antwort = aktion(client, paar, plan["id"], "return-to-wish", 2)
-        assert antwort.status_code == 200
-        assert antwort.json()["wish"]["status"] == "OPEN"
+        response = action(client, pair, plan["id"], "return-to-wish", 2)
+        assert response.status_code == 200
+        assert response.json()["wish"]["status"] == "OPEN"
 
-    def test_der_plantext_wird_nicht_in_den_wunsch_zurueckkopiert(  # type: ignore[no-untyped-def]
+    def test_plan_text_is_not_copied_back_to_wish(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        """M3-D03: keine stille Ueberschreibung divergierter Payloads."""
-        w = wunsch(client, paar, titel="Urspruenglicher Wunsch")
-        plan = konvertiere(client, paar, w["id"], title="Inzwischen ganz anders").json()["plan"]
+        """M3-D03: divergent payloads are not silently overwritten."""
+        wish_data = wish(client, pair, title="Urspruenglicher Wunsch")
+        plan = convert(
+            client,
+            pair,
+            wish_data["id"],
+            title="Inzwischen ganz anders",
+        ).json()["plan"]
 
-        zurueck = aktion(client, paar, plan["id"], "return-to-wish", 1).json()
-        assert zurueck["wish"]["title"] == "Urspruenglicher Wunsch"
+        returned = action(client, pair, plan["id"], "return-to-wish", 1).json()
+        assert returned["wish"]["title"] == "Urspruenglicher Wunsch"
 
-    def test_danach_darf_erneut_konvertiert_werden(  # type: ignore[no-untyped-def]
+    def test_wish_can_be_converted_again_after_return(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        """`UNIQUE(source_wish_id)` darf den Wunsch nicht dauerhaft blockieren."""
-        w = wunsch(client, paar)
-        erster = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, erster["id"], "return-to-wish", 1)
+        """`UNIQUE(source_wish_id)` must not block the Wish permanently."""
+        wish_data = wish(client, pair)
+        first = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(client, pair, first["id"], "return-to-wish", 1)
 
-        zweiter = konvertiere(client, paar, w["id"], version=3)
-        assert zweiter.status_code == 201
-        assert zweiter.json()["plan"]["id"] != erster["id"]
+        second = convert(client, pair, wish_data["id"], version=3)
+        assert second.status_code == 201
+        assert second.json()["plan"]["id"] != first["id"]
         assert len(list(session.execute(select(Plan)).scalars())) == 1
 
-    def test_ein_direkter_plan_kann_nicht_zurueckgefuehrt_werden(  # type: ignore[no-untyped-def]
+    def test_direct_plan_cannot_return_to_wish(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        direkt = client.post(
-            plans(paar["space"].id),
+        direct = client.post(
+            plans(pair["space"].id),
             json={"title": "Ohne Wunsch entstanden"},
-            headers=auth(paar["token_a"]),
+            headers=auth(pair["token_a"]),
         ).json()
 
-        antwort = aktion(client, paar, direkt["id"], "return-to-wish", 1)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "PLAN_SOURCE_WISH_REQUIRED"
+        response = action(client, pair, direct["id"], "return-to-wish", 1)
+        assert response.status_code == 409
+        assert response.json()["code"] == "PLAN_SOURCE_WISH_REQUIRED"
 
-    def test_ein_abgeschlossener_plan_kann_nicht_zurueckgefuehrt_werden(  # type: ignore[no-untyped-def]
+    def test_completed_plan_cannot_return_to_wish(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
+        )
 
-        antwort = aktion(client, paar, plan["id"], "return-to-wish", 2)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "PLAN_STATUS_TRANSITION_INVALID"
+        response = action(client, pair, plan["id"], "return-to-wish", 2)
+        assert response.status_code == 409
+        assert response.json()["code"] == "PLAN_STATUS_TRANSITION_INVALID"
 
-    def test_eine_veraltete_version_fuehrt_nichts_zurueck(  # type: ignore[no-untyped-def]
+    def test_stale_version_returns_nothing_to_wish(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
-        antwort = aktion(client, paar, plan["id"], "return-to-wish", 99)
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "RESOURCE_VERSION_CONFLICT"
+        response = action(client, pair, plan["id"], "return-to-wish", 99)
+        assert response.status_code == 409
+        assert response.json()["code"] == "RESOURCE_VERSION_CONFLICT"
 
         session.expire_all()
         assert session.get(Plan, UUID(plan["id"])) is not None
-        assert session.get(Wish, UUID(w["id"])).status == WishStatus.PLANNED.value
+        assert session.get(Wish, UUID(wish_data["id"])).status == WishStatus.PLANNED.value
 
-    def test_die_ereignisse_benennen_beide_folgen(  # type: ignore[no-untyped-def]
+    def test_events_name_both_effects(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "return-to-wish", 1, token_key="token_b")
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(client, pair, plan["id"], "return-to-wish", 1, token_key="token_b")
 
-        letzte = list(
+        latest = list(
             session.execute(
                 select(OutboxEvent).where(
                     OutboxEvent.event_type.in_(["PLAN_DELETED", "WISH_REOPENED"])
                 )
             ).scalars()
         )
-        assert [z.event_type for z in letzte] == ["PLAN_DELETED", "WISH_REOPENED"]
-        assert all(z.actor_id == paar["ben"].id for z in letzte)
+        assert [event.event_type for event in latest] == ["PLAN_DELETED", "WISH_REOPENED"]
+        assert all(event.actor_id == pair["ben"].id for event in latest)
 
 
 class TestPlanDeleteMatrix:
-    """Die Plan-Zeilen aus M3-D05."""
+    """The Plan rows from M3-D05."""
 
-    def test_ein_offener_source_plan_wird_nicht_geloescht(  # type: ignore[no-untyped-def]
+    def test_open_source_plan_is_not_deleted(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
 
-        antwort = client.delete(
-            f"{plans(paar['space'].id)}/{plan['id']}", headers=if_match(paar["token_a"], 1)
+        response = client.delete(
+            f"{plans(pair['space'].id)}/{plan['id']}",
+            headers=if_match(pair["token_a"], 1),
         )
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "PLAN_HAS_SOURCE_WISH"
+        assert response.status_code == 409
+        assert response.json()["code"] == "PLAN_HAS_SOURCE_WISH"
 
         session.expire_all()
         assert session.get(Plan, UUID(plan["id"])) is not None
 
-    def test_ein_terminierter_source_plan_wird_nicht_geloescht(  # type: ignore[no-untyped-def]
+    def test_scheduled_source_plan_is_not_deleted(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "schedule", 1, {"plannedStart": "2026-09-01T18:00:00Z"})
-
-        antwort = client.delete(
-            f"{plans(paar['space'].id)}/{plan['id']}", headers=if_match(paar["token_a"], 2)
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "schedule",
+            1,
+            {"plannedStart": "2026-09-01T18:00:00Z"},
         )
-        assert antwort.status_code == 409
-        assert antwort.json()["code"] == "PLAN_HAS_SOURCE_WISH"
 
-    def test_ein_abgeschlossener_source_plan_darf_geloescht_werden(  # type: ignore[no-untyped-def]
+        response = client.delete(
+            f"{plans(pair['space'].id)}/{plan['id']}",
+            headers=if_match(pair["token_a"], 2),
+        )
+        assert response.status_code == 409
+        assert response.json()["code"] == "PLAN_HAS_SOURCE_WISH"
+
+    def test_completed_source_plan_may_be_deleted(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
         session,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
-        aktion(client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()})
-
-        antwort = client.delete(
-            f"{plans(paar['space'].id)}/{plan['id']}", headers=if_match(paar["token_a"], 2)
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
+        action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
         )
-        assert antwort.status_code == 204
 
-        # Keine Cascade in die Gegenrichtung: der Wunsch bleibt stehen.
+        response = client.delete(
+            f"{plans(pair['space'].id)}/{plan['id']}",
+            headers=if_match(pair["token_a"], 2),
+        )
+        assert response.status_code == 204
+
+        # No cascade in the opposite direction: the Wish remains.
         session.expire_all()
-        assert session.get(Wish, UUID(w["id"])).status == WishStatus.COMPLETED.value
+        assert session.get(Wish, UUID(wish_data["id"])).status == WishStatus.COMPLETED.value
 
-    def test_die_faehigkeiten_spiegeln_die_matrix(  # type: ignore[no-untyped-def]
+    def test_capabilities_reflect_matrix(  # type: ignore[no-untyped-def]
         self,
         client,
-        paar,
+        pair,
     ) -> None:
-        w = wunsch(client, paar)
-        plan = konvertiere(client, paar, w["id"]).json()["plan"]
+        wish_data = wish(client, pair)
+        plan = convert(client, pair, wish_data["id"]).json()["plan"]
         assert plan["capabilities"]["canDelete"] is False
 
-        abgeschlossen = aktion(
-            client, paar, plan["id"], "complete", 1, {"experiencedOn": gestern()}
+        completed = action(
+            client,
+            pair,
+            plan["id"],
+            "complete",
+            1,
+            {"experiencedOn": yesterday()},
         ).json()
-        assert abgeschlossen["capabilities"]["canDelete"] is True
+        assert completed["capabilities"]["canDelete"] is True

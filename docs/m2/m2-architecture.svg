@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1100" viewBox="0 0 1600 1100" role="img" aria-labelledby="title desc">
-  <title id="title">SideBySide Next – M2 Memory Core Zielarchitektur</title>
-  <desc id="desc">Menschenlesbare Architekturübersicht für Web und Android, REST API, Tenant Guard, M2-Domänen, Story Read Model, Attachments, MediaStore, Datenbank, Outbox und Privacy-Grenzen.</desc>
+  <title id="title">eimir. – M2 Memory Core target architecture</title>
+  <desc id="desc">Human-readable architecture overview for Web and Android, REST API, Tenant Guard, M2 Domains, Story Read Model, Attachments, MediaStore, database, Outbox, and Privacy boundaries.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#FBF9FD"/>
@@ -63,13 +63,13 @@
     <rect x="0" y="0" width="214" height="34" rx="17" fill="#EEE7FF"/>
     <circle cx="18" cy="17" r="5" fill="#7C4DFF"/>
     <text x="34" y="23" class="eyebrow" fill="#6540C9" font-size="13">M2 · MEMORY CORE</text>
-    <text x="0" y="90" class="h1">Vom privaten Moment zur gemeinsamen Story</text>
-    <text x="0" y="128" class="subtitle">Eine API, zwei Clients – tenant-sicher, privacy-first und E2EE-ready.</text>
+    <text x="0" y="90" class="h1">From a private moment to the shared Story</text>
+    <text x="0" y="128" class="subtitle">One API, two clients – Tenant-safe, Privacy-first, and E2EE-ready.</text>
   </g>
   <g transform="translate(1366 82)">
     <circle cx="34" cy="34" r="34" fill="url(#hero)" filter="url(#soft)"/>
     <path d="M20 35 C20 24, 33 21, 38 31 C43 21, 56 24, 56 35 C56 46, 38 56, 38 56 C38 56, 20 46, 20 35Z" fill="#FFFFFF"/>
-    <text x="82" y="30" class="small" fill="#211A2B">SideBySide</text>
+    <text x="82" y="30" class="small" fill="#211A2B">eimir.</text>
     <text x="82" y="51" class="micro">NEXT · TARGET VIEW</text>
   </g>
 
@@ -134,9 +134,9 @@
     <rect x="0" y="0" width="58" height="58" rx="18" fill="#1769AA"/>
     <path d="M17 19 H41 M17 29 H35 M17 39 H41" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
     <text x="78" y="24" class="cardTitle">Story Query</text>
-    <text x="78" y="49" class="small" fill="#1769AA">ABGELEITET · NICHT PERSISTIERT</text>
-    <text x="0" y="95" class="cardText">führt erlaubte Erinnerungen zu einer</text>
-    <text x="0" y="119" class="cardText">chronologischen Timeline zusammen</text>
+    <text x="78" y="49" class="small" fill="#1769AA">DERIVED · NOT PERSISTED</text>
+    <text x="0" y="95" class="cardText">combines permitted Memories into a</text>
+    <text x="0" y="119" class="cardText">chronological Timeline</text>
     <g transform="translate(0 146)">
       <rect x="0" y="0" width="240" height="34" rx="17" fill="#FFFFFF"/>
       <text x="17" y="22" class="pill" fill="#1769AA">FILTER · SEARCH · CURSOR</text>
@@ -144,7 +144,7 @@
       <text x="17" y="68" class="pill" fill="#1769AA">AUTHOR · MEDIA · MONTH</text>
     </g>
     <rect x="0" y="244" width="240" height="34" rx="17" fill="#FFE7EE"/>
-    <text x="15" y="266" class="pill" fill="#A61F51">PRIVATE WIRD VORHER ENTFERNT</text>
+    <text x="15" y="266" class="pill" fill="#A61F51">PRIVATE REMOVED FIRST</text>
   </g>
 
   <!-- Domain core -->
@@ -159,14 +159,14 @@
       <circle cx="42" cy="46" r="25" fill="#7C4DFF"/>
       <path d="M29 48 C29 38, 40 35, 43 43 C47 35, 57 38, 57 48 C57 57, 43 65, 43 65 C43 65, 29 57, 29 48Z" fill="#FFFFFF"/>
       <text x="82" y="38" class="cardTitle">Memory</text>
-      <text x="82" y="63" class="cardText">Text · Datum · mehrere Medien</text>
+      <text x="82" y="63" class="cardText">Text · date · multiple Media</text>
     </g>
     <g transform="translate(324 40)">
       <rect x="0" y="0" width="330" height="92" rx="20" fill="url(#private)" stroke="#F4B7CA"/>
       <circle cx="42" cy="46" r="25" fill="#A61F51"/>
       <path d="M30 48 C30 39, 40 35, 43 43 C47 35, 56 39, 56 48 C56 57, 43 64, 43 64 C43 64, 30 57, 30 48Z" fill="#FFFFFF"/>
       <text x="82" y="35" class="cardTitle">HeartMoment</text>
-      <text x="82" y="61" class="cardText">SHARED oder PRIVATE</text>
+      <text x="82" y="61" class="cardText">SHARED or PRIVATE</text>
       <rect x="224" y="16" width="88" height="24" rx="12" fill="#FFFFFF"/>
       <text x="238" y="33" class="pill" fill="#A61F51">OWNER ONLY</text>
     </g>
@@ -175,14 +175,14 @@
       <circle cx="42" cy="46" r="25" fill="#B87800"/>
       <path d="M42 28 l5 11 l12 2 l-9 9 l2 12 l-10 -6 l-11 6 l3 -12 l-9 -9 l12 -2z" fill="#FFFFFF"/>
       <text x="82" y="38" class="cardTitle">Milestone</text>
-      <text x="82" y="63" class="cardText">eigenständig · Story-ready</text>
+      <text x="82" y="63" class="cardText">dedicated · Story-ready</text>
     </g>
     <g transform="translate(324 151)">
       <rect x="0" y="0" width="330" height="92" rx="20" fill="#E3F6F1"/>
       <circle cx="42" cy="46" r="25" fill="#237A65"/>
       <path d="M28 34 H56 V53 H43 L34 61 V53 H28Z" fill="#FFFFFF"/>
       <text x="82" y="38" class="cardTitle">Comment</text>
-      <text x="82" y="63" class="cardText">nur erlaubte Shared Targets</text>
+      <text x="82" y="63" class="cardText">permitted Shared Targets only</text>
     </g>
   </g>
 
@@ -203,7 +203,7 @@
       <circle cx="251" cy="20" r="8" fill="#237A65"/>
       <text x="267" y="26" class="pill" fill="#237A65">READY</text>
     </g>
-    <text x="0" y="164" class="cardText">MIME · Größe · Dimensionen · Space</text>
+    <text x="0" y="164" class="cardText">MIME · size · dimensions · Space</text>
     <rect x="0" y="184" width="139" height="44" rx="16" fill="#FFFFFF"/>
     <text x="21" y="212" class="pill" fill="#237A65">LOCAL STORE</text>
     <rect x="157" y="184" width="139" height="44" rx="16" fill="#FFFFFF"/>
@@ -221,7 +221,7 @@
     <rect x="0" y="0" width="1098" height="54" rx="18" fill="#F6F1FF" stroke="#D7C9F7" stroke-dasharray="7 6"/>
     <path d="M25 31 v-8 a9 9 0 0 1 18 0 v8 M21 31 h26 v17 H21z" fill="none" stroke="#7C4DFF" stroke-width="3"/>
     <text x="70" y="34" class="pill" fill="#6540C9">PROTECTED PAYLOAD BOUNDARY</text>
-    <text x="318" y="34" class="cardText">sensible Inhalte getrennt · cryptoVersion · keine Plaintext-Annahme</text>
+    <text x="318" y="34" class="cardText">sensitive content separated · cryptoVersion · no plaintext assumption</text>
     <rect x="889" y="11" width="186" height="32" rx="16" fill="#FFFFFF"/>
     <text x="913" y="32" class="pill" fill="#6540C9">E2EE-READY ≠ E2EE</text>
   </g>
@@ -239,26 +239,26 @@
     <rect x="4" y="10" width="48" height="34" fill="#7C4DFF"/>
     <ellipse cx="28" cy="44" rx="24" ry="9" fill="#6540C9"/>
     <text x="74" y="22" class="cardTitle">Postgres</text>
-    <text x="74" y="47" class="cardText">tenant-scoped truth</text>
+    <text x="74" y="47" class="cardText">Tenant-scoped truth</text>
   </g>
   <g transform="translate(456 983)">
     <rect x="0" y="0" width="54" height="48" rx="14" fill="#FFF2D5"/>
     <path d="M12 16 H42 M12 25 H42 M12 34 H32" stroke="#B87800" stroke-width="3" stroke-linecap="round"/>
     <text x="75" y="22" class="cardTitle">Transactional Outbox</text>
-    <text x="75" y="47" class="cardText">minimal domain events</text>
+    <text x="75" y="47" class="cardText">minimal Domain Events</text>
   </g>
   <g transform="translate(814 983)">
     <circle cx="27" cy="24" r="24" fill="#E7F2FF"/>
     <path d="M17 24 H37 M30 17 l7 7 l-7 7" fill="none" stroke="#1769AA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="70" y="22" class="cardTitle">Worker</text>
-    <text x="70" y="47" class="cardText">retry · dedupe</text>
+    <text x="70" y="47" class="cardText">Retry · dedupe</text>
   </g>
   <g transform="translate(1140 983)">
     <rect x="0" y="0" width="54" height="48" rx="14" fill="#FFE7EE"/>
     <path d="M14 32 H40 L36 27 V20 C36 11 18 11 18 20 V27Z" fill="#A61F51"/>
     <circle cx="27" cy="38" r="4" fill="#A61F51"/>
     <text x="75" y="22" class="cardTitle">Notification</text>
-    <text x="75" y="47" class="cardText">privacy-safe preview · optional push</text>
+    <text x="75" y="47" class="cardText">Privacy-safe Preview · optional Push</text>
   </g>
   <path d="M404 1005 H418" class="linePurple" marker-end="url(#arrowPurple)"/>
   <path d="M762 1005 H776" class="lineBlue" marker-end="url(#arrowBlue)"/>
@@ -271,11 +271,11 @@
   <!-- footer guardrails -->
   <g transform="translate(86 1063)">
     <circle cx="7" cy="7" r="7" fill="#7C4DFF"/>
-    <text x="24" y="12" class="micro">KEINE ECHTE E2EE IM MVP</text>
+    <text x="24" y="12" class="micro">NO REAL E2EE IN MVP</text>
     <circle cx="286" cy="7" r="7" fill="#1769AA"/>
-    <text x="303" y="12" class="micro">OFFLINE READ JA · WRITE NEIN</text>
+    <text x="303" y="12" class="micro">OFFLINE READ YES · WRITE NO</text>
     <circle cx="612" cy="7" r="7" fill="#A61F51"/>
-    <text x="629" y="12" class="micro">PRIVATE SERVERSEITIG ERZWUNGEN</text>
+    <text x="629" y="12" class="micro">PRIVATE ENFORCED SERVER-SIDE</text>
     <text x="1280" y="12" class="micro">24.08.2026 · V1.0</text>
   </g>
 </svg>

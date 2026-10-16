@@ -1,0 +1,315 @@
+.our-moments-page {
+  width: min(100%, 54rem);
+  margin-inline: auto;
+}
+
+.our-moments-heading {
+  margin-bottom: var(--space-5);
+}
+
+.our-moments-session {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.our-moments-turn {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-1) var(--space-3);
+}
+
+.our-moments-turn > div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.our-moments-score strong {
+  color: var(--color-text);
+}
+
+.our-moments-card-context strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  line-height: 1.15;
+}
+
+.our-moments-card-context span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.our-moments-turn > div > span {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.our-moments-turn > div > strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 4vw, 1.55rem);
+}
+
+.our-moments-score {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.our-moments-board {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.our-moments-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: clamp(8rem, 36vw, 10.5rem);
+  overflow: hidden;
+  place-items: stretch;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: 0;
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-soft);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.our-moments-card:not(:disabled):active {
+  transform: scale(0.985);
+}
+
+.our-moments-card:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.our-moments-card:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.our-moments-card-hidden {
+  border-color: color-mix(
+    in srgb,
+    var(--color-brand-text) 18%,
+    var(--color-border-subtle)
+  );
+  background:
+    radial-gradient(
+      circle at 76% 18%,
+      var(--color-brand-surface),
+      transparent 40%
+    ),
+    var(--color-surface-raised);
+}
+
+.our-moments-card-back {
+  display: grid;
+  min-height: 100%;
+  place-items: center;
+}
+
+.our-moments-card-back-mark {
+  position: relative;
+  width: 3.2rem;
+  height: 2.2rem;
+}
+
+.our-moments-card-back-mark::before,
+.our-moments-card-back-mark::after {
+  position: absolute;
+  top: 0.15rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid var(--color-brand-text);
+  border-radius: 50%;
+  content: "";
+  opacity: 0.78;
+}
+
+.our-moments-card-back-mark::before {
+  left: 0.2rem;
+}
+
+.our-moments-card-back-mark::after {
+  right: 0.2rem;
+}
+
+.our-moments-card-photo img,
+.our-moments-match-reveal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.our-moments-card-context {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: left;
+  background:
+    radial-gradient(
+      circle at 86% 8%,
+      var(--color-shared-surface),
+      transparent 44%
+    ),
+    var(--color-surface-raised);
+}
+
+.our-moments-card-matched {
+  border-color: color-mix(
+    in srgb,
+    var(--color-brand-text) 45%,
+    var(--color-border-subtle)
+  );
+  box-shadow: var(--shadow-card);
+}
+
+.our-moments-match-reveal {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.9fr) minmax(0, 1.25fr);
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.our-moments-match-reveal img {
+  min-height: 10rem;
+}
+
+.our-moments-match-reveal > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-5);
+}
+
+.our-moments-match-reveal .eyebrow {
+  margin-bottom: var(--space-1);
+}
+
+.our-moments-match-reveal h2,
+.our-moments-sparse h2,
+.our-moments-finish h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+}
+
+.our-moments-match-reveal h2 {
+  font-size: clamp(1.3rem, 5vw, 1.8rem);
+}
+
+.our-moments-match-reveal p:not(.eyebrow) {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+.our-moments-match-reveal button {
+  min-height: 44px;
+}
+
+.our-moments-sparse,
+.our-moments-finish {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  padding: clamp(var(--space-5), 6vw, var(--space-8));
+  background:
+    radial-gradient(
+      circle at top right,
+      var(--color-shared-surface),
+      transparent 48%
+    ),
+    var(--color-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+
+.our-moments-sparse p,
+.our-moments-finish p {
+  max-width: 40rem;
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.our-moments-finish-score {
+  font-weight: 700;
+}
+
+.our-moments-finish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 720px) {
+  .our-moments-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .our-moments-card {
+    min-height: 10rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .our-moments-board {
+    gap: var(--space-2);
+  }
+
+  .our-moments-card {
+    min-height: 7.5rem;
+  }
+
+  .our-moments-card-context {
+    padding: var(--space-3);
+  }
+
+  .our-moments-match-reveal {
+    grid-template-columns: 1fr;
+  }
+
+  .our-moments-match-reveal img {
+    aspect-ratio: 16 / 9;
+    min-height: 0;
+  }
+
+  .our-moments-turn {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .our-moments-score {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .our-moments-card {
+    transition: none;
+  }
+}

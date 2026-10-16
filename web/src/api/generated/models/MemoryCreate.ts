@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -24,13 +24,19 @@ export interface MemoryCreate {
      * @type {string}
      * @memberof MemoryCreate
      */
-    body: string;
+    body?: string;
     /**
      * 
      * @type {Date}
      * @memberof MemoryCreate
      */
     happenedOn?: Date | null;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof MemoryCreate
+     */
+    tags?: Array<string>;
     /**
      * 
      * @type {string}
@@ -43,7 +49,6 @@ export interface MemoryCreate {
  * Check if a given object implements the MemoryCreate interface.
  */
 export function instanceOfMemoryCreate(value: object): value is MemoryCreate {
-    if (!('body' in value) || value['body'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     return true;
 }
@@ -58,8 +63,9 @@ export function MemoryCreateFromJSONTyped(json: any, ignoreDiscriminator: boolea
     }
     return {
         
-        'body': json['body'],
+        'body': json['body'] == null ? undefined : json['body'],
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] == null ? undefined : json['tags'],
         'title': json['title'],
     };
 }
@@ -77,6 +83,7 @@ export function MemoryCreateToJSONTyped(value?: MemoryCreate | null, ignoreDiscr
         
         'body': value['body'],
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'title': value['title'],
     };
 }

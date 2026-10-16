@@ -1,0 +1,435 @@
+{
+  "description": "Production Web App F2 task-boundary browser evidence with synthetic HTTP transport.",
+  "startedAt": "2026-09-16T06:44:52.103Z",
+  "durationMs": 117541.134,
+  "sourceCommit": "23862d61759558836d5c605e3340e665d57d0e39",
+  "captureStartHead": "23862d61759558836d5c605e3340e665d57d0e39",
+  "sourceIdentity": {
+    "manifest": "f2-web-source-hashes.json",
+    "filesSha256": "3f0a97c586fcc45d4a3e8f3df79d8adbfbe6467fc1c68033bf1a47cc61380579",
+    "unchangedDuringCapture": true,
+    "files": 929,
+    "runtimeFilesSha256": "106281b66a8efd69a8d227c7403e85aa4d4eb18617914e6e428939f5d7409ecd",
+    "runtimeFiles": 791
+  },
+  "browser": {
+    "engine": "Chromium",
+    "version": "151.0.7922.34",
+    "playwright": "1.62.1",
+    "locale": "de-DE",
+    "deviceScaleFactor": 1,
+    "workers": 1,
+    "retries": 0
+  },
+  "server": {
+    "root": "web/",
+    "port": 4188,
+    "hmr": false,
+    "explicitWorktreeRoot": true
+  },
+  "scenario": {
+    "path": "web/e2e/tests/f2-task-boundaries.spec.ts",
+    "captureSha256": "741e1777e6b3e33ed9e0ff9ec66cc3cd68ac2eb2bea594b3891f5262b0d4560c",
+    "reviewedSha256": "741e1777e6b3e33ed9e0ff9ec66cc3cd68ac2eb2bea594b3891f5262b0d4560c",
+    "reviewedCommit": "23862d61759558836d5c605e3340e665d57d0e39",
+    "afterCaptureChange": "None."
+  },
+  "runtimeCommit": "23862d61759558836d5c605e3340e665d57d0e39",
+  "transport": "Only /api/v1 HTTP requests are stubbed. The production router, form, attachment flow, modal adapter and query consumers run unchanged.",
+  "photo": {
+    "path": "backend/demo_assets/images/cabin-lake.jpg",
+    "provenance": "Existing repository-approved CC0 fixture, reused from F1."
+  },
+  "matrix": {
+    "widthsCssPx": [
+      320,
+      360,
+      390,
+      430,
+      1280
+    ],
+    "heightCssPx": 844,
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "reducedMotion": true,
+    "largeText": {
+      "rootFontSize": "200%",
+      "widthCssPx": 320,
+      "heightCssPx": 480,
+      "theme": "dark"
+    }
+  },
+  "accessibility": "Axe WCAG2A/AA and WCAG2.1AA checks pass on the real Memory create surface at 390px in Light and Dark. Native dialog modal state, inactive background, Escape/Browser Back and trigger focus are exercised; browser chrome traversal is permitted. At 200% text, word ranges remain whole in optional-detail/media labels, the native date value has room for its calendar control, and actions remain reachable.",
+  "limits": [
+    "Headless desktop Chromium viewport simulation is not a physical phone or keyboard/IME test.",
+    "No human screen-reader session or alternate-browser acceptance is claimed.",
+    "Stubbed transport proves client outcome handling, not live backend persistence or network reliability.",
+    "This slice does not accept final R1/R2 screen compositions."
+  ],
+  "summary": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "Quick Create cancellation and Browser Back return to its trigger",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2470
+    },
+    {
+      "title": "Quick Create native modality prevents background focus and activation",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 1773
+    },
+    {
+      "title": "content and photo save opens the confirmed canonical Memory and returns to its scope",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3128
+    },
+    {
+      "title": "a pending submission retains its draft and cannot create twice or exit",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2618
+    },
+    {
+      "title": "dirty Browser Back asks before discarding and nested Escape keeps the task",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3052
+    },
+    {
+      "title": "an older Memory returns to the same loaded Timeline range and position",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2478
+    },
+    {
+      "title": "direct entry has a safe canonical return and no fabricated browsing origin",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2511
+    },
+    {
+      "title": "failed photo binding retries only binding and never creates a second Memory",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2632
+    },
+    {
+      "title": "unknown create outcome retains content and blocks blind resubmission",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3461
+    },
+    {
+      "title": "confirmed create is still a success when a subsequent Timeline refresh fails",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2964
+    },
+    {
+      "title": "a refused create keeps editable input for a deliberate retry",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2591
+    },
+    {
+      "title": "dirty reload uses beforeunload and cancellation keeps authored content",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2492
+    },
+    {
+      "title": "filter choices apply deliberately, cancel preserves scope, and no-match recovery stays visible",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 4408
+    },
+    {
+      "title": "a committed photo bind with a lost response reconciles without another write",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2513
+    },
+    {
+      "title": "a partial result can open the known Memory with its photo warning",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2200
+    },
+    {
+      "title": "failed uploads retain authored content and can retry before the first create",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3112
+    },
+    {
+      "title": "offline before submit keeps an editable draft without a network create",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2608
+    },
+    {
+      "title": "authored draft text never enters task history or browser key-value storage",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3194
+    },
+    {
+      "title": "unrecognized or external origin keys fall back to canonical Story",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 11821
+    },
+    {
+      "title": "an unsupported date stays editable and never starts a network save",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3322
+    },
+    {
+      "title": "edit Cancel and explicit Back keep the selected Memory origin",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 6034
+    },
+    {
+      "title": "large text and a short Compact viewport keep task actions reachable",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 1805
+    },
+    {
+      "title": "task remains operable at 320px in light",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2063
+    },
+    {
+      "title": "task remains operable at 320px in dark",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2717
+    },
+    {
+      "title": "task remains operable at 360px in light",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2438
+    },
+    {
+      "title": "task remains operable at 360px in dark",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 2573
+    },
+    {
+      "title": "task remains operable at 390px in light",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 4904
+    },
+    {
+      "title": "task remains operable at 390px in dark",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 5546
+    },
+    {
+      "title": "task remains operable at 430px in light",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 5468
+    },
+    {
+      "title": "task remains operable at 430px in dark",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 4005
+    },
+    {
+      "title": "task remains operable at 1280px in light",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 4192
+    },
+    {
+      "title": "task remains operable at 1280px in dark",
+      "project": "chromium",
+      "status": "passed",
+      "durationMs": 3724
+    }
+  ],
+  "selectedScreenshots": [
+    {
+      "file": "f2-restored-older-timeline-390-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "7102df23d83e28edb3e9c4ff93d94a15fc989c0aaba9b2e2e040d051700a6116"
+    },
+    {
+      "file": "f2-partial-photo-binding.png",
+      "width": 390,
+      "height": 1507,
+      "sha256": "671614a2c061ac044e407f5cdf79a79623cbf3b55e8abf33e9daa11b654f2d33"
+    },
+    {
+      "file": "f2-filter-no-matches.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "6cd2cc4f8527c4a5479d0fc1cb4af7f07bb5ad18770fd1bdc4df15dacec000f4"
+    },
+    {
+      "file": "f2-large-text-short-compact.png",
+      "width": 320,
+      "height": 2435,
+      "sha256": "0622ebba1f32c83015be92c3a7bdc052ad56056aad66bfa5c6cc42ed25da5c11"
+    },
+    {
+      "file": "f2-create-1280-dark.png",
+      "width": 1280,
+      "height": 1195,
+      "sha256": "a6aceb5044664c8579ce6b1c069ef7f1bee0567f76301b60794cc979ad703d81"
+    },
+    {
+      "file": "f2-filter-1280-dark.png",
+      "width": 1280,
+      "height": 844,
+      "sha256": "e22671c67d9b651634236e140fcb2ef15c46eabc94a6460990f6bcc9f1248d2a"
+    },
+    {
+      "file": "f2-quick-create-1280-dark.png",
+      "width": 1280,
+      "height": 844,
+      "sha256": "0eabec231b933d5b7c1ca67a2c8b77a9058e21cb8c9c60fba9babf4dce875ed7"
+    },
+    {
+      "file": "f2-result-1280-dark.png",
+      "width": 1280,
+      "height": 1753,
+      "sha256": "73f95f7908bb4986c441c79d0db367428ffd8b9abe5c32df8de903969945fea7"
+    },
+    {
+      "file": "f2-create-1280-light.png",
+      "width": 1280,
+      "height": 1195,
+      "sha256": "20eed8b0dc4190898a486c9b507b01ea50337033cb2d14979f11ef1d69830ff8"
+    },
+    {
+      "file": "f2-filter-1280-light.png",
+      "width": 1280,
+      "height": 844,
+      "sha256": "04e6b32d6b516b0d872aef911cf63cbb071eef1d8f7f30a907befe61d0c67205"
+    },
+    {
+      "file": "f2-quick-create-1280-light.png",
+      "width": 1280,
+      "height": 844,
+      "sha256": "82273bf0146730ae015b50d43eb3107d32ffa24d6daba4a1b1711d3b4d690588"
+    },
+    {
+      "file": "f2-result-1280-light.png",
+      "width": 1280,
+      "height": 1753,
+      "sha256": "d7d54bd50199b09d31b978fe780b105407ef0a9b5b41057b1c90a59827bb17fa"
+    },
+    {
+      "file": "f2-create-320-dark.png",
+      "width": 320,
+      "height": 1242,
+      "sha256": "cda8d178652603cf6e18dbb9526d0daac8d9e3838bd4d8ea5c3eb6a7d378d612"
+    },
+    {
+      "file": "f2-create-320-light.png",
+      "width": 320,
+      "height": 1242,
+      "sha256": "004a4b4a64239245aad6523fa7cecad3fc27399c9dd653e0c14834c70bc55704"
+    },
+    {
+      "file": "f2-create-360-dark.png",
+      "width": 360,
+      "height": 1209,
+      "sha256": "e5e260e0e4d6296f65617d89bbac88f3252acc6d8dc5dcac02235080c0b37ac7"
+    },
+    {
+      "file": "f2-create-360-light.png",
+      "width": 360,
+      "height": 1209,
+      "sha256": "efe049e9384670b6917e0456e0e2d759d4dbaa0793c9126bb75a985f6a721ef0"
+    },
+    {
+      "file": "f2-create-390-dark.png",
+      "width": 390,
+      "height": 1213,
+      "sha256": "e034ab2f06083e3d13a3a0d4283f0380b5680a80db9eb6dbb923c89640bca2dc"
+    },
+    {
+      "file": "f2-filter-390-dark.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "6055ecf881b920534d0b5a3cd0091611ce7963e7b58977709d6662801a4c6ad6"
+    },
+    {
+      "file": "f2-quick-create-390-dark.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "372d343e4cf14e627f285b681acdbbb7ffa65ad4d2e23108eaa36dc2c7a58b8f"
+    },
+    {
+      "file": "f2-result-390-dark.png",
+      "width": 390,
+      "height": 1605,
+      "sha256": "3a822155b96a6072968c76ca26c64fffbac9b2a78f58d9eeaa549f10b2eb12bf"
+    },
+    {
+      "file": "f2-create-390-light.png",
+      "width": 390,
+      "height": 1213,
+      "sha256": "16100dd979143a49ad86e4dd822b8b02a4574da1b8423cd4641798a4e44a8822"
+    },
+    {
+      "file": "f2-filter-390-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "eae2c90b7e2143bb8dd8c757597f66af8f728fbcd5f69c72ceb0ab12ff9ab15b"
+    },
+    {
+      "file": "f2-quick-create-390-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "7cc7e58fde6695bba1a394717d41451d7ce7269f85e5a7810e033eff2ed8c689"
+    },
+    {
+      "file": "f2-result-390-light.png",
+      "width": 390,
+      "height": 1605,
+      "sha256": "336719a0d047865904b98fc6a2fbb7e467fca3760232c2a4d881e348b0f13b78"
+    },
+    {
+      "file": "f2-create-430-dark.png",
+      "width": 430,
+      "height": 1213,
+      "sha256": "f4774c547cf3d4d32acb6873d304f5a9df281a4302677ee6b0c4cff4d79c6db3"
+    },
+    {
+      "file": "f2-create-430-light.png",
+      "width": 430,
+      "height": 1213,
+      "sha256": "6084cdf39af75cd3c438ae38c5242c0cecc590bf51d9879a0346963cd11947ee"
+    },
+    {
+      "file": "f2-unknown-create-outcome.png",
+      "width": 390,
+      "height": 1389,
+      "sha256": "f77821f2e71c1417ed7ab1a1859a4286b167d3cd684f9062265cc560769394e7"
+    }
+  ]
+}

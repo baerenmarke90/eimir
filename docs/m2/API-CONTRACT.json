@@ -415,7 +415,8 @@
     "AttachmentFinalize": [],
     "AttachmentReadRequest": [
       "parentType",
-      "parentId"
+      "parentId",
+      "variant"
     ]
   },
   "attachmentPublicFields": [
@@ -463,7 +464,11 @@
     {
       "parentType": "NONE",
       "requiresParentId": false,
-      "note": "eigener, noch ungebundener Upload im Bindungsfenster (M2-D24)"
+      "note": "owner's still-unbound upload within the binding window (M2-D24)"
+    },
+    {
+      "parentType": "RELATED_PERSON",
+      "requiresParentId": true
     }
   ]
 }

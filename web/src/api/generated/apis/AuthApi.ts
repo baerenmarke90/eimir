@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,15 +14,40 @@
 
 import * as runtime from '../runtime';
 import {
+    type AccountCapabilitiesView,
+    AccountCapabilitiesViewFromJSON,
+    AccountCapabilitiesViewToJSON,
+} from '../models/AccountCapabilitiesView';
+import {
+    type AccountMembershipView,
+    AccountMembershipViewFromJSON,
+    AccountMembershipViewToJSON,
+} from '../models/AccountMembershipView';
+import {
     type AccountView,
     AccountViewFromJSON,
     AccountViewToJSON,
 } from '../models/AccountView';
 import {
+    type CapabilitiesView,
+    CapabilitiesViewFromJSON,
+    CapabilitiesViewToJSON,
+} from '../models/CapabilitiesView';
+import {
     type ChangePasswordRequest,
     ChangePasswordRequestFromJSON,
     ChangePasswordRequestToJSON,
 } from '../models/ChangePasswordRequest';
+import {
+    type EimirApiV1AuthOidcCallbackRequest,
+    EimirApiV1AuthOidcCallbackRequestFromJSON,
+    EimirApiV1AuthOidcCallbackRequestToJSON,
+} from '../models/EimirApiV1AuthOidcCallbackRequest';
+import {
+    type EimirApiV1RecentAuthenticationOidcCallbackRequest,
+    EimirApiV1RecentAuthenticationOidcCallbackRequestFromJSON,
+    EimirApiV1RecentAuthenticationOidcCallbackRequestToJSON,
+} from '../models/EimirApiV1RecentAuthenticationOidcCallbackRequest';
 import {
     type EmailRequest,
     EmailRequestFromJSON,
@@ -33,11 +58,6 @@ import {
     MagicLinkConsumeRequestFromJSON,
     MagicLinkConsumeRequestToJSON,
 } from '../models/MagicLinkConsumeRequest';
-import {
-    type OidcCallbackRequest,
-    OidcCallbackRequestFromJSON,
-    OidcCallbackRequestToJSON,
-} from '../models/OidcCallbackRequest';
 import {
     type OidcStartRequest,
     OidcStartRequestFromJSON,
@@ -54,6 +74,11 @@ import {
     PasskeyAuthenticationRequestToJSON,
 } from '../models/PasskeyAuthenticationRequest';
 import {
+    type PasskeyFinishRequest,
+    PasskeyFinishRequestFromJSON,
+    PasskeyFinishRequestToJSON,
+} from '../models/PasskeyFinishRequest';
+import {
     type PasskeyRegistrationRequest,
     PasskeyRegistrationRequestFromJSON,
     PasskeyRegistrationRequestToJSON,
@@ -64,10 +89,25 @@ import {
     PasskeyViewToJSON,
 } from '../models/PasskeyView';
 import {
+    type PasswordRequest,
+    PasswordRequestFromJSON,
+    PasswordRequestToJSON,
+} from '../models/PasswordRequest';
+import {
     type ProblemDetails,
     ProblemDetailsFromJSON,
     ProblemDetailsToJSON,
 } from '../models/ProblemDetails';
+import {
+    type RecentAuthenticationClient,
+    RecentAuthenticationClientFromJSON,
+    RecentAuthenticationClientToJSON,
+} from '../models/RecentAuthenticationClient';
+import {
+    type RecentAuthenticationView,
+    RecentAuthenticationViewFromJSON,
+    RecentAuthenticationViewToJSON,
+} from '../models/RecentAuthenticationView';
 import {
     type RecoveryConsumeRequest,
     RecoveryConsumeRequestFromJSON,
@@ -94,6 +134,16 @@ import {
     SignInRequestToJSON,
 } from '../models/SignInRequest';
 import {
+    type SignupConsumeRequest,
+    SignupConsumeRequestFromJSON,
+    SignupConsumeRequestToJSON,
+} from '../models/SignupConsumeRequest';
+import {
+    type SignupSessionView,
+    SignupSessionViewFromJSON,
+    SignupSessionViewToJSON,
+} from '../models/SignupSessionView';
+import {
     type TokenOnlyRequest,
     TokenOnlyRequestFromJSON,
     TokenOnlyRequestToJSON,
@@ -104,13 +154,22 @@ import {
     TokenViewToJSON,
 } from '../models/TokenView';
 
+export interface CapabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequest {
+    client?: RecentAuthenticationClient;
+}
+
 export interface ChangePasswordApiV1AuthPasswordPostRequest {
     changePasswordRequest: ChangePasswordRequest;
 }
 
 export interface CompleteOidcApiV1AuthOidcConnectionIdCallbackPostRequest {
     connectionId: string;
-    oidcCallbackRequest: OidcCallbackRequest;
+    eimirApiV1AuthOidcCallbackRequest: EimirApiV1AuthOidcCallbackRequest;
+}
+
+export interface CompleteOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequest {
+    connectionId: string;
+    eimirApiV1RecentAuthenticationOidcCallbackRequest: EimirApiV1RecentAuthenticationOidcCallbackRequest;
 }
 
 export interface ConfirmEmailApiV1AuthEmailVerificationConfirmPostRequest {
@@ -125,6 +184,14 @@ export interface ConsumeRecoveryApiV1AuthRecoveryConsumePostRequest {
     recoveryConsumeRequest: RecoveryConsumeRequest;
 }
 
+export interface ConsumeSignupApiV1AuthSignupConsumePostRequest {
+    signupConsumeRequest: SignupConsumeRequest;
+}
+
+export interface FinishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequest {
+    passkeyFinishRequest: PasskeyFinishRequest;
+}
+
 export interface FinishPasskeyAuthenticationApiV1AuthPasskeysAuthenticationFinishPostRequest {
     passkeyAuthenticationRequest: PasskeyAuthenticationRequest;
 }
@@ -135,6 +202,10 @@ export interface FinishPasskeyRegistrationApiV1AuthPasskeysRegistrationFinishPos
 
 export interface LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest {
     connectionId: string;
+}
+
+export interface PasswordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequest {
+    passwordRequest: PasswordRequest;
 }
 
 export interface RefreshApiV1AuthRefreshPostRequest {
@@ -153,6 +224,36 @@ export interface RequestRecoveryApiV1AuthRecoveryRequestPostRequest {
     emailRequest: EmailRequest;
 }
 
+export interface RequestSignupApiV1AuthSignupRequestPostRequest {
+    emailRequest: EmailRequest;
+}
+
+export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest {
+    client?: RecentAuthenticationClient;
+}
+
+export interface ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest {
+    client?: RecentAuthenticationClient;
+}
+
+export interface ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest {
+    connectionId: string;
+    eimirApiV1RecentAuthenticationOidcCallbackRequest: EimirApiV1RecentAuthenticationOidcCallbackRequest;
+}
+
+export interface ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest {
+    passkeyFinishRequest: PasskeyFinishRequest;
+}
+
+export interface ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest {
+    passwordRequest: PasswordRequest;
+}
+
+export interface ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest {
+    connectionId: string;
+    client?: RecentAuthenticationClient;
+}
+
 export interface SignInApiV1AuthSignInPostRequest {
     signInRequest: SignInRequest;
 }
@@ -162,10 +263,56 @@ export interface StartOidcApiV1AuthOidcConnectionIdStartPostRequest {
     oidcStartRequest?: OidcStartRequest | null;
 }
 
+export interface StartOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequest {
+    connectionId: string;
+    client?: RecentAuthenticationClient;
+}
+
 /**
  * 
  */
 export class AuthApi extends runtime.BaseAPI {
+
+    /**
+     * Creates request options for capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet without sending the request
+     */
+    async capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequestOpts(requestParameters: CapabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Capabilities
+     */
+    async capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRaw(requestParameters: CapabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CapabilitiesView>> {
+        const requestOptions = await this.capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Capabilities
+     */
+    async capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGet(requestParameters: CapabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CapabilitiesView> {
+        const response = await this.capabilitiesApiV1AuthRecentAuthenticationAccountDeletionGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Creates request options for changePasswordApiV1AuthPasswordPost without sending the request
@@ -197,7 +344,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Passwort aendern und alle Sitzungen beenden.  Auch die eigene: wer sein Passwort aendert, vermutet oft einen fremden Zugriff - dann darf kein Geraet angemeldet bleiben.
+     * Change the password and revoke every session.  This includes the current session. A password change often follows a suspected compromise, in which case no device should remain authenticated.
      * Change Password
      */
     async changePasswordApiV1AuthPasswordPostRaw(requestParameters: ChangePasswordApiV1AuthPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -208,7 +355,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Passwort aendern und alle Sitzungen beenden.  Auch die eigene: wer sein Passwort aendert, vermutet oft einen fremden Zugriff - dann darf kein Geraet angemeldet bleiben.
+     * Change the password and revoke every session.  This includes the current session. A password change often follows a suspected compromise, in which case no device should remain authenticated.
      * Change Password
      */
     async changePasswordApiV1AuthPasswordPost(requestParameters: ChangePasswordApiV1AuthPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -226,10 +373,10 @@ export class AuthApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters['oidcCallbackRequest'] == null) {
+        if (requestParameters['eimirApiV1AuthOidcCallbackRequest'] == null) {
             throw new runtime.RequiredError(
-                'oidcCallbackRequest',
-                'Required parameter "oidcCallbackRequest" was null or undefined when calling completeOidcApiV1AuthOidcConnectionIdCallbackPost().'
+                'eimirApiV1AuthOidcCallbackRequest',
+                'Required parameter "eimirApiV1AuthOidcCallbackRequest" was null or undefined when calling completeOidcApiV1AuthOidcConnectionIdCallbackPost().'
             );
         }
 
@@ -248,12 +395,12 @@ export class AuthApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: OidcCallbackRequestToJSON(requestParameters['oidcCallbackRequest']),
+            body: EimirApiV1AuthOidcCallbackRequestToJSON(requestParameters['eimirApiV1AuthOidcCallbackRequest']),
         };
     }
 
     /**
-     * Den Rueckweg vom Anbieter abschliessen.
+     * Complete the callback from the external identity provider.
      * Complete Oidc
      */
     async completeOidcApiV1AuthOidcConnectionIdCallbackPostRaw(requestParameters: CompleteOidcApiV1AuthOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionView>> {
@@ -264,11 +411,66 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Den Rueckweg vom Anbieter abschliessen.
+     * Complete the callback from the external identity provider.
      * Complete Oidc
      */
     async completeOidcApiV1AuthOidcConnectionIdCallbackPost(requestParameters: CompleteOidcApiV1AuthOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionView> {
         const response = await this.completeOidcApiV1AuthOidcConnectionIdCallbackPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost without sending the request
+     */
+    async completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequestOpts(requestParameters: CompleteOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        if (requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest'] == null) {
+            throw new runtime.RequiredError(
+                'eimirApiV1RecentAuthenticationOidcCallbackRequest',
+                'Required parameter "eimirApiV1RecentAuthenticationOidcCallbackRequest" was null or undefined when calling completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/callback`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: EimirApiV1RecentAuthenticationOidcCallbackRequestToJSON(requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest']),
+        };
+    }
+
+    /**
+     * Complete Oidc
+     */
+    async completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRaw(requestParameters: CompleteOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Complete Oidc
+     */
+    async completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPost(requestParameters: CompleteOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.completeOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdCallbackPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -302,7 +504,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Adresse bestaetigen.  Ohne Anmeldung: der Link wird oft in einem anderen Programm geoeffnet als dem, in dem die Sitzung liegt.
+     * Confirm the email address without requiring authentication.  Verification links are frequently opened in a different application from the one that holds the current session.
      * Confirm Email
      */
     async confirmEmailApiV1AuthEmailVerificationConfirmPostRaw(requestParameters: ConfirmEmailApiV1AuthEmailVerificationConfirmPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -313,7 +515,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Adresse bestaetigen.  Ohne Anmeldung: der Link wird oft in einem anderen Programm geoeffnet als dem, in dem die Sitzung liegt.
+     * Confirm the email address without requiring authentication.  Verification links are frequently opened in a different application from the one that holds the current session.
      * Confirm Email
      */
     async confirmEmailApiV1AuthEmailVerificationConfirmPost(requestParameters: ConfirmEmailApiV1AuthEmailVerificationConfirmPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -397,7 +599,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Ein neues Passwort setzen; alle bisherigen Sitzungen enden.
+     * Set a new password and terminate all previous sessions.
      * Consume Recovery
      */
     async consumeRecoveryApiV1AuthRecoveryConsumePostRaw(requestParameters: ConsumeRecoveryApiV1AuthRecoveryConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionView>> {
@@ -408,11 +610,107 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Ein neues Passwort setzen; alle bisherigen Sitzungen enden.
+     * Set a new password and terminate all previous sessions.
      * Consume Recovery
      */
     async consumeRecoveryApiV1AuthRecoveryConsumePost(requestParameters: ConsumeRecoveryApiV1AuthRecoveryConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionView> {
         const response = await this.consumeRecoveryApiV1AuthRecoveryConsumePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for consumeSignupApiV1AuthSignupConsumePost without sending the request
+     */
+    async consumeSignupApiV1AuthSignupConsumePostRequestOpts(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['signupConsumeRequest'] == null) {
+            throw new runtime.RequiredError(
+                'signupConsumeRequest',
+                'Required parameter "signupConsumeRequest" was null or undefined when calling consumeSignupApiV1AuthSignupConsumePost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/signup/consume`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: SignupConsumeRequestToJSON(requestParameters['signupConsumeRequest']),
+        };
+    }
+
+    /**
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Consume Signup
+     */
+    async consumeSignupApiV1AuthSignupConsumePostRaw(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SignupSessionView>> {
+        const requestOptions = await this.consumeSignupApiV1AuthSignupConsumePostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SignupSessionViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Redeem a signup proof into a normal session.  Send the proof in the request body, never in a URL. After a successful redemption the client removes it from its address bar and history. A new Account has no Membership: continue with `POST /spaces` or accept an invitation.
+     * Consume Signup
+     */
+    async consumeSignupApiV1AuthSignupConsumePost(requestParameters: ConsumeSignupApiV1AuthSignupConsumePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SignupSessionView> {
+        const response = await this.consumeSignupApiV1AuthSignupConsumePostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost without sending the request
+     */
+    async finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequestOpts(requestParameters: FinishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passkeyFinishRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passkeyFinishRequest',
+                'Required parameter "passkeyFinishRequest" was null or undefined when calling finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion/passkeys/finish`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasskeyFinishRequestToJSON(requestParameters['passkeyFinishRequest']),
+        };
+    }
+
+    /**
+     * Finish Passkey
+     */
+    async finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRaw(requestParameters: FinishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Finish Passkey
+     */
+    async finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPost(requestParameters: FinishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.finishPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysFinishPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -511,6 +809,45 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for getAccountCapabilitiesApiV1AuthCapabilitiesGet without sending the request
+     */
+    async getAccountCapabilitiesApiV1AuthCapabilitiesGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/capabilities`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return presentation capabilities without replacing endpoint authorization.
+     * Get Account Capabilities
+     */
+    async getAccountCapabilitiesApiV1AuthCapabilitiesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AccountCapabilitiesView>> {
+        const requestOptions = await this.getAccountCapabilitiesApiV1AuthCapabilitiesGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AccountCapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Return presentation capabilities without replacing endpoint authorization.
+     * Get Account Capabilities
+     */
+    async getAccountCapabilitiesApiV1AuthCapabilitiesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AccountCapabilitiesView> {
+        const response = await this.getAccountCapabilitiesApiV1AuthCapabilitiesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Creates request options for linkOidcApiV1AuthOidcConnectionIdLinkPost without sending the request
      */
     async linkOidcApiV1AuthOidcConnectionIdLinkPostRequestOpts(requestParameters: LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest): Promise<runtime.RequestOpts> {
@@ -538,7 +875,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine externe Identitaet mit dem angemeldeten Konto verknuepfen.
+     * Link an external identity to the authenticated account.
      * Link Oidc
      */
     async linkOidcApiV1AuthOidcConnectionIdLinkPostRaw(requestParameters: LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OidcStartView>> {
@@ -549,11 +886,50 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine externe Identitaet mit dem angemeldeten Konto verknuepfen.
+     * Link an external identity to the authenticated account.
      * Link Oidc
      */
     async linkOidcApiV1AuthOidcConnectionIdLinkPost(requestParameters: LinkOidcApiV1AuthOidcConnectionIdLinkPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OidcStartView> {
         const response = await this.linkOidcApiV1AuthOidcConnectionIdLinkPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for listAccountMembershipsApiV1AuthMembershipsGet without sending the request
+     */
+    async listAccountMembershipsApiV1AuthMembershipsGetRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/memberships`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Return the caller\'s active Space memberships.  Returning this small authorization projection lets official clients select an authorized Space without a build-time Space identifier or ID probing. It intentionally contains no partner or Space content; clients load the selected Space through the normal tenant-guarded endpoint afterward.
+     * List Account Memberships
+     */
+    async listAccountMembershipsApiV1AuthMembershipsGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AccountMembershipView>>> {
+        const requestOptions = await this.listAccountMembershipsApiV1AuthMembershipsGetRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AccountMembershipViewFromJSON));
+    }
+
+    /**
+     * Return the caller\'s active Space memberships.  Returning this small authorization projection lets official clients select an authorized Space without a build-time Space identifier or ID probing. It intentionally contains no partner or Space content; clients load the selected Space through the normal tenant-guarded endpoint afterward.
+     * List Account Memberships
+     */
+    async listAccountMembershipsApiV1AuthMembershipsGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AccountMembershipView>> {
+        const response = await this.listAccountMembershipsApiV1AuthMembershipsGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -591,6 +967,53 @@ export class AuthApi extends runtime.BaseAPI {
      */
     async meApiV1AuthMeGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AccountView> {
         const response = await this.meApiV1AuthMeGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost without sending the request
+     */
+    async passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequestOpts(requestParameters: PasswordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passwordRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passwordRequest',
+                'Required parameter "passwordRequest" was null or undefined when calling passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion/password`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasswordRequestToJSON(requestParameters['passwordRequest']),
+        };
+    }
+
+    /**
+     * Password
+     */
+    async passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRaw(requestParameters: PasswordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Password
+     */
+    async passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPost(requestParameters: PasswordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.passwordApiV1AuthRecentAuthenticationAccountDeletionPasswordPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -671,7 +1094,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Einen Account anlegen.  Der erste Account braucht den einmaligen Bootstrap-Nachweis. Danach braucht jede Registrierung eine gueltige Einladung.
+     * Create an account.  The first account requires the one-time bootstrap proof. Every later registration requires a valid invitation.
      * Register
      */
     async registerApiV1AuthRegisterPostRaw(requestParameters: RegisterApiV1AuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SessionView>> {
@@ -682,7 +1105,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Einen Account anlegen.  Der erste Account braucht den einmaligen Bootstrap-Nachweis. Danach braucht jede Registrierung eine gueltige Einladung.
+     * Create an account.  The first account requires the one-time bootstrap proof. Every later registration requires a valid invitation.
      * Register
      */
     async registerApiV1AuthRegisterPost(requestParameters: RegisterApiV1AuthRegisterPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SessionView> {
@@ -710,7 +1133,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Bestaetigung der eigenen Adresse anfordern.
+     * Request verification of the authenticated account\'s own email address.
      * Request Email Verification
      */
     async requestEmailVerificationApiV1AuthEmailVerificationRequestPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -721,7 +1144,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Bestaetigung der eigenen Adresse anfordern.
+     * Request verification of the authenticated account\'s own email address.
      * Request Email Verification
      */
     async requestEmailVerificationApiV1AuthEmailVerificationRequestPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -758,7 +1181,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Einen passwortlosen Anmeldelink anfordern.  Antwortet immer gleich - ob es die Adresse gibt, steht nicht in der Antwort. Sonst waere dieser Endpunkt ein Verzeichnis aller Konten.
+     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPostRaw(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -769,7 +1192,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Einen passwortlosen Anmeldelink anfordern.  Antwortet immer gleich - ob es die Adresse gibt, steht nicht in der Antwort. Sonst waere dieser Endpunkt ein Verzeichnis aller Konten.
+     * Request a passwordless sign-in link.  The response is identical whether or not the address exists. Otherwise this endpoint would become an account directory.
      * Request Magic Link
      */
     async requestMagicLinkApiV1AuthMagicLinkRequestPost(requestParameters: RequestMagicLinkApiV1AuthMagicLinkRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -806,7 +1229,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Das Zuruecksetzen des Passworts anfordern. Antwortet immer gleich.
+     * Request a password reset while always returning the same response.
      * Request Recovery
      */
     async requestRecoveryApiV1AuthRecoveryRequestPostRaw(requestParameters: RequestRecoveryApiV1AuthRecoveryRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -817,11 +1240,376 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Das Zuruecksetzen des Passworts anfordern. Antwortet immer gleich.
+     * Request a password reset while always returning the same response.
      * Request Recovery
      */
     async requestRecoveryApiV1AuthRecoveryRequestPost(requestParameters: RequestRecoveryApiV1AuthRecoveryRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.requestRecoveryApiV1AuthRecoveryRequestPostRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for requestSignupApiV1AuthSignupRequestPost without sending the request
+     */
+    async requestSignupApiV1AuthSignupRequestPostRequestOpts(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['emailRequest'] == null) {
+            throw new runtime.RequiredError(
+                'emailRequest',
+                'Required parameter "emailRequest" was null or undefined when calling requestSignupApiV1AuthSignupRequestPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/signup/request`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: EmailRequestToJSON(requestParameters['emailRequest']),
+        };
+    }
+
+    /**
+     * Start Cloud/Managed self-service onboarding with an emailed one-time proof.  One entry for everyone: the server does the same work for an address with and without an Account and always answers with an empty `202`. The mailed proof decides on redemption whether it signs into the existing Account or creates one. Rejected with `403 AUTH_METHOD_DISABLED` on deployments without self-service signup, including every Self-Hosted instance.
+     * Request Signup
+     */
+    async requestSignupApiV1AuthSignupRequestPostRaw(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.requestSignupApiV1AuthSignupRequestPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Start Cloud/Managed self-service onboarding with an emailed one-time proof.  One entry for everyone: the server does the same work for an address with and without an Account and always answers with an empty `202`. The mailed proof decides on redemption whether it signs into the existing Account or creates one. Rejected with `403 AUTH_METHOD_DISABLED` on deployments without self-service signup, including every Self-Hosted instance.
+     * Request Signup
+     */
+    async requestSignupApiV1AuthSignupRequestPost(requestParameters: RequestSignupApiV1AuthSignupRequestPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.requestSignupApiV1AuthSignupRequestPostRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet without sending the request
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequestOpts(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/capabilities`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRaw(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CapabilitiesView>> {
+        const requestOptions = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGet(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CapabilitiesView> {
+        const response = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminCapabilitiesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet without sending the request
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequestOpts(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin`;
+
+        return {
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRaw(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CapabilitiesView>> {
+        const requestOptions = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CapabilitiesViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Capabilities
+     */
+    async serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGet(requestParameters: ServerAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CapabilitiesView> {
+        const response = await this.serverAdminCapabilitiesApiV1AuthRecentAuthenticationServerAdminGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost without sending the request
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequestOpts(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        if (requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest'] == null) {
+            throw new runtime.RequiredError(
+                'eimirApiV1RecentAuthenticationOidcCallbackRequest',
+                'Required parameter "eimirApiV1RecentAuthenticationOidcCallbackRequest" was null or undefined when calling serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/callback`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: EimirApiV1RecentAuthenticationOidcCallbackRequestToJSON(requestParameters['eimirApiV1RecentAuthenticationOidcCallbackRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Complete Oidc
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRaw(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Complete Oidc
+     */
+    async serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPost(requestParameters: ServerAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminCompleteOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdCallbackPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost without sending the request
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequestOpts(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passkeyFinishRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passkeyFinishRequest',
+                'Required parameter "passkeyFinishRequest" was null or undefined when calling serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/passkeys/finish`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasskeyFinishRequestToJSON(requestParameters['passkeyFinishRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Finish Passkey
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRaw(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Finish Passkey
+     */
+    async serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPost(requestParameters: ServerAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminFinishPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysFinishPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost without sending the request
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequestOpts(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['passwordRequest'] == null) {
+            throw new runtime.RequiredError(
+                'passwordRequest',
+                'Required parameter "passwordRequest" was null or undefined when calling serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/password`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PasswordRequestToJSON(requestParameters['passwordRequest']),
+        };
+    }
+
+    /**
+     * Server Admin Password
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRaw(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecentAuthenticationView>> {
+        const requestOptions = await this.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecentAuthenticationViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Password
+     */
+    async serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPost(requestParameters: ServerAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecentAuthenticationView> {
+        const response = await this.serverAdminPasswordApiV1AuthRecentAuthenticationServerAdminPasswordPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost without sending the request
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequestOpts(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/oidc/{connectionId}/start`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Start Oidc
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRaw(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OidcStartView>> {
+        const requestOptions = await this.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OidcStartViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Server Admin Start Oidc
+     */
+    async serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPost(requestParameters: ServerAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OidcStartView> {
+        const response = await this.serverAdminStartOidcApiV1AuthRecentAuthenticationServerAdminOidcConnectionIdStartPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost without sending the request
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/server-admin/passkeys/start`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Server Admin Start Passkey
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any | null; }>> {
+        const requestOptions = await this.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Server Admin Start Passkey
+     */
+    async serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {
+        const response = await this.serverAdminStartPasskeyApiV1AuthRecentAuthenticationServerAdminPasskeysStartPostRaw(initOverrides);
+        return await response.value();
     }
 
     /**
@@ -891,7 +1679,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Diese Sitzung beenden. Andere Geraete bleiben angemeldet.
+     * End this session while leaving other devices signed in.
      * Sign Out
      */
     async signOutApiV1AuthSignOutPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -902,7 +1690,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Diese Sitzung beenden. Andere Geraete bleiben angemeldet.
+     * End this session while leaving other devices signed in.
      * Sign Out
      */
     async signOutApiV1AuthSignOutPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
@@ -940,7 +1728,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Anmeldung ueber einen externen Anbieter beginnen.  State, Nonce und PKCE-Verifier entstehen serverseitig. Der Client bekommt nur die Adresse und den State. Eine Einladung bleibt dabei serverseitig gebunden und wird nie an den Anbieter weitergegeben.
+     * Begin authentication through an external identity provider.  State, nonce, and PKCE verifier are created server-side. The client receives only the authorization URL and state. Any invitation remains bound server-side and is never forwarded to the provider.
      * Start Oidc
      */
     async startOidcApiV1AuthOidcConnectionIdStartPostRaw(requestParameters: StartOidcApiV1AuthOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OidcStartView>> {
@@ -951,11 +1739,97 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Anmeldung ueber einen externen Anbieter beginnen.  State, Nonce und PKCE-Verifier entstehen serverseitig. Der Client bekommt nur die Adresse und den State. Eine Einladung bleibt dabei serverseitig gebunden und wird nie an den Anbieter weitergegeben.
+     * Begin authentication through an external identity provider.  State, nonce, and PKCE verifier are created server-side. The client receives only the authorization URL and state. Any invitation remains bound server-side and is never forwarded to the provider.
      * Start Oidc
      */
     async startOidcApiV1AuthOidcConnectionIdStartPost(requestParameters: StartOidcApiV1AuthOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OidcStartView> {
         const response = await this.startOidcApiV1AuthOidcConnectionIdStartPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost without sending the request
+     */
+    async startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequestOpts(requestParameters: StartOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequest): Promise<runtime.RequestOpts> {
+        if (requestParameters['connectionId'] == null) {
+            throw new runtime.RequiredError(
+                'connectionId',
+                'Required parameter "connectionId" was null or undefined when calling startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['client'] != null) {
+            queryParameters['client'] = requestParameters['client'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion/oidc/{connectionId}/start`;
+        urlPath = urlPath.replace('{connectionId}', encodeURIComponent(String(requestParameters['connectionId'])));
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Start Oidc
+     */
+    async startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRaw(requestParameters: StartOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OidcStartView>> {
+        const requestOptions = await this.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OidcStartViewFromJSON(jsonValue));
+    }
+
+    /**
+     * Start Oidc
+     */
+    async startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPost(requestParameters: StartOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OidcStartView> {
+        const response = await this.startOidcApiV1AuthRecentAuthenticationAccountDeletionOidcConnectionIdStartPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost without sending the request
+     */
+    async startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPostRequestOpts(): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/api/v1/auth/recent-authentication/account-deletion/passkeys/start`;
+
+        return {
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Start Passkey
+     */
+    async startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any | null; }>> {
+        const requestOptions = await this.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPostRequestOpts();
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Start Passkey
+     */
+    async startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {
+        const response = await this.startPasskeyApiV1AuthRecentAuthenticationAccountDeletionPasskeysStartPostRaw(initOverrides);
         return await response.value();
     }
 
@@ -979,7 +1853,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Anmeldung mit Passkey beginnen.  Ohne Kontobezug: der Authenticator waehlt selbst, welches auffindbare Credential er anbietet. Ein Endpunkt, der zu einer Adresse die passenden Credentials nennt, waere ein Verzeichnis der Konten.
+     * Begin passkey authentication without binding it to an account.  The authenticator selects which discoverable credential to offer. An endpoint that returned credentials for a given address would be an account directory.
      * Start Passkey Authentication
      */
     async startPasskeyAuthenticationApiV1AuthPasskeysAuthenticationStartPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any | null; }>> {
@@ -990,7 +1864,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Eine Anmeldung mit Passkey beginnen.  Ohne Kontobezug: der Authenticator waehlt selbst, welches auffindbare Credential er anbietet. Ein Endpunkt, der zu einer Adresse die passenden Credentials nennt, waere ein Verzeichnis der Konten.
+     * Begin passkey authentication without binding it to an account.  The authenticator selects which discoverable credential to offer. An endpoint that returned credentials for a given address would be an account directory.
      * Start Passkey Authentication
      */
     async startPasskeyAuthenticationApiV1AuthPasskeysAuthenticationStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {
@@ -1018,7 +1892,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Registrierung eines Passkeys beginnen.  Nur aus einer bestehenden Anmeldung heraus: ein Passkey ist ein zusaetzlicher Zugang zu einem Konto, das es schon gibt.
+     * Begin passkey registration for an existing authenticated account.  A passkey is an additional access method for an account that already exists, so registration starts only from an authenticated session.
      * Start Passkey Registration
      */
     async startPasskeyRegistrationApiV1AuthPasskeysRegistrationStartPostRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any | null; }>> {
@@ -1029,7 +1903,7 @@ export class AuthApi extends runtime.BaseAPI {
     }
 
     /**
-     * Die Registrierung eines Passkeys beginnen.  Nur aus einer bestehenden Anmeldung heraus: ein Passkey ist ein zusaetzlicher Zugang zu einem Konto, das es schon gibt.
+     * Begin passkey registration for an existing authenticated account.  A passkey is an additional access method for an account that already exists, so registration starts only from an authenticated session.
      * Start Passkey Registration
      */
     async startPasskeyRegistrationApiV1AuthPasskeysRegistrationStartPost(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any | null; }> {

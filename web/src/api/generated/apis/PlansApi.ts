@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -86,6 +86,7 @@ export interface ConvertWishToPlanRequest {
 export interface CreatePlanRequest {
     spaceId: string;
     planCreate: PlanCreate;
+    idempotencyKey?: string | null;
 }
 
 export interface DeletePlanRequest {
@@ -270,18 +271,19 @@ export class PlansApi extends runtime.BaseAPI {
     /**
      * Convert Wish To Plan
      */
-    async convertWishToPlanRaw(requestParameters: ConvertWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async convertWishToPlanRaw(requestParameters: ConvertWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WishToPlanResponse>> {
         const requestOptions = await this.convertWishToPlanRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => WishToPlanResponseFromJSON(jsonValue));
     }
 
     /**
      * Convert Wish To Plan
      */
-    async convertWishToPlan(requestParameters: ConvertWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.convertWishToPlanRaw(requestParameters, initOverrides);
+    async convertWishToPlan(requestParameters: ConvertWishToPlanRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WishToPlanResponse> {
+        const response = await this.convertWishToPlanRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
@@ -307,6 +309,10 @@ export class PlansApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['idempotencyKey'] != null) {
+            headerParameters['Idempotency-Key'] = String(requestParameters['idempotencyKey']);
+        }
 
 
         let urlPath = `/api/v1/spaces/{spaceId}/plans`;

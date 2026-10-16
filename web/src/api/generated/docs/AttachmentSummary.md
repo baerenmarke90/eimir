@@ -1,7 +1,7 @@
 
 # AttachmentSummary
 
-Die Projektion eines gebundenen Attachments an seinem Parent.  Ein Typ und nicht je Domaene einer: zwei gleichnamige DTOs haetten im OpenAPI-Vertrag modulqualifizierte Namen erzeugt und damit interne Pfade nach aussen getragen.
+Projection of a bound attachment at its parent resource.  A single shared type is used rather than one per domain. Duplicate DTO names would make OpenAPI generate module-qualified schema names and leak internal paths into the public contract.
 
 ## Properties
 

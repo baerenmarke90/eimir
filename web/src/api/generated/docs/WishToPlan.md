@@ -1,7 +1,7 @@
 
 # WishToPlan
 
-Der Konvertierungsrequest.  Alle Felder optional: ohne eigenen Titel uebernimmt der Plan den des Wishes. `sourceWishId`, `status` und die Termine kommen nicht vom Client - der Wish steht im Pfad, alles andere entsteht serverseitig.
+Wish-to-Plan conversion request with an optional atomic schedule.  Without an explicit title the Plan inherits the Wish title. Supplying ``schedule`` makes the new Plan date-only or timed without a second lifecycle request; omitting it preserves the existing unscheduled flow.
 
 ## Properties
 
@@ -9,6 +9,7 @@ Name | Type
 ------------ | -------------
 `description` | string
 `placeId` | string
+`schedule` | [PlanSchedule](PlanSchedule.md)
 `title` | string
 
 ## Example
@@ -20,6 +21,7 @@ import type { WishToPlan } from ''
 const example = {
   "description": null,
   "placeId": null,
+  "schedule": null,
   "title": null,
 } satisfies WishToPlan
 

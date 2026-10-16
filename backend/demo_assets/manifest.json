@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "id": "memory-breakfast",
+      "filename": "breakfast-coffee-croissants.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3395772",
+      "source_page_url": "https://pixabay.com/photos/breakfast-coffee-croissantes-bun-3395772/",
+      "creator": "StephanieAlbert",
+      "source_published_at": "2018-05-13",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "0f11dc275c684b6dd7e9f7ebd7ddbe3e6eefdb53626f2cc59e335c54b174d9a8",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Frühstück mit Kaffee, Croissants und Brötchen auf einem Tisch",
+      "usage_context": [
+        "memory.breakfast-saarbruecken"
+      ]
+    },
+    {
+      "id": "memory-ravioli",
+      "filename": "ravioli-pasta.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "2063535",
+      "source_page_url": "https://pixabay.com/photos/ravioli-pasta-stuffed-pasta-2063535/",
+      "creator": "akiragiulia",
+      "source_published_at": "2017-02-14",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "2cd3cdc65c17d78b22b058feb27862e6261f91c8c38e32c26c3ea76b0f4d1478",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Frische Ravioli auf einer bemehlten Arbeitsfläche",
+      "usage_context": [
+        "memory.ravioli-evening"
+      ]
+    },
+    {
+      "id": "memory-lake",
+      "filename": "lake-sunrise.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3109962",
+      "source_page_url": "https://pixabay.com/photos/sunrise-lake-morning-dawn-winter-3109962/",
+      "creator": "monikasmigielska",
+      "source_published_at": "2018-01-26",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "3eccc48740f91e6d17de9217a40c1f19d81ac84ad3e1ffac795816dbb936e19c",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Ruhiger See im warmen Licht des Sonnenaufgangs",
+      "usage_context": [
+        "memory.lake-walk"
+      ]
+    },
+    {
+      "id": "memory-trier",
+      "filename": "trier-porta-nigra.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "1441937",
+      "source_page_url": "https://pixabay.com/photos/trier-porta-nigra-roman-1441937/",
+      "creator": "connie_sf",
+      "source_published_at": "2016-06-08",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "3ee20340661a5e16bf81147b4cb3ba9145e2ad75ff397e4af3ad553541016dc8",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Porta Nigra in Trier in abendlicher Lichtstimmung",
+      "usage_context": [
+        "memory.trier-weekend"
+      ]
+    },
+    {
+      "id": "memory-picnic",
+      "filename": "picnic-basket.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3444036",
+      "source_page_url": "https://pixabay.com/photos/picnic-basket-covered-outdoor-3444036/",
+      "creator": "VIVIANE6276",
+      "source_published_at": "2018-06-01",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "3c68bfc89ce0cdb720d4154aa546820ba511323dd06d097dd156dab15b52e6e5",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Gedeckter Picknickkorb im Grünen",
+      "usage_context": [
+        "memory.picnic"
+      ]
+    },
+    {
+      "id": "memory-forest-path",
+      "filename": "forest-path.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3703447",
+      "source_page_url": "https://pixabay.com/photos/forest-path-forest-path-trees-3703447/",
+      "creator": "ulleo",
+      "source_published_at": "2018-09-26",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "0fbf1393e9a9e9ecad589aa1fbe37006e46b704e5029302b45d6687d6d9a8b66",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Schmaler Weg durch einen grünen Wald",
+      "usage_context": [
+        "memory.day-trip",
+        "chapter.outdoors"
+      ]
+    },
+    {
+      "id": "memory-dog",
+      "filename": "dog-outdoors.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3772761",
+      "source_page_url": "https://pixabay.com/photos/forest-dog-nature-trees-outdoor-3772761/",
+      "creator": "ivcakohoutova",
+      "source_published_at": "2018-10-27",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "f3dd95a0c12a8c43f2b161aff321f0ae7886ed99ac96d0ee4830e521b8d5ad63",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Hund auf einem Weg zwischen Bäumen im Wald",
+      "usage_context": [
+        "memory.day-trip"
+      ]
+    },
+    {
+      "id": "private-flowers",
+      "filename": "flowers-at-home.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3381293",
+      "source_page_url": "https://pixabay.com/photos/flowers-vase-spring-floral-bloom-3381293/",
+      "creator": "bluebudgie",
+      "source_published_at": "2018-05-08",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "77ba823372752cfb0526cc04d8795f1471ddbac7412f2aef1590064bdc6dac95",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Frühlingsblumen in einer Vase zu Hause",
+      "usage_context": [
+        "heart_moment.private-surprise"
+      ]
+    },
+    {
+      "id": "memory-books",
+      "filename": "books-cozy-evening.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3704990",
+      "source_page_url": "https://pixabay.com/photos/lamps-vintage-books-retro-antique-3704990/",
+      "creator": "minanfotos",
+      "source_published_at": "2018-09-28",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "2cbaed5e2d8d6fd2b0d0dd6ad8b19ec8d9e19b8f35def884d12aa3226b5130b0",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Bücher und eine Lampe in gemütlicher Abendstimmung",
+      "usage_context": [
+        "memory.weekend-water"
+      ]
+    },
+    {
+      "id": "memory-concert",
+      "filename": "concert-lights.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3084876",
+      "source_page_url": "https://pixabay.com/photos/concert-crowd-silhouette-3084876/",
+      "creator": "mikewallimages",
+      "source_published_at": "2018-01-17",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "981bd1f58669195e1d11957a453fe2b2abfa45e25f7729a916c839dee008b9e6",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Konzertlicht über einer Menge als dunkle Silhouetten",
+      "usage_context": [
+        "memory.concert"
+      ]
+    },
+    {
+      "id": "memory-sunset",
+      "filename": "sunset-field.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3679737",
+      "source_page_url": "https://pixabay.com/photos/sunset-nature-field-grass-3679737/",
+      "creator": "jplenio",
+      "source_published_at": "2018-09-16",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "24677d65084687b2743df68a45cbdefddd2c4d8e2664ca945a8e0f8e036d32b6",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Sonnenuntergang über einem Feld mit hohem Gras",
+      "usage_context": [
+        "memory.sunset"
+      ]
+    },
+    {
+      "id": "memory-cabin",
+      "filename": "cabin-lake.jpg",
+      "source_provider": "pixabay",
+      "source_asset_id": "3374201",
+      "source_page_url": "https://pixabay.com/photos/cabin-lake-sunrise-landscape-3374201/",
+      "creator": "Darkmoon_Art",
+      "source_published_at": "2018-05-07",
+      "license_name": "CC0 1.0 Universal",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_basis_url": "https://pixabay.com/service/terms/",
+      "license_checked_at": "2026-08-31",
+      "attribution_required": false,
+      "attribution_text": null,
+      "sha256": "6c734e84d199e3d2e38d9d51064ce5bdd741def0b842fe4fb5dbb20d8c0f7f8f",
+      "mime_type": "image/jpeg",
+      "alt_text_de": "Kleine Hütte an einem See in ruhiger Morgenstimmung",
+      "usage_context": [
+        "memory.weekend-water"
+      ]
+    }
+  ]
+}

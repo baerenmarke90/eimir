@@ -65,9 +65,9 @@ def upgrade() -> None:
             name="fk_heart_moments_owner_id_accounts",
             ondelete="CASCADE",
         ),
-        # Anders als memories laesst diese Tabelle beide durchsetzbaren
-        # Klassen zu. Die Bedingung haelt fest, dass es genau zwei sind:
-        # eine Klasse ohne Abfrageregel darf hier nicht landen.
+        # Unlike memories, this table permits both enforceable privacy classes.
+        # The constraint records that there are exactly two: a class without a
+        # query enforcement rule must never be stored here.
         sa.CheckConstraint(
             "privacy_class IN ('SPACE_SHARED', 'OWNER_ONLY')",
             name="privacy_is_enforceable",

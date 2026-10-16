@@ -1,9 +1,9 @@
-"""Konfiguration des Migrationspfads.
+"""Migration-path configuration.
 
-Eine Migration braucht die Datenbank und sonst nichts. Diese Tests halten
-die Trennung fest, weil sie sich lautlos wieder schliesst: es genuegt, in
-`alembic/env.py` einmal `get_settings()` zu schreiben, und `alembic
-upgrade head` haengt wieder an SMTP- und Cursor-Key-Pruefungen.
+A migration needs the database and nothing else. These tests preserve that
+separation because it can silently regress: a single `get_settings()` call in
+`alembic/env.py` would make `alembic upgrade head` depend on SMTP and cursor-key
+validation again.
 """
 
 from __future__ import annotations
@@ -11,46 +11,46 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from sidebyside.config import DEFAULT_DATABASE_URL, DatabaseSettings, Settings
+from eimir.config import DEFAULT_DATABASE_URL, DatabaseSettings, Settings
 
 
-def test_migration_braucht_keine_production_runtimewerte(
+def test_migration_does_not_require_production_runtime_values(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Der Fall aus #110: Production ohne Cursor-Key, Mail und HTTPS-Adresse."""
-    monkeypatch.setenv("SBS_ENVIRONMENT", "production")
-    monkeypatch.setenv("SBS_DEPLOYMENT", "self_hosted")
-    monkeypatch.setenv("SBS_DATABASE_URL", "postgresql+psycopg://u:p@postgres:5432/sidebyside")
-    monkeypatch.delenv("SBS_CURSOR_SIGNING_KEY", raising=False)
+    """The #110 case: production without a cursor key, mail, or HTTPS URL."""
+    monkeypatch.setenv("EIMIR_ENVIRONMENT", "production")
+    monkeypatch.setenv("EIMIR_DEPLOYMENT", "self_hosted")
+    monkeypatch.setenv("EIMIR_DATABASE_URL", "postgresql+psycopg://u:p@postgres:5432/eimir")
+    monkeypatch.delenv("EIMIR_CURSOR_SIGNING_KEY", raising=False)
 
-    # Die Anwendung verweigert hier den Start - zu Recht.
-    with pytest.raises(ValidationError, match="SBS_CURSOR_SIGNING_KEY"):
+    # The application correctly refuses startup in this state.
+    with pytest.raises(ValidationError, match="EIMIR_CURSOR_SIGNING_KEY"):
         Settings()
 
-    # Die Migration nicht: sie liest nur die Verbindung.
-    assert DatabaseSettings().database_url == "postgresql+psycopg://u:p@postgres:5432/sidebyside"
+    # The migration does not; it reads only the database connection.
+    assert DatabaseSettings().database_url == "postgresql+psycopg://u:p@postgres:5432/eimir"
 
 
-@pytest.mark.parametrize("leer", ["", "   "])
-def test_leere_datenbank_url_ist_in_beiden_pfade_ein_fehler(
-    monkeypatch: pytest.MonkeyPatch, leer: str
+@pytest.mark.parametrize("empty", ["", "   "])
+def test_empty_database_url_is_error_in_both_paths(
+    monkeypatch: pytest.MonkeyPatch, empty: str
 ) -> None:
-    """Runtime und Migration teilen dieselbe Regel fuer leere Interpolation."""
-    monkeypatch.setenv("SBS_DATABASE_URL", leer)
+    """Runtime and migration share the same rule for empty interpolation."""
+    monkeypatch.setenv("EIMIR_DATABASE_URL", empty)
 
-    with pytest.raises(ValidationError, match="SBS_DATABASE_URL"):
+    with pytest.raises(ValidationError, match="EIMIR_DATABASE_URL"):
         DatabaseSettings()
-    with pytest.raises(ValidationError, match="SBS_DATABASE_URL"):
+    with pytest.raises(ValidationError, match="EIMIR_DATABASE_URL"):
         Settings()
 
 
-def test_vorgabewert_bleibt_mit_der_anwendung_gleich(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Zwei Konfigurationen, eine Entwicklungsdatenbank.
+def test_default_remains_equal_to_application_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two configurations, one development database.
 
-    Liefen die Vorgabewerte auseinander, migrierte ein lokaler Lauf eine
-    andere Datenbank als die, gegen die die Anwendung startet.
+    If the defaults diverged, a local run could migrate a different database
+    from the one the application starts against.
     """
-    monkeypatch.delenv("SBS_DATABASE_URL", raising=False)
+    monkeypatch.delenv("EIMIR_DATABASE_URL", raising=False)
 
     assert DatabaseSettings().database_url == DEFAULT_DATABASE_URL
     assert Settings().database_url == DEFAULT_DATABASE_URL

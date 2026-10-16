@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direction B: Momente / Entdecken (Living Chronicle & Tapestry)</title>
+  <link rel="stylesheet" href="/web/src/styles.css">
+  <link rel="stylesheet" href="/web/src/theme.css">
+  <link rel="stylesheet" href="/web/src/shell.css">
+  <link rel="stylesheet" href="/web/src/layout.css">
+  <link rel="stylesheet" href="/web/src/components/VisibilityBadge.css">
+  <link rel="stylesheet" href="./shared-preview.css">
+</head>
+<body>
+  <header class="mock-header">
+    <div style="display:flex; align-items:center; gap:var(--space-6);">
+      <a href="#" class="mock-logo">eimir<span class="brand-dot">.</span></a>
+      <nav class="mock-nav">
+        <a href="#" class="mock-nav-item">Wir</a>
+        <a href="#" class="mock-nav-item active">Momente</a>
+        <a href="#" class="mock-nav-item">Planen</a>
+        <a href="#" class="mock-nav-item">Mehr</a>
+      </nav>
+    </div>
+    <div class="mock-user-profile">
+      <div class="mock-avatar-chip" title="Philipp">P</div>
+    </div>
+  </header>
+
+  <main class="preview-container">
+    <!-- DIRECTION B: Living Chronicle Masthead -->
+    <header class="tapestry-masthead">
+      <div>
+        <h1 class="tapestry-title">Unsere Geschichte</h1>
+        <p class="tapestry-subtitle">48 festgehaltene Momente und Meilensteine eures Weges</p>
+      </div>
+
+      <div style="display:flex; gap:var(--space-3); align-items:center;">
+        <!-- Year filter pills -->
+        <div style="display:inline-flex; padding:3px; border-radius:var(--radius-pill); background:var(--color-surface-subtle);">
+          <button style="padding:0.35rem 0.85rem; border-radius:var(--radius-pill); border:none; background:var(--color-surface); color:var(--color-brand-strong); font-weight:700; font-size:0.85rem; box-shadow:0 2px 6px var(--color-shadow-soft); cursor:pointer;">2026</button>
+          <button style="padding:0.35rem 0.85rem; border-radius:var(--radius-pill); border:none; background:transparent; color:var(--color-text-secondary); font-weight:600; font-size:0.85rem; cursor:pointer;">2025</button>
+        </div>
+
+        <a href="#create" style="display:inline-flex; align-items:center; gap:6px; padding:0.6rem 1.25rem; border-radius:var(--radius-pill); background:var(--color-brand); color:white; font-weight:600; font-size:0.9rem; text-decoration:none; box-shadow:0 4px 14px var(--color-brand-glow);">
+          <span>+ Moment festhalten</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Milestone Ribbon -->
+    <div style="display:flex; align-items:center; gap:var(--space-4); margin-bottom:var(--space-8); padding:var(--space-4) var(--space-6); border-radius:var(--radius-large); background:var(--color-surface); border:1px solid var(--color-border-subtle); box-shadow:0 2px 8px var(--color-shadow-soft);">
+      <div style="width:36px; height:36px; border-radius:50%; background:var(--color-discovery-surface); color:var(--color-discovery); display:grid; place-items:center; flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.4h7.6l-6.1 4.5 2.3 7.1-6.2-4.5-6.2 4.5 2.3-7.1-6.1-4.5h7.6z"/></svg>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+        <span style="font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--color-discovery);">Meilenstein erreicht</span>
+        <span style="font-size:0.95rem; font-weight:600; color:var(--color-text);">Gemeinsame Wohnung in Hamburg bezogen</span>
+      </div>
+      <a href="#milestones" style="font-size:0.85rem; font-weight:600; color:var(--color-brand); text-decoration:none;">Alle 4 Meilensteine →</a>
+    </div>
+
+    <!-- Keepsake Tapestry Layout (Asymmetric, Journal-like) -->
+    <div class="tapestry-grid">
+      <!-- Large Heroic Memory Card -->
+      <article class="tapestry-card-memory">
+        <div class="tapestry-photo-feature">
+          <img src="./assets/cabin-lake.jpg" alt="Herbst am See">
+        </div>
+        <div class="tapestry-card-body">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="visibility-badge badge-shared badge-small">
+              <span class="visibility-badge-label">Mit Partner geteilt</span>
+            </span>
+            <span style="font-size:0.85rem; color:var(--color-text-muted);">5. September 2026</span>
+          </div>
+
+          <h2 style="margin:var(--space-1) 0; font-family:var(--font-display); font-size:1.55rem; font-weight:750; color:var(--color-text); line-height:1.25;">
+            Herbstspaziergang am Seeufer
+          </h2>
+
+          <p style="margin:0; font-size:1rem; line-height:1.6; color:var(--color-text-secondary);">
+            Die Blätter färben sich langsam gold. Wir haben heißen Apfeltee mitgenommen, uns auf den Holzsteg gesetzt und einfach nur dem Wasser gelauscht. Einer dieser ruhigen Nachmittage, die für immer bleiben.
+          </p>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); margin-top:var(--space-3); padding-top:var(--space-4); border-top:1px solid var(--color-border-subtle);">
+            <div class="mock-avatar-chip" style="width:28px; height:28px; font-size:0.75rem; background:#ffd8e4; color:#7d1b3c;">L</div>
+            <span style="font-size:0.875rem; color:var(--color-text-secondary);">Festhalten von Lea</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Side Column: Intimate Heart Note + Secondary Keepsake -->
+      <div style="display:flex; flex-direction:column; gap:var(--space-6);">
+        <!-- Heart Note Card (Letter character) -->
+        <article class="tapestry-heart-note">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="visibility-badge badge-shared badge-small">
+              <span class="visibility-badge-label">Liebesbotschaft</span>
+            </span>
+            <span style="font-size:0.85rem; color:var(--color-text-muted);">Gestern</span>
+          </div>
+
+          <p class="tapestry-heart-quote">
+            „Danke für deine Geduld heute bei all dem Trubel. An deiner Seite fühlt sich die Welt immer ruhig an.“
+          </p>
+
+          <div class="tapestry-author-row">
+            <div style="display:flex; align-items:center; gap:var(--space-2);">
+              <div class="mock-avatar-chip" style="width:28px; height:28px; font-size:0.75rem; background:#e8def8; color:#4a2574;">P</div>
+              <span>Philipp</span>
+            </div>
+            <span style="color:var(--color-brand-strong); font-size:1.1rem;" aria-hidden="true">♥</span>
+          </div>
+        </article>
+
+        <!-- Secondary Memory Preview Card -->
+        <article style="background:var(--color-surface); border:1px solid var(--color-border-subtle); border-radius:var(--radius-card); overflow:hidden; box-shadow:0 4px 16px var(--color-shadow-soft);">
+          <img src="./assets/sunset-field.jpg" alt="Feld" style="width:100%; height:140px; object-fit:cover;">
+          <div style="padding:var(--space-5);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-2);">
+              <span class="visibility-badge badge-shared badge-small"><span class="visibility-badge-label">Geteilt</span></span>
+              <span style="font-size:0.8rem; color:var(--color-text-muted);">30. August</span>
+            </div>
+            <h3 style="margin:0 0 4px; font-family:var(--font-display); font-size:1.15rem; color:var(--color-text);">Spaziergang in der Dämmerung</h3>
+            <span style="font-size:0.85rem; color:var(--color-text-secondary);">Von euch beiden</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

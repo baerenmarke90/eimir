@@ -1,15 +1,13 @@
-"""Der Place-Slice muss den in M3-D06 bis M3-D08 entschiedenen Vertrag
-spiegeln.
+"""Verify the Place slice reflects the contract decided in M3-D06 through M3-D08.
 
-Zwei Zusicherungen leben ausschliesslich in der Form des Vertrags: dass
-Koordinaten nur als Paar existieren koennen, und dass M3 keine
-Kartenfunktion verspricht - kein Geocoding, keine Providerdaten, keine
-Umkreissuche.
+Two guarantees exist only in the shape of the contract: coordinates may exist
+only as a pair, and M3 does not promise map functionality such as geocoding,
+provider data, or radius search.
 """
 
 from __future__ import annotations
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/places"
 DETAIL = "/api/v1/spaces/{spaceId}/places/{placeId}"
@@ -36,45 +34,77 @@ def test_place_routes_have_frozen_operation_ids() -> None:
     assert paths[DETAIL]["delete"]["operationId"] == "deletePlace"
 
 
-def test_the_place_surface_is_exactly_crud() -> None:
-    """Die typisierten Relationen aus M3-D08 sind M3-S4.
+RELATION_SLUGS = ("memories", "heart-moments", "milestones")
 
-    `places/{placeId}/memories` und die beiden Geschwister fehlen hier
-    absichtlich - es gibt noch keine Join-Tabelle, die sie fuellen wuerde.
+RELATION_PATHS = {
+    f"{DETAIL}/{slug}{suffix}" for slug in RELATION_SLUGS for suffix in ("", "/{targetId}")
+}
+
+
+def test_the_place_surface_is_crud_plus_typed_relations() -> None:
+    """The surface is closed and completely enumerated.
+
+    M3-S4 adds the typed relations from M3-D08 and only those relations. This
+    assertion deliberately remains an equality instead of a subset check so a
+    route that was not consciously added here is caught before generated
+    clients expose it.
+
+    `places/{placeId}/plans` and `places/{placeId}/chapters` are intentionally
+    absent. `Plan.placeId` is the canonical single-valued association and
+    `Chapter.placeId` will be the equivalent in S5. There is no second source of
+    truth for the same association (M3-D08/D31).
     """
-    assert {pfad for pfad in _paths() if "/places" in pfad} == {COLLECTION, DETAIL}
+    assert {path for path in _paths() if "/places" in path} == {
+        COLLECTION,
+        DETAIL,
+        *RELATION_PATHS,
+    }
 
 
 def test_mutations_require_if_match() -> None:
     detail = _paths()[DETAIL]
-    for methode in ("patch", "delete"):
-        parameter = {p["name"]: p for p in detail[methode].get("parameters", [])}
-        assert "If-Match" in parameter
-        assert parameter["If-Match"]["required"] is True
+    for method in ("patch", "delete"):
+        parameters = {p["name"]: p for p in detail[method].get("parameters", [])}
+        assert "If-Match" in parameters
+        assert parameters["If-Match"]["required"] is True
 
 
 def test_no_request_body_accepts_server_owned_fields() -> None:
-    verboten = {"createdBy", "spaceId", "version", "id", "createdAt", "updatedAt", "privacyClass"}
+    forbidden = {
+        "createdBy",
+        "spaceId",
+        "version",
+        "id",
+        "createdAt",
+        "updatedAt",
+        "privacyClass",
+    }
     for name in ("PlaceCreate", "PlaceUpdate"):
         schema = _components()[name]
-        assert set(schema["properties"]) & verboten == set(), name
+        assert set(schema["properties"]) & forbidden == set(), name
         assert schema.get("additionalProperties") is False, name
 
 
 def test_create_needs_only_a_name() -> None:
-    """Ein Ort ohne Koordinaten ist voll gueltig (M3-D06)."""
+    """A Place without coordinates is fully valid (M3-D06)."""
     schema = _components()["PlaceCreate"]
-    assert set(schema["properties"]) == {"name", "description", "address", "latitude", "longitude"}
+    assert set(schema["properties"]) == {
+        "name",
+        "description",
+        "address",
+        "latitude",
+        "longitude",
+    }
     assert schema["required"] == ["name"]
 
 
 def test_coordinates_are_numbers_and_nullable_in_the_patch() -> None:
-    """Nur so laesst sich ein Ort wieder auf reinen Namen zuruecksetzen."""
+    """This allows a Place to be reset to name-only data."""
     update = _components()["PlaceUpdate"]["properties"]
-    for feld in ("latitude", "longitude"):
-        typen = {option.get("type") for option in update[feld].get("anyOf", [])}
-        assert "number" in typen, feld
-        assert "null" in typen, feld
+    for field in ("latitude", "longitude"):
+        types = {option.get("type") for option in update[field].get("anyOf", [])}
+        assert "number" in types, field
+        assert "null" in types, field
 
 
 def test_detail_exposes_the_stored_coordinates() -> None:
@@ -85,16 +115,16 @@ def test_detail_exposes_the_stored_coordinates() -> None:
 
 
 def test_the_contract_promises_no_map_feature() -> None:
-    """M3 ist Domain plus gespeicherte Ortsdaten - keine Kartenansicht.
+    """M3 provides domain behavior and stored Place data, not map features.
 
-    Kein Geocoding, keine Provider-IDs, keine Umkreissuche und keine
-    Sortierung nach Distanz. Alles davon waere ein Providerthema mit
-    eigener Reuse-Pruefung und liegt in M7/M8.
+    There is no geocoding, provider ID, radius search, or distance sorting. All
+    of those would introduce a provider concern requiring a separate reuse
+    review and belong to M7/M8.
     """
     place_schemas = {
         name: schema for name, schema in _components().items() if name.startswith("Place")
     }
-    verboten = {
+    forbidden = {
         "provider",
         "providerId",
         "placeId_external",
@@ -105,24 +135,24 @@ def test_the_contract_promises_no_map_feature() -> None:
         "radius",
     }
     for name, schema in place_schemas.items():
-        assert set(schema.get("properties", {})) & verboten == set(), name
+        assert set(schema.get("properties", {})) & forbidden == set(), name
 
-    parameter = {p["name"] for p in _paths()[COLLECTION]["get"].get("parameters", [])}
-    assert parameter == {"spaceId", "cursor", "limit"}
+    parameters = {p["name"] for p in _paths()[COLLECTION]["get"].get("parameters", [])}
+    assert parameters == {"spaceId", "cursor", "limit"}
 
 
 def test_the_plan_contract_now_carries_the_place() -> None:
-    """Aus M3-S2 nachgezogen (M3-D08/D31).
+    """Carry forward the M3-S2 decision (M3-D08/D31).
 
-    `placeId` ist einspaltig und kanonisch - es gibt keine
-    `place_plans`-Flaeche daneben.
+    `placeId` is single-valued and canonical; there is no parallel
+    `place_plans` surface.
     """
     for name in ("PlanCreate", "WishToPlan"):
         assert "placeId" in _components()[name]["properties"], name
 
     update = _components()["PlanUpdate"]["properties"]["placeId"]
-    typen = {option.get("type") for option in update.get("anyOf", [])}
-    assert "null" in typen
+    types = {option.get("type") for option in update.get("anyOf", [])}
+    assert "null" in types
 
     assert "placeId" in _components()["PlanDetail"]["properties"]
-    assert not any("/plans/{planId}/places" in pfad for pfad in _paths())
+    assert not any("/plans/{planId}/places" in path for path in _paths())

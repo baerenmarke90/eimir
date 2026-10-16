@@ -1,4 +1,4 @@
-"""Erzeugt und prueft den versionierten OpenAPI-Vertrag der echten ASGI-App."""
+"""Generate and verify the versioned OpenAPI contract of the real ASGI app."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from sidebyside.main import app
+from eimir.main import app
 
 
 class ContractMismatchError(RuntimeError):
-    """Der versionierte Vertrag weicht vom aktuellen API-Schema ab."""
+    """The versioned contract differs from the current API schema."""
 
 
 def canonical_json(schema: Mapping[str, Any]) -> str:
@@ -34,7 +34,7 @@ def ensure_contract_matches(
     expected: Mapping[str, Any],
     actual: Mapping[str, Any],
     *,
-    expected_name: str = "versionierter Vertrag",
+    expected_name: str = "versioned contract",
 ) -> None:
     if expected == actual:
         return
@@ -43,10 +43,10 @@ def ensure_contract_matches(
             canonical_json(expected).splitlines(keepends=True),
             canonical_json(actual).splitlines(keepends=True),
             fromfile=expected_name,
-            tofile="aktuelle API",
+            tofile="current API",
         )
     )
-    raise ContractMismatchError(f"OpenAPI-Vertrag ist nicht aktuell:\n{difference}")
+    raise ContractMismatchError(f"OpenAPI contract is not current:\n{difference}")
 
 
 def check_contract(contract_path: Path, actual: Mapping[str, Any]) -> None:
@@ -63,7 +63,7 @@ def main() -> int:
 
     if arguments.mode == "write":
         arguments.contract.write_text(canonical_json(actual), encoding="utf-8", newline="\n")
-        print(f"OpenAPI-Vertrag geschrieben: {arguments.contract}")
+        print(f"OpenAPI contract written: {arguments.contract}")
         return 0
 
     try:
@@ -71,7 +71,7 @@ def main() -> int:
     except ContractMismatchError as error:
         print(error)
         return 1
-    print("OpenAPI-Vertrag stimmt mit der aktuellen API ueberein.")
+    print("OpenAPI contract matches the current API.")
     return 0
 
 

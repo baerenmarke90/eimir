@@ -1,0 +1,270 @@
+name: Runtime Environment Drift Guard
+
+on:
+  pull_request:
+    paths:
+      - compose.yaml
+      - .env.example
+      - deploy/cloud-managed.env.example
+      - deploy/persistent-development.env.example
+      - deploy/self-hosted-release.env.example
+      - scripts/self_hosted_release.py
+      - scripts/test_self_hosted_release.py
+      - scripts/build_self_hosted_source.py
+      - scripts/test_build_self_hosted_source.py
+      - scripts/compose_checked.py
+      - scripts/test_compose_checked.py
+      - scripts/check_runtime_environment.py
+      - scripts/test_check_runtime_environment.py
+      - backend/src/eimir/identity/deletion_bootstrap.py
+      - docs/ACCOUNT-DELETION-SELF-HOSTED.md
+      - docs/ARCANE.md
+      - docs/SELF-HOSTING.md
+      - docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
+      - docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
+      - .github/workflows/runtime-environment-drift-guard.yml
+  push:
+    branches: [main]
+    paths:
+      - compose.yaml
+      - .env.example
+      - deploy/cloud-managed.env.example
+      - deploy/persistent-development.env.example
+      - deploy/self-hosted-release.env.example
+      - scripts/self_hosted_release.py
+      - scripts/test_self_hosted_release.py
+      - scripts/build_self_hosted_source.py
+      - scripts/test_build_self_hosted_source.py
+      - scripts/compose_checked.py
+      - scripts/test_compose_checked.py
+      - scripts/check_runtime_environment.py
+      - scripts/test_check_runtime_environment.py
+      - backend/src/eimir/identity/deletion_bootstrap.py
+      - docs/ACCOUNT-DELETION-SELF-HOSTED.md
+      - docs/ARCANE.md
+      - docs/SELF-HOSTING.md
+      - docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
+      - docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
+      - .github/workflows/runtime-environment-drift-guard.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-environment:
+    name: Render and runtime drift contract
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Unit tests
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            scripts/self_hosted_release.py \
+            scripts/test_self_hosted_release.py \
+            scripts/build_self_hosted_source.py \
+            scripts/test_build_self_hosted_source.py \
+            scripts/compose_checked.py \
+            scripts/test_compose_checked.py \
+            scripts/check_runtime_environment.py \
+            scripts/test_check_runtime_environment.py \
+            backend/src/eimir/identity/deletion_bootstrap.py
+          python3 -m unittest \
+            scripts.test_self_hosted_release \
+            scripts.test_build_self_hosted_source \
+            scripts.test_compose_checked \
+            scripts.test_check_runtime_environment
+
+      - name: Account-deletion bootstrap guidance stays canonical
+        run: |
+          set -euo pipefail
+          operator_surfaces=(
+            .env.example
+            deploy/cloud-managed.env.example
+            deploy/persistent-development.env.example
+            deploy/self-hosted-release.env.example
+            docs/SELF-HOSTING.md
+            docs/ACCOUNT-DELETION-SELF-HOSTED.md
+            docs/ARCANE.md
+            docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
+            docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
+          )
+
+          if grep -nE 'uuid\.uuid4|print\(uuid\.uuid4\(\)\)' "${operator_surfaces[@]}"; then
+            echo 'Standalone UUID generation must not be documented for the Account-deletion authority.'
+            exit 1
+          fi
+
+          direct_bootstrap_surfaces=(
+            .env.example
+            deploy/cloud-managed.env.example
+            deploy/persistent-development.env.example
+            docs/ACCOUNT-DELETION-SELF-HOSTED.md
+            docs/m6/CLOUD-MANAGED-ACCOUNT-DELETION-AUTHORITY.md
+          )
+          for path in "${direct_bootstrap_surfaces[@]}"; do
+            grep -Fq 'eimir.identity.deletion_bootstrap' "$path" || {
+              echo "$path does not retain the explicit deletion-authority bootstrap contract."
+              exit 1
+            }
+          done
+
+          released_surfaces=(
+            deploy/self-hosted-release.env.example
+            docs/SELF-HOSTING.md
+            docs/ARCANE.md
+            docs/DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md
+          )
+          for path in "${released_surfaces[@]}"; do
+            grep -Fq 'scripts/self_hosted_release.py' "$path" || {
+              echo "$path does not route released Production through the mandatory launcher."
+              exit 1
+            }
+          done
+
+          grep -Fq -- '--confirm-new-installation' docs/ACCOUNT-DELETION-SELF-HOSTED.md
+          grep -Fq 'recovery failure' docs/ACCOUNT-DELETION-SELF-HOSTED.md
+
+      - name: Development deletion authority render cannot drift from dotenv
+        run: |
+          set -euo pipefail
+          cp .env.example .env-runtime-guard
+          sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=runtime-guard-only/' .env-runtime-guard
+          sed -i 's/^EIMIR_ACCOUNT_DELETION_INSTANCE_ID=.*/EIMIR_ACCOUNT_DELETION_INSTANCE_ID=11111111-2222-4333-8444-555555555555/' .env-runtime-guard
+
+          python3 scripts/check_runtime_environment.py \
+            --env-file .env-runtime-guard \
+            --profile self-hosted
+
+          if EIMIR_ACCOUNT_DELETION_INSTANCE_ID= \
+            python3 scripts/check_runtime_environment.py \
+              --env-file .env-runtime-guard \
+              --profile self-hosted; then
+            echo 'Runtime guard accepted an explicitly blank process override of the dotenv authority.'
+            exit 1
+          fi
+
+          docker compose --profile self-hosted --env-file .env-runtime-guard config --format json \
+            > /tmp/runtime-guard-compose.json
+          jq -e '
+            (.services | has("demo-init") | not) and
+            (.services.api.environment.EIMIR_ACCOUNT_DELETION_INSTANCE_ID == "11111111-2222-4333-8444-555555555555") and
+            (.services.worker.environment.EIMIR_ACCOUNT_DELETION_INSTANCE_ID == "11111111-2222-4333-8444-555555555555")
+          ' /tmp/runtime-guard-compose.json
+
+      - name: Released Self-Hosted Production image identity is fail-closed
+        run: |
+          set -euo pipefail
+          cp deploy/self-hosted-release.env.example .env-production-image-guard
+          sed -i 's|^EIMIR_PUBLIC_BASE_URL=.*|EIMIR_PUBLIC_BASE_URL=https://production.example.invalid|' .env-production-image-guard
+          sed -i 's/^EIMIR_ACCOUNT_DELETION_INSTANCE_ID=.*/EIMIR_ACCOUNT_DELETION_INSTANCE_ID=11111111-2222-4333-8444-555555555555/' .env-production-image-guard
+
+          identity=.runtime-drift-image-identity.json
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          values = {}
+          for raw_line in Path(".env-production-image-guard").read_text(encoding="utf-8").splitlines():
+              line = raw_line.strip()
+              if not line or line.startswith("#") or "=" not in line:
+                  continue
+              key, value = line.split("=", 1)
+              values[key.strip()] = value.strip()
+
+          version = values["EIMIR_RELEASE_VERSION"]
+
+          def image_record(role: str, digit: str, roles: list[str]) -> dict[str, object]:
+              digest = "sha256:" + digit * 64
+              return {
+                  "reference": f"ghcr.io/baerenmarke90/eimir-{role}:v{version}@{digest}",
+                  "digest": digest,
+                  "roles": roles,
+              }
+
+          identity = {
+              "schemaVersion": 1,
+              "kind": "eimir-self-hosted-image-identity",
+              "product": {"version": version, "tag": f"v{version}"},
+              "sourceRevision": os.environ["GITHUB_SHA"],
+              "images": {
+                  "backend": image_record(
+                      "backend", "a", ["api", "worker", "migrate"]
+                  ),
+                  "web": image_record("web", "b", ["web"]),
+              },
+          }
+          Path(".runtime-drift-image-identity.json").write_text(
+              json.dumps(identity, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          python3 scripts/self_hosted_release.py \
+            --env-file .env-production-image-guard \
+            --image-identity "$identity" \
+            validate
+
+          expect_rejected() {
+            label=$1
+            shift
+            if env "$@" python3 scripts/self_hosted_release.py \
+              --env-file .env-production-image-guard \
+              --image-identity "$identity" \
+              validate; then
+              echo "Released launcher accepted unsafe Production identity: $label"
+              exit 1
+            fi
+          }
+
+          expect_rejected latest \
+            EIMIR_SELF_HOSTED_BACKEND_IMAGE=ghcr.io/baerenmarke90/eimir-backend:latest
+          expect_rejected branch \
+            EIMIR_SELF_HOSTED_WEB_IMAGE=ghcr.io/baerenmarke90/eimir-web:main
+          expect_rejected local-source \
+            EIMIR_SELF_HOSTED_BACKEND_IMAGE=eimir-backend:source-local \
+            EIMIR_SELF_HOSTED_WEB_IMAGE=eimir-web:source-local
+          expect_rejected joint-version-mismatch \
+            EIMIR_SELF_HOSTED_BACKEND_IMAGE=ghcr.io/baerenmarke90/eimir-backend:v0.1.1 \
+            EIMIR_SELF_HOSTED_WEB_IMAGE=ghcr.io/baerenmarke90/eimir-web:v0.1.1
+          expect_rejected no-pull \
+            EIMIR_SELF_HOSTED_PULL_POLICY=never
+          expect_rejected environment-downgrade \
+            EIMIR_ENVIRONMENT=development
+
+          cp .env-production-image-guard /tmp/no-release-version.env
+          sed -i 's/^EIMIR_RELEASE_VERSION=.*/EIMIR_RELEASE_VERSION=/' /tmp/no-release-version.env
+          if python3 scripts/self_hosted_release.py \
+            --env-file /tmp/no-release-version.env \
+            --image-identity "$identity" \
+            validate; then
+            echo 'Released launcher accepted Production without EIMIR_RELEASE_VERSION.'
+            exit 1
+          fi
+
+      - name: Image-only validation supports first-install bootstrap boundary
+        run: |
+          set -euo pipefail
+          cp deploy/self-hosted-release.env.example /tmp/pre-bootstrap.env
+          python3 scripts/check_runtime_environment.py \
+            --env-file /tmp/pre-bootstrap.env \
+            --profile self-hosted \
+            --image-identity-only
+
+      - name: Production dotenv must carry deletion authority for full deployment
+        run: |
+          set -euo pipefail
+          cp deploy/self-hosted-release.env.example .env-production-guard
+          sed -i 's/^EIMIR_ACCOUNT_DELETION_INSTANCE_ID=.*/EIMIR_ACCOUNT_DELETION_INSTANCE_ID=/' .env-production-guard
+
+          if python3 scripts/check_runtime_environment.py \
+            --env-file .env-production-guard \
+            --profile self-hosted; then
+            echo 'Runtime guard accepted Production without an Account-deletion authority.'
+            exit 1
+          fi

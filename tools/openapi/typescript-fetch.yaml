@@ -1,14 +1,14 @@
-# TypeScript-Client fuer den React-Webclient.
+# TypeScript client for the React Web client.
 #
-# `typescript-fetch` erzeugt Code gegen die Fetch-API des Browsers und
-# bringt damit *keine* Runtime-Abhaengigkeit mit. Das ist der Grund fuer
-# diese Wahl: ein Generator, der axios voraussetzt, entscheidet die
-# HTTP-Bibliothek des Webclients mit - und zwar hier, statt im Webprojekt.
+# `typescript-fetch` generates code against the browser Fetch API and therefore
+# adds *no* runtime dependency. That is why it is used here: a generator that
+# requires axios would choose the Web client's HTTP library in this shared
+# configuration instead of in the Web project.
 supportsES6: true
 withoutRuntimeChecks: false
-# Keine package.json, kein tsconfig, kein npmignore: dieser Ordner ist eine
-# Quellcodeschicht im Webprojekt und kein eigenes Paket. Sonst entstuende
-# ein zweiter Abhaengigkeitsbaum neben dem des Clients.
+# No package.json, tsconfig, or npmignore: this directory is a source layer in
+# the Web project, not a separate package. Otherwise it would create a second
+# dependency tree alongside the client.
 withSeparateModelsAndApi: false
 enumPropertyNaming: original
 modelPropertyNaming: original

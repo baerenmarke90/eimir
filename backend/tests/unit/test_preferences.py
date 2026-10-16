@@ -1,23 +1,23 @@
-"""Zeitzone und Locale an der Schreibgrenze."""
+"""Timezone and locale validation at the write boundary."""
 
 from __future__ import annotations
 
 import pytest
 
-from sidebyside.core.errors import ValidationError
-from sidebyside.identity.preferences import (
+from eimir.core.errors import ValidationError
+from eimir.identity.preferences import (
     PreferenceErrorCode,
     normalize_locale,
     validate_timezone,
 )
 
 
-class TestZeitzone:
+class TestTimezone:
     @pytest.mark.parametrize("zone", ["Europe/Berlin", "UTC", "America/Argentina/Ushuaia"])
-    def test_bekannte_zone_wird_unveraendert_uebernommen(self, zone: str) -> None:
+    def test_known_zone_is_preserved(self, zone: str) -> None:
         assert validate_timezone(zone) == zone
 
-    def test_umgebender_leerraum_faellt_weg(self) -> None:
+    def test_surrounding_whitespace_is_removed(self) -> None:
         assert validate_timezone("  Europe/Berlin  ") == "Europe/Berlin"
 
     @pytest.mark.parametrize(
@@ -33,20 +33,20 @@ class TestZeitzone:
             "A" * 65,
         ],
     )
-    def test_unbrauchbare_zone_wird_abgewiesen(self, zone: str) -> None:
-        with pytest.raises(ValidationError) as fehler:
+    def test_unusable_zone_is_rejected(self, zone: str) -> None:
+        with pytest.raises(ValidationError) as error:
             validate_timezone(zone)
-        assert fehler.value.code == PreferenceErrorCode.TIMEZONE_INVALID
+        assert error.value.code == PreferenceErrorCode.TIMEZONE_INVALID
 
-    def test_die_pruefung_geht_gegen_die_zonendatenbank(self) -> None:
-        """Ein Muster wuerde 'Europe/Berlinn' durchlassen - es sieht richtig aus."""
+    def test_validation_uses_timezone_database(self) -> None:
+        """A pattern would accept 'Europe/Berlinn' because it looks valid."""
         with pytest.raises(ValidationError):
             validate_timezone("Europe/Berlinn")
 
 
 class TestLocale:
     @pytest.mark.parametrize(
-        ("eingabe", "erwartet"),
+        ("input_value", "expected"),
         [
             ("de-DE", "de-DE"),
             ("de_DE", "de-DE"),
@@ -58,16 +58,16 @@ class TestLocale:
             ("  fr-fr  ", "fr-FR"),
         ],
     )
-    def test_kanonische_schreibweise(self, eingabe: str, erwartet: str) -> None:
-        assert normalize_locale(eingabe) == erwartet
+    def test_canonical_spelling(self, input_value: str, expected: str) -> None:
+        assert normalize_locale(input_value) == expected
 
-    def test_normalisieren_ist_stabil(self) -> None:
-        """Gespeicherter und ausgelieferter Wert muessen derselbe sein."""
-        einmal = normalize_locale("zh_hans_cn")
-        assert normalize_locale(einmal) == einmal
+    def test_normalization_is_stable(self) -> None:
+        """Stored and returned values must be identical."""
+        once = normalize_locale("zh_hans_cn")
+        assert normalize_locale(once) == once
 
     @pytest.mark.parametrize(
-        "eingabe",
+        "input_value",
         [
             "",
             "   ",
@@ -81,7 +81,7 @@ class TestLocale:
             "de-" + "x" * 20,
         ],
     )
-    def test_unbrauchbare_locale_wird_abgewiesen(self, eingabe: str) -> None:
-        with pytest.raises(ValidationError) as fehler:
-            normalize_locale(eingabe)
-        assert fehler.value.code == PreferenceErrorCode.LOCALE_INVALID
+    def test_unusable_locale_is_rejected(self, input_value: str) -> None:
+        with pytest.raises(ValidationError) as error:
+            normalize_locale(input_value)
+        assert error.value.code == PreferenceErrorCode.LOCALE_INVALID

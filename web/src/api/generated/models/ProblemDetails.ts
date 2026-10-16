@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,11 +14,11 @@
 
 import { mapValues } from '../runtime';
 /**
- * Der Rumpf jeder Fehlerantwort.
+ * Body of every API error response.
  * 
- * Dasselbe Modell erzeugt die Antwort und beschreibt sie im OpenAPI-
- * Vertrag. Getrennt gepflegt wuerden beide irgendwann auseinanderlaufen,
- * und der Vertrag beschriebe dann einen Fehler, den es so nicht gibt.
+ * The same model produces the runtime response and describes it in the
+ * OpenAPI contract. Maintaining those separately would eventually make the
+ * contract describe an error shape that the runtime does not return.
  * @export
  * @interface ProblemDetails
  */

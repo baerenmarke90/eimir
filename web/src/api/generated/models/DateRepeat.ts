@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -14,11 +14,10 @@
 
 
 /**
- * Wie oft ein Termin wiederkehrt.
+ * How often an important date recurs.
  * 
- * Bewusst nur zwei Werte. Eine vollstaendige Wiederholungsregel gehoert
- * zur spaeteren Erinnerungslogik; ein Geburtstag und ein Jahrestag
- * brauchen sie nicht.
+ * Deliberately limited to two values. A full recurrence rule belongs to
+ * later reminder logic; birthdays and anniversaries do not need it.
  * @export
  */
 export const DateRepeat = {

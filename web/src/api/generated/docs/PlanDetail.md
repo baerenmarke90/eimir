@@ -15,6 +15,7 @@ Name | Type
 `id` | string
 `placeId` | string
 `plannedEnd` | Date
+`plannedOn` | Date
 `plannedStart` | Date
 `sourceWishId` | string
 `spaceId` | string
@@ -39,6 +40,7 @@ const example = {
   "id": null,
   "placeId": null,
   "plannedEnd": null,
+  "plannedOn": null,
   "plannedStart": null,
   "sourceWishId": null,
   "spaceId": null,

@@ -1,9 +1,9 @@
-"""Ein einziges Fehlerformat, fuer jeden Fehler.
+"""One error format for every error.
 
-Ein Client, der eine Fehlermeldung anzeigen will, braucht dafuer genau
-einen Weg. Geprueft wird ueber eine echte App mit echten Routen, nicht
-gegen die Handler-Funktionen - die Registrierung selbst ist Teil dessen,
-was schiefgehen kann.
+A client that wants to display an error message needs exactly one path. This
+is verified through a real app with real routes rather than against the
+handler functions, because handler registration itself is part of what can go
+wrong.
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 
-from sidebyside.api.errors import register_error_handlers
-from sidebyside.core.errors import (
+from eimir.api.errors import register_error_handlers
+from eimir.core.errors import (
     ConflictError,
     ErrorCode,
     ForbiddenError,
@@ -23,7 +23,7 @@ from sidebyside.core.errors import (
     ValidationError,
 )
 
-PFLICHTFELDER = {"type", "title", "status", "detail", "code"}
+REQUIRED_FIELDS = {"type", "title", "status", "detail", "code"}
 
 
 class Body(BaseModel):
@@ -61,7 +61,7 @@ def client() -> TestClient:
 
     @app.get("/boom")
     def _boom() -> None:
-        raise RuntimeError("Verbindung zu postgres://benutzer:geheim@host fehlgeschlagen")
+        raise RuntimeError("Connection to postgres://user:secret@host failed")
 
     @app.post("/body")
     def _body(body: Body) -> dict[str, str]:
@@ -72,7 +72,7 @@ def client() -> TestClient:
 
 class TestFormat:
     @pytest.mark.parametrize(
-        ("pfad", "status", "typ", "code"),
+        ("path", "status", "problem_type", "code"),
         [
             ("/not-found", 404, "not_found", "MEMORY_NOT_FOUND"),
             ("/forbidden", 403, "forbidden", "SPACE_ACCESS_DENIED"),
@@ -81,35 +81,40 @@ class TestFormat:
             ("/invalid", 422, "validation_error", "MEMORY_TITLE_REQUIRED"),
         ],
     )
-    def test_fachliche_fehler(
-        self, client: TestClient, pfad: str, status: int, typ: str, code: str
+    def test_domain_errors(
+        self,
+        client: TestClient,
+        path: str,
+        status: int,
+        problem_type: str,
+        code: str,
     ) -> None:
-        antwort = client.get(pfad)
-        assert antwort.status_code == status
-        koerper = antwort.json()
-        assert set(koerper) == PFLICHTFELDER
-        assert koerper["type"] == typ
-        assert koerper["status"] == status
-        assert koerper["code"] == code
+        response = client.get(path)
+        assert response.status_code == status
+        body = response.json()
+        assert set(body) == REQUIRED_FIELDS
+        assert body["type"] == problem_type
+        assert body["status"] == status
+        assert body["code"] == code
 
-    def test_unbekannte_route(self, client: TestClient) -> None:
-        antwort = client.get("/gibt-es-nicht")
-        assert antwort.status_code == 404
-        assert set(antwort.json()) == PFLICHTFELDER
+    def test_unknown_route(self, client: TestClient) -> None:
+        response = client.get("/does-not-exist")
+        assert response.status_code == 404
+        assert set(response.json()) == REQUIRED_FIELDS
 
-    def test_ungueltiger_koerper(self, client: TestClient) -> None:
-        antwort = client.post("/body", json={})
-        assert antwort.status_code == 422
-        koerper = antwort.json()
-        assert koerper["code"] == ErrorCode.VALIDATION_FAILED
-        assert "title" in koerper["detail"]
+    def test_invalid_body(self, client: TestClient) -> None:
+        response = client.post("/body", json={})
+        assert response.status_code == 422
+        body = response.json()
+        assert body["code"] == ErrorCode.VALIDATION_FAILED
+        assert "title" in body["detail"]
 
 
 class TestApiRouteMisses:
-    def test_unbekannte_api_route_hat_problem_details(self, client: TestClient) -> None:
-        antwort = client.get("/api/v1/gibt-es-nicht")
-        assert antwort.status_code == 404
-        assert antwort.json() == {
+    def test_unknown_api_route_has_problem_details(self, client: TestClient) -> None:
+        response = client.get("/api/v1/does-not-exist")
+        assert response.status_code == 404
+        assert response.json() == {
             "type": "not_found",
             "title": "Not found",
             "status": 404,
@@ -117,35 +122,35 @@ class TestApiRouteMisses:
             "code": "HTTP_404",
         }
 
-    def test_route_miss_durch_zusaetzliches_pfadsegment_hat_problem_details(
+    def test_route_miss_with_extra_path_segment_has_problem_details(
         self, client: TestClient
     ) -> None:
-        antwort = client.get("/api/v1/domain-not-found/unerwartetes-segment")
-        assert antwort.status_code == 404
-        assert set(antwort.json()) == PFLICHTFELDER
-        assert antwort.json()["code"] == "HTTP_404"
+        response = client.get("/api/v1/domain-not-found/unexpected-segment")
+        assert response.status_code == 404
+        assert set(response.json()) == REQUIRED_FIELDS
+        assert response.json()["code"] == "HTTP_404"
 
-    def test_fachliche_api_404_behaelt_domain_code(self, client: TestClient) -> None:
-        antwort = client.get("/api/v1/domain-not-found")
-        assert antwort.status_code == 404
-        assert set(antwort.json()) == PFLICHTFELDER
-        assert antwort.json()["code"] == "SPACE_NOT_FOUND"
-        assert antwort.json()["detail"] == "Space not found."
+    def test_domain_api_404_preserves_domain_code(self, client: TestClient) -> None:
+        response = client.get("/api/v1/domain-not-found")
+        assert response.status_code == 404
+        assert set(response.json()) == REQUIRED_FIELDS
+        assert response.json()["code"] == "SPACE_NOT_FOUND"
+        assert response.json()["detail"] == "Space not found."
 
 
-class TestKeineInternenDetails:
-    def test_unerwarteter_fehler_wird_zu_einem_neutralen_500(self, client: TestClient) -> None:
-        antwort = client.get("/boom")
-        assert antwort.status_code == 500
-        assert antwort.json()["code"] == ErrorCode.INTERNAL
+class TestNoInternalDetails:
+    def test_unexpected_error_becomes_neutral_500(self, client: TestClient) -> None:
+        response = client.get("/boom")
+        assert response.status_code == 500
+        assert response.json()["code"] == ErrorCode.INTERNAL
 
-    def test_ausnahmetext_erreicht_den_client_nicht(self, client: TestClient) -> None:
-        """Eine Ausnahmemeldung kann Zugangsdaten und Pfade tragen."""
-        rohtext = client.get("/boom").text
-        for verboten in ("geheim", "postgres://", "RuntimeError", "Traceback"):
-            assert verboten not in rohtext
+    def test_exception_text_does_not_reach_client(self, client: TestClient) -> None:
+        """An exception message may contain credentials and paths."""
+        raw_text = client.get("/boom").text
+        for forbidden in ("secret", "postgres://", "RuntimeError", "Traceback"):
+            assert forbidden not in raw_text
 
-    def test_eingesendete_werte_werden_nicht_zurueckgespiegelt(self, client: TestClient) -> None:
-        """Ein ungueltiger Wert kann sensibel sein - der Feldname genuegt."""
-        rohtext = client.post("/body", json={"title": 12345, "x": "geheimnis"}).text
-        assert "geheimnis" not in rohtext
+    def test_submitted_values_are_not_reflected(self, client: TestClient) -> None:
+        """An invalid value may be sensitive; the field name is sufficient."""
+        raw_text = client.post("/body", json={"title": 12345, "x": "secret-value"}).text
+        assert "secret-value" not in raw_text

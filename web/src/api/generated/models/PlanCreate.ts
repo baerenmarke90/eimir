@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -13,12 +13,20 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PlanSchedule } from './PlanSchedule';
+import {
+    PlanScheduleFromJSON,
+    PlanScheduleFromJSONTyped,
+    PlanScheduleToJSON,
+    PlanScheduleToJSONTyped,
+} from './PlanSchedule';
+
 /**
- * Direct Plan Create nach M3-D30.
+ * Direct Plan creation with an optional atomic schedule.
  * 
- * `status`, `sourceWishId` und alle Termine fehlen bewusst. Ein Plan
- * beginnt als Idee; terminiert wird er ueber `/schedule`, abgeschlossen
- * ueber `/complete`.
+ * Lifecycle state remains server-owned. Omitting ``schedule`` creates an
+ * ``IDEA``; supplying a valid date-only or timed schedule creates a
+ * ``PLANNED`` Plan in the same transaction.
  * @export
  * @interface PlanCreate
  */
@@ -35,6 +43,12 @@ export interface PlanCreate {
      * @memberof PlanCreate
      */
     placeId?: string;
+    /**
+     * 
+     * @type {PlanSchedule}
+     * @memberof PlanCreate
+     */
+    schedule?: PlanSchedule;
     /**
      * 
      * @type {string}
@@ -63,6 +77,7 @@ export function PlanCreateFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         
         'description': json['description'] == null ? undefined : json['description'],
         'placeId': json['placeId'] == null ? undefined : json['placeId'],
+        'schedule': json['schedule'] == null ? undefined : PlanScheduleFromJSON(json['schedule']),
         'title': json['title'],
     };
 }
@@ -80,6 +95,7 @@ export function PlanCreateToJSONTyped(value?: PlanCreate | null, ignoreDiscrimin
         
         'description': value['description'],
         'placeId': value['placeId'],
+        'schedule': PlanScheduleToJSON(value['schedule']),
         'title': value['title'],
     };
 }

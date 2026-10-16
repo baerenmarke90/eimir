@@ -119,7 +119,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
-| **503** | Der Prozess laeuft, aber die Datenbank ist nicht erreichbar. |  -  |
+| **503** | The process is running, but the database is unavailable. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

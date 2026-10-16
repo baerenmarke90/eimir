@@ -1,332 +1,340 @@
 # M3 Security Test Matrix
 
-**Status:** verbindliche Readiness-Matrix; konkrete Erwartungswerte folgen Decisions  
-**Stand:** 26.08.2026
+**Status:** binding readiness matrix; concrete expected values follow decisions  
+**As of:** August 30, 2026
 
-Diese Matrix legt fest, welche Testklassen ein M3-Slice mindestens benötigt. Sie ersetzt keine Slice-spezifischen Tests, verhindert aber, dass Tenant-, Owner-only-, Relation- oder Race-Fälle erst beim Gate auffallen.
+This matrix defines the minimum test classes required for an M3 slice. It does not replace slice-specific tests, but prevents Tenant, owner-only, Relation, or race cases from first surfacing at the gate.
 
-## 1. Testebenen
+## 1. Test levels
 
-| Ebene | Zweck |
+| Level | Purpose |
 |---|---|
-| Domain Unit | Statusautomaten, Validierung, sichere pure Regeln |
-| PostgreSQL Integration | Constraints, FKs, Locks, Races, Cascades, Tenant-/Owner-Queries |
-| HTTP Integration | echte Auth/Membership/API/Problem-Details/ETag-Semantik |
-| Contract/OpenAPI | DTOs, Enums, Fehlercodes, generierbarer Vertrag |
-| Client/Gate | gemäß M3-D24; keine implizite Annahme vor Decision |
+| Domain Unit | state machines, validation, safe pure rules |
+| PostgreSQL Integration | constraints, FKs, locks, races, cascades, Tenant/Owner queries |
+| HTTP Integration | real Auth/Membership/API/Problem Details/ETag semantics |
+| Contract/OpenAPI | DTOs, enums, error codes, generatable contract |
+| Client/Gate | according to M3-D24; no implicit assumption before decision |
 
-SQLite ist kein Ersatz für PostgreSQL-Race-/Constraint-Evidenz.
+SQLite is not a substitute for PostgreSQL race/constraint evidence.
 
-## 2. Gemeinsame Tenant-Matrix
+## 2. Shared Tenant matrix
 
-Für **Wish, Plan, Place, Chapter, Collection** mindestens:
+For **Wish, Plan, Place, Chapter, Collection** at minimum:
 
-| Fall | Erwartung |
+| Case | Expected result |
 |---|---|
-| aktives Mitglied, eigener Space, GET | erlaubt |
-| aktives Mitglied, eigener Space, List | nur eigener Space |
-| ID aus fremdem Space in eigenem Pfad | privacy-sicher 404 |
-| fremde `spaceId` ohne Membership | 404/standardisierte Tenant-Antwort |
-| Mutation gegen fremden Space | keine Zeilenänderung |
-| Delete gegen fremden Space | keine Zeilenänderung |
-| Cursor/Filter aus anderem Space | nicht wiederverwendbar / keine Fremddaten |
+| active member, own Space, GET | allowed |
+| active member, own Space, List | own Space only |
+| ID from foreign Space in own route | Privacy-safe 404 |
+| foreign `spaceId` without Membership | 404/standardized Tenant response |
+| mutation against foreign Space | no row change |
+| Delete against foreign Space | no row change |
+| cursor/filter from another Space | not reusable / no foreign data |
 
-Die konkrete Partner-Write-Erwartung hängt von M3-D01 ab und wird nach Decision ergänzt.
+The concrete partner-write expectation depends on M3-D01 and is added after the decision.
 
 ## 3. Wish
 
 ### CRUD / Concurrency
 
-- Create setzt `createdBy` aus Auth Context, nicht Request.
-- Request kann `createdBy`, `spaceId`, `version` nicht überschreiben.
-- Update mit aktueller Version erfolgreich.
-- stale Update -> 409, keine Teiländerung.
-- stale Delete -> 409, sofern Delete versioniert ist.
-- ungültiger Statuspatch wird nicht als normaler Update akzeptiert, falls Transition-API beschlossen wird.
+- Create derives `createdBy` from Auth Context, not request.
+- Request cannot override `createdBy`, `spaceId`, or `version`.
+- Update with current version succeeds.
+- stale Update -> 409, no partial change.
+- stale Delete -> 409 if Delete is versioned.
+- invalid status patch is not accepted as a normal Update if a Transition API is decided.
 
 ### Wish -> Plan
 
-Pflichtfälle:
+Mandatory cases:
 
-1. OPEN Wish -> Plan erfolgreich.
-2. Wish + Plan in derselben DB-Transaktion sichtbar.
-3. Fehler nach Plan-Insert vor Wish-Update -> kompletter Rollback.
-4. zwei parallele Konvertierungen -> exakt gemäß M3-D02, niemals zwei unerlaubte Plans.
-5. identischer Retry nach erfolgreichem Commit -> deterministische Idempotenz-/Conflict-Semantik.
-6. stale `If-Match` -> kein Plan erzeugt.
-7. fremder Space Wish -> 404.
-8. Place aus fremdem Space im Conversion-Request -> 404, kein Plan.
-9. Wish-Delete parallel zur Konvertierung -> genau eine fachlich zulässige Reihenfolge gewinnt.
+1. OPEN Wish -> Plan succeeds.
+2. Wish + Plan visible in the same DB transaction.
+3. failure after Plan insert before Wish update -> complete rollback.
+4. two parallel conversions -> exactly according to M3-D02, never two disallowed Plans.
+5. identical retry after successful commit -> deterministic idempotency/conflict semantics.
+6. stale `If-Match` -> no Plan created.
+7. foreign Space Wish -> 404.
+8. Place from foreign Space in conversion request -> 404, no Plan.
+9. Wish Delete concurrent with conversion -> exactly one domain-valid ordering wins.
 
 ## 4. Plan
 
 ### Status
 
-Für jede mit M3-D04 erlaubte Kante:
+For every transition edge allowed by M3-D04:
 
 - Happy Path,
-- stale Version,
-- doppelte Transition,
-- ungültige Quell-/Zielkombination,
-- Datumsvalidierung,
+- stale version,
+- duplicate transition,
+- invalid source/target combination,
+- date validation,
 - Cross-Space Place,
-- Partner-Write gemäß M3-D01.
+- partner write according to M3-D01.
 
-Für jede verbotene Kante expliziter negativer Test.
+For every forbidden edge, provide an explicit negative test.
 
 ### Completion
 
-- `COMPLETED` setzt/validiert `experiencedOn` gemäß Decision.
-- parallele Completion ist idempotent oder deterministischer Conflict.
-- Completion gegen Return-to-Wish wird serialisiert.
-- Completion ändert source Wish nur gemäß expliziter Decision; keine implizite Cascade.
+- `COMPLETED` sets/validates `experiencedOn` according to the decision.
+- parallel Completion is idempotent or a deterministic Conflict.
+- Completion vs. Return-to-Wish is serialized.
+- Completion changes the source Wish only according to an explicit decision; no implicit Cascade.
 
 ### Return-to-Wish
 
-Nach M3-D03 testen:
+After M3-D03, test:
 
-- nur zulässige nicht abgeschlossene States,
-- Verhalten mit/ohne `sourceWishId`,
-- keine stille Payload-Überschreibung,
-- Plan-/Wish-Versionen konsistent,
-- Race mit Plan-Update/Delete/Complete.
+- only permitted non-completed states,
+- behavior with/without `sourceWishId`,
+- no silent payload overwrite,
+- Plan/Wish versions remain consistent,
+- race with Plan Update/Delete/Complete.
 
 ## 5. Place
 
 ### Validation
 
-- Place ohne Koordinaten erlaubt.
-- Koordinaten außerhalb erlaubter Grenzen abgewiesen.
-- Paarigkeit/Null-Semantik gemäß M3-D06.
-- Adresse/Description nicht in Fehler-/Audit-/Event-Logs.
+- Place without coordinates is allowed.
+- coordinates outside permitted bounds are rejected.
+- pair/null semantics according to M3-D06.
+- address/Description do not appear in error/audit/Event logs.
 
 ### Tenant / Write
 
-- Cross-Space CRUD negativ.
-- Partner-Write gemäß M3-D01.
-- keine automatische Deduplizierung zweier ähnlich benannter Places, falls M3-D07 bestätigt wird.
+- Cross-Space CRUD is rejected.
+- partner write according to M3-D01.
+- no automatic deduplication of similarly named Places if M3-D07 confirms this.
 
 ### Delete / Relation
 
-- Delete gegen bestehende Relation gemäß M3-D05/D26.
-- Delete vs. concurrent relation-create mit echtem PostgreSQL-Race.
-- keine dangling FK-Zeile.
+- Delete against existing Relation according to M3-D05/D26.
+- Delete vs. concurrent Relation Create using a real PostgreSQL race.
+- no dangling FK row.
 
 ## 6. Content Relations
 
-Für **jeden tatsächlich freigegebenen Relationstyp** dieselbe Basismatrix:
+For **every actually approved Relation type**, apply the same baseline matrix:
 
-| Fall | Erwartung |
+| Case | Expected result |
 |---|---|
-| Parent + Target gleicher Space, autorisiert | Link möglich |
-| Parent fremder Space | 404 |
-| Target fremder Space | 404 |
-| Target unbekannt | 404 |
-| Target owner-only/nicht lesbar | 404, keine Existenzauskunft |
-| Duplicate Link | deterministischer Conflict/Idempotenz gemäß Contract |
-| Unlink nicht vorhanden | definierte sichere Semantik |
-| Target delete | Joinzeile gemäß FK/Lifecycle entfernt oder Delete blockiert |
-| Parent delete | Joinzeile entfernt |
-| Relation create vs target delete | kein Phantomlink |
-| Relation create vs privacy revoke | kein privater Link nach Commit |
+| Parent + target same Space, authorized | link allowed |
+| Parent foreign Space | 404 |
+| target foreign Space | 404 |
+| target unknown | 404 |
+| target owner-only/unreadable | 404, no existence disclosure |
+| duplicate link | deterministic Conflict/idempotency according to contract |
+| unlink nonexistent | defined safe semantics |
+| target Delete | Join row removed according to FK/lifecycle or Delete blocked |
+| Parent Delete | Join row removed |
+| Relation Create vs. target Delete | no phantom link |
+| Relation Create vs. Privacy revoke | no private link after commit |
 
-### HeartMoment Privacy Race
+### HeartMoment Privacy race
 
-Pflicht-PostgreSQL-Test:
+Mandatory PostgreSQL test:
 
-1. gemeinsamer HeartMoment ist `SHARED`;
-2. Transaktion A versucht Relation zu Chapter/Place;
-3. Transaktion B setzt HeartMoment `PRIVATE`;
-4. nach beiden Commits darf kein gemeinsames Read Model/Relation die Existenz des privaten HeartMoments verraten.
+1. shared HeartMoment is `SHARED`;
+2. transaction A attempts Relation to Chapter/Place;
+3. transaction B sets HeartMoment to `PRIVATE`;
+4. after both commits, no shared Read Model/Relation may reveal the existence of the private HeartMoment.
 
 ## 7. Chapter
 
 ### CRUD
 
 - Tenant matrix.
-- `startOn/endOn` gemäß M3-D11.
-- Partner-Write gemäß M3-D01.
+- `startOn/endOn` according to M3-D11.
+- partner write according to M3-D01.
 - stale update/delete -> 409.
 
-### Delete-Invariante
+### Delete invariant
 
-Pflichttest:
+Mandatory test:
 
-1. Chapter mit Memory, shared HeartMoment und Milestone verknüpfen.
-2. Chapter löschen.
-3. Joinzeilen sind entfernt.
-4. Memory, HeartMoment und Milestone existieren unverändert weiter.
-5. ihre Versionen werden durch Chapter-Delete nicht erhöht.
-6. keine Delete-Events für Targets.
+1. link Chapter with Memory, shared HeartMoment, and Milestone.
+2. delete Chapter.
+3. Join rows are removed.
+4. Memory, HeartMoment, and Milestone remain unchanged.
+5. their versions are not incremented by Chapter Delete.
+6. no Delete Events for targets.
 
-### Private Target
+### Private target
 
-- Versuch, private HeartMoment-ID zu verknüpfen -> sichere 404.
-- Partner kann aus Chapter-Count/Response keinen privaten Targetbestand ableiten.
+- attempting to link a private HeartMoment ID -> safe 404.
+- partner cannot infer private target population from Chapter count/response.
 
 ## 8. Collection / CollectionItem
 
-### Shared Ownership
+### Shared ownership
 
-Nach M3-D13:
+After M3-D13:
 
-- Ersteller-/Partneraktionen jeweils positiv/negativ,
-- `createdBy` nicht manipulierbar,
-- Cross-Space Parent-ID.
+- creator/partner actions positive/negative as defined,
+- `createdBy` cannot be manipulated,
+- Cross-Space Parent ID.
 
 ### Completion
 
-- Item Completion mit aktueller Version/Parent-Version.
+- Item Completion with current Item/Parent version.
 - stale Completion -> 409.
-- paralleles Toggle -> kein Lost Update.
+- parallel toggle -> no Lost Update.
 
 ### Reorder
 
-Pflichtfälle unabhängig von gewählter Strategie:
+Mandatory cases regardless of strategy:
 
-- gültiger kompletter Reorder,
-- unbekannte Item-ID,
-- Item aus anderer Collection,
-- duplicate Item-ID im Order-Request,
-- fehlende IDs, falls vollständige Liste verlangt wird,
-- Reorder vs Item Delete,
-- zwei parallele Reorders,
-- Reorder vs Item Create,
-- keine doppelten/ungültigen Positionen nach Commit.
+- valid complete Reorder,
+- unknown Item ID,
+- Item from another Collection,
+- duplicate Item ID in order request,
+- missing IDs if full list is required,
+- Reorder vs. Item Delete,
+- two parallel Reorders,
+- Reorder vs. Item Create,
+- no duplicate/invalid positions after commit.
 
 ### Parent Delete
 
-Nach M3-D15:
+After M3-D15:
 
-- Collection delete behandelt eigene Items wie beschlossen,
-- keine Auswirkungen auf Shopping oder andere Domainobjekte,
-- keine orphaned Items.
+- Collection Delete handles own Items as decided,
+- no effect on Shopping or other Domain objects,
+- no orphaned Items.
 
 ## 9. PrivateNote
 
-Pflichtmatrix:
+Mandatory matrix:
 
-| Actor | Operation | Erwartung |
+| Actor | Operation | Expected result |
 |---|---|---|
-| Owner | create/list/get/update/delete | erlaubt |
-| Partner im selben Space | list | ausschließlich eigene Notes; nie Owner-Notes des Partners |
-| Partner mit fremder Note-ID | get/update/delete | identisches 404 |
-| Account ohne Space-Membership | alle | 404/tenant denial |
-| Owner anderer Space | get via falschen Space | 404 |
+| Owner | create/list/get/update/delete | allowed |
+| Partner in same Space | list | own Notes only; never the partner's Notes |
+| Partner with foreign Note ID | get/update/delete | identical 404 |
+| Account without Space Membership | all | 404/Tenant denial |
+| Owner from another Space | get through wrong Space | 404 |
 
-Zusätzlich:
+Additionally:
 
-- `ownerId` nur aus Auth Context.
-- Request kann Privacy nicht zu shared ändern.
-- Titel/Body nicht in Domain Event.
-- Titel/Body nicht in Audit/Logrepräsentation.
+- `ownerId` only from Auth Context.
+- Request cannot change Privacy to shared.
+- Title/Body not in Domain Event.
+- Title/Body not in Audit/log representation.
 - stale update/delete -> 409.
 
 ## 10. GiftIdea
 
-Wie PrivateNote plus:
+Same as PrivateNote plus:
 
-- jeder Enumwert nach M3-D17 positiv getestet,
-- unbekannter Status -> Validation Error,
-- `url` wird gespeichert, aber **kein ausgehender HTTP-Request** durch Backend/Worker ausgelöst,
-- URL/recipient/occasion/priceText nicht in Events/Logs,
-- Partner erhält keine GiftIdea Counts/Existenzhinweise.
+- every enum value from M3-D17 positively tested,
+- unknown status -> Validation Error,
+- `url` is stored but triggers **no outbound HTTP request** from Backend/Worker,
+- URL/recipient/occasion/priceText not in Events/logs,
+- partner receives no GiftIdea counts/existence indicators.
 
-Ein Test kann einen absichtlich nicht erreichbaren/internen URL-Wert speichern und bestätigen, dass kein Netzwerkzugriff Teil der Operation ist.
+A test may store an intentionally unreachable/internal URL and confirm that network access is not part of the operation.
 
 ## 11. PrivateCollection / PrivateCollectionItem
 
-### Owner Isolation
+### Owner isolation
 
 - Owner CRUD/List.
-- Partner sieht in seiner privaten Liste ausschließlich eigene private Collections.
-- Partner-ID-Zugriff auf fremde PrivateCollection/Item -> identisches 404.
-- Item kann nicht aus fremder PrivateCollection referenziert werden.
+- partner sees only their own private Collections in their private List.
+- partner ID access to foreign PrivateCollection/Item -> identical 404.
+- Item cannot be referenced from a foreign PrivateCollection.
 - Cross-Space negative cases.
 
 ### Reorder / Completion
 
-Dieselbe Concurrency-Matrix wie Shared Collection, aber zusätzlich:
+Use the same Concurrency matrix as Shared Collection, plus:
 
-- kein gemeinsamer Positionsraum,
-- keine IDs des Partnerbestands in Conflict-/Validation-Details,
-- Parent-Owner-Bedingung Teil jeder Child-Query.
+- no shared position space,
+- no IDs from the partner's private data set in Conflict/Validation details,
+- Parent owner condition is part of every Child query.
 
-## 12. Privacy-Leak-Matrix
+## 12. Privacy leak matrix
 
-Für jede `OWNER_ONLY`-Domain prüfen:
+For every `OWNER_ONLY` Domain, test:
 
 - GET by ID
 - List
 - pagination/cursor
-- Count, falls vorhanden
-- Sortierung
-- Fehlerdetails
-- relation create/unlink
-- Deep-Link/API direct navigation soweit Client vorhanden
+- Count, if present
+- ordering
+- error details
+- Relation create/unlink
+- Deep Link/API direct navigation where a client exists
 - Events
 - Audit
 - Logs/Error Tracking
-- Export später als Contract-Test-Merkpunkt
-- Search später als M4-Merkpunkt
+- Export later as a Contract-test checkpoint
+- Search later as an M4 checkpoint
 
-Negative Tests sollen nicht nur Statuscodes, sondern auch Response Body/Form vergleichen, wo Existenzleaks möglich wären.
+Negative tests should compare not only status codes but also response body/form where existence leaks are possible.
 
-## 13. Event-/Outbox-Tests
+## 13. Event/Outbox tests
 
-Für jeden event-produzierenden M3-Slice:
+For every Event-producing M3 slice:
 
-- Event und Domainmutation atomar.
-- Rollback -> kein Event.
-- Event enthält nur M3-D23-Envelope.
-- JSON-Snapshot enthält keine fachlichen Titel/Texte.
-- keine Adresse/lat/lon.
-- keine GiftIdea URL/recipient/priceText.
-- keine PrivateNote/Collection-Titel.
-- Retry des Consumers erzeugt keine doppelte fachliche Wirkung.
+- Event and Domain mutation are atomic.
+- rollback -> no Event.
+- Event contains only M3-D23 envelope.
+- JSON snapshot contains no Domain titles/text.
+- no address/lat/lon.
+- no GiftIdea URL/recipient/priceText.
+- no PrivateNote/Collection titles.
+- Consumer Retry causes no duplicate Domain effect.
 
-## 14. Delete-/Cascade-Races
+## 14. Delete/Cascade races
 
-Pflicht-Races:
+Mandatory races:
 
-- Wish Delete vs Convert-to-Plan.
-- Plan Delete vs Complete.
-- Place Delete vs Relation Create.
-- Chapter Delete vs Relation Create.
-- Target Delete vs Chapter/Place Link.
-- Collection Delete vs Item Create/Reorder.
-- PrivateCollection Delete vs Item Create/Reorder.
+- Wish Delete vs. Convert-to-Plan.
+- Plan Delete vs. Complete.
+- Place Delete vs. Relation Create.
+- Chapter Delete vs. Relation Create.
+- Target Delete vs. Chapter/Place Link.
+- Collection Delete vs. Item Create/Reorder.
+- PrivateCollection Delete vs. Item Create/Reorder.
 
-Tests müssen echte unabhängige PostgreSQL-Transaktionen verwenden, nicht nur sequentielle Service-Aufrufe.
+Tests must use real independent PostgreSQL transactions, not only sequential service calls.
 
-## 15. API-/OpenAPI-Tests
+M3-S9 closes the final Collection Parent-Delete race gap through
+`backend/tests/integration/test_collection_parent_delete_races.py`, covering
+both shared and private Collection aggregates against Item Create and Reorder.
 
-Jeder M3-API-Slice:
+## 15. API/OpenAPI tests
 
-- generiertes OpenAPI deterministisch,
-- keine ungewollten freien string enums für statusartige Felder,
-- `If-Match` dokumentiert,
-- 409 dokumentiert,
-- privacy-sicheres 404 dokumentiert,
-- unknown fields/contract rules wie Projektstandard,
-- Web-/Android-Generator bleibt lauffähig, sobald Clientfläche den Vertrag konsumiert.
+Every M3 API slice:
 
-## 16. G3 Evidence Checklist
+- generated OpenAPI is deterministic,
+- no unintended free string enums for status-like fields,
+- `If-Match` documented,
+- 409 documented,
+- Privacy-safe 404 documented,
+- unknown fields/contract rules follow project standard,
+- Web/Android generator remains functional once the client surface consumes the contract.
 
-Die exakte Gate-Form wird M3-D24 entscheiden. Unabhängig davon sollten folgende Server-Evidenzen vorliegen:
+## 16. G3 evidence checklist
 
-- [ ] Wish->Plan echter HTTP/PostgreSQL-Flow inklusive Race.
-- [ ] Plan lifecycle mit allen erlaubten/verbotenen Transitions.
-- [ ] Place + mindestens ein freigegebener Relationstyp über echte API.
-- [ ] Chapter Delete erhält alle Originaltargets.
-- [ ] Collection reorder/complete concurrency.
-- [ ] PrivateNote/GiftIdea/PrivateCollection owner-only negative matrix.
-- [ ] Cross-Space Relation Tests.
-- [ ] Private HeartMoment kann nicht über M3-Relation leaken.
-- [ ] Events/Logs enthalten keine sensiblen M3-Payloads.
-- [ ] OpenAPI/PostgreSQL/CI vollständig grün.
-- [ ] zusätzliche Client-/Accessibility-Evidenz gemäß M3-D24.
+The exact gate form is decided by M3-D24. The executable evidence map is
+[`G3-EVIDENCE.md`](./G3-EVIDENCE.md). The S9 evidence pass demonstrates:
 
-## 17. Merge-Regel
+- [x] Wish->Plan real HTTP/PostgreSQL flow including race.
+- [x] Plan lifecycle with all allowed/forbidden transitions.
+- [x] Place + approved Relation types through the real API.
+- [x] Chapter Delete preserves all original targets.
+- [x] Collection Reorder/Completion concurrency.
+- [x] PrivateNote/GiftIdea/PrivateCollection owner-only negative matrix.
+- [x] Cross-Space Relation tests.
+- [x] Private HeartMoment cannot leak through M3 Relation.
+- [x] Events/logs contain no sensitive M3 payloads.
+- [x] OpenAPI/PostgreSQL/CI evidence is green for the S9 implementation head; S10 revalidates the final `main` gate state.
+- [x] M3-D24 requires no additional Client/Accessibility evidence for G3; systematic client parity and Accessibility remain M5/G4.
 
-Ein Runtime-PR, der eine neue M3-Domain oder Relation einführt, ist nicht merge-ready, wenn die zugehörige Zeile dieser Matrix weder umgesetzt noch als nachweislich nicht relevant begründet ist.
+The checklist records available evidence only. It does **not** declare G3 passed;
+that decision belongs to the new dated S10 gate review.
+
+## 17. Merge rule
+
+A runtime PR that introduces a new M3 Domain or Relation is not merge-ready if the corresponding row of this matrix is neither implemented nor justified as demonstrably not relevant.

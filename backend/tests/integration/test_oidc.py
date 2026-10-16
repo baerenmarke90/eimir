@@ -1,9 +1,9 @@
-"""OIDC-Anmeldung gegen einen nachgebauten Anbieter.
+"""OIDC sign-in against a mock provider.
 
-Der Anbieter hier ist echt genug: er hat ein Discovery-Dokument, ein JWKS
-und einen Token-Endpunkt, und er signiert seine ID Tokens mit einem
-richtigen RSA-Schluessel. Damit prueft die Suite die Signaturpruefung
-tatsaechlich - und nicht nur, dass eine Funktion aufgerufen wurde.
+The provider is realistic enough to expose a discovery document, JWKS, and a
+token endpoint, and it signs ID tokens with a valid RSA key. This makes the
+suite exercise real signature verification instead of merely checking that a
+function was called.
 """
 
 from __future__ import annotations
@@ -19,10 +19,10 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidebyside.auth import oidc
-from sidebyside.auth.tokens import hash_token
-from sidebyside.config import MailTransport, OidcConnection, Settings
-from sidebyside.identity.models import (
+from eimir.auth import oidc
+from eimir.auth.tokens import hash_token
+from eimir.config import MailTransport, OidcConnection, Settings
+from eimir.identity.models import (
     Account,
     AuthIdentity,
     AuthProvider,
@@ -34,71 +34,71 @@ from tests.conftest import auth, make_account, requires_database, sign_in
 pytestmark = [pytest.mark.integration, requires_database]
 
 ISSUER = "https://id.example"
-ANDERER_ISSUER = "https://fremd.example"
-CLIENT_ID = "sidebyside"
-VERBINDUNG = "haupt"
+OTHER_ISSUER = "https://fremd.example"
+CLIENT_ID = "eimir"
+CONNECTION = "haupt"
 SUBJECT = "0815-anna"
 
 
 @pytest.fixture(scope="module")
-def schluessel() -> rsa.RSAPrivateKey:
+def key() -> rsa.RSAPrivateKey:
     return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
 @pytest.fixture(scope="module")
-def jwks(schluessel: rsa.RSAPrivateKey) -> dict[str, Any]:
-    oeffentlich = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(schluessel.public_key()))
-    oeffentlich["kid"] = "schluessel-1"
-    oeffentlich["use"] = "sig"
-    oeffentlich["alg"] = "RS256"
-    return {"keys": [oeffentlich]}
+def jwks(key: rsa.RSAPrivateKey) -> dict[str, Any]:
+    public = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(key.public_key()))
+    public["kid"] = "schluessel-1"
+    public["use"] = "sig"
+    public["alg"] = "RS256"
+    return {"keys": [public]}
 
 
 def id_token(
-    schluessel: rsa.RSAPrivateKey,
+    key: rsa.RSAPrivateKey,
     *,
     nonce: str,
     issuer: str = ISSUER,
     audience: str = CLIENT_ID,
     subject: str = SUBJECT,
-    ablauf: timedelta = timedelta(minutes=5),
-    signieren_mit: rsa.RSAPrivateKey | None = None,
-    zusatz: dict[str, Any] | None = None,
+    lifetime: timedelta = timedelta(minutes=5),
+    signing_key: rsa.RSAPrivateKey | None = None,
+    request_kwargs: dict[str, Any] | None = None,
 ) -> str:
-    jetzt = datetime.now(UTC)
+    current_time = datetime.now(UTC)
     claims: dict[str, Any] = {
         "iss": issuer,
         "sub": subject,
         "aud": audience,
-        "iat": int(jetzt.timestamp()),
-        "exp": int((jetzt + ablauf).timestamp()),
+        "iat": int(current_time.timestamp()),
+        "exp": int((current_time + lifetime).timestamp()),
         "nonce": nonce,
         "email": "anna@example.org",
     }
-    claims.update(zusatz or {})
+    claims.update(request_kwargs or {})
     return jwt.encode(
         claims,
-        signieren_mit or schluessel,
+        signing_key or key,
         algorithm="RS256",
         headers={"kid": "schluessel-1"},
     )
 
 
-class Anbieter:
-    """Ein nachgebauter Identitaetsanbieter mit steuerbaren Antworten."""
+class MockProvider:
+    "A mock identity provider with controllable responses."
 
-    def __init__(self, schluessel: rsa.RSAPrivateKey, jwks: dict[str, Any]) -> None:
-        self.schluessel = schluessel
+    def __init__(self, key: rsa.RSAPrivateKey, jwks: dict[str, Any]) -> None:
+        self.key = key
         self.jwks = jwks
         self.discovery_issuer = ISSUER
         self.id_token: str | None = None
         self.token_status = 200
-        self.aufrufe: list[httpx.Request] = []
+        self.requests: list[httpx.Request] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
-        self.aufrufe.append(request)
-        pfad = request.url.path
-        if pfad.endswith("/.well-known/openid-configuration"):
+        self.requests.append(request)
+        path = request.url.path
+        if path.endswith("/.well-known/openid-configuration"):
             return httpx.Response(
                 200,
                 json={
@@ -108,9 +108,9 @@ class Anbieter:
                     "jwks_uri": f"{ISSUER}/jwks",
                 },
             )
-        if pfad.endswith("/jwks"):
+        if path.endswith("/jwks"):
             return httpx.Response(200, json=self.jwks)
-        if pfad.endswith("/token"):
+        if path.endswith("/token"):
             if self.token_status != 200:
                 return httpx.Response(self.token_status, json={"error": "invalid_grant"})
             return httpx.Response(
@@ -125,20 +125,20 @@ class Anbieter:
 
 
 @pytest.fixture
-def anbieter(schluessel: rsa.RSAPrivateKey, jwks: dict[str, Any], monkeypatch) -> Anbieter:  # type: ignore[no-untyped-def]
-    gegenstelle = Anbieter(schluessel, jwks)
+def provider(key: rsa.RSAPrivateKey, jwks: dict[str, Any], monkeypatch) -> MockProvider:  # type: ignore[no-untyped-def]
+    mock_provider = MockProvider(key, jwks)
     monkeypatch.setattr(
         oidc,
         "client",
-        lambda: httpx.Client(transport=httpx.MockTransport(gegenstelle.handler)),
+        lambda: httpx.Client(transport=httpx.MockTransport(mock_provider.handler)),
     )
 
-    einstellungen = Settings(
+    settings = Settings(
         environment="test",  # type: ignore[arg-type]
         mail_transport=MailTransport.LOG,
         oidc_connections=[
             OidcConnection(
-                id=VERBINDUNG,
+                id=CONNECTION,
                 issuer=ISSUER,
                 client_id=CLIENT_ID,
                 client_secret="geheim",  # type: ignore[arg-type]
@@ -146,336 +146,316 @@ def anbieter(schluessel: rsa.RSAPrivateKey, jwks: dict[str, Any], monkeypatch) -
             ),
             OidcConnection(
                 id="zweite",
-                issuer=ANDERER_ISSUER,
+                issuer=OTHER_ISSUER,
                 client_id="andere-app",
                 redirect_uri="https://app.example/oidc-2",
             ),
         ],
     )
-    monkeypatch.setattr(oidc, "get_settings", lambda: einstellungen)
-    return gegenstelle
+    monkeypatch.setattr(oidc, "get_settings", lambda: settings)
+    return mock_provider
 
 
-def begonnene_anmeldung(client, verbindung: str = VERBINDUNG, kopf: dict[str, str] | None = None):  # type: ignore[no-untyped-def]
-    pfad = "link" if kopf else "start"
-    antwort = client.post(f"/api/v1/auth/oidc/{verbindung}/{pfad}", headers=kopf or {})
-    assert antwort.status_code == 201, antwort.text
-    return antwort.json()
+def started_sign_in(client, connection: str = CONNECTION, headers: dict[str, str] | None = None):  # type: ignore[no-untyped-def]
+    path = "link" if headers else "start"
+    response = client.post(f"/api/v1/auth/oidc/{connection}/{path}", headers=headers or {})
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-def nonce_zu(session: Session, state: str) -> str:
-    anfrage = session.execute(
+def nonce_to(session: Session, state: str) -> str:
+    auth_request = session.execute(
         select(OidcAuthRequest).where(OidcAuthRequest.state_hash == hash_token(state))
     ).scalar_one()
-    return anfrage.nonce
+    return auth_request.nonce
 
 
 @pytest.fixture
-def anna_mit_identitaet(session: Session):  # type: ignore[no-untyped-def]
-    konto = make_account(session, "Anna")
+def anna_with_identity(session: Session):  # type: ignore[no-untyped-def]
+    account = make_account(session, "Anna")
     session.add(
         AuthIdentity(
-            account_id=konto.id,
+            account_id=account.id,
             provider=AuthProvider.OIDC.value,
             issuer=ISSUER,
             subject=SUBJECT,
-            connection_id=VERBINDUNG,
+            connection_id=CONNECTION,
         )
     )
     session.flush()
-    return konto
+    return account
 
 
-class TestBeginn:
-    def test_die_adresse_traegt_alle_pflichtparameter(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        begonnen = begonnene_anmeldung(client)
-        adresse = httpx.URL(begonnen["authorizationUrl"])
+class TestStart:
+    def test_address_carries_all_required_parameters(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        address = httpx.URL(started["authorizationUrl"])
 
-        assert str(adresse).startswith(f"{ISSUER}/authorize")
-        parameter = dict(adresse.params)
-        assert parameter["response_type"] == "code"
-        assert parameter["client_id"] == CLIENT_ID
-        assert parameter["code_challenge_method"] == "S256"
-        assert parameter["state"] == begonnen["state"]
-        assert parameter["nonce"]
-        assert parameter["code_challenge"]
+        assert str(address).startswith(f"{ISSUER}/authorize")
+        parameters = dict(address.params)
+        assert parameters["response_type"] == "code"
+        assert parameters["client_id"] == CLIENT_ID
+        assert parameters["code_challenge_method"] == "S256"
+        assert parameters["state"] == started["state"]
+        assert parameters["nonce"]
+        assert parameters["code_challenge"]
 
-    def test_der_verifier_bleibt_beim_server(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        """In der Adresse steht nur die Challenge, nie der Verifier."""
-        begonnen = begonnene_anmeldung(client)
-        parameter = dict(httpx.URL(begonnen["authorizationUrl"]).params)
-        assert "code_verifier" not in parameter
+    def test_verifier_remains_on_server(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        "The URL contains only the challenge, never the verifier."
+        started = started_sign_in(client)
+        parameters = dict(httpx.URL(started["authorizationUrl"]).params)
+        assert "code_verifier" not in parameters
 
-    def test_unbekannte_verbindung_wird_abgewiesen(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        antwort = client.post("/api/v1/auth/oidc/gibt-es-nicht/start")
-        assert antwort.status_code == 422
-        assert antwort.json()["code"] == "OIDC_CONNECTION_UNKNOWN"
+    def test_unknown_connection_is_rejected(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        response = client.post("/api/v1/auth/oidc/gibt-es-nicht/start")
+        assert response.status_code == 422
+        assert response.json()["code"] == "OIDC_CONNECTION_UNKNOWN"
 
-    def test_zweite_verbindung_hat_eigene_werte(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        """Mehrere Anbieter nebeneinander, nur ueber Konfiguration."""
-        anbieter.discovery_issuer = ANDERER_ISSUER
-        begonnen = begonnene_anmeldung(client, "zweite")
-        parameter = dict(httpx.URL(begonnen["authorizationUrl"]).params)
-        assert parameter["client_id"] == "andere-app"
+    def test_second_connection_has_own_values(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        "Multiple providers coexist through configuration only."
+        provider.discovery_issuer = OTHER_ISSUER
+        started = started_sign_in(client, "zweite")
+        parameters = dict(httpx.URL(started["authorizationUrl"]).params)
+        assert parameters["client_id"] == "andere-app"
 
 
-class TestAnmeldung:
-    def test_bekannte_identitaet_bekommt_eine_sitzung(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
+class TestSignIn:
+    def test_known_identity_gets_session(
+        self, client, session, provider, key, anna_with_identity
+    ) -> None:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
 
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"], "deviceName": "Pixel"},
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"], "deviceName": "Pixel"},
         )
-        assert antwort.status_code == 201
-        zugang = antwort.json()["tokens"]["accessToken"]
-        assert client.get("/api/v1/auth/me", headers=auth(zugang)).status_code == 200
+        assert response.status_code == 201
+        access_token = response.json()["tokens"]["accessToken"]
+        assert client.get("/api/v1/auth/me", headers=auth(access_token)).status_code == 200
 
-    def test_die_antwort_traegt_keine_fremden_token(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+    def test_response_carries_no_provider_token(
+        self, client, session, provider, key, anna_with_identity
+    ) -> None:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
-        assert "beim-anbieter" not in antwort.text
-        assert anbieter.id_token not in antwort.text
+        assert "beim-anbieter" not in response.text
+        assert provider.id_token not in response.text
 
-    def test_es_entsteht_genau_eine_geraetesitzung(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        """Auch der externe Weg endet in der zentralen Sitzungsausgabe."""
-        vorher = len(session.execute(select(DeviceSession)).scalars().all())
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
+    def test_exactly_one_device_session_is_created(
+        self, client, session, provider, key, anna_with_identity
+    ) -> None:  # type: ignore[no-untyped-def]
+        "The external flow ends in the central session issuance path."
+        before = len(session.execute(select(DeviceSession)).scalars().all())
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
         client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
-        assert len(session.execute(select(DeviceSession)).scalars().all()) == vorher + 1
+        assert len(session.execute(select(DeviceSession)).scalars().all()) == before + 1
 
-    def test_unbekannte_identitaet_legt_kein_konto_an(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel
-    ) -> None:
-        """Sonst umginge ein externer Anbieter die Einladungsgrenze."""
-        vorher = len(session.execute(select(Account)).scalars().all())
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
+    def test_unknown_identity_does_not_create_account(self, client, session, provider, key) -> None:  # type: ignore[no-untyped-def]
+        "Otherwise the external provider would bypass the invitation boundary."
+        before = len(session.execute(select(Account)).scalars().all())
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
 
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
-        assert antwort.status_code == 401
-        assert antwort.json()["code"] == "OIDC_NO_ACCOUNT"
-        assert len(session.execute(select(Account)).scalars().all()) == vorher
+        assert response.status_code == 401
+        assert response.json()["code"] == "OIDC_NO_ACCOUNT"
+        assert len(session.execute(select(Account)).scalars().all()) == before
 
 
-class TestVerknuepfen:
-    def test_angemeldetes_konto_bekommt_die_identitaet(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel
-    ) -> None:
-        konto = make_account(session, "Ben")
+class TestLinking:
+    def test_signed_in_account_gets_identity(self, client, session, provider, key) -> None:  # type: ignore[no-untyped-def]
+        account = make_account(session, "Ben")
         session.flush()
-        kopf = auth(sign_in(session, konto))
+        headers = auth(sign_in(session, account))
 
-        begonnen = begonnene_anmeldung(client, kopf=kopf)
-        anbieter.id_token = id_token(
-            schluessel, nonce=nonce_zu(session, begonnen["state"]), subject="ben-extern"
+        started = started_sign_in(client, headers=headers)
+        provider.id_token = id_token(
+            key, nonce=nonce_to(session, started["state"]), subject="ben-extern"
         )
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
-        assert antwort.status_code == 201
+        assert response.status_code == 201
 
-        identitaet = session.execute(
+        identity = session.execute(
             select(AuthIdentity).where(AuthIdentity.subject == "ben-extern")
         ).scalar_one()
-        assert identitaet.account_id == konto.id
-        assert identitaet.connection_id == VERBINDUNG
+        assert identity.account_id == account.id
+        assert identity.connection_id == CONNECTION
 
-    def test_verknuepfen_braucht_eine_anmeldung(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        assert client.post(f"/api/v1/auth/oidc/{VERBINDUNG}/link").status_code == 401
+    def test_link_requires_sign_in(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        assert client.post(f"/api/v1/auth/oidc/{CONNECTION}/link").status_code == 401
 
 
-class TestAbgelehnteToken:
-    """Jede einzelne Pruefung, jeweils fuer sich."""
+class TestRejectedTokens:
+    "Each validation is tested independently."
 
-    def _versuch(self, client, session, anbieter, token_bauer) -> Any:  # type: ignore[no-untyped-def]
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = token_bauer(nonce_zu(session, begonnen["state"]))
+    def _attempt(self, client, session, provider, token_factory) -> Any:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        provider.id_token = token_factory(nonce_to(session, started["state"]))
         return client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
 
-    def test_falscher_issuer(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(
+    def test_wrong_issuer(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(
             client,
             session,
-            anbieter,
-            lambda nonce: id_token(schluessel, nonce=nonce, issuer=ANDERER_ISSUER),
+            provider,
+            lambda nonce: id_token(key, nonce=nonce, issuer=OTHER_ISSUER),
         )
-        assert antwort.status_code == 422
-        assert antwort.json()["code"] == "OIDC_TOKEN_INVALID"
+        assert response.status_code == 422
+        assert response.json()["code"] == "OIDC_TOKEN_INVALID"
 
-    def test_falsche_audience(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(
+    def test_wrong_audience(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(
             client,
             session,
-            anbieter,
-            lambda nonce: id_token(schluessel, nonce=nonce, audience="eine-andere-app"),
+            provider,
+            lambda nonce: id_token(key, nonce=nonce, audience="eine-andere-app"),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_fremde_signatur(self, client, session, anbieter, anna_mit_identitaet) -> None:  # type: ignore[no-untyped-def]
-        fremder = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-        antwort = self._versuch(
+    def test_foreign_signature(self, client, session, provider, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        foreign = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        response = self._attempt(
             client,
             session,
-            anbieter,
-            lambda nonce: id_token(fremder, nonce=nonce, signieren_mit=fremder),
+            provider,
+            lambda nonce: id_token(foreign, nonce=nonce, signing_key=foreign),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_abgelaufenes_token(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(
+    def test_expired_token(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(
             client,
             session,
-            anbieter,
-            lambda nonce: id_token(schluessel, nonce=nonce, ablauf=timedelta(minutes=-5)),
+            provider,
+            lambda nonce: id_token(key, nonce=nonce, lifetime=timedelta(minutes=-5)),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_falsche_nonce(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:  # type: ignore[no-untyped-def]
-        """Ohne diese Bindung liesse sich ein anderswo erbeutetes Token einspielen."""
-        antwort = self._versuch(
-            client, session, anbieter, lambda nonce: id_token(schluessel, nonce="etwas-anderes")
+    def test_wrong_nonce(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        "Without this binding, a token captured elsewhere could be replayed."
+        response = self._attempt(
+            client, session, provider, lambda nonce: id_token(key, nonce="etwas-anderes")
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_fremdes_azp(self, client, session, anbieter, schluessel, anna_mit_identitaet) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(
+    def test_foreign_azp(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(
             client,
             session,
-            anbieter,
-            lambda nonce: id_token(schluessel, nonce=nonce, zusatz={"azp": "wer-anders"}),
+            provider,
+            lambda nonce: id_token(key, nonce=nonce, request_kwargs={"azp": "wer-anders"}),
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_leeres_subject(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
+    def test_empty_subject(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(
+            client, session, provider, lambda nonce: id_token(key, nonce=nonce, subject="  ")
+        )
+        assert response.status_code == 422
+
+    def test_no_id_token_in_response(self, client, session, provider, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        response = self._attempt(client, session, provider, lambda nonce: None)
+        assert response.status_code == 422
+
+    def test_token_endpoint_responds_with_error(
+        self, client, session, provider, key, anna_with_identity
     ) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(
-            client, session, anbieter, lambda nonce: id_token(schluessel, nonce=nonce, subject="  ")
+        provider.token_status = 400
+        response = self._attempt(
+            client, session, provider, lambda nonce: id_token(key, nonce=nonce)
         )
-        assert antwort.status_code == 422
-
-    def test_kein_id_token_in_der_antwort(
-        self, client, session, anbieter, anna_mit_identitaet
-    ) -> None:  # type: ignore[no-untyped-def]
-        antwort = self._versuch(client, session, anbieter, lambda nonce: None)
-        assert antwort.status_code == 422
-
-    def test_token_endpunkt_antwortet_mit_fehler(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        anbieter.token_status = 400
-        antwort = self._versuch(
-            client, session, anbieter, lambda nonce: id_token(schluessel, nonce=nonce)
-        )
-        assert antwort.status_code == 422
-        assert "invalid_grant" not in antwort.text
+        assert response.status_code == 422
+        assert "invalid_grant" not in response.text
 
 
 class TestState:
-    def test_unbekannter_state(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
+    def test_unknown_state(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
             json={"code": "x", "state": "nie-vergeben"},
         )
-        assert antwort.status_code == 422
-        assert antwort.json()["code"] == "OIDC_STATE_INVALID"
+        assert response.status_code == 422
+        assert response.json()["code"] == "OIDC_STATE_INVALID"
 
-    def test_state_gilt_genau_einmal(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
-        rumpf = {"code": "vom-anbieter", "state": begonnen["state"]}
-
-        assert (
-            client.post(f"/api/v1/auth/oidc/{VERBINDUNG}/callback", json=rumpf).status_code == 201
-        )
-        zweite = client.post(f"/api/v1/auth/oidc/{VERBINDUNG}/callback", json=rumpf)
-        assert zweite.status_code == 422
-        assert zweite.json()["code"] == "OIDC_STATE_INVALID"
-
-    def test_abgelaufener_state(
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
+    def test_state_applies_exactly_once(
+        self, client, session, provider, key, anna_with_identity
     ) -> None:  # type: ignore[no-untyped-def]
-        begonnen = begonnene_anmeldung(client)
-        anfrage = session.execute(
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
+        body = {"code": "vom-anbieter", "state": started["state"]}
+
+        assert client.post(f"/api/v1/auth/oidc/{CONNECTION}/callback", json=body).status_code == 201
+        second = client.post(f"/api/v1/auth/oidc/{CONNECTION}/callback", json=body)
+        assert second.status_code == 422
+        assert second.json()["code"] == "OIDC_STATE_INVALID"
+
+    def test_expired_state(self, client, session, provider, key, anna_with_identity) -> None:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        auth_request = session.execute(
             select(OidcAuthRequest).where(
-                OidcAuthRequest.state_hash == hash_token(begonnen["state"])
+                OidcAuthRequest.state_hash == hash_token(started["state"])
             )
         ).scalar_one()
-        anbieter.id_token = id_token(schluessel, nonce=anfrage.nonce)
-        anfrage.expires_at = datetime.now(UTC) - timedelta(minutes=1)
+        provider.id_token = id_token(key, nonce=auth_request.nonce)
+        auth_request.expires_at = datetime.now(UTC) - timedelta(minutes=1)
         session.flush()
 
-        antwort = client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "x", "state": begonnen["state"]},
+        response = client.post(
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "x", "state": started["state"]},
         )
-        assert antwort.status_code == 422
+        assert response.status_code == 422
 
-    def test_state_der_anderen_verbindung(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        """Ein State gehoert zu genau einer Verbindung."""
-        begonnen = begonnene_anmeldung(client)
-        anbieter.discovery_issuer = ANDERER_ISSUER
-        antwort = client.post(
+    def test_state_from_other_connection_is_rejected(
+        self, client, session, provider, key, anna_with_identity
+    ) -> None:  # type: ignore[no-untyped-def]
+        "A state belongs to exactly one connection."
+        started = started_sign_in(client)
+        provider.discovery_issuer = OTHER_ISSUER
+        response = client.post(
             "/api/v1/auth/oidc/zweite/callback",
-            json={"code": "x", "state": begonnen["state"]},
+            json={"code": "x", "state": started["state"]},
         )
-        assert antwort.status_code == 422
-        assert antwort.json()["code"] == "OIDC_STATE_INVALID"
+        assert response.status_code == 422
+        assert response.json()["code"] == "OIDC_STATE_INVALID"
 
 
-class TestAnbieterAntwortetFalsch:
-    def test_discovery_nennt_einen_anderen_issuer(self, client, anbieter) -> None:  # type: ignore[no-untyped-def]
-        """Sonst zeigte ein Dokument unter erwarteter Adresse auf fremde Endpunkte."""
-        anbieter.discovery_issuer = ANDERER_ISSUER
-        antwort = client.post(f"/api/v1/auth/oidc/{VERBINDUNG}/start")
-        assert antwort.status_code == 422
-        assert antwort.json()["code"] == "OIDC_PROVIDER_UNREACHABLE"
+class TestProviderFailures:
+    def test_discovery_names_another_issuer(self, client, provider) -> None:  # type: ignore[no-untyped-def]
+        "Otherwise a document at the expected URL could point to foreign endpoints."
+        provider.discovery_issuer = OTHER_ISSUER
+        response = client.post(f"/api/v1/auth/oidc/{CONNECTION}/start")
+        assert response.status_code == 422
+        assert response.json()["code"] == "OIDC_PROVIDER_UNREACHABLE"
 
 
-class TestAufraeumen:
-    def test_der_wartungsjob_raeumt_verbrauchte_versuche(  # type: ignore[no-untyped-def]
-        self, client, session, anbieter, schluessel, anna_mit_identitaet
-    ) -> None:
-        begonnen = begonnene_anmeldung(client)
-        anbieter.id_token = id_token(schluessel, nonce=nonce_zu(session, begonnen["state"]))
+class TestCleanup:
+    def test_maintenance_job_cleans_up_consumed_attempts(
+        self, client, session, provider, key, anna_with_identity
+    ) -> None:  # type: ignore[no-untyped-def]
+        started = started_sign_in(client)
+        provider.id_token = id_token(key, nonce=nonce_to(session, started["state"]))
         client.post(
-            f"/api/v1/auth/oidc/{VERBINDUNG}/callback",
-            json={"code": "vom-anbieter", "state": begonnen["state"]},
+            f"/api/v1/auth/oidc/{CONNECTION}/callback",
+            json={"code": "vom-anbieter", "state": started["state"]},
         )
 
         assert oidc.prune_auth_requests(session) == 1

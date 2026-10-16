@@ -1,15 +1,14 @@
 """identity and relationship
 
-Die Sicherheitsgrundlage: Accounts, Anmeldewege, Geraetesitzungen, Spaces
-und Mitgliedschaften. Vor jeder Inhaltsdomaene, damit kein Inhalt entstehen
-kann, bevor klar ist, wem er gehoert.
+The security foundation: accounts, authentication methods, device sessions,
+spaces, and memberships. This precedes every content domain so content cannot
+exist before ownership is defined.
 
-Zu Constraint-Namen: hier steht der NACKTE Name, etwa "status_is_known".
-Die Namenskonvention aus db/base.py setzt "ck_<tabelle>_" davor. Wer den
-bereits aufgeloesten Namen einsetzt, bekommt ihn ein zweites Mal
-praefixiert - und bei laengeren Namen zusaetzlich an der 63-Zeichen-Grenze
-von PostgreSQL abgeschnitten. Die Drift-Pruefung in der CI faengt das,
-aber es kostet einen Durchlauf.
+Constraint names use the BARE name here, for example "status_is_known".
+The naming convention in db/base.py prepends "ck_<table>_". Supplying the
+already resolved name would prefix it a second time and, for longer names,
+would additionally hit PostgreSQL's 63-character identifier limit. The CI
+drift check catches this, but only after wasting a run.
 
 Revision ID: 0002
 Revises: 0001
@@ -76,8 +75,8 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.UniqueConstraint("email", name="uq_account_emails_email"),
-        # Klein geschrieben abgelegt - sonst waeren "A@b.de" und "a@b.de"
-        # zwei Adressen und die Eindeutigkeit haette ein Loch.
+        # Store addresses in lowercase; otherwise "A@b.de" and "a@b.de"
+        # would be distinct addresses and uniqueness would have a gap.
         sa.CheckConstraint("email = lower(email)", name="email_is_lowercase"),
     )
 
@@ -111,7 +110,7 @@ def upgrade() -> None:
         sa.Column("account_id", UUID, nullable=False),
         sa.Column("device_name", sa.String(length=120), nullable=False),
         sa.Column("platform", sa.String(length=32), nullable=False),
-        # Nur Hashes. Wer die Datenbank liest, kann sich damit nicht anmelden.
+        # Hashes only. Reading the database must not provide login credentials.
         sa.Column("refresh_token_hash", sa.String(length=64), nullable=False),
         sa.Column("previous_refresh_token_hash", sa.String(length=64), nullable=True),
         sa.Column("access_token_hash", sa.String(length=64), nullable=True),
@@ -169,8 +168,8 @@ def upgrade() -> None:
             name="fk_memberships_account_id_accounts",
             ondelete="CASCADE",
         ),
-        # Ein Account ist je Space hoechstens einmal Mitglied. Zwei Zeilen
-        # waeren zwei Wahrheiten darueber, ob jemand Zugriff hat.
+        # An account may be a member of a space at most once. Two rows would
+        # create two conflicting truths about whether the account has access.
         sa.UniqueConstraint("space_id", "account_id", name="uq_memberships_space_id_account_id"),
         sa.CheckConstraint(
             "status IN ('ACTIVE', 'LEFT', 'REMOVED')",
@@ -178,7 +177,7 @@ def upgrade() -> None:
         ),
         sa.CheckConstraint("role IN ('PARTNER')", name="role_is_known"),
     )
-    # Der Guard fragt bei jeder Anfrage nach genau dieser Kombination.
+    # The guard checks exactly this combination on every request.
     op.create_index(
         "ix_memberships_account_id_space_id_status",
         "memberships",

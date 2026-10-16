@@ -1,11 +1,11 @@
 # M2 Screen State Matrix
 
-**Zweck:** verbindliche UI-Zustände vor Implementierungsbeginn  
-**Stand:** 24.08.2026
+**Purpose:** binding UI states before implementation begins  
+**As of:** August 24, 2026
 
-## 1. Globale Zustandsreihenfolge
+## 1. Global state order
 
-Jede datenbasierte M2-Ansicht bewertet mindestens:
+Every data-driven M2 view evaluates at least:
 
 ```text
 initial → loading → content
@@ -16,49 +16,49 @@ initial → loading → content
                  └→ error {validation | 401 | 404 | 409 | 429 | 5xx}
 ```
 
-Privacy-Filter läuft vor jedem sichtbaren Zustand. Ein leerer Screen darf deshalb nicht verraten, dass private oder fremde Treffer existieren.
+Privacy filtering runs before every visible state. An empty screen therefore must not reveal that private or foreign results exist.
 
-## 2. Gemeinsame Texte und Aktionen
+## 2. Shared copy and actions
 
-| Zustand | Primärtext | Primäre Aktion | Erhaltener Kontext |
+| State | Primary copy | Primary action | Preserved context |
 |---|---|---|---|
-| loading | kein technischer Text nötig; strukturelles Skeleton | keine | Route, Filter, Auswahl |
-| empty:first-use | „Eure Story beginnt hier“ | „Erinnerung hinzufügen“ | Navigation |
-| empty:filter | „Keine passenden gemeinsamen Momente“ | „Filter zurücksetzen“ | Suchfeld nur lokal, nie Telemetrie |
-| partial | „Einige Inhalte konnten nicht geladen werden.“ | „Erneut versuchen“ | bereits sichere Inhalte |
-| offline:cached | „Offline · Stand von {Zeit}“ | „Erneut verbinden“ optional | Cache + Scrollposition |
-| offline:write | „Noch nicht gespeichert.“ | „Erneut versuchen“ nach Verbindung | kompletter sicherer Entwurf |
-| validation | konkrete Feld-/Dateimeldung | „Fehler korrigieren“ implizit | alle Eingaben |
-| 401 | „Deine Sitzung ist abgelaufen.“ | „Erneut anmelden“ | nur erlaubtes Rückkehrziel |
-| 404 | „Dieser Inhalt ist nicht verfügbar.“ | „Zur Story“ | keine Existenz-/Privacy-Details |
-| 409 | „Dieser Inhalt wurde inzwischen geändert.“ | „Aktuellen Stand ansehen“ | eigene Eingabe separat |
-| 429 | „Das waren viele Versuche.“ | zeitgesteuerter Retry | Eingabe ohne Auto-Spam |
-| 5xx | „Das hat gerade nicht geklappt.“ | „Erneut versuchen“ | sichere Ansicht/Entwurf |
+| loading | no technical copy required; structural Skeleton | none | route, filters, selection |
+| empty:first-use | “Eure Story beginnt hier” | “Erinnerung hinzufügen” | navigation |
+| empty:filter | “Keine passenden gemeinsamen Momente” | “Filter zurücksetzen” | search field locally only, never telemetry |
+| partial | “Einige Inhalte konnten nicht geladen werden.” | “Erneut versuchen” | already safe content |
+| offline:cached | “Offline · Stand von {Zeit}” | optional “Erneut verbinden” | cache + scroll position |
+| offline:write | “Noch nicht gespeichert.” | “Erneut versuchen” after reconnection | complete safe draft |
+| validation | concrete field/file message | “Fehler korrigieren” implicitly | all input |
+| 401 | “Deine Sitzung ist abgelaufen.” | “Erneut anmelden” | allowed return destination only |
+| 404 | “Dieser Inhalt ist nicht verfügbar.” | “Zur Story” | no existence/privacy details |
+| 409 | “Dieser Inhalt wurde inzwischen geändert.” | “Aktuellen Stand ansehen” | own input separately |
+| 429 | “Das waren viele Versuche.” | timed retry | input without automatic spam |
+| 5xx | “Das hat gerade nicht geklappt.” | “Erneut versuchen” | safe view/draft |
 
-## 3. Matrix pro Screen
+## 3. Matrix by screen
 
-| Screen | Loading | Empty | Partial/Offline | kritische Fehler | Erfolg |
+| Screen | Loading | Empty | Partial/Offline | critical errors | Success |
 |---|---|---|---|---|---|
-| Story Timeline | Monats-Skeleton, keine alten Fremddaten | Erstnutzung oder Filter getrennt | sichere Karten + Statusleiste | 401, privacy-safe 404, 5xx | stabile Timeline, Fokus auf Überschrift |
-| Story Search | Feld sofort bedienbar, Ergebnisse Skeleton | keine Treffer ohne private Counts | letzter autorisierter Ergebnisstand klar markiert | ungültiger Cursor neutral, 429 | Filterzahl und Ergebnisse konsistent |
-| Memory Detail | Struktur für Text/Medien/Kommentare | nicht anwendbar | Text darf laden, Medien einzeln fehlschlagen | 404, 409 bei Edit | Autor/Datum/Medien korrekt |
-| Memory Form | vorhandener Editstand Skeleton | neuer Entwurf | Offline-Entwurf ohne Erfolgssignal | Feldfehler, 409, Uploadfehler | Detail öffnet; Story aktualisiert |
-| Media Queue | je Datei eigener Status | „Foto hinzufügen“ bleibt optional | einzelne Fehler blockieren nicht alles | Typ/Größe/Dimension/Timeout | `ready` mit Reihenfolge |
-| HeartMoment Form | keine Default-Privacy vortäuschen | Sichtbarkeit bleibt Pflichtfeld | Offline speichern blockiert | Privacy-Wechsel 409/Offline | Owner- oder Shared-Ziel korrekt |
-| Private Moments | owner-gebundener Skeleton | ruhiger persönlicher Empty State | Cache eindeutig persönlich und offline | Partner sieht neutral 404 | nur Owner-Inhalt |
-| Milestone Form/Detail | Standard-Form-/Detail-Skeleton | neuer Entwurf | Text bleibt bei Netzfehler | Validation, 409, 404 | eigener Story-Typ |
-| Comments | Kommentar-Skeleton nach Parent | „Noch keine Kommentare“ nur auf erlaubtem Target | bestehende Kommentare bleiben, Retry separat | Target 404/private, Sendefehler | neuer Kommentar genau einmal |
+| Story Timeline | month Skeleton, no stale foreign data | first use and filter are distinct | safe cards + status bar | 401, privacy-safe 404, 5xx | stable timeline, focus on heading |
+| Story Search | field usable immediately, result Skeletons | no matches without private counts | last authorized result state clearly marked | invalid cursor neutral, 429 | filter count and results consistent |
+| Memory Detail | structure for text/media/comments | not applicable | text may load while individual media fails | 404, 409 on edit | author/date/media correct |
+| Memory Form | existing edit-state Skeleton | new draft | offline draft without success signal | field errors, 409, upload failure | detail opens; Story updates |
+| Media Queue | per-file status | “Foto hinzufügen” remains optional | individual failures do not block everything | type/size/dimension/timeout | `ready` with order |
+| HeartMoment Form | do not imply default privacy | visibility remains required | offline save blocked | privacy change 409/offline | correct owner or shared destination |
+| Private Moments | owner-bound Skeleton | calm personal Empty State | cache clearly personal and offline | partner sees neutral 404 | owner content only |
+| Milestone Form/Detail | standard form/detail Skeleton | new draft | text remains on network failure | validation, 409, 404 | distinct Story type |
+| Comments | comment Skeleton after parent | “Noch keine Kommentare” only on allowed target | existing comments remain, retry separately | target 404/private, send failure | new comment exactly once |
 
-## 4. Story Timeline im Detail
+## 4. Story Timeline in detail
 
-### Initial und Loading
+### Initial and Loading
 
-- App Shell und Seitentitel erscheinen sofort.
-- Skeleton entspricht Karte und Monatsgruppe, enthält aber keine zufälligen Namen, Bilder oder Datumswerte.
-- Bereits sichtbarer sicherer Cache wird nicht durch leeres Skeleton ersetzt; er erhält einen Refresh-Zustand.
-- Screenreader erhält einmal „Story wird geladen“, nicht pro Skeleton-Karte.
+- App Shell and page title appear immediately.
+- Skeleton mirrors the card and month group but contains no random names, images, or date values.
+- An already visible safe cache is not replaced with an empty Skeleton; it gets a refresh state.
+- Screen reader announces “Story wird geladen” once, not once per Skeleton card.
 
-### Empty: Erstnutzung
+### Empty: first use
 
 ```text
 Eure Story beginnt hier
@@ -66,91 +66,91 @@ Haltet einen gemeinsamen Moment fest, wenn es für euch passt.
 [Erinnerung hinzufügen]
 ```
 
-Keine künstliche Dringlichkeit, keine Partnerbeschuldigung und keine private Alternative in der gemeinsamen Story.
+No artificial urgency, no blame toward the partner, and no private alternative in the shared Story.
 
-### Empty: Suche/Filter
+### Empty: search/filter
 
-- Aktive Filter bleiben sichtbar.
-- Suchtext wird nicht in Analytics oder Fehlerberichte übernommen.
-- Kein Text wie „3 private Treffer ausgeblendet“.
-- Zurücksetzen bewahrt den Story-Kontext und setzt Cursor/Scroll korrekt zurück.
+- Active filters remain visible.
+- Search text is not copied into analytics or error reports.
+- No copy such as “3 private Treffer ausgeblendet”.
+- Reset preserves Story context and resets cursor/scroll correctly.
 
 ### Partial
 
-- Fehlerhafte Medien zeigen Platzhalter pro Karte.
-- Fehler einer Cursor-Seite entfernt bereits geladene Karten nicht.
-- Retry lädt nur den betroffenen Abschnitt und erzeugt keine Duplikate.
+- Failed media shows a placeholder per card.
+- Failure of a cursor page does not remove already loaded cards.
+- Retry loads only the affected section and does not create duplicates.
 
-## 5. Formulare
+## 5. Forms
 
-### Pflichtstruktur
+### Required structure
 
-1. eindeutiger Seitentitel,
-2. fachliche Felder,
-3. Privacy-Status beziehungsweise Pflichtauswahl,
-4. optionale Medien,
-5. eine primäre Speichern-Aktion,
-6. sekundäres Abbrechen mit Entwurfswarnung nur bei Änderungen.
+1. unambiguous page title,
+2. domain fields,
+3. privacy status or required selection,
+4. optional media,
+5. one primary Save action,
+6. secondary Cancel with a draft warning only when changes exist.
 
-### Validierung
+### Validation
 
-- Fehler steht direkt am Feld und in einer fokussierbaren Zusammenfassung bei mehreren Fehlern.
-- Der erste fehlerhafte Bereich erhält Fokus nach Absenden.
-- Wert, Auswahl, Medienreihenfolge und lokaler Entwurf bleiben erhalten.
-- Keine Fehlermeldung nennt interne Feld-, Tabellen- oder Storage-Namen.
+- An error appears directly at the field and in a focusable summary when multiple errors exist.
+- The first invalid area receives focus after submit.
+- Value, selection, media order, and local draft remain intact.
+- No error message names internal field, table, or storage names.
 
 ### Saving
 
-- Aktion wird gegen Doppelabsenden geschützt.
-- Status „Wird gespeichert …“ wird höflich angekündigt; Fokus bleibt stabil.
-- Timeout ist kein Erfolg. Die UI klärt über Idempotenz/Statusabfrage, bevor erneut erzeugt wird.
-- Verlassen während laufendem Upload folgt der Media-Entscheidung; kein stilles Hintergrundversprechen.
+- The action is protected against double submission.
+- Status “Wird gespeichert …” is announced politely; focus remains stable.
+- A timeout is not success. The UI checks idempotency/status before creating again.
+- Leaving during an active upload follows the media decision; there is no silent background promise.
 
-## 6. Medienzustände
+## 6. Media states
 
-| Fehlerklasse | Nutzertext | nächste Aktion | Telemetrie |
+| Error class | User copy | Next action | Telemetry |
 |---|---|---|---|
-| Typ nicht erlaubt | „Dieses Dateiformat wird nicht unterstützt.“ | andere Datei wählen | `unsupported_type` |
-| zu groß | „Diese Datei ist zu groß.“ | andere Datei wählen | `size_limit` |
-| Dimension/Verarbeitung | „Dieses Bild konnte nicht verarbeitet werden.“ | Retry oder entfernen | `processing_failed` |
-| Netzwerk | „Upload unterbrochen.“ | Retry | `network` |
-| Autorisierung | neutraler Parent-/Session-Zustand | anmelden/zurück | keine Dateiinfos |
-| Storage/Server | „Upload gerade nicht möglich.“ | später erneut | `service_unavailable` |
+| type not allowed | “Dieses Dateiformat wird nicht unterstützt.” | choose another file | `unsupported_type` |
+| too large | “Diese Datei ist zu groß.” | choose another file | `size_limit` |
+| dimension/processing | “Dieses Bild konnte nicht verarbeitet werden.” | retry or remove | `processing_failed` |
+| network | “Upload unterbrochen.” | retry | `network` |
+| authorization | neutral parent/session state | sign in/back | no file information |
+| storage/server | “Upload gerade nicht möglich.” | retry later | `service_unavailable` |
 
-Dateiname, MIME-Details, Pixelwerte und Read URLs gehören nicht in Standardtelemetrie. Technische Details dürfen nur in bereinigter Diagnose erscheinen.
+Filename, MIME details, pixel dimensions, and Read URLs do not belong in standard telemetry. Technical details may appear only in sanitized diagnostics.
 
-## 7. HeartMoment Privacy-Zustände
+## 7. HeartMoment privacy states
 
-| Zustand | sichtbare Elemente | verbotene Elemente |
+| State | Visible elements | Forbidden elements |
 |---|---|---|
-| Auswahl offen | beide Optionen gleich verständlich | vorausgewählte Privacy ohne Produktentscheidung |
-| PRIVATE gespeichert | „Nur für mich“, Owner-Kontext | Kommentar, Partneraktivität, Story-Link |
-| SHARED gespeichert | „Mit Partner geteilt“, Story-/Kommentarzugang | missverständliches Schloss ohne Text |
-| PRIVATE → SHARED | Bestätigung der neuen Sichtbarkeit | stilles Umschalten |
-| SHARED → PRIVATE | Hinweis auf zukünftige Unsichtbarkeit und Grenze des Zurücknehmens | Versprechen, bereits Gelesenes zu löschen |
-| Partner-Deep-Link auf PRIVATE | neutraler 404-Zustand | „privat“, Autorname, Datum, Attachment |
+| selection open | both options equally understandable | preselected privacy without a product decision |
+| PRIVATE saved | “Nur für mich”, owner context | comments, partner activity, Story link |
+| SHARED saved | “Mit Partner geteilt”, Story/comment access | ambiguous lock without text |
+| PRIVATE → SHARED | confirmation of the new visibility | silent switch |
+| SHARED → PRIVATE | notice about future invisibility and the limit of withdrawal | promise to erase what was already read |
+| partner deep link to PRIVATE | neutral 404 state | “privat”, author name, date, attachment |
 
-## 8. Accessibility-Abnahme pro Zustand
+## 8. Accessibility acceptance per state
 
-- Name, Rolle, Wert und Status sind programmatisch erkennbar.
-- Statusänderungen werden einmalig und höflich angekündigt.
-- Fokus bleibt bei Loading/Refresh stabil und springt nicht an Seitenanfang.
-- Fehlerzusammenfassung und Feldfehler sind miteinander verknüpft.
-- Privacy-Auswahl ist als Gruppe mit zwei vollständigen Labels bedienbar.
-- Medienkacheln haben Dateityp, Status und Aktion im zugänglichen Namen.
-- Reihenfolgeänderung ist ohne Drag möglich.
-- 200 % Web-Zoom und größte unterstützte Android-Schrift schneiden keine Pflichttexte ab.
-- Farbe wird immer durch Text, Icon oder Form ergänzt.
-- reduzierte Bewegung verliert keine Statusinformation.
+- Name, role, value, and status are programmatically identifiable.
+- Status changes are announced once and politely.
+- Focus remains stable during Loading/Refresh and does not jump to the top of the page.
+- Error summary and field errors are linked.
+- Privacy selection is operable as a group with two complete labels.
+- Media tiles include file type, status, and action in the accessible name.
+- Reordering is possible without drag.
+- 200% Web zoom and the largest supported Android font size do not clip required copy.
+- Color is always supplemented by text, icon, or shape.
+- Reduced motion does not remove status information.
 
-## 9. Visuelle Testdatensätze
+## 9. Visual test data sets
 
-Jeder Screen wird mit folgenden Datenmengen geprüft:
+Test every screen with:
 
-- 0, 1, 2 und 20 Story Items,
-- sehr kurzer und sehr langer Titel/Text,
-- Datum mit langer deutscher Monatsbezeichnung,
-- 0, 1 und mehrere Medien, gemischte Zustände,
-- lange Anzeigenamen und fehlender Avatar,
-- kein Kommentar, ein Kommentar, längere Liste,
-- PRIVATE Canary, die in keiner Shared-Ansicht erscheinen darf.
+- 0, 1, 2, and 20 Story items,
+- very short and very long title/text,
+- date with a long German month name,
+- 0, 1, and multiple media items in mixed states,
+- long display names and missing avatar,
+- no comments, one comment, and a longer list,
+- PRIVATE canary that must not appear in any shared view.

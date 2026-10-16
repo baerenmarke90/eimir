@@ -1,40 +1,40 @@
 # M3 Privacy Threat Model
 
-**Status:** Readiness-Grundlage für M3  
-**Stand:** 26.08.2026
+**Status:** readiness foundation for M3  
+**As of:** August 26, 2026
 
-M3 vergrößert die Privacy-Fläche deutlich: Neben gemeinsamem Planungsinhalt entstehen erstmals mehrere bewusst private Owner-only-Domänen und präzise Ortsdaten. Dieses Dokument definiert die Bedrohungen, die vor Runtime-Code in Modell, API und Tests berücksichtigt werden müssen.
+M3 significantly expands the privacy surface: shared planning content is joined by several intentionally private owner-only domains and precise location data. This document defines the threats that must be considered in models, APIs, and tests before runtime code is implemented.
 
-## 1. Schutzgüter
+## 1. Protected assets
 
-### Gemeinsame M3-Inhalte
+### Shared M3 content
 
-- Wish und Status
-- Plan, Beschreibung, Termin-/Erlebnisdaten
-- Place, Adresse und Koordinaten
-- Chapter und Relationen
-- Collection und Items
+- Wish and status
+- Plan, description, schedule/experience dates
+- Place, address, and coordinates
+- Chapter and relations
+- Collection and items
 
-Diese Inhalte sind `SPACE_SHARED`, aber **nicht öffentlich**. Sie dürfen nur aktive Mitglieder desselben Space erhalten.
+These resources are `SPACE_SHARED`, but **not public**. Only active members of the same Space may receive them.
 
-### Owner-only-Inhalte
+### Owner-only content
 
 - PrivateNote
 - GiftIdea
 - PrivateCollection
 - PrivateCollectionItem
 
-Für diese Inhalte gilt: Der Partner darf nicht nur den Inhalt, sondern soweit möglich auch **die Existenz** nicht erfahren.
+For these resources, the partner must not learn not only the content but, where possible, even **their existence**.
 
-### Besonders sensitive Metadaten
+### Particularly sensitive metadata
 
-- genaue Koordinaten und Adresse,
-- GiftIdea-URL, Empfänger, Anlass, Preistext,
-- Titel/Freitexte privater Notizen und Listen,
-- Relationen, aus denen private Interessen oder Aufenthaltsorte ableitbar wären,
-- Counts/Sortierpositionen, wenn sie versteckte private Einträge verraten könnten.
+- exact coordinates and address,
+- GiftIdea URL, recipient, occasion, and price text,
+- titles/free text of private notes and lists,
+- relations from which private interests or locations could be inferred,
+- counts/order positions if they could reveal hidden private entries.
 
-## 2. Vertrauensgrenzen
+## 2. Trust boundaries
 
 ```text
 Web / Android
@@ -50,257 +50,257 @@ FastAPI / Authorization
     +--> Logs/Metrics/Error Tracking
 ```
 
-M3 führt **keine neue externe Provider-Grenze** ein. Insbesondere werden Maps, Geocoding, URL-Previews und Discovery nicht serverseitig aufgerufen.
+M3 introduces **no new external provider boundary**. In particular, Maps, Geocoding, URL previews, and Discovery are not invoked server-side.
 
-## 3. Zentrale Invarianten
+## 3. Central invariants
 
-### T1 – Space zuerst
+### T1 — Space first
 
-Kein M3-Read/Write wird allein über Resource-ID aufgelöst. Immer:
+No M3 read/write is resolved from a Resource ID alone. Always:
 
-1. Authentifizierung,
-2. aktive Membership in `spaceId`,
-3. Query innerhalb dieses Space,
-4. zusätzliche Owner-/Write-Regel.
+1. authentication,
+2. active Membership in `spaceId`,
+3. query within that Space,
+4. additional owner/write rule.
 
-### T2 – Owner-only in der Query
+### T2 — Owner-only in the query
 
-Private Area wird nicht geladen und anschließend im Service verworfen. Die Ownerbedingung ist Teil der Query/Authorization.
+Private Area data is not loaded and then discarded in the service. The owner condition is part of the query/Authorization boundary.
 
-### T3 – Keine indirekte Private-Auskunft
+### T3 — No indirect private disclosure
 
-`OWNER_ONLY` darf nicht sichtbar werden über:
+`OWNER_ONLY` must not become visible through:
 
-- fremde GET-by-ID,
-- Listen,
-- Counts,
-- Relationen,
-- Fehlermeldungen,
-- Sortierlücken,
+- foreign GET-by-ID,
+- lists,
+- counts,
+- relations,
+- error messages,
+- ordering gaps,
 - Search/Autocomplete,
 - Chapter/Place,
 - Dashboard/Activity/Notifications,
 - Export,
 - Domain Events,
-- Logs/Metriken,
+- Logs/Metrics,
 - Deep Links.
 
-### T4 – Relation erweitert niemals Rechte
+### T4 — A relation never extends rights
 
-Eine Relation ist kein Capability-Token. Wer ein Chapter oder Place lesen kann, bekommt dadurch keinen Zugriff auf ein Target, das sonst nicht lesbar wäre.
+A relation is not a Capability token. Reading a Chapter or Place never grants access to a Target that would otherwise be unreadable.
 
-### T5 – Keine Shared->Private-Mischdomäne
+### T5 — No Shared-to-Private mixed domain
 
-Wish/Plan/Collection werden nicht durch ein Privacy-Flag in private Ablage verwandelt. PrivateNote/GiftIdea/PrivateCollection bleiben eigene Domainmodelle. Dadurch kann ein falsch interpretierter Shared-Filter keine privaten Daten freigeben.
+Wish/Plan/Collection are not turned into private storage through a privacy flag. PrivateNote/GiftIdea/PrivateCollection remain separate Domain models. This prevents a misinterpreted shared filter from exposing private data.
 
-## 4. Threats und Controls
+## 4. Threats and controls
 
-### M3-T01 – ID Enumeration in Private Area
+### M3-T01 — Private Area ID enumeration
 
-**Angriff:** Partner errät `noteId`/`giftIdeaId`/private Collection-ID und vergleicht Antworten.
-
-**Controls:**
-
-- owner-scoped Query,
-- identisches privacy-sicheres 404 für unbekannt/fremd/anderer Space/gelöscht,
-- keine unterschiedliche Fehlermeldung,
-- keine vorherige Exists-Query ohne Ownerfilter.
-
-**Tests:** Partner-ID-Sweep gegen existierende und nicht existierende IDs liefert semantisch gleiche Antwortklasse.
-
-### M3-T02 – Cross-Space ID Substitution
-
-**Angriff:** gültige ID aus Space A wird in Route von Space B eingesetzt.
+**Attack:** The partner guesses a `noteId`, `giftIdeaId`, or private Collection ID and compares responses.
 
 **Controls:**
 
-- Membership in Route-Space zuerst,
-- Ressourcenquery enthält `space_id`,
-- Relationstabellen sichern Space-Konsistenz service-/constraintseitig.
+- owner-scoped query,
+- identical privacy-safe 404 for unknown, foreign, other-Space, or deleted resources,
+- no differing error message,
+- no preceding existence query without the owner filter.
 
-**Tests:** alle M3-Domänen und alle Relationstypen.
+**Tests:** A partner ID sweep against existing and non-existing IDs produces semantically the same response class.
 
-### M3-T03 – Cross-Space Relation
+### M3-T02 — Cross-Space ID substitution
 
-**Angriff:** Place/Chapter aus Space A wird mit Memory/Plan aus Space B verbunden.
-
-**Controls:**
-
-- beide Targets space-scoped laden,
-- DB-Constraints soweit möglich,
-- Transaktion re-checkt vor Insert,
-- nach außen 404, keine Fremdspace-Auskunft.
-
-### M3-T04 – Private HeartMoment über Shared Chapter/Place
-
-**Angriff:** Nutzer kennt private HeartMoment-ID und versucht, sie mit gemeinsamem Chapter/Place zu verbinden; Partner erkennt Existenz aus Relation oder Count.
+**Attack:** A valid ID from Space A is used in a route for Space B.
 
 **Controls:**
 
-- Target muss für Actor im Shared-Kontext lesbar und relationierbar sein,
-- `OWNER_ONLY` HeartMoment wird für gemeinsame Relation wie nicht vorhanden behandelt,
-- bestehende Relation muss bei `SHARED -> PRIVATE` atomar/serialisiert entfernt bzw. vor Commit verhindert werden – endgültige Semantik M3-D09/M3-D26.
+- Membership in the route Space first,
+- resource query contains `space_id`,
+- relation tables enforce Space consistency at the service and constraint layers.
 
-### M3-T05 – Relation Race gegen Privacy-Wechsel
+**Tests:** All M3 domains and all relation types.
 
-**Angriff:** gleichzeitig `link shared HeartMoment -> Chapter` und `SHARED -> PRIVATE`.
+### M3-T03 — Cross-Space relation
 
-**Risiko:** Relation bleibt nach Privacy-Commit bestehen und verrät private Existenz.
-
-**Controls:**
-
-- Row Lock/serialisierte Reihenfolge auf Target/Relation,
-- Re-Check der Privacy vor Commit,
-- Privacy-Wechsel muss M3-Relationen in seiner Cascade-/Listener-Grenze berücksichtigen, sobald diese Domain existiert.
-
-### M3-T06 – Wish->Plan Double Submit
-
-**Angriff/Fehler:** zwei Geräte oder Retry erzeugen zwei Plans aus einem Wish.
+**Attack:** A Place/Chapter from Space A is linked to a Memory/Plan from Space B.
 
 **Controls:**
 
-- definierte Kardinalität,
+- load both Targets Space-scoped,
+- DB constraints where possible,
+- transaction re-checks before insert,
+- externally return 404 without disclosing the foreign Space.
+
+### M3-T04 — Private HeartMoment through shared Chapter/Place
+
+**Attack:** A user knows a private HeartMoment ID and attempts to link it to a shared Chapter/Place; the partner could infer existence from a relation or count.
+
+**Controls:**
+
+- Target must be readable and linkable for the Actor in the shared context,
+- an `OWNER_ONLY` HeartMoment is treated as not found for a shared relation,
+- an existing relation must be removed atomically/serially during `SHARED -> PRIVATE`, or prevented before commit — final semantics are defined by M3-D09/M3-D26.
+
+### M3-T05 — Relation race against privacy change
+
+**Attack:** `link shared HeartMoment -> Chapter` and `SHARED -> PRIVATE` occur concurrently.
+
+**Risk:** The relation remains after the privacy commit and reveals the private resource's existence.
+
+**Controls:**
+
+- Row Lock/serialized order on Target/relation,
+- re-check privacy before commit,
+- the privacy transition must include M3 relations in its cascade/listener boundary once that domain exists.
+
+### M3-T06 — Wish->Plan double submit
+
+**Attack/error:** Two devices or a retry create two Plans from one Wish.
+
+**Controls:**
+
+- defined cardinality,
 - DB Unique Constraint,
-- Row Lock/atomare Transaktion,
-- stabile Conflict/Idempotenzantwort.
+- Row Lock/atomic transaction,
+- stable conflict/idempotency response.
 
-### M3-T07 – Delete-vs-Relation Race
+### M3-T07 — Delete-vs-relation race
 
-**Angriff/Fehler:** Target wird gelöscht, während Relation erstellt wird.
-
-**Controls:**
-
-- FK verhindert dangling relation,
-- fachlicher Service übersetzt Integrity-/Lock-Ergebnis in stabilen Fehler,
-- keine Catch-and-ignore-Logik, die Phantomrelation bestätigt.
-
-### M3-T08 – Partner bearbeitet creator-owned Shared Content
-
-**Angriff:** Client zeigt Aktion nicht, Partner sendet Request manuell.
+**Attack/error:** A Target is deleted while a relation is being created.
 
 **Controls:**
 
-- M3-D01 bestimmt Write Policy serverseitig,
-- Capabilities nur Darstellung,
-- Query/Service erzwingt die Regel.
+- FK prevents a dangling relation,
+- the domain service translates the Integrity/Lock outcome into a stable error,
+- no catch-and-ignore logic that confirms a phantom relation.
 
-### M3-T09 – Private Count Leakage
+### M3-T08 — Partner edits creator-owned shared content
 
-**Angriff:** gemeinsame Antwort enthält z. B. `privateItemCount`, Gesamtcount oder Paginationverhalten, aus dem Partner private Inhalte ableitet.
-
-**Controls:**
-
-- Shared Endpoints zählen nur shared Domain,
-- Private Collections besitzen getrennte owner-only Listen,
-- keine kombinierte Shared+Private Collection-Liste mit clientseitigem Filter.
-
-### M3-T10 – Sortier-/Positionsleck
-
-**Angriff:** sichtbare gemeinsame Items haben Positionen `1,4,7`, weil private Items in derselben Tabelle mitsortiert wurden.
-
-**Control:** Shared und Private Collections sind getrennte Tabellen/Aggregate; Positionsräume werden nicht gemischt.
-
-### M3-T11 – Location Leakage über Telemetrie
-
-**Angriff/Fehler:** Koordinaten/Adresse erscheinen in Logs, Metrics, Analytics, Error Context oder Outbox.
+**Attack:** The client does not show the action, but the partner sends the request manually.
 
 **Controls:**
 
-- strukturierte Redaction,
-- Events ohne Location-Payload,
-- Request-Logging darf Bodies nicht ungescrubbt erfassen,
-- Tests auf Event-/Logrepräsentationen.
+- M3-D01 defines the write policy server-side,
+- Capabilities are presentation only,
+- query/service enforces the rule.
 
-### M3-T12 – Location Leakage über Relation/Read Model
+### M3-T09 — Private count leakage
 
-**Angriff:** Place wird später in Dashboard/Search projiziert und verrät mehr als der autorisierte Parent.
+**Attack:** A shared response contains, for example, `privateItemCount`, a total count, or pagination behavior from which the partner can infer private content.
 
-**Control in M3:** keine neuen Dashboard/Search-Projektionen. Spätere Read Models müssen Space-/Privacy-Regel erneut anwenden; M3 speichert keine „öffentliche“ Place-Variante.
+**Controls:**
 
-### M3-T13 – GiftIdea URL SSRF/Tracking
+- shared endpoints count only the shared domain,
+- Private Collections have separate owner-only lists,
+- no combined Shared+Private Collection list with client-side filtering.
 
-**Angriff:** Nutzer speichert interne URL; Backend lädt Preview oder Metadaten und wird SSRF-Proxy.
+### M3-T10 — Ordering/position leakage
 
-**Control:** M3 speichert URL nur als Inhalt und führt keinen serverseitigen Fetch aus.
+**Attack:** Visible shared items have positions `1,4,7` because private items were ordered in the same table.
 
-Späteres Preview benötigt eigenes Security-/Reuse-Design (URL-Allow/Block, DNS-Rebinding, Redirects, Content-Limits, Privacy).
+**Control:** Shared and Private Collections use separate tables/aggregates; position spaces are not mixed.
 
-### M3-T14 – GiftIdea URL im Partnerclient
+### M3-T11 — Location leakage through telemetry
 
-**Angriff/Fehler:** Shared Client prefetch/instrumentiert URLs aus owner-only GiftIdea.
+**Attack/error:** Coordinates/address appear in Logs, Metrics, Analytics, Error Context, or Outbox.
 
-**Control:** Partner erhält GiftIdea überhaupt nicht. Ownerclient darf URL erst bei bewusster Interaktion öffnen; automatische externe Requests sind nicht Teil M3.
+**Controls:**
 
-### M3-T15 – Private Inhalt in Domain Events
+- structured Redaction,
+- Events without location payload,
+- request logging must not capture unsanitized Bodies,
+- tests of Event/log representations.
 
-**Fehler:** Event enthält Titel/Body für bequemeren Consumer.
+### M3-T12 — Location leakage through relation/read model
 
-**Controls:** Event-Envelope IDs + sichere Zustände; keine ProtectedPayloads. Consumer laden autorisierte Daten nur in ihrem eigenen Kontext oder arbeiten ohne Inhalt.
+**Attack:** A Place is later projected into Dashboard/Search and reveals more than the authorized Parent.
 
-### M3-T16 – Private Inhalt in Audit
+**Control in M3:** No new Dashboard/Search projections. Later Read Models must reapply the Space/privacy rule; M3 stores no "public" Place variant.
 
-Audit darf notwendige Sicherheitsmetadaten halten, aber keinen privaten Klartext duplizieren. Zulässig sind beispielsweise Actor, Aktion, Resource-ID, Zeitpunkt, Ergebnis. Titel/Body/GiftIdea-Details/Koordinaten gehören nicht hinein.
+### M3-T13 — GiftIdea URL SSRF/tracking
 
-### M3-T17 – Private Export des Partners
+**Attack:** A user stores an internal URL; the Backend fetches a Preview or metadata and becomes an SSRF proxy.
 
-M3 implementiert Export nicht, muss aber die Datenarchitektur so halten, dass M5 klar trennen kann:
+**Control:** M3 stores the URL only as content and performs no server-side fetch.
 
-- Owner-Export darf eigene private Ressourcen enthalten,
-- gemeinsamer/Partnerexport niemals owner-only Ressourcen des anderen,
-- Relationstabellen dürfen private Targets nicht in gemeinsamen Bundle-Metadaten verraten.
+A later Preview requires its own Security/Reuse design, including URL allow/block rules, DNS rebinding, redirects, content limits, and privacy.
 
-### M3-T18 – Cache nach Logout/Space-Wechsel
+### M3-T14 — GiftIdea URL in the partner client
 
-M3 implementiert keinen M5-Read-Cache. Trotzdem gilt als Architekturvoraussetzung:
+**Attack/error:** A shared client prefetches or instruments URLs from an owner-only GiftIdea.
 
-- private DTOs nicht in unkontrolliertem Browserstorage persistieren,
-- zukünftige Android-Caches account+space+owner scopen,
-- Logout/Session-Revoke/Space-Wechsel muss sichere Cache-Clear-Regeln bekommen (M3-D22/M2-D18).
+**Control:** The partner never receives the GiftIdea. The owner client may open the URL only through deliberate interaction; automatic external requests are not part of M3.
 
-### M3-T19 – Chapter-Delete als Datenverlust
+### M3-T15 — Private content in Domain Events
 
-**Fehler:** DB Cascade löscht Memory/HeartMoment/Milestone statt Joinzeile.
+**Failure:** An Event contains title/body for the convenience of a consumer.
 
-**Control:** FK-Richtung und `ON DELETE` nur auf Join-Parent; Integrationstest prüft Originalbestand.
+**Controls:** Event envelopes contain IDs and safe states only; no ProtectedPayloads. Consumers load authorized data only in their own context or operate without content.
 
-### M3-T20 – Doppelte Wahrheitsquelle Chapter/Place
+### M3-T16 — Private content in Audit
 
-**Fehler:** `chapter.place_id` zeigt Place A, `place_chapters` enthält Place B.
+Audit may retain necessary security metadata but must not duplicate private plaintext. Allowed examples include Actor, action, Resource ID, timestamp, and result. Title/body, GiftIdea details, and coordinates do not belong there.
 
-**Control:** M3-D31 entscheidet genau ein kanonisches Modell vor Migration.
+### M3-T17 — Partner export of private content
 
-## 5. Privacy-Klassifizierung
+M3 does not implement Export, but its data architecture must allow M5 to make a clear distinction:
 
-| Daten | Shared/Private | Sensitivität | Telemetrie |
+- owner Export may contain the owner's own private resources,
+- shared/partner Export never contains the other person's owner-only resources,
+- relation tables must not reveal private Targets in shared bundle metadata.
+
+### M3-T18 — Cache after logout/Space change
+
+M3 does not implement the M5 Read Cache. Nevertheless, the following remain architectural prerequisites:
+
+- do not persist private DTOs in uncontrolled browser storage,
+- future Android caches are scoped by Account + Space + owner,
+- logout, Session revocation, and Space change require secure cache-clear rules (M3-D22/M2-D18).
+
+### M3-T19 — Chapter delete causes data loss
+
+**Failure:** A DB Cascade deletes Memory/HeartMoment/Milestone instead of the Join row.
+
+**Control:** FK direction and `ON DELETE` apply only to the Join parent; an Integration Test verifies that the original resources remain.
+
+### M3-T20 — Duplicate Chapter/Place source of truth
+
+**Failure:** `chapter.place_id` points to Place A while `place_chapters` contains Place B.
+
+**Control:** M3-D31 decides exactly one canonical model before migration.
+
+## 5. Privacy classification
+
+| Data | Shared/Private | Sensitivity | Telemetry |
 |---|---|---|---|
-| Wish title | shared | Beziehung/Interessen | kein Klartext |
-| Plan title/description | shared | Pläne/Termine | kein Klartext |
-| plannedStart/End | shared | Zeitplanung | keine hochkardinale Raw-Telemetrie |
-| Place name/address | shared | potenziell Standort | kein Klartext |
-| lat/lon | shared, aber hochsensitiv | präziser Standort | strikt verboten |
-| Chapter title/description | shared | Beziehungsinhalt | kein Klartext |
-| Collection/Item title | shared | Interessen/Checklisten | kein Klartext |
-| PrivateNote | owner-only | hochsensitiv | strikt verboten |
-| GiftIdea | owner-only | hochsensitiv | strikt verboten |
-| PrivateCollection | owner-only | hochsensitiv | strikt verboten |
+| Wish title | shared | relationship/interests | no plaintext |
+| Plan title/description | shared | plans/dates | no plaintext |
+| plannedStart/End | shared | scheduling | no high-cardinality raw telemetry |
+| Place name/address | shared | potential location | no plaintext |
+| lat/lon | shared but highly sensitive | precise location | strictly forbidden |
+| Chapter title/description | shared | relationship content | no plaintext |
+| Collection/Item title | shared | interests/checklists | no plaintext |
+| PrivateNote | owner-only | highly sensitive | strictly forbidden |
+| GiftIdea | owner-only | highly sensitive | strictly forbidden |
+| PrivateCollection | owner-only | highly sensitive | strictly forbidden |
 
-## 6. Fehlersemantik
+## 6. Error semantics
 
-### Nicht lesbar
+### Not readable
 
-Fremder Space, private Ressource des Partners, unbekannte ID und gelöschte private Ressource werden nach außen nicht unterschieden.
+Foreign Space, the partner's private resource, an unknown ID, and a deleted private resource are not distinguished externally.
 
-### Lesbar, aber nicht schreibbar
+### Readable but not writable
 
-Falls M3-D01 creator-only Writes beschließt, kann bei einer gemeinsamen sichtbaren Ressource ein 403 fachlich korrekt sein – analog zur bestehenden Security-Konvention. Es bestätigt nichts, was der Partner nicht ohnehin lesen darf.
+If M3-D01 decides on creator-only writes, a 403 may be domain-correct for a shared visible resource, consistent with the existing Security convention. It confirms nothing that the partner is not already allowed to read.
 
-### Relationen
+### Relations
 
-Nicht lesbares Target -> 404. Kein `RELATION_TARGET_PRIVATE` oder ähnlicher Code.
+Unreadable Target -> 404. No `RELATION_TARGET_PRIVATE` or similar code.
 
 ## 7. Logging / Analytics / Error Tracking
 
-M3 darf technische Ereignisse wie folgende zählen:
+M3 may count technical events such as:
 
 ```text
 wish_created
@@ -309,53 +309,53 @@ relation_create_failed
 private_note_create_failed
 ```
 
-Zulässige Dimensionen sind ausschließlich grobe technische Klassen, z. B. `result`, stabiler Error Code, Plattform/App-Version.
+Allowed dimensions are coarse technical classes only, for example `result`, stable Error Code, and platform/app version.
 
-Nicht zulässig:
+Not allowed:
 
-- Resource-ID als Analytics-Dimension,
-- Titel/Text,
-- genaue Daten/Termine bei sensiblen Flows,
-- Adresse/Koordinaten,
+- Resource ID as an Analytics dimension,
+- title/text,
+- exact dates/times in sensitive flows,
+- address/coordinates,
 - URL,
-- Recipient/Occasion/PriceText,
-- private Item Counts.
+- recipient/occasion/priceText,
+- private Item counts.
 
-## 8. Provider- und Netzwerkgrenze
+## 8. Provider and network boundary
 
-M3 hat keine fachliche Notwendigkeit für ausgehende Requests aufgrund von Place/GiftIdea-Inhalten.
+M3 has no domain need for outgoing requests caused by Place/GiftIdea content.
 
-Daher:
+Therefore:
 
-- keine Geocoding-API,
-- keine Karten-Tile-Anbindung,
-- keine Link Preview,
-- keine URL-Validierung durch Fetch,
-- keine automatische Location-Auflösung.
+- no Geocoding API,
+- no map-tile integration,
+- no Link Preview,
+- no URL validation through Fetch,
+- no automatic Location resolution.
 
-Ein späterer Provider-Slice benötigt `REUSE-BEFORE-BUILD`, Privacy-/Kosten-/ToS-/Self-Hosted-Bewertung und eigene Threats.
+A later Provider slice requires `REUSE-BEFORE-BUILD`, privacy/cost/ToS/Self-Hosted assessment, and its own threats.
 
-## 9. Security Gate für einen M3-Slice
+## 9. Security Gate for an M3 slice
 
-Ein Slice ist nicht merge-ready, wenn:
+A slice is not merge-ready if:
 
-- Cross-Tenant-Negativtest fehlt,
-- Owner-only-Negativtest fehlt, sofern private Domain,
-- Relation einen Target-Auth-Bypass ermöglicht,
-- Race nur durch „wahrscheinlich nacheinander“ statt DB-/Transaction-Primitive abgesichert ist,
-- Event/Log sensible Inhalte kopiert,
-- Delete-Cascade nicht gegen Originaldatenverlust getestet ist,
-- neue externe Datenübertragung ohne expliziten Scope eingeführt wird.
+- a Cross-Tenant negative test is missing,
+- an owner-only negative test is missing for a private domain,
+- a relation enables a Target-Authorization bypass,
+- a race is protected only by "probably sequential" behavior instead of a DB/transaction primitive,
+- an Event/Log copies sensitive content,
+- a Delete Cascade is not tested against loss of original data,
+- new external data transfer is introduced without explicit scope.
 
-## 10. G3-Privacy-Mindestnachweis
+## 10. G3 privacy minimum evidence
 
-Vor G3 müssen mindestens belastbar sein:
+Before G3, at minimum the following must be demonstrated reliably:
 
-- alle Shared-M3-Domänen cross-tenant isoliert,
-- jede Private-Area-Domain owner-only inklusive List/GET/Mutation,
-- keine private Ressource über Shared Relation beweisbar,
-- Wish->Plan und relevante Relation/Delete-Races PostgreSQL-basiert getestet,
-- Chapter-Delete erhält Originalinhalte,
-- Events/Logs enthalten keine geschützten M3-Payloads,
-- Place-Koordinaten erscheinen nicht in Telemetrie,
-- G3-spezifische Client-/E2E-Evidenz gemäß M3-D24 dokumentiert.
+- all shared M3 domains are Cross-Tenant isolated,
+- every Private Area domain is owner-only for List/GET/mutation,
+- no private resource can be proven through a shared relation,
+- Wish->Plan and relevant relation/delete races are tested with PostgreSQL,
+- Chapter Delete preserves original content,
+- Events/Logs contain no protected M3 payloads,
+- Place coordinates do not appear in telemetry,
+- G3-specific client/E2E evidence is documented according to M3-D24.

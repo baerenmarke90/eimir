@@ -1,0 +1,418 @@
+/*
+ * WCAG 2.2 SC 1.4.10 product-content reflow.
+ *
+ * Root CSS zoom changes the usable inline size without changing viewport media
+ * queries. Product layouts therefore need to collapse from the space they
+ * actually receive, not only from window width. The shell remains viewport-
+ * responsive; each route page is the containment boundary for content layout
+ * decisions so containment cannot alter the shell content wrapper's sizing.
+ */
+.product-shell {
+  container-name: product-shell;
+  container-type: inline-size;
+}
+
+.product-main {
+  min-width: 0;
+}
+
+.product-main > .page {
+  container-name: product-content;
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.today-page,
+.m4-product-page,
+.profile-page,
+.settings-page,
+.private-area-page,
+.product-editor-page,
+.momente-discover-page,
+.story-timeline,
+.story-surface {
+  min-width: 0;
+}
+
+/* Mirror the established <=839px Compact shell from the space the product
+   actually receives. Root zoom does not change viewport media queries, so a
+   desktop viewport at 400% otherwise keeps the full desktop nav inside a
+   320-CSS-px shell, making the wrapped sticky topbar cover product controls. */
+@container product-shell (max-width: 52.4375rem) {
+  .product-topbar .brand-name,
+  .product-topbar .shared-context,
+  .product-topbar .theme-control label,
+  .product-topbar .theme-control-icon {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .product-topbar .theme-control-inline select {
+    max-width: 6rem;
+  }
+
+  .shell-nav,
+  .shell-primary-action {
+    display: none;
+  }
+
+  .mobile-bottom-shell {
+    display: grid;
+  }
+
+  .product-shell .product-main {
+    width: calc(100% - 2 * var(--page-gutter));
+    padding-bottom: var(--shell-content-bottom-clearance);
+  }
+}
+
+/* Existing <= 760px compact contracts, keyed to available product width. */
+@container product-content (max-width: 47.5rem) {
+  /*
+   * Sparse-state display copy may contain long localized words. At large text
+   * sizes their min-content width must not widen the product canvas.
+   */
+  .new-space-title {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  /* Shared section headers must be able to place their action on a new line
+     instead of making a grid item's min-content width wider than the page. */
+  .section-head {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .section-head > * {
+    min-width: 0;
+  }
+
+  /*
+   * Today: undo desktop-only split layouts when the content column is narrow.
+   *
+   * This rule is also the last link in the vertical chain that pushed the
+   * relationship hero down the first smartphone viewport (#850). It sets the
+   * hero's compact padding from the *container*, so it wins over the page
+   * stylesheet at equal specificity and quietly restored the 24 px top gap
+   * that TodayPage.css had already given up. Compact and container-compact
+   * must agree, so the value lives in both places deliberately.
+   */
+  .today-hero.couple-presence-card {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: var(--space-2) 0 var(--space-5);
+  }
+
+  .today-hero-action-container {
+    justify-content: center;
+  }
+
+  /* Momente: hero/tapestry must follow the content column, not window width. */
+  .momente-hero-link.has-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .momente-tapestry {
+    flex-direction: column;
+  }
+
+  .momente-tapestry-column {
+    width: 100%;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .momente-archive-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Timeline filter: mirror the established mobile funnel interaction. */
+  .story-filter-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: var(--space-4);
+  }
+
+  .story-timeline-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: var(--space-2);
+  }
+
+  .story-filter-toggle {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    align-self: auto;
+    height: 2.5rem;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-raised, var(--color-surface));
+    color: var(--color-text);
+    font-size: 0.9rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+
+  .story-filter-panel-wrapper {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    padding: var(--space-4);
+    margin-top: var(--space-3);
+  }
+
+  .story-filter-panel-wrapper.story-filter-panel-open {
+    display: flex;
+  }
+
+  .story-filter-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .story-filter-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .story-filter-reset-header-action {
+    align-self: flex-start;
+    height: auto;
+    padding: var(--space-1) 0;
+  }
+
+  /* Activity/notifications: remove desktop flex bases from compact toolbars. */
+  .m4-toolbar-row,
+  .m4-notification-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .m4-toolbar-row > .field-group,
+  .m4-toolbar-row > .m4-search-field {
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
+  }
+
+  .m4-toolbar-submit,
+  .m4-toolbar-submit button {
+    width: 100%;
+  }
+
+  /* Profile: mirror the existing compact identity and inline-edit layout. */
+  .profile-identity-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-identity-visibility-badge {
+    align-self: center;
+  }
+
+  .profile-name-input-group {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .relationship-preview-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-relationship-compact {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .preference-modal-submit-row {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .preference-modal-submit-row > * {
+    flex: 1;
+  }
+
+  /* Settings and data transfer share the same two-column compact contract. */
+  .settings-sensitive-grid,
+  .transfer-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-sensitive-grid > .space-offboarding-panel,
+  .settings-sensitive-grid > .account-settings-panel,
+  .transfer-columns > section,
+  .transfer-columns > section:first-child,
+  .transfer-columns > section + section {
+    padding-inline: 0;
+  }
+
+  .settings-sensitive-grid > .account-settings-panel,
+  .transfer-columns > section + section {
+    padding-top: var(--space-6);
+  }
+
+  /* Private area: mirror the established <=760px stacked form/card layout. */
+  .private-area-context,
+  .private-area-field-grid,
+  .private-area-meta-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .private-area-context {
+    align-items: start;
+  }
+
+  .private-area-inline-form,
+  .private-area-delete-confirmation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .private-area-actions {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .private-area-actions > button:not(.list-entry-icon-button),
+  .private-area-inline-form > button,
+  .private-area-delete-confirmation button {
+    width: 100%;
+  }
+
+  .private-area-actions > .list-entry-icon-button {
+    width: 2.75rem;
+  }
+}
+
+/* Existing <= 620px attachment draft contract, keyed to available width. */
+@container product-content (max-width: 38.75rem) {
+  .attachment-draft-item {
+    grid-template-columns: 5rem minmax(0, 1fr);
+  }
+
+  .attachment-preview-wrap {
+    width: 5rem;
+  }
+
+  .attachment-draft-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* Existing <= 599px page/action contracts, keyed to available width. */
+@container product-content (max-width: 37.4375rem) {
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .page-heading-action,
+  .page-heading-action .button-link,
+  .page-heading-action button {
+    width: 100%;
+  }
+
+  .page-heading-action .button-link,
+  .page-heading-action button {
+    justify-content: center;
+  }
+
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .form-actions > * {
+    width: 100%;
+  }
+
+  .file-picker small {
+    max-width: 13rem;
+  }
+
+  .immersive-sharing-note {
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-large);
+  }
+
+  .immersive-sharing-note .sharing-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .immersive-sharing-note strong {
+    display: block;
+    margin-right: 0;
+    font-size: 0.8rem;
+  }
+
+  .immersive-sharing-note p {
+    display: block;
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+}
+
+/* People cards keep their established 17.5rem target minimum when space allows,
+   but must never force a track wider than the product column at extreme zoom. */
+.people-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr));
+}
+
+/* Intrinsic card minima: only collapse when the content is actually narrower. */
+@container product-content (max-width: 17.5rem) {
+  .people-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .people-card,
+  .immersive-create-card,
+  .immersive-create-media,
+  .immersive-create-details {
+    min-width: 0;
+  }
+}
+
+/*
+ * Settings (#1162). The page is a stack of grid tracks (`.settings-page`,
+ * `.settings-category-content`, `.form-grid`) that each default to one `auto`
+ * column, so the widest unbreakable descendant sets the track for everything
+ * above it. At 320 px with 200% text one long German compound or one select's
+ * intrinsic width widened the whole content column past the viewport.
+ * `overflow-wrap: anywhere` lowers min-content for all Settings copy, and the
+ * form grids get a shrinkable track so controls fit the column instead of
+ * sizing it.
+ */
+.settings-page {
+  overflow-wrap: anywhere;
+}
+
+.settings-page .form-grid {
+  grid-template-columns: minmax(0, 1fr);
+}

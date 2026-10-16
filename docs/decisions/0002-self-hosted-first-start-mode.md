@@ -1,51 +1,51 @@
-# ADR 0002 – Betriebsmodus des Self-Hosted-Erststarts
+# ADR 0002 – Self-Hosted First Start Mode
 
-**Status:** Angenommen  
-**Datum:** 25. August 2026  
-**Verweis:** #110
+**Status:** Accepted  
+**Date:** August 25, 2026  
+**Reference:** #110
 
-## Kontext
+## Context
 
-Der mitgelieferte Compose-Stack setzte `SBS_ENVIRONMENT=production` fest, während `.env.example` als ausfüllbarer Startpunkt geschrieben war. Beides zusammen ergab keinen funktionierenden Startpfad: `cp .env.example .env && docker compose up -d` scheiterte an drei aufeinanderfolgenden Production-Invarianten — fehlender Cursor-Signing-Key, `SBS_MAIL_TRANSPORT=log` und eine `http://`-Basisadresse.
+The provided Compose stack previously set `EIMIR_ENVIRONMENT=production`, while `.env.example` was written as a fill-in starting point. Together, this created no working first-start path: `cp .env.example .env && docker compose up -d` failed on three consecutive production invariants — missing Cursor Signing Key, `EIMIR_MAIL_TRANSPORT=log`, and an `http://` base address.
 
-Die Validierungen sind fachlich richtig. Der Widerspruch lag nicht in ihnen, sondern in der ungeklärten Frage, was der erste Start einer Self-Hosted-Instanz überhaupt sein soll. Solange sie offen war, hätte jede Reparatur an `compose.yaml` sie stillschweigend mitentschieden.
+The validations are technically correct. The contradiction was not in them, but in the unresolved question of what a first Self-Hosted start should represent. Any Compose repair would have silently decided this question.
 
-Drei Optionen standen zur Wahl:
+Three options existed:
 
-1. **Production bleibt Default**, ergänzt um eine lesbare Preflight-Meldung und einen dokumentierten Entwicklungs-Override.
-2. **Der Erststart ist ein lokaler Testbetrieb**, echter Betrieb verlangt eine bewusste Umstellung.
-3. **Der Quickstart ist echt Production**, und die Dokumentation verlangt SMTP-Zugang und HTTPS-Domain ab der ersten Zeile.
+1. **Production remains the default**, supplemented with a readable preflight message and documented development override.
+2. **First start is a local test mode**, real operation requires deliberate conversion.
+3. **Quickstart is real production**, and documentation requires SMTP access and HTTPS domain immediately.
 
-## Entscheidung
+## Decision
 
-Es gilt Option 2. Der mitgelieferte Stack startet als **klar markierter lokaler Testbetrieb**.
+Option 2 applies. The supplied stack starts as a **clearly marked local test mode**.
 
-- `compose.yaml` setzt `SBS_ENVIRONMENT` auf `${SBS_ENVIRONMENT:-development}`.
-- `.env.example` ist für diesen Testbetrieb vorbereitet und setzt `SBS_ENVIRONMENT=development` ausdrücklich.
-- Echter Betrieb verlangt `SBS_ENVIRONMENT=production` in `.env` und damit einen Cursor-Signing-Key, eine `https://`-Basisadresse und einen entschiedenen Mailweg.
-- Die Production-Validierungen bleiben in Kraft. Sie werden weder entfernt noch umgangen.
-- **Ein SMTP-Zugang ist keine Startvoraussetzung.** Production akzeptiert `SBS_MAIL_TRANSPORT=none`: die Instanz versendet dann keine E-Mail, die mailabhängigen Anmeldewege — Magic Link, Recovery, Adressbestätigung — antworten mit `503 MAIL_TRANSPORT_UNAVAILABLE`, und Anmeldung läuft über Passwort, Passkey und OIDC. Verboten bleibt in Production allein `log`, weil dabei gültige Einmal-Token in jede Logablage geschrieben werden. Der Unterschied ist nicht formal: bei `none` verlässt kein Token das System.
-- Die API meldet den Betriebsmodus beim Start im Log. Im Testbetrieb ist das eine Warnung, die benennt, was fehlt.
+- `compose.yaml` sets `EIMIR_ENVIRONMENT` to `${EIMIR_ENVIRONMENT:-development}`.
+- `.env.example` is prepared for this test mode and explicitly sets `EIMIR_ENVIRONMENT=development`.
+- Real operation requires `EIMIR_ENVIRONMENT=production` in `.env` and therefore a Cursor Signing Key, an `https://` base address, and a decided mail path.
+- Production validations remain active. They are neither removed nor bypassed.
+- **SMTP access is not a startup prerequisite.** Production accepts `EIMIR_MAIL_TRANSPORT=none`: the instance sends no email, mail-dependent login paths — Magic Link, Recovery, address verification — return `503 MAIL_TRANSPORT_UNAVAILABLE`, and login remains available through password, Passkey, and OIDC. The difference is not formal: with `none`, no token leaves the system. Production `log` remains forbidden because valid one-time tokens would enter every log storage.
+- The API reports the operating mode on startup. In test mode this is a warning that states what is missing.
 
-## Begründung
+## Reasoning
 
-Option 3 wäre die ehrlichste Variante, macht SideBySide aber unausprobierbar: Wer die Software ansehen will, müsste vorher eine Domain mieten und einen Mailserver einrichten. Für ein Produkt, dessen Zielgruppe Paare sind, die selbst hosten, ist das die falsche Eintrittshürde.
+Option 3 would be the most strict variant, but makes eimir. impossible to evaluate: anyone wanting to try the software would first need a domain and mail server. For a product targeting couples who may self-host, this is the wrong entry barrier.
 
-Option 1 hält den sicheren Default formal, verschiebt das Problem aber nur: Der Quickstart bliebe für jeden Erstnutzer eine Fehlermeldung, und der Entwicklungs-Override wäre der Pfad, den faktisch alle nehmen — nur ohne dass die Dokumentation ihn als den normalen Weg beschreibt.
+Option 1 preserves the secure default formally but only moves the problem: the quickstart remains an error path and the development override becomes the actual path without being documented as such.
 
-Der Preis von Option 2 ist real und wird hier ausdrücklich benannt: Der Default des mitgelieferten Stacks ist nicht mehr `production`. Wer die Umstellung vergisst, betreibt seine Instanz ohne HTTPS-Zwang, ohne Host-Prüfung und mit offener Schema-Auskunft.
+The cost of Option 2 is real and explicitly accepted: the supplied stack default is no longer `production`. A forgotten conversion would run without HTTPS enforcement, host checks, and with open schema information.
 
-Getragen wird das durch zwei bestehende Schutzlagen und eine neue:
+This is covered by existing and additional safeguards:
 
-- Die API ist im Compose-Stack ausschließlich an `127.0.0.1` gebunden. Eine vergessene Umstellung ist damit nicht aus dem LAN oder dem Internet erreichbar.
-- Wer die Instanz veröffentlicht, braucht dafür ohnehin einen Reverse Proxy und trifft dabei auf die Checkliste in `docs/SELF-HOSTING.md`.
-- Neu: Der Betriebsmodus steht bei jedem Start im Log, im Testbetrieb als Warnung. Der Unterschied ist damit nicht nur in einer Datei dokumentiert, die beim Aufsetzen einmal gelesen wird.
+- The API in the Compose stack binds only to `127.0.0.1`. A forgotten conversion is therefore not reachable from LAN or Internet.
+- Publishing the instance requires a reverse proxy and the checklist in `docs/SELF-HOSTING.md`.
+- The operating mode is reported on every start, as a warning in test mode.
 
-## Folgen
+## Consequences
 
-- `docs/SELF-HOSTING.md` beschreibt zwei getrennte Abläufe: lokaler Test und Produktionsbetrieb. Der Produktionsabschnitt ist eine Checkliste, keine Fußnote.
-- CI prüft den realen Compose-Startpfad — Migration, API, Worker, Healthcheck — statt nur `docker compose config` zu parsen. Genau diese Lücke hat den Fehler aus #110 an allen Gates vorbeigelassen.
-- Die Production-Invarianten bleiben durch Negativtests abgesichert. Eine CI, die grün wird, indem sie eine Validierung lockert, ist ausdrücklich nicht zulässig.
-- Diese Entscheidung betrifft ausschließlich den Self-Hosted-Stack. Für SideBySide Managed gilt sie nicht; dort ist `production` gesetzt und es gibt keinen Testbetriebsmodus.
+- `docs/SELF-HOSTING.md` describes two separate paths: local test and production operation.
+- CI checks the real Compose startup path — migration, API, worker, healthcheck — instead of only parsing `docker compose config`.
+- Production invariants remain protected by negative tests. A CI change that becomes green by weakening validation is explicitly forbidden.
+- This decision applies only to the Self-Hosted stack. eimir. Managed remains production-only and has no test mode.
 
-Eine spätere Rückkehr zu Option 1 bleibt möglich und wäre additiv: Sie verlangt einen Preflight-Check und einen benannten Override, aber keine Änderung an den Validierungen.
+A later return to Option 1 remains possible and would be additive: it would require a preflight check and named override, but no validation changes.

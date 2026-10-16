@@ -1,9 +1,9 @@
 """auth and invitations
 
-Einladungen und die Zaehlung wiederholter Versuche.
+Invitations and accounting for repeated attempts.
 
-Constraint-Namen stehen hier NACKT - die Konvention aus db/base.py setzt
-das Praefix davor. Siehe Kopf von 0002.
+Constraint names are BARE here; the convention from db/base.py prepends the
+prefix. See the header of 0002.
 
 Revision ID: 0003
 Revises: 0002
@@ -30,8 +30,8 @@ def upgrade() -> None:
         sa.Column("id", UUID, nullable=False),
         sa.Column("space_id", UUID, nullable=False),
         sa.Column("created_by", UUID, nullable=False),
-        # Nur der Hash. Wer die Datenbank liest, kann keinem fremden Space
-        # beitreten.
+        # Store only the hash. Reading the database must not allow joining
+        # another user's space.
         sa.Column("token_hash", sa.String(length=64), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("accepted_at", sa.DateTime(timezone=True), nullable=True),
@@ -62,9 +62,8 @@ def upgrade() -> None:
             name="fk_invitations_created_by_accounts",
             ondelete="CASCADE",
         ),
-        # SET NULL statt CASCADE: verschwindet der beigetretene Account,
-        # soll die Einladung nicht mitgeloescht werden - sie ist der Beleg,
-        # dass jemand hereingekommen ist.
+        # SET NULL instead of CASCADE: deleting the joined account must not
+        # remove the invitation because it records that somebody joined.
         sa.ForeignKeyConstraint(
             ["accepted_by"],
             ["accounts.id"],
@@ -79,9 +78,8 @@ def upgrade() -> None:
         "rate_limit_events",
         sa.Column("id", UUID, nullable=False),
         sa.Column("action", sa.String(length=32), nullable=False),
-        # Der Schluessel ist oft eine E-Mail-Adresse. Gehasht, weil "wer
-        # wann einen Anmeldeversuch hatte" mehr Wissen waere, als die
-        # Begrenzung braucht.
+        # The key is often an email address. Hash it because knowing who made
+        # a login attempt and when is more information than rate limiting needs.
         sa.Column("key_hash", sa.String(length=64), nullable=False),
         sa.Column(
             "occurred_at",

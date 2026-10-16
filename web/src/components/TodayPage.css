@@ -1,0 +1,1322 @@
+/*
+ * R4 keeps the top of the first smartphone viewport relationship-first.
+ *
+ * The blank band above the relationship hero was never one bad margin. It was
+ * a stack: the shell's own content padding, then this page's padding, then the
+ * hero card's padding, then the hero's internal gaps - each individually
+ * defensible, together roughly 150 px of nothing before the couple appeared.
+ *
+ * The page now contributes no top gap at all and the hero opens almost
+ * immediately under the shell padding, which is the only breathing room the
+ * composition still pays for up here. The calm comes from the hero's internal
+ * rhythm and its ambient tint instead of from stacked empty space.
+ */
+.today-page {
+  padding-top: 0;
+}
+
+.today-date-heading {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0 0 var(--space-4);
+  padding: var(--space-1) 0 var(--space-2);
+}
+
+.today-date-title {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(2.15rem, 10vw, 3.25rem);
+  font-weight: 650;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.today-date-value {
+  color: var(--color-text-secondary);
+  font-size: 0.96rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.today-hero.couple-presence-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: var(--space-section);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-2) 0 0;
+  background: transparent;
+  box-shadow: none;
+  gap: var(--space-4);
+}
+
+/*
+ * The reveal transform makes each Today section its own stacking context.
+ * Elevate the hero only while the Energy popover is open so its slider stays
+ * operable above the fixed Compact navigation at large text sizes. Header
+ * overlays retain their higher stacking level.
+ */
+.today-hero.couple-presence-card:has(.daily-energy-popover) {
+  z-index: 60;
+}
+
+/*
+ * Warmth without another card: a soft brand aura bleeding out of the top of
+ * the page behind the couple, so the hero reads as a lit place rather than a
+ * bordered header block. Purely decorative, so it never affects layout.
+ */
+.today-hero.couple-presence-card::before {
+  content: "";
+  position: absolute;
+  /* The bleed stops exactly at the shell's 1rem compact gutter. Anything
+     wider pushes the document's scroll width past the viewport and breaks
+     WCAG 2.2 SC 1.4.10 reflow at 320 CSS px. */
+  inset: calc(-1 * var(--space-8)) calc(-1 * var(--space-4)) auto;
+  height: 16rem;
+  background: radial-gradient(
+    120% 80% at 30% 0%,
+    var(--color-brand-glow),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (min-width: 768px) {
+  .today-hero.couple-presence-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-5) 0 var(--space-6);
+  }
+}
+
+.today-hero .partner-avatar-pair {
+  box-shadow: 0 4px 18px var(--color-shadow-card);
+  border-radius: var(--radius-pill);
+}
+
+/* Energy owns the lower avatar edge. Keep the existing online-presence pip
+   readable by moving it to the upper edge only while avatar Energy is present. */
+.today-hero .couple-presence-avatar-anchor.has-adornment .partner-presence-pip {
+  top: 2px;
+  right: 2px;
+  bottom: auto;
+}
+
+.today-hero .couple-presence-title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.8vw, 2.5rem);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.today-hero-duration-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--duration-feedback) var(--easing-standard);
+}
+
+/*
+ * On a phone the connection status and the relationship duration never fit on
+ * one line, and letting them wrap inside a horizontal flex row left the "·"
+ * separator stranded at the end of the first line with the duration pushed
+ * off to the right. Two quiet left-aligned lines read as one calm identity
+ * block instead. The duration keeps its 44 px target height.
+ */
+@container product-content (max-width: 30rem) {
+  .today-hero .couple-presence-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .today-hero .couple-presence-separator {
+    display: none;
+  }
+}
+
+.today-hero-duration-link:hover,
+.today-hero-duration-link:focus-visible {
+  color: var(--color-brand-strong);
+}
+
+.today-hero-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand);
+}
+
+.today-hero-pill-icon svg {
+  display: block;
+}
+
+.retrospective-badge-icon {
+  display: inline-flex;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.today-hero-action-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .today-hero-action-container {
+    justify-content: flex-end;
+  }
+}
+
+@keyframes heart-sparkle {
+  0% {
+    transform: scale(0.9) rotate(-4deg);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.12) rotate(4deg);
+    opacity: 1;
+    box-shadow: 0 0 24px var(--color-brand);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.today-hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-brand-text);
+  box-shadow: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+
+.today-hero-action:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-soft);
+}
+
+.today-hero-action.active {
+  background: linear-gradient(
+    135deg,
+    var(--color-brand),
+    var(--color-brand-strong)
+  );
+  color: var(--color-on-accent);
+  border-color: transparent;
+  animation: heart-sparkle var(--duration-context) var(--easing-enter);
+}
+
+.today-section {
+  margin-bottom: var(--space-section);
+}
+
+/* A pinned checklist is intentionally a focused Today utility, not a
+   desktop-width form. Reuse the page's established quiet content measure so
+   Compact still fills the available width while Expanded stays glanceable. */
+.today-section-pinned-collection {
+  max-width: 45rem;
+}
+
+/*
+ * Personal content is distinguished by its image/prose composition rather
+ * than an exceptional whitespace island. Keep the same section rhythm as the
+ * rest of the root product surfaces.
+ */
+.today-section-moment {
+  margin-bottom: var(--space-section);
+}
+
+.today-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  row-gap: var(--space-1);
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-1);
+}
+
+.today-section-header > * {
+  min-width: 0;
+}
+
+/*
+ * A section's "see everything" affordance is a quiet trailing link, not a
+ * button: it must stay clearly subordinate to the content it sits above.
+ */
+.today-section-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  flex: 0 1 auto;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--duration-feedback) var(--easing-standard);
+}
+
+.today-section-link:hover {
+  color: var(--color-brand-text);
+}
+
+.today-section-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-small);
+}
+
+.today-section-kicker {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-text);
+  margin-bottom: var(--space-1);
+}
+
+.today-section-title {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.today-stream {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  margin: calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  scroll-padding-inline: var(--space-2);
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Shared Planning Horizon (#790/#791 follow-up): a full-width bordered row
+   is still a table row once the container is wider than its content - the
+   title sits far left, the date far right, and nearly all of the box is
+   empty. Each item is instead a compact tile (icon + stacked title/date,
+   like the Momente archive entries' icon + copy convention) that wraps into
+   as many columns as the available width allows, instead of stretching one
+   item across the whole row.
+   Compact real-device follow-up (#858): a lone item is still one plain
+   card, but two or three stacked full-width cards under the fold read as a
+   scrolling list, not a short shared horizon glanced at once. Below the
+   tablet breakpoint they become a native horizontal swipe carousel instead
+   - `overflow-x` + `scroll-snap`, no drag library - sized so the next card
+   always peeks in at the edge as an invitation to swipe. A single item has
+   nothing to peek at, so `:has()` keeps it the plain, non-scrolling card. */
+.today-agenda-list {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-3);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--space-4);
+  -webkit-overflow-scrolling: touch;
+}
+
+.today-agenda-row {
+  scroll-snap-align: start;
+  flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.today-agenda-list:has(> .today-agenda-row:nth-child(2)) > .today-agenda-row {
+  /* Most of the current card, plus a deliberate sliver of the next one. */
+  flex: 0 0 85%;
+  max-width: 85%;
+}
+
+@media (min-width: 640px) {
+  .today-agenda-list,
+  .today-agenda-list:has(> .today-agenda-row:nth-child(2)) {
+    flex-flow: row wrap;
+    gap: var(--space-3);
+    overflow-x: visible;
+    scroll-snap-type: none;
+  }
+
+  .today-agenda-row,
+  .today-agenda-list:has(> .today-agenda-row:nth-child(2)) > .today-agenda-row {
+    flex: 1 1 220px;
+    max-width: 18rem;
+  }
+}
+
+/*
+ * R4 materiality: the agenda tile is the page's one genuinely *raised*
+ * surface - a small warm card you could pick up. `--shadow-raised` is a close
+ * contact shadow rather than the wide ambient `--shadow-card`, which is what
+ * keeps a single default tile feeling substantial instead of floating.
+ */
+.today-agenda-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-large);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-raised);
+  color: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .today-agenda-row {
+    flex: 1 1 220px;
+    max-width: 18rem;
+  }
+}
+
+.today-agenda-row-link {
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.today-agenda-row-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: var(--color-border);
+}
+
+.today-agenda-row-link:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* A warm tinted plate rather than a bare glyph: the icon is the tile's
+   material accent, and it is what tells plans apart from dates at a glance. */
+.today-agenda-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-medium);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.today-agenda-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.today-agenda-title {
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-agenda-date {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* Shared-life trace (#790/#791 fourth/fifth follow-up): the previous
+   per-item icon-badge + heading + kind/date subtitle, stacked one per row,
+   was a textbook activity-feed/log affordance regardless of border or
+   spacing - the DOM shape itself (avatar, record name, type, timestamp) is
+   what read as a database record. A plain inline text trace (tried in the
+   third follow-up) removed the log feel but went too far the other way - no
+   surface at all reads as an unstyled fragment, not a deliberately composed
+   part of the page. Each entry is instead a small, soft mini-tile - reusing
+   the compact bordered-surface convention already approved for the
+   Shared Planning Horizon (.today-agenda-row) and the Momente archive
+   entries (.momente-archive-link) - wrapped several-per-row so the section
+   uses the available desktop width instead of sitting as a narrow column
+   with dead space beside it. The fourth follow-up capped these tiles at a
+   smaller flex-basis/max-width than .today-agenda-row directly above them
+   (170px/13rem vs. 220px/18rem), which both broke the two sections'
+   shared rhythm and truncated ordinary titles that had room to fit. The
+   fifth follow-up matches .today-agenda-row's exact width numbers instead -
+   a tile row immediately below another tile row growing to a different cap
+   is what read as "worse/tighter", not an inherent property of a smaller
+   tile. Secondary weight relative to the Shared Planning Horizon still
+   comes through padding, type scale, and a muted rather than brand-colored
+   icon - not from an artificially narrow box. Full Activity access remains
+   a link below. */
+.today-stream.today-stream-recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: visible;
+  scroll-snap-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .today-stream.today-stream-recent {
+    flex-flow: row wrap;
+    gap: var(--space-3);
+  }
+}
+
+/*
+ * Secondary by construction: the trace keeps the approved bordered
+ * mini-tile shape - it must not regress into an unstyled text list - but it
+ * sits *flat* on the canvas while `Demnächst` above it is raised. Elevation,
+ * not size, is what now separates the page's primary and secondary registers.
+ */
+.today-recent-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface-subtle);
+  color: inherit;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard),
+    border-color var(--duration-feedback) var(--easing-standard);
+}
+
+.today-recent-tile-static {
+  cursor: default;
+}
+
+@media (min-width: 640px) {
+  .today-recent-tile {
+    flex: 1 1 220px;
+    max-width: 18rem;
+  }
+}
+
+.today-recent-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+  border-color: var(--color-border);
+}
+
+.today-recent-tile:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.recent-type-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.today-agenda-icon .recent-type-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+/* Type is still conveyed (the icon shape differs per kind), just not as its
+   own bold, brand-colored badge - that redundant field next to an
+   already-typed icon is what made this read as structured record metadata
+   instead of a quiet personal trace. A muted (not brand-accent) icon color
+   keeps these tiles visually quieter than the Shared Planning Horizon's. */
+.today-recent-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.1rem;
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+}
+
+.today-recent-tile-icon .recent-type-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.today-recent-tile-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.today-recent-tile-title {
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-recent-tile-date {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.today-recent-footer {
+  margin-top: var(--space-4);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.today-recent-activity-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-brand-text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  padding: var(--space-2) 0;
+}
+
+.today-recent-activity-link:hover {
+  text-decoration: underline;
+}
+
+.today-section-subline {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.new-space-experience {
+  margin-top: var(--space-8);
+  max-width: 45rem;
+  padding: var(--space-6) 0 var(--space-8);
+  text-align: left;
+}
+
+.new-space-title {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+}
+
+.new-space-body {
+  margin: var(--space-3) 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+}
+
+.new-space-cta {
+  padding: var(--space-3) var(--space-5);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 599px) {
+  /*
+   * Compact is the normative R4 composition. The page owns no top gap of
+   * its own here: the shell already provides the only breathing room the
+   * first viewport can afford before relationship content starts.
+   */
+  .today-page {
+    padding-top: 0;
+  }
+}
+
+/* Euer Moment — the page's dominant emotional anchor ----------------------
+ *
+ * No card, no badge row, no metadata strip: the photograph carries its own
+ * frame and the title and date sit on it under a legibility scrim. That is
+ * what keeps this the strongest surface on the page while still being the
+ * one with the least chrome.
+ */
+.today-moment {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.today-moment-figure {
+  position: relative;
+  margin: 0;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-surface-subtle);
+  box-shadow: var(--shadow-raised);
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.today-moment-link:hover .today-moment-figure {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.today-moment-link:focus-visible {
+  outline: none;
+}
+
+.today-moment-link:focus-visible .today-moment-figure {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.today-moment-media {
+  display: block;
+}
+
+.today-moment-media .story-media-preview,
+.today-moment-media .story-media-skeleton,
+.today-moment-media .story-media-placeholder {
+  aspect-ratio: 4 / 3;
+  margin: 0;
+  border-radius: 0;
+}
+
+.today-moment-caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-8) var(--space-4) var(--space-4);
+  background: linear-gradient(
+    to top,
+    var(--color-media-scrim-strong),
+    var(--color-media-scrim-mid) 55%,
+    var(--color-media-scrim-clear)
+  );
+  color: var(--color-text-inverse);
+}
+
+.today-moment-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 5.2vw, 1.6rem);
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--color-text-inverse);
+}
+
+.today-moment-date {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-inverse-muted);
+}
+
+/* Wider viewports get a taller frame instead of a wider one, so the photo
+   stays a portrait-friendly editorial surface rather than a letterbox. */
+@container product-content (min-width: 47.5rem) {
+  .today-moment-media .story-media-preview,
+  .today-moment-media .story-media-skeleton,
+  .today-moment-media .story-media-placeholder {
+    aspect-ratio: 21 / 9;
+  }
+
+  .today-moment-caption {
+    padding: var(--space-10) var(--space-6) var(--space-6);
+  }
+}
+
+/* No eligible photo changes the composition to authored text. The surface is
+   sized by the real words and never simulates a missing media frame. */
+.today-moment-text {
+  display: grid;
+  gap: var(--space-3);
+  padding: clamp(var(--space-5), 7vw, var(--space-10));
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-subtle);
+}
+
+.today-moment-link:hover .today-moment-text {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.today-moment-link:focus-visible .today-moment-text {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.today-moment-text-context {
+  color: var(--color-brand-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.today-moment-text-content {
+  margin: 0;
+  max-width: 42rem;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 5vw, 2rem);
+  font-weight: 550;
+  line-height: 1.4;
+}
+
+.today-moment-text-date {
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+
+.today-partial-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-error);
+  background: var(--color-error-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.today-partial-error-action {
+  min-height: 44px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-brand-text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.today-partial-error-action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* Gerade bei euch — the one contextual relationship module ----------------
+ *
+ * Its own physical language: a warm tinted panel with an accent edge, so it
+ * cannot be mistaken for the raised agenda tiles above it or the flat trace
+ * below it. There is only ever one of these on the page.
+ */
+.today-living {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border: 1px solid var(--color-brand-glow);
+  border-left: 3px solid var(--color-brand);
+  border-radius: var(--radius-large);
+  background: linear-gradient(
+    135deg,
+    var(--color-brand-surface),
+    var(--color-surface-raised) 78%
+  );
+  box-shadow: var(--shadow-raised);
+  overflow: hidden;
+}
+
+.today-living-has-media {
+  padding: 0;
+  border-left-width: 1px;
+}
+
+.today-living-media {
+  width: 100%;
+}
+
+.today-living-media .story-media-preview,
+.today-living-media .story-media-skeleton,
+.today-living-media .story-media-placeholder {
+  aspect-ratio: 21 / 9;
+  margin: 0;
+  border-radius: 0;
+}
+
+.today-living-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  width: 100%;
+}
+
+.today-living-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-brand-text);
+}
+
+.today-living-avatar .person-identity-avatar-small {
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.6rem;
+  border: 1.5px solid var(--color-surface);
+  box-shadow: 0 1px 4px var(--color-shadow-soft);
+}
+
+.today-living-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.today-living-meta {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+/*
+ * The accent surface pairs with `--color-brand-strong`, not `--color-brand`.
+ * `--color-brand` lightens in Dark (#ff6b85), where white copy on it falls to
+ * 2.7:1 and fails WCAG 2.2 SC 1.4.3 - the same reason the shared button
+ * primitive uses `--color-brand-strong` for filled actions in both themes.
+ */
+.today-living-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: var(--space-1);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-strong);
+  color: var(--color-on-accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    filter var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.today-living-action:hover {
+  filter: brightness(1.08);
+  transform: translateX(2px);
+}
+
+.today-living-action:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.today-living-has-media .today-living-body {
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.today-living-has-media .today-living-action {
+  margin: 0 var(--space-4) var(--space-4);
+}
+
+/* Diesen Monat — a small strip of this month's real shared photos ---------
+ *
+ * Photographs, edge to edge, with no card around them: the material here is
+ * the image itself. No titles, no counts (see `selectMonthlyStrip`).
+ */
+.today-monthly-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-monthly-strip-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.today-monthly-strip-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.today-monthly-item {
+  min-width: 0;
+}
+
+/* Compact real-device follow-up (#858 second pass): two or three photos now
+ * scroll horizontally on Compact instead of squeezing into a static grid -
+ * the shared media swipe primitive, no drag library or JS carousel. The same
+ * browser-native gesture contract is reused by Story galleries. The tile width is
+ * tuned narrower than that carousel's 85%: a photo tile stretched that wide
+ * is close to a full-screen square, not a strip. ~60% keeps one photo
+ * primary while a deliberate slice of the next is already visible as the
+ * swipe invitation. A single photo has nothing to peek at, so
+ * `today-monthly-strip-1` stays the plain, non-scrolling wide band above.
+ *
+ * `contain: paint` keeps the native horizontal strip's paint/scroll
+ * boundary local so off-canvas photos cannot widen the document while
+ * swiping.
+ */
+.today-monthly-strip-2,
+.today-monthly-strip-3 {
+  display: flex;
+  flex-flow: row nowrap;
+  contain: paint;
+  scroll-padding-inline: var(--space-2);
+}
+
+.today-monthly-strip-2 .today-monthly-item,
+.today-monthly-strip-3 .today-monthly-item {
+  flex: 0 0 60%;
+  max-width: 60%;
+}
+
+.today-monthly-tile {
+  display: block;
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  box-shadow: var(--shadow-raised);
+  transition:
+    transform var(--duration-feedback) var(--easing-standard),
+    box-shadow var(--duration-feedback) var(--easing-standard);
+}
+
+.today-monthly-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-soft);
+}
+
+.today-monthly-tile:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.today-monthly-tile-media {
+  display: block;
+}
+
+.today-monthly-tile-media .story-media-preview,
+.today-monthly-tile-media .story-media-skeleton,
+.today-monthly-tile-media .story-media-placeholder {
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* A single photo is composed as a wide band rather than a lonely square. */
+.today-monthly-strip-1 .today-monthly-tile-media .story-media-preview,
+.today-monthly-strip-1 .today-monthly-tile-media .story-media-skeleton,
+.today-monthly-strip-1 .today-monthly-tile-media .story-media-placeholder {
+  aspect-ratio: 16 / 9;
+}
+
+/* Expanded adaptation ------------------------------------------------------
+ *
+ * Expanded is an adaptation of the accepted Compact composition, not a second
+ * design (`docs/PARTNER-APP-EXPERIENCE-STANDARD.md` section 0/11). The order,
+ * the weights and the grammars are identical; the extra width is spent on
+ * breathing room and on placing the two smallest modules beside each other,
+ * so neither `Gerade bei euch` nor a three-photo strip has to stretch to
+ * 1200 px to avoid leaving the canvas empty.
+ */
+@container product-content (min-width: 47.5rem) {
+  .today-section {
+    margin-bottom: var(--space-8);
+  }
+
+  .today-section-moment {
+    margin-bottom: var(--space-10);
+  }
+
+  .today-content:has(.today-section-living):has(.today-section-monthly) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-6);
+    align-items: start;
+  }
+
+  .today-content:has(.today-section-living):has(.today-section-monthly) > * {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .today-content:has(.today-section-living):has(.today-section-monthly)
+    > .today-section-living {
+    grid-column: 1 / 2;
+  }
+
+  .today-content:has(.today-section-living):has(.today-section-monthly)
+    > .today-section-monthly {
+    grid-column: 2 / -1;
+  }
+
+  /* On its own, the strip stays a strip rather than three billboards. */
+  .today-content:not(:has(.today-section-living)) .today-monthly-strip {
+    grid-template-columns: repeat(3, minmax(0, 14rem));
+  }
+
+  /* Expanded/tablet+ keeps the existing non-carousel grid adaptation - the
+   * Compact swipe strip above is the only requested behavior change. */
+  .today-monthly-strip-2,
+  .today-monthly-strip-3 {
+    display: grid;
+    overflow-x: visible;
+    contain: none;
+    scroll-snap-type: none;
+  }
+
+  .today-monthly-strip-2 .today-monthly-item,
+  .today-monthly-strip-3 .today-monthly-item {
+    flex: initial;
+    max-width: none;
+    scroll-snap-align: none;
+  }
+}
+
+/*
+ * Extremely narrow content columns stack the relationship identity below the
+ * avatars. Section headers do not depend on this breakpoint: their base flex
+ * contract below is intrinsically wrap-safe for browser text zoom.
+ */
+@container product-content (max-width: 14rem) {
+  .today-hero .couple-presence-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .today-hero .couple-presence-details,
+  .today-hero .couple-presence-actions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .today-hero-action-container {
+    justify-content: flex-start;
+  }
+
+  .today-hero-action {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+}
+
+/*
+ * Reduced motion, last in the file on purpose.
+ *
+ * `@media` adds no specificity, so this block only wins over the module
+ * grammars above it by coming after them in source order. Keep it at the end
+ * whenever a new transition is added.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .today-hero-action.active {
+    animation: none;
+  }
+
+  .today-hero-action,
+  .today-agenda-row-link,
+  .today-recent-tile,
+  .today-moment-figure,
+  .today-monthly-tile,
+  .today-living-action {
+    transition: none;
+  }
+
+  .today-moment-link:hover .today-moment-figure,
+  .today-monthly-tile:hover,
+  .today-living-action:hover {
+    transform: none;
+  }
+}
+
+.today-pinned-list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-items {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.today-pinned-list-items li {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  min-height: 48px;
+  gap: var(--space-2);
+}
+
+.today-pinned-list-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.today-pinned-list-items .is-completed .today-pinned-list-title {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+}
+
+.today-pinned-list-empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.today-pinned-list-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-disclosure {
+  min-height: 44px;
+  min-width: 0;
+  border: 0;
+  padding: 0 var(--space-1);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  text-align: start;
+}
+
+.today-pinned-list-disclosure:hover {
+  color: var(--color-link-text);
+}
+
+.today-pinned-list-disclosure:focus-visible,
+.today-pinned-list-add-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.today-pinned-list-add-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-inline-start: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0;
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  transition:
+    background var(--duration-feedback) var(--easing-standard),
+    transform var(--duration-feedback) var(--easing-standard);
+}
+
+.today-pinned-list-add-button .button-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.today-pinned-list-add-button:hover {
+  background: var(--color-surface-raised);
+}
+
+.today-pinned-list-add-button:active {
+  transform: scale(0.97);
+}
+
+.today-pinned-list-add-sheet-form,
+.today-pinned-list-add-sheet-field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.today-pinned-list-add-sheet-field label {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.today-pinned-list-add-sheet-field input {
+  min-width: 0;
+  min-height: 44px;
+}
+
+.today-pinned-list-add-error {
+  margin: 0;
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.today-pinned-list-discard {
+  display: grid;
+  gap: var(--space-2);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-medium);
+  padding: var(--space-4);
+  background: var(--color-error-surface);
+}
+
+.today-pinned-list-discard h3,
+.today-pinned-list-discard p {
+  margin: 0;
+}
+
+.today-pinned-list-discard p {
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-pinned-list-add-button {
+    transition: none;
+  }
+
+  .today-pinned-list-add-button:active {
+    transform: none;
+  }
+}

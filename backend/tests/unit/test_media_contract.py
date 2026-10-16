@@ -1,4 +1,4 @@
-"""Gemeinsamer MediaStore-Vertrag fuer Local und S3."""
+"""Shared MediaStore contract for Local and S3 backends."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from sidebyside.core.ids import new_id
-from sidebyside.media.base import MediaStore, build_storage_key
-from sidebyside.media.local import LocalMediaStore
-from sidebyside.media.s3 import S3MediaStore
+from eimir.core.ids import new_id
+from eimir.media.base import MediaStore, build_account_storage_key, build_storage_key
+from eimir.media.local import LocalMediaStore
+from eimir.media.s3 import S3MediaStore
 
 
 class MemoryS3:
@@ -71,6 +71,25 @@ def test_put_open_exists_delete_have_the_same_semantics(store: MediaStore) -> No
 
 def test_delete_missing_object_is_idempotent(store: MediaStore) -> None:
     store.delete(build_storage_key(new_id(), new_id()))
+
+
+def test_copy_moves_bytes_between_storage_homes_and_is_repeatable(store: MediaStore) -> None:
+    """Relocation must converge on retry rather than reject an existing target."""
+    account_id, attachment_id = new_id(), new_id()
+    origin = build_storage_key(new_id(), attachment_id)
+    target = build_account_storage_key(account_id, attachment_id)
+    store.put(origin, io.BytesIO(b"inhalt"), "image/jpeg")
+
+    copied = store.copy(origin, target, "image/jpeg")
+
+    assert copied.storage_key == target
+    assert store.exists(origin)
+    with store.open(target) as source:
+        assert source.read() == b"inhalt"
+
+    store.copy(origin, target, "image/jpeg")
+    with store.open(target) as source:
+        assert source.read() == b"inhalt"
 
 
 def test_operations_are_scoped_to_exact_storage_key(store: MediaStore) -> None:

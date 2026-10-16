@@ -1,4 +1,4 @@
-name: G2 Client E2E
+name: G2 Web E2E
 
 on:
   pull_request:
@@ -6,16 +6,38 @@ on:
       - ".github/workflows/g2-e2e.yml"
       - ".env.example"
       - "compose.yaml"
-      - "backend/**"
-      - "web/**"
-      - "android/**"
+      - "scripts/build_self_hosted_source.py"
+      - "backend/Dockerfile"
+      - "backend/.python-version"
+      - "backend/pyproject.toml"
+      - "backend/uv.lock"
+      - "backend/openapi.json"
+      - "backend/alembic.ini"
+      - "backend/alembic/**"
+      - "backend/src/**"
+      - "backend/demo_assets/**"
+      - "backend/scripts/__init__.py"
+      - "backend/scripts/demo_space.py"
+      - "web/Dockerfile"
+      - "web/nginx.conf"
+      - "web/docker-entrypoint.d/**"
+      - "web/package.json"
+      - "web/package-lock.json"
+      - "web/tsconfig*.json"
+      - "web/vite.config.*"
+      - "web/vitest.config.*"
+      - "web/src/client/referenceFlow.ts"
+      - "web/src/client/referenceFlow.e2e.test.ts"
+      - "web/src/api/generated/**"
+  schedule:
+    - cron: '41 4 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: g2-client-e2e-${{ github.ref }}
+  group: g2-web-e2e-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -27,18 +49,22 @@ env:
 
 jobs:
   real-client-flow:
-    name: Real Web and Android client flow
+    name: Real Web client flow
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Reuse self-hosted stack for the gate harness
         run: |
+          set -euo pipefail
           cp .env.example .env
           sed -i 's/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=g2-e2e-db-only/' .env
-          printf '\nSBS_BOOTSTRAP_TOKEN=%s\n' "$G2_E2E_BOOTSTRAP_TOKEN" >> .env
+          printf '\nEIMIR_BOOTSTRAP_TOKEN=%s\n' "$G2_E2E_BOOTSTRAP_TOKEN" >> .env
           docker compose config --quiet
+          python3 scripts/build_self_hosted_source.py --env-file .env
 
       - name: Start real API, worker, PostgreSQL and LocalMediaStore
         run: docker compose up -d --wait --wait-timeout 300
@@ -56,15 +82,15 @@ jobs:
             -d "$payload" \
             "$G2_E2E_API_BASE/api/v1/auth/register")
           account_id=$(jq -r '.account.id // empty' <<< "$response")
-          test -n "$account_id" || { echo "Bootstrap lieferte keine account.id."; exit 1; }
+          test -n "$account_id" || { echo "Bootstrap returned no account.id."; exit 1; }
 
           space_id=$(docker compose exec -T postgres \
-            psql -U sidebyside -d sidebyside -Atc \
+            psql -U eimir -d eimir -Atc \
             "select space_id from memberships where account_id = '$account_id' and status = 'ACTIVE' limit 1;")
-          test -n "$space_id" || { echo "Kein aktiver Space fuer den synthetischen Account gefunden."; exit 1; }
+          test -n "$space_id" || { echo "No active Space found for the synthetic account."; exit 1; }
 
           echo "G2_E2E_SPACE_ID=$space_id" >> "$GITHUB_ENV"
-          echo "Synthetischer G2-Space ist bereit."
+          echo "Synthetic G2 Space is ready."
 
       - name: Web uses production S8/OpenAPI path against the real stack
         run: |
@@ -77,7 +103,8 @@ jobs:
             -e VITE_G2_E2E_PASSWORD="$G2_E2E_PASSWORD" \
             -e VITE_G2_E2E_SPACE_ID="$G2_E2E_SPACE_ID" \
             -v "$PWD/web:/work" -w /work \
-            node:22.19.0-bookworm-slim@sha256:4a4884e8a44826194dff92ba316264f392056cbe243dcc9fd3551e71cea02b90 \
+            -v "$PWD/design/tokens.json:/design/tokens.json:ro" \
+            node:24.21.0-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553 \
             sh -c 'npm ci --ignore-scripts --no-audit --no-fund && npm test -- src/client/referenceFlow.e2e.test.ts --reporter=default' \
             | tee web/g2-web-e2e.log
 
@@ -89,67 +116,14 @@ jobs:
 
           report = Path("web/g2-web-e2e.log")
           if not report.is_file():
-              raise SystemExit("Web-E2E-Konsolenausgabe fehlt.")
+              raise SystemExit("Web E2E console output is missing.")
           text = report.read_text(encoding="utf-8", errors="replace")
           plain = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", text)
           if not re.search(r"Tests\s+1 passed", plain):
-              raise SystemExit("Web-E2E-Ausgabe belegt keinen erfolgreich ausgefuehrten Test.")
+              raise SystemExit("Web E2E output does not prove a successful test run.")
           if re.search(r"Tests\s+.*skipped", plain, re.IGNORECASE):
-              raise SystemExit("Web-E2E wurde uebersprungen.")
-          print("Web-E2E: 1 realer Test erfolgreich und nicht uebersprungen.")
-          PY
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Set up Gradle cache and validate wrapper
-        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-
-      - name: Verify pinned Gradle wrapper JAR
-        working-directory: android
-        shell: bash
-        run: |
-          printf '%s  %s\n' \
-            '497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7' \
-            'gradle/wrapper/gradle-wrapper.jar' \
-            | sha256sum --check --strict -
-
-      - name: Install Android SDK 37.1
-        run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.1" "build-tools;36.0.0"
-
-      - name: Android uses OkHttpReferenceApi against the same real stack
-        working-directory: android
-        run: >-
-          ./gradlew --no-daemon --stacktrace --dependency-verification strict
-          :app:testDebugUnitTest
-          --tests de.sidebyside.next.reference.ReferenceFlowE2eTest
-
-      - name: Android E2E really ran and was not skipped
-        run: |
-          python3 - <<'PY'
-          import glob
-          import xml.etree.ElementTree as ET
-
-          reports = glob.glob(
-              "android/app/build/test-results/testDebugUnitTest/TEST-*ReferenceFlowE2eTest.xml"
-          )
-          if len(reports) != 1:
-              raise SystemExit(f"Erwartet genau einen Android-E2E-Report, gefunden: {reports}")
-          root = ET.parse(reports[0]).getroot()
-          cases = root.findall(".//testcase")
-          skipped = sum(case.find("skipped") is not None for case in cases)
-          failures = sum(
-              case.find("failure") is not None or case.find("error") is not None for case in cases
-          )
-          if not cases:
-              raise SystemExit("Kein Android-E2E-Test gelaufen.")
-          if skipped or failures:
-              raise SystemExit(f"Android-E2E: {skipped} skipped, {failures} failed.")
-          print(f"Android-E2E: {len(cases)} realer Test erfolgreich.")
+              raise SystemExit("Web E2E was skipped.")
+          print("Web E2E: 1 real test passed and was not skipped.")
           PY
 
       - name: Logs on failure

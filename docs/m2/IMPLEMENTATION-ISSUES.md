@@ -1,190 +1,190 @@
 # M2 Client & QA Implementation Issues
 
-**Status:** Vorlagen, noch keine angelegten GitHub-Issues  
-**Stand:** 24.08.2026
+**Status:** templates; no GitHub Issues created yet  
+**As of:** August 24, 2026
 
-Diese Pakete ergänzen den [M2 Delivery Plan](./DELIVERY-PLAN.md). Sie starten erst, wenn das jeweilige Backend-/OpenAPI-Inkrement stabil ist. Ein Issue entspricht einem Branch und einem Pull Request.
+These packages supplement the [M2 Delivery Plan](./DELIVERY-PLAN.md). They start only when the respective Backend/OpenAPI increment is stable. One Issue corresponds to one branch and one Pull Request.
 
-## Gemeinsame PR-Grenzen
+## Shared PR boundaries
 
-- keine Änderung an Auth-/Tenant-Grundlagen im Feature-PR,
-- keine clientseitige Erfindung fehlender API-Felder,
-- keine parallelen Web-/Android-Begriffe oder Privacy-Regeln,
-- kein Content in Analytics, Logs oder Push Preview,
-- Pflichtzustände und Demo-Fixtures im selben PR wie der Screen,
-- visuelle, Accessibility- und Privacy-Nachweise vor Merge.
+- no changes to Auth/Tenant foundations in a feature PR,
+- no client-side invention of missing API fields,
+- no divergent Web/Android terminology or Privacy rules,
+- no content in Analytics, Logs, or Push Preview,
+- mandatory states and demo fixtures in the same PR as the screen,
+- visual, Accessibility, and Privacy evidence before merge.
 
-## C1 – Gemeinsame M2 Client Contracts
+## C1 – Shared M2 Client Contracts
 
-**Titel:** `[M2][Clients] Gemeinsame Route-, DTO- und Fehlerverträge integrieren`
+**Title:** `[M2][Clients] Integrate shared route, DTO, and error contracts`
 
-**Abhängigkeiten:** veröffentlichter M2-OpenAPI-Vertrag, M2-Domainentscheidungen.  
-**Scope:** Route-IDs, typisierte DTOs, Error Mapping, Query Keys, Privacy-/Space-gebundene Cache Keys, Test Doubles.
+**Dependencies:** published M2 OpenAPI contract, M2 Domain decisions.  
+**Scope:** route IDs, typed DTOs, Error Mapping, Query Keys, Privacy/Space-bound Cache Keys, Test Doubles.
 
-**Akzeptanz**
+**Acceptance**
 
-- Web und Android erzeugen/verwenden denselben Vertrag.
-- 401, 404, 409, 429 und 5xx werden semantisch unterschieden.
-- Cache Keys enthalten Owner-/Space-Kontext, keine Contentwerte.
-- PRIVATE ist kein rein visueller Filter.
-- Contract- und Fixture-Tests laufen reproduzierbar.
+- Web and Android generate/use the same contract.
+- 401, 404, 409, 429, and 5xx are distinguished semantically.
+- Cache Keys contain owner/Space context and no content values.
+- PRIVATE is not a purely visual filter.
+- Contract and fixture tests run reproducibly.
 
-**Nicht enthalten:** fertige Screens, eigenes Backendmodell.
+**Not included:** finished screens, independent Backend model.
 
 ## C2 – Story Timeline & Search Web
 
-**Titel:** `[M2][Web] Story Timeline, Suche und Detail-Pane liefern`
+**Title:** `[M2][Web] Deliver Story Timeline, Search, and detail pane`
 
-**Abhängigkeiten:** Story Query API, C1.  
-**Scope:** Compact/Medium/Expanded, Monatsgruppen, Filter, Cursor, Suche, Detail-Pane, Back/Deep Link.
+**Dependencies:** Story Query API, C1.  
+**Scope:** Compact/Medium/Expanded, month groups, filters, Cursor, Search, detail pane, Back/Deep Link.
 
-**Akzeptanz**
+**Acceptance**
 
-- Memory, Milestone und Shared HeartMoment erscheinen; PRIVATE niemals.
-- Filter/Scroll/Auswahl werden bei Rückkehr wiederhergestellt.
-- Cursor-Retry erzeugt keine Duplikate.
-- Tastatur, 200 % Zoom und privacy-sicheres 404 bestehen.
-- Web-Performancebudgets sind gemessen.
+- Memory, Milestone, and Shared HeartMoment appear; PRIVATE never does.
+- Filters/scroll/selection are restored when returning.
+- Cursor Retry creates no duplicates.
+- keyboard, 200% zoom, and Privacy-safe 404 pass.
+- Web performance budgets are measured.
 
 ## C3 – Story Timeline Android
 
-**Titel:** `[M2][Android] Story Timeline, Suche und Detailnavigation liefern`
+**Title:** `[M2][Android] Deliver Story Timeline, Search, and detail navigation`
 
-**Abhängigkeiten:** Story Query API, C1.  
-**Scope:** Navigation Destination, Monatsgruppen, Filter Sheet, Cursor, Deep Link, Offline Read Cache.
+**Dependencies:** Story Query API, C1.  
+**Scope:** Navigation Destination, month groups, Filter Sheet, Cursor, Deep Link, Offline Read Cache.
 
-**Akzeptanz**
+**Acceptance**
 
-- TalkBack/Switch Access/Zurückpfad vollständig.
-- größte Schrift schneidet keine Pflichttexte ab.
-- Cache ist Owner-/Space-gebunden und nach Logout/Wechsel gesperrt.
-- PRIVATE Canary fehlt in UI, Cache und Netzwerkprojektion.
-- Start-/Scroll-Performancebudgets sind gemessen.
+- TalkBack/Switch Access/Back path complete.
+- largest font does not clip required text.
+- Cache is owner/Space-bound and locked after Logout/switch.
+- PRIVATE Canary is absent from UI, cache, and network projection.
+- startup/scroll performance budgets are measured.
 
 ## C4 – Memory Creator & Media Queue Web
 
-**Titel:** `[M2][Web] Memory-Formular mit sicherer Medienwarteschlange liefern`
+**Title:** `[M2][Web] Deliver Memory form with safe Media queue`
 
-**Abhängigkeiten:** Memory CRUD, Attachment Lifecycle, C1.  
-**Scope:** Create/Edit, `happenedOn`, mehrere Medien, Reihenfolge, Status, Retry/Remove, Shared-Hinweis.
+**Dependencies:** Memory CRUD, Attachment Lifecycle, C1.  
+**Scope:** Create/Edit, `happenedOn`, multiple Media, ordering, status, Retry/Remove, Shared notice.
 
-**Akzeptanz**
+**Acceptance**
 
-- alle Media-Status sichtbar und pro Datei behandelbar,
-- ungültige Datei zerstört weder Text noch gültige Medien,
-- Reorder ohne Drag möglich,
-- Offline Write bleibt ungespeichert,
-- Doppelabsenden erzeugt kein Duplikat,
-- 409 bewahrt eigene Eingabe.
+- all Media states are visible and actionable per file,
+- invalid file destroys neither text nor valid Media,
+- Reorder works without Drag,
+- Offline Write remains unsaved,
+- double submit creates no duplicate,
+- 409 preserves local input.
 
 ## C5 – Memory Creator & Media Queue Android
 
-**Titel:** `[M2][Android] Memory-Formular mit Photo Picker und Medienstatus liefern`
+**Title:** `[M2][Android] Deliver Memory form with Photo Picker and Media status`
 
-**Abhängigkeiten:** Memory CRUD, Attachment Lifecycle, C1.  
-**Scope:** System Photo Picker, Form, Medienkacheln, Retry/Remove/Reorder, Prozess-/Netzstatus.
+**Dependencies:** Memory CRUD, Attachment Lifecycle, C1.  
+**Scope:** System Photo Picker, form, Media Tiles, Retry/Remove/Reorder, process/network status.
 
-**Akzeptanz**
+**Acceptance**
 
-- keine Berechtigung beim App-Start,
-- TalkBack nennt Datei, Status und Aktion,
-- keine Read URL oder private Datei in Share Sheet/Clipboard/Backup,
-- WorkManager erzeugt keinen Offline Write Sync,
-- Entwurf bleibt im sicheren aktuellen Kontext erhalten.
+- no permission request at app startup,
+- TalkBack announces file, status, and action,
+- no Read URL or private file in Share Sheet/Clipboard/Backup,
+- WorkManager creates no Offline Write Sync,
+- draft remains in the current secure context.
 
 ## C6 – HeartMoment Privacy Flow Web & Android
 
-**Titel:** `[M2][Privacy] HeartMoment Owner-only und Shared UX auf beiden Clients liefern`
+**Title:** `[M2][Privacy] Deliver HeartMoment owner-only and Shared UX on both clients`
 
-**Abhängigkeiten:** HeartMoment API/Policy, Attachment Parent Auth, `M2-D06`, `M2-D07`.  
-**Scope:** Pflichtauswahl, Erst-Share-Erklärung, Owner-Bereich, Shared Detail, Visibility-Wechsel, Cache-/Deep-Link-Regeln.
+**Dependencies:** HeartMoment API/Policy, Attachment Parent Auth, `M2-D06`, `M2-D07`.  
+**Scope:** mandatory selection, first-share explanation, owner area, Shared detail, visibility transition, Cache/Deep-Link rules.
 
-**Akzeptanz**
+**Acceptance**
 
-- keine vorausgewählte Sichtbarkeit ohne dokumentierte Entscheidung,
-- PRIVATE hat keine Kommentar-/Story-/Partneraktion,
-- Partner-Deep-Link und alle indirekten Pfade sind neutral,
-- Wechsel benötigt Online + aktuelle Version,
-- Canary fehlt in Story, Suche, Cache, Analytics, Log, Push und Export,
-- Privacy-Gruppe ist mit Tastatur/TalkBack vollständig verständlich.
+- no preselected visibility without a documented decision,
+- PRIVATE has no Comment/Story/partner action,
+- partner Deep Link and all indirect paths remain neutral,
+- transition requires Online + current version,
+- Canary is absent from Story, Search, cache, Analytics, Log, Push, and Export,
+- Privacy group is fully understandable with keyboard/TalkBack.
 
 ## C7 – Milestone Web & Android
 
-**Titel:** `[M2][Clients] Eigenständigen Milestone-Flow integrieren`
+**Title:** `[M2][Clients] Integrate dedicated Milestone flow`
 
-**Abhängigkeiten:** Milestone CRUD, C1.  
-**Scope:** Create/Edit/Detail, Story Card, Datum, Concurrency.
+**Dependencies:** Milestone CRUD, C1.  
+**Scope:** Create/Edit/Detail, Story Card, date, Concurrency.
 
-**Akzeptanz**
+**Acceptance**
 
-- Milestone ist kein Memory-Typflag im Client,
-- eigener Story-Typ und verständliche Semantik,
-- keine deaktivierten Chapter-/Recap-Zukunftscontrols,
-- 404/409/Offline/Accessibility auf beiden Plattformen geprüft.
+- Milestone is not a Memory type flag in the client,
+- dedicated Story type and clear semantics,
+- no disabled future Chapter/Recap controls,
+- 404/409/Offline/Accessibility checked on both platforms.
 
 ## C8 – Comments & Privacy-safe Notification UX
 
-**Titel:** `[M2][Clients] Kommentare und sichere Notification-Vorschau integrieren`
+**Title:** `[M2][Clients] Integrate Comments and safe Notification preview`
 
-**Abhängigkeiten:** Comment API, Outbox/Notification Hook, Preview-Entscheidung.  
-**Scope:** List/Composer/Edit/Delete gemäß Contract, Sendestatus, Retry, Deep Link aus Notification.
+**Dependencies:** Comment API, Outbox/Notification Hook, Preview decision.  
+**Scope:** List/Composer/Edit/Delete according to contract, send status, Retry, Deep Link from Notification.
 
-**Akzeptanz**
+**Acceptance**
 
-- Composer nur auf erlaubten Shared Targets,
-- Sendestatus erzeugt genau einen Kommentar,
-- Parent-404 bleibt neutral,
-- Push Preview enthält keinen Kommentar-/Titeltext ohne explizite Freigabe,
-- Notification Deep Link autorisiert erneut,
-- Screenreaderstatus und Fokus nach Senden korrekt.
+- Composer only on permitted Shared targets,
+- send state produces exactly one Comment,
+- parent 404 remains neutral,
+- Push Preview contains no Comment/Title text without explicit approval,
+- Notification Deep Link reauthorizes,
+- Screen Reader status and focus after sending are correct.
 
 ## C9 – System States, Offline & Conflict
 
-**Titel:** `[M2][Clients] M2-Systemzustände, Offline Read und 409-Konflikt vereinheitlichen`
+**Title:** `[M2][Clients] Standardize M2 system states, Offline Read, and 409 conflict handling`
 
-**Abhängigkeiten:** C1 und mindestens ein integrierter M2-Flow.  
-**Scope:** Skeleton, Empty, Partial, Offline Cache, Offline Write Block, 401/404/409/429/5xx, Entwurfserhalt.
+**Dependencies:** C1 and at least one integrated M2 flow.  
+**Scope:** Skeleton, Empty, Partial, Offline Cache, Offline Write block, 401/404/409/429/5xx, draft preservation.
 
-**Akzeptanz**
+**Acceptance**
 
-- State Matrix für jeden M2-Screen als visuelle Tests vorhanden,
-- kein Zustand leakt private Counts oder Existenz,
-- Offline Write zeigt nie Erfolg,
-- 409 hat keinen automatischen Last-write-wins,
-- Fokus und Eingabe bleiben stabil.
+- State Matrix exists as visual tests for every M2 screen,
+- no state leaks private Counts or existence,
+- Offline Write never reports success,
+- 409 has no automatic last-write-wins,
+- focus and input remain stable.
 
 ## C10 – M2 Accessibility & Performance Gate
 
-**Titel:** `[M2][QA] Accessibility- und Performancebudgets für Web und Android abnehmen`
+**Title:** `[M2][QA] Accept Accessibility and performance budgets for Web and Android`
 
-**Abhängigkeiten:** C2–C9.  
-**Scope:** Tastatur, TalkBack, Switch Access, große Schrift, Kontrast, Motion, Fokus, Referenzmessungen.
+**Dependencies:** C2–C9.  
+**Scope:** keyboard, TalkBack, Switch Access, large font, contrast, Motion, focus, reference measurements.
 
-**Akzeptanz**
+**Acceptance**
 
-- alle Kernflows aus `DEMO-SCENARIO.md` durchlaufen,
-- keine kritische WCAG-/TalkBack-Barriere offen,
-- Touch-/Klickziele entsprechen Tokens,
-- Performancebudgets dokumentiert; Abweichungen haben Owner und Entscheidung,
-- Privacy-Autorisierung wird nicht zugunsten von Performance umgangen.
+- all core flows from `DEMO-SCENARIO.md` are exercised,
+- no critical WCAG/TalkBack barrier remains open,
+- touch/click targets match Tokens,
+- performance budgets are documented; deviations have an owner and decision,
+- Privacy Authorization is not bypassed for performance.
 
 ## C11 – M2 Privacy Abuse & Release Sign-off
 
-**Titel:** `[M2][Security] Client-, Cache- und Notification-Leaks vor Release ausschließen`
+**Title:** `[M2][Security] Exclude client, cache, and Notification leaks before release`
 
-**Abhängigkeiten:** Backend-Security-Suite, C2–C10.  
-**Scope:** Canary-Suche in DOM/Cache/Logs/Events/Push/Export, Cross-Tenant, Revocation, Read URLs, Recents.
+**Dependencies:** Backend Security suite, C2–C10.  
+**Scope:** Canary scan across DOM/cache/Logs/Events/Push/Export, Cross-Tenant, revocation, Read URLs, Recents.
 
-**Akzeptanz**
+**Acceptance**
 
-- alle `TM-01` bis `TM-18` relevanten Clientpfade bewertet,
-- Private Canary nur im Owner-Kontext,
-- Logout/Space-Wechsel löscht/sperrt Caches,
-- Deep Links und Notifications autorisieren erneut,
-- offene hohe/kritische Risiken blockieren Release,
-- Ergebnis ist als Security-/Privacy-Abnahme dokumentiert.
+- all relevant client paths for `TM-01` through `TM-18` are assessed,
+- Private Canary appears only in owner context,
+- Logout/Space switch clears/locks caches,
+- Deep Links and Notifications reauthorize,
+- open High/Critical risks block Release,
+- result is documented as Security/Privacy acceptance.
 
-## Empfohlene Reihenfolge
+## Recommended sequence
 
 ```text
 C1
@@ -195,4 +195,4 @@ C1
 └── C8 ────────┘
 ```
 
-C2/C3 und C4/C5 können plattformweise parallel laufen, teilen aber Contract, Fixtures, Copy und Abnahmekriterien. C6 bleibt ein gemeinsames Privacy-Paket, damit sich Web und Android nicht semantisch auseinanderentwickeln.
+C2/C3 and C4/C5 may run in parallel by platform but share contract, fixtures, copy, and acceptance criteria. C6 remains a shared Privacy package so Web and Android do not diverge semantically.

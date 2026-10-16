@@ -15,9 +15,11 @@ All URIs are relative to *http://localhost*
 
 ## createMemory
 
-> MemoryDetail createMemory(spaceId, memoryCreate)
+> MemoryDetail createMemory(spaceId, memoryCreate, idempotencyKey)
 
 Create Memory
+
+Create a Memory.  Send an &#x60;Idempotency-Key&#x60; to make the save reconcilable after a lost response: the identical request repeated with the same key returns the original Memory (&#x60;200&#x60;); the same key with a different payload is a &#x60;409&#x60; (&#x60;IDEMPOTENCY_KEY_REUSED&#x60;); if the original Memory was deleted meanwhile the answer is &#x60;404&#x60; (&#x60;MEMORY_CREATE_RESULT_DELETED&#x60;) and nothing is recreated.
 
 ### Example
 
@@ -37,6 +39,8 @@ async function example() {
     spaceId: spaceId_example,
     // MemoryCreate
     memoryCreate: ...,
+    // string | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. (optional)
+    idempotencyKey: idempotencyKey_example,
   } satisfies CreateMemoryRequest;
 
   try {
@@ -58,6 +62,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
 | **memoryCreate** | [MemoryCreate](MemoryCreate.md) |  | |
+| **idempotencyKey** | `string` | Optional request identity (a UUID chosen by the client for one save). Repeating the same request with the same key returns the original result instead of creating it again; the key is scoped to the authenticated Account and Space and is retained for a bounded time. | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -76,10 +81,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **201** | Successful Response |  * ETag - Version der Ressource fuer den naechsten If-Match-Schreibzugriff. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **200** | The request identity (&#x60;Idempotency-Key&#x60;) was already used for an equivalent request. The response returns the original Memory in its current state; no second Memory is created. |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **201** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -108,7 +115,7 @@ async function example() {
     memoryId: memoryId_example,
     // string
     spaceId: spaceId_example,
-    // string | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben.
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
     ifMatch: ifMatch_example,
   } satisfies DeleteMemoryRequest;
 
@@ -131,7 +138,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **memoryId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **ifMatch** | `string` | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben. | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -151,11 +158,11 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **204** | Successful Response |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -223,9 +230,9 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Version der Ressource fuer den naechsten If-Match-Schreibzugriff. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -300,10 +307,10 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Successful Response |  -  |
-| **400** | Die Anfrage ist syntaktisch gueltig, kann aber so nicht verarbeitet werden. |  -  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **400** | The request is syntactically valid but cannot be processed in this form. |  -  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -314,7 +321,7 @@ No authorization required
 
 Replace Memory Attachments
 
-Menge und Reihenfolge in einem Zug setzen.  Ein PUT, kein Hinzufuegen und Entfernen: der Client schickt den Zustand, den er gesehen hat, und &#x60;If-Match&#x60; sorgt dafuer, dass er ihn noch hat.
+Replace the attachment set and ordering in one operation.  This is a PUT rather than an add/remove sequence: the client submits the state it observed, while &#x60;&#x60;If-Match&#x60;&#x60; verifies that state is still current.
 
 ### Example
 
@@ -334,7 +341,7 @@ async function example() {
     memoryId: memoryId_example,
     // string
     spaceId: spaceId_example,
-    // string | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben.
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
     ifMatch: ifMatch_example,
     // MemoryAttachmentSet
     memoryAttachmentSet: ...,
@@ -359,7 +366,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **memoryId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **ifMatch** | `string` | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben. | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 | **memoryAttachmentSet** | [MemoryAttachmentSet](MemoryAttachmentSet.md) |  | |
 
 ### Return type
@@ -379,12 +386,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Version der Ressource fuer den naechsten If-Match-Schreibzugriff. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -413,7 +420,7 @@ async function example() {
     memoryId: memoryId_example,
     // string
     spaceId: spaceId_example,
-    // string | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben.
+    // string | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header.
     ifMatch: ifMatch_example,
     // MemoryUpdate
     memoryUpdate: ...,
@@ -438,7 +445,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **memoryId** | `string` |  | [Defaults to `undefined`] |
 | **spaceId** | `string` |  | [Defaults to `undefined`] |
-| **ifMatch** | `string` | Die zuletzt gelesene Version der Ressource, als starkes ETag. Ohne diesen Kopf wird nicht geschrieben. | [Defaults to `undefined`] |
+| **ifMatch** | `string` | The last-read resource version, encoded as a strong ETag. Writes are rejected without this header. | [Defaults to `undefined`] |
 | **memoryUpdate** | [MemoryUpdate](MemoryUpdate.md) |  | |
 
 ### Return type
@@ -458,12 +465,12 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Successful Response |  * ETag - Version der Ressource fuer den naechsten If-Match-Schreibzugriff. <br>  |
-| **401** | Authentifizierung fehlt, ist ungueltig oder die Sitzung ist abgelaufen. |  -  |
-| **403** | Der Aufrufer ist authentifiziert, aber fuer diesen Vorgang nicht berechtigt. |  -  |
-| **404** | Die Ressource existiert nicht oder ist fuer den Aufrufer nicht sichtbar. |  -  |
-| **409** | Die Anfrage kollidiert mit dem aktuellen Zustand der Ressource. |  -  |
-| **422** | Anfrageparameter oder fachliche Eingaben sind ungueltig. |  -  |
+| **200** | Successful Response |  * ETag - Resource version to use for the next If-Match write request. <br>  |
+| **401** | Authentication is missing, invalid, or the session has expired. |  -  |
+| **403** | The caller is authenticated but is not authorized for this operation. |  -  |
+| **404** | The resource does not exist or is not visible to the caller. |  -  |
+| **409** | The request conflicts with the current state of the resource. |  -  |
+| **422** | Request parameters or domain inputs are invalid. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

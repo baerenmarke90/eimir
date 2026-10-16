@@ -1,0 +1,69 @@
+.settings-index {
+  width: 100%;
+}
+
+.settings-category-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.settings-category-link {
+  display: grid;
+  min-height: 64px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    color var(--duration-feedback) var(--easing-standard),
+    background var(--duration-feedback) var(--easing-standard);
+}
+
+.settings-category-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: var(--radius-small);
+}
+
+.settings-category-copy {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-1);
+}
+
+.settings-category-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 1rem;
+}
+
+.settings-category-copy > span {
+  max-width: 62ch;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.settings-category-chevron {
+  color: var(--color-text-secondary);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-category-link:hover {
+    color: var(--color-brand-text);
+    background: var(--color-surface-subtle);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-category-link {
+    transition: none;
+  }
+}

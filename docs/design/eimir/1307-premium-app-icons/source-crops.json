@@ -1,0 +1,165 @@
+{
+  "source": "../1225-identity-system/references/owner-app-logo.png",
+  "sourceSha256": "4ff43d2c45f28c60b61fa6354e5776b281b4ef2559a7c17ea09aa510f9f0c323",
+  "baselineMain": "170a89faadef184c124472f544680262e159d207",
+  "status": "owner-requested-complete-poster-catalog",
+  "candidates": [
+    {
+      "id": "original",
+      "nameDe": "Original",
+      "tier": "Free/Core",
+      "bounds": [
+        132,
+        76,
+        482,
+        426
+      ],
+      "file": "candidates/original.png"
+    },
+    {
+      "id": "pearl",
+      "nameDe": "Perlmutt",
+      "tier": "Pro",
+      "bounds": [
+        1068,
+        45,
+        1209,
+        186
+      ],
+      "file": "candidates/pearl.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "dark",
+      "nameDe": "Dunkel",
+      "tier": "Pro",
+      "bounds": [
+        1068,
+        232,
+        1209,
+        373
+      ],
+      "file": "candidates/dark.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "monochrome",
+      "nameDe": "Monochrom",
+      "tier": "Pro",
+      "bounds": [
+        1068,
+        420,
+        1209,
+        561
+      ],
+      "file": "candidates/monochrome.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "sunset",
+      "nameDe": "Abendrot",
+      "tier": "Pro",
+      "bounds": [
+        34,
+        702,
+        182,
+        850
+      ],
+      "file": "candidates/sunset.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "sage",
+      "nameDe": "Salbei",
+      "tier": "Pro",
+      "bounds": [
+        199,
+        702,
+        346,
+        849
+      ],
+      "file": "candidates/sage.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "daylight",
+      "nameDe": "Sonnentag",
+      "tier": "Pro",
+      "bounds": [
+        362,
+        701,
+        511,
+        850
+      ],
+      "file": "candidates/daylight.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "lavender",
+      "nameDe": "Lavendel",
+      "tier": "Pro",
+      "bounds": [
+        528,
+        701,
+        678,
+        851
+      ],
+      "file": "candidates/lavender.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "sand",
+      "nameDe": "Sand",
+      "tier": "Pro",
+      "bounds": [
+        695,
+        702,
+        842,
+        849
+      ],
+      "file": "candidates/sand.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "midnight",
+      "nameDe": "Mitternacht",
+      "tier": "Pro",
+      "bounds": [
+        860,
+        701,
+        1010,
+        851
+      ],
+      "file": "candidates/midnight.png",
+      "capability": "theme.bespoke_packs"
+    },
+    {
+      "id": "minimal",
+      "nameDe": "Minimal",
+      "tier": "Pro",
+      "bounds": [
+        1070,
+        701,
+        1220,
+        851
+      ],
+      "file": "candidates/minimal.png",
+      "capability": "theme.bespoke_packs"
+    }
+  ],
+  "catalogDecision": "2026-10-12: include every independently illustrated poster tile; all additional fixed choices are Pro, the original adaptive default is Free/Core.",
+  "displayOrder": [
+    "original",
+    "sunset",
+    "sage",
+    "daylight",
+    "lavender",
+    "sand",
+    "midnight",
+    "pearl",
+    "dark",
+    "monochrome",
+    "minimal"
+  ],
+  "repeatedIllustrations": "Home-screen, dock and store mockups repeat the original icon and are not separate selection presets."
+}

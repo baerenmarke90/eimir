@@ -1,7 +1,7 @@
 
 # MemoryAttachmentSummary
 
-Wie jedes gebundene Attachment, plus seinen Platz in der Galerie.
+A bound attachment plus its position in the memory gallery.
 
 ## Properties
 

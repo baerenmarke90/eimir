@@ -1,389 +1,584 @@
-# Sicherer Self-Hosted-Betrieb
+# Secure Self-Hosted Operation
 
-## Zwei Betriebsarten
+Persistent Development, release-candidate verification, Production promotion and
+rollback are governed by
+[`DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md`](DEVELOPMENT-AND-RELEASE-ENVIRONMENTS.md).
+This document is the operator runbook for Self-Hosted instances.
 
-Der mitgelieferte Compose-Stack kennt zwei Betriebsarten, und der Unterschied
-ist kein Detail:
+> Upgrading an installation created before the eimir. identity change requires
+> the [project-identity migration guide](PROJECT-IDENTITY-MIGRATION.md). Record
+> and preserve the existing Compose project name and volume identity before
+> moving or renaming the checkout.
 
-| | lokaler Testbetrieb | Produktionsbetrieb |
+## Operating modes
+
+The repository has one tracked runtime topology: `compose.yaml`.
+
+| | local source test | released Production |
 |---|---|---|
-| `SBS_ENVIRONMENT` | `development` (Standard) | `production` |
-| Cursor-Signing-Key | lokaler Rueckfallwert | Pflicht, mindestens 32 Zeichen |
-| Ausgehende Post | landet im Log | `smtp` oder `none`, kein `log` |
-| `SBS_PUBLIC_BASE_URL` | `http://localhost:8080` | muss `https://` sein |
-| HTTPS-Zwang, Host-Pruefung | aus | an |
-| Schema-Auskunft `/docs` | offen | geschlossen |
+| `EIMIR_ENVIRONMENT` | `development` | `production` |
+| application images | local images built before Compose | public digest-qualified GHCR release images |
+| application `build:` in Compose | none | none |
+| pull policy | `never` for intentional local tags | `always` |
+| supported start entry point | raw Compose after local prebuild | `scripts/self_hosted_release.py` |
+| release identity | non-release local tag | immutable GitHub Release + source SHA + OCI digest |
+| mail | `log`, `smtp`, or `none` | `smtp` or `none`; never `log` |
+| public origin | HTTP localhost allowed | HTTPS required |
 
-Der Standard ist der Testbetrieb. Das ist eine bewusste Entscheidung
-([ADR 0002](decisions/0002-self-hosted-first-start-mode.md)): Ein Erststart
-soll ohne SMTP-Zugang und ohne HTTPS-Domain moeglich sein. Web-PoC und API
-sind dabei ausschliesslich an `127.0.0.1` gebunden und damit auch dann nicht
-aus LAN oder Internet erreichbar, wenn die Firewall des Hosts zu offen
-konfiguriert ist.
+The default development experience remains usable without SMTP or a public HTTPS domain.
+Released Production is deliberately stricter.
 
-Die Anwendung sagt bei jedem Start, in welcher Betriebsart sie laeuft. Im
-Testbetrieb ist das eine Warnung in `docker compose logs api`.
+## Local source test
 
-## Lokaler Test
+Local source testing builds application images first, then runs the same canonical
+Compose topology:
 
 ```bash
 cp .env.example .env
-# Mindestens POSTGRES_PASSWORD durch ein langes, zufaelliges Geheimnis ersetzen.
-# SBS_BOOTSTRAP_TOKEN in .env auf ein separat erzeugtes Geheimnis mit
-# mindestens 32 Zeichen setzen.
-docker compose config --quiet
-docker compose up -d --wait --wait-timeout 300
+# Replace POSTGRES_PASSWORD and optionally set a bootstrap token.
+python3 scripts/build_self_hosted_source.py --env-file .env
+docker compose --profile self-hosted --env-file .env config --quiet
+docker compose --profile self-hosted --env-file .env \
+  up -d --wait --wait-timeout 300
 ```
 
-`API_PORT=8000` und `WEB_PORT=8080` sind nur Vorgabewerte. Beide Ports
-muessen auf dem Docker-Host frei sein. Ist einer bereits belegt, vor dem Start
-in `.env` einen freien Port waehlen, zum Beispiel:
+`.env.example` points application services at local tags and sets
+`EIMIR_SELF_HOSTED_PULL_POLICY=never`. The source builder refuses Production and refuses
+registry/digest targets. It is not a Production fallback.
+
+For verified source acceptance, `scripts/compose_checked.py` may export one exact clean
+Git snapshot, build local backend/Web images and run canonical Compose against those
+local tags. That wrapper also refuses Production. It proves source; it does not create a
+published release.
+
+## Released Production files and trust boundary
+
+A released Self-Hosted installation requires **both** matching GitHub Release assets:
+
+- `eimir-self-hosted-v<release-version>.tar.gz` — the deterministic source-free operator bundle;
+- `self-hosted-image-identity.json` — the digest-qualified image identity for that same release.
+
+The GitHub Release itself must be marked **Immutable**. Verify it before treating the
+release assets as trusted:
+
+```bash
+gh release verify "v${RELEASE_VERSION}" --repo baerenmarke90/eimir
+```
+
+Do not trust an image-identity asset copied from a draft or mutable Release: a mutable
+asset can be replaced after its initial publication. The protected publication workflow
+refuses to complete unless GitHub reports `isImmutable=true` for the published Release
+and the Release attestation verifies.
+
+The backend and Web GHCR images referenced by the identity file are official public
+Self-Hosted distribution artifacts. They must be anonymously pullable by digest. Normal
+Self-Hosted installation does **not** require a GHCR PAT, package-admin token or the
+publication workflow credential.
+
+GHCR `v<version>` and `sha-<source>` tags are discovery aliases only. GHCR does not offer
+server-side immutable tags. The authoritative image identity is the digest after
+`@sha256:` in `self-hosted-image-identity.json`; Production never relies on re-resolving a
+tag to decide which bytes to run.
+
+Download the operator bundle (and, optionally, the standalone identity asset for
+comparison) from the same immutable release and extract it:
+
+```bash
+RELEASE_VERSION=0.1.0
+
+gh release verify "v${RELEASE_VERSION}" --repo baerenmarke90/eimir
+
+gh release download "v${RELEASE_VERSION}" \
+  --repo baerenmarke90/eimir \
+  --pattern "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
+
+tar -xzf "eimir-self-hosted-v${RELEASE_VERSION}.tar.gz"
+cd "eimir-self-hosted-v${RELEASE_VERSION}"
+test -s self-hosted-image-identity.json
+```
+
+Mixing files from different releases is invalid. The bundle already contains the
+matching `self-hosted-image-identity.json`; a source checkout only contains an unreleased
+placeholder of the same name that the launcher and the release guard refuse.
+
+The resulting installation directory contains:
+
+- `compose.yaml`;
+- `deploy/self-hosted-release.env.example`;
+- `scripts/self_hosted_release.py`;
+- `scripts/check_runtime_environment.py`;
+- `scripts/_identity_environment.py`, the shared helper both scripts import;
+- `self-hosted-image-identity.json`, the digest-qualified identity of that immutable
+  release, read-only trust root of the launcher and of the in-manifest `release-guard`.
+
+The protected release workflow publishes these operator artifacts together. The target
+host does **not** need backend/Web source and never builds application images.
+
+Start from the release template:
+
+```bash
+cp deploy/self-hosted-release.env.example .env
+```
+
+Set instance-specific values and select the published product version:
 
 ```dotenv
-API_PORT=8010
-WEB_PORT=8081
-SBS_PUBLIC_BASE_URL=http://localhost:8081
+EIMIR_ENVIRONMENT=production
+EIMIR_RELEASE_VERSION=0.1.0
+POSTGRES_PASSWORD=<strong-production-only-value>
+EIMIR_PUBLIC_BASE_URL=https://eimir.example
+EIMIR_ALLOWED_HOSTS=["eimir.example"]
+EIMIR_CURSOR_SIGNING_KEY=<stable-random-value-at-least-32-characters>
 ```
 
-Das aendert nur die Host-Ports. API und Webdienst lauschen in den Containern
-weiterhin auf 8000 beziehungsweise 8080. Ein belegter Host-Port darf nicht
-durch einen zweiten Dienst geteilt werden; `docker compose up` muss in
-diesem Fall eindeutig fehlschlagen.
+Do not independently select Production image bytes from a mutable version tag. The
+mandatory `self-hosted-image-identity.json` supplies the exact digest-qualified backend
+and Web references published for `EIMIR_RELEASE_VERSION`, for example:
 
-Den tatsaechlich veroeffentlichten Port zeigt Compose an:
+```text
+ghcr.io/baerenmarke90/eimir-backend:v0.1.0@sha256:<digest>
+ghcr.io/baerenmarke90/eimir-web:v0.1.0@sha256:<digest>
+```
+
+The `v0.1.0` portion is operator-readable metadata; Docker's digest-qualified pull is
+bound by `<digest>`. The launcher verifies that both references carry the exact
+`EIMIR_RELEASE_VERSION`, that the stored digests match the references, and that backend
+`migrate`, `api`, and `worker` share one exact backend image. Production requires
+`pull_policy=always` and permits no application `build:` fallback.
+
+## First publication note for package visibility
+
+GitHub Container Registry may create a newly published package as Private. The protected
+release workflow therefore performs an anonymous digest inspection after GHCR promotion
+and **before** GitHub Release publication. If either `eimir-backend` or `eimir-web` is not
+public, the workflow stops intentionally.
+
+For the first publication only, a package administrator may need to open the two newly
+created GHCR packages, change their visibility to **Public**, and rerun the same protected
+release workflow. The already pushed content-addressed digest is then reused and
+verified. Do not work around this gate by documenting a user PAT or embedding registry
+credentials in `.env`.
+
+Repository release immutability must also be enabled before the first final publication:
+
+```text
+GitHub repository -> Settings -> Releases -> Enable release immutability
+```
+
+If that setting is missing, the workflow publishes through a draft, detects that the
+final Release is not immutable, attempts cleanup of the just-created mutable Release/tag,
+reports any cleanup failure explicitly, and fails closed regardless.
+
+## Arcane-first Production
+
+Production can be operated from Arcane alone: **configure -> bootstrap once -> deploy /
+update**. The release checks are part of the canonical `compose.yaml` (`release-guard`),
+so Arcane's plain Deploy/Redeploy is supported and refuses a Production release whose
+backend/Web images are not exactly the references recorded in the release's
+`self-hosted-image-identity.json`, whose pull policy is not `always`, that has no
+Account-deletion instance ID, or whose `EIMIR_ENVIRONMENT` is unset or unknown. The new-installation
+authority is created once through the `bootstrap` profile. The full operator flow,
+including upgrades and failure behavior, is in [`ARCANE.md`](ARCANE.md).
+
+The guard and the launcher read the same published identity file and apply the same
+checks. The launcher fills in the references itself and is the only path that validates
+before pulling and runs `migrate` before it replaces the running release; a refused plain
+Compose/Arcane Redeploy may already have stopped the previous containers.
+
+## Mandatory released launcher
+
+Without Arcane, operate released Production with the launcher rather than a raw
+`docker compose pull/up` sequence (raw `up` is gated by `release-guard`, but validates only
+after Compose has pulled and replaced containers). The launcher explicitly binds the env file and the matching
+published image identity:
 
 ```bash
-docker compose port api 8000
-docker compose port web 8080
+python3 scripts/self_hosted_release.py \
+  --env-file .env \
+  --image-identity self-hosted-image-identity.json \
+  <operation>
 ```
 
-Beide Ausgaben muessen an `127.0.0.1` gebunden sein. Eine Ausgabe mit `0.0.0.0`, `::`
-oder einer unerwarteten externen Adresse ist fuer den Standardbetrieb nicht
-zulaessig.
+The launcher always uses repository-root `compose.yaml` and profile `self-hosted`. Before
+it can pull, bootstrap or start anything, it renders the actual Compose configuration
+and validates the published image identity. It rejects:
 
-Nach dem Start wird die Betriebsbereitschaft geprueft, nicht nur der laufende
-HTTP-Prozess:
+- a missing, malformed, or release-mismatched image identity;
+- a non-Production release env;
+- process-level environment drift away from Production;
+- missing `EIMIR_RELEASE_VERSION`;
+- local, branch or `latest` application images;
+- backend/Web versions that differ from `EIMIR_RELEASE_VERSION`;
+- backend-role image divergence;
+- application `build:` fallback;
+- disabled Production pulling.
+
+`deploy` additionally runs the full runtime-environment guard, including deletion
+authority and other Production-critical configuration, before pull/start.
+
+Available operations are:
+
+```text
+validate
+pull
+bootstrap-deletion-authority
+deploy
+```
+
+A registry outage, non-public released package, missing identity asset, or missing
+release image is a deployment failure. The launcher never falls back to a source build.
+
+## First Production installation
+
+### 1. Configure and pull the selected release
+
+With `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` still blank on a brand-new installation:
 
 ```bash
-api_port=$(docker compose port api 8000 | awk -F: '{print $NF}')
-web_port=$(docker compose port web 8080 | awk -F: '{print $NF}')
-curl --fail "http://127.0.0.1:${api_port}/api/v1/health/ready"
-curl --fail "http://127.0.0.1:${web_port}/healthz"
-curl --fail "http://127.0.0.1:${web_port}/"
+python3 scripts/self_hosted_release.py \
+  --env-file .env \
+  --image-identity self-hosted-image-identity.json \
+  pull
 ```
 
-Erwartet wird:
+This performs the image-identity gate without requiring an already-created deletion
+authority.
 
-```json
-{"status":"ok","database":"ok"}
-```
+### 2. Create the deletion authority exactly once
 
-Die Web-Startseite ist bereits ohne Space-Konfiguration sichtbar. Der
-technische Login-/Memory-/Bild-/Story-Flow wird erst aktiv, wenn
-`SBS_WEB_SPACE_ID` in `.env` auf eine vorhandene Space-UUID gesetzt und das
-Image mit `docker compose up -d --build web` neu gebaut wurde.
-
-Dieser Stand ist zum Ausprobieren gedacht und nicht zum Veroeffentlichen. Wer
-die Instanz erreichbar machen will, arbeitet vorher die Checkliste unten ab.
-
-Noch einmal getrennt davon ist der Entwicklungsablauf am Quellcode:
-`deploy/docker-compose.dev.yml` startet nur PostgreSQL. Das lokal gestartete
-Uvicorn ist ein Entwicklungsserver und keine Vorlage fuer einen extern
-erreichbaren produktiven Dienst.
-
-## Compose-Netzwerk und Readiness
-
-`postgres`, `migrate`, `api`, `worker` und `web` sind in `compose.yaml` explizit an
-dasselbe projektbezogene Bridge-Netzwerk `app` angeschlossen. Der konkrete
-Docker-Netzwerkname enthaelt zusaetzlich den Compose-Projektnamen, damit mehrere
-SideBySide-Stacks auf demselben Host nicht kollidieren.
-
-Die Datenbank-URL verwendet absichtlich den Compose-Service-Namen
-`postgres:5432`. Keine Container-ID, feste Docker-IP und kein Host-Port gehoeren
-in `SBS_DATABASE_URL`.
-
-Nach einem Deployment kann die Docker-DNS-Verbindung direkt aus der API
-geprueft werden:
+Only for an installation that has **never** had an Account-deletion authority:
 
 ```bash
-docker compose exec -T api python -c \
-  'import socket; print(socket.gethostbyname("postgres"))'
+python3 scripts/self_hosted_release.py \
+  --env-file .env \
+  --image-identity self-hosted-image-identity.json \
+  bootstrap-deletion-authority
 ```
 
-Zusatzkontrolle des tatsaechlichen Netzwerkzustands:
-
-```bash
-api_id=$(docker compose ps -q api)
-docker inspect "$api_id" --format '{{json .NetworkSettings.Networks}}'
-```
-
-Ein laufender API-Container mit leerem Ergebnis `{}` ist **nicht**
-betriebsbereit. In diesem Zustand kann Docker-DNS `postgres` nicht aufloesen.
-
-SideBySide trennt zwei Gesundheitsfragen:
-
-- `/api/v1/health` ist reine **Liveness**: der API-Prozess antwortet.
-- `/api/v1/health/ready` ist **Readiness**: die API kann auch PostgreSQL
-  erreichen und einen echten `SELECT 1` ausfuehren.
-- `/healthz` am Webdienst bestaetigt nur, dass der statische Server antwortet.
-  Die Abhaengigkeit von der API wird separat durch Compose und deren Readiness
-  abgebildet.
-
-Der API-Docker-Healthcheck verwendet bewusst die Readiness-Route. Dadurch meldet
-`docker compose up -d --wait` einen fehlenden Datenbank-/Netzwerkpfad als
-Deploymentfehler, auch wenn Uvicorn selbst noch laeuft. Docker Compose startet
-einen Prozess nicht allein wegen des Status `unhealthy` neu; ein kurzfristiger
-Datenbankausfall bleibt damit von einem Prozessabsturz getrennt.
-
-## Checkliste fuer den Produktionsbetrieb
-
-Vor dem ersten oeffentlichen Start in `.env` setzen:
+The command runs the released backend image and creates the UUID plus forward journal as
+one operation. It prints:
 
 ```dotenv
-SBS_ENVIRONMENT=production
-SBS_CURSOR_SIGNING_KEY=...        # openssl rand -base64 48
-SBS_PUBLIC_BASE_URL=https://deine-domain.example
-SBS_ALLOWED_HOSTS=["deine-domain.example"]
-TRUSTED_PROXY_IPS=...             # kleinster IP-Bereich des Reverse-Proxys
-SBS_WEB_SPACE_ID=...              # vorhandene Space-UUID des G2-Referenzflows
-
-# Mit Mailserver:
-SBS_MAIL_TRANSPORT=smtp
-SBS_MAIL_FROM=no-reply@deine-domain.example
-SBS_SMTP_HOST=smtp.deine-domain.example
-
-# Oder ohne Mailserver - siehe unten:
-# SBS_MAIL_TRANSPORT=none
+EIMIR_ACCOUNT_DELETION_INSTANCE_ID=<stable-instance-uuid>
 ```
 
-Fehlt der Cursor-Signing-Key oder ist die Basisadresse kein `https://`, startet
-die Anwendung nicht. Das ist Absicht und wird nicht umgangen: Der
-Cursor-Signing-Key schuetzt die Integritaet opaker Pagination-Cursor, und ein
-Anmeldelink ueber Klartext-HTTP ist ein uebernehmbarer Zugang.
+Store exactly that value in `.env` and in the protected operator configuration backup.
+Do not pre-generate or replace the UUID independently of the journal.
 
-### Betrieb ohne Mailserver
+If the installation previously had an authority and its journal is missing or damaged,
+**do not bootstrap again**. Restore the newest protected journal and matching stable
+instance ID according to
+[`ACCOUNT-DELETION-SELF-HOSTED.md`](ACCOUNT-DELETION-SELF-HOSTED.md).
 
-Ein SMTP-Zugang ist **keine** Startvoraussetzung. Mit
-`SBS_MAIL_TRANSPORT=none` laeuft die Instanz ohne Mailweg:
+### 3. Validate and deploy
 
-- Magic Link, Passwort-Recovery und Adressbestaetigung antworten mit
-  `503 MAIL_TRANSPORT_UNAVAILABLE` statt eine Nachricht zu versprechen, die
-  nie ankommt.
-- Anmeldung laeuft ueber Passwort, Passkey/WebAuthn und OIDC weiter.
-- Wer sein Passwort vergisst und keinen Passkey hat, kommt ohne Mailweg nicht
-  mehr selbst in sein Konto. Das ist der Preis dieser Betriebsart.
+After recording `EIMIR_ACCOUNT_DELETION_INSTANCE_ID`:
 
-Was Produktion **nicht** akzeptiert, ist `SBS_MAIL_TRANSPORT=log`. Dabei
-stuenden gueltige Einmal-Token im Log der API und damit in jeder
-Log-Aggregation und jedem Backup davon. Der Unterschied zu `none` ist nicht
-formal: dort verlaesst kein Token das System.
+```bash
+python3 scripts/self_hosted_release.py \
+  --env-file .env \
+  --image-identity self-hosted-image-identity.json \
+  validate
+python3 scripts/self_hosted_release.py \
+  --env-file .env \
+  --image-identity self-hosted-image-identity.json \
+  deploy
+```
 
-Danach `docker compose up -d --build --force-recreate --wait --wait-timeout
-300` und pruefen, dass `docker compose logs api` den Produktionsbetrieb
-meldet. `--build` ist fuer den PoC erforderlich, weil die Betreiber-Space-ID
-beim Vite-Build eingebettet wird.
+`deploy` validates, pulls the selected release images, applies the migrations once, and
+only then force-recreates the runtime containers and waits for health. See
+[Upgrade and rollback semantics](#upgrade-and-rollback-semantics) for the exact sequence
+and what it does and does not guarantee.
 
-## Medienablage
+## Runtime topology
 
-`SBS_MEDIA_STORE=local` ist der Standard. API und Worker benutzen dabei das
-private Compose-Volume `media_data`; Dateisystempfade werden nicht an Clients
-ausgegeben.
+Normal Self-Hosted ordering is:
 
-Fuer einen S3-kompatiblen Objektspeicher wird in `.env` stattdessen gesetzt:
+```text
+postgres -> release-guard -> migrate -> api/worker -> web
+```
+
+`release-guard` is a one-shot that `migrate` waits for; it is described under
+[Arcane-first Production](#arcane-first-production).
+
+The topology was reviewed service by service (#827). The goal is not the smallest
+container count: a service is removed or integrated only when a safer and simpler
+mechanism exists. A shared image is not a shared process; `api`, `worker` and `migrate`
+use one backend image but stay separate processes with their own lifecycle.
+
+| Service | Decision | Reason |
+|---|---|---|
+| `postgres` | KEEP | Stateful upstream database with its own volume, health check and restart policy; it is not application code, and Cloud/Managed replaces it with an external database. |
+| `release-guard` | KEEP | Compose-resident Production release gate that `migrate` waits for, so plain Compose and Arcane Deploy/Redeploy cannot start a release that differs from the published identity or lacks a deletion authority; it needs no network or data volume, reads only the identity file, and refuses an unset environment. |
+| `migrate` | KEEP | One-shot schema owner: exactly one migration runs per deploy before any runtime is replaced, so several API instances cannot race, a failed or refused migration blocks startup, and it reuses the backend image. |
+| `demo-init` | DEMO-ONLY | Profile `demo` only and run explicitly as a one-shot; normal startup neither depends on it nor creates it, and outside an enabled Demo deployment it exits without creating data. |
+| `deletion-authority-bootstrap` | BOOTSTRAP-ONLY | Profile `bootstrap` only and run explicitly once per new installation to create the Account-deletion journal and print its stable instance ID; it refuses whenever an instance ID or journal already exists, so it can never replace an authority. |
+| `api` | KEEP | Request-serving HTTP process with its own health check, published port and restart behavior; it shares the backend image but is a separate process from the worker. |
+| `worker` | KEEP | Background job runner with an independent failure domain, restart and scaling behavior and no published port; merging it into the API would let a stuck job take down request serving. |
+| `web` | KEEP | Unprivileged static Nginx runtime that owns caching, CSP and security headers; it needs no Python, upgrades and fails independently, and folding it into the backend would weaken that isolation. |
+
+No service is removed or integrated into another one: none passed the "safer and
+simpler" test. `demo-init` is not part of the normal startup chain, and `release-guard`
+is the only addition to it: it moves the release checks into the manifest.
+
+- `migrate` is not folded into API startup. With several API instances (or an API
+  restart during a rollout) every instance would race to migrate, a failed migration
+  would crash-loop the API, and a refused rollback could not be stopped before the
+  running release is replaced.
+- `migrate` has `restart: "no"` and receives only the database connection; the
+  restart policy of the long-running services never re-runs migrations.
+- `api` and `worker` restart independently (`unless-stopped`). Only `api` and `web`
+  publish host ports; `worker` has none.
+- `web` waits for API readiness. The `/api/` route of the TLS reverse proxy goes
+  directly to the API, not through the Web Nginx (see below).
+
+All services use the project-specific bridge network. The application reaches PostgreSQL
+through Docker DNS at `postgres:5432`; do not depend on container IDs or fixed Docker IPs.
+
+### Demo initialization
+
+`demo-init` runs only for an intentional Demo deployment and only when requested; it is
+never part of `deploy`. After the normal deployment, run the idempotent one-shot
+explicitly (`self-hosted` provides its `migrate` dependency, `demo` provides the service):
+
+```bash
+docker compose --profile self-hosted --profile demo --env-file .env run --rm demo-init
+```
+
+Do not add `demo` to `COMPOSE_PROFILES` and use `up --wait`: Compose (observed with
+2.26) treats an exited standalone one-shot as a failed wait. API and worker do not wait for `demo-init`, so
+Demo entry answers `404 DEMO_IDENTITY_MISSING` until the command has completed. See
+[`DEMO-SPACE.md`](DEMO-SPACE.md).
+
+## Production configuration requirements
+
+Production rejects insecure runtime settings. At minimum:
+
+- `EIMIR_CURSOR_SIGNING_KEY` is stable and at least 32 characters;
+- `EIMIR_PUBLIC_BASE_URL` uses HTTPS;
+- `EIMIR_ALLOWED_HOSTS` names concrete hosts and never `*`;
+- `TRUSTED_PROXY_IPS` is the smallest real proxy IP/CIDR set;
+- `EIMIR_ACCOUNT_DELETION_INSTANCE_ID` matches the protected forward journal;
+- `EIMIR_ENCRYPTION_AT_REST` is set explicitly (`required`, `migrating`, or `disabled`), and
+  with an encrypting mode `EIMIR_ENCRYPTION_KEYS`/`EIMIR_ENCRYPTION_ACTIVE_KEY_ID` are valid;
+- `EIMIR_MAIL_TRANSPORT` is `smtp` or `none`, never `log`.
+
+UnifiedPush delivery is optional. To enable the backend transport, configure a
+stable VAPID key, contact subject and explicit allowed HTTPS push-server
+origins for both API and worker. See
+[UnifiedPush backend transport](./m4/UNIFIEDPUSH-TRANSPORT.md) for the exact
+settings, egress restrictions and current client-integration boundary.
+
+SMTP is optional. With:
 
 ```dotenv
-SBS_MEDIA_STORE=s3
-SBS_S3_ENDPOINT=https://s3.example.com
-SBS_S3_REGION=eu-central-1
-SBS_S3_BUCKET=sidebyside-private
-SBS_S3_ACCESS_KEY_ID=...
-SBS_S3_SECRET_ACCESS_KEY=...
-# Nur bei temporaeren Provider-Credentials:
-# SBS_S3_SESSION_TOKEN=...
+EIMIR_MAIL_TRANSPORT=none
 ```
 
-Der Endpoint ist eine S3-API-Origin ohne eingebettete Zugangsdaten oder
-Unterpfad. Fuer produktiven Verkehr ueber nicht vollstaendig vertrauenswuerdige
-Netze muss HTTPS verwendet werden. Der Bucket selbst bleibt privat: keine
-Public ACLs, keine anonyme Read-Policy und keine statische Website-Freigabe.
-Die Server-Credentials benoetigen fuer den verwendeten Bucket/Key-Prefix nur
-die Objektoperationen GET/PUT/HEAD/DELETE; ein oeffentliches Bucket ist dafuer
-nicht notwendig.
+password, Passkey/WebAuthn and OIDC remain available while mail-dependent Magic Link,
+password recovery and email verification report that mail delivery is unavailable.
 
-Bei S3 lädt der Client mit einer serverseitig signierten PUT-Capability direkt
-auf genau den erzeugten Storage Key. Die Upload-URL gilt exakt 10 Minuten und
-ist mit `If-None-Match: *` gegen ein spaeteres Ueberschreiben desselben Objekts
-gebunden. Ein Provider-Upload setzt das Attachment nicht auf `READY`:
-`finalizeUpload` bestaetigt das Objekt serverseitig und die vorhandene
-Validierung entscheidet weiterhin allein ueber `READY`.
+## Account deletion authority
 
-Lesen wird erst nach der normalen Membership-/Parent-Autorisierung freigegeben.
-Die signierte GET-URL gilt exakt 5 Minuten und nur fuer dieses Objekt. Bereits
-ausgestellte URLs koennen nach einem Membership- oder Privacy-Entzug technisch
-bis zum Ende dieser 5 Minuten weiter funktionieren. Das ist der dokumentierte
-Privacy-Trade-off des S3-Adapters; neue URLs werden nach dem Entzug nicht mehr
-ausgestellt.
+Self-service Account deletion has a stronger recovery requirement than ordinary
+point-in-time application data. Canonical Compose mounts a separate private
+`deletion_journal_data` volume at:
 
-Descriptor-Antworten und gespeicherte Objekte tragen `Cache-Control: private,
-no-store`; die API setzt fuer Descriptoren zusaetzlich `Referrer-Policy:
-no-referrer`. Presigned URLs, Signaturen und Storage-Credentials duerfen nicht
-in Access-Logs, Analytics, Supportdaten oder dauerhafte Clientcaches uebernommen
-werden.
+```text
+/var/lib/eimir/deletion-journal
+```
 
-Bei einem Browser-Client braucht der Bucket eine enge CORS-Regel fuer die
-konkrete SideBySide-Origin. Fuer den Upload sind `PUT` und die Header
-`Content-Type`, `Cache-Control` und `If-None-Match` erforderlich; fuer direkte
-Reads `GET`/`HEAD`. Keine CORS-Regel ersetzt die private Bucket-Policy oder die
-serverseitige Autorisierung.
+Keep the stable instance UUID and newest validated forward journal outside ordinary
+PostgreSQL/media rollback. Retain journal tombstones until all backups that could predate
+those deletions have expired. API startup reconciles configured tombstones before normal
+traffic so an older database restore cannot resurrect a deleted Account.
 
-Der Web-Container erlaubt diese direkte Verbindung zusätzlich in seiner
-Content Security Policy. Compose leitet dafür ausschließlich die exakte
-`SBS_S3_ENDPOINT`-Origin an `connect-src` weiter. Wildcards, Scheme-Freigaben
-wie `https:`, Pfade, Zugangsdaten und freie CSP-Fragmente werden vor dem
-Nginx-Start abgewiesen. Normale Nutzer konfigurieren daran nichts. Eine
-abweichende Cloud-/Hoster-Topologie kann am Web-Container mehrere exakte
-Origins whitespace-getrennt über `SBS_WEB_CSP_CONNECT_ORIGINS` setzen; im
-kanonischen Compose-Pfad wird dieser technische Wert automatisch abgeleitet.
+Treat `docker compose down -v` as destructive to this safety state. A normal application
+recreate is safe because named volumes persist; deleting/changing the project or journal
+volume requires an explicit recovery/migration decision.
 
-## Einmalige Erstregistrierung
+## Media storage
 
-Eine leere Instanz nimmt den ersten Account nur mit dem in der lokalen `.env`
-gesetzten `SBS_BOOTSTRAP_TOKEN` an. Der Wert wird als `bootstrapToken` an
-`POST /api/v1/auth/register` uebergeben. Er wird weder in der Datenbank
-gespeichert noch von der Anwendung geloggt.
+`EIMIR_MEDIA_STORE=local` uses the private Compose `media_data` volume shared by API and
+worker. For S3-compatible private object storage:
 
-Fuer einen Start ohne vorhandene Benutzer gilt:
+```dotenv
+EIMIR_MEDIA_STORE=s3
+EIMIR_S3_ENDPOINT=https://s3.example.com
+EIMIR_S3_REGION=eu-central-1
+EIMIR_S3_BUCKET=eimir-private
+EIMIR_S3_ACCESS_KEY_ID=...
+EIMIR_S3_SECRET_ACCESS_KEY=...
+```
 
-1. Ein zufaelliges Geheimnis mit mindestens 32 Zeichen erzeugen und nur in der
-   nicht versionierten `.env` als `SBS_BOOTSTRAP_TOKEN` speichern.
-2. Den Stack starten und die erste Registrierung lokal ueber `127.0.0.1`
-   ausfuehren.
-3. Nach erfolgreicher Registrierung `SBS_BOOTSTRAP_TOKEN` aus `.env` entfernen
-   und den API-Container neu erstellen: `docker compose up -d --force-recreate api`.
-4. Weitere Accounts ausschliesslich ueber Einladungen registrieren.
+The bucket stays private. Production/Demo require HTTPS S3 endpoints. Provider
+credentials should permit only the object operations needed by the media lifecycle.
+Presigned URLs, signatures, storage keys and credentials must not enter logs, analytics,
+support bundles or persistent client caches.
 
-Die Datenbank speichert den erfolgreichen Abschluss dauerhaft. Derselbe oder
-ein spaeter neu gesetzter Bootstrap-Wert kann danach keinen zweiten initialen
-Owner erzeugen. Zwei parallele Erstregistrierungen werden in PostgreSQL
-serialisiert; genau eine kann erfolgreich sein.
+Development and Production must never share an S3 bucket or credential set.
 
-Das Geheimnis darf nicht in Shell-Historie, Screenshots, Support-Anfragen oder
-Repository-Dateien gelangen. `.env` ist deshalb in `.gitignore` ausgeschlossen.
+With application-controlled encryption enabled (below) the provider only ever stores
+ciphertext, and uploads and reads go through the application instead of presigned
+URLs.
 
-## Zugriff aus LAN oder Internet
+## Encryption at rest
 
-Externer Zugriff erfolgt ausschliesslich ueber einen TLS-Reverse-Proxy auf
-demselben Host oder in einem kontrollierten privaten Netz. Der sichere
-Standard bindet Web und API in `compose.yaml` nur an Loopback.
+Set `EIMIR_ENCRYPTION_AT_REST` explicitly in Production; an unset value is refused by
+the release guard and by the application:
 
-Auf demselben Host braucht der Proxy zwei Ziele auf derselben oeffentlichen
-HTTPS-Origin:
+- `required` for new installations, with `EIMIR_ENCRYPTION_KEYS` and
+  `EIMIR_ENCRYPTION_ACTIVE_KEY_ID`;
+- `migrating` while upgrading an installation that already holds plaintext, until
+  `python -m eimir.security migrate-payloads` and `migrate-media` finished, then `required`;
+- `disabled` as an explicit opt-out for operators who rely on their own disk/volume
+  encryption (leave the key variables empty).
 
-| Pfad | internes Ziel |
+This is encryption at rest under keys you hold, not end-to-end encryption. Keep the keys
+apart from database and media backups; losing every copy of a key makes the content it
+protects permanently unreadable. Key generation, rotation, recovery, and verification:
+[ENCRYPTION-AT-REST.md](ENCRYPTION-AT-REST.md).
+
+## Backup, restore, upgrade and rollback
+
+The binding recovery procedure is
+[`SELF-HOSTED-RECOVERY.md`](SELF-HOSTED-RECOVERY.md). For LocalMediaStore,
+`scripts/self_hosted_recovery.py` coordinates PostgreSQL and durable media while
+configuration/secrets and the forward deletion journal remain separate protected
+recovery units.
+
+Before every Production upgrade:
+
+1. create/verify a fresh coordinated recovery point;
+2. protect the current deletion journal and operator configuration;
+3. select one exact published release/image identity;
+4. run the released launcher against the new `.env` selection;
+5. verify migration, health and revision identity.
+
+Application rollback selects a previous published release/image identity. It does not
+imply database rollback. For incompatible schema changes use the tested forward-fix,
+downgrade or coordinated restore path defined by #190/#375 and the recovery runbook.
+
+### Upgrade and rollback semantics
+
+Upgrade and rollback are the same operation: set `EIMIR_RELEASE_VERSION` and the matching
+`self-hosted-image-identity.json` to the wanted published release and run `deploy`. The
+launcher executes, and stops at the first failing step:
+
+1. validate the selected release identity and Production environment;
+2. pull the selected digest-qualified images (never a source build);
+3. start PostgreSQL if it is not running;
+4. run the one-shot `migrate` service once against the selected backend image, **before**
+   any runtime container is touched;
+5. force-recreate the runtime containers and wait for health (the canonical dependency
+   graph runs `migrate` once more; at the head revision it is a no-op).
+
+What this guarantees:
+
+- The exact selected release bytes run; the target host never builds application images.
+- If step 4 fails or refuses, the currently running API, worker and Web keep serving
+  the previous release. Migrations run in one PostgreSQL transaction, so a failing
+  migration rolls back unless that migration explicitly leaves the transaction; if in
+  doubt, restore the recovery point taken before the upgrade.
+- Rolling back to an earlier release **that knows the database's current schema
+  revision** (no migration was added in between) works and changes no data.
+- Rolling back to a release **older than the database schema** is refused: its
+  `migrate` cannot locate the database revision and exits non-zero. Nothing is
+  downgraded, no data is lost, and the newer release keeps running. Re-select the newer
+  release, or fix forward.
+
+What it does **not** guarantee:
+
+- Rollback across a schema migration. The application rollback never downgrades the
+  schema. To return to a release older than the schema, restore the coordinated recovery
+  point taken before the upgrade
+  ([`SELF-HOSTED-RECOVERY.md`](SELF-HOSTED-RECOVERY.md)); that also discards data written
+  after that point.
+- Zero downtime. Runtime containers are force-recreated, so API/worker/Web restart
+  during step 5.
+
+`scripts/self_hosted_upgrade_rehearsal.py` proves the above against the canonical
+`compose.yaml` with local images (fresh install, upgrade with and without schema change,
+compatible rollback, refused rollback, recovery, Demo lifecycle). It runs in the
+*Self-Hosted Deployment Guard* workflow. It cannot prove registry pulls or the digest
+identity of a real release; those are covered by the launcher checks and the protected
+publication workflow.
+
+## Initial Account registration
+
+An empty instance accepts its first Account only with `EIMIR_BOOTSTRAP_TOKEN` from the
+untracked environment.
+
+1. Generate a random value of at least 32 characters.
+2. Put it only in the target `.env`.
+3. Deploy and complete the first registration.
+4. Remove the bootstrap token and run the released launcher `deploy` again to recreate
+   the affected runtime with the token absent.
+5. Add further Accounts through the normal invitation flow.
+
+The bootstrap token must not enter repository files, screenshots, support requests or
+shell history.
+
+Self-Hosted has no invitation-free self-service registration. The Cloud/Managed signup
+endpoints (`/api/v1/auth/signup/*`) reject every request on a Self-Hosted instance with
+`403 AUTH_METHOD_DISABLED`, also when mail delivery is configured, and
+`/api/v1/instance/status` reports `accountCreation: invitation`.
+
+## Reverse proxy and public exposure
+
+The TLS reverse proxy is the only public endpoint and routes one public origin:
+
+| Path | Internal target |
 |---|---|
-| `/api/` | `http://127.0.0.1:<API_PORT>` |
-| alle anderen Pfade | `http://127.0.0.1:<WEB_PORT>` |
+| `/api/` | API on `API_PORT` |
+| all other paths | Web on `WEB_PORT` |
 
-Die spezifischere `/api/`-Route muss vor der allgemeinen Web-Route greifen.
-Sie geht in Produktion **direkt** zur API, nicht durch den Web-Container.
-Nur der lokale Loopback-Test verwendet dessen internen `/api/`-Proxy. So
-bleibt der TLS-Reverse-Proxy der eine vertrauenswuerdige Hop fuer
-`X-Forwarded-*`, und `TRUSTED_PROXY_IPS` muss weder um das Compose-Netz
-noch um `*` erweitert werden.
-
-Steht der Reverse-Proxy auf einem **anderen** Host, sind beide Loopback-Ziele
-dort nicht erreichbar. Dann braucht das Deployment eine bewusst konfigurierte,
-auf das private Netz begrenzte Weiterleitung fuer Web und API statt einer
-pauschalen Freigabe auf `0.0.0.0`. Diese Freigabe gehoert zur
-Hoster-Konfiguration und darf nicht versehentlich durch den
-Standard-Compose-Stack entstehen.
-
-In `.env` werden zusaetzlich gesetzt:
+Same-host secure default:
 
 ```dotenv
-SBS_ALLOWED_HOSTS=["sidebyside.example.com","localhost","127.0.0.1"]
-TRUSTED_PROXY_IPS=192.0.2.10
+EIMIR_BIND_IP=127.0.0.1
+API_PORT=8000
+WEB_PORT=8080
 ```
 
-- `SBS_ALLOWED_HOSTS` ist eine JSON-Liste der oeffentlichen API-Hostnamen.
-  Ein globales `"*"` wird in Produktion abgelehnt.
-- `TRUSTED_PROXY_IPS` ist die genaue Adresse oder der kleinste CIDR-Bereich,
-  aus dem der Proxy den API-Container erreicht. Niemals `*` verwenden.
-- Der Proxy setzt `Host`, `X-Forwarded-For` und `X-Forwarded-Proto: https` neu;
-  vom Client angelieferte Forwarded Header werden nicht ungeprueft übernommen.
-- TLS-Zertifikate muessen gueltig sein und automatisch erneuert werden.
+For a proxy on another private host, bind only the intended private address and set the
+exact proxy source in `TRUSTED_PROXY_IPS`. Never use `*` for trusted proxies or Production
+allowed hosts.
 
-Die Anwendung lehnt einen erlaubten externen Host trotzdem ab, solange das von
-Uvicorn bereinigte Request-Scheme nicht `https` ist. Ein normaler Client kann
-diese Pruefung nicht allein durch einen gefaelschten Forwarded Header umgehen.
+The `/api/` route must go directly to the API rather than through Web Nginx, otherwise
+the trusted TLS proxy hop is lost for `X-Forwarded-*` handling.
 
-Nach der Proxy-Konfiguration muessen beide Pfade funktionieren:
+The API itself rejects ordinary request bodies above 8 MiB with HTTP 413 before
+JSON parsing, including requests without a trustworthy `Content-Length`. Attachment
+uploads and Transfer imports retain their separate server-side streaming limits
+(25 MiB for supported images and 512 MiB compressed for Transfer imports). This
+application boundary is authoritative regardless of reverse-proxy configuration;
+the public TLS proxy should also enforce appropriate request-size limits to avoid
+buffering rejected traffic before forwarding it to the API. Do not set a proxy-wide
+8 MiB limit, which would break the bounded media and Transfer routes.
+
+## Post-deploy verification
+
+The release smoke helper verifies Web health/revision, API/database readiness and API
+revision:
 
 ```bash
-curl --fail https://sidebyside.example.com/
-curl --fail https://sidebyside.example.com/api/v1/health/ready
-web/scripts/check_csp_header.sh https://sidebyside.example.com/
+python3 scripts/deployment_smoke.py \
+  --base-url https://eimir.example \
+  --expected-revision <release-source-sha>
 ```
 
-Antwortet die API-Readiness, aber die Startseite nicht, zeigt die allgemeine
-Route noch auf den API-Port statt auf den Web-Port.
+With `EIMIR_SMOKE_EMAIL` and `EIMIR_SMOKE_PASSWORD`, it also performs a non-destructive
+password sign-in and membership read using an operator/fictional smoke Account.
 
-## Ausgehende E-Mail
-
-Magic Link und Passwort-Wiederherstellung brauchen einen Mailweg. Im
-Standard steht `SBS_MAIL_TRANSPORT=log`: die Nachricht landet im Log der
-API, damit sich beides ohne Mailserver ausprobieren laesst.
-
-Fuer den echten Betrieb wird ein SMTP-Server eingetragen:
-
-```
-SBS_MAIL_TRANSPORT=smtp
-SBS_MAIL_FROM=no-reply@deine-domain.example
-SBS_SMTP_HOST=smtp.deine-domain.example
-SBS_SMTP_PORT=587
-SBS_SMTP_USERNAME=...
-SBS_SMTP_PASSWORD=...
-SBS_PUBLIC_BASE_URL=https://deine-domain.example
-```
-
-`SBS_PUBLIC_BASE_URL` steht in jedem Link. Sie kommt bewusst aus der
-Konfiguration und nicht aus dem Host-Header der Anfrage.
-
-Mit `SBS_ENVIRONMENT=production` startet die API nicht, wenn der Log-Versand
-stehen bleibt oder die Basisadresse kein `https://` ist. Sonst stuenden
-gueltige Anmeldelinks im Log.
-
-Wer keinen Mailserver hat, setzt `SBS_MAIL_TRANSPORT=none` statt `log` - siehe
-[Betrieb ohne Mailserver](#betrieb-ohne-mailserver).
-
-## Smoke-Test nach Aenderungen
+After a successful released deployment, raw Compose is acceptable for diagnosis only,
+for example:
 
 ```bash
-# Tatsaechlichen Host-Port ermitteln.
-api_port=$(docker compose port api 8000 | awk -F: '{print $NF}')
-
-# Liveness: der API-Prozess antwortet.
-curl --fail "http://127.0.0.1:${api_port}/api/v1/health"
-
-# Readiness: Docker-DNS und PostgreSQL funktionieren ebenfalls.
-curl --fail "http://127.0.0.1:${api_port}/api/v1/health/ready"
-
-# Der API-Container kann den Compose-Service postgres aufloesen.
-docker compose exec -T api python -c \
-  'import socket; print(socket.gethostbyname("postgres"))'
-
-# Der Webserver liefert genau die dokumentierte restriktive CSP.
-web_port=$(docker compose port web 8080 | awk -F: '{print $NF}')
-web/scripts/check_csp_header.sh "http://127.0.0.1:${web_port}/"
-
-# Die oeffentliche Adresse muss HTTPS verwenden.
-curl --fail https://sidebyside.example.com/api/v1/health
-
-# Klartext darf extern keine erfolgreiche API-Antwort liefern.
-curl --fail http://sidebyside.example.com/api/v1/health && exit 1 || true
+docker compose --profile self-hosted --env-file .env ps
+docker compose --profile self-hosted --env-file .env logs --tail=100 migrate api worker web
 ```
 
-Der Container-Healthcheck greift intern auf `127.0.0.1` zu und bewertet
-`/health/ready`. Damit wird ein API-Prozess ohne funktionsfaehigen
-Datenbankpfad als `unhealthy` sichtbar, ohne die separate Liveness-Route zu
-veraendern.
+Do not replace the released launcher with raw Compose for Production pull, bootstrap or
+startup. A healthy component serving a different revision than the release manifest is a
+failed promotion.

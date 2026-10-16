@@ -1,7 +1,7 @@
 
 # ContentVisibility
 
-Die fachliche Sichtbarkeit aus Abschnitt 15 der Spezifikation.  Der Request nennt sie, nicht die Privacy-Klasse: `privacyClass` ist eine serverseitige Ableitung und kein Feld, das ein Client setzen kann.  Sie steht hier und nicht in einer Domaene, weil sie keiner gehoert: RelatedPerson, ImportantDate und HeartMoment sprechen dieselbe Sichtbarkeit. Laege sie bei der ersten Domaene, die sie brauchte, importierten alle spaeteren aus einem fremden Fachmodul.
+Domain visibility from specification section 15.  Requests name visibility rather than a privacy class. ``privacyClass`` is a server-side derivation and is never a client-settable field.  The type lives here rather than in one domain because several domains use the same vocabulary: RelatedPerson, ImportantDate, and HeartMoment should not depend on whichever feature happened to need it first.
 
 ## Properties
 

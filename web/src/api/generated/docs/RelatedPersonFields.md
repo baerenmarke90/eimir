@@ -6,10 +6,12 @@
 
 Name | Type
 ------------ | -------------
+`avatarAttachmentId` | string
 `birthday` | Date
 `birthdayYearKnown` | boolean
 `displayName` | string
 `relationship` | [PersonRelationship](PersonRelationship.md)
+`showBirthdayOnDashboard` | boolean
 `visibility` | [ContentVisibility](ContentVisibility.md)
 
 ## Example
@@ -19,10 +21,12 @@ import type { RelatedPersonFields } from ''
 
 // TODO: Update the object below with actual values
 const example = {
+  "avatarAttachmentId": null,
   "birthday": null,
   "birthdayYearKnown": null,
   "displayName": null,
   "relationship": null,
+  "showBirthdayOnDashboard": null,
   "visibility": null,
 } satisfies RelatedPersonFields
 

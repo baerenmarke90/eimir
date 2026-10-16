@@ -1,11 +1,11 @@
-"""Der Milestone-Slice muss den in #70 freigegebenen Vertrag spiegeln."""
+"""The Milestone slice must mirror the contract approved in #70."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from sidebyside.main import create_app
+from eimir.main import create_app
 
 COLLECTION = "/api/v1/spaces/{spaceId}/milestones"
 DETAIL = "/api/v1/spaces/{spaceId}/milestones/{milestoneId}"
@@ -50,7 +50,7 @@ def test_write_dtos_match_the_contract() -> None:
 
     create = components["MilestoneCreate"]
     assert set(create["properties"]) == set(contract["clientWriteFields"]["MilestoneCreate"])
-    # Titel und Datum sind Pflicht, der Body nicht.
+    # Title and date are required; body is optional.
     assert set(create["required"]) == {"title", "happenedOn"}
     assert create["additionalProperties"] is False
 
@@ -76,7 +76,13 @@ def test_m2_resources_share_one_author_summary_schema() -> None:
     assert author_schema_names == {"AuthorSummary"}
 
     author = components["AuthorSummary"]
-    assert set(author["properties"]) == {"id", "displayName", "profileAttachmentId"}
+    assert set(author["properties"]) == {
+        "id",
+        "displayName",
+        "isFormerMember",
+        "profileAttachmentId",
+    }
+    assert author["properties"]["isFormerMember"]["default"] is False
 
     for detail_name in ("MemoryDetail", "HeartMomentDetail", "MilestoneDetail"):
         assert components[detail_name]["properties"]["author"] == {
@@ -85,12 +91,12 @@ def test_m2_resources_share_one_author_summary_schema() -> None:
 
 
 def test_list_exposes_the_agreed_query_parameters() -> None:
-    namen = {
+    names = {
         parameter["name"]
         for parameter in _schema()["paths"][COLLECTION]["get"]["parameters"]  # type: ignore[index]
     }
-    assert {"cursor", "limit", "year"} <= namen
-    assert "q" not in namen
+    assert {"cursor", "limit", "year"} <= names
+    assert "q" not in names
 
 
 def test_privacy_class_is_never_a_client_field() -> None:
@@ -100,7 +106,7 @@ def test_privacy_class_is_never_a_client_field() -> None:
 
 
 def test_milestone_detail_does_not_pretend_attachments_exist() -> None:
-    """Abschnitt 12 der Media-Pipeline: fuer Milestone in M2 nicht vorgesehen."""
+    """Media pipeline section 12 does not provide Milestone attachments in M2."""
     detail = _schema()["components"]["schemas"]["MilestoneDetail"]  # type: ignore[index]
     assert "attachments" not in detail["properties"]
     assert "attachment" not in detail["properties"]

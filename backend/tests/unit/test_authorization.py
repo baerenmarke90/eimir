@@ -1,9 +1,9 @@
-"""Die Autorisierungsgrundlage ohne Datenbank.
+"""Authorization foundations without a database.
 
-Geprueft wird hier die Form: welche Klassen es gibt, welche der Server
-durchsetzen kann, wie die Bedingung aussieht, die er daraus baut, und ob
-das Mixin von mehreren Domaenen benutzbar ist. Ob die Bedingung im echten
-PostgreSQL das Richtige tut, steht in den Integrationstests.
+These tests verify the shape: which classes exist, which ones the server can
+enforce, what conditions it builds from them, and whether the mixin can be
+used by multiple domains. Integration tests verify that those conditions have
+the intended effect in real PostgreSQL.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from sqlalchemy import MetaData, String, select
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from sidebyside.authorization import (
+from eimir.authorization import (
     ENFORCEABLE_PRIVACY_CLASSES,
     Access,
     AuthorizationContext,
@@ -30,40 +30,40 @@ from sidebyside.authorization import (
     readable,
     writable,
 )
-from sidebyside.authorization.rules import rules_for
-from sidebyside.core.ids import new_id
-from sidebyside.db.base import NAMING_CONVENTION
+from eimir.authorization.rules import rules_for
+from eimir.core.ids import new_id
+from eimir.db.base import NAMING_CONVENTION
 
 
-class Probenbasis(DeclarativeBase):
-    """Eine eigene Metadata, damit diese Testmodelle nichts registrieren.
+class ProbeBase(DeclarativeBase):
+    """Use separate metadata so these test models register nothing globally.
 
-    Sie werden nur uebersetzt, nie angelegt. Der Punkt dieser Datei ist,
-    dass zwei verschiedene Domaenen dasselbe Mixin benutzen koennen - dafuer
-    braucht es keine Tabellen, nur zwei Modelle.
+    They are compiled only, never created. This file verifies that two
+    different domains can use the same mixin; that needs two models, not
+    tables.
     """
 
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-class Sonde(PrivateResourceMixin, Probenbasis):
-    __tablename__ = "sonden"
+class Probe(PrivateResourceMixin, ProbeBase):
+    __tablename__ = "probes"
 
     id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
     label: Mapped[str] = mapped_column(String(32))
 
 
-class ZweiteSonde(PrivateResourceMixin, Probenbasis):
-    __tablename__ = "zweite_sonden"
+class SecondProbe(PrivateResourceMixin, ProbeBase):
+    __tablename__ = "second_probes"
 
     id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), primary_key=True)
     note: Mapped[str] = mapped_column(String(32))
 
 
-class GemeinsameSonde(PrivateResourceMixin, Probenbasis):
-    """Eine Domaene, die nach M3-D01 gemeinsam geschrieben wird."""
+class SharedProbe(PrivateResourceMixin, ProbeBase):
+    """A domain written collaboratively according to M3-D01."""
 
-    __tablename__ = "gemeinsame_sonden"
+    __tablename__ = "shared_probes"
 
     shared_write: ClassVar[SharedWrite] = SharedWrite.COLLABORATIVE
 
@@ -71,13 +71,13 @@ class GemeinsameSonde(PrivateResourceMixin, Probenbasis):
     label: Mapped[str] = mapped_column(String(32))
 
 
-KONTEXT = AuthorizationContext(account_id=new_id(), space_id=new_id())
+CONTEXT = AuthorizationContext(account_id=new_id(), space_id=new_id())
 
 
-class TestPrivacyKlassen:
-    def test_die_spezifikation_ist_vollstaendig_abgebildet(self) -> None:
-        """Abschnitt 7 der Master-Spezifikation, wortgleich."""
-        assert {klasse.value for klasse in PrivacyClass} == {
+class TestPrivacyClasses:
+    def test_specification_is_fully_represented(self) -> None:
+        """Section 7 of the master specification, verbatim values."""
+        assert {privacy_class.value for privacy_class in PrivacyClass} == {
             "SPACE_SHARED",
             "OWNER_ONLY",
             "TEMPORARY_SHARED",
@@ -85,180 +85,178 @@ class TestPrivacyKlassen:
             "SYSTEM_METADATA",
         }
 
-    def test_es_gibt_keine_oeffentliche_klasse(self) -> None:
-        assert not any("PUBLIC" in klasse.value for klasse in PrivacyClass)
+    def test_there_is_no_public_class(self) -> None:
+        assert not any("PUBLIC" in privacy_class.value for privacy_class in PrivacyClass)
 
-    def test_durchsetzbar_ist_heute_nur_was_eine_regel_hat(self) -> None:
+    def test_only_classes_with_rules_are_currently_enforceable(self) -> None:
         assert set(ENFORCEABLE_PRIVACY_CLASSES) == {
             PrivacyClass.SPACE_SHARED,
             PrivacyClass.OWNER_ONLY,
         }
 
     @pytest.mark.parametrize("access", list(Access))
-    def test_speicherbar_und_regelbar_decken_sich(self, access: Access) -> None:
-        """Sonst gaebe es Zeilen, deren Schutz niemand einloest - oder eine
-        Regel, die auf nichts trifft."""
+    def test_storable_and_rule_backed_classes_match(self, access: Access) -> None:
+        """Otherwise rows could have no protection, or a rule could match nothing."""
         assert set(rules_for(access)) == set(ENFORCEABLE_PRIVACY_CLASSES)
 
-    def test_die_spalte_laesst_nur_durchsetzbare_klassen_zu(self) -> None:
-        erlaubt = set(Sonde.__table__.c.privacy_class.type.enums)
-        assert erlaubt == {klasse.value for klasse in ENFORCEABLE_PRIVACY_CLASSES}
-        assert "TEMPORARY_SHARED" not in erlaubt
+    def test_column_allows_only_enforceable_classes(self) -> None:
+        allowed = set(Probe.__table__.c.privacy_class.type.enums)
+        assert allowed == {privacy_class.value for privacy_class in ENFORCEABLE_PRIVACY_CLASSES}
+        assert "TEMPORARY_SHARED" not in allowed
 
 
-class TestBedingung:
+class TestCondition:
     def _sql(self, access: Access) -> str:
         return str(
-            access_clause(Sonde, KONTEXT, access).compile(
+            access_clause(Probe, CONTEXT, access).compile(
                 dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
             )
         )
 
-    def test_der_space_steht_immer_davor(self) -> None:
-        """Ohne die Mandantenbedingung saehe ein Eigentuemer seine Zeile
-        auch in einem Space, in dem er nicht mehr ist."""
+    def test_space_condition_always_comes_first(self) -> None:
+        """Without tenant isolation, an owner could see a row in a former Space."""
         for access in Access:
-            assert f"sonden.space_id = '{KONTEXT.space_id}'" in self._sql(access)
+            assert f"probes.space_id = '{CONTEXT.space_id}'" in self._sql(access)
 
-    def test_owner_only_haengt_am_eigentuemer(self) -> None:
+    def test_owner_only_is_bound_to_owner(self) -> None:
         sql = self._sql(Access.READ)
         assert "OWNER_ONLY" in sql
-        assert f"sonden.owner_id = '{KONTEXT.account_id}'" in sql
+        assert f"probes.owner_id = '{CONTEXT.account_id}'" in sql
 
-    def test_space_shared_ist_beim_lesen_nicht_an_den_eigentuemer_gebunden(self) -> None:
+    def test_space_shared_read_is_not_bound_to_owner(self) -> None:
         sql = self._sql(Access.READ)
-        geteilt = sql.split("SPACE_SHARED")[1].split("OR")[0]
-        assert "owner_id" not in geteilt
+        shared = sql.split("SPACE_SHARED")[1].split("OR")[0]
+        assert "owner_id" not in shared
 
-    def test_geschrieben_wird_nur_vom_eigentuemer(self) -> None:
-        """Auch Geteiltes: der Autor bearbeitet, der Partner liest."""
+    def test_default_write_is_owner_only(self) -> None:
+        """Even shared rows are edited by their author while the partner reads."""
         sql = self._sql(Access.WRITE)
         assert sql.count("owner_id") == 2
 
-    def test_eine_klasse_ohne_regel_kommt_in_der_bedingung_nicht_vor(self) -> None:
+    def test_class_without_rule_is_absent_from_condition(self) -> None:
         sql = self._sql(Access.READ)
-        for klasse in set(PrivacyClass) - set(ENFORCEABLE_PRIVACY_CLASSES):
-            assert klasse.value not in sql
+        for privacy_class in set(PrivacyClass) - set(ENFORCEABLE_PRIVACY_CLASSES):
+            assert privacy_class.value not in sql
 
-    def test_ohne_jede_regel_bleibt_alles_unsichtbar(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
-        """Fail closed: ein Vergessen macht unsichtbar, nicht sichtbar.
+    def test_no_rules_fails_closed(self, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+        """Fail closed: forgetting a rule hides rows rather than exposing them.
 
-        Waere die leere Bedingung wahr statt falsch, wuerde ein Fehler beim
-        Eintragen einer Regel den gesamten Bestand freigeben.
+        If an empty condition were true instead of false, omitting a rule
+        could expose the complete data set.
         """
-        from sidebyside.authorization import rules
+        from eimir.authorization import rules
 
         monkeypatch.setattr(rules, "_RULES", {Access.READ: {}})
-        sql = str(privacy_clause(Sonde, KONTEXT, Access.READ).compile(dialect=postgresql.dialect()))
+        sql = str(privacy_clause(Probe, CONTEXT, Access.READ).compile(dialect=postgresql.dialect()))
         assert sql.strip().lower() == "false"
 
 
-class TestSchreibform:
-    """`SPACE_SHARED` beantwortet die Lesefrage, nicht die Schreibfrage.
+class TestWriteMode:
+    """`SPACE_SHARED` answers the read question, not the write question.
 
-    Beide Formen leben unter derselben Privacy-Klasse: Memory und
-    Milestone bleiben author-only (Spezifikation, Abschnitt 14), Wish,
-    Plan, Place, Chapter und Collection sind collaborative write (M3-D01).
-    Welche gilt, sagt das Modell - nicht der Endpunkt.
+    Both write modes use the same privacy class: Memory and Milestone remain
+    author-only (specification section 14), while Wish, Plan, Place, Chapter,
+    and Collection are collaborative write (M3-D01). The model, not the
+    endpoint, declares which applies.
     """
 
-    def _sql(self, modell: type, access: Access) -> str:
+    def _sql(self, model: type, access: Access) -> str:
         return str(
-            access_clause(modell, KONTEXT, access).compile(
+            access_clause(model, CONTEXT, access).compile(
                 dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
             )
         )
 
-    def test_der_standard_ist_die_engere_form(self) -> None:
-        """Ein vergessener Eintrag macht nichts versehentlich schreibbar."""
+    def test_default_is_narrower_mode(self) -> None:
+        """A missing declaration must not accidentally make anything writable."""
         assert PrivateResourceMixin.shared_write is SharedWrite.AUTHOR_ONLY
 
-    def test_gemeinsames_schreiben_haengt_nicht_am_ersteller(self) -> None:
-        sql = self._sql(GemeinsameSonde, Access.WRITE)
-        geteilt = sql.split("SPACE_SHARED")[1].split("OR")[0]
-        assert "owner_id" not in geteilt
+    def test_collaborative_write_is_not_bound_to_creator(self) -> None:
+        sql = self._sql(SharedProbe, Access.WRITE)
+        shared = sql.split("SPACE_SHARED")[1].split("OR")[0]
+        assert "owner_id" not in shared
 
-    def test_der_space_steht_auch_dort_davor(self) -> None:
-        """Sonst duerfte ein Ex-Partner weiterschreiben."""
-        sql = self._sql(GemeinsameSonde, Access.WRITE)
-        assert f"gemeinsame_sonden.space_id = '{KONTEXT.space_id}'" in sql
+    def test_space_condition_still_comes_first(self) -> None:
+        """Otherwise a former partner could keep writing."""
+        sql = self._sql(SharedProbe, Access.WRITE)
+        assert f"shared_probes.space_id = '{CONTEXT.space_id}'" in sql
 
-    def test_owner_only_bleibt_auch_bei_gemeinsamem_schreiben_beim_eigentuemer(self) -> None:
-        """Collaborative write ist eine Aussage ueber geteilte Zeilen.
+    def test_owner_only_remains_bound_to_owner_under_collaborative_write(self) -> None:
+        """Collaborative write applies only to shared rows.
 
-        Traegt dieselbe Domaene spaeter auch `OWNER_ONLY`-Zeilen, darf die
-        Ansage sie nicht mitreissen - dort ist der Partner kein Mitautor.
+        If the same domain later also carries `OWNER_ONLY` rows, this setting
+        must not make the partner a co-author of those rows.
         """
-        sql = self._sql(GemeinsameSonde, Access.WRITE)
-        privat = sql.split("OWNER_ONLY")[1]
-        assert f"gemeinsame_sonden.owner_id = '{KONTEXT.account_id}'" in privat
+        sql = self._sql(SharedProbe, Access.WRITE)
+        private = sql.split("OWNER_ONLY")[1]
+        assert f"shared_probes.owner_id = '{CONTEXT.account_id}'" in private
 
-    def test_die_ansage_gilt_nur_der_eigenen_domaene(self) -> None:
-        assert Sonde.shared_write is SharedWrite.AUTHOR_ONLY
-        assert "owner_id" in self._sql(Sonde, Access.WRITE).split("SPACE_SHARED")[1].split("OR")[0]
+    def test_setting_applies_only_to_its_domain(self) -> None:
+        assert Probe.shared_write is SharedWrite.AUTHOR_ONLY
+        assert "owner_id" in self._sql(Probe, Access.WRITE).split("SPACE_SHARED")[1].split("OR")[0]
 
-    def test_lesen_bleibt_von_der_schreibform_unberuehrt(self) -> None:
-        """Die Ansage betrifft das Schreiben - gelesen wurde schon vorher geteilt."""
-        gemeinsam = self._sql(GemeinsameSonde, Access.READ)
-        author_only = self._sql(Sonde, Access.READ)
-        assert gemeinsam.replace("gemeinsame_sonden", "sonden") == author_only
+    def test_reading_is_unaffected_by_write_mode(self) -> None:
+        """The setting affects writes; shared rows were already shared for reads."""
+        shared = self._sql(SharedProbe, Access.READ)
+        author_only = self._sql(Probe, Access.READ)
+        assert shared.replace("shared_probes", "probes") == author_only
 
 
-class TestAbwesenheit:
-    def test_eine_domaene_antwortet_immer_gleich(self) -> None:
+class TestAbsence:
+    def test_domain_always_responds_consistently(self) -> None:
         absence = ResourceAbsence("Probe not found.", "PROBE_NOT_FOUND")
-        fehler = absence.error()
-        assert fehler.status == 404
-        assert fehler.code == "PROBE_NOT_FOUND"
-        assert fehler.detail == "Probe not found."
+        error = absence.error()
+        assert error.status == 404
+        assert error.code == "PROBE_NOT_FOUND"
+        assert error.detail == "Probe not found."
 
-    def test_ohne_eigene_angabe_bleibt_es_neutral(self) -> None:
+    def test_default_remains_neutral(self) -> None:
         assert PrivateResourceMixin.privacy_absence.code == "RESOURCE_NOT_FOUND"
 
 
-class TestWiederverwendbarkeit:
-    """Zwei Domaenen, ein Mixin - kein kopierter Guard je Tabelle."""
+class TestReusability:
+    """Two domains, one mixin, with no copied guard per table."""
 
-    @pytest.mark.parametrize("modell", [Sonde, ZweiteSonde])
-    def test_beide_bekommen_dieselben_spalten(self, modell: type) -> None:
-        assert {"space_id", "owner_id", "privacy_class"} <= set(modell.__table__.c.keys())
+    @pytest.mark.parametrize("model", [Probe, SecondProbe])
+    def test_both_get_the_same_columns(self, model: type) -> None:
+        assert {"space_id", "owner_id", "privacy_class"} <= set(model.__table__.c.keys())
 
-    @pytest.mark.parametrize("modell", [Sonde, ZweiteSonde])
-    def test_beide_bekommen_ihre_eigene_pruefbedingung(self, modell: type) -> None:
-        namen = {
+    @pytest.mark.parametrize("model", [Probe, SecondProbe])
+    def test_both_get_their_own_check_constraint(self, model: type) -> None:
+        names = {
             constraint.name
-            for constraint in modell.__table__.constraints
+            for constraint in model.__table__.constraints
             if constraint.name is not None
         }
-        assert f"ck_{modell.__tablename__}_privacy_class" in namen
+        assert f"ck_{model.__tablename__}_privacy_class" in names
 
-    def test_die_bedingung_nennt_die_richtige_tabelle(self) -> None:
-        sql = str(access_clause(ZweiteSonde, KONTEXT, Access.READ))
-        assert "zweite_sonden.space_id" in sql
-        # Wortgrenze: "zweite_sonden" enthaelt "sonden" als Teilzeichenkette.
-        assert re.search(r"(?<![_a-z])sonden\.", sql) is None
+    def test_condition_names_correct_table(self) -> None:
+        sql = str(access_clause(SecondProbe, CONTEXT, Access.READ))
+        assert "second_probes.space_id" in sql
+        assert re.search(r"(?<![_a-z])probes\.", sql) is None
 
-    def test_jede_domaene_bleibt_bei_ihrer_eigenen_tabelle(self) -> None:
-        """Keine gemeinsame Universal-Content-Tabelle."""
-        assert Sonde.__table__ is not ZweiteSonde.__table__
+    def test_each_domain_keeps_its_own_table(self) -> None:
+        """There is no shared universal-content table."""
+        assert Probe.__table__ is not SecondProbe.__table__
 
 
-class TestFertigeStatements:
-    """`readable` und `writable` sind der Einstieg, den Domaenen benutzen.
+class TestReadyStatements:
+    """`readable` and `writable` are the entry points domains use.
 
-    Sie tragen die Bedingung bereits, bevor eine Domaene Filter, Sortierung
-    oder Grenzen anhaengt - deshalb muss sie hier stehen und nicht erst
-    beim Aufrufer."""
+    They carry the authorization condition before a domain adds filters,
+    ordering, or limits, so the condition belongs here rather than at each
+    caller.
+    """
 
-    def test_lesen_traegt_die_lesebedingung(self) -> None:
-        assert str(readable(Sonde, KONTEXT)) == str(
-            select(Sonde).where(access_clause(Sonde, KONTEXT, Access.READ))
+    def test_readable_carries_read_condition(self) -> None:
+        assert str(readable(Probe, CONTEXT)) == str(
+            select(Probe).where(access_clause(Probe, CONTEXT, Access.READ))
         )
 
-    def test_schreiben_traegt_die_schreibbedingung(self) -> None:
-        assert str(writable(Sonde, KONTEXT)) == str(
-            select(Sonde).where(access_clause(Sonde, KONTEXT, Access.WRITE))
+    def test_writable_carries_write_condition(self) -> None:
+        assert str(writable(Probe, CONTEXT)) == str(
+            select(Probe).where(access_clause(Probe, CONTEXT, Access.WRITE))
         )
 
-    def test_die_beiden_bedingungen_sind_nicht_dieselbe(self) -> None:
-        assert str(readable(Sonde, KONTEXT)) != str(writable(Sonde, KONTEXT))
+    def test_read_and_write_conditions_differ(self) -> None:
+        assert str(readable(Probe, CONTEXT)) != str(writable(Probe, CONTEXT))

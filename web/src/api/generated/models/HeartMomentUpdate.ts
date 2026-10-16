@@ -1,8 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * SideBySide Next
- * Application Core. OpenAPI ist der verbindliche Vertrag.
+ * eimir.
+ * Application Core. OpenAPI is the authoritative contract.
  *
  * The version of the OpenAPI document: 0.1.0
  * 
@@ -22,11 +22,11 @@ import {
 } from './HeartEmotion';
 
 /**
- * Inhaltliche Aenderung.
+ * Content update payload.
  * 
- * `visibility` fehlt hier bewusst: der Wechsel ist eine eigene Operation
- * mit destruktiver Folge und darf nicht als Nebenwirkung eines
- * Textupdates passieren.
+ * ``visibility`` is intentionally absent: changing visibility is a separate
+ * operation with destructive consequences and must not happen as a side
+ * effect of a text update.
  * @export
  * @interface HeartMomentUpdate
  */
@@ -49,6 +49,12 @@ export interface HeartMomentUpdate {
      * @memberof HeartMomentUpdate
      */
     happenedOn?: Date | null;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof HeartMomentUpdate
+     */
+    tags?: Array<string> | null;
     /**
      * 
      * @type {string}
@@ -79,6 +85,7 @@ export function HeartMomentUpdateFromJSONTyped(json: any, ignoreDiscriminator: b
         'attachmentId': json['attachmentId'] === undefined ? undefined : json['attachmentId'] === null ? null : json['attachmentId'],
         'emotion': json['emotion'] === undefined ? undefined : json['emotion'] === null ? null : HeartEmotionFromJSON(json['emotion']),
         'happenedOn': json['happenedOn'] === undefined ? undefined : json['happenedOn'] === null ? null : (new Date(json['happenedOn'])),
+        'tags': json['tags'] === undefined ? undefined : json['tags'] === null ? null : json['tags'],
         'text': json['text'] === undefined ? undefined : json['text'] === null ? null : json['text'],
     };
 }
@@ -97,6 +104,7 @@ export function HeartMomentUpdateToJSONTyped(value?: HeartMomentUpdate | null, i
         'attachmentId': value['attachmentId'],
         'emotion': HeartEmotionToJSON(value['emotion']),
         'happenedOn': value['happenedOn'] == null ? value['happenedOn'] : value['happenedOn'].toISOString().substring(0,10),
+        'tags': value['tags'],
         'text': value['text'],
     };
 }

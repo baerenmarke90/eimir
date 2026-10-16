@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" role="img" aria-labelledby="title desc">
-  <title id="title">SideBySide M2 Privacy Flow</title>
-  <desc id="desc">Datenfluss von Owner, Partner und fremdem Space durch Client, API, Membership und Visibility Guard zu Shared und Private Daten, Medien, Story und Benachrichtigungen.</desc>
+  <title id="title">eimir. M2 Privacy Flow</title>
+  <desc id="desc">Data flow from owner, partner, and foreign Space through client, API, Membership and Visibility Guard to shared and private data, Media, Story, and Notifications.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#FBF9FD"/>
@@ -38,12 +38,12 @@
     <rect width="248" height="34" rx="17" fill="#FFE7EE"/>
     <circle cx="18" cy="17" r="5" fill="#A61F51"/>
     <text x="34" y="23" class="eyebrow" fill="#A61F51">M2 · PRIVACY FLOW</text>
-    <text x="0" y="92" class="h1">Sichtbarkeit wird vor jeder Projektion erzwungen</text>
-    <text x="0" y="130" class="sub">Membership allein reicht nicht: PRIVATE bedeutet ausschließlich Owner.</text>
+    <text x="0" y="92" class="h1">Visibility is enforced before every projection</text>
+    <text x="0" y="130" class="sub">Membership alone is insufficient: PRIVATE means owner only.</text>
   </g>
 
   <!-- actors -->
-  <text x="82" y="225" class="section" fill="#6638DC">AKTEURE &amp; GERÄTEGRENZE</text>
+  <text x="82" y="225" class="section" fill="#6638DC">ACTORS &amp; DEVICE BOUNDARY</text>
   <g filter="url(#soft)">
     <rect x="82" y="246" width="346" height="140" rx="25" fill="#FFFFFF" stroke="#DED5E8"/>
     <rect x="452" y="246" width="346" height="140" rx="25" fill="#FFFFFF" stroke="#DED5E8"/>
@@ -65,13 +65,13 @@
   <g transform="translate(848 272)">
     <circle cx="34" cy="34" r="34" fill="#E7F2FF"/>
     <circle cx="34" cy="26" r="10" fill="#1769AA"/><path d="M16 58 C17 43 51 43 52 58Z" fill="#1769AA"/>
-    <text x="88" y="28" class="title">Fremdmitglied C</text><text x="88" y="53" class="body">Space Beta · kein Alpha-Zugriff</text>
+    <text x="88" y="28" class="title">Foreign member C</text><text x="88" y="53" class="body">Space Beta · no Alpha access</text>
     <rect x="88" y="70" width="194" height="26" rx="13" fill="#E7F2FF"/><text x="103" y="88" class="micro" fill="#1769AA">CROSS-TENANT 404</text>
   </g>
   <g transform="translate(1218 272)">
     <circle cx="34" cy="34" r="34" fill="#F2EEF5"/>
     <path d="M20 30 h28 v24 H20z M25 30 v-7 a9 9 0 0 1 18 0 v7" fill="none" stroke="#61586A" stroke-width="3"/>
-    <text x="88" y="28" class="title">Revoked / Anon</text><text x="88" y="53" class="body">alter Token oder keine Session</text>
+    <text x="88" y="28" class="title">Revoked / Anon</text><text x="88" y="53" class="body">old Token or no Session</text>
     <rect x="88" y="70" width="170" height="26" rx="13" fill="#F2EEF5"/><text x="103" y="88" class="micro" fill="#61586A">401 / REVOKED</text>
   </g>
 
@@ -92,8 +92,8 @@
   <g transform="translate(278 541)">
     <rect width="62" height="62" rx="18" fill="#FFFFFF" opacity=".18"/>
     <path d="M18 31 l9 9 l18 -21" fill="none" stroke="#FFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="88" y="27" class="whiteTitle">Auth → aktuelle Membership → Tenant → Resource Visibility</text>
-    <text x="88" y="54" class="whiteBody">Guard läuft vor Repositoryprojektion, Count, Suche, Cursor, Event und Read URL.</text>
+    <text x="88" y="27" class="whiteTitle">Auth → current Membership → Tenant → Resource Visibility</text>
+    <text x="88" y="54" class="whiteBody">Guard runs before Repository projection, Count, Search, Cursor, Event, and Read URL.</text>
     <rect x="820" y="7" width="214" height="44" rx="22" fill="#FFFFFF" opacity=".18"/>
     <text x="848" y="35" class="micro" fill="#FFFFFF">FAIL CLOSED · 404 SAFE</text>
   </g>
@@ -105,7 +105,7 @@
   <circle cx="1200" cy="497" r="12" fill="#FFE7EE" stroke="#A4133C" stroke-width="3"/><path d="M1194 491 l12 12 M1206 491 l-12 12" stroke="#A4133C" stroke-width="3"/>
 
   <!-- domain split -->
-  <text x="82" y="685" class="section" fill="#6638DC">DOMAINENTSCHEIDUNG</text>
+  <text x="82" y="685" class="section" fill="#6638DC">DOMAIN DECISION</text>
   <g filter="url(#soft)">
     <rect x="82" y="706" width="690" height="178" rx="28" fill="#E3F6F1" stroke="#B7E2D7"/>
     <rect x="796" y="706" width="722" height="178" rx="28" fill="url(#ownerBg)" stroke="#F0B5C7"/>
@@ -116,21 +116,21 @@
     <text x="96" y="29" class="title">SHARED</text>
     <text x="96" y="55" class="body">Memory · Milestone · Shared HeartMoment · Comment</text>
     <rect x="96" y="76" width="185" height="30" rx="15" fill="#FFFFFF"/><text x="113" y="96" class="micro" fill="#237A65">OWNER + PARTNER</text>
-    <text x="0" y="139" class="small">Story, Suche und Notification nur nach Guard</text>
+    <text x="0" y="139" class="small">Story, Search, and Notification only after Guard</text>
   </g>
   <g transform="translate(826 736)">
     <circle cx="38" cy="38" r="38" fill="#A61F51"/>
     <path d="M23 40 C23 29 35 25 39 35 C44 25 56 29 56 40 C56 50 39 60 39 60 C39 60 23 50 23 40Z" fill="#FFF"/>
     <text x="96" y="29" class="title">PRIVATE = OWNER_ONLY</text>
-    <text x="96" y="55" class="body">HeartMoment + Attachment folgen exakt dem Owner</text>
-    <rect x="96" y="76" width="235" height="30" rx="15" fill="#FFFFFF"/><text x="113" y="96" class="micro" fill="#A61F51">PARTNER IST NICHT BERECHTIGT</text>
-    <text x="0" y="139" class="small">kein Story-, Search-, Comment-, Push- oder Partnerexport-Pfad</text>
+    <text x="96" y="55" class="body">HeartMoment + Attachment follow the owner exactly</text>
+    <rect x="96" y="76" width="235" height="30" rx="15" fill="#FFFFFF"/><text x="113" y="96" class="micro" fill="#A61F51">PARTNER NOT AUTHORIZED</text>
+    <text x="0" y="139" class="small">no Story, Search, Comment, Push, or partner-export path</text>
   </g>
   <path d="M650 632 V690 H430 V697" class="gLine" marker-end="url(#greenArrow)"/>
   <path d="M950 632 V690 H1155 V697" class="rLine" marker-end="url(#pinkArrow)"/>
 
   <!-- sinks -->
-  <text x="82" y="934" class="section" fill="#1769AA">AUTORISIERTE SENKEN</text>
+  <text x="82" y="934" class="section" fill="#1769AA">AUTHORIZED SINKS</text>
   <g filter="url(#soft)">
     <rect x="82" y="954" width="274" height="84" rx="22" fill="#FFFFFF" stroke="#DED5E8"/>
     <rect x="378" y="954" width="274" height="84" rx="22" fill="#FFFFFF" stroke="#DED5E8"/>
@@ -140,15 +140,15 @@
   </g>
   <g transform="translate(106 976)"><circle cx="21" cy="21" r="21" fill="#EEE7FF"/><ellipse cx="21" cy="15" rx="13" ry="5" fill="#7C4DFF"/><rect x="8" y="15" width="26" height="18" fill="#7C4DFF"/><ellipse cx="21" cy="33" rx="13" ry="5" fill="#6638DC"/><text x="58" y="19" class="title" font-size="18">Postgres</text><text x="58" y="42" class="body">ProtectedPayload</text></g>
   <g transform="translate(402 976)"><circle cx="21" cy="21" r="21" fill="#E3F6F1"/><path d="M11 29 l11 -11 c4 -4 11 3 7 7 L18 36 c-7 7 -15 -2 -9 -9 l12 -12" fill="none" stroke="#237A65" stroke-width="3" stroke-linecap="round"/><text x="58" y="19" class="title" font-size="18">MediaStore</text><text x="58" y="42" class="body">private · short TTL</text></g>
-  <g transform="translate(698 976)"><circle cx="21" cy="21" r="21" fill="#E7F2FF"/><path d="M11 14 h20 M11 21 h14 M11 28 h20" stroke="#1769AA" stroke-width="3" stroke-linecap="round"/><text x="58" y="19" class="title" font-size="18">Story/Search</text><text x="58" y="42" class="body">Shared vor Count</text></g>
-  <g transform="translate(994 976)"><circle cx="21" cy="21" r="21" fill="#FFF2D5"/><path d="M10 14 h22 v20 H10z M14 18 h14 M14 24 h14 M14 30 h9" fill="none" stroke="#7A5100" stroke-width="2.5"/><text x="58" y="19" class="title" font-size="18">Outbox</text><text x="58" y="42" class="body">IDs · kein Content</text></g>
-  <g transform="translate(1290 976)"><circle cx="21" cy="21" r="21" fill="#FFE7EE"/><path d="M11 28 h20 l-4 -5 v-6 c0 -8 -12 -8 -12 0 v6z" fill="#A61F51"/><circle cx="21" cy="33" r="3" fill="#A61F51"/><text x="58" y="19" class="title" font-size="18">Push</text><text x="58" y="42" class="body">generische Preview</text></g>
+  <g transform="translate(698 976)"><circle cx="21" cy="21" r="21" fill="#E7F2FF"/><path d="M11 14 h20 M11 21 h14 M11 28 h20" stroke="#1769AA" stroke-width="3" stroke-linecap="round"/><text x="58" y="19" class="title" font-size="18">Story/Search</text><text x="58" y="42" class="body">Shared before Count</text></g>
+  <g transform="translate(994 976)"><circle cx="21" cy="21" r="21" fill="#FFF2D5"/><path d="M10 14 h22 v20 H10z M14 18 h14 M14 24 h14 M14 30 h9" fill="none" stroke="#7A5100" stroke-width="2.5"/><text x="58" y="19" class="title" font-size="18">Outbox</text><text x="58" y="42" class="body">IDs · no content</text></g>
+  <g transform="translate(1290 976)"><circle cx="21" cy="21" r="21" fill="#FFE7EE"/><path d="M11 28 h20 l-4 -5 v-6 c0 -8 -12 -8 -12 0 v6z" fill="#A61F51"/><circle cx="21" cy="33" r="3" fill="#A61F51"/><text x="58" y="19" class="title" font-size="18">Push</text><text x="58" y="42" class="body">generic Preview</text></g>
   <path d="M430 884 V928 H219 V945" class="nLine"/>
   <path d="M430 884 V928 H515 V945" class="nLine"/>
   <path d="M430 884 V928 H811 V945" class="gLine" marker-end="url(#greenArrow)"/>
   <path d="M430 884 V915 H1107 V945" class="nLine"/>
   <path d="M1155 884 V928 H515 V945" class="rLine" marker-end="url(#pinkArrow)"/>
 
-  <text x="82" y="1068" class="micro" fill="#6A6072">GUARD VOR PROJEKTION · PRIVATE MEDIEN FOLGEN DEM PARENT · LOGS/ANALYTICS/PUSH OHNE INHALT · E2EE-READY ≠ E2EE</text>
+  <text x="82" y="1068" class="micro" fill="#6A6072">GUARD BEFORE PROJECTION · PRIVATE MEDIA FOLLOWS PARENT · LOGS/ANALYTICS/PUSH WITHOUT CONTENT · E2EE-READY ≠ E2EE</text>
   <text x="1390" y="1068" class="micro" fill="#6A6072">V1.0 · 24.08.2026</text>
 </svg>
